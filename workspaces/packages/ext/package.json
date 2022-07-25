@@ -1,8 +1,8 @@
 {
-  "name": "fable-browser-extension",
+  "name": "@fable/ext",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@github.com:sharefable/browser-ext.git",
+  "repository": "git+ssh://git@github.com:sharefable/app.git",
   "author": "akash",
   "private": true,
   "license": "MIT",
