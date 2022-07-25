@@ -1,4 +1,4 @@
-const port = chrome.runtime.connect({ name: 'popup-1' });
+const port = chrome.runtime.connect({ name: 'fable_ext_popup' });
 
 document.getElementById('rec').addEventListener('click', () => {
   port.postMessage({ type: 'record' });

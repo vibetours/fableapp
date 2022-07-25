@@ -1,16 +1,7 @@
-export function log(...msg: Array<String>) {
+import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents } from './types';
+
+export function log(...msg: Array<any>) {
   console.log(...msg);
-}
-
-enum ENetworkEvents {
-  RequestWillbeSent = 'Network.requestWillBeSent',
-  RespReceivedExtraInfo = 'Network.responseReceivedExtraInfo',
-  ResponseReceived = 'Network.responseReceived',
-  LoadingFinished = 'Network.loadingFinished',
-}
-
-enum StorageKeys {
-  RecordedTabs = 'tabs_being_recorded',
 }
 
 const SkipReqForMethods = {
@@ -28,66 +19,47 @@ const SkipReqForProtocol = {
   'blob:': 1,
 };
 
-async function addTabIdToRecordList(id: number) {
-  const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
-  let recTabs: Array<number>;
-  if (StorageKeys.RecordedTabs in list && (recTabs = list[StorageKeys.RecordedTabs]) instanceof Array) {
-    recTabs.push(id);
-  } else {
-    recTabs = [id];
-  }
-  await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: recTabs });
-}
+// Persistence of data using chrome.storage.session
+const persistance = {
+  setRecordedTab: async (id: number) => {
+    const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
+    let recTabs: Array<number>;
+    if (StorageKeys.RecordedTabs in list && (recTabs = list[StorageKeys.RecordedTabs]) instanceof Array) {
+      recTabs.push(id);
+    } else {
+      recTabs = [id];
+    }
+    await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: recTabs });
+  },
 
-async function getRecordedTabs(): Promise<Record<number, number>> {
-  const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
-  const tabs = list[StorageKeys.RecordedTabs] as Array<number> | undefined;
-  if (!tabs) {
-    return {};
-  }
+  getRecordedTab: async (): Promise<Record<number, number>> => {
+    const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
+    const tabs = list[StorageKeys.RecordedTabs] as Array<number> | undefined;
+    if (!tabs) {
+      return {};
+    }
+    return tabs.reduce((store: Record<number, number>, v: number) => ((store[v] = 1), store), {});
+  },
 
-  return tabs.reduce((store: Record<number, number>, v: number) => ((store[v] = 1), store), {});
-}
+  // TODO take tab id as param and save it as a key
+  // TODO exact type of data, not any
+  setReqMeta: async (reqId: string, data: Record<string, any>) => {
+    const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
+    const storedData = await chrome.storage.session.get(key);
+    if (storedData[key]) {
+      await chrome.storage.session.set({ [key]: { ...storedData, ...data } });
+    } else {
+      await chrome.storage.session.set({ [key]: data });
+    }
+  },
 
-namespace NNetworkEvents {
-  export interface IBaseXhrNetData {
-    requestId: string;
-  }
-
-  export interface IReqWillBeSentData extends IBaseXhrNetData {
-    request: {
-      headers: Record<string, string | number>;
-      url: string;
-      method: 'GET' | 'POST';
-    };
-    documentURL: string;
-    redirectHasExtraInfo?: boolean;
-  }
-
-  export interface IRespReceivedData extends IBaseXhrNetData {
-    response: {
-      headers: Record<string, string | number>;
-      mimeType: string;
-    };
-  }
-}
-
-// TODO take tab id as param and save it as a key
-async function saveRequests(reqId: string, data: Record<string, any>) {
-  const key = `REQ_${reqId}`;
-  const storedData = await chrome.storage.session.get(key);
-  if (storedData[key]) {
-    await chrome.storage.session.set({ [key]: { ...storedData, ...data } });
-  } else {
-    await chrome.storage.session.set({ [key]: data });
-  }
-}
-
-async function getReq(reqId: string): Promise<Record<string, any> | null> {
-  const key = `REQ_${reqId}`;
-  const storedData = await chrome.storage.session.get(key);
-  return storedData[key] || null;
-}
+  // TODO exact type of data, not any
+  getReqMeta: async (reqId: string): Promise<Record<string, any> | null> => {
+    const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
+    const storedData = await chrome.storage.session.get(key);
+    return storedData[key] || null;
+  },
+};
 
 async function getRespBody(tabId: number, reqId: string) {
   return chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
@@ -97,9 +69,9 @@ async function getRespBody(tabId: number, reqId: string) {
 
 function onNetworkEvts() {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
-    console.log(tab, eventStr, dataObj);
+    log(tab, eventStr, dataObj);
     // If the request is coming from tab which is not being recorded then skip the details
-    const recordedTabs = await getRecordedTabs();
+    const recordedTabs = await persistance.getRecordedTab();
     if (!tab || !tab.tabId || !(tab.tabId in recordedTabs)) {
       return;
     }
@@ -119,10 +91,10 @@ function onNetworkEvts() {
 
       if (reqData.redirectHasExtraInfo) {
         // TODO
-        console.log('TODO data.redirectHasExtraInfo is true');
+        log('TODO data.redirectHasExtraInfo is true');
       }
 
-      saveRequests(reqData.requestId, {
+      persistance.setReqMeta(reqData.requestId, {
         origin: reqData.documentURL,
         method: reqData.request.method,
         url: reqData.request.url,
@@ -137,7 +109,7 @@ function onNetworkEvts() {
       }
     } else if (event === ENetworkEvents.ResponseReceived) {
       const respData = dataObj as NNetworkEvents.IRespReceivedData;
-      saveRequests(respData.requestId, {
+      persistance.setReqMeta(respData.requestId, {
         content_type:
           respData.response.mimeType
           || respData.response.headers['content-type']
@@ -146,7 +118,7 @@ function onNetworkEvts() {
       });
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
-      const savedReq = await getReq(finishedData.requestId);
+      const savedReq = await persistance.getReqMeta(finishedData.requestId);
       try {
         const resp = await getRespBody(tab.tabId, finishedData.requestId);
         console.log('===========================================');
@@ -159,36 +131,33 @@ function onNetworkEvts() {
   };
 }
 
-function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Tab) {
-  chrome.debugger.attach({ tabId: tab.id }, '1.0');
-  chrome.debugger.sendCommand({ tabId: tab.id }, 'Network.enable');
+async function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Tab) {
+  await chrome.debugger.attach({ tabId: tab.id }, '1.0');
+  await chrome.debugger.sendCommand({ tabId: tab.id }, 'Network.enable');
   chrome.debugger.onEvent.addListener(onNetworkEvts());
-  chrome.tabs.reload(tab.id as number);
+  await chrome.tabs.reload(tab.id as number);
 }
 
 chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === 'popup-1') {
-    port.onMessage.addListener(async (msg) => {
+  if (port.name === 'fable_ext_popup') {
+    port.onMessage.addListener(async (msg: IRuntimeMsg) => {
       let activeTab: chrome.tabs.Tab;
       switch (msg.type) {
         case 'record':
           port.postMessage({ status: 'started' });
+
           activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
           if (!activeTab) {
             throw new Error('Active tab should not be null');
           }
+          await persistance.setRecordedTab(activeTab.id as number);
 
-          await addTabIdToRecordList(activeTab.id as number);
-          startRecordingPage(port, activeTab);
+          await startRecordingPage(port, activeTab);
           break;
 
         default:
           break;
       }
     });
-  } else {
-    log('port is something else');
   }
 });
-
-log('hello world');
