@@ -2,6 +2,7 @@
   "name": "@fable/ext",
   "version": "1.0.0",
   "main": "index.js",
+  "description": "Browser extension for Fable",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "author": "akash",
   "private": true,
