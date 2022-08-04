@@ -1,5 +1,6 @@
-import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents } from './types';
+import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents, RecordingStatus } from './types';
 import ReqProcessingSynchronizer from './req_processing_sync';
+import * as persistence from './persistence';
 
 // TODO if a new tab get created from existing recorded tabs add it in saved tab list
 //      if a a newly open tab gets closed remove it from saved tab list
@@ -23,64 +24,6 @@ const SkipReqForProtocol = {
   'blob:': 1,
 };
 
-// Persistence of data using chrome.storage.session
-const persistance = {
-  setRecordedTab: async (id: number) => {
-    const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
-    let recTabs: Array<number>;
-    if (StorageKeys.RecordedTabs in list && (recTabs = list[StorageKeys.RecordedTabs]) instanceof Array) {
-      recTabs.push(id);
-    } else {
-      recTabs = [id];
-    }
-    await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: recTabs });
-  },
-
-  getRecordedTab: async (): Promise<Record<number, number>> => {
-    const list = await chrome.storage.session.get(StorageKeys.RecordedTabs);
-    const tabs = list[StorageKeys.RecordedTabs] as Array<number> | undefined;
-    if (!tabs) {
-      return {};
-    }
-    return tabs.reduce((store: Record<number, number>, v: number) => ((store[v] = 1), store), {});
-  },
-
-  // TODO take tab id as param and save it as a key
-  // TODO exact type of data, not any
-  setReqMeta: async (reqId: string, data: Record<string, any>) => {
-    const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
-    const storedData = await chrome.storage.session.get(key);
-    if (storedData[key]) {
-      await chrome.storage.session.set({ [key]: { ...storedData, ...data } });
-    } else {
-      await chrome.storage.session.set({ [key]: data });
-    }
-  },
-
-  // TODO exact type of data, not any
-  getReqMeta: async (reqId: string): Promise<Record<string, any> | null> => {
-    const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
-    const storedData = await chrome.storage.session.get(key);
-    return storedData[key] || null;
-  },
-
-  setAllowedHost: async (tab: chrome.tabs.Tab) => {
-    const allowedHosts = await persistance.getAllowedHost();
-    const url = new URL(tab.url || '');
-    allowedHosts[url.host] = 1;
-    await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
-  },
-
-  getAllowedHost: async (): Promise<Record<string, number>> => {
-    const data = await chrome.storage.session.get(StorageKeys.AllowedHost);
-    let allowedHosts = data[StorageKeys.AllowedHost];
-    if (!allowedHosts) {
-      allowedHosts = {};
-    }
-    return allowedHosts;
-  },
-};
-
 async function getRespBody(tabId: number, reqId: string) {
   return chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
     requestId: reqId,
@@ -90,7 +33,7 @@ async function getRespBody(tabId: number, reqId: string) {
 function onNetworkEvts(sync: ReqProcessingSynchronizer) {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
     // If the request is coming from tab which is not being recorded then skip the details
-    const recordedTabs = await persistance.getRecordedTab();
+    const recordedTabs = await persistence.getTabsBeingRecorded();
     if (!tab || !tab.tabId || !(tab.tabId in recordedTabs)) {
       return;
     }
@@ -102,7 +45,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
 
       // If the request is coming from the target tab but is not coming from document then don't process the response.
       // This might happen if the request is coming from extension page etc
-      const allowedHosts = await persistance.getAllowedHost();
+      const allowedHosts = await persistence.getAllowedHost();
       if (!(url.host in allowedHosts)) {
         sync.disableLocking(reqData.requestId);
         return;
@@ -121,7 +64,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         await lock?.respReceivedExtraInfo.p;
         sync.deriveNewLock(reqData.requestId);
 
-        const storedReq = await persistance.getReqMeta(reqData.requestId);
+        const storedReq = await persistence.getReqMeta(reqData.requestId);
 
         // TODO store the request here
         log('TODO data.redirectHasExtraInfo is true');
@@ -137,7 +80,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         sync.commit(reqData.request.url);
       }
 
-      await persistance.setReqMeta(reqData.requestId, {
+      await persistence.setReqMeta(reqData.requestId, {
         origin: reqData.documentURL,
         method: reqData.request.method,
         url: reqData.request.url,
@@ -157,7 +100,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       try {
         // only during redirect save the header to the original request
         if (respData.statusCode === 302) {
-          await persistance.setReqMeta(respData.requestId, {
+          await persistence.setReqMeta(respData.requestId, {
             redirectHeaders: respData.headers,
             // TODO post data
           });
@@ -175,7 +118,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       }
       try {
         await lock.reqWillBeSent.p;
-        await persistance.setReqMeta(respData.requestId, {
+        await persistence.setReqMeta(respData.requestId, {
           contentType:
             respData.response.mimeType
             || respData.response.headers['content-type']
@@ -188,7 +131,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       }
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
-      const savedReq = await persistance.getReqMeta(finishedData.requestId);
+      const savedReq = await persistence.getReqMeta(finishedData.requestId);
       try {
         const resp = await getRespBody(tab.tabId, finishedData.requestId);
         console.log('===========================================');
@@ -209,22 +152,67 @@ async function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Ta
   await chrome.tabs.reload(tab.id as number);
 }
 
+async function onNewTabCreation(tab: chrome.tabs.Tab) {
+  if (!tab.id) {
+    return;
+  }
+  const lastActiveTabId = await persistence.getLastActiveTab();
+  if (lastActiveTabId !== null) {
+    const tabsBeingRecorded = await persistence.getTabsBeingRecorded();
+    if (lastActiveTabId in tabsBeingRecorded) {
+      await persistence.addToTabsBeingRecordedList(tab.id);
+      await persistence.setAllowedHost(tab);
+    }
+  } else {
+    throw new Error('Active tab is null. This should never happen.');
+  }
+}
+
+async function onNewTabDeletion(tabId: number) {
+  await persistence.removeFromTabsBeingRecordedList(tabId);
+}
+
+async function onTabActivation(tab: chrome.tabs.TabActiveInfo) {
+  await persistence.setLastActiveTab(tab.tabId);
+}
+
+// TODO all the msg type move to enum once the popup js ported to typescript
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'fable_ext_popup') {
     port.onMessage.addListener(async (msg: IRuntimeMsg) => {
       let activeTab: chrome.tabs.Tab;
       switch (msg.type) {
+        case 'query_status':
+          port.postMessage({ type: 'query_status', payload: { value: await persistence.getRecordingStatus() } });
+          break;
+
         case 'record':
-          port.postMessage({ status: 'started' });
+          await persistence.setRecordingStatus(RecordingStatus.Recording);
 
           activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
-          if (!activeTab) {
+          if (!(activeTab && activeTab.id)) {
+            // TODO Send this error to popup js
             throw new Error('Active tab should not be null');
           }
-          persistance.setAllowedHost(activeTab);
-          await persistance.setRecordedTab(activeTab.id as number);
 
-          await startRecordingPage(port, activeTab);
+          await persistence.setLastActiveTab(activeTab.id);
+          chrome.tabs.onCreated.addListener(onNewTabCreation);
+          chrome.tabs.onRemoved.addListener(onNewTabDeletion);
+          chrome.tabs.onActivated.addListener(onTabActivation);
+
+          await persistence.addToTabsBeingRecordedList(activeTab.id);
+          persistence.setAllowedHost(activeTab);
+
+          // await startRecordingPage(port, activeTab);
+          break;
+
+        case 'stop':
+          await persistence.setRecordingStatus(RecordingStatus.Idle);
+          chrome.tabs.onCreated.removeListener(onNewTabCreation);
+          chrome.tabs.onRemoved.removeListener(onNewTabDeletion);
+          chrome.tabs.onActivated.removeListener(onTabActivation);
+
+          // TODO cleanup all storage
           break;
 
         default:

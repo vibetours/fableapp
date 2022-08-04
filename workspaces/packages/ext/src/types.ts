@@ -9,10 +9,17 @@ export enum StorageKeys {
   RecordedTabs = 'tabs_being_recorded',
   PrefixRequestMeta = 'rm',
   AllowedHost = 'allowed_hosts',
+  RecordingStatus = 'recording_status',
+  LastActiveTabId = 'last_active_tab_id',
+}
+
+export enum RecordingStatus {
+  Recording = 'recording',
+  Idle = 'idle',
 }
 
 export interface IRuntimeMsg {
-  type: 'record' | '';
+  type: 'record' | 'query_status' | 'stop';
 }
 
 export namespace NNetworkEvents {
