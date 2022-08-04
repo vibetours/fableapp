@@ -8,6 +8,7 @@ export enum ENetworkEvents {
 export enum StorageKeys {
   RecordedTabs = 'tabs_being_recorded',
   PrefixRequestMeta = 'rm',
+  AllowedHost = 'allowed_hosts',
 }
 
 export interface IRuntimeMsg {
@@ -25,8 +26,16 @@ export namespace NNetworkEvents {
       url: string;
       method: 'GET' | 'POST';
     };
+    redirectResponse?: {
+      status: number;
+    };
     documentURL: string;
     redirectHasExtraInfo?: boolean;
+  }
+
+  export interface IRespReceivedExtraInfo extends IBaseXhrNetData {
+    statusCode: number;
+    headers: Record<string, string | number>;
   }
 
   export interface IRespReceivedData extends IBaseXhrNetData {

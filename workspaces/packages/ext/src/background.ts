@@ -1,4 +1,8 @@
 import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents } from './types';
+import ReqProcessingSynchronizer from './req_processing_sync';
+
+// TODO if a new tab get created from existing recorded tabs add it in saved tab list
+//      if a a newly open tab gets closed remove it from saved tab list
 
 export function log(...msg: Array<any>) {
   console.log(...msg);
@@ -59,6 +63,22 @@ const persistance = {
     const storedData = await chrome.storage.session.get(key);
     return storedData[key] || null;
   },
+
+  setAllowedHost: async (tab: chrome.tabs.Tab) => {
+    const allowedHosts = await persistance.getAllowedHost();
+    const url = new URL(tab.url || '');
+    allowedHosts[url.host] = 1;
+    await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
+  },
+
+  getAllowedHost: async (): Promise<Record<string, number>> => {
+    const data = await chrome.storage.session.get(StorageKeys.AllowedHost);
+    let allowedHosts = data[StorageKeys.AllowedHost];
+    if (!allowedHosts) {
+      allowedHosts = {};
+    }
+    return allowedHosts;
+  },
 };
 
 async function getRespBody(tabId: number, reqId: string) {
@@ -67,9 +87,8 @@ async function getRespBody(tabId: number, reqId: string) {
   });
 }
 
-function onNetworkEvts() {
+function onNetworkEvts(sync: ReqProcessingSynchronizer) {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
-    log(tab, eventStr, dataObj);
     // If the request is coming from tab which is not being recorded then skip the details
     const recordedTabs = await persistance.getRecordedTab();
     if (!tab || !tab.tabId || !(tab.tabId in recordedTabs)) {
@@ -80,42 +99,93 @@ function onNetworkEvts() {
     if (event === ENetworkEvents.RequestWillbeSent) {
       const reqData = dataObj as NNetworkEvents.IReqWillBeSentData;
       const url = new URL(reqData.request.url);
+
+      // If the request is coming from the target tab but is not coming from document then don't process the response.
+      // This might happen if the request is coming from extension page etc
+      const allowedHosts = await persistance.getAllowedHost();
+      if (!(url.host in allowedHosts)) {
+        sync.disableLocking(reqData.requestId);
+        return;
+      }
+
       if (
         reqData.request.method in SkipReqForMethods
         || url.host in SkipReqForHost
         || url.protocol in SkipReqForProtocol
       ) {
-        // TODO
-        // skip requests
+        sync.disableLocking(reqData.requestId);
       }
 
-      if (reqData.redirectHasExtraInfo) {
-        // TODO
+      if (reqData.redirectHasExtraInfo && reqData.redirectResponse && reqData.redirectResponse.status === 302) {
+        const lock = sync.getLock(reqData.requestId);
+        await lock?.respReceivedExtraInfo.p;
+        sync.deriveNewLock(reqData.requestId);
+
+        const storedReq = await persistance.getReqMeta(reqData.requestId);
+
+        // TODO store the request here
         log('TODO data.redirectHasExtraInfo is true');
       }
 
-      persistance.setReqMeta(reqData.requestId, {
+      // If the request is saved already, don't save it again.
+      // If a single get request is sent multiple time then save it just once
+      if (reqData.request.method === 'GET') {
+        if (!sync.isCommited(reqData.request.url)) {
+          sync.disableLocking(reqData.requestId);
+          return;
+        }
+        sync.commit(reqData.request.url);
+      }
+
+      await persistance.setReqMeta(reqData.requestId, {
         origin: reqData.documentURL,
         method: reqData.request.method,
         url: reqData.request.url,
-        id: reqData.requestId,
         reqHeaders: reqData.request.headers,
         // TODO post data
       });
+
+      const lock = sync.getLock(reqData.requestId);
+      lock?.reqWillBeSent.resolve();
     } else if (event === ENetworkEvents.RespReceivedExtraInfo) {
-      // only during redirect save the header to the original request
-      if ((dataObj || ({} as any)).statusCode === 302) {
-        console.log('TODO RespReceivedExtraInfo with redirect status 302');
+      const respData = dataObj as NNetworkEvents.IRespReceivedExtraInfo;
+      const lock = sync.getLock(respData.requestId);
+      if (!lock) {
+        return;
+      }
+
+      try {
+        // only during redirect save the header to the original request
+        if (respData.statusCode === 302) {
+          await persistance.setReqMeta(respData.requestId, {
+            redirectHeaders: respData.headers,
+            // TODO post data
+          });
+          lock.respReceivedExtraInfo.resolve();
+        }
+      } catch {
+        // TODO address exception properly with timeout
+        lock.respReceivedExtraInfo.reject();
       }
     } else if (event === ENetworkEvents.ResponseReceived) {
       const respData = dataObj as NNetworkEvents.IRespReceivedData;
-      persistance.setReqMeta(respData.requestId, {
-        content_type:
-          respData.response.mimeType
-          || respData.response.headers['content-type']
-          || respData.response.headers['Content-Type'],
-        respHeaders: respData.response.headers,
-      });
+      const lock = sync.getLock(respData.requestId);
+      if (!lock) {
+        return;
+      }
+      try {
+        await lock.reqWillBeSent.p;
+        await persistance.setReqMeta(respData.requestId, {
+          contentType:
+            respData.response.mimeType
+            || respData.response.headers['content-type']
+            || respData.response.headers['Content-Type'],
+          respHeaders: respData.response.headers,
+        });
+        lock.respReceived.resolve();
+      } catch {
+        // TODO address exception properly with timeout
+      }
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
       const savedReq = await persistance.getReqMeta(finishedData.requestId);
@@ -134,7 +204,8 @@ function onNetworkEvts() {
 async function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Tab) {
   await chrome.debugger.attach({ tabId: tab.id }, '1.0');
   await chrome.debugger.sendCommand({ tabId: tab.id }, 'Network.enable');
-  chrome.debugger.onEvent.addListener(onNetworkEvts());
+  const sync = new ReqProcessingSynchronizer();
+  chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
   await chrome.tabs.reload(tab.id as number);
 }
 
@@ -150,6 +221,7 @@ chrome.runtime.onConnect.addListener((port) => {
           if (!activeTab) {
             throw new Error('Active tab should not be null');
           }
+          persistance.setAllowedHost(activeTab);
           await persistance.setRecordedTab(activeTab.id as number);
 
           await startRecordingPage(port, activeTab);
