@@ -7,16 +7,47 @@ export enum ENetworkEvents {
 
 export enum StorageKeys {
   RecordedTabs = 'tabs_being_recorded',
-  PrefixRequestMeta = 'rm',
+  PrefixRequestData = 'rd',
   AllowedHost = 'allowed_hosts',
   RecordingStatus = 'recording_status',
   LastActiveTabId = 'last_active_tab_id',
+  UploadIds = 'upload_ids',
+  RunningTimer = 'running_timer',
+  TabIdWithDebuggerAttached = 'tab_id_with_debugger_attached',
 }
 
 export enum RecordingStatus {
   Recording = 'recording',
   Idle = 'idle',
 }
+
+export interface SerializableReq {
+  origin: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  url: string;
+  reqHeaders: Record<string, string | number>;
+  meta: {
+    skipped: boolean;
+  };
+}
+
+export interface SerializableRedirectResp {
+  redirectHeaders: Record<string, string | number>;
+  status: number;
+}
+
+export interface SerializableResp {
+  // ref: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+  contentType: string | number;
+  respHeaders: Record<string, string | number>;
+  status: number;
+}
+
+export interface SerializableRespBody {
+  respBody: any;
+}
+
+export type SerializablePayload = SerializableReq & SerializableResp & SerializableRedirectResp & SerializableRespBody;
 
 export interface IRuntimeMsg {
   type: 'record' | 'query_status' | 'stop';
@@ -49,6 +80,7 @@ export namespace NNetworkEvents {
     response: {
       headers: Record<string, string | number>;
       mimeType: string;
+      status: number;
     };
   }
 }

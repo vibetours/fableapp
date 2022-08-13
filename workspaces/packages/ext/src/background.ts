@@ -1,9 +1,18 @@
-import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents, RecordingStatus } from './types';
+import {
+  StorageKeys,
+  ENetworkEvents,
+  IRuntimeMsg,
+  NNetworkEvents,
+  RecordingStatus,
+  SerializablePayload,
+} from './types';
 import ReqProcessingSynchronizer from './req_processing_sync';
 import * as persistence from './persistence';
+import { getRandomId } from './utils';
 
-// TODO if a new tab get created from existing recorded tabs add it in saved tab list
-//      if a a newly open tab gets closed remove it from saved tab list
+// TODO report all the requests during recording for debugging purpose
+// TODO with post data
+// TODO error handling for await statements
 
 export function log(...msg: Array<any>) {
   console.log(...msg);
@@ -22,6 +31,7 @@ const SkipReqForHost = {
 const SkipReqForProtocol = {
   'data:': 1,
   'blob:': 1,
+  'chrome-extensin:': 1,
 };
 
 async function getRespBody(tabId: number, reqId: string) {
@@ -47,24 +57,33 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       // This might happen if the request is coming from extension page etc
       const allowedHosts = await persistence.getAllowedHost();
       if (!(url.host in allowedHosts)) {
-        sync.disableLocking(reqData.requestId);
+        sync.ignore(reqData.requestId);
         return;
       }
 
+      let skipped = false;
       if (
         reqData.request.method in SkipReqForMethods
         || url.host in SkipReqForHost
         || url.protocol in SkipReqForProtocol
       ) {
-        sync.disableLocking(reqData.requestId);
+        sync.ignore(reqData.requestId);
+        skipped = true;
       }
 
+      console.log(reqData.requestId, reqData.request.url);
       if (reqData.redirectHasExtraInfo && reqData.redirectResponse && reqData.redirectResponse.status === 302) {
         const lock = sync.getLock(reqData.requestId);
         await lock?.respReceivedExtraInfo.p;
+        console.log(reqData.requestId, reqData.request.url, 'reqwillbesent redirect');
         sync.deriveNewLock(reqData.requestId);
 
-        const storedReq = await persistence.getReqMeta(reqData.requestId);
+        const storedReq = (await persistence.getReqMeta(tab.tabId, reqData.requestId)) as SerializablePayload;
+        await persistence.addToUploadQ(getRandomId(), {
+          ...storedReq,
+          contentType: reqData.request.headers['content-type'] || reqData.request.headers['Content-Type'],
+        });
+        lock?.respReceivedExtraInfo.resolve();
 
         // TODO store the request here
         log('TODO data.redirectHasExtraInfo is true');
@@ -73,18 +92,19 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       // If the request is saved already, don't save it again.
       // If a single get request is sent multiple time then save it just once
       if (reqData.request.method === 'GET') {
-        if (!sync.isCommited(reqData.request.url)) {
-          sync.disableLocking(reqData.requestId);
+        if (sync.isCommited(reqData.request.url)) {
+          sync.ignore(reqData.requestId);
           return;
         }
         sync.commit(reqData.request.url);
       }
 
-      await persistence.setReqMeta(reqData.requestId, {
+      await persistence.setReqData(tab.tabId, reqData.requestId, {
         origin: reqData.documentURL,
         method: reqData.request.method,
         url: reqData.request.url,
         reqHeaders: reqData.request.headers,
+        meta: { skipped },
         // TODO post data
       });
 
@@ -98,16 +118,21 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       }
 
       try {
+        await lock.reqWillBeSent.p;
         // only during redirect save the header to the original request
         if (respData.statusCode === 302) {
-          await persistence.setReqMeta(respData.requestId, {
+          console.log('ENetworkEvents.RespReceivedExtraInfo', respData.requestId);
+          await persistence.setReqData(tab.tabId, respData.requestId, {
             redirectHeaders: respData.headers,
-            // TODO post data
+            status: respData.statusCode,
           });
+          lock.respReceivedExtraInfoRedirect.resolve();
+        } else {
+          lock.respReceivedExtraInfoRedirect.resolve();
           lock.respReceivedExtraInfo.resolve();
         }
       } catch {
-        // TODO address exception properly with timeout
+        lock.respReceivedExtraInfoRedirect.reject();
         lock.respReceivedExtraInfo.reject();
       }
     } else if (event === ENetworkEvents.ResponseReceived) {
@@ -117,28 +142,37 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         return;
       }
       try {
-        await lock.reqWillBeSent.p;
-        await persistence.setReqMeta(respData.requestId, {
+        await Promise.all([lock.reqWillBeSent.p, lock.respReceivedExtraInfo.p]);
+        console.log('ENetworkEvents.ResponseReceived', respData.requestId);
+        await persistence.setReqData(tab.tabId, respData.requestId, {
           contentType:
             respData.response.mimeType
-            || respData.response.headers['content-type']
-            || respData.response.headers['Content-Type'],
+            || respData.response.headers['Content-Type']
+            || respData.response.headers['content-type'],
           respHeaders: respData.response.headers,
+          status: respData.response.status,
         });
         lock.respReceived.resolve();
       } catch {
-        // TODO address exception properly with timeout
+        lock.respReceived.reject();
       }
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
-      const savedReq = await persistence.getReqMeta(finishedData.requestId);
+      const lock = sync.getLock(finishedData.requestId);
+      if (!lock) {
+        return;
+      }
+      await lock.respReceived.p;
+      const savedReq = (await persistence.getReqMeta(tab.tabId, finishedData.requestId)) as SerializablePayload;
       try {
         const resp = await getRespBody(tab.tabId, finishedData.requestId);
-        console.log('===========================================');
-        console.log(resp);
-        console.log('===========================================');
+        await persistence.addToUploadQ(getRandomId(), { ...savedReq, respBody: resp });
+
+        // console.log('===========================================');
+        // console.log(resp);
+        // console.log('===========================================');
       } catch (e) {
-        console.log('Error while fetching response', e, savedReq);
+        console.log('Error while fetching response', e, savedReq, finishedData);
       }
     }
   };
@@ -146,6 +180,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
 
 async function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Tab) {
   await chrome.debugger.attach({ tabId: tab.id }, '1.0');
+  await chrome.storage.session.set({ [StorageKeys.TabIdWithDebuggerAttached]: tab.id });
   await chrome.debugger.sendCommand({ tabId: tab.id }, 'Network.enable');
   const sync = new ReqProcessingSynchronizer();
   chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
@@ -176,11 +211,34 @@ async function onTabActivation(tab: chrome.tabs.TabActiveInfo) {
   await persistence.setLastActiveTab(tab.tabId);
 }
 
+async function processRequestsInQueue() {
+  const reqs = await persistence.getFromUploadQ(10);
+  const ids = Object.keys(reqs);
+  if (ids.length) {
+    console.log(reqs);
+    await persistence.removeFromQ(ids);
+  } else {
+    console.log('na');
+  }
+}
+
+async function startQueueProcessing() {
+  const timer = await chrome.storage.session.get(StorageKeys.RunningTimer);
+  const timerId = timer[StorageKeys.RunningTimer];
+  if (timerId) clearTimeout(timerId);
+  const id = setTimeout(async () => {
+    await processRequestsInQueue();
+    startQueueProcessing();
+  }, 1000);
+  await chrome.storage.session.set({ [StorageKeys.RunningTimer]: id });
+}
+
 // TODO all the msg type move to enum once the popup js ported to typescript
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'fable_ext_popup') {
     port.onMessage.addListener(async (msg: IRuntimeMsg) => {
       let activeTab: chrome.tabs.Tab;
+      let data: any;
       switch (msg.type) {
         case 'query_status':
           port.postMessage({ type: 'query_status', payload: { value: await persistence.getRecordingStatus() } });
@@ -203,10 +261,15 @@ chrome.runtime.onConnect.addListener((port) => {
           await persistence.addToTabsBeingRecordedList(activeTab.id);
           persistence.setAllowedHost(activeTab);
 
-          // await startRecordingPage(port, activeTab);
+          await startQueueProcessing();
+          await startRecordingPage(port, activeTab);
           break;
 
         case 'stop':
+          data = await chrome.storage.session.get([StorageKeys.TabIdWithDebuggerAttached]);
+          if (data[StorageKeys.TabIdWithDebuggerAttached]) {
+            await chrome.debugger.detach({ tabId: data[StorageKeys.TabIdWithDebuggerAttached] });
+          }
           await persistence.setRecordingStatus(RecordingStatus.Idle);
           chrome.tabs.onCreated.removeListener(onNewTabCreation);
           chrome.tabs.onRemoved.removeListener(onNewTabDeletion);

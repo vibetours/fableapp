@@ -1,4 +1,11 @@
-import { RecordingStatus, StorageKeys } from './types';
+import {
+  RecordingStatus,
+  StorageKeys,
+  SerializableReq,
+  SerializableRedirectResp,
+  SerializableResp,
+  SerializablePayload,
+} from './types';
 
 // Persistence of data using chrome.storage.session
 export const setRecordingStatus = async (value: RecordingStatus) => {
@@ -45,21 +52,22 @@ export const removeFromTabsBeingRecordedList = async (id: number) => {
   await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: tabIds });
 };
 
-// TODO take tab id as param and save it as a key
-// TODO exact type of data, not any
-export const setReqMeta = async (reqId: string, data: Record<string, any>) => {
-  const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
+export const setReqData = async (
+  tabId: number,
+  reqId: string,
+  data: SerializableReq | SerializableRedirectResp | SerializableResp
+) => {
+  const key = `${StorageKeys.PrefixRequestData}_${tabId}_${reqId}`;
   const storedData = await chrome.storage.session.get(key);
   if (storedData[key]) {
-    await chrome.storage.session.set({ [key]: { ...storedData, ...data } });
+    await chrome.storage.session.set({ [key]: { ...storedData[key], ...data } });
   } else {
     await chrome.storage.session.set({ [key]: data });
   }
 };
 
-// TODO exact type of data, not any
-export const getReqMeta = async (reqId: string): Promise<Record<string, any> | null> => {
-  const key = `${StorageKeys.PrefixRequestMeta}_${reqId}`;
+export const getReqMeta = async (tabId: number, reqId: string): Promise<SerializablePayload | null> => {
+  const key = `${StorageKeys.PrefixRequestData}_${tabId}_${reqId}`;
   const storedData = await chrome.storage.session.get(key);
   return storedData[key] || null;
 };
@@ -78,4 +86,59 @@ export const setAllowedHost = async (tab: chrome.tabs.Tab) => {
   const url = new URL(tab.url || '');
   allowedHosts[url.host] = 1;
   await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
+};
+
+export const addToUploadQ = async (id: string, payload: SerializablePayload) => {
+  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
+  let uploadIds: Array<string>;
+  if (!(data && (uploadIds = data[StorageKeys.UploadIds]))) {
+    uploadIds = [id];
+  } else {
+    uploadIds.push(id);
+  }
+  await chrome.storage.session.set({ [StorageKeys.UploadIds]: uploadIds });
+
+  try {
+    await chrome.storage.local.set({ [id]: payload });
+  } catch (e) {
+    console.log('...', e, payload);
+  }
+};
+
+export const getFromUploadQ = async (limit?: number): Promise<Record<string, SerializablePayload>> => {
+  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
+  let uploadIds: Array<string> = data[StorageKeys.UploadIds];
+  if (uploadIds) {
+    if (limit) {
+      uploadIds = uploadIds.slice(0, limit);
+    }
+    const dataToBeUploaded = await chrome.storage.local.get(uploadIds);
+    return dataToBeUploaded;
+  }
+  return {};
+};
+
+export const removeFromQ = async (ids: Array<string>) => {
+  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
+  const uploadIds = data[StorageKeys.UploadIds];
+  if (uploadIds) {
+    const uploadIdsMap = uploadIds.reduce((store: Record<string, number>, id: string) => {
+      store[id] = 1;
+      return store;
+    }, {});
+
+    const idMap = ids.reduce((store: Record<string, number>, id: string) => {
+      store[id] = 1;
+      return store;
+    }, {});
+
+    for (const key in idMap) {
+      if (Object.prototype.hasOwnProperty.call(idMap, key)) {
+        delete uploadIdsMap[key];
+      }
+    }
+
+    await chrome.storage.session.set({ [StorageKeys.UploadIds]: Object.keys(uploadIdsMap) });
+  }
+  await chrome.storage.local.remove(ids);
 };

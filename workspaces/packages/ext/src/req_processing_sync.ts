@@ -25,12 +25,14 @@ export class Defer {
   }
 }
 
-export class ProcessingSequence {
+export class ProgressSequence {
   private id: string;
 
   public reqWillBeSent: Defer;
 
   public respReceived: Defer;
+
+  public respReceivedExtraInfoRedirect: Defer;
 
   public respReceivedExtraInfo: Defer;
 
@@ -38,6 +40,7 @@ export class ProcessingSequence {
     this.id = id;
     this.reqWillBeSent = new Defer();
     this.respReceived = new Defer();
+    this.respReceivedExtraInfoRedirect = new Defer();
     this.respReceivedExtraInfo = new Defer();
   }
 
@@ -45,12 +48,14 @@ export class ProcessingSequence {
     this.reqWillBeSent.resolve();
     this.respReceived.resolve();
     this.respReceivedExtraInfo.resolve();
+    this.respReceivedExtraInfoRedirect.resolve();
   }
 
   reject() {
     this.reqWillBeSent.reject();
     this.respReceived.reject();
     this.respReceivedExtraInfo.reject();
+    this.respReceivedExtraInfoRedirect.reject();
   }
 
   dispose() {
@@ -59,7 +64,7 @@ export class ProcessingSequence {
 }
 
 export default class ReqProcessingSynchronizer {
-  private acquiredLocks: Record<string, ProcessingSequence>;
+  private acquiredLocks: Record<string, ProgressSequence>;
 
   private disabledLocks: Record<string, 1>;
 
@@ -79,41 +84,45 @@ export default class ReqProcessingSynchronizer {
     this.commits[id] = 1;
   }
 
-  disableLocking(id: string) {
+  ignore(id: string) {
     if (id in this.acquiredLocks) {
       this.acquiredLocks[id].fulfill();
     }
     this.disabledLocks[id] = 1;
   }
 
-  getLock(id: string): ProcessingSequence | null {
+  getLock(id: string): ProgressSequence | null {
     if (id in this.disabledLocks) {
       return null;
     }
 
     if (!(id in this.acquiredLocks)) {
-      this.acquiredLocks[id] = new ProcessingSequence(id);
+      this.acquiredLocks[id] = new ProgressSequence(id);
     }
 
     return this.acquiredLocks[id];
   }
 
-  deriveNewLock(id: string): ProcessingSequence {
+  deriveNewLock(id: string): ProgressSequence {
     const lock = this.getLock(id);
-    const seq = new ProcessingSequence(id);
+    const seq = new ProgressSequence(id);
 
     this.acquiredLocks[id] = seq;
     if (lock) {
       seq.reqWillBeSent.p.finally(() => {
-        seq.reqWillBeSent.resolve();
+        lock.reqWillBeSent.resolve();
+      });
+
+      seq.respReceivedExtraInfoRedirect.p.finally(() => {
+        lock.respReceivedExtraInfoRedirect.resolve();
       });
 
       seq.respReceivedExtraInfo.p.finally(() => {
-        seq.respReceivedExtraInfo.resolve();
+        lock.respReceivedExtraInfo.resolve();
       });
 
       seq.respReceived.p.finally(() => {
-        seq.respReceived.resolve();
+        lock.respReceived.resolve();
       });
     }
 
