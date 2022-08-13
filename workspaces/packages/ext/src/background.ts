@@ -83,7 +83,6 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
           ...storedReq,
           contentType: reqData.request.headers['content-type'] || reqData.request.headers['Content-Type'],
         });
-        lock?.respReceivedExtraInfo.resolve();
 
         // TODO store the request here
         log('TODO data.redirectHasExtraInfo is true');
@@ -126,13 +125,9 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
             redirectHeaders: respData.headers,
             status: respData.statusCode,
           });
-          lock.respReceivedExtraInfoRedirect.resolve();
-        } else {
-          lock.respReceivedExtraInfoRedirect.resolve();
-          lock.respReceivedExtraInfo.resolve();
         }
+        lock.respReceivedExtraInfo.resolve();
       } catch {
-        lock.respReceivedExtraInfoRedirect.reject();
         lock.respReceivedExtraInfo.reject();
       }
     } else if (event === ENetworkEvents.ResponseReceived) {
@@ -142,7 +137,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         return;
       }
       try {
-        await Promise.all([lock.reqWillBeSent.p, lock.respReceivedExtraInfo.p]);
+        await lock.reqWillBeSent.p;
         console.log('ENetworkEvents.ResponseReceived', respData.requestId);
         await persistence.setReqData(tab.tabId, respData.requestId, {
           contentType:

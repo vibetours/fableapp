@@ -32,15 +32,12 @@ export class ProgressSequence {
 
   public respReceived: Defer;
 
-  public respReceivedExtraInfoRedirect: Defer;
-
   public respReceivedExtraInfo: Defer;
 
   constructor(id: string) {
     this.id = id;
     this.reqWillBeSent = new Defer();
     this.respReceived = new Defer();
-    this.respReceivedExtraInfoRedirect = new Defer();
     this.respReceivedExtraInfo = new Defer();
   }
 
@@ -48,14 +45,12 @@ export class ProgressSequence {
     this.reqWillBeSent.resolve();
     this.respReceived.resolve();
     this.respReceivedExtraInfo.resolve();
-    this.respReceivedExtraInfoRedirect.resolve();
   }
 
   reject() {
     this.reqWillBeSent.reject();
     this.respReceived.reject();
     this.respReceivedExtraInfo.reject();
-    this.respReceivedExtraInfoRedirect.reject();
   }
 
   dispose() {
@@ -111,10 +106,6 @@ export default class ReqProcessingSynchronizer {
     if (lock) {
       seq.reqWillBeSent.p.finally(() => {
         lock.reqWillBeSent.resolve();
-      });
-
-      seq.respReceivedExtraInfoRedirect.p.finally(() => {
-        lock.respReceivedExtraInfoRedirect.resolve();
       });
 
       seq.respReceivedExtraInfo.p.finally(() => {
