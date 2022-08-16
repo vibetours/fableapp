@@ -34,6 +34,7 @@
     "react/no-array-index-key": "off",
     "react/require-default-props": "off",
     "no-unused-vars": "off",
+    "no-use-before-define": "off",
     "no-unused-expressions": "off",
     "jsx-a11y/media-has-caption": "off",
     "jsx-a11y/anchor-is-valid": "off",

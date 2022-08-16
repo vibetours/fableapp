@@ -65,10 +65,22 @@ export default class ReqProcessingSynchronizer {
 
   private commits: Record<string, 1>;
 
+  public reqIdsToBeUploaded: Array<string>;
+
   constructor() {
     this.acquiredLocks = {};
     this.disabledLocks = {};
     this.commits = {};
+
+    this.reqIdsToBeUploaded = [];
+  }
+
+  addReqIdToBeUploaded(id: string) {
+    this.reqIdsToBeUploaded.push(id);
+  }
+
+  resetUploadIdsTo(ids: Array<string>) {
+    this.reqIdsToBeUploaded = ids;
   }
 
   isCommited(id: string): boolean {
@@ -96,6 +108,14 @@ export default class ReqProcessingSynchronizer {
     }
 
     return this.acquiredLocks[id];
+  }
+
+  release(id: string) {
+    const lock = this.getLock(id);
+    if (lock) {
+      lock.dispose();
+    }
+    delete this.acquiredLocks[id];
   }
 
   deriveNewLock(id: string): ProgressSequence {

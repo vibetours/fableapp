@@ -79,7 +79,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         sync.deriveNewLock(reqData.requestId);
 
         const storedReq = (await persistence.getReqMeta(tab.tabId, reqData.requestId)) as SerializablePayload;
-        await persistence.addToUploadQ(getRandomId(), {
+        await persistence.addToUploadQ(sync, {
           ...storedReq,
           contentType: reqData.request.headers['content-type'] || reqData.request.headers['Content-Type'],
         });
@@ -90,13 +90,13 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
 
       // If the request is saved already, don't save it again.
       // If a single get request is sent multiple time then save it just once
-      if (reqData.request.method === 'GET') {
-        if (sync.isCommited(reqData.request.url)) {
-          sync.ignore(reqData.requestId);
-          return;
-        }
-        sync.commit(reqData.request.url);
-      }
+      // if (reqData.request.method === 'GET') {
+      //   if (sync.isCommited(reqData.request.url)) {
+      //     sync.ignore(reqData.requestId);
+      //     return;
+      //   }
+      //   sync.commit(reqData.request.url);
+      // }
 
       await persistence.setReqData(tab.tabId, reqData.requestId, {
         origin: reqData.documentURL,
@@ -120,7 +120,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         await lock.reqWillBeSent.p;
         // only during redirect save the header to the original request
         if (respData.statusCode === 302) {
-          console.log('ENetworkEvents.RespReceivedExtraInfo', respData.requestId);
+          console.log('RespReceivedExtraInfo', respData.requestId);
           await persistence.setReqData(tab.tabId, respData.requestId, {
             redirectHeaders: respData.headers,
             status: respData.statusCode,
@@ -138,7 +138,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       }
       try {
         await lock.reqWillBeSent.p;
-        console.log('ENetworkEvents.ResponseReceived', respData.requestId);
+        // console.log('ResponseReceived', respData.requestId);
         await persistence.setReqData(tab.tabId, respData.requestId, {
           contentType:
             respData.response.mimeType
@@ -161,25 +161,27 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       const savedReq = (await persistence.getReqMeta(tab.tabId, finishedData.requestId)) as SerializablePayload;
       try {
         const resp = await getRespBody(tab.tabId, finishedData.requestId);
-        await persistence.addToUploadQ(getRandomId(), { ...savedReq, respBody: resp });
+        await persistence.addToUploadQ(sync, { ...savedReq, respBody: resp });
 
         // console.log('===========================================');
         // console.log(resp);
         // console.log('===========================================');
       } catch (e) {
         console.log('Error while fetching response', e, savedReq, finishedData);
+      } finally {
+        sync.release((dataObj as any).requestId);
       }
     }
   };
 }
 
-async function startRecordingPage(port: chrome.runtime.Port, tab: chrome.tabs.Tab) {
+async function startRecordingPage(tab: chrome.tabs.Tab, shouldReload = true) {
+  await persistence.addToTabsBeingRecordedList(tab.id as number);
   await chrome.debugger.attach({ tabId: tab.id }, '1.0');
-  await chrome.storage.session.set({ [StorageKeys.TabIdWithDebuggerAttached]: tab.id });
   await chrome.debugger.sendCommand({ tabId: tab.id }, 'Network.enable');
-  const sync = new ReqProcessingSynchronizer();
-  chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
-  await chrome.tabs.reload(tab.id as number);
+  if (shouldReload) {
+    await chrome.tabs.reload(tab.id as number);
+  }
 }
 
 async function onNewTabCreation(tab: chrome.tabs.Tab) {
@@ -190,40 +192,49 @@ async function onNewTabCreation(tab: chrome.tabs.Tab) {
   if (lastActiveTabId !== null) {
     const tabsBeingRecorded = await persistence.getTabsBeingRecorded();
     if (lastActiveTabId in tabsBeingRecorded) {
-      await persistence.addToTabsBeingRecordedList(tab.id);
-      await persistence.setAllowedHost(tab);
+      startRecordingPage(tab, false);
     }
   } else {
     throw new Error('Active tab is null. This should never happen.');
   }
 }
 
+async function onTabUpdate(tabId: number, changeInfo: any, tab: chrome.tabs.Tab) {
+  const recordedTabs = await persistence.getTabsBeingRecorded();
+  if (tabId in recordedTabs && changeInfo.url) {
+    await persistence.setAllowedHost(tab);
+  }
+}
+
 async function onNewTabDeletion(tabId: number) {
   await persistence.removeFromTabsBeingRecordedList(tabId);
+  await chrome.debugger.detach({ tabId });
 }
 
 async function onTabActivation(tab: chrome.tabs.TabActiveInfo) {
   await persistence.setLastActiveTab(tab.tabId);
 }
 
-async function processRequestsInQueue() {
-  const reqs = await persistence.getFromUploadQ(10);
+async function processRequestsInQueue(sync: ReqProcessingSynchronizer) {
+  const [reqs, moreUploadPending] = await persistence.getFromUploadQ(sync, 10);
   const ids = Object.keys(reqs);
   if (ids.length) {
     console.log(reqs);
-    await persistence.removeFromQ(ids);
-  } else {
-    console.log('na');
+    await persistence.removeFromQ(sync, ids);
+  }
+
+  console.log('na');
+  if (moreUploadPending || (await persistence.getRecordingStatus()) !== RecordingStatus.Idle) {
+    startQueueProcessing(sync);
   }
 }
 
-async function startQueueProcessing() {
+async function startQueueProcessing(sync: ReqProcessingSynchronizer) {
   const timer = await chrome.storage.session.get(StorageKeys.RunningTimer);
   const timerId = timer[StorageKeys.RunningTimer];
   if (timerId) clearTimeout(timerId);
   const id = setTimeout(async () => {
-    await processRequestsInQueue();
-    startQueueProcessing();
+    await processRequestsInQueue(sync);
   }, 1000);
   await chrome.storage.session.set({ [StorageKeys.RunningTimer]: id });
 }
@@ -233,7 +244,8 @@ chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'fable_ext_popup') {
     port.onMessage.addListener(async (msg: IRuntimeMsg) => {
       let activeTab: chrome.tabs.Tab;
-      let data: any;
+      let tabsBeingRecorded: Array<string>;
+      let sync: ReqProcessingSynchronizer;
       switch (msg.type) {
         case 'query_status':
           port.postMessage({ type: 'query_status', payload: { value: await persistence.getRecordingStatus() } });
@@ -252,25 +264,29 @@ chrome.runtime.onConnect.addListener((port) => {
           chrome.tabs.onCreated.addListener(onNewTabCreation);
           chrome.tabs.onRemoved.addListener(onNewTabDeletion);
           chrome.tabs.onActivated.addListener(onTabActivation);
+          chrome.tabs.onUpdated.addListener(onTabUpdate);
 
-          await persistence.addToTabsBeingRecordedList(activeTab.id);
-          persistence.setAllowedHost(activeTab);
+          await persistence.setAllowedHost(activeTab);
 
-          await startQueueProcessing();
-          await startRecordingPage(port, activeTab);
+          // TODO If a recording is already in progress then show some ui warning
+          sync = new ReqProcessingSynchronizer();
+          await startQueueProcessing(sync);
+          await startRecordingPage(activeTab);
+          chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
           break;
 
         case 'stop':
-          data = await chrome.storage.session.get([StorageKeys.TabIdWithDebuggerAttached]);
-          if (data[StorageKeys.TabIdWithDebuggerAttached]) {
-            await chrome.debugger.detach({ tabId: data[StorageKeys.TabIdWithDebuggerAttached] });
-          }
+          tabsBeingRecorded = Object.keys(await persistence.getTabsBeingRecorded());
+          await Promise.all(tabsBeingRecorded.map((tabId) => chrome.debugger.detach({ tabId: +tabId })));
+          await persistence.clearTabsBeingRecorded();
+
           await persistence.setRecordingStatus(RecordingStatus.Idle);
           chrome.tabs.onCreated.removeListener(onNewTabCreation);
           chrome.tabs.onRemoved.removeListener(onNewTabDeletion);
           chrome.tabs.onActivated.removeListener(onTabActivation);
+          chrome.tabs.onUpdated.removeListener(onTabUpdate);
 
-          // TODO cleanup all storage
+          // TODO cleanup all storage, debugger etc..
           break;
 
         default:

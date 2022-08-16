@@ -6,6 +6,8 @@ import {
   SerializableResp,
   SerializablePayload,
 } from './types';
+import ReqProcessingSynchronizer from './req_processing_sync';
+import { getRandomId } from './utils';
 
 // Persistence of data using chrome.storage.session
 export const setRecordingStatus = async (value: RecordingStatus) => {
@@ -38,6 +40,10 @@ export const getTabsBeingRecorded = async (): Promise<Record<number, number>> =>
   return tabs.reduce((store: Record<number, number>, v: number) => ((store[v] = 1), store), {});
 };
 
+export const clearTabsBeingRecorded = async () => {
+  await chrome.storage.session.remove(StorageKeys.RecordedTabs);
+};
+
 export const addToTabsBeingRecordedList = async (id: number) => {
   const tabsBeingRecorded = await getTabsBeingRecorded();
   const tabIds = Object.keys(tabsBeingRecorded).map((key) => +key);
@@ -45,6 +51,8 @@ export const addToTabsBeingRecordedList = async (id: number) => {
   await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: tabIds });
 };
 
+// WARN If a debugger is attached to 2 tabs and either of the tabs gets closed then
+// debugger gets detached from the other tab.
 export const removeFromTabsBeingRecordedList = async (id: number) => {
   const tabsBeingRecorded = await getTabsBeingRecorded();
   delete tabsBeingRecorded[id];
@@ -88,40 +96,32 @@ export const setAllowedHost = async (tab: chrome.tabs.Tab) => {
   await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
 };
 
-export const addToUploadQ = async (id: string, payload: SerializablePayload) => {
-  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
-  let uploadIds: Array<string>;
-  if (!(data && (uploadIds = data[StorageKeys.UploadIds]))) {
-    uploadIds = [id];
-  } else {
-    uploadIds.push(id);
-  }
-  await chrome.storage.session.set({ [StorageKeys.UploadIds]: uploadIds });
-
-  try {
-    await chrome.storage.local.set({ [id]: payload });
-  } catch (e) {
-    console.log('...', e, payload);
-  }
+export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: SerializablePayload) => {
+  const id = getRandomId();
+  sync.addReqIdToBeUploaded(id);
+  await chrome.storage.local.set({ [id]: payload });
 };
 
-export const getFromUploadQ = async (limit?: number): Promise<Record<string, SerializablePayload>> => {
-  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
-  let uploadIds: Array<string> = data[StorageKeys.UploadIds];
-  if (uploadIds) {
+export const getFromUploadQ = async (
+  sync: ReqProcessingSynchronizer,
+  limit?: number
+): Promise<[Record<string, SerializablePayload>, boolean]> => {
+  const data = await chrome.storage.local.get(StorageKeys.UploadIds);
+  let uploadIds: Array<string> = sync.reqIdsToBeUploaded;
+  const totalUploadRemaining = uploadIds.length;
+  if (uploadIds.length) {
     if (limit) {
       uploadIds = uploadIds.slice(0, limit);
     }
     const dataToBeUploaded = await chrome.storage.local.get(uploadIds);
-    return dataToBeUploaded;
+    return [dataToBeUploaded, totalUploadRemaining > uploadIds.length];
   }
-  return {};
+  return [{}, false];
 };
 
-export const removeFromQ = async (ids: Array<string>) => {
-  const data = await chrome.storage.session.get(StorageKeys.UploadIds);
-  const uploadIds = data[StorageKeys.UploadIds];
-  if (uploadIds) {
+export const removeFromQ = async (sync: ReqProcessingSynchronizer, ids: Array<string>) => {
+  const uploadIds = sync.reqIdsToBeUploaded;
+  if (uploadIds.length) {
     const uploadIdsMap = uploadIds.reduce((store: Record<string, number>, id: string) => {
       store[id] = 1;
       return store;
@@ -137,8 +137,7 @@ export const removeFromQ = async (ids: Array<string>) => {
         delete uploadIdsMap[key];
       }
     }
-
-    await chrome.storage.session.set({ [StorageKeys.UploadIds]: Object.keys(uploadIdsMap) });
+    sync.resetUploadIdsTo(Object.keys(uploadIdsMap));
   }
   await chrome.storage.local.remove(ids);
 };

@@ -50,7 +50,7 @@ export interface SerializableRespBody {
 export type SerializablePayload = SerializableReq & SerializableResp & SerializableRedirectResp & SerializableRespBody;
 
 export interface IRuntimeMsg {
-  type: 'record' | 'query_status' | 'stop';
+  type: 'record' | 'query_status' | 'stop' | 'hb';
 }
 
 export namespace NNetworkEvents {
