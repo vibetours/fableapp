@@ -34,23 +34,28 @@ export class ProgressSequence {
 
   public respReceivedExtraInfo: Defer;
 
+  public redirectionComplete: Defer;
+
   constructor(id: string) {
     this.id = id;
     this.reqWillBeSent = new Defer();
     this.respReceived = new Defer();
     this.respReceivedExtraInfo = new Defer();
+    this.redirectionComplete = new Defer();
   }
 
   fulfill() {
     this.reqWillBeSent.resolve();
     this.respReceived.resolve();
     this.respReceivedExtraInfo.resolve();
+    this.redirectionComplete.resolve();
   }
 
   reject() {
     this.reqWillBeSent.reject();
     this.respReceived.reject();
     this.respReceivedExtraInfo.reject();
+    this.redirectionComplete.resolve();
   }
 
   dispose() {
@@ -92,10 +97,14 @@ export default class ReqProcessingSynchronizer {
   }
 
   ignore(id: string) {
-    if (id in this.acquiredLocks) {
-      this.acquiredLocks[id].fulfill();
-    }
+    // if (id in this.acquiredLocks) {
+    //   this.acquiredLocks[id].fulfill();
+    // }
     this.disabledLocks[id] = 1;
+  }
+
+  shouldIgnore(id: string): boolean {
+    return !!this.disabledLocks[id];
   }
 
   getLock(id: string): ProgressSequence | null {

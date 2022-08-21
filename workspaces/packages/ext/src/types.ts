@@ -7,7 +7,8 @@ export enum ENetworkEvents {
 
 export enum StorageKeys {
   RecordedTabs = 'tabs_being_recorded',
-  PrefixRequestData = 'rd',
+  PrefixReqRespData = 'rr',
+  PrefixRedirectionData = 'rd',
   AllowedHost = 'allowed_hosts',
   RecordingStatus = 'recording_status',
   LastActiveTabId = 'last_active_tab_id',
@@ -21,33 +22,58 @@ export enum RecordingStatus {
   Idle = 'idle',
 }
 
-export interface SerializableReq {
+export interface SerNetEvt {
+  event: ENetworkEvents;
+  timestamp: number;
+}
+
+export enum EHttpMethod {
+  na = 'na',
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH',
+}
+
+export interface SerReqRedirectResp {
+  headers: Record<string, string | number>;
+  status: number;
+  url: string;
+  isRedirect: boolean;
+}
+
+export interface SerReqWillBeSent extends SerNetEvt {
   origin: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: EHttpMethod;
   url: string;
   reqHeaders: Record<string, string | number>;
-  meta: {
-    skipped: boolean;
-  };
+  contentType: string | number;
+  redirectResponse?: SerReqRedirectResp;
 }
 
-export interface SerializableRedirectResp {
-  redirectHeaders: Record<string, string | number>;
-  status: number;
-}
-
-export interface SerializableResp {
+export interface SerRespReceived extends SerNetEvt {
   // ref: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
   contentType: string | number;
   respHeaders: Record<string, string | number>;
   status: number;
 }
 
-export interface SerializableRespBody {
-  respBody: any;
-}
+export type SerReqRespIncoming = SerReqWillBeSent | SerRespReceived | SerNetEvt;
 
-export type SerializablePayload = SerializableReq & SerializableResp & SerializableRedirectResp & SerializableRespBody;
+export interface ISerReqRespOutgoing {
+  origin: string;
+  method: EHttpMethod;
+  url: string;
+  reqHeaders: Record<string, string | number>;
+
+  contentType: string | number;
+
+  respHeaders: Record<string, string | number>;
+  status: number;
+
+  respBody?: any;
+}
 
 export interface IRuntimeMsg {
   type: 'record' | 'query_status' | 'stop' | 'hb';
@@ -56,16 +82,19 @@ export interface IRuntimeMsg {
 export namespace NNetworkEvents {
   export interface IBaseXhrNetData {
     requestId: string;
+    timestamp: number;
   }
 
   export interface IReqWillBeSentData extends IBaseXhrNetData {
     request: {
       headers: Record<string, string | number>;
       url: string;
-      method: 'GET' | 'POST';
+      method: EHttpMethod;
     };
     redirectResponse?: {
       status: number;
+      headers: Record<string, string | number>;
+      url: string;
     };
     documentURL: string;
     redirectHasExtraInfo?: boolean;

@@ -4,7 +4,12 @@ import {
   IRuntimeMsg,
   NNetworkEvents,
   RecordingStatus,
-  SerializablePayload,
+  SerReqWillBeSent,
+  SerRespReceived,
+  SerNetEvt,
+  SerReqRespIncoming,
+  ISerReqRespOutgoing,
+  SerReqRedirectResp,
 } from './types';
 import ReqProcessingSynchronizer from './req_processing_sync';
 import * as persistence from './persistence';
@@ -12,7 +17,6 @@ import { getRandomId } from './utils';
 
 // TODO report all the requests during recording for debugging purpose
 // TODO with post data
-// TODO error handling for await statements
 
 export function log(...msg: Array<any>) {
   console.log(...msg);
@@ -40,6 +44,10 @@ async function getRespBody(tabId: number, reqId: string) {
   });
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function onNetworkEvts(sync: ReqProcessingSynchronizer) {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
     // If the request is coming from tab which is not being recorded then skip the details
@@ -61,118 +69,168 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         return;
       }
 
-      let skipped = false;
       if (
         reqData.request.method in SkipReqForMethods
         || url.host in SkipReqForHost
         || url.protocol in SkipReqForProtocol
       ) {
         sync.ignore(reqData.requestId);
-        skipped = true;
-      }
-
-      console.log(reqData.requestId, reqData.request.url);
-      if (reqData.redirectHasExtraInfo && reqData.redirectResponse && reqData.redirectResponse.status === 302) {
-        const lock = sync.getLock(reqData.requestId);
-        await lock?.respReceivedExtraInfo.p;
-        console.log(reqData.requestId, reqData.request.url, 'reqwillbesent redirect');
-        sync.deriveNewLock(reqData.requestId);
-
-        const storedReq = (await persistence.getReqMeta(tab.tabId, reqData.requestId)) as SerializablePayload;
-        await persistence.addToUploadQ(sync, {
-          ...storedReq,
-          contentType: reqData.request.headers['content-type'] || reqData.request.headers['Content-Type'],
-        });
-
-        // TODO store the request here
-        log('TODO data.redirectHasExtraInfo is true');
+        return;
       }
 
       // If the request is saved already, don't save it again.
       // If a single get request is sent multiple time then save it just once
-      // if (reqData.request.method === 'GET') {
-      //   if (sync.isCommited(reqData.request.url)) {
-      //     sync.ignore(reqData.requestId);
-      //     return;
-      //   }
-      //   sync.commit(reqData.request.url);
-      // }
-
-      await persistence.setReqData(tab.tabId, reqData.requestId, {
-        origin: reqData.documentURL,
-        method: reqData.request.method,
-        url: reqData.request.url,
-        reqHeaders: reqData.request.headers,
-        meta: { skipped },
-        // TODO post data
-      });
-
-      const lock = sync.getLock(reqData.requestId);
-      lock?.reqWillBeSent.resolve();
-    } else if (event === ENetworkEvents.RespReceivedExtraInfo) {
-      const respData = dataObj as NNetworkEvents.IRespReceivedExtraInfo;
-      const lock = sync.getLock(respData.requestId);
-      if (!lock) {
-        return;
-      }
-
-      try {
-        await lock.reqWillBeSent.p;
-        // only during redirect save the header to the original request
-        if (respData.statusCode === 302) {
-          console.log('RespReceivedExtraInfo', respData.requestId);
-          await persistence.setReqData(tab.tabId, respData.requestId, {
-            redirectHeaders: respData.headers,
-            status: respData.statusCode,
-          });
+      if (reqData.request.method === 'GET') {
+        if (sync.isCommited(reqData.request.url)) {
+          sync.ignore(reqData.requestId);
+          return;
         }
-        lock.respReceivedExtraInfo.resolve();
-      } catch {
-        lock.respReceivedExtraInfo.reject();
+        sync.commit(reqData.request.url);
       }
+
+      const data: any = {};
+      if (reqData.redirectHasExtraInfo && reqData.redirectResponse && reqData.redirectResponse.status === 302) {
+        data.redirectResponse = {
+          headers: reqData.redirectResponse.headers,
+          status: reqData.redirectResponse.status,
+          url: reqData.redirectResponse.url,
+          isRedirect: true,
+        };
+      }
+      data.origin = reqData.documentURL;
+      data.method = reqData.request.method;
+      data.url = reqData.request.url;
+      data.reqHeaders = reqData.request.headers;
+      data.requestId = reqData.requestId;
+      data.timestamp = reqData.timestamp;
+      data.event = ENetworkEvents.RequestWillbeSent;
+
+      await persistence.setNetData(tab.tabId, reqData.requestId, data);
     } else if (event === ENetworkEvents.ResponseReceived) {
       const respData = dataObj as NNetworkEvents.IRespReceivedData;
-      const lock = sync.getLock(respData.requestId);
-      if (!lock) {
+      if (sync.shouldIgnore(respData.requestId)) {
         return;
       }
-      try {
-        await lock.reqWillBeSent.p;
-        // console.log('ResponseReceived', respData.requestId);
-        await persistence.setReqData(tab.tabId, respData.requestId, {
-          contentType:
-            respData.response.mimeType
-            || respData.response.headers['Content-Type']
-            || respData.response.headers['content-type'],
-          respHeaders: respData.response.headers,
-          status: respData.response.status,
-        });
-        lock.respReceived.resolve();
-      } catch {
-        lock.respReceived.reject();
-      }
+
+      const data: any = {};
+      data.contentType = respData.response.mimeType
+        || respData.response.headers['Content-Type']
+        || respData.response.headers['content-type'];
+      data.respHeaders = respData.response.headers;
+      data.status = respData.response.status;
+      data.timestamp = respData.timestamp;
+      data.event = ENetworkEvents.ResponseReceived;
+
+      await persistence.setNetData(tab.tabId, respData.requestId, data);
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
-      const lock = sync.getLock(finishedData.requestId);
-      if (!lock) {
+      if (sync.shouldIgnore(finishedData.requestId)) {
         return;
       }
-      await lock.respReceived.p;
-      const savedReq = (await persistence.getReqMeta(tab.tabId, finishedData.requestId)) as SerializablePayload;
-      try {
-        const resp = await getRespBody(tab.tabId, finishedData.requestId);
-        await persistence.addToUploadQ(sync, { ...savedReq, respBody: resp });
 
-        // console.log('===========================================');
-        // console.log(resp);
-        // console.log('===========================================');
-      } catch (e) {
-        console.log('Error while fetching response', e, savedReq, finishedData);
-      } finally {
-        sync.release((dataObj as any).requestId);
-      }
+      const data: any = {};
+      data.timestamp = finishedData.timestamp;
+      data.event = ENetworkEvents.LoadingFinished;
+
+      await persistence.setNetData(tab.tabId, finishedData.requestId, data);
     }
   };
+}
+
+const reqRespKeyLike = new RegExp(`${StorageKeys.PrefixReqRespData}/`);
+async function onStorageChange(changeRaw: any, storageType: string) {
+  if (storageType !== 'session') {
+    return;
+  }
+
+  const change = changeRaw as Record<
+    string,
+    { oldValue: Array<SerReqRespIncoming>; newValue: Array<SerReqRespIncoming> }
+  >;
+  const changeKeys = Object.keys(change);
+  for (const key of changeKeys) {
+    if (reqRespKeyLike.test(key)) {
+      let values = change[key].newValue;
+      if (values instanceof Array ? values.length < 3 : true) {
+        // At least there would be three events, RequestWillbeSent, ResponseReceived, LoadingFinished for a request to
+        // be fullfilled
+        continue;
+      }
+
+      // Reorder the events as the order matters down below
+      values = [
+        ...values.filter((e) => e.event === ENetworkEvents.RequestWillbeSent).sort((m, n) => m.timestamp - n.timestamp),
+        ...values.filter((e) => e.event === ENetworkEvents.ResponseReceived),
+        ...values.filter((e) => e.event === ENetworkEvents.LoadingFinished),
+      ];
+      // console.log('passed', values);
+      if (
+        values[values.length - 1].event !== ENetworkEvents.LoadingFinished
+        && values[values.length - 2].event !== ENetworkEvents.ResponseReceived
+      ) {
+        // The last event has to be ENetworkEvents.LoadingFinished for us to consider the processing is completed
+        continue;
+      }
+
+      const reqWillBeSentEvent: Array<SerReqWillBeSent> = [];
+      let respReceivedEvent: SerRespReceived | null = null;
+      let loadingFinishedEvent: SerNetEvt;
+      for (const item of values) {
+        switch (item.event) {
+          case ENetworkEvents.RequestWillbeSent:
+            reqWillBeSentEvent.push(item as SerReqWillBeSent);
+            break;
+          case ENetworkEvents.ResponseReceived:
+            respReceivedEvent = item as SerRespReceived;
+            break;
+          case ENetworkEvents.LoadingFinished:
+            loadingFinishedEvent = item as SerNetEvt;
+            break;
+          default:
+            break;
+        }
+      }
+      // This means there is multiple RequestWillbeSent event (as there could be only one ResponseReceived &
+      // LoadingFinished) event
+      // This is the case where redirect has happened.
+      const outgoingEvents: Array<ISerReqRespOutgoing> = [];
+
+      const reqRedirectionPerUrl = reqWillBeSentEvent.reduce((store: any, evt) => {
+        if (evt.redirectResponse) {
+          store[`${evt.redirectResponse.url}`] = evt.redirectResponse;
+        }
+        return store;
+      }, {}) as Record<string, SerReqRedirectResp>;
+
+      for (const evt of reqWillBeSentEvent) {
+        if (evt.url in reqRedirectionPerUrl) {
+          outgoingEvents.push({
+            url: evt.url,
+            method: evt.method,
+            origin: evt.origin,
+            reqHeaders: evt.reqHeaders,
+            status: reqRedirectionPerUrl[evt.url].status,
+            respHeaders: reqRedirectionPerUrl[evt.url].headers,
+            contentType: '',
+          });
+        } else {
+          outgoingEvents.push({
+            url: evt.url,
+            method: evt.method,
+            origin: evt.origin,
+            reqHeaders: evt.reqHeaders,
+            status: respReceivedEvent?.status || -1,
+            contentType: respReceivedEvent?.contentType || '',
+            respHeaders: respReceivedEvent?.respHeaders || {},
+          });
+        }
+      }
+
+      console.log(outgoingEvents);
+      // TODO push to queue here
+      chrome.storage.session.remove(key);
+    }
+  }
 }
 
 async function startRecordingPage(tab: chrome.tabs.Tab, shouldReload = true) {
@@ -246,6 +304,7 @@ chrome.runtime.onConnect.addListener((port) => {
       let activeTab: chrome.tabs.Tab;
       let tabsBeingRecorded: Array<string>;
       let sync: ReqProcessingSynchronizer;
+      let sync2;
       switch (msg.type) {
         case 'query_status':
           port.postMessage({ type: 'query_status', payload: { value: await persistence.getRecordingStatus() } });
@@ -265,12 +324,13 @@ chrome.runtime.onConnect.addListener((port) => {
           chrome.tabs.onRemoved.addListener(onNewTabDeletion);
           chrome.tabs.onActivated.addListener(onTabActivation);
           chrome.tabs.onUpdated.addListener(onTabUpdate);
+          chrome.storage.onChanged.addListener(onStorageChange);
 
           await persistence.setAllowedHost(activeTab);
 
           // TODO If a recording is already in progress then show some ui warning
           sync = new ReqProcessingSynchronizer();
-          await startQueueProcessing(sync);
+          // await startQueueProcessing(sync);
           await startRecordingPage(activeTab);
           chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
           break;
@@ -281,6 +341,7 @@ chrome.runtime.onConnect.addListener((port) => {
           await persistence.clearTabsBeingRecorded();
 
           await persistence.setRecordingStatus(RecordingStatus.Idle);
+          chrome.storage.onChanged.removeListener(onStorageChange);
           chrome.tabs.onCreated.removeListener(onNewTabCreation);
           chrome.tabs.onRemoved.removeListener(onNewTabDeletion);
           chrome.tabs.onActivated.removeListener(onTabActivation);

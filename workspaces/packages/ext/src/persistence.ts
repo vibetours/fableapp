@@ -1,13 +1,6 @@
-import {
-  RecordingStatus,
-  StorageKeys,
-  SerializableReq,
-  SerializableRedirectResp,
-  SerializableResp,
-  SerializablePayload,
-} from './types';
+import { RecordingStatus, StorageKeys, ISerReqRespOutgoing } from './types';
 import ReqProcessingSynchronizer from './req_processing_sync';
-import { getRandomId } from './utils';
+import { getRandomId, acquireLock, releaseLock } from './utils';
 
 // Persistence of data using chrome.storage.session
 export const setRecordingStatus = async (value: RecordingStatus) => {
@@ -17,6 +10,22 @@ export const setRecordingStatus = async (value: RecordingStatus) => {
 export const getRecordingStatus = async (): Promise<RecordingStatus> => {
   const value = await chrome.storage.session.get(StorageKeys.RecordingStatus);
   return value[StorageKeys.RecordingStatus] || RecordingStatus.Idle;
+};
+
+export const setNetData = async (tabId: number, reqId: string, data: object) => {
+  const key = `${StorageKeys.PrefixReqRespData}/${tabId}/${reqId}`;
+  const id = getRandomId();
+  const lock = await acquireLock(id);
+  const storedData = await chrome.storage.session.get(key);
+  let netData;
+  if ((netData = storedData[key])) {
+    netData.push(data);
+  } else {
+    netData = [data];
+  }
+
+  await chrome.storage.session.set({ [key]: netData });
+  releaseLock(id);
 };
 
 export const setLastActiveTab = async (id: number) => {
@@ -60,26 +69,6 @@ export const removeFromTabsBeingRecordedList = async (id: number) => {
   await chrome.storage.session.set({ [StorageKeys.RecordedTabs]: tabIds });
 };
 
-export const setReqData = async (
-  tabId: number,
-  reqId: string,
-  data: SerializableReq | SerializableRedirectResp | SerializableResp
-) => {
-  const key = `${StorageKeys.PrefixRequestData}_${tabId}_${reqId}`;
-  const storedData = await chrome.storage.session.get(key);
-  if (storedData[key]) {
-    await chrome.storage.session.set({ [key]: { ...storedData[key], ...data } });
-  } else {
-    await chrome.storage.session.set({ [key]: data });
-  }
-};
-
-export const getReqMeta = async (tabId: number, reqId: string): Promise<SerializablePayload | null> => {
-  const key = `${StorageKeys.PrefixRequestData}_${tabId}_${reqId}`;
-  const storedData = await chrome.storage.session.get(key);
-  return storedData[key] || null;
-};
-
 export const getAllowedHost = async (): Promise<Record<string, number>> => {
   const data = await chrome.storage.session.get(StorageKeys.AllowedHost);
   let allowedHosts = data[StorageKeys.AllowedHost];
@@ -96,7 +85,7 @@ export const setAllowedHost = async (tab: chrome.tabs.Tab) => {
   await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
 };
 
-export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: SerializablePayload) => {
+export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: object) => {
   const id = getRandomId();
   sync.addReqIdToBeUploaded(id);
   await chrome.storage.local.set({ [id]: payload });
@@ -105,7 +94,7 @@ export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: Ser
 export const getFromUploadQ = async (
   sync: ReqProcessingSynchronizer,
   limit?: number
-): Promise<[Record<string, SerializablePayload>, boolean]> => {
+): Promise<[Record<string, ISerReqRespOutgoing>, boolean]> => {
   const data = await chrome.storage.local.get(StorageKeys.UploadIds);
   let uploadIds: Array<string> = sync.reqIdsToBeUploaded;
   const totalUploadRemaining = uploadIds.length;
