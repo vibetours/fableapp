@@ -1,6 +1,5 @@
-import { RecordingStatus, StorageKeys, ISerReqRespOutgoing } from './types';
-import ReqProcessingSynchronizer from './req_processing_sync';
-import { getRandomId, acquireLock, releaseLock } from './utils';
+import { RecordingStatus, StorageKeys } from './types';
+import { getRandomId, acquireLock, releaseLock, ReqProcessingSynchronizer } from './utils';
 
 // Persistence of data using chrome.storage.session
 export const setRecordingStatus = async (value: RecordingStatus) => {
@@ -85,48 +84,48 @@ export const setAllowedHost = async (tab: chrome.tabs.Tab) => {
   await chrome.storage.session.set({ [StorageKeys.AllowedHost]: allowedHosts });
 };
 
-export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: object) => {
-  const id = getRandomId();
-  sync.addReqIdToBeUploaded(id);
-  await chrome.storage.local.set({ [id]: payload });
-};
+// export const addToUploadQ = async (sync: ReqProcessingSynchronizer, payload: object) => {
+//   const id = getRandomId();
+//   sync.addReqIdToBeUploaded(id);
+//   await chrome.storage.local.set({ [id]: payload });
+// };
 
-export const getFromUploadQ = async (
-  sync: ReqProcessingSynchronizer,
-  limit?: number
-): Promise<[Record<string, ISerReqRespOutgoing>, boolean]> => {
-  const data = await chrome.storage.local.get(StorageKeys.UploadIds);
-  let uploadIds: Array<string> = sync.reqIdsToBeUploaded;
-  const totalUploadRemaining = uploadIds.length;
-  if (uploadIds.length) {
-    if (limit) {
-      uploadIds = uploadIds.slice(0, limit);
-    }
-    const dataToBeUploaded = await chrome.storage.local.get(uploadIds);
-    return [dataToBeUploaded, totalUploadRemaining > uploadIds.length];
-  }
-  return [{}, false];
-};
+// export const getFromUploadQ = async (
+//   sync: ReqProcessingSynchronizer,
+//   limit?: number
+// ): Promise<[Record<string, ISerReqRespOutgoing>, boolean]> => {
+//   const data = await chrome.storage.local.get(StorageKeys.UploadIds);
+//   let uploadIds: Array<string> = sync.reqIdsToBeUploaded;
+//   const totalUploadRemaining = uploadIds.length;
+//   if (uploadIds.length) {
+//     if (limit) {
+//       uploadIds = uploadIds.slice(0, limit);
+//     }
+//     const dataToBeUploaded = await chrome.storage.local.get(uploadIds);
+//     return [dataToBeUploaded, totalUploadRemaining > uploadIds.length];
+//   }
+//   return [{}, false];
+// };
 
-export const removeFromQ = async (sync: ReqProcessingSynchronizer, ids: Array<string>) => {
-  const uploadIds = sync.reqIdsToBeUploaded;
-  if (uploadIds.length) {
-    const uploadIdsMap = uploadIds.reduce((store: Record<string, number>, id: string) => {
-      store[id] = 1;
-      return store;
-    }, {});
+// export const removeFromQ = async (sync: ReqProcessingSynchronizer, ids: Array<string>) => {
+//   const uploadIds = sync.reqIdsToBeUploaded;
+//   if (uploadIds.length) {
+//     const uploadIdsMap = uploadIds.reduce((store: Record<string, number>, id: string) => {
+//       store[id] = 1;
+//       return store;
+//     }, {});
 
-    const idMap = ids.reduce((store: Record<string, number>, id: string) => {
-      store[id] = 1;
-      return store;
-    }, {});
+//     const idMap = ids.reduce((store: Record<string, number>, id: string) => {
+//       store[id] = 1;
+//       return store;
+//     }, {});
 
-    for (const key in idMap) {
-      if (Object.prototype.hasOwnProperty.call(idMap, key)) {
-        delete uploadIdsMap[key];
-      }
-    }
-    sync.resetUploadIdsTo(Object.keys(uploadIdsMap));
-  }
-  await chrome.storage.local.remove(ids);
-};
+//     for (const key in idMap) {
+//       if (Object.prototype.hasOwnProperty.call(idMap, key)) {
+//         delete uploadIdsMap[key];
+//       }
+//     }
+//     sync.resetUploadIdsTo(Object.keys(uploadIdsMap));
+//   }
+//   await chrome.storage.local.remove(ids);
+// };

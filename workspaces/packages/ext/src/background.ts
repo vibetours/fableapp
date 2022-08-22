@@ -1,19 +1,6 @@
-import {
-  StorageKeys,
-  ENetworkEvents,
-  IRuntimeMsg,
-  NNetworkEvents,
-  RecordingStatus,
-  SerReqWillBeSent,
-  SerRespReceived,
-  SerNetEvt,
-  SerReqRespIncoming,
-  ISerReqRespOutgoing,
-  SerReqRedirectResp,
-} from './types';
-import ReqProcessingSynchronizer from './req_processing_sync';
+import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents, RecordingStatus, NSerReqResp } from './types';
 import * as persistence from './persistence';
-import { getRandomId } from './utils';
+import { getRandomId, ReqProcessingSynchronizer, isUndefNull } from './utils';
 
 // TODO report all the requests during recording for debugging purpose
 // TODO with post data
@@ -88,7 +75,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         sync.commit(reqData.request.url);
       }
 
-      const data: any = {};
+      const data = {} as NSerReqResp.IReqWillBeSent;
       if (reqData.redirectHasExtraInfo && reqData.redirectResponse && reqData.redirectResponse.status === 302) {
         data.redirectResponse = {
           headers: reqData.redirectResponse.headers,
@@ -104,6 +91,8 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.requestId = reqData.requestId;
       data.timestamp = reqData.timestamp;
       data.event = ENetworkEvents.RequestWillbeSent;
+      data.requestId = reqData.requestId;
+      data.tabId = tab.tabId;
 
       await persistence.setNetData(tab.tabId, reqData.requestId, data);
     } else if (event === ENetworkEvents.ResponseReceived) {
@@ -112,7 +101,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         return;
       }
 
-      const data: any = {};
+      const data = {} as NSerReqResp.IRespReceived;
       data.contentType = respData.response.mimeType
         || respData.response.headers['Content-Type']
         || respData.response.headers['content-type'];
@@ -128,7 +117,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         return;
       }
 
-      const data: any = {};
+      const data = {} as NSerReqResp.IBase;
       data.timestamp = finishedData.timestamp;
       data.event = ENetworkEvents.LoadingFinished;
 
@@ -138,99 +127,134 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
 }
 
 const reqRespKeyLike = new RegExp(`${StorageKeys.PrefixReqRespData}/`);
-async function onStorageChange(changeRaw: any, storageType: string) {
-  if (storageType !== 'session') {
-    return;
-  }
-
-  const change = changeRaw as Record<
-    string,
-    { oldValue: Array<SerReqRespIncoming>; newValue: Array<SerReqRespIncoming> }
-  >;
-  const changeKeys = Object.keys(change);
-  for (const key of changeKeys) {
-    if (reqRespKeyLike.test(key)) {
-      let values = change[key].newValue;
-      if (values instanceof Array ? values.length < 3 : true) {
-        // At least there would be three events, RequestWillbeSent, ResponseReceived, LoadingFinished for a request to
-        // be fullfilled
-        continue;
-      }
-
-      // Reorder the events as the order matters down below
-      values = [
-        ...values.filter((e) => e.event === ENetworkEvents.RequestWillbeSent).sort((m, n) => m.timestamp - n.timestamp),
-        ...values.filter((e) => e.event === ENetworkEvents.ResponseReceived),
-        ...values.filter((e) => e.event === ENetworkEvents.LoadingFinished),
-      ];
-      // console.log('passed', values);
-      if (
-        values[values.length - 1].event !== ENetworkEvents.LoadingFinished
-        && values[values.length - 2].event !== ENetworkEvents.ResponseReceived
-      ) {
-        // The last event has to be ENetworkEvents.LoadingFinished for us to consider the processing is completed
-        continue;
-      }
-
-      const reqWillBeSentEvent: Array<SerReqWillBeSent> = [];
-      let respReceivedEvent: SerRespReceived | null = null;
-      let loadingFinishedEvent: SerNetEvt;
-      for (const item of values) {
-        switch (item.event) {
-          case ENetworkEvents.RequestWillbeSent:
-            reqWillBeSentEvent.push(item as SerReqWillBeSent);
-            break;
-          case ENetworkEvents.ResponseReceived:
-            respReceivedEvent = item as SerRespReceived;
-            break;
-          case ENetworkEvents.LoadingFinished:
-            loadingFinishedEvent = item as SerNetEvt;
-            break;
-          default:
-            break;
-        }
-      }
-      // This means there is multiple RequestWillbeSent event (as there could be only one ResponseReceived &
-      // LoadingFinished) event
-      // This is the case where redirect has happened.
-      const outgoingEvents: Array<ISerReqRespOutgoing> = [];
-
-      const reqRedirectionPerUrl = reqWillBeSentEvent.reduce((store: any, evt) => {
-        if (evt.redirectResponse) {
-          store[`${evt.redirectResponse.url}`] = evt.redirectResponse;
-        }
-        return store;
-      }, {}) as Record<string, SerReqRedirectResp>;
-
-      for (const evt of reqWillBeSentEvent) {
-        if (evt.url in reqRedirectionPerUrl) {
-          outgoingEvents.push({
-            url: evt.url,
-            method: evt.method,
-            origin: evt.origin,
-            reqHeaders: evt.reqHeaders,
-            status: reqRedirectionPerUrl[evt.url].status,
-            respHeaders: reqRedirectionPerUrl[evt.url].headers,
-            contentType: '',
-          });
-        } else {
-          outgoingEvents.push({
-            url: evt.url,
-            method: evt.method,
-            origin: evt.origin,
-            reqHeaders: evt.reqHeaders,
-            status: respReceivedEvent?.status || -1,
-            contentType: respReceivedEvent?.contentType || '',
-            respHeaders: respReceivedEvent?.respHeaders || {},
-          });
-        }
-      }
-
-      console.log(outgoingEvents);
-      // TODO push to queue here
-      chrome.storage.session.remove(key);
+const uploadKeyLike = new RegExp(`${StorageKeys.UploadQ}/`);
+function onStorageChange(sync: ReqProcessingSynchronizer) {
+  return async function (changeRaw: any, storageType: string) {
+    if (storageType !== 'session') {
+      return;
     }
-  }
+
+    const change = changeRaw as Record<
+      string,
+      {
+        oldValue: Array<NSerReqResp.IIncoming> | NSerReqResp.IOutgoing;
+        newValue: Array<NSerReqResp.IIncoming> | NSerReqResp.IOutgoing;
+      }
+    >;
+    const changeKeys = Object.keys(change);
+    for (const key of changeKeys) {
+      if (reqRespKeyLike.test(key)) {
+        let values = change[key].newValue as Array<NSerReqResp.IIncoming>;
+        if (values instanceof Array ? values.length < 3 : true) {
+          // At least there would be three events, RequestWillbeSent, ResponseReceived, LoadingFinished for a request to
+          // be fullfilled
+          continue;
+        }
+
+        // Reorder the events as RequestWillbeSent -> ResponseReceived -> LoadingFinished
+        values = [
+          ...values
+            .filter((e) => e.event === ENetworkEvents.RequestWillbeSent)
+            .sort((m, n) => m.timestamp - n.timestamp),
+          ...values.filter((e) => e.event === ENetworkEvents.ResponseReceived),
+          ...values.filter((e) => e.event === ENetworkEvents.LoadingFinished),
+        ];
+
+        if (
+          values[values.length - 1].event !== ENetworkEvents.LoadingFinished
+          && values[values.length - 2].event !== ENetworkEvents.ResponseReceived
+        ) {
+          // The last event has to be ENetworkEvents.LoadingFinished for us to consider the processing is completed
+          continue;
+        }
+
+        const reqWillBeSentEvent: Array<NSerReqResp.IReqWillBeSent> = [];
+        let respReceivedEvent: NSerReqResp.IRespReceived | null = null;
+        let loadingFinishedEvent: NSerReqResp.IBase;
+        for (const item of values) {
+          switch (item.event) {
+            case ENetworkEvents.RequestWillbeSent:
+              reqWillBeSentEvent.push(item as NSerReqResp.IReqWillBeSent);
+              break;
+            case ENetworkEvents.ResponseReceived:
+              respReceivedEvent = item as NSerReqResp.IRespReceived;
+              break;
+            case ENetworkEvents.LoadingFinished:
+              loadingFinishedEvent = item as NSerReqResp.IBase;
+              break;
+            default:
+              break;
+          }
+        }
+        // This means there is multiple RequestWillbeSent event (as there could be only one ResponseReceived &
+        // LoadingFinished) event
+        // This is the case where redirect has happened.
+        const outgoingEvents: Array<NSerReqResp.IOutgoing> = [];
+
+        const reqRedirectionPerUrl = reqWillBeSentEvent.reduce((store: any, evt) => {
+          if (evt.redirectResponse) {
+            store[`${evt.redirectResponse.url}`] = evt.redirectResponse;
+          }
+          return store;
+        }, {}) as Record<string, NSerReqResp.IReqRedirectResp>;
+
+        for (const evt of reqWillBeSentEvent) {
+          if (evt.url in reqRedirectionPerUrl) {
+            outgoingEvents.push({
+              url: evt.url,
+              method: evt.method,
+              origin: evt.origin,
+              reqHeaders: evt.reqHeaders,
+              respResolveReqId: evt.requestId,
+              respResolveTabId: evt.tabId,
+              status: reqRedirectionPerUrl[evt.url].status,
+              respHeaders: reqRedirectionPerUrl[evt.url].headers,
+              contentType: '',
+            });
+          } else {
+            outgoingEvents.push({
+              url: evt.url,
+              method: evt.method,
+              origin: evt.origin,
+              reqHeaders: evt.reqHeaders,
+              respResolveReqId: evt.requestId,
+              respResolveTabId: evt.tabId,
+              status: respReceivedEvent?.status || -1,
+              contentType: respReceivedEvent?.contentType || '',
+              respHeaders: respReceivedEvent?.respHeaders || {},
+            });
+          }
+        }
+
+        sync.reqToUploadCount += outgoingEvents.length;
+        outgoingEvents.forEach(async (evt) => {
+          await chrome.storage.session.set({ [`${StorageKeys.UploadQ}/${getRandomId()}`]: evt });
+        });
+        chrome.storage.session.remove(key);
+      } else if (uploadKeyLike.test(key)) {
+        const value = change[key].newValue as NSerReqResp.IOutgoing;
+        if (!value) {
+          continue;
+        }
+
+        if (value.status === -1) {
+          // This should not be the case
+          console.log('status should not be -1.', value);
+        } else if (value.status !== 302) {
+          if (!(isUndefNull(value.respResolveReqId) || isUndefNull(value.respResolveTabId))) {
+            const resp = (await getRespBody(value.respResolveTabId as number, value.respResolveReqId as string)) as {
+              base64Encoded: boolean;
+              body: string;
+            };
+            value.respBody = resp;
+          }
+        }
+
+        delete value.respResolveReqId;
+        delete value.respResolveTabId;
+      }
+    }
+  };
 }
 
 async function startRecordingPage(tab: chrome.tabs.Tab, shouldReload = true) {
@@ -274,17 +298,16 @@ async function onTabActivation(tab: chrome.tabs.TabActiveInfo) {
 }
 
 async function processRequestsInQueue(sync: ReqProcessingSynchronizer) {
-  const [reqs, moreUploadPending] = await persistence.getFromUploadQ(sync, 10);
-  const ids = Object.keys(reqs);
-  if (ids.length) {
-    console.log(reqs);
-    await persistence.removeFromQ(sync, ids);
-  }
-
-  console.log('na');
-  if (moreUploadPending || (await persistence.getRecordingStatus()) !== RecordingStatus.Idle) {
-    startQueueProcessing(sync);
-  }
+  // const [reqs, moreUploadPending] = await persistence.getFromUploadQ(sync, 10);
+  // const ids = Object.keys(reqs);
+  // if (ids.length) {
+  //   console.log(reqs);
+  //   await persistence.removeFromQ(sync, ids);
+  // }
+  // console.log('na');
+  // if (moreUploadPending || (await persistence.getRecordingStatus()) !== RecordingStatus.Idle) {
+  //   startQueueProcessing(sync);
+  // }
 }
 
 async function startQueueProcessing(sync: ReqProcessingSynchronizer) {
@@ -305,6 +328,7 @@ chrome.runtime.onConnect.addListener((port) => {
       let tabsBeingRecorded: Array<string>;
       let sync: ReqProcessingSynchronizer;
       let sync2;
+      let storageChangeFn;
       switch (msg.type) {
         case 'query_status':
           port.postMessage({ type: 'query_status', payload: { value: await persistence.getRecordingStatus() } });
@@ -319,17 +343,19 @@ chrome.runtime.onConnect.addListener((port) => {
             throw new Error('Active tab should not be null');
           }
 
+          sync = new ReqProcessingSynchronizer();
+
           await persistence.setLastActiveTab(activeTab.id);
           chrome.tabs.onCreated.addListener(onNewTabCreation);
           chrome.tabs.onRemoved.addListener(onNewTabDeletion);
           chrome.tabs.onActivated.addListener(onTabActivation);
           chrome.tabs.onUpdated.addListener(onTabUpdate);
-          chrome.storage.onChanged.addListener(onStorageChange);
+          storageChangeFn = onStorageChange(sync);
+          chrome.storage.onChanged.addListener(storageChangeFn);
 
           await persistence.setAllowedHost(activeTab);
 
           // TODO If a recording is already in progress then show some ui warning
-          sync = new ReqProcessingSynchronizer();
           // await startQueueProcessing(sync);
           await startRecordingPage(activeTab);
           chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
@@ -341,7 +367,7 @@ chrome.runtime.onConnect.addListener((port) => {
           await persistence.clearTabsBeingRecorded();
 
           await persistence.setRecordingStatus(RecordingStatus.Idle);
-          chrome.storage.onChanged.removeListener(onStorageChange);
+          storageChangeFn && chrome.storage.onChanged.removeListener(storageChangeFn);
           chrome.tabs.onCreated.removeListener(onNewTabCreation);
           chrome.tabs.onRemoved.removeListener(onNewTabDeletion);
           chrome.tabs.onActivated.removeListener(onTabActivation);
