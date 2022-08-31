@@ -37,6 +37,9 @@ function sleep(ms: number) {
 
 function onNetworkEvts(sync: ReqProcessingSynchronizer) {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
+    if (dataObj && (dataObj as any).request && ((dataObj as any).request as any).url) {
+      console.log('>> ', ((dataObj as any).request as any).url);
+    }
     // If the request is coming from tab which is not being recorded then skip the details
     const recordedTabs = await persistence.getTabsBeingRecorded();
     if (!tab || !tab.tabId || !(tab.tabId in recordedTabs)) {
@@ -368,8 +371,8 @@ chrome.runtime.onConnect.addListener((port) => {
 
           // TODO If a recording is already in progress then show some ui warning
           // await startQueueProcessing(sync);
-          await startRecordingPage(activeTab);
           chrome.debugger.onEvent.addListener(onNetworkEvts(sync));
+          await startRecordingPage(activeTab);
           break;
 
         case 'stop':
