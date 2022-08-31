@@ -94,7 +94,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.requestId = reqData.requestId;
       data.tabId = tab.tabId;
 
-      await persistence.setNetData(tab.tabId, reqData.requestId, data);
+      persistence.setNetData(tab.tabId, reqData.requestId, data);
     } else if (event === ENetworkEvents.ResponseReceived) {
       const respData = dataObj as NNetworkEvents.IRespReceivedData;
       if (sync.shouldIgnore(respData.requestId)) {
@@ -110,7 +110,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.timestamp = respData.timestamp;
       data.event = ENetworkEvents.ResponseReceived;
 
-      await persistence.setNetData(tab.tabId, respData.requestId, data);
+      persistence.setNetData(tab.tabId, respData.requestId, data);
     } else if (event === ENetworkEvents.LoadingFinished) {
       const finishedData = dataObj as NNetworkEvents.IBaseXhrNetData;
       if (sync.shouldIgnore(finishedData.requestId)) {
@@ -121,7 +121,17 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.timestamp = finishedData.timestamp;
       data.event = ENetworkEvents.LoadingFinished;
 
-      await persistence.setNetData(tab.tabId, finishedData.requestId, data);
+      // WARN the final event is delayed so that if there are out of order events that could be managed
+      // For some cases (redirection) ResponseReceived -> LoadingFinished event gets queued before all the
+      // RequestWillbeSent event is received. This is delayed to handle that case in bruteforce fashion.
+      // As part of solution, Add one more level of check by using ResponseReceivedExtraInfo to mark more
+      // data is incoming
+      // This issue will only appear for indirection
+      // Note this is a very fragile check, if the second RequestWillbeSent comes after 750 seconds the same
+      // problem would happen.
+      // TODO fix this
+      await sleep(750);
+      persistence.setNetData(tab.tabId, finishedData.requestId, data);
     }
   };
 }
@@ -252,6 +262,7 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
 
         delete value.respResolveReqId;
         delete value.respResolveTabId;
+        console.log(value.url, value);
       }
     }
   };

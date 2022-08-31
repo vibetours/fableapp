@@ -17,23 +17,16 @@ const LOCKS: {
 };
 
 function nextLock(id: string) {
-  if (LOCKS.current === '') {
-    const head = LOCKS.q.shift();
-    if (head) {
-      LOCKS.current = head.id;
-      head.resolve();
-      const timer = setTimeout(releaseLock, 5000);
-      LOCKS.timerMap[id] = timer;
-    }
+  const head = LOCKS.q.shift();
+  if (head) {
+    LOCKS.current = head.id;
+    head.resolve();
   }
 }
 
 export function releaseLock(id: string) {
   LOCKS.current = '';
   nextLock(id);
-  if (id in LOCKS.timerMap) {
-    clearTimeout(LOCKS.timerMap[id]);
-  }
 }
 
 export function acquireLock(id: string) {
@@ -41,12 +34,9 @@ export function acquireLock(id: string) {
   const p = new Promise((resolve) => (candidate.resolve = resolve));
   LOCKS.q.push(candidate);
 
-  setTimeout(
-    ((i: string) => () => {
-      nextLock(i);
-    })(id),
-    10
-  );
+  if (LOCKS.current === '') {
+    nextLock(id);
+  }
 
   return p;
 }
