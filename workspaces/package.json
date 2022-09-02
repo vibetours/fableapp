@@ -1,0 +1,13 @@
+{
+  "name": "fable",
+  "version": "1.0.0",
+  "description": "Fable app packages",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com:sharefable/app.git"
+  }
+}
