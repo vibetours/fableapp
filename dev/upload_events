@@ -31,6 +31,38 @@
 }
 
 {
+    "contentType": "text/html",
+    "method": "GET",
+    "origin": "http://localhost:3000/usage",
+    "reqHeaders": {
+        "Referer": "http://localhost:3000/usage",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+    },
+    "respHeaders": {
+        "Cache-Control": "no-store, must-revalidate",
+        "Connection": "keep-alive",
+        "Content-Encoding": "gzip",
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Wed, 31 Aug 2022 13:57:15 GMT",
+        "Keep-Alive": "timeout=5",
+        "Transfer-Encoding": "chunked",
+        "Vary": "Accept-Encoding",
+        "X-DNS-Prefetch-Control": "off",
+        "X-Powered-By": "Next.js"
+    },
+    "status": 200,
+    "url": "http://localhost:3000/usage",
+    "respBody": {
+        "base64Encoded": false,
+        "body": "..."
+    }
+}
+
+{
     "contentType": "",
     "method": "GET",
     "origin": "http://localhost:3000/usage",
