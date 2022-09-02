@@ -37,9 +37,6 @@ function sleep(ms: number) {
 
 function onNetworkEvts(sync: ReqProcessingSynchronizer) {
   return async function (tab: chrome.debugger.Debuggee, eventStr: String, dataObj: Object | undefined) {
-    if (dataObj && (dataObj as any).request && ((dataObj as any).request as any).url) {
-      console.log('>> ', ((dataObj as any).request as any).url);
-    }
     // If the request is coming from tab which is not being recorded then skip the details
     const recordedTabs = await persistence.getTabsBeingRecorded();
     if (!tab || !tab.tabId || !(tab.tabId in recordedTabs)) {
@@ -50,11 +47,13 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
     if (event === ENetworkEvents.RequestWillbeSent) {
       const reqData = dataObj as NNetworkEvents.IReqWillBeSentData;
       const url = new URL(reqData.request.url);
+      const origin = new URL(reqData.documentURL);
 
       // If the request is coming from the target tab but is not coming from document then don't process the response.
       // This might happen if the request is coming from extension page etc
       const allowedHosts = await persistence.getAllowedHost();
-      if (!(url.host in allowedHosts)) {
+      if (!(origin.host in allowedHosts)) {
+        console.log('returning because of origin mismatch ', reqData.request.url);
         sync.ignore(reqData.requestId);
         return;
       }
@@ -64,6 +63,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
         || url.host in SkipReqForHost
         || url.protocol in SkipReqForProtocol
       ) {
+        console.log('returning because host, method, protocol blacklisting', reqData.request.url);
         sync.ignore(reqData.requestId);
         return;
       }
