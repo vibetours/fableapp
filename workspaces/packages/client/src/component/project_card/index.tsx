@@ -38,11 +38,9 @@ export default class ProjectCard extends React.PureComponent<IOwnProps, IOwnStat
             <Button
               size="middle"
               style={{
-                background: "#7566ff",
-                border: "none",
-                color: "#fff",
                 marginBottom: "10px",
               }}
+              type="primary"
             >
               Share Demo URL
             </Button>

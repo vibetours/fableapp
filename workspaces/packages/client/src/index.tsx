@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import "antd/dist/antd.css";
+import "./brand.css";
 import "./index.css";
 import App from "./entry";
 import reportWebVitals from "./reportWebVitals";
