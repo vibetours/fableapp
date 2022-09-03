@@ -15,11 +15,28 @@ export const BodyCon = styled.div`
   width: 100%;
   height: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 `;
 
 export const LeftCon = styled.div`
   min-width: 180px;
   max-width: 20%;
   height: 100%;
+`;
+
+export const MainCon = styled.div`
+  width: 100%;
+  height: 100%;
+  padding: 1.5rem 2rem;
+`;
+
+export const Title1 = styled.div`
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0px 1px 0px 0px #d5d5ff;
+`;
+
+export const ProjectCardCon = styled.div`
+  display: flex;
+  flex-direction: row;
 `;

@@ -14,7 +14,7 @@ export function processRawProjectData(rawData: IProject_Raw): IProject {
     __updatedAt: rawData.updatedAt,
     name: rawData.name,
     displayName: rawData.displayName,
-    thumbnail: rawData.thumbnail ? rawData.thumbnail : "",
+    thumbnail: rawData.thumbnail ? rawData.thumbnail : "/dash_ph.png",
     __thumbnail: rawData.thumbnail,
     origin: nOrigin,
     __origin: rawData.origin,

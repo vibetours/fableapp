@@ -6,6 +6,7 @@ import { TState } from "../../reducer";
 import * as Tags from "./styled";
 import Header from "../../component/header";
 import SidePanel from "../../component/side_panel";
+import ProjectCard from "../../component/project_card";
 
 // Properties which inturns calls dispatcher
 interface IDispatchProps {
@@ -49,6 +50,22 @@ class Projects extends React.PureComponent<IProps, IOwnStateProps> {
           <Tags.LeftCon>
             <SidePanel />
           </Tags.LeftCon>
+          <Tags.MainCon>
+            <Tags.Title1>All Active Projects</Tags.Title1>
+            <Tags.ProjectCardCon>
+              {this.props.projects.map((project) => (
+                <ProjectCard project={project} />
+              ))}
+            </Tags.ProjectCardCon>
+            <Tags.Title1
+              style={{
+                marginTop: "1.5rem",
+                color: "gray",
+              }}
+            >
+              Archived Projects
+            </Tags.Title1>
+          </Tags.MainCon>
         </Tags.BodyCon>
       </Tags.Con>
     );

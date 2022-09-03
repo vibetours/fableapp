@@ -5,6 +5,7 @@
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "private": true,
   "dependencies": {
+    "@ant-design/icons": "^4.7.0",
     "antd": "^4.22.8",
     "axios": "^0.27.2"
   },
