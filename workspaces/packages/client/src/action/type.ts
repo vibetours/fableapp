@@ -1,5 +1,5 @@
 enum Action {
-  SAMPLE_ACTION_TYPE = "SAMPLE_ACTION_TYPE",
+  ALL_PROJECTS = "ALL_PROJECTS",
 }
 
 export default Action;

@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+// import "antd/dist/antd.css";
 import "./index.css";
 import App from "./entry";
 import reportWebVitals from "./reportWebVitals";
@@ -9,9 +10,7 @@ import config from "./store_config";
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(
   <Provider store={config}>
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
+    <App />
   </Provider>
 );
 

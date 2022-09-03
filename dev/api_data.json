@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "status": "Success",
+    "data": [
+      {
+        "id": 1,
+        "createdAt": "2022-08-27T08:17:29.865+00:00",
+        "updatedAt": "2022-08-27T08:17:29.865+00:00",
+        "name": "test_project_1",
+        "displayName": "Test Project",
+        "thumbnail": null
+      }
+    ]
+  }
+}

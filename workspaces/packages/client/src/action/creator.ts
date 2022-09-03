@@ -1,15 +1,18 @@
 import ActionType from "./type";
+import { Dispatch } from "react";
+import { IProject } from "../entity_type";
+import api from "../api";
 
-function sleep(ts: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ts));
-}
-export function sampleActionCreator(updateVal: number) {
-  return async (dispatch: any) => {
-    await sleep(2000);
-    // thunks allow for pre-processing actions, calling apis, and dispatching multiple actions
+export function getAllProjects() {
+  return async (dispatch: Dispatch<TGetAllProjects>) => {
+    const resp = await api.get("/projects");
     return dispatch({
-      type: ActionType.SAMPLE_ACTION_TYPE,
-      val: updateVal,
+      type: ActionType.ALL_PROJECTS,
+      projects: resp.data.data,
     });
   };
+}
+export interface TGetAllProjects {
+  type: ActionType.ALL_PROJECTS;
+  projects: Array<IProject>;
 }
