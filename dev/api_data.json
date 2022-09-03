@@ -8,7 +8,8 @@
         "updatedAt": "2022-08-27T08:17:29.865+00:00",
         "name": "test_project_1",
         "displayName": "Test Project",
-        "thumbnail": null
+        "thumbnail": null,
+        "origin": "https://app.acme.com/home?ts=340958&track=1&goal=alsdfjlsd20938lsdjf09238"
       }
     ]
   }

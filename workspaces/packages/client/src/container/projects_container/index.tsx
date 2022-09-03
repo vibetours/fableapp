@@ -3,6 +3,9 @@ import { connect } from "react-redux";
 import { getAllProjects } from "../../action/creator";
 import { IProject } from "../../entity_type";
 import { TState } from "../../reducer";
+import * as Tags from "./styled";
+import Header from "../../component/header";
+import SidePanel from "../../component/side_panel";
 
 // Properties which inturns calls dispatcher
 interface IDispatchProps {
@@ -31,17 +34,28 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps;
 // Component's local state
 interface IOwnStateProps {}
 
-class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
+class Projects extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount() {
     this.props.getProjects();
   }
 
   render() {
-    return <pre>{JSON.stringify(this.props.projects, null, 2)}</pre>;
+    return (
+      <Tags.Con>
+        <Tags.TopCon>
+          <Header />
+        </Tags.TopCon>
+        <Tags.BodyCon>
+          <Tags.LeftCon>
+            <SidePanel />
+          </Tags.LeftCon>
+        </Tags.BodyCon>
+      </Tags.Con>
+    );
   }
 }
 
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(ComponentClassName);
+)(Projects);
