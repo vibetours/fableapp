@@ -9,3 +9,9 @@ details.
 - `cd workspaces`
 - `yarn` command from **inside `workspaces` dir**
 - Any package specific installation to be done inside the package `app/workspaces/packages/...`
+
+# Fix Info
+
+- _.yarnrc.yaml_ is added to address [this issue](https://github.com/facebook/create-react-app/issues/11793) for
+  `packages/client`
+
