@@ -109,4 +109,4 @@ dist
 .DS_Store
 
 # public resource in tmp path for local development
-public/tmp
+workspaces/packages/client/public/tmp/
