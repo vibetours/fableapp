@@ -17,6 +17,8 @@ const SkipReqForMethods = {
 const SkipReqForHost = {
   'ingest.sentry.io': 1,
   'google-analytics.com': 1,
+  'fonts.gstatic.com': 1,
+  'fonts.googleapis.com': 1,
 };
 
 const SkipReqForProtocol = {
@@ -265,7 +267,15 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
 
         delete value.respResolveReqId;
         delete value.respResolveTabId;
+
         console.log(value.url, value);
+        await fetch('http://localhost:8080/api/v1/asset/new/1', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(value),
+        });
       }
     }
   };
