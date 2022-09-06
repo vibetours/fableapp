@@ -3,10 +3,11 @@ import { connect } from "react-redux";
 import { getAllProjects } from "../../action/creator";
 import { IProject } from "../../entity_type";
 import { TState } from "../../reducer";
-import * as Tags from "./styled";
+import * as CmnTags from "../styled";
 import Header from "../../component/header";
 import SidePanel from "../../component/side_panel";
 import ProjectCard from "../../component/project_card";
+import { PageType } from "../../constant";
 
 // Properties which inturns calls dispatcher
 interface IDispatchProps {
@@ -42,32 +43,32 @@ class Projects extends React.PureComponent<IProps, IOwnStateProps> {
 
   render() {
     return (
-      <Tags.Con>
-        <Tags.TopCon>
-          <Header />
-        </Tags.TopCon>
-        <Tags.BodyCon>
-          <Tags.LeftCon>
+      <CmnTags.Con>
+        <CmnTags.TopCon>
+          <Header page={PageType.Project} />
+        </CmnTags.TopCon>
+        <CmnTags.BodyCon>
+          <CmnTags.LeftCon style={{ width: "25%" }}>
             <SidePanel />
-          </Tags.LeftCon>
-          <Tags.MainCon>
-            <Tags.Title1>All Active Projects</Tags.Title1>
-            <Tags.ProjectCardCon>
+          </CmnTags.LeftCon>
+          <CmnTags.MainCon>
+            <CmnTags.Title1>All Active Projects</CmnTags.Title1>
+            <CmnTags.ProjectCardCon>
               {this.props.projects.map((project) => (
                 <ProjectCard project={project} />
               ))}
-            </Tags.ProjectCardCon>
-            <Tags.Title1
+            </CmnTags.ProjectCardCon>
+            <CmnTags.Title1
               style={{
                 marginTop: "1.5rem",
                 color: "gray",
               }}
             >
               Archived Projects
-            </Tags.Title1>
-          </Tags.MainCon>
-        </Tags.BodyCon>
-      </Tags.Con>
+            </CmnTags.Title1>
+          </CmnTags.MainCon>
+        </CmnTags.BodyCon>
+      </CmnTags.Con>
     );
   }
 }

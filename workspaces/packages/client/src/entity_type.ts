@@ -6,6 +6,8 @@ export interface IProject extends Record<string, any> {
   displayName: string;
   thumbnail: string;
   origin: string;
+  title: string;
+  proxyOrigin: string;
 }
 
 export interface IProject_Raw {
@@ -16,4 +18,6 @@ export interface IProject_Raw {
   displayName: string;
   thumbnail: string | null;
   origin: string;
+  title: string;
+  proxyOrigin: string;
 }

@@ -1,11 +1,12 @@
 import ActionType from "../action/type";
 import { Action } from "redux";
-import { TGetAllProjects } from "../action/creator";
+import { TGetAllProjects, TGetProject } from "../action/creator";
 import { IProject } from "../entity_type";
 
 export const initialState: {
   projects: Array<IProject>;
-} = { projects: [] };
+  selectedProject: IProject | null;
+} = { projects: [], selectedProject: null };
 
 export default function projectReducer(state = initialState, action: Action) {
   let newState;
@@ -16,6 +17,12 @@ export default function projectReducer(state = initialState, action: Action) {
       tAction = action as TGetAllProjects;
       newState = { ...state };
       newState.projects = tAction.projects;
+      return newState;
+
+    case ActionType.UNIT_PROJECT:
+      tAction = action as TGetProject;
+      newState = { ...state };
+      newState.selectedProject = tAction.project;
       return newState;
 
     default:

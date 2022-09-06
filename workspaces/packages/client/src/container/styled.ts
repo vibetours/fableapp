@@ -20,7 +20,6 @@ export const BodyCon = styled.div`
 
 export const LeftCon = styled.div`
   min-width: 180px;
-  max-width: 20%;
   height: 100%;
 `;
 

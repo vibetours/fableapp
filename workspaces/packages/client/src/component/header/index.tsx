@@ -1,8 +1,11 @@
 import React from "react";
 import * as Tags from "./styled";
 import { Avatar, Button } from "antd";
+import { PageType } from "../../constant";
 
-interface IOwnProps {}
+interface IOwnProps {
+  page: PageType;
+}
 interface IOwnStateProps {}
 
 export default class Header extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -13,7 +16,7 @@ export default class Header extends React.PureComponent<IOwnProps, IOwnStateProp
         <Tags.MenuCon>
           <Tags.MenuItem>
             <Button shape="round" size="middle">
-              Record a Demo
+              {this.props.page === PageType.Project ? "Record a Demo" : "Create Demo Link"}
             </Button>
           </Tags.MenuItem>
           <Tags.MenuItem>
