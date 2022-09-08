@@ -1,22 +1,19 @@
 # Fable
 
-[Common Project Information](https://github.com/sharefable/dev-docs/blob/master/README.md)
+### To setup the projects checkout [Common Project Information](https://github.com/sharefable/dev-docs/blob/master/README.md)
 
-# To setup
+## General
 
-- The project is setup as [yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/)
-- `cd workspaces`
-- `yarn` command from **inside `workspaces` dir**
-- `cd packages/client && yarn brand-asset-gen`
-- Any package specific installation to be done inside the package `app/workspaces/packages/...`
+The project is setup as [yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/). Here is the app structure
+- `workspace/packages/client` contains the frontend code for falbe app
+- `workspace/packages/ext` contains the code for browser extension
+- `workspace/packages/scripts` contains the code for common scripts that are served via cdn
 
 ## Scripts
 
-Scripts contains common script that would be served from appserver origin (in local that's http://localhost:8080). The
-client gets served from a different origin (in local http://localhost:3000). So we really can't serve the common script
-files from http://localhost:3000 since scirpt files contain service-worker and that needs to be loaded from same domain
-as the app server.
+Scripts contains common script that would be served from api server origin. Scripts like service worker and service worker installer that are not built as part of client goes here.
 
+To build and use those scripts, go to `workspace/packages/script` dir and
 - Build using `yarn build`
 - Upload in s3 using `yarn s3cp`. Change aws profile in `script/package.json` case the profile name is something else.
 
