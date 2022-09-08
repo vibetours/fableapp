@@ -1,7 +1,6 @@
 # Fable
 
-Checkout [Notion](https://www.notion.so/sharefable/Product-Tech-a081d6960f134016b67f34b8382684ae) for engineering
-details.
+[Common Project Information](https://github.com/sharefable/dev-docs/blob/master/README.md)
 
 # To setup
 
@@ -29,4 +28,9 @@ as the app server.
 - [antd](https://ant.design/components/overview/) is used a component lib. In order to brand override css properties,
   use the script `yarn brand-asset-gen`. This is required because `create-react-app` does not support less/saas without
   ejecting and `antd` override is supported from less files. [Read more here](https://medium.com/@aksteps/customising-ant-design-antd-theme-without-using-react-eject-or-any-unreliable-libraries-782c53cbc03b).
+- Service worker might not work after Clear Cache & Hard Reload action of browser. Apparently this is part of
+  specification. There might be a fix to way around this, but it was not investigated.
 
+# Reading
+
+- [Service worker lifecycle](https://web.dev/service-worker-lifecycle/)
