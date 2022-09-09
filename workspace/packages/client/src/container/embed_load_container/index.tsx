@@ -4,7 +4,7 @@ import { TState } from "../../reducer";
 import { withRouter, WithRouterProps } from "../../router_hoc";
 import * as CmnTags from "../styled";
 import Header from "../../component/header";
-import { PageType, PROXY_LOADER_IFRAME_ID } from "../../constant";
+import { PageType, EMBED_LOADER_IFRAME_ID } from "../../constant";
 import SideActionPanel from "../../component/side_action_panel";
 import { getProject } from "../../action/creator";
 import { IProject } from "../../entity_type";
@@ -42,7 +42,7 @@ type IProps = IOwnProps &
 // Component's local state
 interface IOwnStateProps {}
 
-class ProxyContainer extends React.PureComponent<IProps, IOwnStateProps> {
+class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount() {
     this.props.getProject(+this.props.match.params.projectId);
   }
@@ -51,7 +51,7 @@ class ProxyContainer extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <CmnTags.Con>
         <CmnTags.TopCon>
-          <Header page={PageType.ProxyLoader} />
+          <Header page={PageType.EmbedLoader} />
         </CmnTags.TopCon>
         <CmnTags.BodyCon>
           <CmnTags.LeftCon style={{ width: "70px", minWidth: "70px" }}>
@@ -60,7 +60,8 @@ class ProxyContainer extends React.PureComponent<IProps, IOwnStateProps> {
           <CmnTags.MainCon style={{ padding: 0 }}>
             {this.props.project !== null && (
               <iframe
-                id={PROXY_LOADER_IFRAME_ID}
+                id={EMBED_LOADER_IFRAME_ID}
+                name={EMBED_LOADER_IFRAME_ID}
                 title={this.props.project.title}
                 src={`http://localhost:8080/api/v1/asset/get/1${this.props.project.proxyOrigin}`}
               ></iframe>
@@ -75,4 +76,4 @@ class ProxyContainer extends React.PureComponent<IProps, IOwnStateProps> {
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(withRouter(ProxyContainer));
+)(withRouter(EmbedContainer));
