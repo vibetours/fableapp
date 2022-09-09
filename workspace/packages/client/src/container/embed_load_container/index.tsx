@@ -9,6 +9,8 @@ import SideActionPanel from "../../component/side_action_panel";
 import { getProject } from "../../action/creator";
 import { IProject } from "../../entity_type";
 import "./index.css";
+import { isSameOrigin } from "@fable/common/dist/utils";
+import { OutboundMessageTypes, FrameParentMsg, InboundMessageTypes, EmptyMsg } from "@fable/common/dist/constants";
 
 // Properties which inturns calls dispatcher
 interface IDispatchProps {
@@ -40,12 +42,52 @@ type IProps = IOwnProps &
   }>;
 
 // Component's local state
-interface IOwnStateProps {}
+interface IOwnStateProps {
+  showCtrlPanelIcons: boolean;
+  isEditing: boolean;
+}
 
 class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
+  constructor(props: IProps) {
+    super(props);
+    this.state = { showCtrlPanelIcons: false, isEditing: false };
+  }
   componentDidMount() {
     this.props.getProject(+this.props.match.params.projectId);
+
+    window.addEventListener("message", (e) => {
+      if (isSameOrigin(e.origin, "http://localhost:8080")) {
+        if (e.data === OutboundMessageTypes.EmbedReady) {
+          this.setState({ showCtrlPanelIcons: true });
+        }
+      }
+    });
   }
+
+  sendMsgToIframe<T>(msg: FrameParentMsg<T>) {
+    const iframe = document.getElementById(EMBED_LOADER_IFRAME_ID) as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(msg, "*");
+    } else {
+      console.warn("Message is sent but iframe not found", msg);
+    }
+  }
+
+  toggleEditing = () => {
+    if (this.state.isEditing) {
+      this.sendMsgToIframe<typeof EmptyMsg>({
+        type: InboundMessageTypes.EditModeEnd,
+        data: EmptyMsg,
+      });
+      this.setState({ isEditing: false });
+    } else {
+      this.sendMsgToIframe<typeof EmptyMsg>({
+        type: InboundMessageTypes.EditModeStart,
+        data: EmptyMsg,
+      });
+      this.setState({ isEditing: true });
+    }
+  };
 
   render() {
     return (
@@ -55,9 +97,18 @@ class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
         </CmnTags.TopCon>
         <CmnTags.BodyCon>
           <CmnTags.LeftCon style={{ width: "70px", minWidth: "70px" }}>
-            <SideActionPanel />
+            <SideActionPanel activateIcons={this.state.showCtrlPanelIcons} toggleEditing={this.toggleEditing} />
           </CmnTags.LeftCon>
           <CmnTags.MainCon style={{ padding: 0 }}>
+            {this.state.isEditing && (
+              <CmnTags.EditingStatus>
+                The page is currently in &nbsp;<b>Edit Mode</b>. &nbsp;{" "}
+                <CmnTags.ClickableTxt onClick={this.toggleEditing}>
+                  <u>Click here</u>
+                </CmnTags.ClickableTxt>{" "}
+                &nbsp; to finish editing.
+              </CmnTags.EditingStatus>
+            )}
             {this.props.project !== null && (
               <iframe
                 id={EMBED_LOADER_IFRAME_ID}

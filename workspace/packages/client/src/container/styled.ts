@@ -27,6 +27,8 @@ export const MainCon = styled.div`
   width: 100%;
   height: 100%;
   padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
 `;
 
 export const Title1 = styled.div`
@@ -38,4 +40,16 @@ export const Title1 = styled.div`
 export const ProjectCardCon = styled.div`
   display: flex;
   flex-direction: row;
+`;
+
+export const EditingStatus = styled.div`
+  background: #ffe26e;
+  justify-content: center;
+  display: flex;
+`;
+
+export const ClickableTxt = styled.div`
+  &:hover {
+    cursor: pointer;
+  }
 `;

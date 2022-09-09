@@ -5,6 +5,5 @@ export const Con = styled.div`
   background-color: #160245;
   color: #fff;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center;
 `;
