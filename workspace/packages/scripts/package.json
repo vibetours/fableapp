@@ -9,7 +9,8 @@
   "scripts": {
     "clean": "rm -rf build",
     "build": "NODE_ENV=dev webpack",
-    "s3cp": "aws s3 cp ./build/ s3://proxy-assets-2/project/cmn/js/ --recursive --profile fable"
+    "s3cp": "aws s3 cp ./build/ s3://proxy-assets-2/project/cmn/js/ --recursive --profile fable",
+    "test": "jest --detectOpenHandles --verbose --runInBand"
   },
   "dependencies": {
     "@fable/common": "^1.0.0"

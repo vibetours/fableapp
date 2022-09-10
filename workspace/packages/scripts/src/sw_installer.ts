@@ -1,5 +1,6 @@
 import { InboundMessageTypes, EmptyMsg, OutboundMessageTypes } from '@fable/common/dist/constants';
 import { registerMsgListener, sendMessageToParent } from './messaging';
+import { pointDOMElsWhenHovered } from './dom';
 
 function getAttr(node: HTMLElement, attrName: string): string {
   return (node.getAttribute(attrName) || '').trim();
@@ -39,7 +40,11 @@ function replaceProxyTags(nodes: Array<HTMLElement>, tagType: string) {
 }
 
 registerMsgListener(InboundMessageTypes.EditModeStart, (data: typeof EmptyMsg) => {
-  console.log('>>> msg received empty', data);
+  pointDOMElsWhenHovered.reg(document);
+});
+
+registerMsgListener(InboundMessageTypes.EditModeEnd, (data: typeof EmptyMsg) => {
+  pointDOMElsWhenHovered.unreg(document);
 });
 
 function init() {
