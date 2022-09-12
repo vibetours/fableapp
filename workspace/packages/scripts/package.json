@@ -13,7 +13,8 @@
     "test": "jest --detectOpenHandles --verbose --runInBand"
   },
   "dependencies": {
-    "@fable/common": "^1.0.0"
+    "@fable/common": "^1.0.0",
+    "eta": "^1.12.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
