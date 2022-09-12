@@ -99,14 +99,8 @@ class FollowBehindContainer {
     this.con.style.position = "absolute";
     this.con.innerHTML = render(HOVER_IND, {}) as string;
     this.con.setAttribute("id", `fab-fbc-${getRandomNo()}`);
-    this.con.onmouseover = (e) => {
-      (e as any).__fab__target = this.con;
-      e.stopPropagation();
-    };
-    this.con.onmouseout = (e) => {
-      (e as any).__fab__target = this.con;
-      e.stopPropagation();
-    };
+    this.con.onmouseover = (e) => e.stopPropagation();
+    this.con.onmouseout = (e) => e.stopPropagation();
     this.con.onclick = (e) => {
       e.stopPropagation();
     };
@@ -147,6 +141,19 @@ class FollowBehindContainer {
   }
 }
 
+function getHeadEl(els: Array<HTMLStyleElement>): HTMLStyleElement {
+  for (const el of els) {
+    if (el.tagName && el.tagName.toLowerCase() === "svg") {
+      // For svg elements there could be nested <g/> or <path /> etc elements
+      // But we have to treat svg element as a single element otherwise the
+      // element selection becomes very erratic as for each <g/> <path/> element
+      // the events are triggered
+      return el;
+    }
+  }
+  return els[0];
+}
+
 export const pointDOMElsWhenHovered: {
   __followBehind: FollowBehindContainer | null;
   reg: (doc: HTMLDocument) => void;
@@ -160,10 +167,13 @@ export const pointDOMElsWhenHovered: {
     doc.body.onmousemove = function (e) {
       const lastEl = SELECTION_REGISTRY.PROBING.lastEl;
       const els = doc.elementsFromPoint(e.clientX, e.clientY) as Array<HTMLStyleElement>;
+      // We pickup all the elements that are over the mouse. If the follow behind element container
+      // is present then we don't do anything as there could be the case user is choosing to select
+      // an action
       if (that.__followBehind?.isPresentInPath(els)) {
         return;
       }
-      const el = els[0];
+      const el = getHeadEl(els);
       if (el) {
         if (el !== lastEl) {
           SELECTION_REGISTRY.PROBING.currentEl = el;
