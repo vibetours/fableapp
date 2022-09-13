@@ -1,6 +1,6 @@
 import { InboundMessageTypes, EmptyMsg, OutboundMessageTypes } from '@fable/common/dist/constants';
 import { registerMsgListener, sendMessageToParent } from './messaging';
-import { pointDOMElsWhenHovered } from './dom';
+import { DomInteractionManager } from './dom';
 
 function getAttr(node: HTMLElement, attrName: string): string {
   return (node.getAttribute(attrName) || '').trim();
@@ -39,12 +39,14 @@ function replaceProxyTags(nodes: Array<HTMLElement>, tagType: string) {
   }
 }
 
+let domInteractionManager: DomInteractionManager | null = null;
 registerMsgListener(InboundMessageTypes.EditModeStart, (data: typeof EmptyMsg) => {
-  pointDOMElsWhenHovered.reg(document);
+  domInteractionManager = new DomInteractionManager(document);
+  domInteractionManager.reg();
 });
 
 registerMsgListener(InboundMessageTypes.EditModeEnd, (data: typeof EmptyMsg) => {
-  pointDOMElsWhenHovered.unreg(document);
+  domInteractionManager?.unreg();
 });
 
 function init() {
