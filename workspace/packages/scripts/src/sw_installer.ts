@@ -1,6 +1,6 @@
-import { InboundMessageTypes, EmptyMsg, OutboundMessageTypes } from '@fable/common/dist/constants';
+import { EmptyMsg, InboundMessageTypes, OutboundMessageTypes } from '@fable/common/dist/constants';
 import { registerMsgListener, sendMessageToParent } from './messaging';
-import { DomInteractionManager } from './dom';
+import { DomInteractionManager } from './dom/dom_interaction_manager';
 
 function getAttr(node: HTMLElement, attrName: string): string {
   return (node.getAttribute(attrName) || '').trim();
@@ -40,12 +40,12 @@ function replaceProxyTags(nodes: Array<HTMLElement>, tagType: string) {
 }
 
 let domInteractionManager: DomInteractionManager | null = null;
-registerMsgListener(InboundMessageTypes.EditModeStart, (data: typeof EmptyMsg) => {
+registerMsgListener(InboundMessageTypes.EditModeStart, (_: typeof EmptyMsg) => {
   domInteractionManager = new DomInteractionManager(document);
   domInteractionManager.reg();
 });
 
-registerMsgListener(InboundMessageTypes.EditModeEnd, (data: typeof EmptyMsg) => {
+registerMsgListener(InboundMessageTypes.EditModeEnd, (_: typeof EmptyMsg) => {
   domInteractionManager?.unreg();
 });
 
