@@ -1,7 +1,7 @@
 import { render } from 'eta';
 import HOVER_IND, { DUPLICATE_DIV_CLS, TEXT_EDIT_DIV_CLS } from '../views/hover_indicator';
 import { classNameExists, restoreSavedProperty, saveCurrentProperty } from './utils';
-import FollowBehindContainer from './follow_behind_container';
+import FollowBehindContainer, { ContentRenderingDelegate } from './follow_behind_container';
 import TextEditingManager from './text_editing_manager';
 import { SELECTION_REGISTRY } from './el_selection';
 
@@ -18,22 +18,28 @@ function getHeadEl(els: Array<HTMLStyleElement>): HTMLStyleElement {
   return els[0];
 }
 
+class StaticContentRenderingDelegate extends ContentRenderingDelegate {
+  mount(point: HTMLElement): void {
+    point.innerHTML = render(HOVER_IND, {}) as string;
+  }
+}
+
 export class DomInteractionManager {
   private readonly doc: Document;
 
   private followBehind: FollowBehindContainer | null = null;
 
-  private readonly followBehindChildRenderer: () => string;
+  private readonly followBehindContentRenderer: ContentRenderingDelegate;
 
   private currentTextEditingManager: TextEditingManager | null = null;
 
   constructor(doc: Document) {
     this.doc = doc;
-    this.followBehindChildRenderer = () => render(HOVER_IND, {}) as string;
+    this.followBehindContentRenderer = new StaticContentRenderingDelegate();
   }
 
   reg() {
-    this.followBehind = new FollowBehindContainer(this.doc, this.followBehindChildRenderer, {
+    this.followBehind = new FollowBehindContainer(this.doc, this.followBehindContentRenderer, {
       onclick: this.followBehindOnClick,
     });
     this.registerBodyListener();

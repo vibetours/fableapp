@@ -1,6 +1,15 @@
 import { getRandomNo } from './utils';
 
 /*
+ * Content the rendered content root is pushed via this delegate to the caller.
+ * Caller could statically or dynamically render content.
+ * Caller should not change style of the mount point.
+ */
+export abstract class ContentRenderingDelegate {
+  abstract mount(point: HTMLElement): void;
+}
+
+/*
  * Container lifecycle manager to show
  * - show extra information (context button on top around an element)
  * - perform additional action (mask on top of html body to stop interaction of host page)
@@ -12,13 +21,15 @@ export default class FollowBehindContainer {
 
   private rect: DOMRect;
 
-  constructor(doc: Document, childRenderer: () => string, listeners: Record<'onclick', (e: MouseEvent) => void>) {
+  constructor(
+    doc: Document,
+    contentRenderer: ContentRenderingDelegate,
+    listeners: Record<'onclick', (e: MouseEvent) => void>
+  ) {
     this.doc = doc;
-
     this.con = this.doc.createElement('div');
     this.con.style.position = 'absolute';
-    // this.con.innerHTML = ;
-    this.con.innerHTML = childRenderer();
+    contentRenderer.mount(this.con);
     this.con.setAttribute('id', `fab-fbc-${getRandomNo()}`);
     this.con.onmouseover = (e) => e.stopPropagation();
     this.con.onmouseout = (e) => e.stopPropagation();
@@ -39,19 +50,6 @@ export default class FollowBehindContainer {
     this.moveOutsideViewPort();
   }
 
-  isPresentInPath(els: Array<HTMLElement>) {
-    for (const el of els) {
-      if (el === this.con) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  moveOutsideViewPort() {
-    this.con.style.display = 'none';
-  }
-
   bringInViewPort(anchorEl: HTMLStyleElement) {
     const rect = anchorEl.getBoundingClientRect();
     this.con.style.left = `${rect.left}px`;
@@ -62,5 +60,18 @@ export default class FollowBehindContainer {
 
   destroy() {
     this.doc.body.removeChild(this.con);
+  }
+
+  isPresentInPath(els: Array<HTMLElement>) {
+    for (const el of els) {
+      if (el === this.con) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private moveOutsideViewPort() {
+    this.con.style.display = 'none';
   }
 }
