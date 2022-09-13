@@ -1,5 +1,5 @@
 import { render } from 'eta';
-import HOVER_IND from './views/hover_indicator';
+import HOVER_IND, { DUPLICATE_DIV_CLS, TEXT_EDIT_DIV_CLS } from './views/hover_indicator';
 
 function getRandomNo(): string {
   const msStr = (+new Date()).toString();
@@ -11,7 +11,7 @@ function getRandomNo(): string {
  * as part of the dom object property with a default value.
  * Like if we are changing the border of an HTMLElement then old value of el.style.border
  * is saved as el.__fab_style_border__
- * This is required as often time we dynmically change property value of an dom and we restore
+ * This is required as often time we dynamically change property value of a dom and we restore
  * it back later
  */
 function saveCurrentProperty(el: any, propertyName: string, defaultValue: any) {
@@ -86,13 +86,13 @@ const SELECTION_REGISTRY: Record<SelectionRegistryType, DOMElementSelection> = {
  * Container to show extra information around a bounding box
  */
 class FollowBehindContainer {
-  private doc: HTMLDocument;
+  private doc: Document;
 
-  private con: HTMLDivElement;
+  private readonly con: HTMLDivElement;
 
   private rect: DOMRect;
 
-  constructor(doc: HTMLDocument, childRenderer: () => string, listeners: Record<'onclick', (e: MouseEvent) => void>) {
+  constructor(doc: Document, childRenderer: () => string, listeners: Record<'onclick', (e: MouseEvent) => void>) {
     this.doc = doc;
 
     this.con = this.doc.createElement('div');
@@ -172,41 +172,162 @@ function classNameExists(el: HTMLElement, clsName: string) {
   return false;
 }
 
+export class TextEditingManager {
+  private readonly root: HTMLElement;
+
+  private textNodes: Array<{
+    el: Text;
+    parent: HTMLElement;
+    isNaked: boolean;
+    guard?: HTMLSpanElement;
+    isMarked: boolean;
+  }> = [];
+
+  private readonly doc: Document;
+
+  constructor(root: HTMLElement, doc: Document) {
+    this.root = root;
+    this.doc = doc;
+  }
+
+  start() {
+    // First we detect all the text elements and wrap a <span/> around a naked text element.
+    // This is necessary other wide content editable delete other elements when backspace is pressed.
+    // Then we highlight all the text elements and make those contenteditable
+    this.findTextInSubtree(this.root);
+    this.putGuardAgainstText();
+    this.markTextEls();
+  }
+
+  finish() {
+    this.restoreTextNodes();
+  }
+
+  private markTextEls() {
+    for (const text of this.textNodes) {
+      const markerEl = text.guard === undefined || text.guard === null ? text.parent : text.guard;
+      saveCurrentProperty(markerEl, 'style.background', null);
+      saveCurrentProperty(markerEl, 'style.border', null);
+      saveCurrentProperty(markerEl, 'style.outline', null);
+      markerEl.style.background = '#e3f2fd';
+      markerEl.style.border = '2px solid #64b5f6';
+      markerEl.style.outline = 'none';
+      text.isMarked = true;
+      markerEl.setAttribute('contenteditable', 'true');
+    }
+  }
+
+  private findTextInSubtree(node: HTMLElement) {
+    const children = [].slice.call(node.childNodes, 0) as Array<HTMLElement>;
+    let otherNodeAroundTextNode = 0;
+    const texts = [];
+    for (const child of children) {
+      if (!(child instanceof SVGElement)) {
+        // If it's a svg element we don't traverse the dom in depth as there won't be any Text element
+        // TODO SVG text elements needs to be handle differently
+        this.findTextInSubtree(child);
+      }
+      if (child instanceof Text) {
+        texts.push(child);
+      } else {
+        otherNodeAroundTextNode += 1;
+      }
+    }
+
+    if (texts.length > 0) {
+      const isNaked = otherNodeAroundTextNode > 0;
+      texts.forEach((tEl) => this.textNodes.push({ el: tEl, parent: node, isNaked, isMarked: false }));
+    }
+  }
+
+  private putGuardAgainstText() {
+    console.log(this.textNodes);
+    for (const text of this.textNodes) {
+      console.log(text.isNaked);
+      if (!text.isNaked) {
+        continue;
+      }
+      const guard = this.doc.createElement('span');
+      guard.style.padding = '0px';
+      guard.style.margin = '0px';
+      guard.style.top = 'auto';
+      guard.appendChild(text.el.cloneNode());
+      text.el.replaceWith(guard);
+      text.guard = guard;
+    }
+  }
+
+  private restoreTextNodes() {
+    for (const text of this.textNodes) {
+      if (!text.isMarked) {
+        return;
+      }
+      if (text.isNaked && text.guard) {
+        text.guard.replaceWith(text.el);
+      } else {
+        restoreSavedProperty(text.parent, 'style.background');
+        restoreSavedProperty(text.parent, 'style.border');
+        restoreSavedProperty(text.parent, 'style.outline');
+        text.parent.removeAttribute('contenteditable');
+      }
+    }
+  }
+}
+
 export class DomInteractionManager {
-  private doc: HTMLDocument;
+  private readonly doc: Document;
 
   private followBehind: FollowBehindContainer | null = null;
 
-  private followBehindChildRenderer: () => string;
+  private readonly followBehindChildRenderer: () => string;
 
-  private followBehindOnClick = (e: MouseEvent) => {
-    const path = (e as any).path || ((e.composedPath && e.composedPath()) as Array<EventTarget>);
-    for (const el of path) {
-      if (el.tagName && el.tagName.toLowerCase() === 'div') {
-        if (classNameExists(el, 'fab-fbi-tedit')) {
-          console.log('text selection clicked');
-        } else if (classNameExists(el, 'fab-fbi-edup')) {
-          console.log('duplicate clicked');
-          // 2
-        }
-      }
-    }
-  };
+  private currentTextEditingManager: TextEditingManager | null = null;
 
-  constructor(doc: HTMLDocument) {
+  constructor(doc: Document) {
     this.doc = doc;
     this.followBehindChildRenderer = () => render(HOVER_IND, {}) as string;
   }
 
   reg() {
-    saveCurrentProperty(this.doc.body, 'onmousemove', null);
     this.followBehind = new FollowBehindContainer(this.doc, this.followBehindChildRenderer, {
       onclick: this.followBehindOnClick,
     });
+    this.registerBodyListener();
+  }
+
+  unreg() {
+    this.removeBodyListener();
+    this.followBehind?.destroy();
+  }
+
+  private followBehindOnClick = (e: MouseEvent) => {
+    const path = (e as any).path || ((e.composedPath && e.composedPath()) as Array<EventTarget>);
+    for (const el of path) {
+      if (el.tagName && el.tagName.toLowerCase() === 'div') {
+        // TODO take classname from constants and replace the same classname in the template
+        if (classNameExists(el, TEXT_EDIT_DIV_CLS)) {
+          const editRoot = SELECTION_REGISTRY.PROBING.currentEl;
+          if (!editRoot) {
+            return;
+          }
+          this.removeBodyListener();
+
+          this.currentTextEditingManager = new TextEditingManager(editRoot, this.doc);
+          this.currentTextEditingManager.start();
+        } else if (classNameExists(el, DUPLICATE_DIV_CLS)) {
+          console.log('duplicate clicked');
+          this.removeBodyListener();
+        }
+      }
+    }
+  };
+
+  private registerBodyListener = () => {
+    saveCurrentProperty(this.doc.body, 'onmousemove', null);
     this.doc.body.onmousemove = (e) => {
       const lastEl = SELECTION_REGISTRY.PROBING.lastEl;
       const els = this.doc.elementsFromPoint(e.clientX, e.clientY) as Array<HTMLStyleElement>;
-      // We pickup all the elements that are over the mouse. If the follow behind element container
+      // We pick up all the elements that are over the mouse. If the follow behind element container
       // is present then we don't do anything as there could be the case user is choosing to select
       // an action
       if (this.followBehind?.isPresentInPath(els)) {
@@ -228,15 +349,14 @@ export class DomInteractionManager {
         SELECTION_REGISTRY.PROBING.lastEl = el;
       }
     };
-  }
+  };
 
-  unreg() {
+  private removeBodyListener() {
     const lastEl = SELECTION_REGISTRY.PROBING.lastEl;
     if (lastEl) {
       restoreSavedProperty(lastEl, 'style.boxShadow');
     }
     SELECTION_REGISTRY.PROBING.clear();
-    this.followBehind?.destroy();
     restoreSavedProperty(this.doc.body, 'onmousemove');
     restoreSavedProperty(this.doc.body, 'onmouseout');
   }
