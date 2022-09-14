@@ -5,7 +5,7 @@ import FollowBehindContainer, { ContentRenderingDelegate, ContentRenderingMode }
 import TextEditingManager from './text_editing_manager';
 import { SELECTION_REGISTRY } from './el_selection';
 
-function getHeadEl(els: Array<HTMLStyleElement>): HTMLStyleElement {
+function getHeadEl(els: Array<HTMLElement>): HTMLElement {
   for (const el of els) {
     if (el.tagName && el.tagName.toLowerCase() === 'svg') {
       // For svg elements there could be nested <g/> or <path /> etc elements
@@ -88,7 +88,7 @@ export class DomInteractionManager {
     saveCurrentProperty(this.doc.body, 'onmousemove', null);
     this.doc.body.onmousemove = (e) => {
       const lastEl = SELECTION_REGISTRY.PROBING.lastEl;
-      const els = this.doc.elementsFromPoint(e.clientX, e.clientY) as Array<HTMLStyleElement>;
+      const els = this.doc.elementsFromPoint(e.clientX, e.clientY) as Array<HTMLElement>;
       // We pick up all the elements that are over the mouse. If the follow behind element container
       // is present then we don't do anything as there could be the case user is choosing to select
       // an action

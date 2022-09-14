@@ -24,10 +24,12 @@ export abstract class ContentRenderingDelegate {
 
 interface IListenersList extends Record<string, any>{
   onclick?: Array<(e: MouseEvent) => void>;
+  onmousemove?: Array<(e: MouseEvent) => void>;
 }
 
 export interface IUnitListeners extends Record<string, any> {
   onclick?: (e: MouseEvent) => void;
+  onmousemove?: (e: MouseEvent) => void;
 }
 
 /*
@@ -36,9 +38,13 @@ export interface IUnitListeners extends Record<string, any> {
  * - perform additional action (mask on top of html body to stop interaction of host page)
  */
 export default class FollowBehindContainer {
-  private doc: Document;
+  private static FN_EXEC_STATUS_SKIP = 1;
+
+  private static FN_EXEC_STATUS_ACTIVE = 0;
 
   private readonly con: HTMLDivElement;
+
+  private doc: Document;
 
   private rect: DOMRect;
 
@@ -64,12 +70,8 @@ export default class FollowBehindContainer {
     this.con.onpointerdown = this.stopPropagationFn;
     this.con.onpointerup = this.stopPropagationFn;
     this.addOrUpdateListeners(listeners);
-    this.con.onclick = (e) => {
-      this.stopPropagationFn(e);
-      if (this.listeners.onclick) {
-        this.listeners.onclick.forEach(fn => fn(e));
-      }
-    };
+    this.con.onclick = this.listenerExecutor('onclick', true);
+    this.con.onmousemove = this.listenerExecutor('onmousemove', true);
     this.con.style.fontSize = '12px';
     this.con.style.zIndex = '-1';
     if (this.contentRenderer.renderingMode() === ContentRenderingMode.Outline) {
@@ -82,6 +84,10 @@ export default class FollowBehindContainer {
       // TODO[temp]
       this.con.style.background = '#ffc10740';
     }
+    this.addStylesheet(`
+      [contenteditable]:focus {
+        outline: 0px solid transparent;
+      }`);
     this.doc.body.appendChild(this.con);
 
     this.rect = this.con.getBoundingClientRect();
@@ -97,7 +103,20 @@ export default class FollowBehindContainer {
       } else {
         fnList = this.listeners[eventName] = [];
       }
+      fn.__data__fab_stat__ = FollowBehindContainer.FN_EXEC_STATUS_ACTIVE;
       fnList.push(fn);
+    }
+  }
+
+  pauseListener(listeners: IUnitListeners) {
+    for (const [eventName, fn] of Object.entries(listeners)) {
+      if (eventName in this.listeners) {
+        for (const fn2 of this.listeners[eventName]) {
+          if (fn2 === fn) {
+            fn2.__data__fab_stat__ = FollowBehindContainer.FN_EXEC_STATUS_SKIP;
+          }
+        }
+      }
     }
   }
 
@@ -116,6 +135,18 @@ export default class FollowBehindContainer {
     this.con.style.zIndex = '50';
   }
 
+  addStylesheet(content: string): string {
+    const id = getRandomNo();
+    const style = this.doc.createElement('style');
+    style.innerHTML = content;
+    this.con.appendChild(style);
+    return id;
+  }
+
+  hide() {
+    this.con.style.display = 'none';
+  }
+
   destroy() {
     this.con.onmouseover = null;
     this.con.onmouseout = null;
@@ -128,6 +159,11 @@ export default class FollowBehindContainer {
     this.doc.body.removeChild(this.con);
   }
 
+  setCssProp(key: string, value: string): FollowBehindContainer {
+    (this.con.style as any)[key] = value;
+    return this;
+  }
+
   isPresentInPath(els: Array<HTMLElement>) {
     for (const el of els) {
       if (el === this.con) {
@@ -135,6 +171,17 @@ export default class FollowBehindContainer {
       }
     }
     return false;
+  }
+
+  private listenerExecutor(eventType: 'onmousemove' | 'onclick', shouldStopPropagation = true) {
+    return (e: MouseEvent) => {
+      shouldStopPropagation && e.stopImmediatePropagation();
+      (this.listeners[eventType] || []).forEach(fn => {
+        if ((fn as any).__data__fab_stat__ === FollowBehindContainer.FN_EXEC_STATUS_ACTIVE) {
+          fn(e);
+        }
+      });
+    };
   }
 
   private stopPropagationFn = (e: MouseEvent) => e.stopImmediatePropagation();
