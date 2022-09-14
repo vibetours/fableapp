@@ -1,4 +1,29 @@
 import { restoreSavedProperty, saveCurrentProperty } from './utils';
+import FollowBehindContainer, { ContentRenderingDelegate, ContentRenderingMode } from './follow_behind_container';
+
+const ATTR_NAME_MARKED_FOR_EDITING = 'data-fab-m-4-e';
+
+class MaskContentRenderingDelegate extends ContentRenderingDelegate {
+  private editManager: TextEditingManager;
+
+  constructor(editManager: TextEditingManager) {
+    super();
+
+    this.editManager = editManager;
+  }
+
+  mount(point: HTMLElement): void {
+    this.editManager.mountMaskContent(point);
+  }
+
+  renderingMode(): ContentRenderingMode {
+    return ContentRenderingMode.Cover;
+  }
+}
+
+interface IListeners extends Record<string, any>{
+  onOutSideSelection?: () => void;
+}
 
 export default class TextEditingManager {
   private readonly root: HTMLElement;
@@ -13,9 +38,16 @@ export default class TextEditingManager {
 
   private readonly doc: Document;
 
-  constructor(root: HTMLElement, doc: Document) {
+  private mask: FollowBehindContainer | null = null;
+
+  private maskContent: ContentRenderingDelegate = new MaskContentRenderingDelegate(this);
+
+  private listeners: IListeners = {};
+
+  constructor(root: HTMLElement, doc: Document, listeners: IListeners) {
     this.root = root;
     this.doc = doc;
+    this.listeners = listeners;
   }
 
   start() {
@@ -25,10 +57,32 @@ export default class TextEditingManager {
     this.findTextInSubtree(this.root);
     this.putGuardAgainstText();
     this.markTextEls();
+    this.createMask();
   }
 
   finish() {
+    this.mask?.destroy();
     this.restoreTextNodes();
+  }
+
+  mountMaskContent(mount: HTMLElement) {
+  }
+
+  private onMaskContentRootClick = (e: MouseEvent) => {
+    const els = this.doc.elementsFromPoint(e.clientX, e.clientY);
+    let editTarget: HTMLStyleElement | null = null;
+    for (const el of els) {
+      if (el.getAttribute(ATTR_NAME_MARKED_FOR_EDITING)) {
+        editTarget = el as HTMLStyleElement;
+        // We don't break out from the loop as there might be overlapping elements below mouse pointer.
+        // In that case editTarget picks up the element which is visually towards the top
+        console.log(editTarget);
+      }
+    }
+    if (!editTarget) {
+      // There is no edit target, this condition happens when user click outside selected elements
+      this.listeners.onOutSideSelection && this.listeners.onOutSideSelection();
+    }
   }
 
   private markTextEls() {
@@ -40,8 +94,8 @@ export default class TextEditingManager {
       markerEl.style.background = '#e3f2fd';
       markerEl.style.border = '2px solid #64b5f6';
       markerEl.style.outline = 'none';
+      markerEl.setAttribute(ATTR_NAME_MARKED_FOR_EDITING, 'true');
       text.isMarked = true;
-      markerEl.setAttribute('contenteditable', 'true');
     }
   }
 
@@ -69,9 +123,7 @@ export default class TextEditingManager {
   }
 
   private putGuardAgainstText() {
-    console.log(this.textNodes);
     for (const text of this.textNodes) {
-      console.log(text.isNaked);
       if (!text.isNaked) {
         continue;
       }
@@ -96,8 +148,22 @@ export default class TextEditingManager {
         restoreSavedProperty(text.parent, 'style.background');
         restoreSavedProperty(text.parent, 'style.border');
         restoreSavedProperty(text.parent, 'style.outline');
-        text.parent.removeAttribute('contenteditable');
+        text.parent.removeAttribute(ATTR_NAME_MARKED_FOR_EDITING);
       }
     }
+  }
+
+  /*
+   * When content is edited there could be intractable elements in dom like button etc.
+   * So if we directly edit text then the click could trigger the onclick event of that element,
+   * Hence we create a mask that covers the whole body and that receives the click event and detect
+   * which element received the click in host page. We then mock the same style on top of the mask and let the user edit
+   * Once editing is done, the value is returned to target element
+   */
+  private createMask() {
+    this.mask = new FollowBehindContainer(this.doc, this.maskContent, {
+      onclick: this.onMaskContentRootClick
+    });
+    this.mask.bringInViewPort(this.doc.body);
   }
 }

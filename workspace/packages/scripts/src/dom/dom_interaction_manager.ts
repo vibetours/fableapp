@@ -1,7 +1,7 @@
 import { render } from 'eta';
 import HOVER_IND, { DUPLICATE_DIV_CLS, TEXT_EDIT_DIV_CLS } from '../views/hover_indicator';
 import { classNameExists, restoreSavedProperty, saveCurrentProperty } from './utils';
-import FollowBehindContainer, { ContentRenderingDelegate } from './follow_behind_container';
+import FollowBehindContainer, { ContentRenderingDelegate, ContentRenderingMode } from './follow_behind_container';
 import TextEditingManager from './text_editing_manager';
 import { SELECTION_REGISTRY } from './el_selection';
 
@@ -21,6 +21,10 @@ function getHeadEl(els: Array<HTMLStyleElement>): HTMLStyleElement {
 class StaticContentRenderingDelegate extends ContentRenderingDelegate {
   mount(point: HTMLElement): void {
     point.innerHTML = render(HOVER_IND, {}) as string;
+  }
+
+  renderingMode(): ContentRenderingMode {
+    return ContentRenderingMode.Outline;
   }
 }
 
@@ -50,6 +54,12 @@ export class DomInteractionManager {
     this.followBehind?.destroy();
   }
 
+  private onOutSideSelection = () => {
+    this.currentTextEditingManager?.finish();
+    this.currentTextEditingManager = null;
+    this.registerBodyListener();
+  }
+
   private followBehindOnClick = (e: MouseEvent) => {
     const path = (e as any).path || ((e.composedPath && e.composedPath()) as Array<EventTarget>);
     for (const el of path) {
@@ -62,7 +72,9 @@ export class DomInteractionManager {
           }
           this.removeBodyListener();
 
-          this.currentTextEditingManager = new TextEditingManager(editRoot, this.doc);
+          this.currentTextEditingManager = new TextEditingManager(editRoot, this.doc, {
+            onOutSideSelection: this.onOutSideSelection,
+          });
           this.currentTextEditingManager.start();
         } else if (classNameExists(el, DUPLICATE_DIV_CLS)) {
           console.log('duplicate clicked');
