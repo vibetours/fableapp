@@ -2,7 +2,7 @@ import STYLE_PROPS_ALLOW_LIST from './css_prop_allow_list';
 
 export function getRandomNo(): string {
   const msStr = (+new Date()).toString();
-  return msStr.substring(4) + ((Math.random() * 10000) | 0);
+  return msStr.substring(4) + ((Math.random() * 1000000) | 0);
 }
 
 /*

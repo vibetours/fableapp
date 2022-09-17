@@ -5,6 +5,7 @@ export enum NodeType {
   Gen,
   Img,
   Txt,
+  NA
 }
 
 /*
@@ -21,8 +22,8 @@ export enum ContentRenderingMode {
 
 /*
  * Content the rendered content root is pushed via this delegate to the caller.
- * Caller could statically or dynamically render content.
- * Caller should not change style of the mount point.
+ * Caller should manage the content rendering, for any bound box updating currentAnchorEl needs to be called after
+ * content update.
  */
 export abstract class ContentRenderingDelegate {
   abstract mount(point: HTMLElement): string;
@@ -30,27 +31,23 @@ export abstract class ContentRenderingDelegate {
   abstract renderingMode(): ContentRenderingMode;
 }
 
-interface IListenersList extends Record<string, any>{
-  onclick?: Array<(e: MouseEvent) => void>;
-  onmousemove?: Array<(e: MouseEvent) => void>;
+export enum EListenerFnExecStatus {
+  FN_EXEC_STATUS_SKIP,
+  FN_EXEC_STATUS_ACTIVE,
 }
 
-export interface IUnitListeners extends Record<string, any> {
-  onclick?: (e: MouseEvent) => void;
-  onmousemove?: (e: MouseEvent) => void;
+interface IEventListenerFn {
+  __data__fab_stat__?: EListenerFnExecStatus,
+
+  (e: Event, nodeType: NodeType, el: HTMLElement | null): void,
 }
 
-/*
- * Container lifecycle manager to show
- * - show extra information (context button on top around an element)
- * - perform additional action (mask on top of html body to stop interaction of host page)
- */
+export type IListenersList = Partial<Record<keyof GlobalEventHandlersEventMap, Array<IEventListenerFn>>>;
+
+export type IUnitListener = Partial<Record<keyof GlobalEventHandlersEventMap, IEventListenerFn>>;
+
 export default class FollowBehindContainer {
-  private static FN_EXEC_STATUS_SKIP = 1;
-
-  private static FN_EXEC_STATUS_ACTIVE = 0;
-
-  private static MAX_ZINDEX_VAL = 2147483647;
+  private static MAX_Z_INDEX_VAL = 2147483647;
 
   private readonly con: HTMLDivElement;
 
@@ -60,18 +57,25 @@ export default class FollowBehindContainer {
 
   private doc: Document;
 
+  private win: Window;
+
   private contentRenderer: ContentRenderingDelegate;
 
-  private listeners: IListenersList = {};
+  private listeners: Partial<IListenersList> = {};
 
   private bodyRect: DOMRect;
+
+  private currentNodeType: NodeType = NodeType.NA;
+
+  private currentAnchorEl: HTMLElement | null = null;
 
   constructor(
     doc: Document,
     contentRenderer: ContentRenderingDelegate,
-    listeners: IUnitListeners
+    listeners: IUnitListener
   ) {
     this.doc = doc;
+    this.win = doc.defaultView as Window;
     this.bodyRect = doc.body.getBoundingClientRect();
     this.con = this.doc.createElement('div');
     this.con.style.position = 'absolute';
@@ -82,22 +86,14 @@ export default class FollowBehindContainer {
     this.stackedHeaderEl = stacks[0];
     this.stackedMainEl = stacks[1];
 
-    this.setAttrs(this.stackedMainEl);
+    this.stackedMainEl.style.background = 'transparent';
+    this.stackedMainEl.style.boxShadow = 'inset 0px 0px 0px 2px #160245';
 
     const randClsSuffix = getRandomNo();
     this.con.setAttribute('id', `${MASK_PREFIX_CLS_NAME}${randClsSuffix}`);
     this.con.setAttribute('class', `${MASK_PREFIX_CLS_NAME}${randClsSuffix}`);
     this.con.style.fontSize = '12px';
     this.con.style.zIndex = '-1';
-    // if (this.contentRenderer.renderingMode() === ContentRenderingMode.Stacked) {
-    //   // Since in this mode the content is displayed around the anchor we show a it as if it's a popup menu
-    //   // hence background is required
-    //   this.con.style.background = '#424242';
-    //   this.con.style.color = '#fff';
-    //   this.con.style.padding = '1px 4px';
-    // } else {
-    //   // TODO[temp]
-    // }
     this.addStylesheet(`
       [contenteditable]:focus {
         outline: 0px solid transparent;
@@ -109,38 +105,62 @@ export default class FollowBehindContainer {
       }
       `);
     this.doc.body.appendChild(this.con);
-
-    // this.rect = this.con.getBoundingClientRect();
     this.moveOutsideViewPort();
+    this.makeEditHostReadOnly();
   }
 
-  addOrUpdateListeners(listeners: IUnitListeners) {
+  makeEditHostReadOnly() {
+    // Stop event propagation in CAPTURE phase
+    // WARN: For event like mousemove, don't attach directly, as with every move it looks for listeners to fire.
+    //      Probably create a simpler stop propagation function
+    this.win.addEventListener('click', this.stopPropagationWithHookFn, true);
+    this.win.addEventListener('mousedown', this.stopPropagationWithHookFn, true);
+    this.win.addEventListener('mouseup', this.stopPropagationWithHookFn, true);
+    this.win.addEventListener('pointerdown', this.stopPropagationWithHookFn, true);
+    this.win.addEventListener('pointerup', this.stopPropagationWithHookFn, true);
+    this.con.style.pointerEvents = 'all';
+  }
+
+  makeEditHostInteractive() {
+    this.win.removeEventListener('click', this.stopPropagationWithHookFn, true);
+    this.win.removeEventListener('mousedown', this.stopPropagationWithHookFn, true);
+    this.win.removeEventListener('mouseup', this.stopPropagationWithHookFn, true);
+    this.win.removeEventListener('pointerdown', this.stopPropagationWithHookFn, true);
+    this.win.removeEventListener('pointerup', this.stopPropagationWithHookFn, true);
+    this.con.style.pointerEvents = 'none';
+  }
+
+  addOrUpdateListeners(listeners: IUnitListener) {
     // Individual un-registration is not handled yet
     for (const [eventName, fn] of Object.entries(listeners)) {
-      let fnList;
-      if (eventName in this.listeners) {
-        fnList = this.listeners[eventName];
+      if (!fn) continue;
+      const eventType = eventName as keyof GlobalEventHandlersEventMap;
+      let fnList: Array<IEventListenerFn> = [];
+      if (eventType in this.listeners) {
+        fnList = this.listeners[eventType] as Array<IEventListenerFn>;
       } else {
-        fnList = this.listeners[eventName] = [];
+        fnList = this.listeners[eventType] = [];
       }
-      fn.__data__fab_stat__ = FollowBehindContainer.FN_EXEC_STATUS_ACTIVE;
+      fn.__data__fab_stat__ = EListenerFnExecStatus.FN_EXEC_STATUS_ACTIVE;
       fnList.push(fn);
     }
   }
 
-  pauseListener(listeners: IUnitListeners) {
+  pauseListener(listeners: IUnitListener) {
     for (const [eventName, fn] of Object.entries(listeners)) {
-      if (eventName in this.listeners) {
-        for (const fn2 of this.listeners[eventName]) {
-          if (fn2 === fn) {
-            fn2.__data__fab_stat__ = FollowBehindContainer.FN_EXEC_STATUS_SKIP;
-          }
+      const eventType = eventName as keyof GlobalEventHandlersEventMap;
+      for (const fn2 of (this.listeners[eventType] || [])) {
+        if (fn2 === fn) {
+          fn2.__data__fab_stat__ = EListenerFnExecStatus.FN_EXEC_STATUS_SKIP;
         }
       }
     }
   }
 
   bringInViewPort(anchorEl: HTMLElement, nodeType: NodeType) {
+    this.currentNodeType = nodeType;
+    this.currentAnchorEl = anchorEl;
+
     const rect = anchorEl.getBoundingClientRect();
     const headerRect = this.stackedHeaderEl.getBoundingClientRect();
     const headerHeight = headerRect.height;
@@ -152,7 +172,7 @@ export default class FollowBehindContainer {
     this.stackedMainEl.style.width = `${rect.width}px`;
 
     this.con.style.display = 'block';
-    this.con.style.zIndex = `${FollowBehindContainer.MAX_ZINDEX_VAL}`;
+    this.con.style.zIndex = `${FollowBehindContainer.MAX_Z_INDEX_VAL}`;
 
     if (nodeType === NodeType.Txt) {
       this.con.style.cursor = 'text';
@@ -174,14 +194,8 @@ export default class FollowBehindContainer {
   }
 
   destroy() {
-    this.con.onmouseover = null;
-    this.con.onmouseout = null;
-    this.con.onmouseup = null;
-    this.con.onmousedown = null;
-    this.con.onpointerdown = null;
-    this.con.onpointerup = null;
-    this.con.onclick = null;
     this.listeners = {};
+    this.makeEditHostInteractive();
     this.doc.body.removeChild(this.con);
   }
 
@@ -199,32 +213,18 @@ export default class FollowBehindContainer {
     return false;
   }
 
-  private setAttrs(el: HTMLElement) {
-    el.onmouseover = this.stopPropagationFn;
-    el.onmouseout = this.stopPropagationFn;
-    el.onmouseup = this.stopPropagationFn;
-    el.onmousedown = this.stopPropagationFn;
-    el.onpointerdown = this.stopPropagationFn;
-    el.onpointerup = this.stopPropagationFn;
-    el.onclick = this.listenerExecutor('onclick', true);
-    el.onmousemove = this.listenerExecutor('onmousemove', true);
-    // this.stackedMainEl.style.background = '#ffc10740';
-    this.stackedMainEl.style.background = 'transparent';
-    this.stackedMainEl.style.boxShadow = 'inset 0px 0px 0px 2px #160245';
+  private executeListeners = (type: keyof GlobalEventHandlersEventMap, e: Event) => {
+    (this.listeners[type] || []).forEach((fn: IEventListenerFn) => {
+      if (fn.__data__fab_stat__ === EListenerFnExecStatus.FN_EXEC_STATUS_ACTIVE) {
+        fn(e, this.currentNodeType, this.currentAnchorEl);
+      }
+    });
   }
 
-  private listenerExecutor(eventType: 'onmousemove' | 'onclick', shouldStopPropagation = true) {
-    return (e: MouseEvent) => {
-      shouldStopPropagation && e.stopImmediatePropagation();
-      (this.listeners[eventType] || []).forEach(fn => {
-        if ((fn as any).__data__fab_stat__ === FollowBehindContainer.FN_EXEC_STATUS_ACTIVE) {
-          fn(e);
-        }
-      });
-    };
+  private stopPropagationWithHookFn = (e: Event) => {
+    this.executeListeners(e.type as keyof GlobalEventHandlersEventMap, e);
+    e.stopImmediatePropagation();
   }
-
-  private stopPropagationFn = (e: MouseEvent) => e.stopImmediatePropagation();
 
   private moveOutsideViewPort() {
     this.con.style.display = 'none';
