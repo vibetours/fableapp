@@ -1,5 +1,3 @@
-import STYLE_PROPS_ALLOW_LIST from './css_prop_allow_list';
-
 export function getRandomNo(): string {
   const msStr = (+new Date()).toString();
   return msStr.substring(4) + ((Math.random() * 1000000) | 0);
@@ -64,24 +62,4 @@ export function classNameExists(el: HTMLElement, clsName: string) {
     }
   }
   return false;
-}
-
-export function copyStyle(copyTo: HTMLElement, copyFrom: HTMLElement, doc: Document) {
-  const computedStyle = (doc.defaultView as Window).getComputedStyle(copyFrom, null);
-
-  const stylePropertyValid = function (name: string, value: any) {
-    return typeof value !== 'undefined'
-      && typeof value !== 'object'
-      && typeof value !== 'function'
-      && value.length > 0
-      // eslint-disable-next-line radix
-      && value !== parseInt(value);
-  };
-
-  for (const propName of STYLE_PROPS_ALLOW_LIST) {
-    const propVal = (computedStyle as any)[propName];
-    if (stylePropertyValid(propName, propVal)) {
-      (copyTo.style as any)[propName] = propVal;
-    }
-  }
 }
