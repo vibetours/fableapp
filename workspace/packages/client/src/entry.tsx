@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import ProjectsContainer from "./container/projects_container";
-import ProxyContainer from "./container/proxy_load_container";
+import EmbedContainer from "./container/embed_load_container";
 
 class App extends Component {
   render() {
@@ -11,7 +11,7 @@ class App extends Component {
         <div className="App">
           <Routes>
             <Route path="/projects" element={<ProjectsContainer />} />
-            <Route path="/loader/project/:projectId" element={<ProxyContainer />} />
+            <Route path="/loader/project/:projectId" element={<EmbedContainer />} />
           </Routes>
         </div>
       </Router>

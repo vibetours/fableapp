@@ -1,3 +1,7 @@
+import { EmptyMsg, InboundMessageTypes, OutboundMessageTypes } from '@fable/common/dist/constants';
+import { registerMsgListener, sendMessageToParent } from './messaging';
+import { DomInteractionManager } from './dom/dom_interaction_manager';
+
 function getAttr(node: HTMLElement, attrName: string): string {
   return (node.getAttribute(attrName) || '').trim();
 }
@@ -35,7 +39,17 @@ function replaceProxyTags(nodes: Array<HTMLElement>, tagType: string) {
   }
 }
 
-function replaceAllProxyTags() {
+let domInteractionManager: DomInteractionManager | null = null;
+registerMsgListener(InboundMessageTypes.EditModeStart, (_: typeof EmptyMsg) => {
+  domInteractionManager = new DomInteractionManager(document);
+  domInteractionManager.reg();
+});
+
+registerMsgListener(InboundMessageTypes.EditModeEnd, (_: typeof EmptyMsg) => {
+  domInteractionManager?.unreg();
+});
+
+function init() {
   /*
    * The html documents are when recorded in Fable are edited in flight and the content is edited.
    * The inflight edit changes the <script src="..."></script> tag to <script data-fl-pxy-src="..."></script>
@@ -53,6 +67,14 @@ function replaceAllProxyTags() {
    */
   replaceProxyTags([].slice.call(document.getElementsByTagName('link'), 0), 'link');
   replaceProxyTags([].slice.call(document.getElementsByTagName('script'), 0), 'script');
+
+  // Send a message to the parent window (host of iframe) that the embed is ready.
+  // NOTE: this does not mean the page is fully rendered, it merely means the proxy activation
+  // and script restoration is done
+  sendMessageToParent({
+    type: OutboundMessageTypes.EmbedReady,
+    data: EmptyMsg,
+  });
 }
 
 export const registerServiceWorker = async () => {
@@ -64,12 +86,12 @@ export const registerServiceWorker = async () => {
         sw.onstatechange = () => {
           if (sw.state === 'activated') {
             // If the worker is now in activated stage then replace the proxy tags
-            replaceAllProxyTags();
+            init();
           }
         };
       } else if (reg.active) {
         // If the worker is already active then replace the proxy tags
-        replaceAllProxyTags();
+        init();
       }
     } catch (error) {
       console.error(`ServiceWorker Registration failed with ${error}`);

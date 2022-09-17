@@ -9,23 +9,26 @@ const envKeys = Object.keys(process.env).reduce((prev, next) => {
   return prev;
 }, {});
 
+// const allFiles = fs.readdirSync('./src').reduce((acc, v) => {
+//   const nameSplit = v.split('.');
+//   let fileName;
+//   let ext;
+//   if (nameSplit.length > 1) {
+//     fileName = nameSplit.slice(0, nameSplit.length - 1).join('.');
+//   } else {
+//     fileName = v;
+//   }
 
-const allFiles = fs.readdirSync('./src').reduce((acc, v) => {
-// ({ ...acc, [v]: `./src/${v}` })
-  const nameSplit = v.split(".");
-  let fileName;
-  let ext;
-  if (nameSplit.length > 1) {
-    fileName = nameSplit.slice(0, nameSplit.length - 1).join(".");
-  } else {
-    fileName = v
-  }
+//   acc[fileName] = `./src/${v}`;
+//   return acc;
+// }, {});
 
-  acc[fileName] = `./src/${v}`;
-  return acc;
-}, {});
 const config = {
-  entry: allFiles,
+  // entry: allFiles,
+  entry: {
+    sw: './src/sw.ts',
+    sw_installer: './src/sw_installer.ts',
+  },
   module: {
     rules: [
       {

@@ -1,6 +1,6 @@
 export enum PageType {
   Project = "project",
-  ProxyLoader = "proxy",
+  EmbedLoader = "embed",
 }
 
-export const PROXY_LOADER_IFRAME_ID = "fab-proxy-main-frame";
+export const EMBED_LOADER_IFRAME_ID = "fab-main-embed-frame";
