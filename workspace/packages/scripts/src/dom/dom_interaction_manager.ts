@@ -1,9 +1,5 @@
 import { render } from 'eta';
-import FollowBehindContainer, {
-  ContentRenderingDelegate,
-  ContentRenderingMode,
-  NodeType
-} from './follow_behind_container';
+import FollowBehindContainer, { ContentRenderingDelegate, NodeType } from './follow_behind_container';
 import { SELECTION_REGISTRY } from './el_selection';
 import { getRandomNo } from './utils';
 import { MASK_PREFIX_CLS_NAME } from './constants';
@@ -125,10 +121,6 @@ class InEditingContentRenderingDelegate extends ContentRenderingDelegate {
       selModeHeader.style.display = 'inline-block';
     }
   }
-
-  renderingMode(): ContentRenderingMode {
-    return ContentRenderingMode.Stacked;
-  }
 }
 
 export class DomInteractionManager {
@@ -173,7 +165,7 @@ export class DomInteractionManager {
       this.doc.body.removeEventListener('mousemove', this.moveMaskWithElSelection, true);
       if (nodeType === NodeType.Txt) {
         this.followBehind.fade();
-        this.txtEditManager = new TextEditingManager(el as Text, this.doc);
+        this.txtEditManager = new TextEditingManager(el as Text, e as MouseEvent, this.doc);
         this.txtEditManager.start();
       }
     } else {

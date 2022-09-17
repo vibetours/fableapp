@@ -9,26 +9,12 @@ export enum NodeType {
 }
 
 /*
-* TODO change this description
- * Determines how the container of the content needs to be rendered
- * Outline -> The content would be rendered around the anchored element
- * Cover -> The container should cover the full anchored element. This is used if the full anchored
- *          element is masked.
- */
-export enum ContentRenderingMode {
-  Stacked,
-  Cover // todo see if this is needed
-}
-
-/*
  * Content the rendered content root is pushed via this delegate to the caller.
  * Caller should manage the content rendering, for any bound box updating currentAnchorEl needs to be called after
  * content update.
  */
 export abstract class ContentRenderingDelegate {
   abstract mount(point: HTMLElement): string;
-
-  abstract renderingMode(): ContentRenderingMode;
 }
 
 export enum EListenerFnExecStatus {
@@ -205,11 +191,6 @@ export default class FollowBehindContainer {
     this.listeners = {};
     this.makeEditHostInteractive();
     this.doc.body.removeChild(this.con);
-  }
-
-  setCssProp(key: string, value: string): FollowBehindContainer {
-    (this.con.style as any)[key] = value;
-    return this;
   }
 
   isPresentInPath(els: Array<HTMLElement>) {
