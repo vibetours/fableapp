@@ -1,5 +1,4 @@
-import { copyStyle, getRandomNo, restoreSavedProperty, saveCurrentProperty } from './utils';
-import FollowBehindContainer, { ContentRenderingDelegate, ContentRenderingMode } from './follow_behind_container';
+import { restoreSavedProperty, saveCurrentProperty } from './utils';
 
 const ATTR_NAME_MARKED_FOR_EDITING = 'data-fab-m-4-e';
 
@@ -27,6 +26,7 @@ const HTML_TEMPLATE_PROXY_EDIT_FOOTER = `
   </div>
 `;
 
+/*
 class MaskContentRenderingDelegate extends ContentRenderingDelegate {
   private editManager: TextEditingManager;
 
@@ -36,14 +36,16 @@ class MaskContentRenderingDelegate extends ContentRenderingDelegate {
     this.editManager = editManager;
   }
 
-  mount(point: HTMLElement): void {
+  mount(point: HTMLElement): string {
     this.editManager.mountMaskContent(point);
+    return '';
   }
 
   renderingMode(): ContentRenderingMode {
     return ContentRenderingMode.Cover;
   }
 }
+ */
 
 interface IListeners extends Record<string, any>{
   onOutSideSelection?: () => void;
@@ -62,9 +64,9 @@ export default class TextEditingManager {
 
   private readonly doc: Document;
 
-  private mask: FollowBehindContainer | null = null;
+  // private mask: FollowBehindContainer | null = null;
 
-  private maskContent: ContentRenderingDelegate = new MaskContentRenderingDelegate(this);
+  // private maskContent: ContentRenderingDelegate = new MaskContentRenderingDelegate(this);
 
   private listeners: IListeners = {};
 
@@ -76,21 +78,22 @@ export default class TextEditingManager {
     this.listeners = listeners;
   }
 
-  start() {
+  showEditingOptions(): number {
     // First we detect all the text elements and wrap a <span/> around a naked text element.
     // This is necessary other wide content editable delete other elements when backspace is pressed.
     // Then we highlight all the text elements and make those contenteditable
     this.findTextInSubtree(this.root);
     this.putGuardAgainstText();
     this.markTextEls();
-    this.createMask();
+    // this.createMask();
+    return this.textNodes.length;
   }
 
   finish() {
-    this.mask?.destroy();
+    // this.mask?.destroy();
     this.restoreTextNodes();
   }
-
+  /*
   mountMaskContent(mount: HTMLElement) {
     this.maskMount = mount;
   }
@@ -125,11 +128,13 @@ export default class TextEditingManager {
       this.listeners.onOutSideSelection && this.listeners.onOutSideSelection();
     }
   }
+ */
 
+  /*
   private createBtnEditProxy(target: HTMLElement, btn: HTMLElement) {
-    if (!(this.maskMount && this.mask)) {
-      return;
-    }
+    // if (!(this.maskMount && this.mask)) {
+    //   return;
+    // }
     const arrowHeight = 15;
     const borderThickness = 4;
 
@@ -147,18 +152,18 @@ export default class TextEditingManager {
     proxyCon.style.boxShadow = '0px 0px 5px -1px';
     const clsName = `fab-stl-${getRandomNo()}`;
     proxyCon.setAttribute('class', clsName);
-    this.mask.addStylesheet(`
-      .${clsName}:after {
-          content: " ";
-          position: absolute;
-          left: 20px;
-          top: -19px;
-          border-top: none;
-          border-right: 15px solid transparent;
-          border-left: 15px solid transparent;
-          border-bottom: 15px solid #150345;
-        }
-    `);
+    // this.mask.addStylesheet(`
+    //   .${clsName}:after {
+    //       content: " ";
+    //       position: absolute;
+    //       left: 20px;
+    //       top: -19px;
+    //       border-top: none;
+    //       border-right: 15px solid transparent;
+    //       border-left: 15px solid transparent;
+    //       border-bottom: 15px solid #150345;
+    //     }
+    // `);
 
     const editContainer = this.doc.createElement('div');
     copyStyle(editContainer, btn, this.doc);
@@ -180,7 +185,9 @@ export default class TextEditingManager {
 
     this.focusAndSetCursor(editContainer);
   }
+   */
 
+  /*
   private editTarget(target: HTMLElement, btnEl: HTMLElement | null) {
     if (btnEl) {
       // If the target is child of button then performing edit in line would change trigger button action
@@ -190,6 +197,7 @@ export default class TextEditingManager {
       this.focusAndSetCursor(target);
     }
   }
+   */
 
   private focusAndSetCursor(el: HTMLElement) {
     el.setAttribute('contenteditable', 'true');
@@ -198,6 +206,7 @@ export default class TextEditingManager {
     selection?.setPosition(el.childNodes[0], el.innerText.length);
   }
 
+  /*
   private onMaskContentRootMouseMove = (e: MouseEvent) => {
     console.log('move on mask');
     const els = this.doc.elementsFromPoint(e.clientX, e.clientY);
@@ -210,6 +219,7 @@ export default class TextEditingManager {
     }
     this.mask?.setCssProp('cursor', editTarget ? 'text' : 'default');
   }
+   */
 
   private markTextEls() {
     for (const text of this.textNodes) {
@@ -266,11 +276,14 @@ export default class TextEditingManager {
   private restoreTextNodes() {
     for (const text of this.textNodes) {
       if (!text.isMarked) {
-        return;
+        console.log('not marked');
+        continue;
       }
       if (text.isNaked && text.guard) {
+        console.log('guarded replaced');
         text.guard.replaceWith(text.el);
       } else {
+        console.log('non guarded');
         restoreSavedProperty(text.parent, 'style.background');
         restoreSavedProperty(text.parent, 'style.border');
         restoreSavedProperty(text.parent, 'style.outline');
@@ -286,6 +299,7 @@ export default class TextEditingManager {
    * which element received the click in host page. We then mock the same style on top of the mask and let the user edit
    * Once editing is done, the value is returned to target element
    */
+  /*
   private createMask() {
     this.mask = new FollowBehindContainer(this.doc, this.maskContent, {
       onclick: this.onMaskContentRootClick,
@@ -293,4 +307,5 @@ export default class TextEditingManager {
     });
     this.mask.bringInViewPort(this.doc.body);
   }
+   */
 }
