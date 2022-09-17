@@ -7,6 +7,7 @@ import FollowBehindContainer, {
 import { SELECTION_REGISTRY } from './el_selection';
 import { getRandomNo } from './utils';
 import { MASK_PREFIX_CLS_NAME } from './constants';
+import TextEditingManager from './text_editing_manager';
 
 (window as any).etarender = render;
 
@@ -47,7 +48,6 @@ function findTextDescendantsBelowMouse(el: HTMLElement, x: number, y: number, do
   }
   for (const child of children) {
     if (child.nodeType === Node.TEXT_NODE || child instanceof Text) {
-      // console.log('childNode found');
       const range = doc.createRange();
       range.selectNode(child);
       const rect = range.getBoundingClientRect();
@@ -141,11 +141,11 @@ export class DomInteractionManager {
   private editMode: EditingMode = EditingMode.Selection;
 
   // private textEditingManager: TextEditingManager;
+  private txtEditManager: TextEditingManager | null = null;
 
   constructor(doc: Document) {
     this.doc = doc;
     this.followBehindContentRenderer = new InEditingContentRenderingDelegate();
-    // this.textEditingManager = new TextEditingManager(this.doc, {});
   }
 
   reg() {
@@ -161,14 +161,23 @@ export class DomInteractionManager {
     this.followBehind?.destroy();
   }
 
-  private onElEdit = (e: Event, nodeType: NodeType, _: HTMLElement | null): void => {
+  private onElEdit = (e: Event, nodeType: NodeType, el: HTMLElement | Text | null): void => {
     if (!this.followBehind) return;
     this.editMode = this.editMode === EditingMode.Selection ? EditingMode.Pin : EditingMode.Selection;
     this.followBehindContentRenderer.updateHeaderFor(nodeType, this.editMode);
 
+    this.txtEditManager?.finish();
+    this.txtEditManager = null;
+
     if (this.editMode === EditingMode.Pin) {
       this.doc.body.removeEventListener('mousemove', this.moveMaskWithElSelection, true);
+      if (nodeType === NodeType.Txt) {
+        this.followBehind.fade();
+        this.txtEditManager = new TextEditingManager(el as Text, this.doc);
+        this.txtEditManager.start();
+      }
     } else {
+      this.followBehind.unfade();
       this.doc.body.addEventListener('mousemove', this.moveMaskWithElSelection, true);
     }
   }
@@ -200,7 +209,7 @@ export class DomInteractionManager {
         // If the bottom most element is text then we can't compute bounding box of it (dom does not allow this)
         // hence we send the parent element for that
         const targetContainerEl = el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el;
-        this.followBehind.bringInViewPort(targetContainerEl, nodeType);
+        this.followBehind.bringInViewPort(targetContainerEl, el, nodeType);
       }
       SELECTION_REGISTRY.PROBING.lastEl = el;
     }

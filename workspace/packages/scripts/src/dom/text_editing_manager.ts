@@ -1,6 +1,80 @@
 import { restoreSavedProperty, saveCurrentProperty } from './utils';
 
-const ATTR_NAME_MARKED_FOR_EDITING = 'data-fab-m-4-e';
+/*
+ * root is the node containing the naked text node or a node containing only the text node
+ */
+export default class TextEditingManager {
+  private txt: Text;
+
+  private readonly doc: Document;
+
+  private readonly txtCon: HTMLElement;
+
+  private readonly txtParent: HTMLElement;
+
+  constructor(txt: Text, doc: Document) {
+    this.txt = txt;
+    this.doc = doc;
+
+    this.txtParent = this.txt.parentElement as HTMLElement;
+    if (this.txtParent.childNodes.length === 1) {
+      this.txtCon = this.txtParent;
+    } else {
+      // Parent contains child node along with other nodes, we have to wrap it up with a span
+      const con = this.doc.createElement('span');
+      // A 1px left right border is given so that the cursor does not overlap with the border
+      con.style.padding = '0px 1px';
+      con.style.margin = '0px';
+      con.style.top = 'auto';
+      const clonedTxt = this.txt.cloneNode();
+      con.appendChild(clonedTxt);
+      this.txt.replaceWith(con);
+      this.txt = clonedTxt as Text;
+      this.txtCon = con;
+    }
+  }
+
+  start() {
+    this.markTextEls();
+    this.focusAndSetCursor(this.txtCon);
+  }
+
+  finish() {
+    this.restoreTextNodes();
+  }
+
+  private focusAndSetCursor(el: HTMLElement) {
+    el.setAttribute('contenteditable', 'true');
+    el.focus();
+    const selection = getSelection();
+    // el -> must have only one child that is text
+    selection?.setPosition(el.childNodes[0], el.innerText.length);
+  }
+
+  private doesTxtHaveGuardCon() {
+    // If the text parent is not same as text container => naked text node was guarded with span
+    return this.txtParent !== this.txtCon;
+  }
+
+  private restoreTextNodes() {
+    if (this.doesTxtHaveGuardCon()) {
+      this.txtCon.replaceWith(this.txt);
+    } else {
+      restoreSavedProperty(this.txtCon, 'style.background');
+      restoreSavedProperty(this.txtCon, 'style.outline');
+      restoreSavedProperty(this.txtCon, 'style.boxShadow');
+    }
+  }
+
+  private markTextEls() {
+    saveCurrentProperty(this.txtCon, 'style.background', null);
+    saveCurrentProperty(this.txtCon, 'style.outline', null);
+    saveCurrentProperty(this.txtCon, 'style.boxShadow', null);
+    this.txtCon.style.background = '#fee26f';
+    this.txtCon.style.outline = 'none';
+    this.txtCon.style.boxShadow = '0px 0px 0px 2px #150345';
+  }
+}
 
 const HTML_TEMPLATE_PROXY_EDIT_HEADING = `
   <div style="
@@ -51,7 +125,9 @@ interface IListeners extends Record<string, any>{
   onOutSideSelection?: () => void;
 }
 
-export default class TextEditingManager {
+const ATTR_NAME_MARKED_FOR_EDITING = 'lasdjfl';
+
+export class TextEditingManager2 {
   private readonly root: HTMLElement;
 
   private textNodes: Array<{

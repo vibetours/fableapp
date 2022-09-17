@@ -84,18 +84,4 @@ export function copyStyle(copyTo: HTMLElement, copyFrom: HTMLElement, doc: Docum
       (copyTo.style as any)[propName] = propVal;
     }
   }
-
-  // for (let i = 0; i < computedStyle.length; i++) {
-  //   const propName = computedStyle[i] as string;
-  //   const propVal = (computedStyle as any)[propName];
-  //   if (stylePropertyValid(propName, propVal)) {
-  //     if (!(propName === 'top'
-  //       || propName === 'left'
-  //       || propName === 'right'
-  //       || propName === 'animation'
-  //       || propName === 'bottom')) {
-  //       (copyTo.style as any)[propName] = propVal;
-  //     }
-  //   }
-  // }
 }

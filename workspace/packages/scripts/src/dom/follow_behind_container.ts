@@ -67,7 +67,7 @@ export default class FollowBehindContainer {
 
   private currentNodeType: NodeType = NodeType.NA;
 
-  private currentAnchorEl: HTMLElement | null = null;
+  private targetEl: HTMLElement | null = null;
 
   constructor(
     doc: Document,
@@ -93,6 +93,8 @@ export default class FollowBehindContainer {
     this.con.setAttribute('id', `${MASK_PREFIX_CLS_NAME}${randClsSuffix}`);
     this.con.setAttribute('class', `${MASK_PREFIX_CLS_NAME}${randClsSuffix}`);
     this.con.style.fontSize = '12px';
+    // Header calculation goes to toss sometime if this property is not present. This makes the text in one line
+    this.con.style.whiteSpace = 'nowrap';
     this.con.style.zIndex = '-1';
     this.addStylesheet(`
       [contenteditable]:focus {
@@ -157,16 +159,22 @@ export default class FollowBehindContainer {
     }
   }
 
-  bringInViewPort(anchorEl: HTMLElement, nodeType: NodeType) {
+  /*
+   * If a text is clicked then targetElement <- text and
+   * anchorElement <- is the parent
+   * This separation is done because text is limited in terms of interaction, the final exact
+   * target is necessary
+   */
+  bringInViewPort(anchorEl: HTMLElement, targetElement: HTMLElement, nodeType: NodeType) {
     this.currentNodeType = nodeType;
-    this.currentAnchorEl = anchorEl;
+    this.targetEl = targetElement;
 
     const rect = anchorEl.getBoundingClientRect();
     const headerRect = this.stackedHeaderEl.getBoundingClientRect();
     const headerHeight = headerRect.height;
 
-    this.con.style.top = `${rect.top - headerHeight}px`;
-    this.con.style.left = `${rect.left}px`;
+    this.con.style.top = `${rect.top + this.win.scrollY - headerHeight}px`;
+    this.con.style.left = `${rect.left + this.win.scrollX}px`;
     this.con.style.height = `${rect.height + headerHeight}px`;
     this.stackedMainEl.style.height = `${rect.height}px`;
     this.stackedMainEl.style.width = `${rect.width}px`;
@@ -213,10 +221,18 @@ export default class FollowBehindContainer {
     return false;
   }
 
+  fade() {
+    this.stackedMainEl.style.boxShadow = 'inset 0px 0px 0px 0px #160245';
+  }
+
+  unfade() {
+    this.stackedMainEl.style.boxShadow = 'inset 0px 0px 0px 2px #160245';
+  }
+
   private executeListeners = (type: keyof GlobalEventHandlersEventMap, e: Event) => {
     (this.listeners[type] || []).forEach((fn: IEventListenerFn) => {
       if (fn.__data__fab_stat__ === EListenerFnExecStatus.FN_EXEC_STATUS_ACTIVE) {
-        fn(e, this.currentNodeType, this.currentAnchorEl);
+        fn(e, this.currentNodeType, this.targetEl);
       }
     });
   }
