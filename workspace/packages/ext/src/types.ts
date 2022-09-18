@@ -56,6 +56,7 @@ export namespace NSerReqResp {
     url: string;
     reqHeaders: Record<string, string | number>;
     contentType: string | number;
+    postData?: string;
     redirectResponse?: IReqRedirectResp;
   }
 
@@ -73,6 +74,7 @@ export namespace NSerReqResp {
     method: EHttpMethod;
     url: string;
     reqHeaders: Record<string, string | number>;
+    reqBody?: string;
     contentType: string | number;
     respHeaders: Record<string, string | number>;
     status: number;
@@ -96,6 +98,8 @@ export namespace NNetworkEvents {
       headers: Record<string, string | number>;
       url: string;
       method: EHttpMethod;
+      hasPostData?: boolean;
+      postData?: string;
     };
     redirectResponse?: {
       status: number;

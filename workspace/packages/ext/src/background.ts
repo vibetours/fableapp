@@ -1,6 +1,6 @@
-import { StorageKeys, ENetworkEvents, IRuntimeMsg, NNetworkEvents, RecordingStatus, NSerReqResp } from './types';
+import { ENetworkEvents, IRuntimeMsg, NNetworkEvents, NSerReqResp, RecordingStatus, StorageKeys } from './types';
 import * as persistence from './persistence';
-import { getRandomId, ReqProcessingSynchronizer, isUndefNull } from './utils';
+import { getRandomId, isUndefNull, ReqProcessingSynchronizer } from './utils';
 
 // TODO report all the requests during recording for debugging purpose
 // TODO with post data
@@ -31,6 +31,13 @@ async function getRespBody(tabId: number, reqId: string) {
   return chrome.debugger.sendCommand({ tabId }, 'Network.getResponseBody', {
     requestId: reqId,
   });
+}
+
+async function getReqBody(tabId: number, reqId: string): Promise<string> {
+  const data = await chrome.debugger.sendCommand({ tabId }, 'Network.getRequestPostData', {
+    requestId: reqId,
+  });
+  return (data && (data as any).postData as string) || '';
 }
 
 function sleep(ms: number) {
@@ -97,6 +104,9 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.timestamp = reqData.timestamp;
       data.event = ENetworkEvents.RequestWillbeSent;
       data.requestId = reqData.requestId;
+      if (reqData.request.hasPostData) {
+        data.postData = reqData.request.postData || await getReqBody(tab.tabId, reqData.requestId);
+      }
       data.tabId = tab.tabId;
 
       persistence.setNetData(tab.tabId, reqData.requestId, data);
@@ -161,12 +171,12 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
       if (reqRespKeyLike.test(key)) {
         let values = change[key].newValue as Array<NSerReqResp.IIncoming>;
         if (values instanceof Array ? values.length < 3 : true) {
-          // At least there would be three events, RequestWillbeSent, ResponseReceived, LoadingFinished for a request to
-          // be fullfilled
+          // At least there would be three events, RequestWillBeSent, ResponseReceived, LoadingFinished for a request to
+          // be fulfilled
           continue;
         }
 
-        // Reorder the events as RequestWillbeSent -> ResponseReceived -> LoadingFinished
+        // Reorder the events as RequestWillBeSent -> ResponseReceived -> LoadingFinished
         values = [
           ...values
             .filter((e) => e.event === ENetworkEvents.RequestWillbeSent)
@@ -214,38 +224,35 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
         }, {}) as Record<string, NSerReqResp.IReqRedirectResp>;
 
         for (const evt of reqWillBeSentEvent) {
-          if (evt.url in reqRedirectionPerUrl) {
-            outgoingEvents.push({
-              url: evt.url,
-              method: evt.method,
-              origin: evt.origin,
-              reqHeaders: evt.reqHeaders,
-              respResolveReqId: evt.requestId,
-              respResolveTabId: evt.tabId,
-              status: reqRedirectionPerUrl[evt.url].status,
-              respHeaders: reqRedirectionPerUrl[evt.url].headers,
-              contentType: '',
-            });
-          } else {
-            outgoingEvents.push({
-              url: evt.url,
-              method: evt.method,
-              origin: evt.origin,
-              reqHeaders: evt.reqHeaders,
-              respResolveReqId: evt.requestId,
-              respResolveTabId: evt.tabId,
-              status: respReceivedEvent?.status || -1,
-              contentType: respReceivedEvent?.contentType || '',
-              respHeaders: respReceivedEvent?.respHeaders || {},
-            });
+          const out: Partial<NSerReqResp.IOutgoing> = {
+            url: evt.url,
+            method: evt.method,
+            origin: evt.origin,
+            reqHeaders: evt.reqHeaders,
+            respResolveReqId: evt.requestId,
+            respResolveTabId: evt.tabId,
+          };
+          if (evt.postData) {
+            out.reqBody = evt.postData;
           }
+          if (evt.url in reqRedirectionPerUrl) {
+            out.status = reqRedirectionPerUrl[evt.url].status;
+            out.respHeaders = reqRedirectionPerUrl[evt.url].headers;
+            out.contentType = '';
+          } else {
+            out.status = respReceivedEvent?.status || -1;
+            out.contentType = respReceivedEvent?.contentType || '';
+            out.respHeaders = respReceivedEvent?.respHeaders || {};
+          }
+
+          outgoingEvents.push(<NSerReqResp.IOutgoing>out);
         }
 
         sync.reqToUploadCount += outgoingEvents.length;
-        outgoingEvents.forEach(async (evt) => {
-          await chrome.storage.session.set({ [`${StorageKeys.UploadQ}/${getRandomId()}`]: evt });
-        });
-        chrome.storage.session.remove(key);
+        for (const out of outgoingEvents) {
+          await chrome.storage.session.set({ [`${StorageKeys.UploadQ}/${getRandomId()}`]: out });
+        }
+        await chrome.storage.session.remove(key);
       } else if (uploadKeyLike.test(key)) {
         const value = change[key].newValue as NSerReqResp.IOutgoing;
         if (!value) {
@@ -257,11 +264,11 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
           console.log('status should not be -1.', value);
         } else if (value.status !== 302) {
           if (!(isUndefNull(value.respResolveReqId) || isUndefNull(value.respResolveTabId))) {
-            const resp = (await getRespBody(value.respResolveTabId as number, value.respResolveReqId as string)) as {
+            value.respBody = (await getRespBody(value.respResolveTabId as number,
+              value.respResolveReqId as string)) as {
               base64Encoded: boolean;
               body: string;
             };
-            value.respBody = resp;
           }
         }
 
@@ -269,13 +276,13 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
         delete value.respResolveTabId;
 
         console.log(value.url, value);
-        await fetch('http://localhost:8080/api/v1/asset/new/1', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(value),
-        });
+        // await fetch('http://localhost:8080/api/v1/asset/new/1', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json',
+        //   },
+        //   body: JSON.stringify(value),
+        // });
       }
     }
   };
@@ -351,7 +358,6 @@ chrome.runtime.onConnect.addListener((port) => {
       let activeTab: chrome.tabs.Tab;
       let tabsBeingRecorded: Array<string>;
       let sync: ReqProcessingSynchronizer;
-      let sync2;
       let storageChangeFn;
       switch (msg.type) {
         case 'query_status':
