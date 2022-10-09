@@ -27,12 +27,29 @@ self.addEventListener('fetch', (event) => {
       .replace('https://', 'http://');
   }
 
-  const modifiedHeaders = new Headers(event.request.headers);
-  const modifiedRequestInit = { headers: modifiedHeaders };
-  const modifiedRequest = new Request(proxyUrl, {
-    method: event.request.method,
-    headers: event.request.headers,
-  });
+  event.respondWith(
+    (async () => {
+      const modifiedHeaders = new Headers(event.request.headers);
+      const modifiedRequestInit = { headers: modifiedHeaders };
 
-  event.respondWith(fetch(modifiedRequest));
+      let modifiedRequest;
+      if (!(event.request.method.toLowerCase() === 'get' || event.request.method.toLowerCase() === 'head')) {
+        const bodyTxt = await event.request.text();
+        modifiedRequest = new (Request as any)(proxyUrl, {
+          method: event.request.method,
+          headers: event.request.headers,
+          body: bodyTxt,
+        });
+      } else {
+        modifiedRequest = new Request(proxyUrl, {
+          method: event.request.method,
+          headers: event.request.headers,
+        });
+      }
+
+      return fetch(modifiedRequest);
+    })()
+  );
+
+  // event.respondWith(fetch(modifiedRequest));
 });

@@ -53,10 +53,13 @@ registerMsgListener(InboundMessageTypes.EditModeEnd, (_: typeof EmptyMsg) => {
 });
 
 function init() {
+  const url = window.location.href;
+  const nUrl = url.replace('/api/v1/asset/get/1/', '/');
+  (window.history.pushState as any)({}, null, nUrl);
   /*
    * The html documents are when recorded in Fable are edited in flight and the content is edited.
    * The inflight edit changes the <script src="..."></script> tag to <script data-fl-pxy-src="..."></script>
-   * The value of src attr and data-fl-pxy-src attr is same.
+   * The value of src attrand data-fl-pxy-src attr is same.
    *
    * After fetching the html content in client side and post ServiceWorker installation
    * We findout all the scripts that have data-fl-pxy-* attrs and create a new tag with and replace
