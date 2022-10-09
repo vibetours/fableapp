@@ -10,8 +10,11 @@ function replaceProxyTags(nodes: Array<HTMLElement>, tagType: string) {
   let i = 0;
   for (; i < nodes.length; i++) {
     const node = nodes[i];
-    if ((tagType === 'link' && getAttr(node, 'href') !== '') || (tagType === 'script' && getAttr(node, 'src') !== '')) {
-      // If the scripts have already valid source attributes then we don't edit those
+    if (
+      (tagType === 'link' && getAttr(node, 'data-fl-pxy-href') === '')
+      || (tagType === 'script' && getAttr(node, 'data-fl-pxy-src') === '')
+    ) {
+      // If the tags does not have src attrs to get data from cdn/server ignore those
       continue;
     }
 
