@@ -54,7 +54,7 @@ registerMsgListener(InboundMessageTypes.EditModeEnd, (_: typeof EmptyMsg) => {
 
 function init() {
   const url = window.location.href;
-  const nUrl = url.replace('/api/v1/asset/get/1/', '/');
+  const nUrl = url.replace('/api/v1/asset/get/2/', '/');
   (window.history.pushState as any)({}, null, nUrl);
   /*
    * The html documents are when recorded in Fable are edited in flight and the content is edited.

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["chrome", "jest"],
+    "types": ["chrome", "jest", "node"],
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext", "webworker"],
     "sourceMap": true,
@@ -16,5 +16,5 @@
     "noImplicitAny": true
   },
   "include": ["src", "tests"],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules"]
 }
