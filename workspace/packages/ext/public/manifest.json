@@ -17,5 +17,5 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  "host_permissions": ["http://localhost:8080/api/*"]
+  "host_permissions": ["http://localhost:8080/api/*", "https://api-staging1.sharefable.com/*"]
 }

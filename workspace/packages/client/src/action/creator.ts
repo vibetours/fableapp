@@ -9,7 +9,7 @@ export function getAllProjects() {
     const resp = await api.get("/projects");
     return dispatch({
       type: ActionType.ALL_PROJECTS,
-      projects: resp.data.map((d: IProject_Raw) => processRawProjectData(d)),
+      projects: resp.data.data.map((d: IProject_Raw) => processRawProjectData(d)),
     });
   };
 }

@@ -47,6 +47,9 @@ interface IOwnStateProps {
   isEditing: boolean;
 }
 
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
+const API_URL = new URL(API_ENDPOINT);
+
 class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
@@ -56,7 +59,7 @@ class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.getProject(+this.props.match.params.projectId);
 
     window.addEventListener("message", (e) => {
-      if (isSameOrigin(e.origin, "http://localhost:8080")) {
+      if (isSameOrigin(e.origin, `${API_URL.protocol}://${API_URL.host}`)) {
         if (e.data === OutboundMessageTypes.EmbedReady) {
           this.setState({ showCtrlPanelIcons: true });
         }
@@ -114,7 +117,7 @@ class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
                 id={EMBED_LOADER_IFRAME_ID}
                 name={EMBED_LOADER_IFRAME_ID}
                 title={this.props.project.title}
-                src={`http://localhost:8080/api/v1/asset/get/1${this.props.project.proxyOrigin}`}
+                src={`${API_ENDPOINT}/api/v1/asset/get/3${this.props.project.proxyOrigin}`}
               ></iframe>
             )}
           </CmnTags.MainCon>
