@@ -24,9 +24,9 @@ self.addEventListener('fetch', (event) => {
   } else {
     proxyUrl = resourceUrl
       // eslint-disable-next-line  no-useless-concat
-      .replace(/(https?:\/\/)(.*?)(\/.*)/g, '$1' + `${API_HOST}/api/v1/asset/get/3` + '$3')
-      // TODO temp
-      .replace('https://', 'http://');
+      .replace(/(https?:\/\/)(.*?)(\/.*)/g, '$1' + `${API_HOST}/api/v1/asset/get/1` + '$3');
+    // TODO temp
+    // .replace('https://', 'http://');
   }
 
   event.respondWith(

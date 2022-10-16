@@ -117,7 +117,7 @@ class EmbedContainer extends React.PureComponent<IProps, IOwnStateProps> {
                 id={EMBED_LOADER_IFRAME_ID}
                 name={EMBED_LOADER_IFRAME_ID}
                 title={this.props.project.title}
-                src={`${API_ENDPOINT}/api/v1/asset/get/3${this.props.project.proxyOrigin}`}
+                src={`${API_ENDPOINT}/api/v1/asset/get/1${this.props.project.proxyOrigin}`}
               ></iframe>
             )}
           </CmnTags.MainCon>
