@@ -2,6 +2,8 @@ import { ENetworkEvents, IRuntimeMsg, NNetworkEvents, NSerReqResp, RecordingStat
 import * as persistence from './persistence';
 import { getRandomId, isUndefNull, ReqProcessingSynchronizer } from './utils';
 
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
+
 // TODO report all the requests during recording for debugging purpose
 // TODO with post data
 
@@ -16,15 +18,15 @@ const SkipReqForMethods = {
 
 const SkipReqForHost = {
   'ingest.sentry.io': 1,
-  'google-analytics.com': 1,
-  'fonts.gstatic.com': 1,
-  'fonts.googleapis.com': 1,
+  // 'google-analytics.com': 1,
+  // 'fonts.gstatic.com': 1,
+  // 'fonts.googleapis.com': 1,
 };
 
 const SkipReqForProtocol = {
   'data:': 1,
   'blob:': 1,
-  'chrome-extensin:': 1,
+  'chrome-extension:': 1,
 };
 
 async function getRespBody(tabId: number, reqId: string) {
@@ -37,7 +39,7 @@ async function getReqBody(tabId: number, reqId: string): Promise<string> {
   const data = await chrome.debugger.sendCommand({ tabId }, 'Network.getRequestPostData', {
     requestId: reqId,
   });
-  return (data && (data as any).postData as string) || '';
+  return (data && ((data as any).postData as string)) || '';
 }
 
 function sleep(ms: number) {
@@ -61,11 +63,11 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       // If the request is coming from the target tab but is not coming from document then don't process the response.
       // This might happen if the request is coming from extension page etc
       const allowedHosts = await persistence.getAllowedHost();
-      if (!(origin.host in allowedHosts)) {
-        console.log('returning because of origin mismatch ', reqData.request.url);
-        sync.ignore(reqData.requestId);
-        return;
-      }
+      // if (!(origin.host in allowedHosts)) {
+      //   console.log('returning because of origin mismatch ', reqData.request.url);
+      //   sync.ignore(reqData.requestId);
+      //   return;
+      // }
 
       if (
         reqData.request.method in SkipReqForMethods
@@ -105,7 +107,7 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
       data.event = ENetworkEvents.RequestWillbeSent;
       data.requestId = reqData.requestId;
       if (reqData.request.hasPostData) {
-        data.postData = reqData.request.postData || await getReqBody(tab.tabId, reqData.requestId);
+        data.postData = reqData.request.postData || (await getReqBody(tab.tabId, reqData.requestId));
       }
       data.tabId = tab.tabId;
 
@@ -150,6 +152,8 @@ function onNetworkEvts(sync: ReqProcessingSynchronizer) {
     }
   };
 }
+
+const REQ_TO_BE_SAVED: Array<Object> = [];
 
 const reqRespKeyLike = new RegExp(`${StorageKeys.PrefixReqRespData}/`);
 const uploadKeyLike = new RegExp(`${StorageKeys.UploadQ}/`);
@@ -264,28 +268,45 @@ function onStorageChange(sync: ReqProcessingSynchronizer) {
           console.log('status should not be -1.', value);
         } else if (value.status !== 302) {
           if (!(isUndefNull(value.respResolveReqId) || isUndefNull(value.respResolveTabId))) {
-            value.respBody = (await getRespBody(value.respResolveTabId as number,
-              value.respResolveReqId as string)) as {
+            value.respBody = (await getRespBody(
+              value.respResolveTabId as number,
+              value.respResolveReqId as string
+            )) as {
               base64Encoded: boolean;
               body: string;
             };
           }
         }
 
+        await chrome.storage.session.remove(key);
         delete value.respResolveReqId;
         delete value.respResolveTabId;
 
-        console.log(value.url, value);
-        // await fetch('http://localhost:8080/api/v1/asset/new/1', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify(value),
-        // });
+        REQ_TO_BE_SAVED.push(value);
+        startTimerIfNotStarted();
       }
     }
   };
+}
+
+let timerId: any = null;
+function startTimerIfNotStarted() {
+  if (timerId != null) {
+    return;
+  }
+  timerId = setTimeout(async () => {
+    let req;
+    while ((req = REQ_TO_BE_SAVED.shift())) {
+      await fetch(`${API_ENDPOINT}/api/v1/asset/new/1`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req),
+      });
+    }
+    timerId = null;
+  }, 100);
 }
 
 async function startRecordingPage(tab: chrome.tabs.Tab, shouldReload = true) {
