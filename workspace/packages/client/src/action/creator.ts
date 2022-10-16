@@ -20,10 +20,10 @@ export interface TGetAllProjects {
 
 export function getProject(id: number) {
   return async (dispatch: Dispatch<TGetProject>) => {
-    const resp = await api.get(`/projects/${id}`);
+    const resp = await api.get(`/project/${id}`);
     return dispatch({
       type: ActionType.UNIT_PROJECT,
-      project: processRawProjectData(resp.data),
+      project: processRawProjectData(resp.data.data),
     });
   };
 }
