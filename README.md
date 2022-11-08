@@ -1,7 +1,6 @@
 # Fable
 
-### Checkout [High Level Design](https://www.notion.so/sharefable/High-Level-Design-32386c475c0748a5ba784d19b9a94499)
-### Checkout [Common Project Information](https://github.com/sharefable/dev-docs/blob/master/README.md)
+### [Common Project Information](https://github.com/sharefable)
 
 ## General
 
