@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Fable",
+  "author": "fable",
+  "version": "1.0.0",
+  "description": "Create Product tour by Fable",
+  "icons": {
+    "16": "logo_16.png",
+    "24": "logo_24.png",
+    "32": "logo_32.png",
+    "64": "logo_64.png",
+    "128": "logo_128.png"
+  },
+  "commands": {
+    "save-screen": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Save the current screen in selected project"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["tabs", "activeTab", "scripting"],
+  "optional_host_permissions": ["*://*/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "host_permissions": ["http://localhost:8080/api/*", "https://api-staging1.sharefable.com/*"]
+}
