@@ -5,7 +5,7 @@
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "author": "akash",
   "private": true,
-  "main": "./",
+  "main": "dist/",
   "license": "MIT",
   "scripts": {
     "build": "tsc -b",

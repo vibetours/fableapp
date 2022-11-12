@@ -1,8 +1,5 @@
-import { OutboundMessageTypes } from '@fable/common/dist/constants';
 import { Msg, MsgPayload } from './msg';
 import { getSearializedDom } from './doc';
-
-console.log(OutboundMessageTypes.EmbedReady);
 
 chrome.runtime.onMessage.addListener((msg: MsgPayload<any>, sender, sendResponse) => {
   if (msg.type === Msg.INIT) {
