@@ -35,13 +35,13 @@ const config = {
         ],
       },
       {
-        test: /\.(scss|css)$/,
+        test: /\.(less|css)$/,
         use: [
           {
             loader: MiniCssExtractPlugin.loader,
           },
           'css-loader',
-          'sass-loader',
+          'less-loader',
         ],
       },
     ],
@@ -52,7 +52,9 @@ const config = {
     filename: '[name].js',
   },
   plugins: [
-    new CopyPlugin([{ from: 'public', to: './' }]),
+    new CopyPlugin({
+      patterns: [{ from: 'public', to: './' }]
+    }),
     new MiniCssExtractPlugin({
       filename: '[name].css',
     }),

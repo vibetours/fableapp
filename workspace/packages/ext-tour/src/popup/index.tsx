@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import { Msg, MsgPayload } from '../msg';
-import './index.scss';
+import './index.less';
 
 type Props = {};
 
