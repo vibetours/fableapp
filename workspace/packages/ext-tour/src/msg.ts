@@ -1,6 +1,6 @@
 export enum Msg {
-  INIT = 'INIT',
-  INITED = 'INITED',
+  INIT = "INIT",
+  INITED = "INITED",
 }
 
 export interface MsgPayload<T> {
