@@ -12,7 +12,8 @@
     "build-staging": "env-cmd --verbose -e stage -r ../env.json webpack"
   },
   "dependencies": {
-    "@fable/common": "^1.0.0"
+    "@fable/common": "^1.0.0",
+    "json-server": "^0.17.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.19.3",

@@ -58,7 +58,8 @@
     "no-param-reassign": 0,
     "no-bitwise": 0,
     "no-constant-condition": 0,
-    "react/jsx-one-expression-per-line": "off"
+    "react/jsx-one-expression-per-line": "off",
+    "quotes": [2, "double", { "avoidEscape": true }]
   },
   "settings": {
     "import/resolver": {

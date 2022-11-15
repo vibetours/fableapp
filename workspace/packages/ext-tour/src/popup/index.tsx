@@ -1,13 +1,14 @@
-import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
-import { Msg, MsgPayload } from '../msg';
-import './index.less';
+import React, { Component } from "react";
+import { createRoot } from "react-dom/client";
+import { Msg, MsgPayload } from "../msg";
+import "./index.less";
+import CreateProject from "../components/CreateProject";
+import SelectProject from "../components/SelectProject";
 
 type Props = {};
 
 type State = {
   loading: boolean;
-  currentTab: string;
 };
 
 class Root extends Component<Props, State> {
@@ -15,7 +16,6 @@ class Root extends Component<Props, State> {
     super(props);
     this.state = {
       loading: false,
-      currentTab: "",
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
@@ -40,22 +40,56 @@ class Root extends Component<Props, State> {
 
   render() {
     return (
-      <div className="container">
-        {this.state.loading ? "loading" : "not-loading"}
-        <button
-          onClick={() => {
-            chrome.action.getTitle({}, (title) => {
-              this.setState({ currentTab: title });
-              console.log(title);
-            });
-          }}
-        >
-          take screenshot
-        </button>
-        <p>current tab: {this.state.currentTab}</p>
-      </div>
+      <>
+        {this.state.loading ? (
+          <div className="container">
+            <CreateProject />
+            {/* <SelectProject /> */}
+            <div className="container__bg">
+              <div />
+              <div />
+              <div />
+            </div>
+          </div>
+        ) : (
+          <div className="container">
+            <h1
+              style={{
+                alignItems: "center",
+              }}
+            >
+              Loading...
+            </h1>
+            <div className="container__bg">
+              <div />
+              <div />
+              <div />
+            </div>
+          </div>
+        )}
+        {/* <button
+            onClick={() => {
+              chrome.tabs.captureVisibleTab(
+                {
+                  format: "png",
+                  quality: 100,
+                },
+                (dataUrl) => {
+                  console.log(dataUrl);
+                }
+              );
+            }}
+          >
+            take screenshot
+          </button> */}
+      </>
     );
   }
 }
 
-ReactDOM.render(<Root />, document.querySelector("#root"));
+// ReactDOM.render(<Root />, document.querySelector("#root"));
+
+const container = document.getElementById("root") as HTMLElement;
+const root = createRoot(container);
+
+root.render(<Root />);

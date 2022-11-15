@@ -1,7 +1,45 @@
-.con {
+.container {
   padding: 8px;
-  border: 1px solid gray;
-  width: 100px;
-  height: 100px;
-  background-color: coral;
+  width: 26rem;
+  // height: 15rem;
+  padding: 2.2rem 0;
+  background-color: white;
+  border-radius: 12px;
+  -webkit-box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
+  -moz-box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
+  box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
+  position: relative;
+
+  &__bg {
+    height: 30px;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-top: -5px;
+    z-index: -1;
+
+    div {
+      width: 40%;
+      border-radius: 12px;
+
+      &:nth-child(1) {
+        background-color: #ff7450;
+      }
+
+      &:nth-child(2) {
+        background-color: #fedf64;
+      }
+
+      &:nth-child(3) {
+        background-color: #7567ff;
+      }
+
+      &:not(:first-child) {
+        margin-left: -18px;
+      }
+    }
+  }
 }
