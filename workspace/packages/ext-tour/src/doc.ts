@@ -1,17 +1,17 @@
-export function getSearializedDom() {
-  function getRep(el: HTMLElement, rep: Array<any>) {
-    if (el.childNodes.length === 0) {
-      rep.push({ [el.tagName || 'text']: el.textContent });
-    } else {
-      const rep2: Array<any> = [];
-      rep.push({ [el.nodeName]: rep2 });
-      for (let i = 0; i < el.childNodes.length; i++) {
-        getRep(el.childNodes[i] as HTMLElement, rep2);
-      }
-    }
+export function getRep(el: HTMLElement) {
+  const rep = [];
+  if (el.childNodes.length === 0) {
+    rep.push({ [el.tagName || 'text']: el.textContent });
+    return rep;
   }
-
-  const rep: Array<any> = [];
-  getRep(document.body, rep);
+  const rep2: Array<any> = [];
+  for (let i = 0; i < el.childNodes.length; i++) {
+    rep2.push(getRep(el.childNodes[i] as HTMLElement));
+  }
+  rep.push({ [el.nodeName]: rep2 });
   return rep;
+}
+
+export function getSearializedDom() {
+  return getRep(document.body);
 }
