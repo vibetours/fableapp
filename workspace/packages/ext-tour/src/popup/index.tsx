@@ -4,11 +4,13 @@ import { Msg, MsgPayload } from "../msg";
 import "./index.less";
 import CreateProject from "../components/CreateProject";
 import SelectProject from "../components/SelectProject";
+import FormCreateProject from "../components/FormCreateProject";
 
 type Props = {};
 
 type State = {
   loading: boolean;
+  active: "create" | "select" | "form";
 };
 
 class Root extends Component<Props, State> {
@@ -16,6 +18,7 @@ class Root extends Component<Props, State> {
     super(props);
     this.state = {
       loading: false,
+      active: "create",
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
@@ -32,8 +35,12 @@ class Root extends Component<Props, State> {
         this.setState({ loading: msg.data });
         break;
 
+      case Msg.CREATE_PROJECT:
+        this.setState({ active: "form" });
+        break;
+
       default:
-        console.error("No handler present for msg", msg);
+        // console.error("No handler present for msg", msg);
         break;
     }
   };
@@ -43,8 +50,9 @@ class Root extends Component<Props, State> {
       <>
         {this.state.loading ? (
           <div className="container">
-            <CreateProject />
+            {this.state.active === "create" && <CreateProject />}
             {/* <SelectProject /> */}
+            {this.state.active === "form" && <FormCreateProject />}
             <div className="container__bg">
               <div />
               <div />
@@ -55,7 +63,8 @@ class Root extends Component<Props, State> {
           <div className="container">
             <h1
               style={{
-                alignItems: "center",
+                textAlign: "center",
+                color: "#16023e",
               }}
             >
               Loading...

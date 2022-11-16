@@ -3,6 +3,7 @@ import { getSearializedDom } from "./doc";
 
 chrome.runtime.onMessage.addListener(
   (msg: MsgPayload<any>, sender, sendResponse) => {
+    // console.log("msg", msg);
     if (msg.type === Msg.INIT) {
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: Msg.INITED, data: true });

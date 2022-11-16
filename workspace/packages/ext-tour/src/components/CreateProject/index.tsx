@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { Msg } from "../../msg";
 import "./index.less";
 
 export default class CreateProject extends Component {
@@ -10,7 +11,14 @@ export default class CreateProject extends Component {
           <p>Welcome to fable extension.</p>
           <p>Lets get started by setting up a new project</p>
         </div>
-        <button>Create a new project</button>
+        <button
+          type="button"
+          onClick={() => {
+            chrome.runtime.sendMessage({ type: Msg.CREATE_PROJECT });
+          }}
+        >
+          Create a new project
+        </button>
       </div>
     );
   }
