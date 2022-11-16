@@ -12,7 +12,6 @@ const config = {
   entry: {
     background: './src/background.ts',
     popup: './src/popup/index.tsx',
-    inject: './src/inject.ts',
   },
   module: {
     rules: [
