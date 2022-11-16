@@ -12,6 +12,14 @@
 //   return rep;
 // }
 
+function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
+  if (str1 && str2 && str1.toLowerCase() === str2.toLowerCase()) {
+    return true;
+  }
+
+  return false;
+}
+
 interface Rep {
   attrs: Record<string, string | null>;
   chldrn: Rep[];
@@ -61,6 +69,7 @@ const getRep = (node: HTMLElement): Rep => {
       const childNode: ChildNode = childNodes[i];
       if (childNode.nodeType === Node.ELEMENT_NODE) {
         const htmlElNode = childNode as HTMLElement;
+        htmlElNode.tagName;
       }
       if (childNode.tagName !== 'SCRIPT' && childNode.tagName !== 'NOSCRIPT') {
         obj.chldrn.push(getRep(childNode));
