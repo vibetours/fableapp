@@ -1,7 +1,7 @@
 export function getRep(el: HTMLElement) {
   const rep = [];
   if (el.childNodes.length === 0) {
-    rep.push({ [el.tagName || 'text']: el.textContent });
+    rep.push({ [el.tagName || "text"]: el.textContent });
     return rep;
   }
   const rep2: Array<any> = [];
@@ -13,5 +13,7 @@ export function getRep(el: HTMLElement) {
 }
 
 export function getSearializedDom() {
-  return getRep(document.body);
+  const rep = getRep(document.body);
+  console.log(">>> rep", rep);
+  return rep;
 }
