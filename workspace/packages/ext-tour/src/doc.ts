@@ -13,12 +13,12 @@
 // }
 
 interface Rep {
-  attrs: Object;
+  attrs: Record<string, string | null>;
   chldrn: Rep[];
   tag?: string;
   node?: string;
   nodeVal?: string;
-  css?: string
+  css?: string;
 }
 
 const getRep = (node: HTMLElement): Rep => {
@@ -30,35 +30,38 @@ const getRep = (node: HTMLElement): Rep => {
     obj.node = node.nodeName.toLowerCase();
   }
 
-  if (node.tagName === 'LINK' && node.attributes.rel.nodeValue === 'stylesheet') {
-    obj.css = ([...node.sheet.cssRules].map(rule => rule.cssText).join(''));
+  if (node.tagName === 'LINK' && node.getAttribute('rel') === 'stylesheet') {
+    const rules: Array<CSSRule> = [].slice.call((node as HTMLLinkElement).sheet?.cssRules, 0);
+    obj.css = rules.map((r) => r.cssText).join('');
   }
 
   if (node.nodeValue) {
     obj.nodeVal = node.nodeValue;
   }
 
-  const attrs = node.attributes;
+  const attrKeys = node.getAttributeNames();
   let childNodes = node.childNodes;
 
   if (node.tagName === 'IFRAME') {
-    childNodes = iframe.contentDocument.documentElement.childNodes;
+    const iframe = node as HTMLIFrameElement;
+    if (iframe.contentDocument) {
+      childNodes = iframe.contentDocument.documentElement.childNodes;
+    } else {
+      // ...
+    }
   }
 
-  if (attrs) {
-    obj.attrs = {};
-    // for (let i = 0; i < attrs.length; i++) {
-    //   obj.attrs[attrs[i].nodeName] = attrs[i].nodeValue;
-    // }
-    for (const attr of attrs) {
-      obj.attrs[attr.nodeName] = attr.nodeValue;
-    }
+  for (const key of attrKeys) {
+    obj.attrs[key] = node.getAttribute(key);
   }
 
   if (childNodes) {
     obj.chldrn = [];
     for (let i = 0; i < childNodes.length; i++) {
-      const childNode: HTMLElement = childNodes[i];
+      const childNode: ChildNode = childNodes[i];
+      if (childNode.nodeType === Node.ELEMENT_NODE) {
+        const htmlElNode = childNode as HTMLElement;
+      }
       if (childNode.tagName !== 'SCRIPT' && childNode.tagName !== 'NOSCRIPT') {
         obj.chldrn.push(getRep(childNode));
       }
