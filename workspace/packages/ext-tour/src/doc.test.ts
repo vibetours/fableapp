@@ -1,5 +1,5 @@
 import { JSDOM } from 'jsdom';
-import { getRep } from './doc';
+import { getSearializedDom } from './doc';
 
 describe('Doc', () => {
   describe('#getRep', () => {
@@ -9,7 +9,7 @@ describe('Doc', () => {
     });
 
     it('should work', () => {
-      const rep = getRep(dom.window.document.body) as any;
+      const rep = getSearializedDom(null, { doc: dom.window.document }) as any;
       expect(rep.length).toBe(1);
       expect(rep).toMatchObject([
         {
