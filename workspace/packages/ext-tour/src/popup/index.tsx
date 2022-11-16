@@ -50,9 +50,10 @@ class Root extends Component<Props, State> {
       <>
         {this.state.loading ? (
           <div className="container">
-            {this.state.active === "create" && <CreateProject />}
+            {/* {this.state.active === "create" && <CreateProject />} */}
             {/* <SelectProject /> */}
-            {this.state.active === "form" && <FormCreateProject />}
+            {/* {this.state.active === "form" && <FormCreateProject />} */}
+            <FormCreateProject />
             <div className="container__bg">
               <div />
               <div />

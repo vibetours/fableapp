@@ -34,18 +34,17 @@ export default class FormCreateProject extends Component<Props, State> {
         quality: 100,
       },
       (dataUrl) => {
-        this.setState({ thumbnail: dataUrl });
+        this.setState({ ...this.state, thumbnail: dataUrl });
       }
     );
   };
 
   getData = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      this.setState({ url: tabs[0]?.url }, () => {
-        console.log(this.state.url, " url is done");
-      });
-      this.setState({ title: tabs[0]?.title }, () => {
-        console.log(this.state.title, " title is done");
+      this.setState({
+        ...this.state,
+        url: tabs[0]?.url,
+        title: tabs[0]?.title,
       });
     });
   };
@@ -53,15 +52,13 @@ export default class FormCreateProject extends Component<Props, State> {
   handleSubmit = async (e: React.FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    this.setState(
-      {
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      () => {}
-    );
+    this.setState({
+      ...this.state,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
-    // console.log(this.state);
+    console.log(this.state);
     try {
       const res = await axios.post(
         "http://localhost:3000/projects",
@@ -87,7 +84,7 @@ export default class FormCreateProject extends Component<Props, State> {
                 placeholder="Enter display name"
                 value={this.state.displayName}
                 onChange={(e) => {
-                  this.setState({ displayName: e.target.value });
+                  this.setState({ ...this.state, displayName: e.target.value });
                 }}
               />
             </label>
