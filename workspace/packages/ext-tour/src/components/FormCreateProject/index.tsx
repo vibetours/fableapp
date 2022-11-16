@@ -27,25 +27,25 @@ export default class FormCreateProject extends Component<Props, State> {
     };
   }
 
-  getThumbnail = () => {
-    chrome.tabs.captureVisibleTab(
-      {
-        format: "png",
-        quality: 100,
-      },
-      (dataUrl) => {
-        this.setState({ ...this.state, thumbnail: dataUrl });
-      }
-    );
+  getThumbnail = async () => {
+    const thumbnail: string = await chrome.tabs.captureVisibleTab({
+      format: "png",
+      quality: 100,
+    });
+
+    this.setState({ ...this.state, thumbnail });
   };
 
-  getData = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      this.setState({
-        ...this.state,
-        url: tabs[0]?.url,
-        title: tabs[0]?.title,
-      });
+  getData = async () => {
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    this.setState({
+      ...this.state,
+      url: tab?.url,
+      title: tab?.title,
     });
   };
 
@@ -91,10 +91,10 @@ export default class FormCreateProject extends Component<Props, State> {
           </div>
           <button
             type="button"
-            onClick={(e: React.FormEvent<HTMLButtonElement>) => {
-              this.getData();
-              this.getThumbnail();
-              this.handleSubmit(e);
+            onClick={async (e: React.FormEvent<HTMLButtonElement>) => {
+              await this.getThumbnail();
+              await this.getData();
+              await this.handleSubmit(e);
             }}
           >
             Submit
