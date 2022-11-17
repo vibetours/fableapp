@@ -16,7 +16,7 @@ chrome.commands.onCommand.addListener(async (command) => {
     if ((tab = tabs[0]) && tab.id) {
       const results = await injectScript(tab.id);
       for (const result of results) {
-        console.log('>> result', result.result);
+        console.log('>> result', result);
       }
     }
   }
