@@ -114,3 +114,5 @@ workspace/packages/client/public/tmp/
 workspace/packages/client/src/brand.css
 
 .idea
+.vscode/settings.json
+workspace/yarn.lock
