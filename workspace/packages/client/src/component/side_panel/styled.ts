@@ -1,10 +1,9 @@
 import styled from "styled-components";
 
-export const Con = styled.div`
-  height: 100%;
-  background-color: #160245;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
+export const Nav = styled.div``;
+
+export const NavItem = styled.div``;
+
+export const Footer = styled.div``;
+
+export const FooterItem = styled.div``;

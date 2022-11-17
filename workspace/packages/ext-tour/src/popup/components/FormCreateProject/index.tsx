@@ -1,15 +1,12 @@
 import React, { Component } from "react";
 import axios from "axios";
+import { NavigatePage } from "../../type";
 
-type Props = {};
+type Props = {
+  onNavigate: (active: NavigatePage) => void;
+};
 type State = {
   displayName: string;
-  thumbnail: string;
-  url: string | undefined;
-  title: string | undefined;
-  createdAt: string;
-  noOfScreens: number;
-  updatedAt: string;
 };
 
 export default class FormCreateProject extends Component<Props, State> {
@@ -18,12 +15,6 @@ export default class FormCreateProject extends Component<Props, State> {
 
     this.state = {
       displayName: "",
-      thumbnail: "",
-      url: "",
-      title: "",
-      createdAt: "",
-      updatedAt: "",
-      noOfScreens: 1,
     };
   }
 
@@ -33,7 +24,7 @@ export default class FormCreateProject extends Component<Props, State> {
       quality: 100,
     });
 
-    this.setState({ ...this.state, thumbnail });
+    return thumbnail;
   };
 
   getData = async () => {
@@ -41,30 +32,19 @@ export default class FormCreateProject extends Component<Props, State> {
       active: true,
       currentWindow: true,
     });
+    console.log(tab);
 
-    this.setState({
-      ...this.state,
-      url: tab?.url,
-      title: tab?.title,
-    });
+    return { url: tab.url, title: tab.title };
   };
 
-  handleSubmit = async (e: React.FormEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-
-    this.setState({
-      ...this.state,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    console.log(this.state);
+  handleSubmit = async (data: Object) => {
     try {
-      const res = await axios.post(
-        "http://localhost:3000/projects",
-        this.state
-      );
-      console.log(res.status);
+      const res = await axios.post("http://localhost:3000/projects", {
+        ...data,
+        ...this.state,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
     } catch (err) {
       console.log("Error", err);
     }
@@ -92,9 +72,11 @@ export default class FormCreateProject extends Component<Props, State> {
           <button
             type="button"
             onClick={async (e: React.FormEvent<HTMLButtonElement>) => {
-              await this.getThumbnail();
-              await this.getData();
-              await this.handleSubmit(e);
+              e.preventDefault();
+              const thumbnail = await this.getThumbnail();
+              const data = await this.getData();
+
+              await this.handleSubmit({ ...data, thumbnail });
             }}
           >
             Submit

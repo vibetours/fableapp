@@ -2,28 +2,33 @@ import React, { Component } from "react";
 import { createRoot } from "react-dom/client";
 import { Msg, MsgPayload } from "../msg";
 import "./index.less";
-import CreateProject from "../components/CreateProject";
-import SelectProject from "../components/SelectProject";
-import FormCreateProject from "../components/FormCreateProject";
+import CreateProject from "./components/CreateProject";
+import SelectProject from "./components/SelectProject";
+import FormCreateProject from "./components/FormCreateProject";
+import { NavigatePage } from "./type";
 
 type Props = {};
 
-type State = {
+interface State {
   loading: boolean;
-  active: "create" | "select" | "form";
-};
+  active: NavigatePage;
+}
 
 class Root extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
       loading: false,
-      active: "create",
+      active: NavigatePage.Create,
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
     chrome.runtime.sendMessage({ type: Msg.INIT });
   }
+
+  navigatePage = (active: NavigatePage) => {
+    this.setState({ active });
+  };
 
   onMessageReceiveFromWorkerScript = (
     msg: MsgPayload<any>,
@@ -33,10 +38,6 @@ class Root extends Component<Props, State> {
     switch (msg.type) {
       case Msg.INITED:
         this.setState({ loading: msg.data });
-        break;
-
-      case Msg.CREATE_PROJECT:
-        this.setState({ active: "form" });
         break;
 
       default:
@@ -50,10 +51,13 @@ class Root extends Component<Props, State> {
       <>
         {this.state.loading ? (
           <div className="container">
-            {/* {this.state.active === "create" && <CreateProject />} */}
+            {this.state.active === NavigatePage.Create && (
+              <CreateProject onNavigate={this.navigatePage} />
+            )}
             {/* <SelectProject /> */}
-            {/* {this.state.active === "form" && <FormCreateProject />} */}
-            <FormCreateProject />
+            {this.state.active === NavigatePage.FormCreate && (
+              <FormCreateProject onNavigate={this.navigatePage} />
+            )}
             <div className="container__bg">
               <div />
               <div />
@@ -96,8 +100,6 @@ class Root extends Component<Props, State> {
     );
   }
 }
-
-// ReactDOM.render(<Root />, document.querySelector("#root"));
 
 const container = document.getElementById("root") as HTMLElement;
 const root = createRoot(container);

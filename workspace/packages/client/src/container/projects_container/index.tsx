@@ -44,14 +44,14 @@ class Projects extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     return (
       <CmnTags.Con>
-        <CmnTags.TopCon>
-          <Header page={PageType.Project} />
-        </CmnTags.TopCon>
         <CmnTags.BodyCon>
-          <CmnTags.LeftCon style={{ width: "25%" }}>
+          <CmnTags.LeftCon style={{ width: "30%" }}>
             <SidePanel />
           </CmnTags.LeftCon>
           <CmnTags.MainCon>
+            <CmnTags.TopCon>
+              <Header page={PageType.Project} />
+            </CmnTags.TopCon>
             <CmnTags.Title1>All Active Projects</CmnTags.Title1>
             <CmnTags.ProjectCardCon>
               {this.props.projects.map((project) => (
