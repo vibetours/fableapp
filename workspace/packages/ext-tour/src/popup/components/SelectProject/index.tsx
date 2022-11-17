@@ -145,7 +145,9 @@ export default function SelectProject() {
         + Create a new project
       </button>
       <div className="container__select-save">
-        <button type="submit">Save screen in project</button>
+        <button type="button" onClick={() => {}}>
+          Save screen in project
+        </button>
         <span>or Press cmd + E</span>
       </div>
     </div>

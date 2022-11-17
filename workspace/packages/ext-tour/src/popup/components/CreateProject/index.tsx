@@ -1,8 +1,18 @@
 import React, { Component } from "react";
-import { Msg } from "../../msg";
+import { Msg } from "../../../msg";
 import "./index.less";
+import { NavigatePage } from "../../../types";
 
-export default class CreateProject extends Component {
+type Props = {
+  onNavigate: (active: NavigatePage) => void;
+};
+type State = {};
+
+export default class CreateProject extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+  }
+
   render() {
     return (
       <div className="container__create">
@@ -14,7 +24,7 @@ export default class CreateProject extends Component {
         <button
           type="button"
           onClick={() => {
-            chrome.runtime.sendMessage({ type: Msg.CREATE_PROJECT });
+            this.props.onNavigate(NavigatePage.Select);
           }}
         >
           Create a new project
