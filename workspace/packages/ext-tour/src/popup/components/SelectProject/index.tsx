@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "./index.less";
 import { Listbox, Transition } from "@headlessui/react";
+import { Msg } from "../../../msg";
 
 type ProjectType = {
   name: string;
@@ -145,7 +146,7 @@ export default function SelectProject() {
         + Create a new project
       </button>
       <div className="container__select-save">
-        <button type="button" onClick={() => {}}>
+        <button type="button" onClick={() => { chrome.runtime.sendMessage({ type: Msg.SAVE_SCREEN }); }}>
           Save screen in project
         </button>
         <span>or Press cmd + E</span>
