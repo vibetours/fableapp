@@ -115,3 +115,4 @@ workspace/packages/client/src/brand.css
 
 .idea
 .vscode/settings.json
+workspace/yarn.lock
