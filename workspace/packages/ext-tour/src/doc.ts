@@ -88,10 +88,7 @@ export function getSearializedDom(
     if (childNodes.length) {
       obj.chldrn = [];
       for (let i = 0; i < childNodes.length; i++) {
-        // const childNode: ChildNode = childNodes[i];
-        // const htmlElNode = childNode as HTMLElement;
         const htmlElNode = childNodes[i] as HTMLElement;
-        // if (childNode.nodeType === Node.ELEMENT_NODE) {
         if (htmlElNode.nodeType === 1) {
           if (htmlElNode.tagName !== 'SCRIPT' && htmlElNode.tagName !== 'NOSCRIPT') {
             obj.chldrn.push(getRep(htmlElNode));
