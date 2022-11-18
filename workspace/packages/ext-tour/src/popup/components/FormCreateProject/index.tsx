@@ -42,7 +42,7 @@ export default class FormCreateProject extends Component<Props, State> {
 
   handleSubmit = async (data: Object) => {
     try {
-      const res = await axios.post("http://localhost:3000/projects", {
+      const res = await axios.post(`http://localhost:3000/projects/`, {
         ...data,
         ...this.state,
         createdAt: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import { Msg, MsgPayload } from "./msg";
 import { getSearializedDom } from "./doc";
+import axios from "axios";
 
 chrome.runtime.onMessage.addListener(
   async (msg: MsgPayload<any>, sender, sendResponse) => {
@@ -10,10 +11,32 @@ chrome.runtime.onMessage.addListener(
       }, 3000);
     }
     if (msg.type === Msg.SAVE_SCREEN) {
-      const tabs = await chrome.tabs.query({ currentWindow: true, active: true });
+      // console.log(msg.data);
+      const tabs = await chrome.tabs.query({
+        // currentWindow: true,
+        active: true,
+        lastFocusedWindow: true,
+      });
+      // console.log(tabs);
       let tab;
       if ((tab = tabs[0]) && tab.id) {
         const results = await injectScript(tab.id);
+        console.log(results);
+        fetch("http://localhost:3000/projects/1", {
+          method: "PATCH",
+          body: JSON.stringify({
+            screens: [results[0].result],
+          }),
+          headers: {
+            "Content-type": "application/json; charset=UTF-8",
+          },
+        })
+          .then((res) => {
+            console.log(res);
+          })
+          .catch((err) => {
+            console.log(err);
+          });
         for (const result of results) {
           console.log(">> result", result);
         }
