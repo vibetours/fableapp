@@ -1,24 +1,27 @@
 import React, { useState } from "react";
 import "./index.less";
 import { Listbox, Transition } from "@headlessui/react";
+import { Rep } from "../../../doc";
 
 type ProjectType = {
-  name: string;
+  url: string;
+  title: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
   id: number;
+  screens: Rep[];
 };
 
 const projects: ProjectType[] = [
   {
-    name: "Project 1",
+    url: "https://www.youtube.com/",
+    title: "YouTube",
+    displayName: "youtube",
+    createdAt: "2022-11-17T14:31:15.106Z",
+    updatedAt: "2022-11-17T14:31:15.106Z",
     id: 1,
-  },
-  {
-    name: "Project 2",
-    id: 2,
-  },
-  {
-    name: "Project 3",
-    id: 3,
+    screens: [],
   },
 ];
 
@@ -64,7 +67,7 @@ export default function SelectProject() {
                     userSelect: "none",
                   }}
                 >
-                  <span>{selectedProject.name}</span>
+                  <span>{selectedProject.title}</span>
                   <span>+</span>
                 </Listbox.Button>
                 <Transition
@@ -107,7 +110,7 @@ export default function SelectProject() {
                               userSelect: "none",
                             }}
                           >
-                            <span>{project.name}</span>
+                            <span>{project.title}</span>
                             {selected ? <span>-</span> : null}
                           </div>
                         )}

@@ -1,4 +1,4 @@
-interface Rep {
+export interface Rep {
   attrs: Record<string, string | null>;
   chldrn: Rep[];
   tag?: string;
@@ -21,7 +21,10 @@ export function getSearializedDom(
     doc: Document;
   }
 ) {
-  function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
+  function isCaseInsensitiveEqual(
+    str1: string | null | undefined,
+    str2: string | null | undefined
+  ): boolean {
     if (str1 && str2 && str1.toLowerCase() === str2.toLowerCase()) {
       return true;
     }
@@ -32,8 +35,8 @@ export function getSearializedDom(
   function isContentEmpty(node: HTMLElement): boolean {
     if (node.nodeValue) {
       let content = node.nodeValue;
-      content = content.replace(/[\s\n+]/g, '');
-      if (content === '') {
+      content = content.replace(/[\s\n+]/g, "");
+      if (content === "") {
         return true;
       }
     }
@@ -51,8 +54,8 @@ export function getSearializedDom(
     }
 
     if (
-      isCaseInsensitiveEqual(node.tagName, 'LINK')
-      && isCaseInsensitiveEqual(node.getAttribute('rel'), 'stylesheet')
+      isCaseInsensitiveEqual(node.tagName, "LINK") &&
+      isCaseInsensitiveEqual(node.getAttribute("rel"), "stylesheet")
     ) {
       const rules = (node as HTMLLinkElement).sheet?.cssRules!;
       for (let i = 0; i < rules?.length; i++) {
@@ -78,7 +81,7 @@ export function getSearializedDom(
 
     let childNodes = node.childNodes;
 
-    if (isCaseInsensitiveEqual(node.tagName, 'IFRAME')) {
+    if (isCaseInsensitiveEqual(node.tagName, "IFRAME")) {
       const iframe = node as HTMLIFrameElement;
       if (iframe.contentDocument) {
         childNodes = iframe.contentDocument.childNodes;
@@ -90,7 +93,10 @@ export function getSearializedDom(
       for (let i = 0; i < childNodes.length; i++) {
         const htmlElNode = childNodes[i] as HTMLElement;
         if (htmlElNode.nodeType === 1) {
-          if (htmlElNode.tagName !== 'SCRIPT' && htmlElNode.tagName !== 'NOSCRIPT') {
+          if (
+            htmlElNode.tagName !== "SCRIPT" &&
+            htmlElNode.tagName !== "NOSCRIPT"
+          ) {
             obj.chldrn.push(getRep(htmlElNode));
           }
         } else if (htmlElNode.nodeType === 3) {
