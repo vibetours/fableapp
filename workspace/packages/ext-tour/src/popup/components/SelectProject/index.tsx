@@ -148,7 +148,12 @@ export default function SelectProject() {
         + Create a new project
       </button>
       <div className="container__select-save">
-        <button type="button" onClick={() => {}}>
+        <button
+          type="button"
+          onClick={() => {
+            chrome.runtime.sendMessage({ type: Msg.SAVE_SCREEN });
+          }}
+        >
           Save screen in project
         </button>
         <span>or Press cmd + E</span>
