@@ -51,6 +51,62 @@
   margin: 0 0.8rem;
 }
 
+.all-projects-accordion {
+  background-color: rgba(118, 103, 255, 0.1);
+  border-radius: 18px;
+}
+
+.all-projects-accordion div {
+  position: relative;
+  border-radius: 0 18px 18px 0;
+  background-color: #7567ff;
+  padding: 0.6rem 2rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s linear;
+  position: relative;
+  user-select: none;
+}
+
+.all-projects-accordion div .arrow-icon {
+  position: absolute;
+  left: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(0deg);
+  transition: all 0.3s linear;
+}
+
+.all-projects-accordion.active div .arrow-icon {
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.all-projects-accordion div p {
+  margin: 0 0.8rem;
+}
+
+.all-projects-accordion ul {
+  list-style-type: none;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  transition: all 0.3s ease-out;
+}
+
+.all-projects-accordion ul li {
+  margin-left: 2.8rem;
+}
+
+.all-projects-accordion.active ul {
+  padding: 1.2rem 0;
+  height: auto;
+}
+
+.all-projects-accordion.active ul > *:not(:last-child) {
+  margin-bottom: 1rem;
+}
+
 .footer {
   border-top: 0.2px solid rgba(255, 255, 255, 0.4);
   padding: 1.6rem 0 0 2rem;
