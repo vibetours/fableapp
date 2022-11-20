@@ -8,10 +8,11 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf build",
+    "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
     "build-dev": "env-cmd --verbose -e dev -r ../env.json webpack",
     "test": "jest",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json webpack",
-    "mock-data": "json-server --watch data/db.json"
+    "mock-data": "json-server --watch data/db.json -p 8182"
   },
   "dependencies": {
     "@fable/common": "^1.0.0",

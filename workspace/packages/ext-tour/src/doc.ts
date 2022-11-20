@@ -54,8 +54,8 @@ export function getSearializedDom(
     }
 
     if (
-      isCaseInsensitiveEqual(node.tagName, "LINK") &&
-      isCaseInsensitiveEqual(node.getAttribute("rel"), "stylesheet")
+      isCaseInsensitiveEqual(node.tagName, "LINK")
+      && isCaseInsensitiveEqual(node.getAttribute("rel"), "stylesheet")
     ) {
       const rules = (node as HTMLLinkElement).sheet?.cssRules!;
       for (let i = 0; i < rules?.length; i++) {
@@ -94,8 +94,8 @@ export function getSearializedDom(
         const htmlElNode = childNodes[i] as HTMLElement;
         if (htmlElNode.nodeType === 1) {
           if (
-            htmlElNode.tagName !== "SCRIPT" &&
-            htmlElNode.tagName !== "NOSCRIPT"
+            htmlElNode.tagName !== "SCRIPT"
+            && htmlElNode.tagName !== "NOSCRIPT"
           ) {
             obj.chldrn.push(getRep(htmlElNode));
           }
@@ -113,5 +113,6 @@ export function getSearializedDom(
     return getRep(testInjectedParams.doc.documentElement);
   }
 
-  return getRep(document.documentElement);
+  // return getRep(document.documentElement);
+  return document.URL + Math.random();
 }

@@ -1,14 +1,14 @@
 import React, { Component } from "react";
-import axios from "axios";
-import { NavigatePage } from "../../../types";
-import MyContext from "../../context/MyContext";
+import api from "../../../api";
+import { Route } from "../../../types";
+import { captureVisibleTab, getActiveTab } from "../../../common";
+import { RootContext } from "../../ctx";
 
-type Props = {
-  onNavigate: (active: NavigatePage) => void;
-};
-type State = {
+interface Props {}
+
+interface State {
   displayName: string;
-};
+}
 
 export default class FormCreateProject extends Component<Props, State> {
   constructor(props: Props) {
@@ -19,36 +19,23 @@ export default class FormCreateProject extends Component<Props, State> {
     };
   }
 
-  static myContextType = MyContext;
+  static rootCtx = RootContext;
 
-  getThumbnail = async () => {
-    const thumbnail: string = await chrome.tabs.captureVisibleTab({
-      format: "png",
-      quality: 100,
-    });
+  getThumbnail = captureVisibleTab;
 
-    return thumbnail;
+  getData = async (): Promise<{ url: string; title: string }> => {
+    const tab = await getActiveTab();
+    return { url: tab?.url || "", title: tab?.title || "" };
   };
 
-  getData = async () => {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-    console.log(tab);
-
-    return { url: tab.url, title: tab.title };
-  };
-
-  handleSubmit = async (data: Object) => {
+  createNewProject = async (data: Object) => {
     try {
-      const res = await axios.post(`http://localhost:3000/projects/`, {
+      const res = api("/projects", {
         ...data,
-        ...this.state,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        displayName: this.state.displayName,
       });
     } catch (err) {
+      // TODO Handle error for 500, 403
       console.log("Error", err);
     }
   };
@@ -68,7 +55,6 @@ export default class FormCreateProject extends Component<Props, State> {
                 value={this.state.displayName}
                 onChange={(e) => {
                   this.setState({
-                    ...this.state,
                     displayName: e.target.value,
                   });
                 }}
@@ -81,8 +67,7 @@ export default class FormCreateProject extends Component<Props, State> {
               e.preventDefault();
               const thumbnail = await this.getThumbnail();
               const data = await this.getData();
-
-              await this.handleSubmit({ ...data, thumbnail });
+              await this.createNewProject({ ...data, thumbnail });
             }}
           >
             Submit

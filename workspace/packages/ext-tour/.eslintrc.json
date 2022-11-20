@@ -47,6 +47,7 @@
     "arrow-parens": "off",
     "object-curly-newline": "off",
     "no-nested-ternary": "off",
+    "no-case-declarations": "off",
     "comma-dangle": "off",
     "no-cond-assign": "off",
     "no-plusplus": "off",

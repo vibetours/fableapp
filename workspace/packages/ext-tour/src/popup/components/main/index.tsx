@@ -1,36 +1,19 @@
 import React, { useState } from "react";
 import "./index.less";
 import { Listbox, Transition } from "@headlessui/react";
-import { Rep } from "../../../doc";
-import { Msg } from "../../../msg";
+import { IProject } from "../../../types";
 
-type ProjectType = {
-  url: string;
-  title: string;
-  displayName: string;
-  createdAt: string;
-  updatedAt: string;
-  id: number;
-  screens: Rep[];
-};
+interface Props {
+  projects: Array<IProject>;
+  selectedProject: number;
+  changeProjectSelection: (id: number) => void;
+  saveScreenToProject: () => void;
+}
 
-const projects: ProjectType[] = [
-  {
-    url: "https://www.youtube.com/",
-    title: "YouTube",
-    displayName: "youtube",
-    createdAt: "2022-11-17T14:31:15.106Z",
-    updatedAt: "2022-11-17T14:31:15.106Z",
-    id: 1,
-    screens: [],
-  },
-];
+export default function SelectProject(props: Props) {
+  const selectedProject = props.projects[props.selectedProject];
 
-export default function SelectProject() {
-  const [selectedProject, setSelectedProject] = useState<ProjectType>(
-    projects[0]
-  );
-
+  // TODO[review] if __ and - is not needed in classname use a single format - to write class names
   return (
     <div className="container__select">
       <div className="container__select-create">
@@ -38,7 +21,7 @@ export default function SelectProject() {
           <Listbox
             value={selectedProject}
             onChange={(project) => {
-              setSelectedProject(project);
+              props.changeProjectSelection(project.id);
             }}
             as="div"
             style={{
@@ -95,7 +78,7 @@ export default function SelectProject() {
                       boxShadow: "0px 8px 14px -5px rgba(0, 0, 0, 0.4)",
                     }}
                   >
-                    {projects.map((project) => (
+                    {props.projects.map((project) => (
                       <Listbox.Option key={project.id} value={project}>
                         {({ selected, active }) => (
                           <div
@@ -149,15 +132,7 @@ export default function SelectProject() {
         + Create a new project
       </button>
       <div className="container__select-save">
-        <button
-          type="button"
-          onClick={() => {
-            chrome.runtime.sendMessage({
-              type: Msg.SAVE_SCREEN,
-              data: { id: 1 },
-            });
-          }}
-        >
+        <button type="button" onClick={props.saveScreenToProject}>
           Save screen in project
         </button>
         <span>or Press cmd + E</span>
