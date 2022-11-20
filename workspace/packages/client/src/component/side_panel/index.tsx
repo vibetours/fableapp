@@ -1,69 +1,69 @@
 import React, { useState } from 'react';
 import * as Tags from './styled';
-import FableLogo from './fableLogo.svg';
-import './index.css';
-import { FaPen, FaRegStickyNote } from 'react-icons/fa';
-import { FiSettings, FiChevronRight } from 'react-icons/fi';
+import FableLogo from '../../assets/side_panel/fableLogo.svg';
+import iconPen from '../../assets/side_panel/IconPen.svg';
+import iconNavItems from '../../assets/side_panel/IconIntegration.svg';
+import iconArrowRight from '../../assets/side_panel/IconArrowRight.svg';
+import iconSettings from '../../assets/side_panel/IconSettings.svg';
+import iconAllProjects from '../../assets/side_panel/IconAllProjects.svg';
 
 export default function SidePanel(): JSX.Element {
 	const [showAllProjects, setShowAllProjects] = useState<boolean>(false);
 
 	return (
-		<div className={'container'}>
-			<div className={'logo'}>
-				<img src={FableLogo} alt={'Fable logo'} />
-			</div>
-			<div className="nav">
-				<div className="navItems">
-					<FaPen />
+		<Tags.Con>
+			<Tags.ConLogo>
+				<Tags.ConLogoImg src={FableLogo} alt={'Fable logo'} />
+			</Tags.ConLogo>
+			<Tags.ConNav>
+				<Tags.ConNavBtn>
+          <img src={iconPen} alt={'Illustrations'}/>
 					<p>Edit page</p>
-				</div>
-				<div
-					style={{
-						color: 'white',
-					}}
+				</Tags.ConNavBtn>
+				<Tags.ConNavAllProjects
 					className={`all-projects-accordion ${showAllProjects && 'active'}`}
-				>
-					<div
+          showProjects={showAllProjects}
+        >
+					<Tags.ConNavAllProjectsBtn
 						onClick={() => {
 							setShowAllProjects(!showAllProjects);
 						}}
 					>
-						<FiChevronRight className="arrow-icon" />
-						<FaRegStickyNote />
+            <Tags.RightArrow showProjects={showAllProjects} src={iconArrowRight} alt={'illustration right arrow'} />
+            <img src={iconAllProjects} alt={'illustration'} />
 						<p>All Projects</p>
-					</div>
+					</Tags.ConNavAllProjectsBtn>
 					<ul>
 						<li>Active projects</li>
 						<li>Archived projects</li>
 					</ul>
-				</div>
-				<div className="navItems">
-					<FaPen />
+				</Tags.ConNavAllProjects>
+				<Tags.ConNavBtn>
+        <img src={iconNavItems} alt={'Illustrations'}/>
 					<p>Integrations</p>
-				</div>
-				<div className="navItems">
-					<FaPen />
+				</Tags.ConNavBtn>
+				<Tags.ConNavBtn>
+        <img src={iconNavItems} alt={'Illustrations'}/>
 					<p>Analytics</p>
-				</div>
-				<div className="navItems">
-					<FaPen />
+				</Tags.ConNavBtn>
+				<Tags.ConNavBtn>
+        <img src={iconNavItems} alt={'Illustrations'}/>
 					<p>User management</p>
-				</div>
-			</div>
-			<div className="footer">
-				<div className="footerItem">
-					<img
+				</Tags.ConNavBtn>
+			</Tags.ConNav>
+			<Tags.Footer>
+				<Tags.FooterItem className="footerItem">
+					<Tags.FooterItemProfileIcon
 						alt="user profile pic"
 						src="	https://joeschmoe.io/api/v1/random"
 					/>
 					<p>User name</p>
-				</div>
-				<div className="footerItem">
-					<FiSettings />
+				</Tags.FooterItem>
+				<Tags.FooterItem className="footerItem">
+					<Tags.FooterItemProfileIcon src={iconSettings} alt={'illustration setting'} />
 					<p>Settings</p>
-				</div>
-			</div>
-		</div>
+				</Tags.FooterItem>
+			</Tags.Footer>
+		</Tags.Con>
 	);
 }

@@ -45,7 +45,7 @@ class Projects extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <CmnTags.Con>
         <CmnTags.BodyCon>
-          <CmnTags.LeftCon style={{ width: "25%", minWidth: "18rem" }}>
+          <CmnTags.LeftCon style={{ width: "22%", minWidth: "18rem" }}>
             <SidePanel />
           </CmnTags.LeftCon>
           <CmnTags.MainCon>

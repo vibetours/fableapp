@@ -26,7 +26,6 @@ export const LeftCon = styled.div`
 export const MainCon = styled.div`
   width: 100%;
   height: 100%;
-  padding: 1.5rem 2rem;
   display: flex;
   flex-direction: column;
 `;

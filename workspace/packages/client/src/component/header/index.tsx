@@ -12,7 +12,7 @@ export default class Header extends React.PureComponent<IOwnProps, IOwnStateProp
   render() {
     return (
       <Tags.Con>
-        <Tags.LogoCon>Fable</Tags.LogoCon>
+        <Tags.LogoCon></Tags.LogoCon>
         <Tags.MenuCon>
           <Tags.MenuItem>
             <Button shape="round" size="middle">
