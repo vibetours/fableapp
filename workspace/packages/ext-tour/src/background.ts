@@ -1,23 +1,18 @@
 import { Msg, MsgPayload } from "./msg";
 import { getSearializedDom } from "./doc";
-import axios from "axios";
 
 chrome.runtime.onMessage.addListener(
   async (msg: MsgPayload<any>, sender, sendResponse) => {
-    // console.log("msg", msg);
     if (msg.type === Msg.INIT) {
       setTimeout(() => {
         chrome.runtime.sendMessage({ type: Msg.INITED, data: true });
       }, 3000);
     }
     if (msg.type === Msg.SAVE_SCREEN) {
-      // console.log(msg.data);
       const tabs = await chrome.tabs.query({
-        // currentWindow: true,
         active: true,
         lastFocusedWindow: true,
       });
-      // console.log(tabs);
       let tab;
       if ((tab = tabs[0]) && tab.id) {
         const results = await injectScript(tab.id);
