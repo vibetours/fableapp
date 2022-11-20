@@ -14,8 +14,8 @@
   "commands": {
     "save-screen": {
       "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
+        "default": "Ctrl+E",
+        "mac": "Command+E"
       },
       "description": "Save the current screen in selected project"
     }
@@ -26,10 +26,14 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": ["tabs", "activeTab", "scripting"],
+  "permissions": ["tabs", "activeTab", "scripting", "storage"],
   "optional_host_permissions": ["*://*/*"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  "host_permissions": ["http://localhost:8080/api/*", "https://api-staging1.sharefable.com/*"]
+  "host_permissions": [
+    "*://*/*",
+    "http://localhost:8080/api/*",
+    "https://api-staging1.sharefable.com/*"
+  ]
 }
