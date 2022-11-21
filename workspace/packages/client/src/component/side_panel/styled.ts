@@ -1,9 +1,5 @@
 import styled from "styled-components";
 
-interface IAllProjects{
-  showProjects: boolean;
-}
-
 export const Con = styled.div`
   height: 100%;
   background-color: #160245;
@@ -12,8 +8,9 @@ export const Con = styled.div`
   padding: 1.8rem 0;
   display: flex;
   flex-direction: column;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 1.2rem;
+  font-family: 'IBM Plex Sans', Helvetica, sans-serif;
+  font-size: 1rem;
+  overflow-y: hidden;
 `;
 
 export const ConLogo = styled.div`
@@ -57,46 +54,6 @@ export const ConNavBtn = styled.div`
   }
 `;
 
-export const ConNavAllProjects = styled.div<IAllProjects>`
-  background-color: rgba(118, 103, 255, 0.1);
-  border-radius: 18px;
-  color: white;
-
-  ul {
-    list-style-type: none;
-    height: ${(props) => (props.showProjects ? "auto" : "0")};
-    padding: ${(props) => (props.showProjects ? "1.2rem 0": "0")};
-    margin: 0;
-    overflow: hidden;
-    transition: all 0.3s ease-out;
-  
-    li{
-      margin-left: 2.8rem;
-
-      &:not(:last-child){
-        margin-bottom: 1rem;
-      }
-    }
-  }
-`;
-
-export const ConNavAllProjectsBtn = styled.div`
-  position: relative;
-  border-radius: 0 18px 18px 0;
-  background-color: #7567ff;
-  padding: 0.6rem 2rem;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.3s linear;
-  position: relative;
-  user-select: none;
-
-  p {
-    margin: 0 0.8rem;
-  }
-`;
-
 export const Footer = styled.div`
   border-top: 0.2px solid rgba(255, 255, 255, 0.4);
   padding: 1.6rem 0 0 2rem;
@@ -120,12 +77,4 @@ export const FooterItem = styled.div`
 export const FooterItemProfileIcon = styled.img`
   width: 1.1rem;
   border-radius: 50%;
-`;
-
-export const RightArrow = styled.img<IAllProjects>`
-  position: absolute;
-  left: 0.8rem;
-  top: 50%;
-  transform: ${(props) => (props.showProjects ? 'translateY(-50%) rotate(90deg)' : 'translateY(-50%) rotate(0deg)')};
-  transition: all 0.3s ease-out;
 `;

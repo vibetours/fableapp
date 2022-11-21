@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import * as Tags from './styled';
 import FableLogo from '../../assets/side_panel/fableLogo.svg';
 import iconPen from '../../assets/side_panel/IconPen.svg';
 import iconNavItems from '../../assets/side_panel/IconIntegration.svg';
-import iconArrowRight from '../../assets/side_panel/IconArrowRight.svg';
 import iconSettings from '../../assets/side_panel/IconSettings.svg';
-import iconAllProjects from '../../assets/side_panel/IconAllProjects.svg';
+import ProjectList from './project_list';
 
 export default function SidePanel(): JSX.Element {
-	const [showAllProjects, setShowAllProjects] = useState<boolean>(false);
+	
 
 	return (
 		<Tags.Con>
@@ -20,24 +19,7 @@ export default function SidePanel(): JSX.Element {
           <img src={iconPen} alt={'Illustrations'}/>
 					<p>Edit page</p>
 				</Tags.ConNavBtn>
-				<Tags.ConNavAllProjects
-					className={`all-projects-accordion ${showAllProjects && 'active'}`}
-          showProjects={showAllProjects}
-        >
-					<Tags.ConNavAllProjectsBtn
-						onClick={() => {
-							setShowAllProjects(!showAllProjects);
-						}}
-					>
-            <Tags.RightArrow showProjects={showAllProjects} src={iconArrowRight} alt={'illustration right arrow'} />
-            <img src={iconAllProjects} alt={'illustration'} />
-						<p>All Projects</p>
-					</Tags.ConNavAllProjectsBtn>
-					<ul>
-						<li>Active projects</li>
-						<li>Archived projects</li>
-					</ul>
-				</Tags.ConNavAllProjects>
+        <ProjectList />
 				<Tags.ConNavBtn>
         <img src={iconNavItems} alt={'Illustrations'}/>
 					<p>Integrations</p>
