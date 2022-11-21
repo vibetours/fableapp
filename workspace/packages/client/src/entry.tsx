@@ -11,6 +11,7 @@ class App extends Component {
         <div className="App">
           <Routes>
             <Route path="/projects" element={<ProjectsContainer />} />
+            <Route path="/projects/:projectId/screens" element={<ProjectScreens />} />
             <Route path="/loader/project/:projectId" element={<EmbedContainer />} />
           </Routes>
         </div>
@@ -20,3 +21,4 @@ class App extends Component {
 }
 
 export default App;
+
