@@ -52,3 +52,21 @@ export const ClickableTxt = styled.div`
     cursor: pointer;
   }
 `;
+
+// ****************************************************
+// PROJECT SCREENS
+// ****************************************************
+export const ProjectTitle = styled.div`
+  font-weight: bold;
+  font-size: 16px;
+  height: 20px;
+  color: #222222;
+  margin-bottom: 1rem;
+`;
+
+export const ProjectScreensContainer = styled.div`
+  padding: 1.2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
