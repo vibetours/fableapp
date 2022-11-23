@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import * as Tags from "./styled";
 import VHScreenCard from "./VHScreenCard";
 import OptionsMenu from "./OptionsMenu";
-import { DownOutlined } from "@ant-design/icons";
+import DownArrow from "../../assets/screens/DownArrow.svg";
 import { Collapse } from "antd";
 
 const { Panel } = Collapse;
@@ -16,6 +16,8 @@ function genExtra(): JSX.Element {
 }
 
 export default function Screen(): JSX.Element {
+  const [showOptions, setShowOptions] = useState<boolean>(false);
+
   return (
     <Tags.FlexContainer>
       <Tags.CardContainer>
@@ -25,7 +27,7 @@ export default function Screen(): JSX.Element {
             <Tags.ScreenTitle>Home Screen</Tags.ScreenTitle>
             <Tags.RightAlignContainer>
               <Tags.ScreensNumber>12 screens</Tags.ScreensNumber>
-              <Tags.MenuIcon />
+              <Tags.MenuIcon onClick={() => setShowOptions(!showOptions)} />
             </Tags.RightAlignContainer>
             <Tags.ScreenInfo alignSelf={"end"}>Used in 3 flows</Tags.ScreenInfo>
             <div></div>
@@ -47,7 +49,9 @@ export default function Screen(): JSX.Element {
           bordered={false}
           expandIconPosition={"end"}
           expandIcon={({ isActive }) => (
-            <DownOutlined rotate={isActive ? 180 : 0} />
+            <Tags.ExpandIcon isActive={isActive}>
+              <img src={DownArrow} alt={"duplicate"} />
+            </Tags.ExpandIcon>
           )}
         >
           <Panel extra={genExtra()} header="" key="1">
@@ -56,7 +60,7 @@ export default function Screen(): JSX.Element {
           </Panel>
         </Tags.CollapseContainer>
       </Tags.CardContainer>
-      <OptionsMenu />
+      <OptionsMenu showOptions={showOptions} />
     </Tags.FlexContainer>
   );
 }

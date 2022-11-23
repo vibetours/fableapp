@@ -6,6 +6,14 @@ interface Alignment {
   alignSelf?: 'start' | 'center' | "end";
 }
 
+interface Options {
+  showOptions: boolean
+}
+
+interface Active {
+  isActive: boolean | undefined
+}
+
 export const FlexContainer = styled.div`
   display: flex;
   gap: 0.75rem;
@@ -16,6 +24,7 @@ export const CardContainer = styled.div`
 `
 
 export const ScreenContainer = styled.div`
+  position: relative;
   z-index: 10;
   display: flex;
   border: 0.5px solid #DDDDDD;
@@ -23,7 +32,6 @@ export const ScreenContainer = styled.div`
   padding: 0.5rem;
   // width: 70%;
   background-color: white;
-  // margin-bottom: 0.75rem;
 `;
 
 export const InfoContainer = styled.div`
@@ -91,10 +99,18 @@ export const CollapseContainer = styled(Collapse)`
   border: 0.5px solid #DDDDDD;
   border-radius: 0 0 10px 10px;
   padding-top: 10px;
-  // margin-top: -10px;
+  margin-top: -10px;
   // transform: translateY(-10px);
   // width: 70%;
   background-color: #FBF6FF;
+`
+
+export const ExpandIcon = styled.div<Active>`
+  img {
+    margin-top: 0.3rem;
+    transform: translateY(-50%) ${props => props.isActive ? 'rotate(180deg)' : 'rotate(0deg)'};
+    transition: all 0.3s linear;
+  }
 `
 
 export const VHScreenContainer = styled.div`
@@ -117,12 +133,12 @@ export const VHThumbnail = styled.div`
 // =====================================
 // OPTIONS MENU
 
-export const OptionsMenuContainer = styled.div`
+export const OptionsMenuContainer = styled.div<Options>`
   border: 0.5px solid #DDDDDD;
   border-radius: 10px;
   align-self: start;
   padding: 0.75rem 1.5rem;
-  display: flex;
+  display: ${props => props.showOptions ? 'flex' : 'none'};
   flex-direction: column;
   gap: 0.625rem;
 `

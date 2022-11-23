@@ -1,16 +1,21 @@
 import React from "react";
-import { CopyOutlined, DeleteOutlined } from "@ant-design/icons";
+import DeleteIcon from "../../assets/screens/DeleteIcon.svg";
+import DuplicateIcon from "../../assets/screens/DuplicateIcon.svg";
 import * as Tags from "./styled";
 
-export default function OptionsMenu(): JSX.Element {
+interface Props {
+  showOptions: boolean;
+}
+
+export default function OptionsMenu({ showOptions }: Props): JSX.Element {
   return (
-    <Tags.OptionsMenuContainer>
+    <Tags.OptionsMenuContainer showOptions={showOptions}>
       <Tags.MenuItem>
-        <CopyOutlined />
+        <img src={DuplicateIcon} alt={"duplicate"} />
         <span>Duplicate</span>
       </Tags.MenuItem>
       <Tags.MenuItem>
-        <DeleteOutlined />
+        <img src={DeleteIcon} alt={"delete"} />
         <span>Delete</span>
       </Tags.MenuItem>
     </Tags.OptionsMenuContainer>
