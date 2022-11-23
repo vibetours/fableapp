@@ -11,12 +11,12 @@
             {
               "title": "Version History Title 1",
               "createdFrom": "Created from Flow Name 1",
-              "updatedby": "Updated by Name 1"
+              "updatedBy": "Updated by Name 1"
             },
             {
               "title": "Version History Title 2",
               "createdFrom": "Created from Flow Name 2",
-              "updatedby": "Updated by Name 2"
+              "updatedBy": "Updated by Name 2"
             }
           ]
         },
@@ -37,7 +37,7 @@
             {
               "title": "Version History Title 2",
               "createdFrom": "Created from Flow Name 2",
-              "updatedby": "Updated by Name 2"
+              "updatedBy": "Updated by Name 2"
             }
           ]
         }
