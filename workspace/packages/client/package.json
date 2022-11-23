@@ -8,6 +8,7 @@
     "@ant-design/icons": "^4.7.0",
     "antd": "^4.22.8",
     "axios": "^0.27.2",
+    "json-server": "^0.17.1",
     "react-icons": "^4.6.0"
   },
   "devDependencies": {
@@ -41,7 +42,8 @@
     "build": "env-cmd -e prod react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "brand-asset-gen": "lessc ./style_overrides/brand_overrides.less ./src/brand.css --js"
+    "brand-asset-gen": "lessc ./style_overrides/brand_overrides.less ./src/brand.css --js",
+    "serve": "json-server --watch ./src/data/db.json --port 3004"
   },
   "eslintConfig": {
     "extends": [
