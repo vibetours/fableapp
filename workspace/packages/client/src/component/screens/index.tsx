@@ -4,6 +4,7 @@ import VHScreenCard from "./VHScreenCard";
 import OptionsMenu from "./OptionsMenu";
 import DownArrow from "../../assets/screens/DownArrow.svg";
 import { Collapse } from "antd";
+import { IScreen } from "../../container/project_screens_container";
 
 const { Panel } = Collapse;
 
@@ -15,7 +16,11 @@ function genExtra(): JSX.Element {
   );
 }
 
-export default function Screen(): JSX.Element {
+interface Props {
+  info: IScreen;
+}
+
+export default function Screen({ info }: Props): JSX.Element {
   const [showOptions, setShowOptions] = useState<boolean>(false);
 
   return (
@@ -24,7 +29,7 @@ export default function Screen(): JSX.Element {
         <Tags.ScreenContainer>
           <Tags.Thumbnail />
           <Tags.InfoContainer>
-            <Tags.ScreenTitle>Home Screen</Tags.ScreenTitle>
+            <Tags.ScreenTitle>{info.title}</Tags.ScreenTitle>
             <Tags.RightAlignContainer>
               <Tags.ScreensNumber>12 screens</Tags.ScreensNumber>
               <Tags.MenuIcon onClick={() => setShowOptions(!showOptions)} />
@@ -35,7 +40,7 @@ export default function Screen(): JSX.Element {
               Last edited 20 mins ago
             </Tags.ScreenInfo>
             <Tags.RightAlignContainer>
-              <Tags.ScreenInfo>Created by Akash</Tags.ScreenInfo>
+              <Tags.ScreenInfo>Created by {info.createdBy}</Tags.ScreenInfo>
               <Tags.CreatedByAvatar
                 className="ant-avatar ant-avatar-circle ant-avatar-img"
                 alt="avatar"
@@ -44,21 +49,24 @@ export default function Screen(): JSX.Element {
             </Tags.RightAlignContainer>
           </Tags.InfoContainer>
         </Tags.ScreenContainer>
-        <Tags.CollapseContainer
-          collapsible="icon"
-          bordered={false}
-          expandIconPosition={"end"}
-          expandIcon={({ isActive }) => (
-            <Tags.ExpandIcon isActive={isActive}>
-              <img src={DownArrow} alt={"duplicate"} />
-            </Tags.ExpandIcon>
-          )}
-        >
-          <Panel extra={genExtra()} header="" key="1">
-            <VHScreenCard />
-            <VHScreenCard />
-          </Panel>
-        </Tags.CollapseContainer>
+        {info.versionHistory && (
+          <Tags.CollapseContainer
+            collapsible="icon"
+            bordered={false}
+            expandIconPosition={"end"}
+            expandIcon={({ isActive }) => (
+              <Tags.ExpandIcon isActive={isActive}>
+                <img src={DownArrow} alt={"duplicate"} />
+              </Tags.ExpandIcon>
+            )}
+          >
+            <Panel extra={genExtra()} header="" key="1">
+              {info.versionHistory.map((vh) => (
+                <VHScreenCard versionHistory={vh} />
+              ))}
+            </Panel>
+          </Tags.CollapseContainer>
+        )}
       </Tags.CardContainer>
       <OptionsMenu showOptions={showOptions} />
     </Tags.FlexContainer>
