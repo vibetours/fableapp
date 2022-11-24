@@ -6,23 +6,23 @@
       "screens": [
         {
           "title": "Screen Title 1",
-          "createdBy": "Created By Name 1",
+          "createdBy": "Name 1",
           "versionHistory": [
             {
               "title": "Version History Title 1",
-              "createdFrom": "Created from Flow Name 1",
-              "updatedBy": "Updated by Name 1"
+              "createdFrom": "Flow Name 1",
+              "updatedBy": "Name 1"
             },
             {
               "title": "Version History Title 2",
-              "createdFrom": "Created from Flow Name 2",
-              "updatedBy": "Updated by Name 2"
+              "createdFrom": "Flow Name 2",
+              "updatedBy": "Name 2"
             }
           ]
         },
         {
           "title": "Screen Title 2",
-          "createdBy": "Created By Name 2"
+          "createdBy": "Name 2"
         }
       ]
     },
