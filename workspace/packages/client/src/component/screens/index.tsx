@@ -26,7 +26,7 @@ export default function Screen({ info }: Props): JSX.Element {
   return (
     <Tags.FlexContainer>
       <Tags.CardContainer>
-        <Tags.ScreenContainer>
+        <Tags.ScreenContainer showOptions={showOptions}>
           <Tags.Thumbnail />
           <Tags.InfoContainer>
             <Tags.ScreenTitle>{info.title}</Tags.ScreenTitle>

@@ -23,14 +23,14 @@ export const CardContainer = styled.div`
   margin-bottom: 0.75rem;
 `
 
-export const ScreenContainer = styled.div`
+export const ScreenContainer = styled.div<Options>`
   position: relative;
   z-index: 10;
   display: flex;
-  border: 0.5px solid #DDDDDD;
+  border: 0.5px solid ${props => props.showOptions ? '#7567FF' : '#DDDDDD'};
   border-radius: 10px;
   padding: 0.5rem;
-  // width: 70%;
+  transition: all 0.15s linear;
   background-color: white;
 `;
 
@@ -150,4 +150,5 @@ export const MenuItem = styled.div`
   gap: 0.8rem;
   align-items: center;
   line-height: 1.5rem;
+  cursor: pointer;
 `
