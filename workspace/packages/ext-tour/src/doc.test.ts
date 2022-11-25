@@ -90,8 +90,6 @@ describe("DOM Serializtion", () => {
     expect(sFrame.name).toContain("");
 
     const sDoc = sFrame.docTree;
-    console.log(JSON.stringify(sDoc, null, 2));
-    debugger;
 
     (function checkForMismatch(domEl: ChildNode, serEl: SerNode) {
       const mismatched = match(domEl, serEl);
