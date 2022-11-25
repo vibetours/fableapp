@@ -20,11 +20,20 @@ export interface SerDoc {
   frameUrl: string;
   cookie: string;
   userAgent: string;
+  name: string;
   postProcesses: Array<PostProcess>;
   docTree: SerNode;
 }
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
+//
+// TODO We execute the function as part of chrome content script injection.
+//      By requirement (of chrome) the function should content self suffient i.e. should not import
+//      any module / should not use any functioin from closure. Hence we needed to duplicate the
+//      util functions as an inner function.
+//      Some of these function definitions exists in utils as well thereby duplicating the same definitions
+//      in multiple places.
+//      We need to be able to do this via webpack compilation
 
 /*
  * This function will be used from testcases and from chrome content script exectution context
@@ -43,6 +52,7 @@ export function getSearializedDom(
 
   function getRep(
     node: ChildNode,
+    origin: string,
     traversalPath: Array<number>
   ): {
     serNode: SerNode;
@@ -95,6 +105,25 @@ export function getSearializedDom(
       return fileNameSplit[fileNameSplit.length - 1];
     }
 
+    function isCrossOrigin(url1: string, url2: string): boolean {
+      if (!url1 || !url2) {
+        // If a frame has no src defined then also we say it's from the same domain
+        return false;
+      }
+
+      if (
+        url1.trim().toLowerCase() === "about:blank"
+        || url2.trim().toLowerCase() === "about:blank"
+      ) {
+        return false;
+      }
+
+      const u1 = new URL(url1);
+      const u2 = new URL(url2);
+
+      return u1.protocol !== u2.protocol || u1.host !== u2.host;
+    }
+
     // *************** utils ends *************** //
 
     const sNode: SerNode = {
@@ -113,7 +142,7 @@ export function getSearializedDom(
         for (const name of attrNames) {
           sNode.attrs[name] = tNode.getAttribute(name);
         }
-        if (isCaseInsensitiveEqual(tNode.style.display, "none")) {
+        if (isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")) {
           return { serNode: sNode, shouldSkip: true };
         }
         break;
@@ -129,7 +158,6 @@ export function getSearializedDom(
 
       case Node.COMMENT_NODE:
         return { serNode: sNode, shouldSkip: true };
-        break;
 
       default:
         console.error("unknown node", node);
@@ -162,15 +190,36 @@ export function getSearializedDom(
     }
 
     if (sNode.name === "iframe") {
+      const tNode = node as HTMLIFrameElement;
+      const url = sNode.attrs.src || "";
+      if (!isCrossOrigin(origin, url)) {
+        const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
+        if (!frameDoc) {
+          console.log("Frame", url);
+          throw new Error(
+            "Iframe is same origin but document access is not possible"
+          );
+        }
+        traversalPath.push(0);
+        const rep = getRep(frameDoc.documentElement, origin, traversalPath);
+        sNode.chldrn.push(rep.serNode);
+        traversalPath.pop();
+        return { serNode: sNode, postProcess: false };
+      }
+
       return { serNode: sNode, postProcess: true };
     }
+
+    // TODO <img>, <audio>, <video>
+    // TODO <canvas>
+    // TODO background image in style
 
     const childNodes = node.childNodes;
 
     if (childNodes.length) {
       for (let i = 0, ii = 0; i < childNodes.length; i++) {
         traversalPath.push(ii);
-        const rep = getRep(childNodes[i], traversalPath);
+        const rep = getRep(childNodes[i], origin, traversalPath);
         const traversalPathStr = traversalPath.join(".");
         traversalPath.pop();
         if (rep.shouldSkip) {
@@ -189,22 +238,16 @@ export function getSearializedDom(
     return { serNode: sNode };
   }
 
-  if (testInjectedParams && testInjectedParams.doc) {
-    const rep = getRep(testInjectedParams.doc.documentElement, [-1]);
-    return {
-      frameUrl: "test://case",
-      cookie: testInjectedParams.doc.cookie,
-      userAgent: testInjectedParams.doc.defaultView?.navigator.userAgent || "",
-      postProcesses,
-      docTree: rep.serNode,
-    };
-  }
+  const isTest = !!(testInjectedParams && testInjectedParams.doc);
+  const doc: Document = isTest ? testInjectedParams.doc : document;
 
-  const rep = getRep(document.documentElement, [-1]);
+  const frameUrl = isTest ? "test://case" : document.URL;
+  const rep = getRep(doc.documentElement, frameUrl, []);
   return {
-    frameUrl: document.URL,
+    frameUrl,
     cookie: document.cookie,
     userAgent: document.defaultView?.navigator.userAgent || "",
+    name: document.defaultView?.name || "",
     postProcesses,
     docTree: rep.serNode,
   };
