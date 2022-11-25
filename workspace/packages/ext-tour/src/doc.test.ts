@@ -25,7 +25,7 @@ function isContentEmpty(el: Text): boolean {
 }
 
 type Mismatch = {
-  type: "attr" | "nodeName";
+  type: "attr" | "nodeName" | "text";
   name: string;
   domValue: string | null | undefined;
   serValue: string | null | undefined;
@@ -73,6 +73,15 @@ function match(el: ChildNode, node: SerNode): Mismatch[] {
           serValue: serAttrs[key],
           tagName: tEl.tagName,
         });
+      });
+    }
+  } else if (el.nodeType === Node.TEXT_NODE) {
+    if (el.textContent !== node.props.textContent) {
+      mismatch.push({
+        type: "text",
+        name: "textContent",
+        domValue: el.textContent,
+        serValue: node.props.textContent,
       });
     }
   }
