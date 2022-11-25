@@ -1,0 +1,109 @@
+/**
+ * @jest-environment jsdom
+ */
+
+import { readFileSync } from "fs";
+import { getSearializedDom, SerNode } from "./doc";
+
+function getDocFor(filename: string) {
+  const htmlStr = readFileSync(`test_assets/${filename}`, {
+    encoding: "utf8",
+  });
+  document.documentElement.innerHTML = htmlStr;
+}
+
+function isContentEmpty(el: Text): boolean {
+  if (!el.textContent) {
+    return true;
+  }
+  let content = el.textContent;
+  content = content.replace(/[\s\n]+/g, "");
+  if (content === "") {
+    return true;
+  }
+  return false;
+}
+
+type Mismatch = {
+  type: "attr" | "nodeName";
+  name: string;
+  domValue: string | null | undefined;
+  serValue: string | null | undefined;
+  tagName?: string;
+};
+function match(el: ChildNode, node: SerNode): Mismatch[] {
+  const mismatch: Mismatch[] = [];
+
+  if (el.nodeType === Node.ELEMENT_NODE) {
+    const tEl = el as HTMLElement;
+    if (tEl.tagName.toLowerCase() !== node.name) {
+      mismatch.push({
+        type: "nodeName",
+        name: "",
+        domValue: tEl.tagName,
+        serValue: node.name,
+      });
+    }
+
+    const attrs = tEl.getAttributeNames();
+    const serAttrs = { ...node.attrs };
+    for (const attr of attrs) {
+      const domAttrVal = tEl.getAttribute(attr);
+      const serAttrVal = serAttrs[attr];
+      if (domAttrVal !== serAttrVal) {
+        mismatch.push({
+          type: "attr",
+          name: attr,
+          domValue: domAttrVal,
+          serValue: serAttrVal,
+          tagName: tEl.tagName,
+        });
+      } else {
+        delete serAttrs[attr];
+      }
+    }
+
+    const leftOverKeys = Object.keys(serAttrs);
+    if (leftOverKeys.length > 0) {
+      leftOverKeys.forEach((key) => {
+        mismatch.push({
+          type: "attr",
+          name: key,
+          domValue: undefined,
+          serValue: serAttrs[key],
+          tagName: tEl.tagName,
+        });
+      });
+    }
+  }
+  return mismatch;
+}
+
+describe("DOM Serializtion", () => {
+  it("should serialize a simple doc with no asset and iframe", () => {
+    getDocFor("simple.html");
+    const sFrame = getSearializedDom(null, { doc: document });
+
+    expect(sFrame.cookie).toBe("");
+    expect(sFrame.frameUrl).toBe("test://case");
+    expect(sFrame.userAgent).toContain("jsdom");
+    expect(sFrame.name).toContain("");
+
+    const sDoc = sFrame.docTree;
+    console.log(JSON.stringify(sDoc, null, 2));
+    debugger;
+
+    (function checkForMismatch(domEl: ChildNode, serEl: SerNode) {
+      const mismatched = match(domEl, serEl);
+      expect(mismatched).toEqual([]);
+
+      for (let i = 0, ii = 0; i < domEl.childNodes.length; i++) {
+        const el = domEl.childNodes[i];
+        if (el.nodeType === Node.TEXT_NODE && isContentEmpty(el as Text)) {
+          continue;
+        }
+        checkForMismatch(domEl.childNodes[i], serEl.chldrn[ii++]);
+      }
+    }(document.documentElement, sDoc));
+  });
+});

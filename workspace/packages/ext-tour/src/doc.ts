@@ -6,7 +6,8 @@ export interface SerNode {
     isStylesheet?: boolean;
     proxyFileName?: string;
     fileExt?: string;
-    data?: string;
+    textContent?: string | null;
+    isHidden?: boolean;
   };
   chldrn: SerNode[];
 }
@@ -34,6 +35,7 @@ export interface SerDoc {
 //      Some of these function definitions exists in utils as well thereby duplicating the same definitions
 //      in multiple places.
 //      We need to be able to do this via webpack compilation
+//      Inner utility functions like isContentEmpty, getRandomId are used in multiple location
 
 /*
  * This function will be used from testcases and from chrome content script exectution context
@@ -48,6 +50,9 @@ export function getSearializedDom(
     doc: Document;
   }
 ): SerDoc {
+  const isTest = !!(testInjectedParams && testInjectedParams.doc);
+  const doc: Document = isTest ? testInjectedParams.doc : document;
+
   const postProcesses: Array<PostProcess> = [];
 
   function getRep(
@@ -58,6 +63,7 @@ export function getSearializedDom(
     serNode: SerNode;
     shouldSkip?: boolean;
     postProcess?: boolean;
+    isHidden?: boolean;
   } {
     // *************** utils starts *************** //
 
@@ -124,6 +130,17 @@ export function getSearializedDom(
       return u1.protocol !== u2.protocol || u1.host !== u2.host;
     }
 
+    const HEAD_TAGS = {
+      head: 1,
+      title: 1,
+      style: 1,
+      base: 1,
+      link: 1,
+      meta: 1,
+      script: 1,
+      noscript: 1,
+    };
+
     // *************** utils ends *************** //
 
     const sNode: SerNode = {
@@ -142,18 +159,20 @@ export function getSearializedDom(
         for (const name of attrNames) {
           sNode.attrs[name] = tNode.getAttribute(name);
         }
-        if (isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")) {
-          return { serNode: sNode, shouldSkip: true };
+        if (
+          !(sNode.name in HEAD_TAGS)
+          && isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")
+        ) {
+          sNode.props.isHidden = true;
         }
         break;
 
       case Node.TEXT_NODE:
         sNode.name = node.nodeName;
         if (isContentEmpty(node as Text)) {
-          // If the text node is used to create just space or newline then skip it
-          // as it does not add it to semantics
           return { serNode: sNode, shouldSkip: true };
         }
+        sNode.props.textContent = (node as Text).textContent;
         break;
 
       case Node.COMMENT_NODE:
@@ -174,15 +193,11 @@ export function getSearializedDom(
         // external stylesheet
         sNode.props.isStylesheet = true;
         sNode.props.fileExt = ".css";
-        if (sNode.attrs.href) {
-          sNode.props.data = sNode.attrs.href;
-        }
       } else {
         // Other assetlike icons
         sNode.props.isStylesheet = false;
         if (sNode.attrs.href) {
           sNode.props.fileExt = getFileExtension(sNode.attrs.href);
-          sNode.props.data = sNode.attrs.href;
         }
       }
       sNode.props.proxyFileName = getRandomId();
@@ -238,16 +253,13 @@ export function getSearializedDom(
     return { serNode: sNode };
   }
 
-  const isTest = !!(testInjectedParams && testInjectedParams.doc);
-  const doc: Document = isTest ? testInjectedParams.doc : document;
-
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
   return {
     frameUrl,
-    cookie: document.cookie,
-    userAgent: document.defaultView?.navigator.userAgent || "",
-    name: document.defaultView?.name || "",
+    cookie: doc.cookie,
+    userAgent: doc.defaultView?.navigator.userAgent || "",
+    name: doc.defaultView?.name || "",
     postProcesses,
     docTree: rep.serNode,
   };
