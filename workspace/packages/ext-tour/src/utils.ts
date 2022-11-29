@@ -23,3 +23,28 @@ export function isCrossOrigin(url1: string, url2: string): boolean {
 
   return u1.protocol !== u2.protocol || u1.host !== u2.host;
 }
+
+export function getCookieHeaderForUrl(
+  cookies: chrome.cookies.Cookie[],
+  pageUrl: URL
+): String {
+  const host = pageUrl.host;
+  const path = pageUrl.pathname;
+  const hostParts = host.split(".");
+  const allSubDomains: Record<string, number> = {};
+
+  let cumulativeSubDomain = `.${hostParts[hostParts.length - 1]}`;
+  for (let i = hostParts.length - 2; i >= 0; i--) {
+    cumulativeSubDomain = `${i > 0 ? "." : ""}${
+      hostParts[i]
+    }${cumulativeSubDomain}`;
+    allSubDomains[cumulativeSubDomain] = 1;
+  }
+
+  return cookies
+    .filter(
+      (cookie) => cookie.domain in allSubDomains && path.startsWith(cookie.path || "/")
+    )
+    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .join("; ");
+}

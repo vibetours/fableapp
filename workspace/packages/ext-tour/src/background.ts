@@ -3,7 +3,7 @@ import api from "./api";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
 import { IExtStoredState, IProject } from "./types";
 import { getActiveTab } from "./common";
-import { isCrossOrigin } from "./utils";
+import { isCrossOrigin, getCookieHeaderForUrl } from "./utils";
 
 const APP_STATE_PROJECT = "app_state_project";
 const APP_STATE_SELECTION_ID = "app_state_project_sel_id";
@@ -117,7 +117,7 @@ async function serializeDoc() {
     func: getSearializedDom,
   });
 
-  const mainFrame = postProcessSerDocs(results);
+  const mainFrame = await postProcessSerDocs(results);
   console.log(">>> MAIN", mainFrame);
 }
 
@@ -136,11 +136,12 @@ function getFrameIdentifer(
   return `${name || ""}::${href || ""}`;
 }
 
-function postProcessSerDocs(
+async function postProcessSerDocs(
   results: Array<chrome.scripting.InjectionResult<SerDoc>>
-): SerDoc {
+): Promise<SerDoc> {
   let mainFrame;
   const frames: Record<string, chrome.scripting.InjectionResult<SerDoc>> = {};
+  const domains = [];
   for (const r of results) {
     if (r.frameId === 0) {
       mainFrame = r;
@@ -160,7 +161,8 @@ function postProcessSerDocs(
     throw new Error("Main frame not found, this should never happen");
   }
 
-  function process(frame: SerDoc) {
+  const allCookies = await chrome.cookies.getAll({});
+  async function process(frame: SerDoc) {
     for (const postProcess of frame.postProcesses) {
       const traversalPath = postProcess.path.split(".").map((_) => +_);
       const node = resolveElementFromPath(frame.docTree, traversalPath);
@@ -173,6 +175,15 @@ function postProcessSerDocs(
         node.chldrn.push(subFrame.result.docTree);
         process(subFrame.result);
       } else {
+        const url = new URL(frame.frameUrl);
+        const cookieStr = getCookieHeaderForUrl(allCookies, url);
+        const clientInfo = btoa(
+          JSON.stringify({
+            kie: cookieStr,
+            ua: frame.userAgent,
+          })
+        );
+
         // console.log("static asset will be saved in ", node);
         /* Make request to server to save the static asset and return result
          *
@@ -188,6 +199,6 @@ function postProcessSerDocs(
     }
   }
 
-  process(mainFrame.result);
+  await process(mainFrame.result);
   return mainFrame.result;
 }

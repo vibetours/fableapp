@@ -26,7 +26,14 @@
   "action": {
     "default_popup": "popup.html"
   },
-  "permissions": ["tabs", "activeTab", "scripting", "storage", "webNavigation"],
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage",
+    "webNavigation",
+    "cookies"
+  ],
   "optional_host_permissions": ["*://*/*"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
