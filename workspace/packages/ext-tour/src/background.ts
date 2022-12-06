@@ -119,6 +119,10 @@ async function serializeDoc() {
     func: getSearializedDom,
   });
 
+  for (const r of results) {
+    r.result.docTree = JSON.parse(r.result.docTreeStr);
+  }
+
   const mainFrame = await postProcessSerDocs(results);
   console.log(">>> MAIN", mainFrame);
 }

@@ -22,7 +22,8 @@ export interface SerDoc {
   userAgent: string;
   name: string;
   postProcesses: Array<PostProcess>;
-  docTree: SerNode;
+  docTree?: SerNode;
+  docTreeStr: string;
 }
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -216,10 +217,6 @@ export function getSearializedDom(
       return { serNode: sNode, postProcess: true };
     }
 
-    if (sNode.attrs["ng-style"] === "{color: $ctrl.colors[$index]}") {
-      debugger;
-    }
-
     // TODO <img>, <audio>, <video>
     // TODO <canvas>
     // TODO background image in style
@@ -245,6 +242,7 @@ export function getSearializedDom(
         sNode.chldrn.push(rep.serNode);
       }
     }
+
     return { serNode: sNode };
   }
 
@@ -255,6 +253,8 @@ export function getSearializedDom(
     userAgent: doc.defaultView?.navigator.userAgent || "",
     name: doc.defaultView?.name || "",
     postProcesses,
-    docTree: rep.serNode,
+    // When returning the serailized version of DOM, we stringify the JSON. Otherwise chrome removes some of the
+    // nested objects in JSON data for some reason.
+    docTreeStr: JSON.stringify(rep.serNode),
   };
 }
