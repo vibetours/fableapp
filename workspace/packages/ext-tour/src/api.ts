@@ -1,6 +1,5 @@
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
-// const API_VERSION = "/v1";
-const API_VERSION = "";
+const API_VERSION = "/v1";
 
 // TODO handle common error here like 500, 403, 401 etc
 export default async function api<T>(url: string, payload?: any): Promise<T> {
