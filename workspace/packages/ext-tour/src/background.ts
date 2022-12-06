@@ -5,6 +5,8 @@ import { IExtStoredState, IProject } from "./types";
 import { getActiveTab } from "./common";
 import { isCrossOrigin, getCookieHeaderForUrl } from "./utils";
 
+const PUBLIC_ASSET_BUCKET = process.env.REACT_APP_PUBLIC_ASSET_BUCKET as string;
+
 const APP_STATE_PROJECT = "app_state_project";
 const APP_STATE_SELECTION_ID = "app_state_project_sel_id";
 const APP_STATE_SELECTION_IDX = "app_state_project_sel_index";
@@ -148,7 +150,6 @@ async function postProcessSerDocs(
     } else {
       const key = getFrameIdentifer(r.result.name, r.result.frameUrl);
       if (key in frames) {
-        console.log(results);
         throw new Error(
           "Multiple frames with same combination of frame + name. This case is not yet handled"
         );
@@ -184,7 +185,25 @@ async function postProcessSerDocs(
           })
         );
 
-        // console.log("static asset will be saved in ", node);
+        const data = await api("/proxyasset", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            origin: node.attrs.href,
+            projectId: 1,
+            assumedFileExt: node.props.fileExt,
+            clientInfo,
+          }),
+        });
+
+        node.props.origHref = node.attrs.href;
+        node.attrs.href = `${PUBLIC_ASSET_BUCKET}/${
+          (data as any).data.proxyUri
+        }`;
+
         /* Make request to server to save the static asset and return result
          *
          * api('/storeasset', {
