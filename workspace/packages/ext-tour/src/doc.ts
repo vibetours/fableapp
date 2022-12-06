@@ -1,15 +1,13 @@
-import { isCrossOrigin } from "./utils";
-
 export interface SerNode {
   type: number;
   name: string;
   attrs: Record<string, string | null>;
   props: {
     isStylesheet?: boolean;
-    proxyFileName?: string;
     fileExt?: string;
     textContent?: string | null;
     isHidden?: boolean;
+    origHref?: string | null;
   };
   chldrn: SerNode[];
 }
@@ -21,7 +19,6 @@ interface PostProcess {
 
 export interface SerDoc {
   frameUrl: string;
-  cookie: string;
   userAgent: string;
   name: string;
   postProcesses: Array<PostProcess>;
@@ -92,13 +89,6 @@ export function getSearializedDom(
       return false;
     }
 
-    function getRandomId(): string {
-      return (
-        Math.random().toString(16).substring(2, 15)
-        + Math.random().toString(16).substring(2, 15)
-      );
-    }
-
     function getFileExtension(url: string): string {
       const urlSplit = url.split("/");
       if (urlSplit.length < 2) {
@@ -113,25 +103,24 @@ export function getSearializedDom(
       return fileNameSplit[fileNameSplit.length - 1];
     }
 
-    /** @inline_insert {isCrossOrigin} */
-    // function isCrossOrigin(url1: string, url2: string): boolean {
-    //   if (!url1 || !url2) {
-    //     // If a frame has no src defined then also we say it's from the same domain
-    //     return false;
-    //   }
+    function isCrossOrigin(url1: string, url2: string): boolean {
+      if (!url1 || !url2) {
+        // If a frame has no src defined then also we say it's from the same domain
+        return false;
+      }
 
-    //   if (
-    //     url1.trim().toLowerCase() === "about:blank"
-    //     || url2.trim().toLowerCase() === "about:blank"
-    //   ) {
-    //     return false;
-    //   }
+      if (
+        url1.trim().toLowerCase() === "about:blank"
+        || url2.trim().toLowerCase() === "about:blank"
+      ) {
+        return false;
+      }
 
-    //   const u1 = new URL(url1);
-    //   const u2 = new URL(url2);
+      const u1 = new URL(url1);
+      const u2 = new URL(url2);
 
-    //   return u1.protocol !== u2.protocol || u1.host !== u2.host;
-    // }
+      return u1.protocol !== u2.protocol || u1.host !== u2.host;
+    }
 
     const HEAD_TAGS = {
       head: 1,
@@ -200,10 +189,9 @@ export function getSearializedDom(
         // Other assetlike icons
         sNode.props.isStylesheet = false;
         if (sNode.attrs.href) {
-          sNode.props.fileExt = getFileExtension(sNode.attrs.href);
+          sNode.props.fileExt = `.${getFileExtension(sNode.attrs.href)}`;
         }
       }
-      sNode.props.proxyFileName = getRandomId();
       return { serNode: sNode, postProcess: true };
     }
 
@@ -226,6 +214,10 @@ export function getSearializedDom(
       }
 
       return { serNode: sNode, postProcess: true };
+    }
+
+    if (sNode.attrs["ng-style"] === "{color: $ctrl.colors[$index]}") {
+      debugger;
     }
 
     // TODO <img>, <audio>, <video>
@@ -260,7 +252,6 @@ export function getSearializedDom(
   const rep = getRep(doc.documentElement, frameUrl, []);
   return {
     frameUrl,
-    cookie: doc.cookie,
     userAgent: doc.defaultView?.navigator.userAgent || "",
     name: doc.defaultView?.name || "",
     postProcesses,

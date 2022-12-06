@@ -93,7 +93,6 @@ describe("DOM Serializtion", () => {
     getDocFor("simple.html");
     const sFrame = getSearializedDom(null, { doc: document });
 
-    expect(sFrame.cookie).toBe("");
     expect(sFrame.frameUrl).toBe("test://case");
     expect(sFrame.userAgent).toContain("jsdom");
     expect(sFrame.name).toContain("");
