@@ -97,7 +97,7 @@ describe("DOM Serializtion", () => {
     expect(sFrame.userAgent).toContain("jsdom");
     expect(sFrame.name).toContain("");
 
-    const sDoc = sFrame.docTree;
+    const sDoc = JSON.parse(sFrame.docTreeStr);
 
     (function checkForMismatch(domEl: ChildNode, serEl: SerNode) {
       const mismatched = match(domEl, serEl);
@@ -110,6 +110,6 @@ describe("DOM Serializtion", () => {
         }
         checkForMismatch(domEl.childNodes[i], serEl.chldrn[ii++]);
       }
-    }(document.documentElement, sDoc));
+    }(document.documentElement, sDoc!));
   });
 });

@@ -1,4 +1,4 @@
-import { getCookieHeaderForUrl } from "./utils";
+import { getCookieHeaderForUrl, getAbsoluteUrl } from "./utils";
 
 const allCookies: chrome.cookies.Cookie[] = [
   {
@@ -118,6 +118,41 @@ describe("utils", () => {
           .map((_) => _.trim())
           .sort()
       ).toEqual(exp.sort());
+    });
+  });
+
+  describe("#getAbsoluteUrl", () => {
+    it("should return the same url if the url is already aboslute", () => {
+      const absoluteUrl = getAbsoluteUrl(
+        "https://acme.com/calendar/_/web/calendar-static/_/ss/k",
+        "https://api.acme.com/"
+      );
+
+      expect(absoluteUrl).toEqual(
+        "https://acme.com/calendar/_/web/calendar-static/_/ss/k"
+      );
+    });
+
+    it("should return the absolute url if the url is already relative but starts from root", () => {
+      const absoluteUrl = getAbsoluteUrl(
+        "/calendar/_/web/calendar-static/_/ss/k",
+        "https://api.acme.com/u/0/user/"
+      );
+
+      expect(absoluteUrl).toEqual(
+        "https://api.acme.com/calendar/_/web/calendar-static/_/ss/k"
+      );
+    });
+
+    it("should return the absolute url if the url is already relative", () => {
+      const absoluteUrl = getAbsoluteUrl(
+        "calendar/_/web/calendar-static/_/ss/k",
+        "https://api.acme.com/u/0/user/"
+      );
+
+      expect(absoluteUrl).toEqual(
+        "https://api.acme.com/u/0/user/calendar/_/web/calendar-static/_/ss/k"
+      );
     });
   });
 });

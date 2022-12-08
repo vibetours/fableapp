@@ -48,3 +48,15 @@ export function getCookieHeaderForUrl(
     .map((cookie) => `${cookie.name}=${cookie.value}`)
     .join("; ");
 }
+
+export function getAbsoluteUrl(urlStr: string, baseUrl: string) {
+  try {
+    const url = new URL(urlStr);
+    return url.href;
+  } catch {
+    if (urlStr.charAt(0) === "/") {
+      return new URL(baseUrl).origin + urlStr;
+    }
+    return baseUrl + urlStr;
+  }
+}

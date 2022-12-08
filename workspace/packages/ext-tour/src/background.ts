@@ -3,7 +3,7 @@ import api from "./api";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
 import { IExtStoredState, IProject } from "./types";
 import { getActiveTab } from "./common";
-import { isCrossOrigin, getCookieHeaderForUrl } from "./utils";
+import { isCrossOrigin, getCookieHeaderForUrl, getAbsoluteUrl } from "./utils";
 
 const PUBLIC_ASSET_BUCKET = process.env.REACT_APP_PUBLIC_ASSET_BUCKET as string;
 
@@ -142,23 +142,53 @@ function getFrameIdentifer(
   return `${name || ""}::${href || ""}`;
 }
 
+type LookupWithPropType = "name" | "url" | "dim";
+class CreateLookupWithProp<T> {
+  private rec: Record<LookupWithPropType, Record<string, T[]>> = {
+    name: {},
+    url: {},
+    dim: {},
+  };
+
+  push = (prop: LookupWithPropType, key: string, val: T) => {
+    if (key in this.rec) {
+      this.rec[prop][key].push(val);
+    } else {
+      this.rec[prop][key] = [val];
+    }
+  };
+
+  find = (prop: LookupWithPropType, key: string | null | undefined): T[] => {
+    if (key === null || key === undefined) {
+      key = "";
+    }
+    if (!(key in this.rec[prop])) {
+      return [];
+    }
+
+    return this.rec[prop][key];
+  };
+}
+
+type FrameResult = chrome.scripting.InjectionResult<SerDoc>;
 async function postProcessSerDocs(
   results: Array<chrome.scripting.InjectionResult<SerDoc>>
 ): Promise<SerDoc> {
   let mainFrame;
-  const frames: Record<string, chrome.scripting.InjectionResult<SerDoc>> = {};
+  const framesByName: Record<string, FrameResult> = {};
   const domains = [];
+  const lookupWithProp = new CreateLookupWithProp<FrameResult>();
   for (const r of results) {
     if (r.frameId === 0) {
       mainFrame = r;
     } else {
-      const key = getFrameIdentifer(r.result.name, r.result.frameUrl);
-      if (key in frames) {
-        throw new Error(
-          "Multiple frames with same combination of frame + name. This case is not yet handled"
-        );
-      }
-      frames[key] = r;
+      lookupWithProp.push("name", r.result.name, r);
+      lookupWithProp.push("url", r.result.frameUrl, r);
+      lookupWithProp.push(
+        "dim",
+        `${r.result.rect.width}:${r.result.rect.height}`,
+        r
+      );
     }
   }
 
@@ -170,15 +200,44 @@ async function postProcessSerDocs(
   async function process(frame: SerDoc) {
     for (const postProcess of frame.postProcesses) {
       const traversalPath = postProcess.path.split(".").map((_) => +_);
-      const node = resolveElementFromPath(frame.docTree, traversalPath);
+      const node = resolveElementFromPath(frame.docTree!, traversalPath);
       if (postProcess.type === "iframe") {
-        const key = getFrameIdentifer(node.attrs.name, node.attrs.src);
-        const subFrame = frames[key];
-        if (!subFrame) {
-          throw new Error(`No subframe present with key ${key}`);
+        // const key = getFrameIdentifer(node.attrs.name, node.attrs.src);
+        // const subFrame = frames[key];
+
+        let subFrame;
+        let subFrames = [];
+        if (
+          (subFrames = lookupWithProp.find("name", node.attrs.name)).length
+          === 1
+        ) {
+          // If we find an unique frame record with name then we take it
+          // Sometimes the <iframe name="" /> is blank, in that case we do following lookup
+          subFrame = subFrames[0];
+        } else if (
+          (subFrames = lookupWithProp.find("url", node.attrs.src)).length === 1
+        ) {
+          // If we find an unique frame record with url then we take the entry
+          // Sometimes the <iframe src="" /> from inside iframe
+          subFrame = subFrames[0];
+        } else if (
+          node.props.rect
+          && (subFrames = lookupWithProp.find(
+            "dim",
+            `${node.props.rect.width}:${node.props.rect.height}`
+          )).length === 1
+        ) {
+          // If none of the above condition matches we try to get iframe with same dimension
+          subFrame = subFrames[0];
         }
-        node.chldrn.push(subFrame.result.docTree);
-        process(subFrame.result);
+
+        if (!subFrame) {
+          console.warn("Node", node);
+          console.warn("No subframe present for node ^^^");
+        } else {
+          node.chldrn.push(subFrame.result.docTree!);
+          process(subFrame.result);
+        }
       } else {
         const url = new URL(frame.frameUrl);
         const cookieStr = getCookieHeaderForUrl(allCookies, url);
@@ -188,7 +247,6 @@ async function postProcessSerDocs(
             ua: frame.userAgent,
           })
         );
-
         const data = await api("/proxyasset", {
           method: "POST",
           headers: {
@@ -196,18 +254,14 @@ async function postProcessSerDocs(
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            origin: node.attrs.href,
+            origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
             projectId: 1,
             assumedFileExt: node.props.fileExt,
             clientInfo,
           }),
         });
-
         node.props.origHref = node.attrs.href;
-        node.attrs.href = `${PUBLIC_ASSET_BUCKET}/${
-          (data as any).data.proxyUri
-        }`;
-
+        node.attrs.href = (data as any).data.proxyUri;
         /* Make request to server to save the static asset and return result
          *
          * api('/storeasset', {

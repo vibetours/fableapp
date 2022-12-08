@@ -8,6 +8,10 @@ export interface SerNode {
     textContent?: string | null;
     isHidden?: boolean;
     origHref?: string | null;
+    rect?: {
+      height: number;
+      width: number;
+    };
   };
   chldrn: SerNode[];
 }
@@ -24,6 +28,11 @@ export interface SerDoc {
   postProcesses: Array<PostProcess>;
   docTree?: SerNode;
   docTreeStr: string;
+  rect: {
+    height: number;
+    width: number;
+  };
+  baseURI: string;
 }
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -106,7 +115,7 @@ export function getSearializedDom(
 
     function isCrossOrigin(url1: string, url2: string): boolean {
       if (!url1 || !url2) {
-        // If a frame has no src defined then also we say it's from the same domain
+        // If a frame has no src defined then also we say it's from the same origin
         return false;
       }
 
@@ -123,6 +132,11 @@ export function getSearializedDom(
       return u1.protocol !== u2.protocol || u1.host !== u2.host;
     }
 
+    function isVisible(el: HTMLElement): boolean {
+      const style = getComputedStyle(el);
+      return !(style.visibility === "hidden" || style.display === "none");
+    }
+
     const HEAD_TAGS = {
       head: 1,
       title: 1,
@@ -132,6 +146,17 @@ export function getSearializedDom(
       meta: 1,
       script: 1,
       noscript: 1,
+    };
+
+    const NO_INCLUDE_LINK_REL = {
+      canonical: 1,
+      preconnect: 1,
+    };
+
+    const NO_INCLUDE_DOM_EL = {
+      script: 1,
+      noscript: 1,
+      base: 1,
     };
 
     // *************** utils ends *************** //
@@ -176,12 +201,18 @@ export function getSearializedDom(
         throw new Error("node type could not be parsed");
     }
 
-    if (sNode.name === "script" || sNode.name === "noscript") {
+    if (sNode.name in NO_INCLUDE_DOM_EL) {
       return { serNode: sNode, shouldSkip: true };
     }
 
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
+      const rel = (tNode.getAttribute("rel") || "").toLowerCase();
+
+      if (rel in NO_INCLUDE_LINK_REL) {
+        return { serNode: sNode, shouldSkip: true };
+      }
+
       if (tNode.sheet) {
         // external stylesheet
         sNode.props.isStylesheet = true;
@@ -196,22 +227,41 @@ export function getSearializedDom(
       return { serNode: sNode, postProcess: true };
     }
 
-    if (sNode.name === "iframe") {
+    if (sNode.name === "iframe" || sNode.name === "frame") {
       const tNode = node as HTMLIFrameElement;
       const url = sNode.attrs.src || "";
+      const rect = tNode.getBoundingClientRect();
+      sNode.props.rect = {
+        height: rect.height,
+        width: rect.width,
+      };
+
+      if (rect.height === 0 || rect.width === 0 || !isVisible(tNode)) {
+        // If an iframe is not visible we skip it from DOM. While other element can be hidden and we still
+        // save in serialized file as those could contain css or other scripts as a child,
+        // we omit the iframe entry since iframe has isolated execution context which makes no sense to have
+        // an entry on serialized json.
+        return { serNode: sNode, shouldSkip: true };
+      }
+
       if (!isCrossOrigin(origin, url)) {
-        const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
-        if (!frameDoc) {
-          console.log("Frame", url);
-          throw new Error(
-            "Iframe is same origin but document access is not possible"
-          );
+        try {
+          const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
+          if (!frameDoc) {
+            throw new Error(
+              `Iframe with origin ${url} is same origin but document access is not possible`
+            );
+          }
+          traversalPath.push(0);
+          const rep = getRep(frameDoc.documentElement, origin, traversalPath);
+          sNode.chldrn.push(rep.serNode);
+          traversalPath.pop();
+          return { serNode: sNode, postProcess: false };
+        } catch {
+          // Sometime a frame would have "about:blank" set but then would have a cross origin
+          // <base> set. For those we would find exception on accessing document.
+          return { serNode: sNode, postProcess: true };
         }
-        traversalPath.push(0);
-        const rep = getRep(frameDoc.documentElement, origin, traversalPath);
-        sNode.chldrn.push(rep.serNode);
-        traversalPath.pop();
-        return { serNode: sNode, postProcess: false };
       }
 
       return { serNode: sNode, postProcess: true };
@@ -248,6 +298,7 @@ export function getSearializedDom(
 
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
+  const rect = doc.body.getBoundingClientRect();
   return {
     frameUrl,
     userAgent: doc.defaultView?.navigator.userAgent || "",
@@ -256,5 +307,10 @@ export function getSearializedDom(
     // When returning the serailized version of DOM, we stringify the JSON. Otherwise chrome removes some of the
     // nested objects in JSON data for some reason.
     docTreeStr: JSON.stringify(rep.serNode),
+    rect: {
+      height: rect.height,
+      width: rect.width,
+    },
+    baseURI: doc.body.baseURI,
   };
 }

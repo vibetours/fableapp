@@ -32,7 +32,8 @@
     "scripting",
     "storage",
     "webNavigation",
-    "cookies"
+    "cookies",
+    "unlimitedStorage"
   ],
   "optional_host_permissions": ["*://*/*"],
   "content_security_policy": {
