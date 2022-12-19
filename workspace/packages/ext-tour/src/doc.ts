@@ -4,7 +4,6 @@ export interface SerNode {
   attrs: Record<string, string | null>;
   props: {
     isStylesheet?: boolean;
-    fileExt?: string;
     textContent?: string | null;
     isHidden?: boolean;
     origHref?: string | null;
@@ -99,20 +98,6 @@ export function getSearializedDom(
       return false;
     }
 
-    function getFileExtension(url: string): string {
-      const urlSplit = url.split("/");
-      if (urlSplit.length < 2) {
-        return "";
-      }
-      const lastSplit = urlSplit[urlSplit.length - 1];
-
-      const fileNameSplit = lastSplit.split(".");
-      if (fileNameSplit.length < 2) {
-        return "";
-      }
-      return fileNameSplit[fileNameSplit.length - 1];
-    }
-
     function isCrossOrigin(url1: string, url2: string): boolean {
       if (!url1 || !url2) {
         // If a frame has no src defined then also we say it's from the same origin
@@ -148,10 +133,14 @@ export function getSearializedDom(
       noscript: 1,
     };
 
-    const NO_INCLUDE_LINK_REL = {
-      canonical: 1,
-      preconnect: 1,
-    };
+    const INCLUDE_LINK_REL = [
+      new RegExp("stylesheet", "i"),
+      new RegExp("icon", "i"),
+      new RegExp("prefetch", "i"),
+      new RegExp("preload", "i"),
+      new RegExp("prerender", "i"),
+      new RegExp("^$"), // If the rel attr is not present or empty for a link tag
+    ];
 
     const NO_INCLUDE_DOM_EL = {
       script: 1,
@@ -209,20 +198,20 @@ export function getSearializedDom(
       const tNode = node as HTMLLinkElement;
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
 
-      if (rel in NO_INCLUDE_LINK_REL) {
-        return { serNode: sNode, shouldSkip: true };
+      let found = false;
+      for (const incRel of INCLUDE_LINK_REL) {
+        if (incRel.exec(rel) !== null) {
+          found = true;
+        }
       }
+      if (!found) return { serNode: sNode, shouldSkip: true };
 
       if (tNode.sheet) {
         // external stylesheet
         sNode.props.isStylesheet = true;
-        sNode.props.fileExt = ".css";
       } else {
-        // Other assetlike icons
+        // Other assets, like icons
         sNode.props.isStylesheet = false;
-        if (sNode.attrs.href) {
-          sNode.props.fileExt = `.${getFileExtension(sNode.attrs.href)}`;
-        }
       }
       return { serNode: sNode, postProcess: true };
     }

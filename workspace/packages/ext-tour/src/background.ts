@@ -256,7 +256,6 @@ async function postProcessSerDocs(
           body: JSON.stringify({
             origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
             projectId: 1,
-            assumedFileExt: node.props.fileExt,
             clientInfo,
           }),
         });
