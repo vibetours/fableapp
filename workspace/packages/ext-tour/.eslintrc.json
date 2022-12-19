@@ -47,7 +47,9 @@
     "arrow-parens": "off",
     "object-curly-newline": "off",
     "no-nested-ternary": "off",
+    "no-case-declarations": "off",
     "comma-dangle": "off",
+    "no-underscore-dangle": "off",
     "no-cond-assign": "off",
     "no-plusplus": "off",
     "no-return-assign": "off",
@@ -59,8 +61,14 @@
     "no-param-reassign": 0,
     "no-bitwise": 0,
     "no-constant-condition": 0,
-    "no-underscore-dangle": "off",
-    "react/jsx-one-expression-per-line": "off"
+    "react/jsx-one-expression-per-line": "off",
+    "quotes": [2, "double", { "avoidEscape": true }],
+    "jest/valid-expect": [
+      "error",
+      {
+        "maxArgs": 2
+      }
+    ]
   },
   "settings": {
     "import/resolver": {
