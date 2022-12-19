@@ -110,6 +110,6 @@ describe("DOM Serializtion", () => {
         }
         checkForMismatch(domEl.childNodes[i], serEl.chldrn[ii++]);
       }
-    }(document.documentElement, sDoc!));
+    }(document.documentElement, sDoc));
   });
 });
