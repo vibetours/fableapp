@@ -1,87 +1,56 @@
-import { Msg, MsgPayload, Payload_UpdatePersistentState } from "./msg";
 import api from "./api";
+import { getActiveTab, sleep } from "./common";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
-import { IExtStoredState, IProject } from "./types";
-import { getActiveTab } from "./common";
-import { isCrossOrigin, getCookieHeaderForUrl, getAbsoluteUrl } from "./utils";
+import { Msg, MsgPayload } from "./msg";
+import { IExtStoredState, IUser } from "./types";
+import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
 
 const PUBLIC_ASSET_BUCKET = process.env.REACT_APP_PUBLIC_ASSET_BUCKET as string;
 
-const APP_STATE_PROJECT = "app_state_project";
-const APP_STATE_SELECTION_ID = "app_state_project_sel_id";
-const APP_STATE_SELECTION_IDX = "app_state_project_sel_index";
+const APP_STATE_IDENTITY = "app_state_identity";
 
-async function fetchAndSyncProjects(): Promise<IExtStoredState> {
-  const selInfo = await chrome.storage.local.get([
-    APP_STATE_SELECTION_ID,
-    APP_STATE_SELECTION_IDX,
-  ]);
-  const projects = await api<Array<IProject>>("/projects");
-  let selProjectIdx = selInfo[APP_STATE_SELECTION_IDX] || -1;
-  let selProjectId = selInfo[APP_STATE_SELECTION_ID] || -1;
+async function getPersistentExtState(): Promise<IExtStoredState> {
+  const identity = (await chrome.storage.local.get(APP_STATE_IDENTITY))[
+    APP_STATE_IDENTITY
+  ] as IUser | undefined;
 
-  if (projects.length) {
-    if (selProjectIdx === -1) {
-      selProjectIdx = 0;
-    }
-    selProjectId = projects[selProjectIdx].id;
-    // WARN the extension does not use unlimited storage option, hence there might be case
-    // where sotrage is overflowing. Handle that
-    // https://developer.chrome.com/docs/extensions/reference/storage/#property-local
-    await chrome.storage.local.set({
-      [APP_STATE_PROJECT]: projects,
-      [APP_STATE_SELECTION_ID]: selProjectId,
-      [APP_STATE_SELECTION_IDX]: selProjectIdx,
-    });
-  }
   return {
-    projects,
-    selectedProjectIndex: selProjectIdx,
-    selectedProjectId: selProjectId,
+    identity: identity || null,
   };
 }
 
-// Retrieved the project from localstorage
-// If none is present in localstorage then it try to get projects from server
-// New projects are not retrieved unless the project dropdown is clicked
-async function getPersistentExtState(): Promise<IExtStoredState> {
-  const projects = (await chrome.storage.local.get(
-    APP_STATE_PROJECT
-  )) as Array<IProject> | null;
-  const selProjectId = -1;
-  const selProjectIdx = -1;
-
-  const shouldFetchFromServer = false;
-
-  if (!projects || !projects.length) {
-    return fetchAndSyncProjects();
-  }
-  return {
-    projects: [],
-    selectedProjectId: -1,
-    selectedProjectIndex: -1,
+async function addSampleUser() {
+  const sampleUser = {
+    id: 1,
+    belongsToOrg: {
+      rid: "",
+    },
   };
+  await chrome.storage.local.set({
+    [APP_STATE_IDENTITY]: sampleUser,
+  });
 }
 
 chrome.runtime.onMessage.addListener(
   async (msg: MsgPayload<any>, sender, sendResponse) => {
     switch (msg.type) {
-      case Msg.INIT:
+      case Msg.INIT: {
         const state = await getPersistentExtState();
         chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
         break;
+      }
 
-      case Msg.UPDATE_PERSISTENT_STATE:
-        const tMsg = msg as MsgPayload<Payload_UpdatePersistentState>;
-        chrome.storage.local.set({
-          [APP_STATE_SELECTION_ID]: tMsg.data.selectedProjectId,
-          [APP_STATE_SELECTION_IDX]: tMsg.data.selectedProjectIndex,
-        });
-        break;
-
-      case Msg.SAVE_SCREEN_TO_PROJECT:
+      case Msg.SAVE_SCREEN: {
         await serializeDoc();
         break;
+      }
+
+      case Msg.ADD_SAMPLE_USER: {
+        await addSampleUser();
+        const state = await getPersistentExtState();
+        chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
+        break;
+      }
 
       default:
         break;

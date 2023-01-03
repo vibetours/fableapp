@@ -1,8 +1,5 @@
 import React from "react";
-import { Route } from "../types";
 
-interface ICtx {
-  navigateToRoute: (route: Route) => void;
-}
+interface ICtx {}
 
 export const RootContext = React.createContext<ICtx>({} as ICtx);
