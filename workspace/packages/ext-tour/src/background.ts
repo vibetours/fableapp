@@ -1,87 +1,61 @@
-import { Msg, MsgPayload, Payload_UpdatePersistentState } from "./msg";
+import {
+  ApiResp,
+  ReqProxyAsset,
+  ReqNewScreen,
+  RespProxyAsset,
+  RespScreen,
+} from "@fable/common/dist/api-contract";
 import api from "./api";
+import { getActiveTab, sleep } from "./common";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
-import { IExtStoredState, IProject } from "./types";
-import { getActiveTab } from "./common";
-import { isCrossOrigin, getCookieHeaderForUrl, getAbsoluteUrl } from "./utils";
+import { Msg, MsgPayload } from "./msg";
+import { IExtStoredState, IUser } from "./types";
+import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
 
-const PUBLIC_ASSET_BUCKET = process.env.REACT_APP_PUBLIC_ASSET_BUCKET as string;
+const APP_STATE_IDENTITY = "app_state_identity";
 
-const APP_STATE_PROJECT = "app_state_project";
-const APP_STATE_SELECTION_ID = "app_state_project_sel_id";
-const APP_STATE_SELECTION_IDX = "app_state_project_sel_index";
+async function getPersistentExtState(): Promise<IExtStoredState> {
+  const identity = (await chrome.storage.local.get(APP_STATE_IDENTITY))[
+    APP_STATE_IDENTITY
+  ] as IUser | undefined;
 
-async function fetchAndSyncProjects(): Promise<IExtStoredState> {
-  const selInfo = await chrome.storage.local.get([
-    APP_STATE_SELECTION_ID,
-    APP_STATE_SELECTION_IDX,
-  ]);
-  const projects = await api<Array<IProject>>("/projects");
-  let selProjectIdx = selInfo[APP_STATE_SELECTION_IDX] || -1;
-  let selProjectId = selInfo[APP_STATE_SELECTION_ID] || -1;
-
-  if (projects.length) {
-    if (selProjectIdx === -1) {
-      selProjectIdx = 0;
-    }
-    selProjectId = projects[selProjectIdx].id;
-    // WARN the extension does not use unlimited storage option, hence there might be case
-    // where sotrage is overflowing. Handle that
-    // https://developer.chrome.com/docs/extensions/reference/storage/#property-local
-    await chrome.storage.local.set({
-      [APP_STATE_PROJECT]: projects,
-      [APP_STATE_SELECTION_ID]: selProjectId,
-      [APP_STATE_SELECTION_IDX]: selProjectIdx,
-    });
-  }
   return {
-    projects,
-    selectedProjectIndex: selProjectIdx,
-    selectedProjectId: selProjectId,
+    identity: identity || null,
   };
 }
 
-// Retrieved the project from localstorage
-// If none is present in localstorage then it try to get projects from server
-// New projects are not retrieved unless the project dropdown is clicked
-async function getPersistentExtState(): Promise<IExtStoredState> {
-  const projects = (await chrome.storage.local.get(
-    APP_STATE_PROJECT
-  )) as Array<IProject> | null;
-  const selProjectId = -1;
-  const selProjectIdx = -1;
-
-  const shouldFetchFromServer = false;
-
-  if (!projects || !projects.length) {
-    return fetchAndSyncProjects();
-  }
-  return {
-    projects: [],
-    selectedProjectId: -1,
-    selectedProjectIndex: -1,
+async function addSampleUser() {
+  const sampleUser = {
+    id: 1,
+    belongsToOrg: {
+      rid: "",
+    },
   };
+  await chrome.storage.local.set({
+    [APP_STATE_IDENTITY]: sampleUser,
+  });
 }
 
 chrome.runtime.onMessage.addListener(
   async (msg: MsgPayload<any>, sender, sendResponse) => {
     switch (msg.type) {
-      case Msg.INIT:
+      case Msg.INIT: {
         const state = await getPersistentExtState();
         chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
         break;
+      }
 
-      case Msg.UPDATE_PERSISTENT_STATE:
-        const tMsg = msg as MsgPayload<Payload_UpdatePersistentState>;
-        chrome.storage.local.set({
-          [APP_STATE_SELECTION_ID]: tMsg.data.selectedProjectId,
-          [APP_STATE_SELECTION_IDX]: tMsg.data.selectedProjectIndex,
-        });
-        break;
-
-      case Msg.SAVE_SCREEN_TO_PROJECT:
+      case Msg.SAVE_SCREEN: {
         await serializeDoc();
         break;
+      }
+
+      case Msg.ADD_SAMPLE_USER: {
+        await addSampleUser();
+        const state = await getPersistentExtState();
+        chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
+        break;
+      }
 
       default:
         break;
@@ -135,13 +109,6 @@ function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
   return node;
 }
 
-function getFrameIdentifer(
-  name: string | undefined | null,
-  href: string | undefined | null
-): string {
-  return `${name || ""}::${href || ""}`;
-}
-
 type LookupWithPropType = "name" | "url" | "dim";
 class CreateLookupWithProp<T> {
   private rec: Record<LookupWithPropType, Record<string, T[]>> = {
@@ -172,11 +139,10 @@ class CreateLookupWithProp<T> {
 
 type FrameResult = chrome.scripting.InjectionResult<SerDoc>;
 async function postProcessSerDocs(
-  results: Array<chrome.scripting.InjectionResult<SerDoc>>
+  results: Array<FrameResult>
 ): Promise<SerDoc> {
   let mainFrame;
-  const framesByName: Record<string, FrameResult> = {};
-  const domains = [];
+  let iconPath: string | undefined;
   const lookupWithProp = new CreateLookupWithProp<FrameResult>();
   for (const r of results) {
     if (r.frameId === 0) {
@@ -201,10 +167,8 @@ async function postProcessSerDocs(
     for (const postProcess of frame.postProcesses) {
       const traversalPath = postProcess.path.split(".").map((_) => +_);
       const node = resolveElementFromPath(frame.docTree!, traversalPath);
-      if (postProcess.type === "iframe") {
-        // const key = getFrameIdentifer(node.attrs.name, node.attrs.src);
-        // const subFrame = frames[key];
 
+      if (postProcess.type === "iframe") {
         let subFrame;
         let subFrames = [];
         if (
@@ -247,34 +211,38 @@ async function postProcessSerDocs(
             ua: frame.userAgent,
           })
         );
-        const data = await api("/proxyasset", {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
-            projectId: 1,
-            clientInfo,
-          }),
-        });
+        const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>(
+          "/proxyasset",
+          {
+            method: "POST",
+            body: {
+              origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
+              clientInfo,
+            },
+          }
+        );
         node.props.origHref = node.attrs.href;
-        node.attrs.href = (data as any).data.proxyUri;
-        /* Make request to server to save the static asset and return result
-         *
-         * api('/storeasset', {
-         *  method: POST,
-         *  cookie:
-         *  assumedName:
-         *  url:
-         *  referrer:
-         * })
-         */
+        node.attrs.href = data.data.proxyUri;
+
+        if (postProcess.path === frame.icon?.path) {
+          iconPath = node.attrs.href;
+        }
       }
     }
   }
 
   await process(mainFrame.result);
+  const imageData = await chrome.tabs.captureVisibleTab();
+  const data = await api<ReqNewScreen, ApiResp<RespScreen>>("/newscreen", {
+    method: "POST",
+    body: {
+      name: mainFrame.result.title,
+      url: mainFrame.result.frameUrl,
+      thumbnail: imageData,
+      body: JSON.stringify(mainFrame.result),
+      favIcon: iconPath,
+    },
+  });
+
   return mainFrame.result;
 }

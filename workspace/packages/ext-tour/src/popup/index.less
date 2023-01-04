@@ -1,45 +1,111 @@
-.container {
-  padding: 8px;
-  width: 26rem;
-  // min-height: 387px;
-  padding: 2.2rem 0;
-  background-color: white;
-  border-radius: 12px;
-  -webkit-box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
-  -moz-box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
-  box-shadow: 0px 8px 14px -5px rgba(0, 0, 0, 0.4);
-  position: relative;
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap');
 
-  &__bg {
-    height: 30px;
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    margin-top: -5px;
-    z-index: -1;
+body {
+  height: 100%;
+  width: 100% ;
+  margin: 0px;
+  padding: 0px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.85rem;
+}
 
-    div {
-      width: 40%;
-      border-radius: 12px;
+.header-pills {
+  height: 8px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin-top: -5px;
+  z-index: -1;
 
-      &:nth-child(1) {
-        background-color: #ff7450;
-      }
+  div {
+    width: 40%;
+    border-radius: 12px;
 
-      &:nth-child(2) {
-        background-color: #fedf64;
-      }
-
-      &:nth-child(3) {
-        background-color: #7567ff;
-      }
-
-      &:not(:first-child) {
-        margin-left: -18px;
-      }
+    &:nth-child(1) {
+      background-color: #ff7450;
     }
+
+    &:nth-child(2) {
+      background-color: #fedf64;
+    }
+
+    &:nth-child(3) {
+      background-color: #7567ff;
+    }
+
+    &:not(:first-child) {
+      margin-left: -18px;
+    }
+  }
+}
+
+.p-con {
+  padding: 1rem 1rem 2rem 1rem;
+  width: 25rem;
+
+
+  .login-con {
+    a {
+      color: blue;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+
+  .action-con {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+.as-p {
+  margin-top: 0.5rem;
+}
+
+.sm-logo {
+  height: 16px;
+  width: 16px;
+}
+
+.btn-primary {
+  width: 358px;
+  height: 48px;
+  margin-top: 0.5rem;
+  border: none;
+  background: #7567ff;
+  color: white;
+  border-radius: 48px;
+  font-size: 0.9rem;
+
+  .em {
+    background: #00000030;
+    padding: 2px 8px 2px 5px;
+    border-radius: 3px;
+  }
+}
+
+.btn-secondary {
+  width: 358px;
+  height: 48px;
+  margin-top: 0.5rem;
+  border: 2px solid #16023E;
+  color: #16023E;
+  background: transparent;
+  border-radius: 49px;
+  font-size: 0.9rem;
+}
+
+button {
+  &:hover {
+    cursor: pointer;
   }
 }

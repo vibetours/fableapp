@@ -15,6 +15,10 @@ export interface SerNode {
   chldrn: SerNode[];
 }
 
+export interface SerNodeWithPath extends SerNode {
+  path: string;
+}
+
 interface PostProcess {
   type: "asset" | "iframe";
   path: string;
@@ -24,7 +28,9 @@ export interface SerDoc {
   frameUrl: string;
   userAgent: string;
   name: string;
+  title: string;
   postProcesses: Array<PostProcess>;
+  icon: SerNodeWithPath | null;
   docTree?: SerNode;
   docTreeStr: string;
   rect: {
@@ -62,6 +68,7 @@ export function getSearializedDom(
   const doc: Document = isTest ? testInjectedParams.doc : document;
 
   const postProcesses: Array<PostProcess> = [];
+  const icons: Array<SerNodeWithPath> = [];
 
   function getRep(
     node: ChildNode,
@@ -70,6 +77,7 @@ export function getSearializedDom(
   ): {
     serNode: SerNode;
     shouldSkip?: boolean;
+    isIcon?: boolean;
     postProcess?: boolean;
     isHidden?: boolean;
   } {
@@ -133,9 +141,11 @@ export function getSearializedDom(
       noscript: 1,
     };
 
+    // The order of this array matters (this makes it a bit bug prone, but it's easy)
+    // Like, we figure out and save icons from the page using the first element
     const INCLUDE_LINK_REL = [
-      new RegExp("stylesheet", "i"),
       new RegExp("icon", "i"),
+      new RegExp("stylesheet", "i"),
       new RegExp("prefetch", "i"),
       new RegExp("preload", "i"),
       new RegExp("prerender", "i"),
@@ -199,9 +209,11 @@ export function getSearializedDom(
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
 
       let found = false;
-      for (const incRel of INCLUDE_LINK_REL) {
-        if (incRel.exec(rel) !== null) {
+      let isIcon = false;
+      for (let i = 0; i < INCLUDE_LINK_REL.length; i++) {
+        if (INCLUDE_LINK_REL[i].exec(rel) !== null) {
           found = true;
+          if (!i) isIcon = true; // The first element of the array should always be icon
         }
       }
       if (!found) return { serNode: sNode, shouldSkip: true };
@@ -213,7 +225,7 @@ export function getSearializedDom(
         // Other assets, like icons
         sNode.props.isStylesheet = false;
       }
-      return { serNode: sNode, postProcess: true };
+      return { serNode: sNode, postProcess: true, isIcon };
     }
 
     if (sNode.name === "iframe" || sNode.name === "frame") {
@@ -278,6 +290,9 @@ export function getSearializedDom(
           postProcess.path = traversalPathStr;
           postProcesses.push(postProcess);
         }
+        if (rep.isIcon) {
+          icons.push(Object.assign(rep.serNode, { path: traversalPathStr }));
+        }
         sNode.chldrn.push(rep.serNode);
       }
     }
@@ -288,8 +303,23 @@ export function getSearializedDom(
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
   const rect = doc.body.getBoundingClientRect();
+
+  let candidateIcon: SerNodeWithPath | null = null;
+  for (const icon of icons) {
+    if (icon.attrs.rel === "icon") {
+      candidateIcon = icon;
+      break;
+    } else if (!candidateIcon && icon.attrs.rel === "shortcut icon") {
+      candidateIcon = icon;
+    }
+  }
+  if (candidateIcon === null && icons.length) {
+    candidateIcon = icons[0];
+  }
+
   return {
     frameUrl,
+    title: doc.title,
     userAgent: doc.defaultView?.navigator.userAgent || "",
     name: doc.defaultView?.name || "",
     postProcesses,
@@ -300,6 +330,7 @@ export function getSearializedDom(
       height: rect.height,
       width: rect.width,
     },
+    icon: candidateIcon,
     baseURI: doc.body.baseURI,
   };
 }
