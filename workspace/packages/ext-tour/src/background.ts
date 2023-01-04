@@ -211,21 +211,29 @@ async function postProcessSerDocs(
             ua: frame.userAgent,
           })
         );
-        const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>(
-          "/proxyasset",
-          {
-            method: "POST",
-            body: {
-              origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
-              clientInfo,
-            },
-          }
+
+        const assetUrlStr = getAbsoluteUrl(
+          node.attrs.href || "",
+          frame.baseURI
         );
-        node.props.origHref = node.attrs.href;
-        node.attrs.href = data.data.proxyUri;
+        const assetUrl = new URL(assetUrlStr);
+        if (assetUrl.protocol === "http:" || assetUrl.protocol === "https:") {
+          const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>(
+            "/proxyasset",
+            {
+              method: "POST",
+              body: {
+                origin: assetUrlStr,
+                clientInfo,
+              },
+            }
+          );
+          node.props.origHref = node.attrs.href;
+          node.attrs.href = data.data.proxyUri;
+        }
 
         if (postProcess.path === frame.icon?.path) {
-          iconPath = node.attrs.href;
+          iconPath = node.attrs.href || undefined;
         }
       }
     }
