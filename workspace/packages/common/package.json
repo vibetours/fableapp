@@ -8,7 +8,7 @@
   "main": "dist/",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && cp -r gen/ dist/",
     "test": "jest",
     "start": "tsc -w",
     "clean": "rm -rf dist"

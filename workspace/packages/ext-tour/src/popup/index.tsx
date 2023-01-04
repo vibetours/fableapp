@@ -49,6 +49,17 @@ class Root extends Component<Props, State> {
     chrome.runtime.sendMessage({ type: Msg.ADD_SAMPLE_USER });
   };
 
+  saveScreen = () => {
+    chrome.runtime.sendMessage({ type: Msg.SAVE_SCREEN });
+  };
+
+  openLinkInNewTab = (path: string) => () => {
+    chrome.runtime.sendMessage({
+      type: Msg.OPEN_LINK_IN_NEW_TAB,
+      data: { path },
+    });
+  };
+
   render() {
     return (
       <div className="p-con">
@@ -89,10 +100,18 @@ class Root extends Component<Props, State> {
               </div>
             </div>
 
-            <button type="button" className="btn-primary">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={this.saveScreen}
+            >
               Save screen or press <span className="em">⌘ + E</span>
             </button>
-            <button type="button" className="btn-secondary">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={this.openLinkInNewTab("/screens")}
+            >
               See all saved screen
             </button>
           </div>
@@ -104,47 +123,6 @@ class Root extends Component<Props, State> {
         </div>
       </div>
     );
-
-    // if (!this.state.inited) {
-    //   return (
-    //     <div>
-    //       <em>todo</em>loader page
-    //     </div>
-    //   );
-    // }
-    // console.log(this.state.identity);
-    // if (!this.state.identity) {
-    //   return (
-    //     <div>
-    //       <em>todo</em>login screen
-    //     </div>
-    //   );
-    // }
-
-    // return <div>main body</div>;
-    // We will check if there are projects in state, if there are projects then we don't show the CreateProject route
-    // We will directly send them to SelectProject route
-    // return (
-    //   <RootContext.Provider value={{ navigateToRoute: this.navigateToRoute }}>
-    //     <div className="container">
-    //       {this.state.activeRoute === Route.Intro && <Intro />}
-    //       {this.state.activeRoute === Route.Main && (
-    //         <Main
-    //           projects={this.state.projects}
-    //           selectedProject={this.state.selectedProject}
-    //           changeProjectSelection={this.changeProjectSelection}
-    //           saveScreenToProject={this.saveScreenToProject}
-    //         />
-    //       )}
-    //       {this.state.activeRoute === Route.NewProject && <FormCreateProject />}
-    //       <div className="container__bg">
-    //         <div />
-    //         <div />
-    //         <div />
-    //       </div>
-    //     </div>
-    //   </RootContext.Provider>
-    // );
   }
 }
 

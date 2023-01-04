@@ -1,11 +1,16 @@
+import {
+  ApiResp,
+  ReqProxyAsset,
+  ReqNewScreen,
+  RespProxyAsset,
+  RespScreen,
+} from "@fable/common/dist/api-contract";
 import api from "./api";
 import { getActiveTab, sleep } from "./common";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
 import { Msg, MsgPayload } from "./msg";
 import { IExtStoredState, IUser } from "./types";
 import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
-
-const PUBLIC_ASSET_BUCKET = process.env.REACT_APP_PUBLIC_ASSET_BUCKET as string;
 
 const APP_STATE_IDENTITY = "app_state_identity";
 
@@ -104,13 +109,6 @@ function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
   return node;
 }
 
-function getFrameIdentifer(
-  name: string | undefined | null,
-  href: string | undefined | null
-): string {
-  return `${name || ""}::${href || ""}`;
-}
-
 type LookupWithPropType = "name" | "url" | "dim";
 class CreateLookupWithProp<T> {
   private rec: Record<LookupWithPropType, Record<string, T[]>> = {
@@ -141,11 +139,10 @@ class CreateLookupWithProp<T> {
 
 type FrameResult = chrome.scripting.InjectionResult<SerDoc>;
 async function postProcessSerDocs(
-  results: Array<chrome.scripting.InjectionResult<SerDoc>>
+  results: Array<FrameResult>
 ): Promise<SerDoc> {
   let mainFrame;
-  const framesByName: Record<string, FrameResult> = {};
-  const domains = [];
+  let iconPath: string | undefined;
   const lookupWithProp = new CreateLookupWithProp<FrameResult>();
   for (const r of results) {
     if (r.frameId === 0) {
@@ -170,10 +167,8 @@ async function postProcessSerDocs(
     for (const postProcess of frame.postProcesses) {
       const traversalPath = postProcess.path.split(".").map((_) => +_);
       const node = resolveElementFromPath(frame.docTree!, traversalPath);
-      if (postProcess.type === "iframe") {
-        // const key = getFrameIdentifer(node.attrs.name, node.attrs.src);
-        // const subFrame = frames[key];
 
+      if (postProcess.type === "iframe") {
         let subFrame;
         let subFrames = [];
         if (
@@ -216,34 +211,38 @@ async function postProcessSerDocs(
             ua: frame.userAgent,
           })
         );
-        const data = await api("/proxyasset", {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
-            projectId: 1,
-            clientInfo,
-          }),
-        });
+        const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>(
+          "/proxyasset",
+          {
+            method: "POST",
+            body: {
+              origin: getAbsoluteUrl(node.attrs.href || "", frame.baseURI),
+              clientInfo,
+            },
+          }
+        );
         node.props.origHref = node.attrs.href;
-        node.attrs.href = (data as any).data.proxyUri;
-        /* Make request to server to save the static asset and return result
-         *
-         * api('/storeasset', {
-         *  method: POST,
-         *  cookie:
-         *  assumedName:
-         *  url:
-         *  referrer:
-         * })
-         */
+        node.attrs.href = data.data.proxyUri;
+
+        if (postProcess.path === frame.icon?.path) {
+          iconPath = node.attrs.href;
+        }
       }
     }
   }
 
   await process(mainFrame.result);
+  const imageData = await chrome.tabs.captureVisibleTab();
+  const data = await api<ReqNewScreen, ApiResp<RespScreen>>("/newscreen", {
+    method: "POST",
+    body: {
+      name: mainFrame.result.title,
+      url: mainFrame.result.frameUrl,
+      thumbnail: imageData,
+      body: JSON.stringify(mainFrame.result),
+      favIcon: iconPath,
+    },
+  });
+
   return mainFrame.result;
 }
