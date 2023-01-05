@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc -b && cp -r gen/ dist/",
     "test": "jest",
-    "start": "tsc -w",
+    "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
+    "start": "env-cmd --verbose -e dev -r ../env.json tsc -w",
     "clean": "rm -rf dist"
   },
   "dependencies": {},
@@ -26,6 +27,7 @@
     "@types/sha1": "^1.1.2",
     "@typescript-eslint/eslint-plugin": "^2.9.0",
     "@typescript-eslint/parser": "^2.9.0",
+    "env-cmd": "^10.1.0",
     "axios-mock-adapter": "^1.18.1",
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.0.1",

@@ -2,14 +2,12 @@ import styled from "styled-components";
 
 export const Con = styled.div`
   height: 100%;
-  background-color: #160245;
-  color: #d0d0ff;
+  background-color: ${(props) => props.theme.colors.dark.idle.background};
+  color: ${(props) => props.theme.colors.dark.idle.color};
   border-radius: 0 24px 24px 0;
   padding: 1.8rem 0;
   display: flex;
   flex-direction: column;
-  font-family: 'IBM Plex Sans', Helvetica, sans-serif;
-  font-size: 1rem;
   overflow-y: hidden;
 `;
 
@@ -40,9 +38,10 @@ export const ConNavBtn = styled.div`
   transition: all 0.3s ease-out;
   position: relative;
 
-  &:hover {
-    background-color: #7567ff;
-    color: #fff;
+  &:hover,
+  &.selected {
+    background-color: ${(props) => props.theme.colors.dark.selection.background};
+    color: ${(props) => props.theme.colors.dark.selection.color};
   }
 
   p {
@@ -78,3 +77,4 @@ export const FooterItemProfileIcon = styled.img`
   width: 1.1rem;
   border-radius: 50%;
 `;
+

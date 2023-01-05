@@ -1,6 +1,6 @@
 enum Action {
-  ALL_PROJECTS = "ALL_PROJECTS",
-  UNIT_PROJECT = "UNIT_PROJECT",
+  ALL_SCREENS_RETRIEVED = "ALL_SCREENS_RETRIEVED",
+  INIT = "INIT",
 }
 
 export default Action;

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-04 09:08:12.
+// Generated using typescript-generator version 2.35.1025 on 2023-01-05 16:09:24.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -34,6 +34,16 @@ export interface ReqNewUser {
 export interface ReqProxyAsset {
     origin: string;
     clientInfo: string;
+}
+
+export interface RespCommonConfig extends ResponseBase {
+    commonAssetPath: string;
+    screenAssetPath: string;
+    flowAssetPath: string;
+}
+
+export interface RespHealth extends ResponseBase {
+    status: string;
 }
 
 export interface RespOrg extends ResponseBase {

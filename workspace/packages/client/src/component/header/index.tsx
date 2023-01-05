@@ -4,7 +4,7 @@ import { Avatar, Button } from "antd";
 import { PageType } from "../../constant";
 
 interface IOwnProps {
-  page: PageType;
+  from: PageType;
 }
 interface IOwnStateProps {}
 
@@ -16,11 +16,11 @@ export default class Header extends React.PureComponent<IOwnProps, IOwnStateProp
         <Tags.MenuCon>
           <Tags.MenuItem>
             <Button shape="round" size="middle">
-              {this.props.page === PageType.Project ? "Record a Demo" : "Create Demo Link"}
+              {this.props.from === PageType.Screen ? "Record a screen" : "Create demo link"}
             </Button>
           </Tags.MenuItem>
           <Tags.MenuItem>
-            <Avatar src="https://joeschmoe.io/api/v1/random" />
+            <Avatar src="https://avatars.dicebear.com/api/adventurer/yen.svg" />
           </Tags.MenuItem>
         </Tags.MenuCon>
       </Tags.Con>

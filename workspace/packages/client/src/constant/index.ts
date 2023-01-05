@@ -1,5 +1,5 @@
 export enum PageType {
-  Project = "project",
+  Screen = "screen",
   EmbedLoader = "embed",
 }
 

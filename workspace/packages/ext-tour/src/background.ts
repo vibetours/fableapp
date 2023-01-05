@@ -1,11 +1,5 @@
-import {
-  ApiResp,
-  ReqProxyAsset,
-  ReqNewScreen,
-  RespProxyAsset,
-  RespScreen,
-} from "@fable/common/dist/api-contract";
-import api from "./api";
+import { ApiResp, ReqProxyAsset, ReqNewScreen, RespProxyAsset, RespScreen } from "@fable/common/dist/api-contract";
+import api from "@fable/common/dist/api";
 import { getActiveTab, sleep } from "./common";
 import { getSearializedDom, SerDoc, SerNode } from "./doc";
 import { Msg, MsgPayload } from "./msg";
@@ -15,9 +9,7 @@ import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
 const APP_STATE_IDENTITY = "app_state_identity";
 
 async function getPersistentExtState(): Promise<IExtStoredState> {
-  const identity = (await chrome.storage.local.get(APP_STATE_IDENTITY))[
-    APP_STATE_IDENTITY
-  ] as IUser | undefined;
+  const identity = (await chrome.storage.local.get(APP_STATE_IDENTITY))[APP_STATE_IDENTITY] as IUser | undefined;
 
   return {
     identity: identity || null,
@@ -36,32 +28,30 @@ async function addSampleUser() {
   });
 }
 
-chrome.runtime.onMessage.addListener(
-  async (msg: MsgPayload<any>, sender, sendResponse) => {
-    switch (msg.type) {
-      case Msg.INIT: {
-        const state = await getPersistentExtState();
-        chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
-        break;
-      }
-
-      case Msg.SAVE_SCREEN: {
-        await serializeDoc();
-        break;
-      }
-
-      case Msg.ADD_SAMPLE_USER: {
-        await addSampleUser();
-        const state = await getPersistentExtState();
-        chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
-        break;
-      }
-
-      default:
-        break;
+chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender, sendResponse) => {
+  switch (msg.type) {
+    case Msg.INIT: {
+      const state = await getPersistentExtState();
+      chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
+      break;
     }
+
+    case Msg.SAVE_SCREEN: {
+      await serializeDoc();
+      break;
+    }
+
+    case Msg.ADD_SAMPLE_USER: {
+      await addSampleUser();
+      const state = await getPersistentExtState();
+      chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
+      break;
+    }
+
+    default:
+      break;
   }
-);
+});
 
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "save-screen") {
@@ -138,9 +128,7 @@ class CreateLookupWithProp<T> {
 }
 
 type FrameResult = chrome.scripting.InjectionResult<SerDoc>;
-async function postProcessSerDocs(
-  results: Array<FrameResult>
-): Promise<SerDoc> {
+async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> {
   let mainFrame;
   let iconPath: string | undefined;
   const lookupWithProp = new CreateLookupWithProp<FrameResult>();
@@ -150,11 +138,7 @@ async function postProcessSerDocs(
     } else {
       lookupWithProp.push("name", r.result.name, r);
       lookupWithProp.push("url", r.result.frameUrl, r);
-      lookupWithProp.push(
-        "dim",
-        `${r.result.rect.width}:${r.result.rect.height}`,
-        r
-      );
+      lookupWithProp.push("dim", `${r.result.rect.width}:${r.result.rect.height}`, r);
     }
   }
 
@@ -171,25 +155,17 @@ async function postProcessSerDocs(
       if (postProcess.type === "iframe") {
         let subFrame;
         let subFrames = [];
-        if (
-          (subFrames = lookupWithProp.find("name", node.attrs.name)).length
-          === 1
-        ) {
+        if ((subFrames = lookupWithProp.find("name", node.attrs.name)).length === 1) {
           // If we find an unique frame record with name then we take it
           // Sometimes the <iframe name="" /> is blank, in that case we do following lookup
           subFrame = subFrames[0];
-        } else if (
-          (subFrames = lookupWithProp.find("url", node.attrs.src)).length === 1
-        ) {
+        } else if ((subFrames = lookupWithProp.find("url", node.attrs.src)).length === 1) {
           // If we find an unique frame record with url then we take the entry
           // Sometimes the <iframe src="" /> from inside iframe
           subFrame = subFrames[0];
         } else if (
           node.props.rect
-          && (subFrames = lookupWithProp.find(
-            "dim",
-            `${node.props.rect.width}:${node.props.rect.height}`
-          )).length === 1
+          && (subFrames = lookupWithProp.find("dim", `${node.props.rect.width}:${node.props.rect.height}`)).length === 1
         ) {
           // If none of the above condition matches we try to get iframe with same dimension
           subFrame = subFrames[0];
@@ -212,22 +188,16 @@ async function postProcessSerDocs(
           })
         );
 
-        const assetUrlStr = getAbsoluteUrl(
-          node.attrs.href || "",
-          frame.baseURI
-        );
+        const assetUrlStr = getAbsoluteUrl(node.attrs.href || "", frame.baseURI);
         const assetUrl = new URL(assetUrlStr);
         if (assetUrl.protocol === "http:" || assetUrl.protocol === "https:") {
-          const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>(
-            "/proxyasset",
-            {
-              method: "POST",
-              body: {
-                origin: assetUrlStr,
-                clientInfo,
-              },
-            }
-          );
+          const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>("/proxyasset", {
+            method: "POST",
+            body: {
+              origin: assetUrlStr,
+              clientInfo,
+            },
+          });
           node.props.origHref = node.attrs.href;
           node.attrs.href = data.data.proxyUri;
         }

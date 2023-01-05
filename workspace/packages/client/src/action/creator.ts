@@ -1,33 +1,40 @@
 import ActionType from "./type";
 import { Dispatch } from "react";
-import { IProject, IProject_Raw } from "../entity_type";
-import api from "../api";
-import { processRawProjectData } from "../processor";
+import api from "@fable/common/dist/api";
+import { ApiResp, RespCommonConfig, RespScreen } from "@fable/common/dist/api-contract";
+import { processRawScreenData, P_RespScreen } from "../entity-processor";
+import { TState } from "../reducer";
 
-export function getAllProjects() {
-  return async (dispatch: Dispatch<TGetAllProjects>) => {
-    const resp = await api.get("/projects");
+/* ************************************************************************* */
+
+export interface TGetAllScreens {
+  type: ActionType.ALL_SCREENS_RETRIEVED;
+  screens: Array<P_RespScreen>;
+}
+
+export function getAllScreens() {
+  return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
+    const data = await api<null, ApiResp<RespScreen[]>>("/screens", { auth: true });
     return dispatch({
-      type: ActionType.ALL_PROJECTS,
-      projects: resp.data.data.map((d: IProject_Raw) => processRawProjectData(d)),
+      type: ActionType.ALL_SCREENS_RETRIEVED,
+      screens: data.data.map((d: RespScreen) => processRawScreenData(d, getState())),
     });
   };
 }
-export interface TGetAllProjects {
-  type: ActionType.ALL_PROJECTS;
-  projects: Array<IProject>;
+
+/* ************************************************************************* */
+
+export interface TInitialize {
+  type: ActionType.INIT;
+  config: RespCommonConfig;
 }
 
-export function getProject(id: number) {
-  return async (dispatch: Dispatch<TGetProject>) => {
-    const resp = await api.get(`/project/${id}`);
+export function init() {
+  return async (dispatch: Dispatch<TInitialize>) => {
+    const data = await api<null, ApiResp<RespCommonConfig>>("/cconfig");
     return dispatch({
-      type: ActionType.UNIT_PROJECT,
-      project: processRawProjectData(resp.data.data),
+      type: ActionType.INIT,
+      config: data.data,
     });
   };
-}
-export interface TGetProject {
-  type: ActionType.UNIT_PROJECT;
-  project: IProject;
 }
