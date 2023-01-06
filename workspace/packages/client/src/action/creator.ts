@@ -2,7 +2,7 @@ import ActionType from "./type";
 import { Dispatch } from "react";
 import api from "@fable/common/dist/api";
 import { ApiResp, RespCommonConfig, RespScreen } from "@fable/common/dist/api-contract";
-import { processRawScreenData, P_RespScreen } from "../entity-processor";
+import { processRawScreenData, P_RespScreen, groupScreens } from "../entity-processor";
 import { TState } from "../reducer";
 
 /* ************************************************************************* */
@@ -17,7 +17,7 @@ export function getAllScreens() {
     const data = await api<null, ApiResp<RespScreen[]>>("/screens", { auth: true });
     return dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
-      screens: data.data.map((d: RespScreen) => processRawScreenData(d, getState())),
+      screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
     });
   };
 }

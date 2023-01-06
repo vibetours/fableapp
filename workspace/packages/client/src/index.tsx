@@ -22,10 +22,19 @@ const theme = {
         color: "#fff",
       },
     },
+    light: {
+      selection: {
+        background: "#160245",
+      },
+    },
+    link: {
+      color: "#7567ff",
+    },
   },
   typography: {
     size: {
       heading: "1.25rem",
+      heading3: "1rem",
     },
   },
 };

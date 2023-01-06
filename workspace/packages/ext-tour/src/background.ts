@@ -218,6 +218,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
       url: mainFrame.result.frameUrl,
       thumbnail: imageData,
       body: JSON.stringify(mainFrame.result),
+      parentId: 13,
       favIcon: iconPath,
     },
   });

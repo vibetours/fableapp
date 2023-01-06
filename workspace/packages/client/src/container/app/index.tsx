@@ -30,7 +30,6 @@ interface IOwnStateProps {}
 
 class App extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
-    console.log("mount");
     this.props.init();
   }
   render() {

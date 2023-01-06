@@ -7,6 +7,7 @@ import SidePanel from "../../component/side-panel";
 import Header from "../../component/header";
 import * as Tags from "./styled";
 import { PageType } from "../../constant";
+import linkOpenIcon from "../../assets/link.svg";
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -60,8 +61,24 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                 </Tags.TxtCon>
                 <Tags.ScreenCardsCon>
                   {this.props.screens.map((screen) => (
-                    <Tags.CardCon key={screen.rid}>
+                    <Tags.CardCon key={screen.rid} className={screen.related.length > 0 ? "multi" : ""}>
                       <Tags.CardImg src={screen.thumbnailUri.href} />
+                      <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
+                        <Tags.CardFlexRowCon>
+                          {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
+                          <Tags.Txt className="title">{screen.displayName}</Tags.Txt>
+                        </Tags.CardFlexRowCon>
+                        <Tags.CardFlexRowCon>
+                          <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />
+                          <Tags.Txt className="link faded" title={screen.url}>
+                            {screen.urlStructured.hostname}
+                          </Tags.Txt>
+                        </Tags.CardFlexRowCon>
+                        <Tags.CardFlexRowCon style={{ justifyContent: "space-between" }}>
+                          <Tags.Txt>Edited {screen.displayableUpdatedAt}</Tags.Txt>
+                          <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
+                        </Tags.CardFlexRowCon>
+                      </Tags.CardFlexColCon>
                     </Tags.CardCon>
                   ))}
                 </Tags.ScreenCardsCon>
