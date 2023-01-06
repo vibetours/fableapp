@@ -1,12 +1,12 @@
 import { combineReducers } from "redux";
-import project, { initialState as projectInitialState } from "./project_reducer";
+import defaultReducer, { initialState as defaultInitialState } from "./default-reducer";
 
 const rootReducer = combineReducers({
-  project,
+  default: defaultReducer,
 });
 
 export default rootReducer;
 
 export interface TState {
-  project: typeof projectInitialState;
+  default: typeof defaultInitialState;
 }

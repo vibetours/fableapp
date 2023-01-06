@@ -4,3 +4,31 @@ export function isSameOrigin(origin1: string, origin2: string): boolean {
 
   return url1.host === url2.host;
 }
+
+export const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function getDisplayableTime(d: Date): string {
+  const now = +new Date();
+  const dMs = +d;
+  const diff = now - dMs;
+
+  const aMin = 60 * 1000;
+  const anHour = 60 * aMin;
+  const aDay = 24 * anHour;
+
+  if (diff < aMin) {
+    return 'Just now';
+  }
+
+  if (diff < anHour) {
+    const mins = (diff / aMin) | 0;
+    return `${mins} min${mins > 1 ? 's' : ''} ago`;
+  }
+
+  if (diff < aDay) {
+    const hrs = (diff / anHour) | 0;
+    return `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+  }
+
+  return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
+}

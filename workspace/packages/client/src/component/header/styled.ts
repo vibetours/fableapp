@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const Con = styled.div`
-  background-color: #160245;
+  box-shadow: 0px 1px 0px 0px #eaeaea;
   color: #fff;
   display: flex;
   justify-content: space-between;

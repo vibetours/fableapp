@@ -10,13 +10,12 @@
   "scripts": {
     "build": "tsc -b && cp -r gen/ dist/",
     "test": "jest",
-    "start": "tsc -w",
+    "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
+    "start": "env-cmd --verbose -e dev -r ../env.json tsc -w",
     "clean": "rm -rf dist"
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/axios": "^0.14.0",
-    "@types/axios-mock-adapter": "^1.10.0",
     "@types/chrome": "^0.0.193",
     "@types/jest": "^25.2.1",
     "@types/node": "12.12.11",
@@ -26,7 +25,7 @@
     "@types/sha1": "^1.1.2",
     "@typescript-eslint/eslint-plugin": "^2.9.0",
     "@typescript-eslint/parser": "^2.9.0",
-    "axios-mock-adapter": "^1.18.1",
+    "env-cmd": "^10.1.0",
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-plugin-import": "^2.18.2",

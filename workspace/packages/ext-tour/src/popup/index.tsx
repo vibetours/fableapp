@@ -27,10 +27,7 @@ class Root extends Component<Props, State> {
     chrome.runtime.sendMessage({ type: Msg.INIT });
   }
 
-  onMessageReceiveFromWorkerScript = (
-    msg: MsgPayload<any>,
-    sender: chrome.runtime.MessageSender
-  ) => {
+  onMessageReceiveFromWorkerScript = (msg: MsgPayload<any>, sender: chrome.runtime.MessageSender) => {
     switch (msg.type) {
       case Msg.INITED:
         const tMsg = msg as MsgPayload<IExtStoredState>;
@@ -67,9 +64,7 @@ class Root extends Component<Props, State> {
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <img alt="logo" src="./logo_16.png" className="sm-logo" />
-              <div style={{ marginLeft: "0.5rem" }}>
-                Please wait while we set things up for you
-              </div>
+              <div style={{ marginLeft: "0.5rem" }}>Please wait while we set things up for you</div>
             </div>
             <Loader />
           </div>
@@ -78,9 +73,7 @@ class Root extends Component<Props, State> {
           <div className="login-con">
             <b>TODO</b> Show login screen
             <div>
-              <a onClick={this.addSampleUser}>
-                Click here to add a sample user
-              </a>
+              <a onClick={this.addSampleUser}>Click here to add a sample user</a>
             </div>
           </div>
         )}
@@ -88,30 +81,17 @@ class Root extends Component<Props, State> {
           <div className="action-con">
             <img alt="illustration" src="./illustration-extension.svg" />
             <div style={{ margin: "0.65rem 0rem" }}>
+              <div className="as-p">Fable helps you create tour of your product in matter of minutes.</div>
               <div className="as-p">
-                Fable helps you create tour of your product in matter of
-                minutes.
-              </div>
-              <div className="as-p">
-                Once you click on <em>Save Screen</em>, Fable copies an
-                interactive version of the current webpage and lets you edit,
-                annotate & connect multiple screens to create a tour of your
-                product.
+                Once you click on <em>Save Screen</em>, Fable copies an interactive version of the current webpage and
+                lets you edit, annotate & connect multiple screens to create a tour of your product.
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={this.saveScreen}
-            >
+            <button type="button" className="btn-primary" onClick={this.saveScreen}>
               Save screen or press <span className="em">⌘ + E</span>
             </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={this.openLinkInNewTab("/screens")}
-            >
+            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("/screens")}>
               See all saved screen
             </button>
           </div>
