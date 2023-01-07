@@ -34,7 +34,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       : doc.createElement(node.name);
 
     for (const [attrKey, attrValue] of Object.entries(node.attrs)) {
-      if (attrKey === "zoom") continue;
       try {
         if (props.partofSvgEl) {
           el.setAttributeNS(null, attrKey, attrValue === null ? "true" : attrValue);
