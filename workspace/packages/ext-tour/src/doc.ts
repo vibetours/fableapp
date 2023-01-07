@@ -1,44 +1,4 @@
-export interface SerNode {
-  type: number;
-  name: string;
-  attrs: Record<string, string | null>;
-  props: {
-    isStylesheet?: boolean;
-    textContent?: string | null;
-    isHidden?: boolean;
-    origHref?: string | null;
-    rect?: {
-      height: number;
-      width: number;
-    };
-  };
-  chldrn: SerNode[];
-}
-
-export interface SerNodeWithPath extends SerNode {
-  path: string;
-}
-
-interface PostProcess {
-  type: "asset" | "iframe";
-  path: string;
-}
-
-export interface SerDoc {
-  frameUrl: string;
-  userAgent: string;
-  name: string;
-  title: string;
-  postProcesses: Array<PostProcess>;
-  icon: SerNodeWithPath | null;
-  docTree?: SerNode;
-  docTreeStr: string;
-  rect: {
-    height: number;
-    width: number;
-  };
-  baseURI: string;
-}
+import { SerDoc, PostProcess, SerNodeWithPath, SerNode } from "@fable/common/dist/types";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -83,10 +43,7 @@ export function getSearializedDom(
   } {
     // *************** utils starts *************** //
 
-    function isCaseInsensitiveEqual(
-      str1: string | null | undefined,
-      str2: string | null | undefined
-    ): boolean {
+    function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
       if (str1 && str2 && str1.toLowerCase() === str2.toLowerCase()) {
         return true;
       }
@@ -112,10 +69,7 @@ export function getSearializedDom(
         return false;
       }
 
-      if (
-        url1.trim().toLowerCase() === "about:blank"
-        || url2.trim().toLowerCase() === "about:blank"
-      ) {
+      if (url1.trim().toLowerCase() === "about:blank" || url2.trim().toLowerCase() === "about:blank") {
         return false;
       }
 
@@ -176,10 +130,7 @@ export function getSearializedDom(
         for (const name of attrNames) {
           sNode.attrs[name] = tNode.getAttribute(name);
         }
-        if (
-          !(sNode.name in HEAD_TAGS)
-          && isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")
-        ) {
+        if (!(sNode.name in HEAD_TAGS) && isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")) {
           sNode.props.isHidden = true;
         }
         break;
@@ -249,9 +200,7 @@ export function getSearializedDom(
         try {
           const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
           if (!frameDoc) {
-            throw new Error(
-              `Iframe with origin ${url} is same origin but document access is not possible`
-            );
+            throw new Error(`Iframe with origin ${url} is same origin but document access is not possible`);
           }
           traversalPath.push(0);
           const rep = getRep(frameDoc.documentElement, origin, traversalPath);

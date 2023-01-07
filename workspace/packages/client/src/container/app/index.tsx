@@ -2,6 +2,7 @@ import React from "react";
 import { connect } from "react-redux";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Screens from "../screens";
+import Screen from "../screen-preview";
 import { TState } from "../../reducer";
 import { init } from "../../action/creator";
 
@@ -45,6 +46,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
         <div className="app">
           <Routes>
             <Route path="/screens" element={<Screens />} />
+            <Route path="/screen/:screenId" element={<Screen />} />
           </Routes>
         </div>
       </Router>
