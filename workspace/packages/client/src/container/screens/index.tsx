@@ -6,7 +6,8 @@ import { TState } from "../../reducer";
 import SidePanel from "../../component/side-panel";
 import Header from "../../component/header";
 import * as Tags from "./styled";
-import { PageType } from "../../constant";
+import * as GTags from "../../common-styled";
+import { HeaderType } from "../../constant";
 import linkOpenIcon from "../../assets/link.svg";
 
 interface IDispatchProps {
@@ -40,24 +41,24 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     const hasScreen = this.props.screens.length > 0;
     return (
-      <Tags.Con className="screen-con">
+      <GTags.RowCon className="screen-con">
         <Tags.SidePanelCon>
           <SidePanel selected="screens" />
         </Tags.SidePanelCon>
         <Tags.MainCon>
-          <Tags.HeaderCon>
-            <Header from={PageType.Screen}></Header>
-          </Tags.HeaderCon>
-          <Tags.BodyCon className={hasScreen ? "" : "centered"}>
+          <GTags.HeaderCon>
+            <Header rBtnTxt="Record a screen"></Header>
+          </GTags.HeaderCon>
+          <GTags.BodyCon className={hasScreen ? "" : "centered"}>
             {hasScreen ? (
               <>
                 <Tags.TxtCon>
-                  <Tags.Txt className="head">All screens</Tags.Txt>
-                  <Tags.Txt className="subhead">
+                  <GTags.Txt className="head">All screens</GTags.Txt>
+                  <GTags.Txt className="subhead">
                     Screens are like interactive snapshot of your product that you record from Fable's extension. You
                     can edit a screen, annotate part of the screen and stitch multiple screens to create guided tour of
                     your product.
-                  </Tags.Txt>
+                  </GTags.Txt>
                 </Tags.TxtCon>
                 <Tags.ScreenCardsCon>
                   {this.props.screens.map((screen) => (
@@ -66,16 +67,16 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                       <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
                         <Tags.CardFlexRowCon>
                           {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
-                          <Tags.Txt className="title">{screen.displayName}</Tags.Txt>
+                          <GTags.Txt className="title">{screen.displayName}</GTags.Txt>
                         </Tags.CardFlexRowCon>
                         <Tags.CardFlexRowCon>
                           <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />
-                          <Tags.Txt className="link faded" title={screen.url}>
+                          <GTags.Txt className="link faded" title={screen.url}>
                             {screen.urlStructured.hostname}
-                          </Tags.Txt>
+                          </GTags.Txt>
                         </Tags.CardFlexRowCon>
                         <Tags.CardFlexRowCon style={{ justifyContent: "space-between" }}>
-                          <Tags.Txt>Edited {screen.displayableUpdatedAt}</Tags.Txt>
+                          <GTags.Txt>Edited {screen.displayableUpdatedAt}</GTags.Txt>
                           <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
                         </Tags.CardFlexRowCon>
                       </Tags.CardFlexColCon>
@@ -88,9 +89,9 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                 <em>TODO</em> You don't have any screen recorded yet.
               </Tags.NoScreenMsgCon>
             )}
-          </Tags.BodyCon>
+          </GTags.BodyCon>
         </Tags.MainCon>
-      </Tags.Con>
+      </GTags.RowCon>
     );
   }
 }

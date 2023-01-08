@@ -4,6 +4,7 @@ import api from "@fable/common/dist/api";
 import { ApiResp, RespCommonConfig, RespScreen } from "@fable/common/dist/api-contract";
 import { processRawScreenData, P_RespScreen, groupScreens } from "../entity-processor";
 import { TState } from "../reducer";
+import { ScreenData } from "@fable/common/dist/types";
 
 /* ************************************************************************* */
 
@@ -38,3 +39,48 @@ export function init() {
     });
   };
 }
+
+/* ************************************************************************* */
+
+export interface TScreenWithData {
+  type: ActionType.SCREEN_AND_DATA_LOADED;
+  screenData: ScreenData;
+  screen: RespScreen;
+}
+
+export function loadScreenAndData(screenRid: string) {
+  return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
+    const state = getState();
+    let screen: RespScreen | null = null;
+    let isScreenFound = false;
+    for (const s of state.default.screens) {
+      if (s.rid === screenRid) {
+        screen = s;
+        isScreenFound = true;
+        break;
+      }
+    }
+    if (!isScreenFound) {
+      try {
+        const data = await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
+        screen = data.data;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (screen) {
+      const commonConfig = state.default.commonConfig!;
+      const url = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
+      const data = await api<null, ScreenData>(url);
+      return dispatch({
+        type: ActionType.SCREEN_AND_DATA_LOADED,
+        screenData: data,
+        screen: screen!,
+      });
+    } else {
+      // TODO error
+    }
+  };
+}
+
+/* ************************************************************************* */

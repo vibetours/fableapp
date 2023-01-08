@@ -1,7 +1,8 @@
 import { ApiResp, ReqProxyAsset, ReqNewScreen, RespProxyAsset, RespScreen } from "@fable/common/dist/api-contract";
 import api from "@fable/common/dist/api";
-import { getActiveTab, sleep } from "./common";
-import { getSearializedDom, SerDoc, SerNode } from "./doc";
+import { SerDoc, SerNode, ScreenData } from "@fable/common/dist/types";
+import { getActiveTab, captureVisibleTab } from "./common";
+import { getSearializedDom } from "./doc";
 import { Msg, MsgPayload } from "./msg";
 import { IExtStoredState, IUser } from "./types";
 import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
@@ -16,6 +17,7 @@ async function getPersistentExtState(): Promise<IExtStoredState> {
   };
 }
 
+// TODO until login is implemented
 async function addSampleUser() {
   const sampleUser = {
     id: 1,
@@ -210,18 +212,26 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
   }
 
   await process(mainFrame.result);
-  const imageData = await chrome.tabs.captureVisibleTab();
+  const imageData = await captureVisibleTab();
+  const screenBody: ScreenData = {
+    vpd: {
+      h: mainFrame.result.rect.height,
+      w: mainFrame.result.rect.width,
+    },
+    docTree: mainFrame.result.docTree!,
+  };
   const data = await api<ReqNewScreen, ApiResp<RespScreen>>("/newscreen", {
     method: "POST",
     body: {
       name: mainFrame.result.title,
       url: mainFrame.result.frameUrl,
       thumbnail: imageData,
-      body: JSON.stringify(mainFrame.result),
-      parentId: 13,
+      body: JSON.stringify(screenBody),
       favIcon: iconPath,
     },
   });
+
+  // TODO error handling with data
 
   return mainFrame.result;
 }

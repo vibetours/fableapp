@@ -3,7 +3,8 @@
  */
 
 import { readFileSync } from "fs";
-import { getSearializedDom, SerNode } from "./doc";
+import { SerNode } from "@fable/common/dist/types";
+import { getSearializedDom } from "./doc";
 
 function getDocFor(filename: string) {
   const htmlStr = readFileSync(`test_assets/${filename}`, {

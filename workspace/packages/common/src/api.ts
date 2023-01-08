@@ -31,7 +31,13 @@ export default async function api<T, M>(
     (headers as any).Authorization = 'Basic MTphZG1pbg==';
   }
 
-  const path = API_ENDPOINT + API_VERSION + (auth ? BEHIND_AUTH : '');
+  let path = '';
+  try {
+    const _ = new URL(url);
+  } catch (e) {
+    path = API_ENDPOINT + API_VERSION + (auth ? BEHIND_AUTH : '');
+  }
+
   let resp;
   if (payload === null || payload === undefined) {
     resp = await fetch(`${path}${url}`);

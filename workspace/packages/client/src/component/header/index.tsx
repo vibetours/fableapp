@@ -1,10 +1,14 @@
-import React from "react";
+import React, { ReactElement } from "react";
 import * as Tags from "./styled";
 import { Avatar, Button } from "antd";
-import { PageType } from "../../constant";
+import fableLogo from "../../assets/fable-logo-2.svg";
+import * as GTags from "../../common-styled";
 
 interface IOwnProps {
-  from: PageType;
+  rBtnTxt?: string;
+  shouldShowLogoOnLeft?: boolean;
+  titleTxtOnLeft?: string;
+  titleElOnLeft?: ReactElement;
 }
 interface IOwnStateProps {}
 
@@ -12,17 +16,25 @@ export default class Header extends React.PureComponent<IOwnProps, IOwnStateProp
   render() {
     return (
       <Tags.Con>
-        <Tags.LogoCon></Tags.LogoCon>
-        <Tags.MenuCon>
-          <Tags.MenuItem>
-            <Button shape="round" size="middle">
-              {this.props.from === PageType.Screen ? "Record a screen" : "Create demo link"}
-            </Button>
-          </Tags.MenuItem>
+        <Tags.LMenuCon>
+          {this.props.shouldShowLogoOnLeft && (
+            <img src={fableLogo} alt="fable logo solid" style={{ width: "36px", marginRight: "0.75rem" }}></img>
+          )}
+          {this.props.titleTxtOnLeft && <GTags.Txt className="head">{this.props.titleTxtOnLeft}</GTags.Txt>}
+          {this.props.titleElOnLeft && this.props.titleElOnLeft}
+        </Tags.LMenuCon>
+        <Tags.RMenuCon>
+          {this.props.rBtnTxt && (
+            <Tags.MenuItem>
+              <Button shape="round" size="middle">
+                {this.props.rBtnTxt}
+              </Button>
+            </Tags.MenuItem>
+          )}
           <Tags.MenuItem>
             <Avatar src="https://avatars.dicebear.com/api/adventurer/yen.svg" />
           </Tags.MenuItem>
-        </Tags.MenuCon>
+        </Tags.RMenuCon>
       </Tags.Con>
     );
   }
