@@ -73,7 +73,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
-          <Header shouldShowLogoOnLeft={true} titleElOnLeft={this.getHeaderTxtEl()}></Header>
+          <Header
+            shouldShowLogoOnLeft={true}
+            navigateToWhenLogoIsClicked="/tours"
+            titleElOnLeft={this.getHeaderTxtEl()}
+          ></Header>
         </GTags.HeaderCon>
         <GTags.BodyCon style={{ height: "100%", background: "#fff", padding: "0px" }}>
           <div style={{ position: "relative", height: "100%", width: "100%" }}>
