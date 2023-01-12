@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-06 17:59:37.
+// Generated using typescript-generator version 2.35.1025 on 2023-01-09 15:53:05.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -23,6 +23,11 @@ export interface ReqNewScreen {
     body: string;
 }
 
+export interface ReqNewTour {
+    name: string;
+    description?: string;
+}
+
 export interface ReqNewUser {
     firstName: string;
     lastName: string;
@@ -39,8 +44,9 @@ export interface ReqProxyAsset {
 export interface RespCommonConfig extends ResponseBase {
     commonAssetPath: string;
     screenAssetPath: string;
-    flowAssetPath: string;
+    tourAssetPath: string;
     dataFileName: string;
+    latestSchemaVersion: SchemaVersion;
 }
 
 export interface RespHealth extends ResponseBase {
@@ -69,6 +75,14 @@ export interface RespScreen extends ResponseBase {
     icon: string;
 }
 
+export interface RespTour extends ResponseBase {
+    rid: string;
+    assetPrefixHash: string;
+    displayName: string;
+    description: string;
+    createdBy: RespUser;
+}
+
 export interface RespUser extends ResponseBase {
     id: number;
     firstName: string;
@@ -81,6 +95,10 @@ export interface RespUser extends ResponseBase {
 export interface ResponseBase {
     createdAt: Date;
     updatedAt: Date;
+}
+
+export const enum SchemaVersion {
+    V1 = "2023-01-10",
 }
 
 export const enum ResponseStatus {

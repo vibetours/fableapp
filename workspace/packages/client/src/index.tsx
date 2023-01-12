@@ -34,7 +34,7 @@ const theme = {
   typography: {
     size: {
       heading: "1.25rem",
-      heading3: "1rem",
+      heading3: "1.1rem",
     },
   },
 };

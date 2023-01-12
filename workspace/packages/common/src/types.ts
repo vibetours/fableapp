@@ -1,3 +1,5 @@
+import { SchemaVersion } from '../gen/api-contract';
+
 export interface SerNode {
   type: number;
   name: string;
@@ -48,4 +50,31 @@ export interface CapturedViewPort {
 export interface ScreenData {
   vpd: CapturedViewPort;
   docTree: SerNode;
+}
+
+export enum Versions {
+  V1 = '2023-01-10',
+}
+
+export interface TourEntity {
+  type: 'screen' | 'qualification';
+  ref: string;
+  navigation: any[]; // TODO
+}
+
+export interface TourScreen extends TourEntity {
+  type: 'screen';
+  annotations: any[];
+}
+
+export interface TourData {
+  v: SchemaVersion;
+  main: string;
+  entities: TourEntity[];
+}
+
+export enum LoadingStatus {
+  NotStarted,
+  InProgress,
+  Done,
 }

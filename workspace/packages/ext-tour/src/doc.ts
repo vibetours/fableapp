@@ -95,16 +95,7 @@ export function getSearializedDom(
       noscript: 1,
     };
 
-    // The order of this array matters (this makes it a bit bug prone, but it's easy)
-    // Like, we figure out and save icons from the page using the first element
-    const INCLUDE_LINK_REL = [
-      new RegExp("icon", "i"),
-      new RegExp("stylesheet", "i"),
-      new RegExp("prefetch", "i"),
-      new RegExp("preload", "i"),
-      new RegExp("prerender", "i"),
-      new RegExp("^$"), // If the rel attr is not present or empty for a link tag
-    ];
+    const ICON_MATCHER = new RegExp("icon", "i");
 
     const NO_INCLUDE_DOM_EL = {
       script: 1,
@@ -157,26 +148,14 @@ export function getSearializedDom(
 
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
-      const rel = (tNode.getAttribute("rel") || "").toLowerCase();
-
-      let found = false;
-      let isIcon = false;
-      for (let i = 0; i < INCLUDE_LINK_REL.length; i++) {
-        if (INCLUDE_LINK_REL[i].exec(rel) !== null) {
-          found = true;
-          if (!i) isIcon = true; // The first element of the array should always be icon
-        }
-      }
-      if (!found) return { serNode: sNode, shouldSkip: true };
-
       if (tNode.sheet) {
-        // external stylesheet
-        sNode.props.isStylesheet = true;
-      } else {
-        // Other assets, like icons
-        sNode.props.isStylesheet = false;
+        return { serNode: sNode, postProcess: true };
       }
-      return { serNode: sNode, postProcess: true, isIcon };
+      const rel = (tNode.getAttribute("rel") || "").toLowerCase();
+      if (ICON_MATCHER.exec(rel) !== null) {
+        return { serNode: sNode, postProcess: true, isIcon: true };
+      }
+      return { serNode: sNode, shouldSkip: true };
     }
 
     if (sNode.name === "iframe" || sNode.name === "frame") {

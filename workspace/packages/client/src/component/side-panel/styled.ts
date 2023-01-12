@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { Link } from "react-router-dom";
 
 export const Con = styled.div`
   height: 100%;
@@ -29,7 +30,7 @@ export const ConNav = styled.div`
   }
 `;
 
-export const ConNavBtn = styled.div`
+export const ConNavBtn = styled(Link)`
   padding: 0.6rem 2rem;
   border-radius: 0 18px 18px 0;
   display: flex;
@@ -37,11 +38,13 @@ export const ConNavBtn = styled.div`
   cursor: pointer;
   transition: all 0.3s ease-out;
   position: relative;
+  color: #fff;
 
   &:hover,
   &.selected {
     background-color: ${(props) => props.theme.colors.dark.selection.background};
     color: ${(props) => props.theme.colors.dark.selection.color};
+    text-decoration: none;
   }
 
   p {
@@ -77,4 +80,3 @@ export const FooterItemProfileIcon = styled.img`
   width: 1.1rem;
   border-radius: 50%;
 `;
-

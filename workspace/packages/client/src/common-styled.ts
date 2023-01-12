@@ -14,11 +14,6 @@ export const RowCon = styled.div`
   flex-direction: row;
 `;
 
-export const HeaderCon = styled.div`
-  width: 100%;
-  height: 75px;
-`;
-
 export const Txt = styled.div`
   &.head {
     font-size: ${(props) => props.theme.typography.size.heading};
@@ -65,4 +60,23 @@ export const BodyCon = styled.div`
     justify-content: center;
     align-items: center;
   }
+`;
+
+export const SidePanelCon = styled.div`
+  height: 100%;
+  width: 30%;
+  max-width: 285px;
+  min-width: 230px;
+`;
+
+export const MainCon = styled.div`
+  height: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const HeaderCon = styled.div`
+  width: 100%;
+  height: 75px;
 `;

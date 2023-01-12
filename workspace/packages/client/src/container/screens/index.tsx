@@ -7,7 +7,6 @@ import SidePanel from "../../component/side-panel";
 import Header from "../../component/header";
 import * as Tags from "./styled";
 import * as GTags from "../../common-styled";
-import { HeaderType } from "../../constant";
 import linkOpenIcon from "../../assets/link.svg";
 
 interface IDispatchProps {
@@ -42,12 +41,12 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
     const hasScreen = this.props.screens.length > 0;
     return (
       <GTags.RowCon className="screen-con">
-        <Tags.SidePanelCon>
+        <GTags.SidePanelCon>
           <SidePanel selected="screens" />
-        </Tags.SidePanelCon>
-        <Tags.MainCon>
+        </GTags.SidePanelCon>
+        <GTags.MainCon>
           <GTags.HeaderCon>
-            <Header rBtnTxt="Record a screen"></Header>
+            <Header rBtnTxt="Record a screen" />
           </GTags.HeaderCon>
           <GTags.BodyCon className={hasScreen ? "" : "centered"}>
             {hasScreen ? (
@@ -62,7 +61,11 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                 </Tags.TxtCon>
                 <Tags.ScreenCardsCon>
                   {this.props.screens.map((screen) => (
-                    <Tags.CardCon key={screen.rid} className={screen.related.length > 0 ? "multi" : ""}>
+                    <Tags.CardCon
+                      key={screen.rid}
+                      className={screen.related.length > 0 ? "multi" : ""}
+                      to={`/screen/${screen.rid}`}
+                    >
                       <Tags.CardImg src={screen.thumbnailUri.href} />
                       <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
                         <Tags.CardFlexRowCon>
@@ -90,7 +93,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
               </Tags.NoScreenMsgCon>
             )}
           </GTags.BodyCon>
-        </Tags.MainCon>
+        </GTags.MainCon>
       </GTags.RowCon>
     );
   }

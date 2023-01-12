@@ -1,26 +1,44 @@
 import ActionType from "../action/type";
 import { Action } from "redux";
-import { TGetAllScreens, TInitialize, TScreenWithData } from "../action/creator";
-import { P_RespScreen } from "../entity-processor";
-import { RespCommonConfig, RespScreen } from "@fable/common/dist/api-contract";
-import { ScreenData, SerDoc } from "@fable/common/dist/types";
+import {
+  TGetAllScreens,
+  TInitialize,
+  TScreenWithData,
+  TGetAllTours,
+  TTour,
+  TGenericLoading,
+  TTourWithData,
+} from "../action/creator";
+import { P_RespScreen, P_RespTour } from "../entity-processor";
+import { RespCommonConfig } from "@fable/common/dist/api-contract";
+import { LoadingStatus, ScreenData, TourData } from "@fable/common/dist/types";
 
 export const initialState: {
-  screens: Array<P_RespScreen>;
   commonConfig: RespCommonConfig | null;
+  screens: Array<P_RespScreen>;
+  tours: Array<P_RespTour>;
   inited: boolean;
   principalFetched: boolean;
   screenLoaded: boolean;
   screenData: ScreenData | null;
-  currentScreen: RespScreen | null;
+  currentScreen: P_RespScreen | null;
+  currentTour: P_RespTour | null;
+  newTourLoadingStatus: LoadingStatus;
+  tourData: TourData | null;
+  tourLoaded: boolean;
 } = {
   screens: [],
+  tours: [],
   commonConfig: null,
   inited: false,
   principalFetched: false,
   screenLoaded: false,
   screenData: null,
   currentScreen: null,
+  currentTour: null,
+  newTourLoadingStatus: LoadingStatus.NotStarted,
+  tourData: null,
+  tourLoaded: false,
 };
 
 export default function projectReducer(state = initialState, action: Action) {
@@ -29,6 +47,22 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TGetAllScreens;
       const newState = { ...state };
       newState.screens = tAction.screens;
+      return newState;
+    }
+
+    case ActionType.ALL_TOURS_RETRIEVED: {
+      const tAction = action as TGetAllTours;
+      const newState = { ...state };
+      newState.tours = tAction.tours;
+      newState.currentTour = null;
+      return newState;
+    }
+
+    case ActionType.TOUR: {
+      const tAction = action as TTour;
+      const newState = { ...state };
+      newState.currentTour = tAction.tour;
+      if (tAction.performedAction === "new") newState.newTourLoadingStatus = LoadingStatus.Done;
       return newState;
     }
 
@@ -46,6 +80,22 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.currentScreen = tAction.screen;
       newState.screenData = tAction.screenData;
       newState.screenLoaded = true;
+      return newState;
+    }
+
+    case ActionType.TOUR_AND_DATA_LOADED: {
+      const tAction = action as TTourWithData;
+      const newState = { ...state };
+      newState.currentTour = tAction.tour;
+      newState.tourData = tAction.tourData;
+      newState.tourLoaded = true;
+      return newState;
+    }
+
+    case ActionType.GENERIC_LOADING: {
+      const tAction = action as TGenericLoading;
+      const newState = { ...state };
+      if (tAction.entity === "tour") newState.newTourLoadingStatus = LoadingStatus.InProgress;
       return newState;
     }
 

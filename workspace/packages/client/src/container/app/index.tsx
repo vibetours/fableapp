@@ -5,6 +5,8 @@ import Screens from "../screens";
 import Screen from "../screen-preview";
 import { TState } from "../../reducer";
 import { init } from "../../action/creator";
+import Tours from "../tours";
+import TourEditor from "../tour-editor";
 
 interface IDispatchProps {
   init: () => void;
@@ -47,6 +49,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <Routes>
             <Route path="/screens" element={<Screens />} />
             <Route path="/screen/:screenId" element={<Screen />} />
+            <Route path="/tours" element={<Tours />} />
+            <Route path="/tour/:tourId" element={<TourEditor />} />
           </Routes>
         </div>
       </Router>

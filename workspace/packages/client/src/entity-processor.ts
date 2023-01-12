@@ -1,4 +1,4 @@
-import { RespScreen } from "@fable/common/dist/api-contract";
+import { RespScreen, RespTour } from "@fable/common/dist/api-contract";
 import { TState } from "./reducer";
 import { getDisplayableTime } from "@fable/common/dist/utils";
 
@@ -70,4 +70,23 @@ export function groupScreens(screens: P_RespScreen[]): P_RespScreen[] {
     groupedScreens.push(orderedScreen[0]);
   }
   return groupedScreens.sort((m, n) => +n.updatedAt - +m.updatedAt);
+}
+
+/* ************************************************************************* */
+
+export interface P_RespTour extends RespTour {
+  dataFileUri: URL;
+  displayableUpdatedAt: string;
+}
+
+export function processRawTourData(tour: RespTour, state: TState): P_RespTour {
+  const d = new Date(tour.updatedAt);
+  const processedTour: P_RespTour = {
+    ...tour,
+    createdAt: new Date(tour.createdAt),
+    updatedAt: d,
+    displayableUpdatedAt: getDisplayableTime(d),
+    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}index.json`),
+  };
+  return processedTour;
 }

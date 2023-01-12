@@ -19,7 +19,7 @@ export default function showLoader(
   });
 
   function createEl() {
-    return document.createElement("div") as HTMLDivElementWithData;
+    return document.createElement('div') as HTMLDivElementWithData;
   }
   const [container, ylwBar, redBar, prplBar] = Array(4).fill(0).map(createEl);
   container.style.zIndex = ctrl.zIndex;
@@ -32,19 +32,19 @@ export default function showLoader(
 
   [ylwBar, redBar, prplBar].forEach((d, i) => {
     d.style.transform = `translate(${0}px, 0px)`;
-    d.style.position = "absolute";
+    d.style.position = 'absolute';
   });
 
   el.appendChild(container);
   [ylwBar, redBar, prplBar].forEach((d) => container.appendChild(d));
 
   [container, ylwBar, redBar, prplBar].forEach(
-    (d) => ((d.style.height = ctrl.height), (d.style.borderRadius = "50px"))
+    (d) => ((d.style.height = ctrl.height), (d.style.borderRadius = '50px'))
   );
 
-  ylwBar.style.background = "#FEDF64";
-  redBar.style.background = "#FF7450";
-  prplBar.style.background = "#7567FF";
+  ylwBar.style.background = '#FEDF64';
+  redBar.style.background = '#FF7450';
+  prplBar.style.background = '#7567FF';
 
   const tXs = [ylwBar, redBar, prplBar].map((d, i) => {
     const offset = d.__width__;
@@ -70,10 +70,7 @@ export default function showLoader(
       }
       const nowTime = +new Date();
       const tx = tXs[nowAnimLine];
-      const ctXs = Math.min(
-        ((nowTime - startTime) / perlineAnimTime) * tx - tx,
-        0
-      );
+      const ctXs = Math.min(((nowTime - startTime) / perlineAnimTime) * tx - tx, 0);
       lines[nowAnimLine].style.transform = `translate(${ctXs}px, 0px)`;
 
       if (ctXs >= 0) {
@@ -90,7 +87,7 @@ export default function showLoader(
       }
       textDispTimeElapsed = +new Date() - startTime;
       if (textDispTimeElapsed >= showTextFor) {
-        prplBar.innerText = "";
+        prplBar.innerText = '';
         startTime = +new Date();
         animationPhase++;
       }

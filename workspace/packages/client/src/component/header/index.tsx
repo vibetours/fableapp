@@ -3,22 +3,33 @@ import * as Tags from "./styled";
 import { Avatar, Button } from "antd";
 import fableLogo from "../../assets/fable-logo-2.svg";
 import * as GTags from "../../common-styled";
+import { Link } from "react-router-dom";
 
 interface IOwnProps {
   rBtnTxt?: string;
   shouldShowLogoOnLeft?: boolean;
+  navigateToWhenLogoIsClicked?: string;
   titleTxtOnLeft?: string;
   titleElOnLeft?: ReactElement;
 }
+
+type IProps = IOwnProps;
+
 interface IOwnStateProps {}
 
-export default class Header extends React.PureComponent<IOwnProps, IOwnStateProps> {
+class Header extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     return (
       <Tags.Con>
         <Tags.LMenuCon>
           {this.props.shouldShowLogoOnLeft && (
-            <img src={fableLogo} alt="fable logo solid" style={{ width: "36px", marginRight: "0.75rem" }}></img>
+            <Link to={this.props.navigateToWhenLogoIsClicked!}>
+              <img
+                src={fableLogo}
+                alt="fable logo solid"
+                style={{ width: "36px", marginRight: "0.75rem", cursor: "pointer" }}
+              ></img>
+            </Link>
           )}
           {this.props.titleTxtOnLeft && <GTags.Txt className="head">{this.props.titleTxtOnLeft}</GTags.Txt>}
           {this.props.titleElOnLeft && this.props.titleElOnLeft}
@@ -39,3 +50,6 @@ export default class Header extends React.PureComponent<IOwnProps, IOwnStateProp
     );
   }
 }
+
+export default Header;
+

@@ -14,7 +14,7 @@ export default async function api<T, M>(
   }
 ): Promise<M> {
   let auth = payload?.auth;
-  let method = 'GET';
+  let method = payload?.body ? 'POST' : 'GET';
   if (payload?.method) {
     method = payload.method;
   }

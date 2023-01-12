@@ -149,7 +149,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
   }
 
   const allCookies = await chrome.cookies.getAll({});
-  async function process(frame: SerDoc) {
+  async function process(frame: SerDoc, frameId: number) {
     for (const postProcess of frame.postProcesses) {
       const traversalPath = postProcess.path.split(".").map((_) => +_);
       const node = resolveElementFromPath(frame.docTree!, traversalPath);
@@ -178,7 +178,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
           console.warn("No subframe present for node ^^^");
         } else {
           node.chldrn.push(subFrame.result.docTree!);
-          process(subFrame.result);
+          process(subFrame.result, subFrame.frameId);
         }
       } else {
         const url = new URL(frame.frameUrl);
@@ -200,18 +200,20 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
               clientInfo,
             },
           });
+          console.log("origin", assetUrlStr, "proxy", data.data.proxyUri);
           node.props.origHref = node.attrs.href;
           node.attrs.href = data.data.proxyUri;
         }
 
-        if (postProcess.path === frame.icon?.path) {
+        if (frameId === 0 && postProcess.path === frame.icon?.path) {
+          // Only save icon for main frame
           iconPath = node.attrs.href || undefined;
         }
       }
     }
   }
 
-  await process(mainFrame.result);
+  await process(mainFrame.result, mainFrame.frameId);
   const imageData = await captureVisibleTab();
   const screenBody: ScreenData = {
     vpd: {

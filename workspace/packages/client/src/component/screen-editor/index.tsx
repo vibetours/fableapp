@@ -58,31 +58,40 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return el;
   };
 
-  deser = (parent: Element, serNode: SerNode, doc: Document, props: DeSerProps = { partofSvgEl: 0 }) => {
+  deser = (serNode: SerNode, doc: Document, props: DeSerProps = { partofSvgEl: 0 }) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
       partofSvgEl: props.partofSvgEl | (serNode.name === "svg" ? 1 : 0),
     };
 
-    const el = this.createHtmlElement(serNode, doc, newProps);
+    let node;
+    switch (serNode.type) {
+      case Node.TEXT_NODE:
+        node = doc.createTextNode(serNode.props.textContent!);
+        break;
+      case Node.ELEMENT_NODE:
+        node = this.createHtmlElement(serNode, doc, newProps);
+        break;
+      default:
+        break;
+    }
     for (const child of serNode.chldrn) {
-      switch (child.type) {
-        case Node.TEXT_NODE:
-          if (child.props.textContent) {
-            el.appendChild(doc.createTextNode(child.props.textContent));
-          }
-          break;
-
-        case Node.ELEMENT_NODE:
-          this.deser(el, child, doc, newProps);
-          break;
-
-        default:
-          break;
+      // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
+      // hence we altogher ignore those tags
+      if (child.name === "meta") {
+        continue;
+      }
+      const childNode = this.deser(child, doc, newProps);
+      if (childNode && node) {
+        node.appendChild(childNode);
       }
     }
+    return node;
 
-    parent.appendChild(el);
+    // if (serNode.name === "html" && parent.nodeType === Node.DOCUMENT_NODE) {
+    // } else {
+    //   parent.appendChild(el);
+    // }
   };
 
   deserDomIntoFrame = (frame: HTMLIFrameElement) => {
@@ -110,18 +119,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     const doc = frame?.contentDocument;
     const frameBody = doc?.body;
+    const frameHtml = doc?.documentElement;
     if (doc) {
-      if (frameBody) {
+      if (frameHtml && frameBody) {
         frameBody.style.display = "none";
-        // Add <!DOCTYPE html> for iframe
-        const docTypeHtml5 = doc.implementation.createDocumentType("html", "", "");
-        if (doc.doctype) {
-          doc.replaceChild(docTypeHtml5, doc.doctype);
-        } else {
-          doc.insertBefore(docTypeHtml5, doc.childNodes[0]);
-        }
+        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
 
-        this.deser(frameBody, this.props.screenData.docTree, doc);
+        const childNodes = doc.childNodes;
+        for (let i = 0; i < childNodes.length; i++) {
+          if (((childNodes[i] as any).tagName || "").toLowerCase() === "html") {
+            doc.replaceChild(rootHTMLEl, childNodes[i]);
+            break;
+          }
+        }
 
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
@@ -149,13 +159,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // flame graph
     // On the other side in chrome / safari, the onload event never gets fired for about:blank iframe
     // The following check starts the dom deserialization based on browser
-    if (browser?.name === "firefox") {
-      frame.onload = () => {
-        this.deserDomIntoFrame(frame);
-      };
-    } else {
+    // if (browser?.name === "firefox") {
+    //   frame.onload = () => {
+    //     this.deserDomIntoFrame(frame);
+    //   };
+    // } else {
+    //   this.deserDomIntoFrame(frame);
+    // }
+
+    frame.onload = () => {
       this.deserDomIntoFrame(frame);
-    }
+    };
   }
 
   render(): React.ReactNode {
@@ -166,6 +180,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             src="about:blank"
             title={this.props.screen.displayName}
             ref={this.embedFrameRef}
+            srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
           ></Tags.EmbedFrame>
         </Tags.EmbedCon>
         <Tags.EditPanelCon></Tags.EditPanelCon>

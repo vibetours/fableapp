@@ -1,18 +1,5 @@
 import styled from "styled-components";
-
-export const SidePanelCon = styled.div`
-  height: 100%;
-  width: 30%;
-  max-width: 285px;
-  min-width: 230px;
-`;
-
-export const MainCon = styled.div`
-  height: 100%;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-`;
+import { Link } from "react-router-dom";
 
 export const NoScreenMsgCon = styled.div``;
 
@@ -30,7 +17,7 @@ export const ScreenCardsCon = styled.div`
   flex-wrap: wrap;
 `;
 
-export const CardCon = styled.div`
+export const CardCon = styled(Link)`
   padding: 0.5rem;
   background: #fff;
   border: 1px solid #ddd;
@@ -41,6 +28,7 @@ export const CardCon = styled.div`
   margin-right: 1rem;
   margin-bottom: 1rem;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  color: #16023e;
 
   &.multi {
     margin-right: 2rem;
@@ -56,6 +44,8 @@ export const CardCon = styled.div`
   &:hover {
     border: 1px solid ${(props) => props.theme.colors.light.selection.background};
     cursor: pointer;
+    text-decoration: none;
+    color: #16023e;
   }
 `;
 

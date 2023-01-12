@@ -4,10 +4,10 @@ import { TState } from "../../reducer";
 import Header from "../../component/header";
 import { withRouter, WithRouterProps } from "../../router-hoc";
 import { loadScreenAndData } from "../../action/creator";
-import { RespScreen } from "@fable/common/dist/api-contract";
 import { ScreenData } from "@fable/common/dist/types";
 import * as GTags from "../../common-styled";
 import ScreenEditor from "../../component/screen-editor";
+import { P_RespScreen } from "../../entity-processor";
 
 interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
@@ -20,7 +20,7 @@ const mapDispatchToProps = (dispatch: any) => {
 };
 
 interface IAppStateProps {
-  screen: RespScreen | null;
+  screen: P_RespScreen | null;
   serScreenData: ScreenData | null;
   isLoaded: boolean;
 }
@@ -65,7 +65,11 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
-          <Header shouldShowLogoOnLeft={true} titleElOnLeft={this.getHeaderTxtEl()}></Header>
+          <Header
+            shouldShowLogoOnLeft={true}
+            navigateToWhenLogoIsClicked="/screens"
+            titleElOnLeft={this.getHeaderTxtEl()}
+          ></Header>
         </GTags.HeaderCon>
         <GTags.BodyCon style={{ height: "100%", background: "#fcfcfc" }}>
           {this.props.isLoaded ? (

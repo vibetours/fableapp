@@ -32,3 +32,5 @@ export function getDisplayableTime(d: Date): string {
 
   return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
 }
+
+export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

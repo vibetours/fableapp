@@ -2,7 +2,10 @@ import React, { useRef, useEffect } from "react";
 import loader from "@fable/common/dist/loader";
 import { sleep } from "@fable/common/dist/utils";
 
-interface Props {}
+interface Props {
+  txtBefore?: string;
+  width: string;
+}
 
 /*
  * TODO this component is exactly same as client's component/loader. Try to
@@ -27,7 +30,7 @@ export default function Loader(props: Props) {
         await sleep(100);
         continuousLoader();
       }, 16);
-    }());
+    })();
 
     return async () => {
       p && (await p);
@@ -36,15 +39,17 @@ export default function Loader(props: Props) {
   }, []);
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "10px",
-        marginTop: "1rem",
-        overflow: "hidden",
-        position: "relative",
-      }}
-      ref={conRef}
-    />
+    <div style={{ display: "flex", alignItems: "center" }}>
+      {props.txtBefore && <div style={{ marginRight: "0.75rem" }}>{props.txtBefore}</div>}
+      <div
+        style={{
+          width: props.width,
+          marginTop: "2px",
+          overflow: "hidden",
+          position: "relative",
+        }}
+        ref={conRef}
+      />
+    </div>
   );
 }

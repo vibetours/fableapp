@@ -18,19 +18,19 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
       </Tags.ConLogo>
       <Tags.ConNav>
-        <Tags.ConNavBtn className={props.selected === "screens" ? "selected" : ""}>
+        <Tags.ConNavBtn className={props.selected === "screens" ? "selected" : ""} to="/screens">
           <img src={allScreensIcon} alt="All screens icon" />
           <p>Screens</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === "tours" ? "selected" : ""}>
+        <Tags.ConNavBtn className={props.selected === "tours" ? "selected" : ""} to="/tours">
           <img src={allToursIcon} alt="All tours icon" />
           <p>Tours</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === "user-management" ? "selected" : ""}>
+        <Tags.ConNavBtn className={props.selected === "user-management" ? "selected" : ""} to="/404">
           <img src={userManageIcon} alt="User management icon" />
           <p>User management</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === "analytics" ? "selected" : ""}>
+        <Tags.ConNavBtn className={props.selected === "analytics" ? "selected" : ""} to="/404">
           <img src={analyticsIcon} alt="Analytics icon" />
           <p>Analytics</p>
         </Tags.ConNavBtn>
