@@ -69,6 +69,7 @@ export interface TourScreen extends TourEntity {
 
 export interface TourData {
   v: SchemaVersion;
+  lastUpdatedAtUtc: number;
   main: string;
   entities: TourEntity[];
 }

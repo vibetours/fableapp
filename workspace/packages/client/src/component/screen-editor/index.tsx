@@ -3,6 +3,7 @@ import { ScreenData, SerNode } from "@fable/common/dist/types";
 import React from "react";
 import * as Tags from "./styled";
 import { detect } from "@fable/common/dist/detect-browser";
+import DomElPicker from "./dom-element-picker";
 
 const browser = detect();
 
@@ -20,8 +21,9 @@ interface DeSerProps {
  * This component should only be loaded once all the screen data is available.
  */
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
-  private embedFrameRef: React.RefObject<HTMLIFrameElement>;
+  private readonly embedFrameRef: React.RefObject<HTMLIFrameElement>;
   private assetLoadingPromises: Promise<unknown>[] = [];
+  private domElPicker: DomElPicker | null = null;
 
   constructor(props: IOwnProps) {
     super(props);
@@ -77,7 +79,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
     for (const child of serNode.chldrn) {
       // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
-      // hence we altogher ignore those tags
+      // hence we altogether ignore those tags
       if (child.name === "meta") {
         continue;
       }
@@ -98,10 +100,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // This calculation is to make transform: scale work like zoom property.
     // We can't use zoom property as it's only supported by chrome and some version of ie.
     //
-    // There might be pages (google analytics) that are not responsive and while capturing from extension it was
-    // captured from a differnet dimension than a screen that is used to preview the screen.
+    // There might be pages (Google Analytics) that are not responsive and while capturing from extension it was
+    // captured from a different dimension than a screen that is used to preview the screen.
     //
-    // To support screen dimension interchangeably, we have to zoom in / zoom out the screen keeping the aspect ration
+    // To support screen dimension interchangeably, we have to zoom in / zoom out the screen keeping the aspect ratio
     // same. The following calculation is done >>>
     //
     // 1. Calculate the boundingRect for iframe before we scale. Ideally that's the actual dimension of the frame.
@@ -152,30 +154,48 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       return;
     }
 
-    // The behaviour of iframe loading in firefox and chrome is very different.
-    // Firefox fires an onload event even when src="about:blank" and destroys any layout that was previously created.
-    // That means in firefox if we run js to dynamically populate the iframe from parent frame, it gets cleared during
-    // the onload call. I't obvious in profiling render in firefox, it says `Layout tree destruction about:blank` in
-    // flame graph
-    // On the other side in chrome / safari, the onload event never gets fired for about:blank iframe
-    // The following check starts the dom deserialization based on browser
-    // if (browser?.name === "firefox") {
-    //   frame.onload = () => {
-    //     this.deserDomIntoFrame(frame);
-    //   };
-    // } else {
-    //   this.deserDomIntoFrame(frame);
-    // }
-
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
+      requestAnimationFrame(() => {
+        const el = this.embedFrameRef?.current;
+        let doc;
+        if ((doc = el?.contentDocument)) {
+          this.domElPicker = new DomElPicker(doc);
+          this.domElPicker.setupHighlighting();
+
+          el.addEventListener("mouseout", this.onMouseOutOfIframe);
+          el.addEventListener("mouseenter", this.onMouseEnterOnIframe);
+        } else {
+          console.error("Iframe doc not found");
+        }
+      });
     };
+  }
+
+  onMouseOutOfIframe = (e: MouseEvent) => {
+    if (this.domElPicker && this.domElPicker.isEnabled()) {
+      this.domElPicker.disable();
+    }
+  };
+
+  onMouseEnterOnIframe = (e: MouseEvent) => {
+    if (this.domElPicker && !this.domElPicker.isEnabled()) {
+      this.domElPicker.enable();
+    }
+  };
+
+  componentWillUnmount(): void {
+    this.embedFrameRef?.current!.removeEventListener("mouseout", this.onMouseOutOfIframe);
+    this.embedFrameRef?.current!.removeEventListener("mouseenter", this.onMouseEnterOnIframe);
+    if (this.domElPicker) {
+      this.domElPicker.dispose();
+    }
   }
 
   render(): React.ReactNode {
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: "hidden" }}>
+        <Tags.EmbedCon style={{ overflow: "hidden" }} id="haha">
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}
@@ -183,7 +203,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
           ></Tags.EmbedFrame>
         </Tags.EmbedCon>
-        <Tags.EditPanelCon></Tags.EditPanelCon>
+        <Tags.EditPanelCon>
+          {this.props.screen.parentScreenId === 0 ? "Click to start editing" : "Fetch edit data"}
+        </Tags.EditPanelCon>
       </Tags.Con>
     );
   }
