@@ -2,15 +2,21 @@ import React, { useState, useRef, useEffect } from "react";
 import * as Tags from "./styled";
 import { CanvasData } from "./types";
 import CanvasDottedBg from "./canvas-dotted-bg";
+import { P_RespScreen } from "../../entity-processor";
+import EmptyCanvas from "./empty-canvas";
+import AddScreen from "./add-screen";
 
 type CanvasProps = {
   cellWidth: number;
+  screens: P_RespScreen[];
 };
 
 enum Mode {
   SelectMode,
   PanMode,
   ConnectMode,
+  EmptyMode,
+  SelectScreenMode,
 }
 
 const initialData: CanvasData = {
@@ -20,10 +26,10 @@ const initialData: CanvasData = {
   viewBox: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
   newViewBox: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
   ratio: 1,
-  panLimit: { XMIN: -10, XMAX: 300, YMIN: 0, YMAX: window.innerHeight },
+  panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
 };
 
-const Canvas = ({ cellWidth }: CanvasProps) => {
+const Canvas = ({ cellWidth, screens }: CanvasProps) => {
   const canvasData = useRef({
     ...initialData,
   });
@@ -31,7 +37,7 @@ const Canvas = ({ cellWidth }: CanvasProps) => {
   const [viewBoxStr, setViewBoxStr] = useState(
     `0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`
   );
-  const [mode, setMode] = useState(Mode.PanMode);
+  const [mode, setMode] = useState(Mode.EmptyMode);
   const svgRef = useRef(null);
 
   useEffect(() => {
@@ -45,6 +51,11 @@ const Canvas = ({ cellWidth }: CanvasProps) => {
         width: parentRect.width,
         height: parentRect.height,
       };
+      canvasData.current.panLimit = {
+        ...canvasData.current.panLimit,
+        XMAX: parentRect.width,
+        YMAX: parentRect.height,
+      }
       setViewBoxStr(`0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`);
       const ratio = canvasData.current.viewBox.width / svg.getBoundingClientRect().width;
       canvasData.current.ratio = ratio;
@@ -61,6 +72,8 @@ const Canvas = ({ cellWidth }: CanvasProps) => {
       <Tags.SVGCanvas viewBox={viewBoxStr} ref={svgRef} mode={mode}>
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
       </Tags.SVGCanvas>
+      {mode === Mode.EmptyMode && <EmptyCanvas setMode={setMode} />}
+      {mode === Mode.SelectScreenMode && <AddScreen screens={screens}/>}
     </>
   );
 };

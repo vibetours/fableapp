@@ -47,6 +47,14 @@ export const Txt = styled.div`
   &.faded {
     opacity: 0.65;
   }
+
+  &.oneline {
+    display: inline-block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 export const BodyCon = styled.div`

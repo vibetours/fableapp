@@ -1,7 +1,7 @@
 import React from "react";
 import { connect } from "react-redux";
-import { loadTourAndData } from "../../action/creator";
-import { P_RespTour } from "../../entity-processor";
+import { getAllScreens, loadTourAndData } from "../../action/creator";
+import { P_RespTour, P_RespScreen } from "../../entity-processor";
 import { TState } from "../../reducer";
 import Header from "../../component/header";
 // import * as Tags from "./styled";
@@ -12,11 +12,13 @@ import Canvas from "../../component/tour-canvas";
 
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
+  getAllScreens: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => {
   return {
     loadTourAndData: (rid: string) => dispatch(loadTourAndData(rid)),
+    getAllScreens: () => dispatch(getAllScreens()),
   };
 };
 
@@ -24,12 +26,14 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   tourData: TourData | null;
   isLoaded: boolean;
+  screens: P_RespScreen[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   tourData: state.default.tourData,
   isLoaded: state.default.tourLoaded,
+  screens: state.default.screens,
 });
 
 interface IOwnProps {}
@@ -44,6 +48,7 @@ interface IOwnStateProps {}
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.loadTourAndData(this.props.match.params.tourId);
+    this.props.getAllScreens();
   }
 
   getHeaderTxtEl = (): React.ReactElement => {
@@ -62,18 +67,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render() {
+    if (!this.props.isLoaded) {
+      return <div>TODO show loader</div>;
+    }
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
-          <Header
-            shouldShowLogoOnLeft={true}
-            navigateToWhenLogoIsClicked="/tours"
-            titleElOnLeft={this.getHeaderTxtEl()}
-          ></Header>
+          <Header shouldShowLogoOnLeft={true} titleElOnLeft={this.getHeaderTxtEl()}></Header>
         </GTags.HeaderCon>
         <GTags.BodyCon style={{ height: "100%", background: "#fff", padding: "0px" }}>
           <div style={{ position: "relative", height: "100%", width: "100%" }}>
-            <Canvas cellWidth={20} />
+            <Canvas cellWidth={20} screens={this.props.screens} />
           </div>
         </GTags.BodyCon>
       </GTags.ColCon>

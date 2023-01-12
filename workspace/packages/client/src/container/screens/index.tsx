@@ -70,7 +70,9 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                       <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
                         <Tags.CardFlexRowCon>
                           {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
-                          <GTags.Txt className="title">{screen.displayName}</GTags.Txt>
+                          <GTags.Txt className="title oneline" title={screen.displayName}>
+                            {screen.displayName}
+                          </GTags.Txt>
                         </Tags.CardFlexRowCon>
                         <Tags.CardFlexRowCon>
                           <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />

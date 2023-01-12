@@ -8,7 +8,7 @@
   "main": "dist/",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -b && cp -r gen/ dist/",
+    "build": "tsc -b && cp -a gen/. dist/",
     "test": "jest",
     "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
     "start": "env-cmd --verbose -e dev -r ../env.json tsc -w",

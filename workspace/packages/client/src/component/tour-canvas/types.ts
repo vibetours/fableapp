@@ -2,6 +2,8 @@ export enum Mode {
   SelectMode,
   PanMode,
   ConnectMode,
+  EmptyMode,
+  SelectScreenMode,
 }
 
 export type CanvasData = {
