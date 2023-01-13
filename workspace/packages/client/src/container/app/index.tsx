@@ -48,8 +48,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
         <div className="app">
           <Routes>
             <Route path="/screens" element={<Screens />} />
-            <Route path="/screen/:screenId" element={<Screen />} />
             <Route path="/tours" element={<Tours />} />
+            <Route path="/screen/:screenId" element={<TourEditor isPlaceholderTour={true} />} />
             <Route path="/tour/:tourId" element={<TourEditor />} />
           </Routes>
         </div>

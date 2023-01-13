@@ -1,6 +1,6 @@
 import React from "react";
 import { connect } from "react-redux";
-import { getAllScreens, loadTourAndData } from "../../action/creator";
+import { createPlaceholderTour, getAllScreens, loadTourAndData } from "../../action/creator";
 import { P_RespTour, P_RespScreen } from "../../entity-processor";
 import { TState } from "../../reducer";
 import Header from "../../component/header";
@@ -13,12 +13,14 @@ import Canvas from "../../component/tour-canvas";
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
   getAllScreens: () => void;
+  createPlaceholderTour: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => {
   return {
     loadTourAndData: (rid: string) => dispatch(loadTourAndData(rid)),
     getAllScreens: () => dispatch(getAllScreens()),
+    createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   };
 };
 
@@ -36,7 +38,13 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   screens: state.default.screens,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  // When a screen is open for preview a placeholder blank tour page is opened. Blank tour is not an entity that is present in
+  // server. However when user makes changes to the scree, a Untitled Tour gets created. If user does not do anything to
+  // the screen, the placeholder blank tour is rejected.
+  isPlaceholderTour?: boolean;
+}
+
 type IProps = IOwnProps &
   IAppStateProps &
   IDispatchProps &
@@ -47,7 +55,11 @@ interface IOwnStateProps {}
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
-    this.props.loadTourAndData(this.props.match.params.tourId);
+    if (this.props.isPlaceholderTour) {
+      this.props.createPlaceholderTour();
+    } else {
+      this.props.loadTourAndData(this.props.match.params.tourId);
+    }
     this.props.getAllScreens();
   }
 
@@ -75,7 +87,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.HeaderCon>
           <Header
             shouldShowLogoOnLeft={true}
-            navigateToWhenLogoIsClicked="/tours"
+            navigateToWhenLogoIsClicked={this.props.tour?.isPlaceholder ? "/screens" : "/tours"}
             titleElOnLeft={this.getHeaderTxtEl()}
           ></Header>
         </GTags.HeaderCon>

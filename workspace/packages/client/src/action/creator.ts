@@ -3,7 +3,15 @@ import { Dispatch } from "react";
 import api from "@fable/common/dist/api";
 import { ApiResp, RespCommonConfig, RespScreen, RespTour, ReqNewTour } from "@fable/common/dist/api-contract";
 import { sleep } from "@fable/common/dist/utils";
-import { processRawScreenData, P_RespScreen, groupScreens, P_RespTour, processRawTourData } from "../entity-processor";
+import {
+  processRawScreenData,
+  P_RespScreen,
+  groupScreens,
+  P_RespTour,
+  processRawTourData,
+  createEmptyTour,
+  createEmptyTourDataFile,
+} from "../entity-processor";
 import { TState } from "../reducer";
 import { ScreenData, TourData } from "@fable/common/dist/types";
 
@@ -183,5 +191,20 @@ export function loadTourAndData(tourRid: string) {
     } else {
       // TODO error
     }
+  };
+}
+
+/* ************************************************************************* */
+
+export function createPlaceholderTour() {
+  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
+    const tour = createEmptyTour();
+    const data = createEmptyTourDataFile();
+
+    dispatch({
+      type: ActionType.TOUR_AND_DATA_LOADED,
+      tourData: data,
+      tour: processRawTourData(tour, getState(), true),
+    });
   };
 }
