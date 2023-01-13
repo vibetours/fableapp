@@ -1,4 +1,4 @@
-import { SchemaVersion } from '../gen/api-contract';
+import { SchemaVersion } from './api-contract';
 
 export interface SerNode {
   type: number;
@@ -50,10 +50,6 @@ export interface CapturedViewPort {
 export interface ScreenData {
   vpd: CapturedViewPort;
   docTree: SerNode;
-}
-
-export enum Versions {
-  V1 = '2023-01-10',
 }
 
 export interface TourEntity {
