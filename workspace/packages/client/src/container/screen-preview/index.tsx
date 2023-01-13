@@ -62,6 +62,7 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render() {
+    
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
@@ -73,7 +74,7 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
         </GTags.HeaderCon>
         <GTags.BodyCon style={{ height: "100%", background: "#fcfcfc" }}>
           {this.props.isLoaded ? (
-            <ScreenEditor screen={this.props.screen!} screenData={this.props.serScreenData!} />
+            <ScreenEditor key={this.props.screen?.rid} screen={this.props.screen!} screenData={this.props.serScreenData!} />
           ) : (
             <></>
           )}
@@ -87,3 +88,4 @@ export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(ScreenPreview));
+
