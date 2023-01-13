@@ -132,7 +132,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       if (frameHtml && frameBody) {
         frameBody.style.display = "none";
         const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
-
+        
         const childNodes = doc.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
           if (((childNodes[i] as any).tagName || "").toLowerCase() === "html") {
