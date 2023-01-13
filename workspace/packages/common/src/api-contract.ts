@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-09 15:53:05.
+// Generated using typescript-generator version 2.35.1025 on 2023-01-13 10:41:23.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -46,6 +46,7 @@ export interface RespCommonConfig extends ResponseBase {
     screenAssetPath: string;
     tourAssetPath: string;
     dataFileName: string;
+    editFileName: string;
     latestSchemaVersion: SchemaVersion;
 }
 
