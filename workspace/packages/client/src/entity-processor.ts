@@ -1,7 +1,7 @@
-import { RespScreen, RespTour, RespUser, SchemaVersion } from "@fable/common/dist/api-contract";
-import { TState } from "./reducer";
-import { getDisplayableTime } from "@fable/common/dist/utils";
-import { TourData } from "@fable/common/dist/types";
+import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { getDisplayableTime } from '@fable/common/dist/utils';
+import { TourData } from '@fable/common/dist/types';
+import { TState } from './reducer';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -13,7 +13,7 @@ export interface P_RespScreen extends RespScreen {
 
 export function processRawScreenData(screen: RespScreen, state: TState): P_RespScreen {
   const d = new Date(screen.updatedAt);
-  const processedScreen: P_RespScreen = {
+  return {
     ...screen,
     createdAt: new Date(screen.createdAt),
     updatedAt: d,
@@ -23,7 +23,6 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}index.json`),
     related: [],
   };
-  return processedScreen;
 }
 
 function allScreensTillParent(
@@ -83,7 +82,7 @@ export interface P_RespTour extends RespTour {
 
 export function processRawTourData(tour: RespTour, state: TState, isPlaceholder = false): P_RespTour {
   const d = new Date(tour.updatedAt);
-  const processedTour: P_RespTour = {
+  return {
     ...tour,
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
@@ -91,18 +90,17 @@ export function processRawTourData(tour: RespTour, state: TState, isPlaceholder 
     dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${state.default.commonConfig?.dataFileName}`),
     isPlaceholder,
   };
-  return processedTour;
 }
 
 export function createEmptyTour(): RespTour {
-  const name = "Untitled";
+  const name = 'Untitled';
   // TODO add the logged in user from state as createdBy once login is implemented
   const user = {} as RespUser;
   return {
     rid: `xxx-xx-${name.toLowerCase()}`,
-    assetPrefixHash: "$local$",
+    assetPrefixHash: '$local$',
     displayName: name,
-    description: "",
+    description: '',
     createdBy: user,
     createdAt: new Date(new Date().toUTCString()),
     updatedAt: new Date(new Date().toUTCString()),
@@ -113,7 +111,7 @@ export function createEmptyTourDataFile(): TourData {
   return {
     v: SchemaVersion.V1,
     lastUpdatedAtUtc: -1,
-    main: "",
+    main: '',
     entities: [],
   };
 }

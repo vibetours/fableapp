@@ -1,23 +1,21 @@
-import React, { ReactElement } from "react";
-import { connect } from "react-redux";
-import { TState } from "../../reducer";
-import Header from "../../component/header";
-import { withRouter, WithRouterProps } from "../../router-hoc";
-import { loadScreenAndData } from "../../action/creator";
-import { ScreenData } from "@fable/common/dist/types";
-import * as GTags from "../../common-styled";
-import ScreenEditor from "../../component/screen-editor";
-import { P_RespScreen } from "../../entity-processor";
+import React, { ReactElement } from 'react';
+import { connect } from 'react-redux';
+import { ScreenData } from '@fable/common/dist/types';
+import { TState } from '../../reducer';
+import Header from '../../component/header';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import { loadScreenAndData } from '../../action/creator';
+import * as GTags from '../../common-styled';
+import ScreenEditor from '../../component/screen-editor';
+import { P_RespScreen } from '../../entity-processor';
 
 interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
 }
 
-const mapDispatchToProps = (dispatch: any) => {
-  return {
-    loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
-  };
-};
+const mapDispatchToProps = (dispatch: any) => ({
+  loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
+});
 
 interface IAppStateProps {
   screen: P_RespScreen | null;
@@ -52,9 +50,9 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     return (
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         <GTags.Txt className="subsubhead">Previewing screen</GTags.Txt>
-        <GTags.Txt className="head" style={{ lineHeight: "1.5rem" }}>
+        <GTags.Txt className="head" style={{ lineHeight: '1.5rem' }}>
           {this.props.screen?.displayName}
         </GTags.Txt>
       </div>
@@ -66,12 +64,12 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
-            shouldShowLogoOnLeft={true}
+            shouldShowLogoOnLeft
             navigateToWhenLogoIsClicked="/screens"
             titleElOnLeft={this.getHeaderTxtEl()}
-          ></Header>
+          />
         </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: "100%", background: "#fcfcfc" }}>
+        <GTags.BodyCon style={{ height: '100%', background: '#fcfcfc' }}>
           {this.props.isLoaded ? (
             <ScreenEditor screen={this.props.screen!} screenData={this.props.serScreenData!} />
           ) : (
