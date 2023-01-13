@@ -48,7 +48,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           el.setAttribute(attrKey, attrValue === null ? "true" : attrValue);
           if (node.name === "a" && attrKey === "href") {
             el.setAttribute(attrKey, "javascript:void(0)");
-            el.setAttribute('target', '_self')
+            el.setAttribute('target', '_self') 
           }
         }
       } catch (e) {
