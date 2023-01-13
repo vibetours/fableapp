@@ -28,6 +28,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.embedFrameRef = React.createRef();
   }
 
+  disableClick(e: Event) {
+    e.preventDefault()
+  }
+
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partofSvgEl
       ? doc.createElementNS("http://www.w3.org/2000/svg", node.name)
@@ -42,6 +46,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             el.setAttribute(attrKey, "about:blank");
           }
           el.setAttribute(attrKey, attrValue === null ? "true" : attrValue);
+          if (node.name === "a" && attrKey === "href") {
+            el.setAttribute(attrKey, "javascript:void(0)");
+            el.setAttribute('target', '_self')
+          }
         }
       } catch (e) {
         console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
@@ -188,3 +196,4 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     );
   }
 }
+
