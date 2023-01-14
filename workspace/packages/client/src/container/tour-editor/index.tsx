@@ -1,11 +1,16 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { ScreenData, TourData } from '@fable/common/dist/types';
-import { createPlaceholderTour, getAllScreens, loadScreenAndData, loadTourAndData } from '../../action/creator';
+import {
+  createPlaceholderTour,
+  getAllScreens,
+  loadScreenAndData,
+  loadTourAndData,
+  savePlaceHolderTour,
+} from '../../action/creator';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import Header from '../../component/header';
-// import * as Tags from "./styled";
 import * as GTags from '../../common-styled';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import Canvas from '../../component/tour-canvas';
@@ -16,6 +21,7 @@ interface IDispatchProps {
   getAllScreens: () => void;
   createPlaceholderTour: () => void;
   loadScreenAndData: (rid: string) => void;
+  savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -23,6 +29,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   getAllScreens: () => dispatch(getAllScreens()),
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
+  savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
 });
 
 interface IAppStateProps {
@@ -67,19 +74,45 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.createPlaceholderTour();
       this.props.loadScreenAndData(this.props.match.params.screenId);
     } else {
+      if (this.props.match.params.screenId) {
+        this.props.loadScreenAndData(this.props.match.params.screenId);
+      }
       this.props.loadTourAndData(this.props.match.params.tourId);
     }
     this.props.getAllScreens();
   }
 
-  isLoadingComplete = () => (
-    (this.props.isPlaceholderTour && this.props.isScreenLoaded)
-      || (!this.props.isPlaceholderTour && this.props.isTourLoaded)
-  );
+  // componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {}
+
+  isLoadingComplete = () => {
+    if (this.props.isPlaceholderTour) {
+      // If the tour is placeholder tour, i.e. the tour has been created to preview the screen then we don't fetch
+      // the tours from server hence, we only wait for screen to be loaded completely.
+      return this.props.isScreenLoaded;
+    }
+    if (this.props.match.params.screenId) {
+      // If the tour is loaded with a screen in focus then we wait for both and the screen to be loaded completely
+      return this.props.isTourLoaded && this.props.isScreenLoaded;
+    }
+    return this.props.isTourLoaded;
+  };
+
+  shouldShowScreen = () => {
+    if (this.props.isPlaceholderTour) {
+      // If the tour is placeholder tour, i.e. the tour has been created to preview the screen then we don't fetch
+      // the tours from server hence, we only wait for screen to be loaded completely.
+      return this.props.isScreenLoaded;
+    }
+    if (this.props.match.params.screenId) {
+      // If the tour is loaded with a screen in focus then we wait for both and the screen to be loaded completely
+      return this.props.isTourLoaded && this.props.isScreenLoaded;
+    }
+    return false;
+  };
 
   getHeaderTxtEl = (): React.ReactElement => {
     if (!this.isLoadingComplete()) {
-      return <></>;
+      return <>TODO show loading bar</>;
     }
 
     return (
@@ -91,6 +124,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       </div>
     );
   };
+
+  private onScreenEditStart = () => {
+    if (this.props.tour?.isPlaceholder) {
+      this.props.savePlaceHolderTour(this.props.tour, this.props.screen!);
+    }
+  };
+
+  private onScreenEditFinish = () => {};
 
   render() {
     if (!this.isLoadingComplete()) {
@@ -105,18 +146,27 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             titleElOnLeft={this.getHeaderTxtEl()}
           />
         </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: '100%', background: '#fff', /* padding: '0px' */ }}>
-          {this.props.tour?.isPlaceholder ? (
-            /*
+        <GTags.BodyCon style={{ height: '100%', background: '#fff' /* padding: '0px' */ }}>
+          {/*
               TODO this is temp until siddhi is done with the screen zooming via canvas
                    after that integrate as part of Canvas
-              */
-            <ScreenEditor screen={this.props.screen!} screenData={this.props.screenData!} />
+            */}
+          {this.shouldShowScreen() ? (
+            <ScreenEditor
+              screen={this.props.screen!}
+              screenData={this.props.screenData!}
+              onScreenEditStart={this.onScreenEditStart}
+              onScreenEditFinish={this.onScreenEditFinish}
+            />
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas cellWidth={20} screens={this.props.screens} />
             </div>
           )}
+          {/*
+            <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+              <Canvas cellWidth={20} screens={this.props.screens} />
+            </div> */}
         </GTags.BodyCon>
       </GTags.ColCon>
     );

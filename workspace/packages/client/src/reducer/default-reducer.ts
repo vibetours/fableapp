@@ -41,6 +41,7 @@ export const initialState: {
   tourLoaded: false,
 };
 
+// eslint-disable-next-line default-param-last
 export default function projectReducer(state = initialState, action: Action) {
   switch (action.type) {
     case ActionType.ALL_SCREENS_RETRIEVED: {

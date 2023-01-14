@@ -63,18 +63,14 @@ class ScreenPreview extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
-          <Header
-            shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked="/screens"
-            titleElOnLeft={this.getHeaderTxtEl()}
-          />
+          <Header shouldShowLogoOnLeft navigateToWhenLogoIsClicked="/screens" titleElOnLeft={this.getHeaderTxtEl()} />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{ height: '100%', background: '#fcfcfc' }}>
-          {this.props.isLoaded ? (
+          {/* this.props.isLoaded ? (
             <ScreenEditor screen={this.props.screen!} screenData={this.props.serScreenData!} />
           ) : (
             <></>
-          )}
+          ) */}
         </GTags.BodyCon>
       </GTags.ColCon>
     );

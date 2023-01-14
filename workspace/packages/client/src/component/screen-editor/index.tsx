@@ -12,6 +12,8 @@ const browser = detect();
 interface IOwnProps {
   screen: RespScreen;
   screenData: ScreenData;
+  onScreenEditStart: () => void;
+  onScreenEditFinish: () => void;
 }
 interface IOwnStateProps {
   isInEditMode: boolean;
@@ -196,9 +198,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
     if (prevState.isInEditMode !== this.state.isInEditMode) {
       if (this.state.isInEditMode) {
+        this.props.onScreenEditStart();
         this.initDomPicker();
       } else {
         this.disposeDomPicker();
+        this.props.onScreenEditFinish();
       }
     }
   }
