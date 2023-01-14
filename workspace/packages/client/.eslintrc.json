@@ -22,7 +22,7 @@
   "plugins": ["react", "@typescript-eslint", "jest"],
   "overrides": [
     {
-      "files": [",*.ts", "*.tsx"],
+      "files": ["*.ts", "*.tsx"],
       "rules": {
         "no-undef": "off"
       }
@@ -43,6 +43,7 @@
     "react/destructuring-assignment": "off",
     "no-underscore-dangle": "off",
     "react/no-array-index-key": "off",
+    "react/jsx-no-useless-fragment": "off",
     "camelcase": "off",
     "react/require-default-props": "off",
     "no-unused-vars": "off",
