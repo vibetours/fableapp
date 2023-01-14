@@ -1,44 +1,63 @@
+export enum HighlightMode {
+  Idle,
+  Selection,
+  Pinned,
+}
+
+type ElSelectCallback = (el: HTMLElement) => void;
+
 export default class DomElementPicker {
   private readonly doc: Document;
 
-  private currEl: HTMLElement;
-
-  private shouldHighlight: boolean;
+  private highlightMode: HighlightMode;
 
   private maskEl: HTMLDivElement | null;
 
   private prevElHovered: Element | Text | null;
 
-  constructor(doc: Document) {
+  private onElSelect: ElSelectCallback;
+
+  private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
+
+  constructor(doc: Document, onElSelect: ElSelectCallback) {
     this.doc = doc;
-    this.currEl = doc.body;
-    this.shouldHighlight = false;
+    this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;
+    this.onElSelect = onElSelect;
+    this.evts = {};
   }
 
-  // get textContent() {
-  //   return DOMInteractionUtilities.selectedEl.textContent;
-  // }
-
-  // set textContent(text: string | null) {
-  //   DOMInteractionUtilities.selectedEl.textContent = text;
-  // }
-
   enable() {
-    this.shouldHighlight = true;
+    this.highlightMode = HighlightMode.Selection;
     this.getOrCreateMask();
     return this;
   }
 
   disable() {
-    this.shouldHighlight = false;
+    this.highlightMode = HighlightMode.Idle;
     this.removeMaskIfPresent();
     return this;
   }
 
-  isEnabled() {
-    return this.shouldHighlight;
+  getOutOfPinMode() {
+    this.highlightMode = HighlightMode.Selection;
+    return this;
+  }
+
+  addEventListener<K extends keyof DocumentEventMap>(eventName: K, fn: (e: DocumentEventMap[K]) => void) {
+    let fns: Array<(e: DocumentEventMap[K]) => void> = [];
+    if (eventName in this.evts) {
+      fns = this.evts[eventName]!;
+    } else {
+      (this.evts as any)[eventName] = fns;
+    }
+    fns.push(fn);
+    this.doc.addEventListener(eventName, fn);
+  }
+
+  getMode() {
+    return this.highlightMode;
   }
 
   setupHighlighting() {
@@ -48,10 +67,16 @@ export default class DomElementPicker {
   }
 
   dispose() {
-    this.shouldHighlight = false;
+    this.highlightMode = HighlightMode.Idle;
     this.doc.removeEventListener('mousemove', this.handleMouseMove);
     this.doc.removeEventListener('click', this.handleClick);
     this.removeMaskIfPresent();
+    for (const [eventName, fns] of Object.entries(this.evts)) {
+      for (const fn of fns) {
+        this.doc.removeEventListener(eventName, fn);
+      }
+    }
+    this.evts = {};
   }
 
   private getOrCreateMask() {
@@ -108,7 +133,7 @@ export default class DomElementPicker {
   }
 
   private handleMouseMove = (event: MouseEvent) => {
-    if (!this.shouldHighlight) return;
+    if (this.highlightMode !== HighlightMode.Selection) return;
     const els = this.doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
     if (!els.length) return;
     const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY);
@@ -125,11 +150,10 @@ export default class DomElementPicker {
     maskBox.style.boxShadow = 'rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0.0) 0px 0px 0px 1000vw';
   };
 
-  private handleClick = (event: MouseEvent) => {
-    // if (!DOMInteractionUtilities.isHighlight) return;
-    // const elements = this.iFrame.contentDocument?.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
-    // const el = elements[0];
-    // DOMInteractionUtilities.selectedEl = el;
-    // this.setSelectedEl(el);
+  private handleClick = () => {
+    const el = this.prevElHovered;
+    console.assert(el !== null);
+    this.highlightMode = HighlightMode.Pinned;
+    this.onElSelect(el as HTMLElement);
   };
 }

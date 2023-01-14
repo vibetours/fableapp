@@ -4,10 +4,18 @@ import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import DomElPicker from './dom-element-picker';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
 
 const browser = detect();
+
+const enum EditTargetType {
+  Text = 't',
+  Img = 'i',
+  Mixed = 'm',
+  None = 'n',
+}
+type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
 interface IOwnProps {
   screen: RespScreen;
@@ -17,6 +25,9 @@ interface IOwnProps {
 }
 interface IOwnStateProps {
   isInEditMode: boolean;
+  selectedEl: HTMLElement | null;
+  targetEl: HTMLElement | null;
+  editTargetType: EditTargetType;
 }
 
 interface DeSerProps {
@@ -38,6 +49,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.embedFrameRef = React.createRef();
     this.state = {
       isInEditMode: false,
+      selectedEl: null,
+      targetEl: null,
+      editTargetType: EditTargetType.None,
     };
   }
 
@@ -169,24 +183,34 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.deserDomIntoFrame(frame);
     };
 
+    frame.onfocus = () => {
+      console.log('focused');
+      frame.blur();
+    };
+
     document.addEventListener('keydown', this.onKeyDown);
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
-    if (this.domElPicker && this.domElPicker.isEnabled()) {
+    if (this.domElPicker && this.domElPicker.getMode() !== HighlightMode.Pinned) {
       this.domElPicker.disable();
     }
   };
 
   private onMouseEnterOnIframe = (e: MouseEvent) => {
-    if (this.domElPicker && !this.domElPicker.isEnabled()) {
+    if (this.domElPicker && this.domElPicker.getMode() !== HighlightMode.Pinned) {
       this.domElPicker.enable();
     }
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      this.setState({ isInEditMode: false });
+      console.log('escape pressed');
+      if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
+        this.domElPicker.getOutOfPinMode();
+      } else {
+        this.setState({ isInEditMode: false });
+      }
     }
   };
 
@@ -204,6 +228,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         this.disposeDomPicker();
         this.props.onScreenEditFinish();
       }
+    }
+
+    if (prevState.selectedEl !== this.state.selectedEl) {
+      if (this.state.selectedEl) {
+        const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
+        this.setState(() => ({ editTargetType: editTargetType.targetType, targetEl: editTargetType.target || null }));
+      }
+    }
+  }
+
+  static getEditingCtrlForElType(type: EditTargetType) {
+    switch (type) {
+      case EditTargetType.Img:
+        return <>image editing option</>;
+
+      case EditTargetType.Text:
+        return <>text editing option</>;
+
+      case EditTargetType.Mixed:
+        return <>mixed editing option</>;
+
+      default:
+        return <></>;
     }
   }
 
@@ -240,6 +287,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     Click here to start editing
                   </Btn>
                 )}
+                {ScreenEditor.getEditingCtrlForElType(this.state.editTargetType)}
               </div>
             </Tags.EditPanelSec>
           ) : (
@@ -259,12 +307,73 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
+  static getEditTargetType(el: HTMLElement): {
+    targetType: EditTargetType;
+    target?: HTMLElement;
+  } {
+    const nestedEditTargetTypes = (function rec(el2: HTMLElement): EditTargets {
+      if (el2.nodeType === Node.TEXT_NODE) {
+        return { [EditTargetType.Text]: [el2], [EditTargetType.Img]: [] };
+      }
+
+      if (el2.nodeName) {
+        if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
+          return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+        }
+        if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
+          const bgImage = getComputedStyle(el2).backgroundImage;
+          if (bgImage.search(/^url\(/) !== -1) {
+            return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+          }
+        }
+      }
+
+      const children = Array.from(el2.childNodes);
+      const targetByTypes: EditTargets = {
+        [EditTargetType.Text]: [],
+        [EditTargetType.Img]: [],
+      };
+      for (const child of children) {
+        const targetType = rec(child as HTMLElement);
+        for (const [tType, tTargets] of Object.entries(targetType)) {
+          targetByTypes[tType].push(...tTargets);
+        }
+      }
+      return targetByTypes;
+    }(el));
+
+    const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
+    const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
+
+    if (noOfImgs === 1 && noOfTexts === 0) {
+      return {
+        targetType: EditTargetType.Img,
+        target: nestedEditTargetTypes[EditTargetType.Img][0] as HTMLElement,
+      };
+    }
+
+    if (noOfTexts === 1 && noOfImgs === 0) {
+      return {
+        targetType: EditTargetType.Text,
+        target: nestedEditTargetTypes[EditTargetType.Text][0] as HTMLElement,
+      };
+    }
+    return {
+      targetType: EditTargetType.Mixed,
+    };
+  }
+
+  private onElSelect = (el: HTMLElement) => {
+    this.setState({ selectedEl: el });
+  };
+
   private initDomPicker() {
     requestAnimationFrame(() => {
       const el = this.embedFrameRef?.current;
       let doc;
       if ((doc = el?.contentDocument)) {
-        this.domElPicker = new DomElPicker(doc);
+        this.domElPicker = new DomElPicker(doc, this.onElSelect);
+        this.domElPicker.addEventListener('keydown', this.onKeyDown);
         this.domElPicker.setupHighlighting();
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
