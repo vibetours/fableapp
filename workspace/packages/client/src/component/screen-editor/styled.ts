@@ -1,10 +1,10 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 export const Con = styled.div`
   height: 100%;
   width: 100%;
   display: flex;
-  box-shadow: 0px 0px 3px 1px #ddd;
+  box-shadow: 0 0 3px 1px #ddd;
   background: #fff;
   border-radius: 20px;
 `;
@@ -37,4 +37,10 @@ export const EditPanelCon = styled.div`
   border-left: 1px solid #ddd;
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
+`;
+
+export const EditPanelSec = styled.div`
+  display: flex;
+  padding: 1rem 0.75rem;
+  flex-direction: column;
 `;

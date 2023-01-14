@@ -1,22 +1,19 @@
-import React from "react";
-import { connect } from "react-redux";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Screens from "../screens";
-import Screen from "../screen-preview";
-import { TState } from "../../reducer";
-import { init } from "../../action/creator";
-import Tours from "../tours";
-import TourEditor from "../tour-editor";
+import React from 'react';
+import { connect } from 'react-redux';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Screens from '../screens';
+import { TState } from '../../reducer';
+import { init } from '../../action/creator';
+import Tours from '../tours';
+import TourEditor from '../tour-editor';
 
 interface IDispatchProps {
   init: () => void;
 }
 
-const mapDispatchToProps = (dispatch: any) => {
-  return {
-    init: () => dispatch(init()),
-  };
-};
+const mapDispatchToProps = (dispatch: any) => ({
+  init: () => dispatch(init()),
+});
 
 interface IAppStateProps {
   isInitied: boolean;
@@ -35,6 +32,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.init();
   }
+
   render() {
     if (!this.props.isInitied) {
       return (
@@ -49,7 +47,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <Routes>
             <Route path="/screens" element={<Screens />} />
             <Route path="/tours" element={<Tours />} />
-            <Route path="/screen/:screenId" element={<TourEditor isPlaceholderTour={true} />} />
+            <Route path="/screen/:screenId" element={<TourEditor isPlaceholderTour />} />
             <Route path="/tour/:tourId" element={<TourEditor />} />
           </Routes>
         </div>
