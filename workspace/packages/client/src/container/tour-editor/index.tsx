@@ -1,20 +1,20 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import { ScreenData, TourData } from '@fable/common/dist/types';
+import React from "react";
+import { connect } from "react-redux";
+import { ScreenData, TourData } from "@fable/common/dist/types";
 import {
   createPlaceholderTour,
   getAllScreens,
   loadScreenAndData,
   loadTourAndData,
   savePlaceHolderTour,
-} from '../../action/creator';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { TState } from '../../reducer';
-import Header from '../../component/header';
-import * as GTags from '../../common-styled';
-import { withRouter, WithRouterProps } from '../../router-hoc';
-import Canvas from '../../component/tour-canvas';
-import ScreenEditor from '../../component/screen-editor';
+} from "../../action/creator";
+import { P_RespScreen, P_RespTour } from "../../entity-processor";
+import { TState } from "../../reducer";
+import Header from "../../component/header";
+import * as GTags from "../../common-styled";
+import { withRouter, WithRouterProps } from "../../router-hoc";
+import Canvas from "../../component/tour-canvas";
+import ScreenEditor from "../../component/screen-editor";
 
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
@@ -52,12 +52,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   screens: state.default.screens,
 });
 
-interface IOwnProps {
-  // When a screen is open for preview a placeholder blank tour page is opened. Blank tour is not an entity that is
-  // present in server. However, when user makes changes to the scree, a Untitled Tour gets created. If user does not do
-  // anything to the screen, the placeholder blank tour is rejected.
-  isPlaceholderTour?: boolean;
-}
+interface IOwnProps {}
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -70,44 +65,41 @@ interface IOwnStateProps {}
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
-    if (this.props.isPlaceholderTour) {
-      this.props.createPlaceholderTour();
-      this.props.loadScreenAndData(this.props.match.params.screenId);
-    } else {
-      if (this.props.match.params.screenId) {
-        this.props.loadScreenAndData(this.props.match.params.screenId);
-      }
+    if (this.props.match.params.tourId) {
       this.props.loadTourAndData(this.props.match.params.tourId);
+    } else {
+      this.props.createPlaceholderTour();
     }
+    if (this.props.match.params.screenId) {
+      this.props.loadScreenAndData(this.props.match.params.screenId);
+    }
+
+    // TODO do this only when add screen to tour button is clicked from
     this.props.getAllScreens();
   }
 
   // componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {}
 
   isLoadingComplete = () => {
-    if (this.props.isPlaceholderTour) {
-      // If the tour is placeholder tour, i.e. the tour has been created to preview the screen then we don't fetch
-      // the tours from server hence, we only wait for screen to be loaded completely.
-      return this.props.isScreenLoaded;
+    let result = true;
+    if (this.props.match.params.tourId) {
+      result = result && this.props.isTourLoaded;
     }
     if (this.props.match.params.screenId) {
-      // If the tour is loaded with a screen in focus then we wait for both and the screen to be loaded completely
-      return this.props.isTourLoaded && this.props.isScreenLoaded;
+      result = result && this.props.isScreenLoaded;
     }
-    return this.props.isTourLoaded;
+    return result;
   };
 
   shouldShowScreen = () => {
-    if (this.props.isPlaceholderTour) {
-      // If the tour is placeholder tour, i.e. the tour has been created to preview the screen then we don't fetch
-      // the tours from server hence, we only wait for screen to be loaded completely.
-      return this.props.isScreenLoaded;
-    }
+    let result = false;
     if (this.props.match.params.screenId) {
-      // If the tour is loaded with a screen in focus then we wait for both and the screen to be loaded completely
-      return this.props.isTourLoaded && this.props.isScreenLoaded;
+      result = this.props.isScreenLoaded;
+      if (this.props.match.params.tourId) {
+        result = result && this.props.isTourLoaded;
+      }
     }
-    return false;
+    return result;
   };
 
   getHeaderTxtEl = (): React.ReactElement => {
@@ -115,11 +107,28 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       return <>TODO show loading bar</>;
     }
 
+    let firstLine;
+    let secondLine;
+    if (this.props.match.params.tourId && this.props.match.params.screenId) {
+      firstLine = (
+        <>
+          For tour <span className="emph">{this.props.tour?.displayName}</span> edit screen
+        </>
+      );
+      secondLine = this.props.screen?.displayName;
+    } else if (this.props.match.params.tourId) {
+      firstLine = <>Edit tour</>;
+      secondLine = this.props.tour?.displayName;
+    } else {
+      firstLine = <>Edit screen</>;
+      secondLine = this.props.screen?.displayName;
+    }
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <GTags.Txt className="subsubhead">Edit {this.props.tour?.isPlaceholder ? 'screen' : 'tour'}</GTags.Txt>
-        <GTags.Txt className="head" style={{ lineHeight: '1.5rem' }}>
-          {this.props.isPlaceholderTour ? this.props.screen?.displayName : this.props.tour?.displayName}
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <GTags.Txt className="subsubhead">{firstLine}</GTags.Txt>
+        <GTags.Txt className="head" style={{ lineHeight: "1.5rem" }}>
+          {secondLine}
         </GTags.Txt>
       </div>
     );
@@ -142,11 +151,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.HeaderCon>
           <Header
             shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked={this.props.tour?.isPlaceholder ? '/screens' : '/tours'}
+            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? "/screens" : "/tours"}
             titleElOnLeft={this.getHeaderTxtEl()}
           />
         </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: '100%', background: '#fff' /* padding: '0px' */ }}>
+        <GTags.BodyCon style={{ height: "100%", background: "#fff" /* padding: '0px' */ }}>
           {/*
               TODO this is temp until siddhi is done with the screen zooming via canvas
                    after that integrate as part of Canvas
@@ -159,7 +168,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               onScreenEditFinish={this.onScreenEditFinish}
             />
           ) : (
-            <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+            <div style={{ position: "relative", height: "100%", width: "100%" }}>
               <Canvas cellWidth={20} screens={this.props.screens} />
             </div>
           )}

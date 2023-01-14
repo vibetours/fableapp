@@ -56,6 +56,10 @@ export const Txt = styled.div`
     text-overflow: ellipsis;
   }
 
+  &.emph {
+    font-weight: bold;
+  }
+
   span.kb-key {
     background: lightgray;
     color: #000;
