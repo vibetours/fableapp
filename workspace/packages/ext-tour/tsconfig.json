@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["chrome", "jest", "node"],
+    "types": ["chrome", "jest", "node", "dom"],
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "sourceMap": true,
