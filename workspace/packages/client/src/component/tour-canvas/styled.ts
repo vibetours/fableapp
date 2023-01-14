@@ -1,5 +1,5 @@
-import styled from "styled-components";
-import { Mode } from "./types";
+import styled from 'styled-components';
+import { Mode } from './types';
 
 type SVGProps = {
   mode: Mode;
@@ -10,7 +10,7 @@ export const SVGCanvas = styled.svg`
   top: 0;
   left: 0;
   bottom: 0;
-  cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? "default" : "move")};
+  cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? 'default' : 'move')};
 
   image {
     cursor: pointer;
@@ -21,7 +21,7 @@ export const SVGCanvas = styled.svg`
   }
 
   line {
-    cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? "pointer" : "default")};
+    cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? 'pointer' : 'default')};
   }
 `;
 
@@ -42,7 +42,7 @@ export const EmptyCanvasContainer = styled.div`
   img {
     width: 350px;
     height: auto;
-    box-shadow: 0px 2px 20px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
     display: inline-block;
   }
 
@@ -95,7 +95,7 @@ export const EmptyCanvasButtons = styled.div`
     color: #7567FF;
   }
 
-`
+`;
 
 export const SelectScreenContainer = styled.div`
 
@@ -121,13 +121,13 @@ export const SelectScreenContainer = styled.div`
     color: #FFFFFF;
   }
 
-`
+`;
 
 export const ScreensContainer = styled.div`
 
   background: #FFFFFF;
   border: 1px solid #DDDDDD;
-  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
   border-radius: 20px;
   max-width: 80vw;
   margin: auto;
@@ -141,7 +141,7 @@ export const ScreensContainer = styled.div`
     line-height: 20px;
     margin-bottom: 1rem;
   }
-`
+`;
 
 export const ScreenSlider = styled.div`
   display: flex;
@@ -166,7 +166,7 @@ export const ScreenSlider = styled.div`
     border-radius: 10px;
     background-color: #7567FF;
   }
-`
+`;
 
 export const Screen = styled.div`
   background: #FFFFFF;
@@ -191,4 +191,4 @@ export const Screen = styled.div`
     margin: 0;
     margin-top: 1rem;
   }
-`
+`;

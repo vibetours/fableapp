@@ -1,5 +1,5 @@
-import { combineReducers } from "redux";
-import defaultReducer, { initialState as defaultInitialState } from "./default-reducer";
+import { combineReducers } from 'redux';
+import defaultReducer, { initialState as defaultInitialState } from './default-reducer';
 
 const rootReducer = combineReducers({
   default: defaultReducer,

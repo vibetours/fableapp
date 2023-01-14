@@ -1,5 +1,5 @@
-import styled from "styled-components";
-import { Link } from "react-router-dom";
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
 export const NoScreenMsgCon = styled.div``;
 
@@ -33,10 +33,10 @@ export const CardCon = styled(Link)`
   &.multi {
     margin-right: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 6px 6px 0px 0px #ffffff, 6px 6px 0px 1px #dddddd, 12px 12px 0px 0px #fff, 12px 12px 0px 1px #dddddd;
+    box-shadow: 6px 6px 0 0 #ffffff, 6px 6px 0 1px #dddddd, 12px 12px 0 0 #fff, 12px 12px 0 1px #dddddd;
 
     &:hover {
-      box-shadow: 4px 4px 0px 0px #ffffff, 4px 4px 0px 1px ${(props) => props.theme.colors.light.selection.background},
+      box-shadow: 4px 4px 0 0 #ffffff, 4px 4px 0 1px ${(props) => props.theme.colors.light.selection.background},
         8px 8px 0px 0px #fff, 8px 8px 0px 1px ${(props) => props.theme.colors.light.selection.background};
     }
   }

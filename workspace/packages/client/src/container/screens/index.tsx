@@ -1,23 +1,21 @@
-import React from "react";
-import { connect } from "react-redux";
-import { getAllScreens } from "../../action/creator";
-import { P_RespScreen } from "../../entity-processor";
-import { TState } from "../../reducer";
-import SidePanel from "../../component/side-panel";
-import Header from "../../component/header";
-import * as Tags from "./styled";
-import * as GTags from "../../common-styled";
-import linkOpenIcon from "../../assets/link.svg";
+import React from 'react';
+import { connect } from 'react-redux';
+import { getAllScreens } from '../../action/creator';
+import { P_RespScreen } from '../../entity-processor';
+import { TState } from '../../reducer';
+import SidePanel from '../../component/side-panel';
+import Header from '../../component/header';
+import * as Tags from './styled';
+import * as GTags from '../../common-styled';
+import linkOpenIcon from '../../assets/link.svg';
 
 interface IDispatchProps {
   getAllScreens: () => void;
 }
 
-const mapDispatchToProps = (dispatch: any) => {
-  return {
-    getAllScreens: () => dispatch(getAllScreens()),
-  };
-};
+const mapDispatchToProps = (dispatch: any) => ({
+  getAllScreens: () => dispatch(getAllScreens()),
+});
 
 interface IAppStateProps {
   screens: P_RespScreen[];
@@ -48,7 +46,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.HeaderCon>
             <Header rBtnTxt="Record a screen" />
           </GTags.HeaderCon>
-          <GTags.BodyCon className={hasScreen ? "" : "centered"}>
+          <GTags.BodyCon className={hasScreen ? '' : 'centered'}>
             {hasScreen ? (
               <>
                 <Tags.TxtCon>
@@ -63,11 +61,11 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                   {this.props.screens.map((screen) => (
                     <Tags.CardCon
                       key={screen.rid}
-                      className={screen.related.length > 0 ? "multi" : ""}
+                      className={screen.related.length > 0 ? 'multi' : ''}
                       to={`/screen/${screen.rid}`}
                     >
                       <Tags.CardImg src={screen.thumbnailUri.href} />
-                      <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
+                      <Tags.CardFlexColCon style={{ marginTop: '0.35rem' }}>
                         <Tags.CardFlexRowCon>
                           {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
                           <GTags.Txt className="title oneline" title={screen.displayName}>
@@ -80,7 +78,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                             {screen.urlStructured.hostname}
                           </GTags.Txt>
                         </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon style={{ justifyContent: "space-between" }}>
+                        <Tags.CardFlexRowCon style={{ justifyContent: 'space-between' }}>
                           <GTags.Txt>Edited {screen.displayableUpdatedAt}</GTags.Txt>
                           <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
                         </Tags.CardFlexRowCon>

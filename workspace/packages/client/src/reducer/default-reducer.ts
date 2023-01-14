@@ -1,17 +1,17 @@
-import ActionType from "../action/type";
-import { Action } from "redux";
+import { Action } from 'redux';
+import { RespCommonConfig } from '@fable/common/dist/api-contract';
+import { LoadingStatus, ScreenData, TourData } from '@fable/common/dist/types';
+import ActionType from '../action/type';
 import {
+  TGenericLoading,
   TGetAllScreens,
+  TGetAllTours,
   TInitialize,
   TScreenWithData,
-  TGetAllTours,
   TTour,
-  TGenericLoading,
   TTourWithData,
-} from "../action/creator";
-import { P_RespScreen, P_RespTour } from "../entity-processor";
-import { RespCommonConfig } from "@fable/common/dist/api-contract";
-import { LoadingStatus, ScreenData, TourData } from "@fable/common/dist/types";
+} from '../action/creator';
+import { P_RespScreen, P_RespTour } from '../entity-processor';
 
 export const initialState: {
   commonConfig: RespCommonConfig | null;
@@ -62,7 +62,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TTour;
       const newState = { ...state };
       newState.currentTour = tAction.tour;
-      if (tAction.performedAction === "new") newState.newTourLoadingStatus = LoadingStatus.Done;
+      if (tAction.performedAction === 'new') newState.newTourLoadingStatus = LoadingStatus.Done;
       return newState;
     }
 
@@ -95,7 +95,7 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.GENERIC_LOADING: {
       const tAction = action as TGenericLoading;
       const newState = { ...state };
-      if (tAction.entity === "tour") newState.newTourLoadingStatus = LoadingStatus.InProgress;
+      if (tAction.entity === 'tour') newState.newTourLoadingStatus = LoadingStatus.InProgress;
       return newState;
     }
 

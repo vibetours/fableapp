@@ -3,4 +3,4 @@ export enum HeaderType {
   ScreenPreview,
 }
 
-export const EMBED_LOADER_IFRAME_ID = "fab-main-embed-frame";
+export const EMBED_LOADER_IFRAME_ID = 'fab-main-embed-frame';

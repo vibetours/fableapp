@@ -7,10 +7,9 @@ import { SerNode } from "@fable/common/dist/types";
 import { getSearializedDom } from "./doc";
 
 function getDocFor(filename: string) {
-  const htmlStr = readFileSync(`test_assets/${filename}`, {
+  document.documentElement.innerHTML = readFileSync(`test_assets/${filename}`, {
     encoding: "utf8",
   });
-  document.documentElement.innerHTML = htmlStr;
 }
 
 function isContentEmpty(el: Text): boolean {
@@ -19,10 +18,7 @@ function isContentEmpty(el: Text): boolean {
   }
   let content = el.textContent;
   content = content.replace(/[\s\n]+/g, "");
-  if (content === "") {
-    return true;
-  }
-  return false;
+  return content === "";
 }
 
 type Mismatch = {

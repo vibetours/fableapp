@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
-import * as Tags from "./styled";
-import { CanvasData } from "./types";
-import CanvasDottedBg from "./canvas-dotted-bg";
-import { P_RespScreen } from "../../entity-processor";
-import EmptyCanvas from "./empty-canvas";
-import AddScreen from "./add-screen";
+import React, { useEffect, useRef, useState } from 'react';
+import * as Tags from './styled';
+import { CanvasData } from './types';
+import CanvasDottedBg from './canvas-dotted-bg';
+import { P_RespScreen } from '../../entity-processor';
+import EmptyCanvas from './empty-canvas';
+import AddScreen from './add-screen';
 
 type CanvasProps = {
   cellWidth: number;
@@ -29,7 +29,7 @@ const initialData: CanvasData = {
   panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
 };
 
-const Canvas = ({ cellWidth, screens }: CanvasProps) => {
+function Canvas({ cellWidth, screens }: CanvasProps) {
   const canvasData = useRef({
     ...initialData,
   });
@@ -55,12 +55,12 @@ const Canvas = ({ cellWidth, screens }: CanvasProps) => {
         ...canvasData.current.panLimit,
         XMAX: parentRect.width,
         YMAX: parentRect.height,
-      }
+      };
       setViewBoxStr(`0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`);
       const ratio = canvasData.current.viewBox.width / svg.getBoundingClientRect().width;
       canvasData.current.ratio = ratio;
 
-      window.addEventListener("resize", function () {
+      window.addEventListener('resize', () => {
         canvasData.current.ratio = ratio;
         setViewBoxStr(`0 0 ${parentRect.width} ${parentRect.height}`);
       });
@@ -73,9 +73,9 @@ const Canvas = ({ cellWidth, screens }: CanvasProps) => {
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
       </Tags.SVGCanvas>
       {mode === Mode.EmptyMode && <EmptyCanvas setMode={setMode} />}
-      {mode === Mode.SelectScreenMode && <AddScreen screens={screens}/>}
+      {mode === Mode.SelectScreenMode && <AddScreen screens={screens} />}
     </>
   );
-};
+}
 
 export default Canvas;

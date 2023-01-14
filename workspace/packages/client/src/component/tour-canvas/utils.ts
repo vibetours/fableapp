@@ -5,10 +5,10 @@ export function roundToNearest(numToRound: number, numToRoundTo: number): number
 export function formGrid(cellWidth: number, XMIN: number, XMAX: number, YMIN: number, YMAX: number) {
   const lines = [];
 
-  const x1 = roundToNearest(XMIN, cellWidth),
-    x2 = roundToNearest(XMAX * 3, cellWidth);
+  const x1 = roundToNearest(XMIN, cellWidth);
+  const x2 = roundToNearest(XMAX * 3, cellWidth);
 
-  for (let i = roundToNearest(YMIN, cellWidth); i < roundToNearest(YMAX, 20); i = i + cellWidth) {
+  for (let i = roundToNearest(YMIN, cellWidth); i < roundToNearest(YMAX, 20); i += cellWidth) {
     lines.push({ x1, y1: i, x2, y2: i });
   }
 

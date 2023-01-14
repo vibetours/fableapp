@@ -1,9 +1,9 @@
-import React, { ReactElement } from "react";
-import * as Tags from "./styled";
-import { Avatar, Button } from "antd";
-import fableLogo from "../../assets/fable-logo-2.svg";
-import * as GTags from "../../common-styled";
-import { Link } from "react-router-dom";
+import React, { ReactElement } from 'react';
+import { Avatar, Button } from 'antd';
+import { Link } from 'react-router-dom';
+import * as Tags from './styled';
+import fableLogo from '../../assets/fable-logo-2.svg';
+import * as GTags from '../../common-styled';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -27,8 +27,8 @@ class Header extends React.PureComponent<IProps, IOwnStateProps> {
               <img
                 src={fableLogo}
                 alt="fable logo solid"
-                style={{ width: "36px", marginRight: "0.75rem", cursor: "pointer" }}
-              ></img>
+                style={{ width: '36px', marginRight: '0.75rem', cursor: 'pointer' }}
+              />
             </Link>
           )}
           {this.props.titleTxtOnLeft && <GTags.Txt className="head">{this.props.titleTxtOnLeft}</GTags.Txt>}
@@ -52,4 +52,3 @@ class Header extends React.PureComponent<IProps, IOwnStateProps> {
 }
 
 export default Header;
-

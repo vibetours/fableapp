@@ -1,23 +1,23 @@
-import ActionType from "./type";
-import { Dispatch } from "react";
-import api from "@fable/common/dist/api";
-import { ApiResp, RespCommonConfig, RespScreen, RespTour, ReqNewTour } from "@fable/common/dist/api-contract";
-import { sleep } from "@fable/common/dist/utils";
+import { Dispatch } from 'react';
+import api from '@fable/common/dist/api';
+import { ApiResp, ReqNewTour, RespCommonConfig, RespScreen, RespTour } from '@fable/common/dist/api-contract';
+import { sleep } from '@fable/common/dist/utils';
+import { ScreenData, TourData } from '@fable/common/dist/types';
 import {
-  processRawScreenData,
-  P_RespScreen,
-  groupScreens,
-  P_RespTour,
-  processRawTourData,
   createEmptyTour,
   createEmptyTourDataFile,
-} from "../entity-processor";
-import { TState } from "../reducer";
-import { ScreenData, TourData } from "@fable/common/dist/types";
+  groupScreens,
+  P_RespScreen,
+  P_RespTour,
+  processRawScreenData,
+  processRawTourData,
+} from '../entity-processor';
+import { TState } from '../reducer';
+import ActionType from './type';
 
 export interface TGenericLoading {
   type: ActionType.GENERIC_LOADING;
-  entity: "tour";
+  entity: 'tour';
 }
 
 /* ************************************************************************* */
@@ -29,7 +29,7 @@ export interface TGetAllScreens {
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespScreen[]>>("/screens", { auth: true });
+    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
       screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
@@ -46,7 +46,7 @@ export interface TInitialize {
 
 export function init() {
   return async (dispatch: Dispatch<TInitialize>) => {
-    const data = await api<null, ApiResp<RespCommonConfig>>("/cconfig");
+    const data = await api<null, ApiResp<RespCommonConfig>>('/cconfig');
     dispatch({
       type: ActionType.INIT,
       config: data.data,
@@ -111,7 +111,7 @@ export interface TGetAllTours {
 
 export function getAllTours() {
   return async (dispatch: Dispatch<TGetAllTours>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespTour[]>>("/tours", { auth: true });
+    const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
     dispatch({
       type: ActionType.ALL_TOURS_RETRIEVED,
       tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
@@ -124,14 +124,14 @@ export function getAllTours() {
 export interface TTour {
   type: ActionType.TOUR;
   tour: P_RespTour;
-  performedAction: "new" | "get" | "rename";
+  performedAction: 'new' | 'get' | 'rename';
 }
 
-export function createNewTour(tourName = "Untitled") {
+export function createNewTour(tourName = 'Untitled') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
-    dispatch({ type: ActionType.GENERIC_LOADING, entity: "tour" });
+    dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
 
-    const data = await api<ReqNewTour, ApiResp<RespTour>>("/newtour", {
+    const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
       body: {
         name: tourName,
@@ -141,7 +141,7 @@ export function createNewTour(tourName = "Untitled") {
     dispatch({
       type: ActionType.TOUR,
       tour: processRawTourData(data.data, getState()),
-      performedAction: "new",
+      performedAction: 'new',
     });
   };
 }
