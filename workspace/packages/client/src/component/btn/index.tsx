@@ -35,6 +35,7 @@ export default function Btn(props: IProps) {
         border: '1px solid #16023E',
         display: 'flex',
         alignItems: 'center',
+        alignSelf: 'center',
       }}
     >
       {props.children}

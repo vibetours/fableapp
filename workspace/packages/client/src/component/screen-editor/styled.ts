@@ -1,4 +1,6 @@
 import styled from 'styled-components';
+import Slider from 'antd/lib/slider';
+import TextArea from 'antd/lib/input/TextArea';
 
 export const Con = styled.div`
   height: 100%;
@@ -43,4 +45,30 @@ export const EditPanelSec = styled.div`
   display: flex;
   padding: 1rem 0.75rem;
   flex-direction: column;
+`;
+
+export const EditCtrlCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+export const EditCtrlLabel = styled.div``;
+
+export const EditCtrlLI = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+export const CtrlSlider = styled(Slider)`
+  display: block;
+  width: 9rem;
+`;
+
+export const CtrlTxtEditBox = styled(TextArea)`
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
 `;

@@ -17,14 +17,17 @@ export default class DomElementPicker {
 
   private onElSelect: ElSelectCallback;
 
+  private onElDeSelect: ElSelectCallback;
+
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
 
-  constructor(doc: Document, onElSelect: ElSelectCallback) {
+  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback }) {
     this.doc = doc;
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;
-    this.onElSelect = onElSelect;
+    this.onElSelect = cbs.onElSelect;
+    this.onElDeSelect = cbs.onElDeSelect;
     this.evts = {};
   }
 
@@ -42,6 +45,7 @@ export default class DomElementPicker {
 
   getOutOfPinMode() {
     this.highlightMode = HighlightMode.Selection;
+    this.onElDeSelect(this.prevElHovered as HTMLElement);
     return this;
   }
 

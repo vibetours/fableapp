@@ -1,25 +1,30 @@
-import { RespScreen } from '@fable/common/dist/api-contract';
-import { ScreenData, SerNode } from '@fable/common/dist/types';
-import React from 'react';
-import { detect } from '@fable/common/dist/detect-browser';
-import * as Tags from './styled';
-import * as GTags from '../../common-styled';
-import DomElPicker, { HighlightMode } from './dom-element-picker';
-import Btn from '../btn';
+import { RespScreen } from "@fable/common/dist/api-contract";
+import { ScreenData, ScreenEdits, SerNode } from "@fable/common/dist/types";
+import React from "react";
+import { detect } from "@fable/common/dist/detect-browser";
+import Switch from "antd/lib/switch";
+import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
+import Slider from "antd/lib/slider";
+import InputNumber from "antd/lib/input-number";
+import * as Tags from "./styled";
+import * as GTags from "../../common-styled";
+import DomElPicker, { HighlightMode } from "./dom-element-picker";
+import Btn from "../btn";
 
 const browser = detect();
 
 const enum EditTargetType {
-  Text = 't',
-  Img = 'i',
-  Mixed = 'm',
-  None = 'n',
+  Text = "t",
+  Img = "i",
+  Mixed = "m",
+  None = "n",
 }
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
 interface IOwnProps {
   screen: RespScreen;
   screenData: ScreenData;
+  screenEdits: ScreenEdits | null;
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
 }
@@ -57,18 +62,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
-      ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
+      ? doc.createElementNS("http://www.w3.org/2000/svg", node.name)
       : doc.createElement(node.name);
 
     for (const [attrKey, attrValue] of Object.entries(node.attrs)) {
       try {
         if (props.partOfSvgEl) {
-          el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
+          el.setAttributeNS(null, attrKey, attrValue === null ? "true" : attrValue);
         } else {
-          if (node.name === 'iframe' && attrKey === 'src') {
-            el.setAttribute(attrKey, 'about:blank');
+          if (node.name === "iframe" && attrKey === "src") {
+            el.setAttribute(attrKey, "about:blank");
           }
-          el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
+          el.setAttribute(attrKey, attrValue === null ? "true" : attrValue);
         }
       } catch (e) {
         console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
@@ -88,7 +93,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   deser = (serNode: SerNode, doc: Document, props: DeSerProps = { partOfSvgEl: 0 }) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
-      partOfSvgEl: props.partOfSvgEl | (serNode.name === 'svg' ? 1 : 0),
+      partOfSvgEl: props.partOfSvgEl | (serNode.name === "svg" ? 1 : 0),
     };
 
     let node;
@@ -105,7 +110,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     for (const child of serNode.chldrn) {
       // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
       // hence we altogether ignore those tags
-      if (child.name === 'meta') {
+      if (child.name === "meta") {
         continue;
       }
       const childNode = this.deser(child, doc, newProps);
@@ -139,7 +144,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const origFrameViewPort = frame.getBoundingClientRect();
     const scale = origFrameViewPort.width / this.props.screenData.vpd.w;
     frame.style.transform = `scale(${scale})`;
-    frame.style.transformOrigin = '0 0';
+    frame.style.transformOrigin = "0 0";
     const frameViewPortAfterScaling = frame.getBoundingClientRect();
     frame.style.height = `${(origFrameViewPort.height / frameViewPortAfterScaling.height) * 100}%`;
     frame.style.width = `${(origFrameViewPort.width / frameViewPortAfterScaling.width) * 100}%`;
@@ -149,12 +154,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
-        frameBody.style.display = 'none';
+        frameBody.style.display = "none";
         const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
 
         const childNodes = doc.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
-          if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
+          if (((childNodes[i] as any).tagName || "").toLowerCase() === "html") {
             doc.replaceChild(rootHTMLEl, childNodes[i]);
             break;
           }
@@ -162,7 +167,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
-          frameBody.style.display = '';
+          frameBody.style.display = "";
         });
       } else {
         console.error("Can't find body of embed iframe");
@@ -184,11 +189,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
 
     frame.onfocus = () => {
-      console.log('focused');
+      console.log("focused");
       frame.blur();
     };
 
-    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener("keydown", this.onKeyDown);
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
@@ -204,7 +209,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
       } else {
@@ -215,7 +220,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   componentWillUnmount(): void {
     this.disposeDomPicker();
-    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener("keydown", this.onKeyDown);
   }
 
   componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
@@ -232,21 +237,110 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (prevState.selectedEl !== this.state.selectedEl) {
       if (this.state.selectedEl) {
         const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
-        this.setState(() => ({ editTargetType: editTargetType.targetType, targetEl: editTargetType.target || null }));
+        this.setState((state) => ({
+          editTargetType: editTargetType.targetType,
+          targetEl: editTargetType.target || state.selectedEl,
+        }));
+      } else {
+        this.setState(() => ({ editTargetType: EditTargetType.None, targetEl: null }));
       }
     }
   }
 
-  static getEditingCtrlForElType(type: EditTargetType) {
+  static getBlurValueFromFilter(filterStr: string): number {
+    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
+    if (!match) {
+      return 0;
+    }
+    return +match[2];
+  }
+
+  static updateBlurValueToFilter(filterStr: string, value: number) {
+    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
+    let newFilter;
+    if (match) {
+      newFilter = `${filterStr.substring(0, match.index)} blur(${value}px) ${filterStr.substring(
+        match.index! + match[0].length
+      )}`;
+    } else if (filterStr === "none") {
+      newFilter = `blur(${value}px)`;
+    } else {
+      newFilter = filterStr ? `${filterStr} blur(${value}px)` : `blur(${value}px)`;
+    }
+    return newFilter;
+  }
+
+  getEditingCtrlForElType(type: EditTargetType) {
+    const CommonOptions = (
+      <>
+        <Tags.EditCtrlLI>
+          <Tags.EditCtrlLabel>Show Element</Tags.EditCtrlLabel>
+          <Switch
+            checkedChildren={<EyeOutlined />}
+            unCheckedChildren={<EyeInvisibleOutlined />}
+            defaultChecked={!!this.state.selectedEl && getComputedStyle(this.state.selectedEl).display !== "none"}
+            size="small"
+            onChange={((t) => (checked) => {
+              const savedOrigVal = t.getAttribute("fab-o-display");
+              let origVal = savedOrigVal;
+              if (origVal === null) {
+                origVal = getComputedStyle(t).display;
+              }
+
+              if (checked) {
+                t.style.display = origVal;
+              } else {
+                t.style.display = "none";
+              }
+            })(this.state.selectedEl!)}
+          />
+        </Tags.EditCtrlLI>
+        <Tags.EditCtrlLI>
+          <Tags.EditCtrlLabel>Blur Element</Tags.EditCtrlLabel>
+          <InputNumber
+            defaultValue={
+              this.state.selectedEl
+                ? ScreenEditor.getBlurValueFromFilter(getComputedStyle(this.state.selectedEl).filter)
+                : 0
+            }
+            addonAfter="px"
+            min={0}
+            size="small"
+            style={{ maxWidth: "120px" }}
+            onChange={((t) => (newVal) => {
+              const filterStr = ScreenEditor.updateBlurValueToFilter(
+                getComputedStyle(t).filter,
+                +(newVal === undefined || newVal === null ? 0 : +newVal)
+              );
+              t.style.filter = filterStr;
+            })(this.state.selectedEl!)}
+          />
+        </Tags.EditCtrlLI>
+      </>
+    );
     switch (type) {
       case EditTargetType.Img:
         return <>image editing option</>;
 
       case EditTargetType.Text:
-        return <>text editing option</>;
+        return (
+          <Tags.EditCtrlCon>
+            <Tags.EditCtrlLI style={{ flexDirection: "column", alignItems: "start" }}>
+              <Tags.EditCtrlLabel>Update Text</Tags.EditCtrlLabel>
+              <Tags.CtrlTxtEditBox
+                defaultValue={this.state.targetEl?.textContent!}
+                autoFocus
+                onChange={((t) => (e) => {
+                  t.textContent = e.target.value;
+                })(this.state.targetEl!)}
+              />
+            </Tags.EditCtrlLI>
+            {CommonOptions}
+          </Tags.EditCtrlCon>
+        );
 
       case EditTargetType.Mixed:
-        return <>mixed editing option</>;
+        return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
 
       default:
         return <></>;
@@ -256,7 +350,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   render(): React.ReactNode {
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: 'hidden' }} id="haha">
+        <Tags.EmbedCon style={{ overflow: "hidden" }} id="haha">
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}
@@ -265,41 +359,50 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           />
         </Tags.EmbedCon>
         <Tags.EditPanelCon>
-          {this.props.screen.parentScreenId === 0 ? (
-            <Tags.EditPanelSec>
-              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '1rem' }}>
-                <GTags.Txt className="title">Edit Screen</GTags.Txt>
-              </div>
-              <div style={{ justifyContent: 'center', display: 'flex', flexDirection: 'column' }}>
-                <GTags.Txt className="subhead" style={{ marginBottom: '0.5rem' }}>
-                  {!this.state.isInEditMode ? (
-                    'You can edit the screen by changing text, images, hiding elements etc.'
-                  ) : (
-                    <>
-                      Click an element in the screen to see the edit options. Press <span className="kb-key">Esc</span>{' '}
-                      exist from edit mode.
-                    </>
-                  )}
-                </GTags.Txt>
-                {!this.state.isInEditMode && (
-                  <Btn icon="plus" onClick={() => this.setState({ isInEditMode: true })}>
-                    Click here to start editing
-                  </Btn>
+          <Tags.EditPanelSec>
+            <div style={{ display: "flex", flexDirection: "column", marginBottom: "1.25rem" }}>
+              <GTags.Txt className="title">Edit Screen</GTags.Txt>
+            </div>
+            <div
+              style={{ justifyContent: "center", display: "flex", flexDirection: "column", marginBottom: "1.75rem" }}
+            >
+              <GTags.Txt className="subhead" style={{ marginBottom: "1rem" }}>
+                {!this.state.isInEditMode ? (
+                  "You can edit the screen by changing text, uploading new images, hiding or blurring elements etc."
+                ) : this.state.selectedEl === null ? (
+                  <>
+                    Click an element in the screen to see the edit options. Press <span className="kb-key">Esc</span> to
+                    exit from edit mode.
+                  </>
+                ) : (
+                  <>
+                    You are now editing the selected element. Press <span className="kb-key">Esc</span> to complete
+                    editing.
+                  </>
                 )}
-                {ScreenEditor.getEditingCtrlForElType(this.state.editTargetType)}
-              </div>
-            </Tags.EditPanelSec>
-          ) : (
-            'Fetch edit data'
-          )}
+              </GTags.Txt>
+              {!this.state.isInEditMode && (
+                <Btn icon="plus" onClick={() => this.setState({ isInEditMode: true })}>
+                  Click here to start editing
+                </Btn>
+              )}
+              {this.getEditingCtrlForElType(this.state.editTargetType)}
+            </div>
+            {this.props.screen.parentScreenId !== 0 &&
+              this.props.screenEdits &&
+              this.props.screenEdits.edits.map((edit) => {
+                console.log(edit);
+                return <></>;
+              })}
+          </Tags.EditPanelSec>
         </Tags.EditPanelCon>
       </Tags.Con>
     );
   }
 
   private disposeDomPicker() {
-    this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
-    this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
+    this.embedFrameRef?.current!.removeEventListener("mouseout", this.onMouseOutOfIframe);
+    this.embedFrameRef?.current!.removeEventListener("mouseenter", this.onMouseEnterOnIframe);
     if (this.domElPicker) {
       this.domElPicker.dispose();
       this.domElPicker = null;
@@ -316,10 +419,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
 
       if (el2.nodeName) {
-        if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
+        if (el2.nodeName.toLowerCase() === "img" || el2.nodeName.toLowerCase() === "svg") {
           return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
         }
-        if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
+        if (el2.nodeName.toLowerCase() === "div" || el2.nodeName.toLowerCase() === "span") {
           const bgImage = getComputedStyle(el2).backgroundImage;
           if (bgImage.search(/^url\(/) !== -1) {
             return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
@@ -339,7 +442,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }
       }
       return targetByTypes;
-    }(el));
+    })(el);
 
     const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
     const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
@@ -366,19 +469,23 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: el });
   };
 
+  private onElDeSelect = (el: HTMLElement) => {
+    this.setState({ selectedEl: null });
+  };
+
   private initDomPicker() {
     requestAnimationFrame(() => {
       const el = this.embedFrameRef?.current;
       let doc;
       if ((doc = el?.contentDocument)) {
-        this.domElPicker = new DomElPicker(doc, this.onElSelect);
-        this.domElPicker.addEventListener('keydown', this.onKeyDown);
+        this.domElPicker = new DomElPicker(doc, { onElSelect: this.onElSelect, onElDeSelect: this.onElDeSelect });
+        this.domElPicker.addEventListener("keydown", this.onKeyDown);
         this.domElPicker.setupHighlighting();
 
-        el.addEventListener('mouseout', this.onMouseOutOfIframe);
-        el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
+        el.addEventListener("mouseout", this.onMouseOutOfIframe);
+        el.addEventListener("mouseenter", this.onMouseEnterOnIframe);
       } else {
-        console.error('Iframe doc not found');
+        console.error("Iframe doc not found");
       }
     });
   }

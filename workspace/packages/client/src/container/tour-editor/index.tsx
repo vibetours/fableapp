@@ -171,6 +171,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             <ScreenEditor
               screen={this.props.screen!}
               screenData={this.props.screenData!}
+              screenEdits={null}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
             />
