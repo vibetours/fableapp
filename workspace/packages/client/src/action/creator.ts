@@ -1,8 +1,19 @@
-import { Dispatch } from "react";
-import api from "@fable/common/dist/api";
-import { ApiResp, ReqNewTour, RespCommonConfig, RespScreen, RespTour } from "@fable/common/dist/api-contract";
-import { sleep } from "@fable/common/dist/utils";
-import { ScreenData, TourData } from "@fable/common/dist/types";
+/* TODO There are some repetation of code across creators, fix those
+ */
+
+import { Dispatch } from 'react';
+import api from '@fable/common/dist/api';
+import {
+  ApiResp,
+  ReqCopyScreen,
+  ReqNewScreen,
+  ReqNewTour,
+  RespCommonConfig,
+  RespScreen,
+  RespTour,
+} from '@fable/common/dist/api-contract';
+import { sleep } from '@fable/common/dist/utils';
+import { ScreenData, TourData, ScreenEdits } from '@fable/common/dist/types';
 import {
   createEmptyTour,
   createEmptyTourDataFile,
@@ -11,13 +22,13 @@ import {
   P_RespTour,
   processRawScreenData,
   processRawTourData,
-} from "../entity-processor";
-import { TState } from "../reducer";
-import ActionType from "./type";
+} from '../entity-processor';
+import { TState } from '../reducer';
+import ActionType from './type';
 
 export interface TGenericLoading {
   type: ActionType.GENERIC_LOADING;
-  entity: "tour";
+  entity: 'tour';
 }
 
 /* ************************************************************************* */
@@ -29,7 +40,7 @@ export interface TGetAllScreens {
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespScreen[]>>("/screens", { auth: true });
+    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
       screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
@@ -46,7 +57,7 @@ export interface TInitialize {
 
 export function init() {
   return async (dispatch: Dispatch<TInitialize>) => {
-    const data = await api<null, ApiResp<RespCommonConfig>>("/cconfig");
+    const data = await api<null, ApiResp<RespCommonConfig>>('/cconfig');
     dispatch({
       type: ActionType.INIT,
       config: data.data,
@@ -59,6 +70,7 @@ export function init() {
 export interface TScreenWithData {
   type: ActionType.SCREEN_AND_DATA_LOADED;
   screenData: ScreenData;
+  screenEdits: ScreenEdits | null;
   screen: P_RespScreen;
 }
 
@@ -89,16 +101,47 @@ export function loadScreenAndData(screenRid: string) {
       // The data would be cached in disk any way and browser would not make another call to the data file and instead
       // return from disk cache
       const commonConfig = state.default.commonConfig!;
-      const url = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
-      const data = await api<null, ScreenData>(url);
+      const dataFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
+      const editFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.editFileName}`;
+      const [data, edits] = await Promise.all([
+        api<null, ScreenData>(dataFileUrl),
+        screen.parentScreenId ? api<null, ScreenEdits>(editFileUrl) : Promise.resolve(null),
+      ]);
       dispatch({
         type: ActionType.SCREEN_AND_DATA_LOADED,
         screenData: data,
+        screenEdits: edits,
         screen: processRawScreenData(screen, getState()),
       });
     } else {
       // TODO error
     }
+  };
+}
+
+export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen) {
+  return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
+    const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
+      auth: true,
+      body: {
+        parentId: withScreen.id,
+        tourRid: tour.rid,
+      },
+    });
+    const screen = screenResp.data;
+
+    const state = getState();
+    const commonConfig = state.default.commonConfig!;
+    const dataFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
+    const editFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.editFileName}`;
+    const [data, edits] = await Promise.all([api<null, ScreenData>(dataFileUrl), api<null, ScreenEdits>(editFileUrl)]);
+    dispatch({
+      type: ActionType.SCREEN_AND_DATA_LOADED,
+      screenData: data,
+      screenEdits: edits,
+      screen: processRawScreenData(screen, getState()),
+    });
+    window.history.replaceState(null, tour.displayName, `/tour/${tour.rid}/${screen.rid}`);
   };
 }
 
@@ -111,7 +154,7 @@ export interface TGetAllTours {
 
 export function getAllTours() {
   return async (dispatch: Dispatch<TGetAllTours>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespTour[]>>("/tours", { auth: true });
+    const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
     dispatch({
       type: ActionType.ALL_TOURS_RETRIEVED,
       tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
@@ -121,20 +164,20 @@ export function getAllTours() {
 
 /* ************************************************************************* */
 
-type SupportedPerformedAction = "new" | "get" | "rename" | "replace";
+type SupportedPerformedAction = 'new' | 'get' | 'rename' | 'replace';
 export interface TTour {
   type: ActionType.TOUR;
   tour: P_RespTour;
   performedAction: SupportedPerformedAction;
 }
 
-export function createNewTour(tourName = "Untitled", description = "", mode: SupportedPerformedAction = "new") {
+export function createNewTour(tourName = 'Untitled', description = '', mode: SupportedPerformedAction = 'new') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
-    if (mode !== "replace") {
-      dispatch({ type: ActionType.GENERIC_LOADING, entity: "tour" });
+    if (mode !== 'replace') {
+      dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
     }
 
-    const data = await api<ReqNewTour, ApiResp<RespTour>>("/newtour", {
+    const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
       body: {
         name: tourName,
@@ -214,7 +257,7 @@ export function createPlaceholderTour() {
 
 export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
-    const data = await api<ReqNewTour, ApiResp<RespTour>>("/newtour", {
+    const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
       body: {
         name: tour.displayName,
@@ -226,7 +269,7 @@ export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) 
     dispatch({
       type: ActionType.TOUR,
       tour: pTour,
-      performedAction: "replace",
+      performedAction: 'replace',
     });
     window.history.replaceState(null, tour.displayName, `/tour/${pTour.rid}/${withScreen.rid}`);
   };

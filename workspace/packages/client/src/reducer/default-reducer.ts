@@ -1,6 +1,6 @@
 import { Action } from 'redux';
 import { RespCommonConfig } from '@fable/common/dist/api-contract';
-import { LoadingStatus, ScreenData, TourData } from '@fable/common/dist/types';
+import { LoadingStatus, ScreenData, TourData, ScreenEdits } from '@fable/common/dist/types';
 import ActionType from '../action/type';
 import {
   TGenericLoading,
@@ -21,6 +21,7 @@ export const initialState: {
   principalFetched: boolean;
   screenLoaded: boolean;
   screenData: ScreenData | null;
+  screenEdits: ScreenEdits | null;
   currentScreen: P_RespScreen | null;
   currentTour: P_RespTour | null;
   newTourLoadingStatus: LoadingStatus;
@@ -36,6 +37,7 @@ export const initialState: {
   screenData: null,
   currentScreen: null,
   currentTour: null,
+  screenEdits: null,
   newTourLoadingStatus: LoadingStatus.NotStarted,
   tourData: null,
   tourLoaded: false,
@@ -80,6 +82,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.currentScreen = tAction.screen;
       newState.screenData = tAction.screenData;
+      newState.screenEdits = tAction.screenEdits;
       newState.screenLoaded = true;
       return newState;
     }

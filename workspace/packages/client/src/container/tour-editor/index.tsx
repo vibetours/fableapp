@@ -7,6 +7,7 @@ import {
   loadScreenAndData,
   loadTourAndData,
   savePlaceHolderTour,
+  copyScreenForCurrentTour,
 } from "../../action/creator";
 import { P_RespScreen, P_RespTour } from "../../entity-processor";
 import { TState } from "../../reducer";
@@ -22,6 +23,7 @@ interface IDispatchProps {
   createPlaceholderTour: () => void;
   loadScreenAndData: (rid: string) => void;
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
+  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -30,6 +32,8 @@ const mapDispatchToProps = (dispatch: any) => ({
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
+  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) =>
+    dispatch(copyScreenForCurrentTour(tour, screen)),
 });
 
 interface IAppStateProps {
@@ -78,7 +82,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.getAllScreens();
   }
 
-  // componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {}
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
+    if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
+      this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
+    }
+  }
 
   isLoadingComplete = () => {
     let result = true;

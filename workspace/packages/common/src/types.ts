@@ -52,6 +52,12 @@ export interface ScreenData {
   docTree: SerNode;
 }
 
+export interface ScreenEdits {
+  v: SchemaVersion;
+  lastUpdatedAtUtc: number;
+  edits: Array<any>; // TODO specific type
+}
+
 export interface TourEntity {
   type: 'screen' | 'qualification';
   ref: string;

@@ -205,7 +205,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
-      console.log('escape pressed');
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
       } else {

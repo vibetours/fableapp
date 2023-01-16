@@ -1,12 +1,17 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-13 10:41:23.
+// Generated using typescript-generator version 2.35.1025 on 2023-01-16 13:31:42.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
     data: T;
     errStr: string;
     errCode: ErrorCode;
+}
+
+export interface ReqCopyScreen {
+    parentId: number;
+    tourRid: string;
 }
 
 export interface ReqNewOrg {
@@ -19,7 +24,6 @@ export interface ReqNewScreen {
     url: string;
     thumbnail: string;
     favIcon?: string;
-    parentId?: number;
     body: string;
 }
 
