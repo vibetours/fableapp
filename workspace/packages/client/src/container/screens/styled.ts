@@ -83,3 +83,39 @@ export const CardIconSm = styled.img`
   width: 8px;
   margin-right: 0.35rem;
 `;
+
+export const MultiScreenChooserLineItem = styled(Link)`
+  display: flex;
+  align-items: center;
+  padding: 1rem 0.75rem;
+  border-radius: 6px;
+  font-size: 1.15rem;
+  color: #16023e;
+  text-decoration: none;
+
+  &:hover {
+    box-shadow: 0 0 0 1px #16023e;
+    cursor: pointer;
+    color: #16023e;
+    text-decoration: none;
+  }
+
+  .ent {
+    display: flex;
+    align-items: center;
+  }
+
+  .mark-tour {
+    background: #d0d0ff;
+    margin: 0 0.5rem;
+    border-radius: 20px;
+    padding: 0 0.85rem 0 0.45rem;
+  }
+
+  .mark-new {
+    border: 1px solid #16023e;
+    margin: 0 0.5rem;
+    border-radius: 20px;
+    padding: 0 0.85rem 0 0.45rem;
+  }
+`;

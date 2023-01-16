@@ -6,7 +6,6 @@ import api from '@fable/common/dist/api';
 import {
   ApiResp,
   ReqCopyScreen,
-  ReqNewScreen,
   ReqNewTour,
   RespCommonConfig,
   RespScreen,
