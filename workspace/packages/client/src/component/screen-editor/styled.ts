@@ -45,6 +45,7 @@ export const EditPanelSec = styled.div`
   display: flex;
   padding: 1rem 0.75rem;
   flex-direction: column;
+  width: 100%;
 `;
 
 export const EditCtrlCon = styled.div`
@@ -71,4 +72,30 @@ export const CtrlTxtEditBox = styled(TextArea)`
   border: 2px solid #ddd;
   padding: 0.875rem 1rem;
   font-size: 1rem;
+`;
+
+export const EditLICon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+export const EditLIPCon = styled.div`
+  background: #d0d0ff;
+  padding: 0.25rem 1rem;
+  border-radius: 10px;
+  margin: 0.25rem 1rem;
+  &:hover {
+    cursor: pointer;
+    box-shadow: 0 0 0 1px #7567ff;
+  }
+`;
+
+export const ListActionBtn = styled.span`
+  color: #16023e;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;

@@ -1,11 +1,12 @@
 import React, { MouseEventHandler } from 'react';
-import Button from 'antd/lib/button';
+import Button, { ButtonType } from 'antd/lib/button';
 import plusOutlined from '../../assets/plus-outlined.svg';
 
 interface IProps {
   icon?: 'plus';
   children: React.ReactNode;
   onClick?: MouseEventHandler<HTMLButtonElement> & MouseEventHandler<HTMLAnchorElement>;
+  type?: ButtonType;
 }
 
 export default function Btn(props: IProps) {
@@ -16,6 +17,7 @@ export default function Btn(props: IProps) {
   return (
     <Button
       onClick={props.onClick}
+      type="link"
       icon={
         icon && (
           <img

@@ -24,6 +24,7 @@ import {
 } from '../entity-processor';
 import { TState } from '../reducer';
 import ActionType from './type';
+import { AllEdits, EditItem, ElEditType } from '../types';
 
 export interface TGenericLoading {
   type: ActionType.GENERIC_LOADING;
@@ -275,3 +276,26 @@ export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) 
 }
 
 /* ************************************************************************* */
+
+export interface TSaveEditChunks {
+  type: ActionType.SAVE_EDIT_CHUNKS;
+  screen: P_RespScreen;
+  editList: EditItem[];
+}
+
+export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEditType>) {
+  return async (dispatch: Dispatch<TSaveEditChunks>) => {
+    const editList: EditItem[] = [];
+    for (const [path, edits] of Object.entries(editChunks)) {
+      for (const [type, editDetails] of Object.entries(edits)) {
+        editList.push([`${path}:${type}`, path, +type, editDetails[0], editDetails]);
+      }
+    }
+
+    dispatch({
+      type: ActionType.SAVE_EDIT_CHUNKS,
+      screen,
+      editList,
+    });
+  };
+}

@@ -1,15 +1,16 @@
 import { RespScreen } from "@fable/common/dist/api-contract";
 import { ScreenData, ScreenEdits, SerNode } from "@fable/common/dist/types";
+import { getCurrentUtcUnixTime } from "@fable/common/dist/utils";
 import React from "react";
 import { detect } from "@fable/common/dist/detect-browser";
 import Switch from "antd/lib/switch";
-import { EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
-import Slider from "antd/lib/slider";
+import { EyeInvisibleOutlined, EyeOutlined, FontSizeOutlined, LoadingOutlined } from "@ant-design/icons";
 import InputNumber from "antd/lib/input-number";
 import * as Tags from "./styled";
 import * as GTags from "../../common-styled";
 import DomElPicker, { HighlightMode } from "./dom-element-picker";
 import Btn from "../btn";
+import { ElEditType, EditValueEncoding, AllEdits, EditItem, IdxEditItem, IdxEditEncodingText } from "../../types";
 
 const browser = detect();
 
@@ -25,14 +26,17 @@ interface IOwnProps {
   screen: RespScreen;
   screenData: ScreenData;
   screenEdits: ScreenEdits | null;
+  localEdits: EditItem[];
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
+  onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
 }
 interface IOwnStateProps {
   isInEditMode: boolean;
   selectedEl: HTMLElement | null;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
+  editItemSelected: string;
 }
 
 interface DeSerProps {
@@ -49,14 +53,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private domElPicker: DomElPicker | null = null;
 
+  private microEdits: AllEdits<ElEditType>;
+
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
+    this.microEdits = {};
     this.state = {
       isInEditMode: false,
       selectedEl: null,
       targetEl: null,
       editTargetType: EditTargetType.None,
+      editItemSelected: "",
     };
   }
 
@@ -186,26 +194,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
-    };
-
-    frame.onfocus = () => {
-      console.log("focused");
-      frame.blur();
+      this.initDomPicker();
     };
 
     document.addEventListener("keydown", this.onKeyDown);
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
-    if (this.domElPicker && this.domElPicker.getMode() !== HighlightMode.Pinned) {
-      this.domElPicker.disable();
-    }
+    this.domElPicker?.disable();
   };
 
   private onMouseEnterOnIframe = (e: MouseEvent) => {
-    if (this.domElPicker && this.domElPicker.getMode() !== HighlightMode.Pinned) {
-      this.domElPicker.enable();
-    }
+    this.state.isInEditMode && this.domElPicker?.enable();
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -215,11 +215,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       } else {
         this.setState({ isInEditMode: false });
       }
+
+      if (this.state.editItemSelected !== "") {
+        this.setState({ editItemSelected: "" });
+      }
     }
   };
 
   componentWillUnmount(): void {
     this.disposeDomPicker();
+    this.domElPicker = null;
     document.removeEventListener("keydown", this.onKeyDown);
   }
 
@@ -227,9 +232,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (prevState.isInEditMode !== this.state.isInEditMode) {
       if (this.state.isInEditMode) {
         this.props.onScreenEditStart();
-        this.initDomPicker();
+        this.domElPicker?.enable();
       } else {
-        this.disposeDomPicker();
+        console.log("disabling this");
+        this.domElPicker?.disable();
         this.props.onScreenEditFinish();
       }
     }
@@ -244,6 +250,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       } else {
         this.setState(() => ({ editTargetType: EditTargetType.None, targetEl: null }));
       }
+    } else {
+      console.log("same el is set twice???");
     }
   }
 
@@ -268,6 +276,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       newFilter = filterStr ? `${filterStr} blur(${value}px)` : `blur(${value}px)`;
     }
     return newFilter;
+  }
+
+  private addToMicroEdit<K extends keyof EditValueEncoding>(path: string, editType: K, edit: EditValueEncoding[K]) {
+    if (!(path in this.microEdits)) {
+      this.microEdits[path] = {};
+    }
+    const edits = this.microEdits[path];
+    edits[editType] = edit;
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
@@ -330,7 +346,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <Tags.CtrlTxtEditBox
                 defaultValue={this.state.targetEl?.textContent!}
                 autoFocus
+                onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
+                  const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+                  const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+                  const attrName = `fab-orig-val-t-${ElEditType.Text}`;
+                  let origVal = refEl.getAttribute(attrName);
+                  if (origVal === null) {
+                    origVal = t.textContent || "";
+                    refEl.setAttribute(attrName, origVal);
+                  }
+                  this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+
                   t.textContent = e.target.value;
                 })(this.state.targetEl!)}
               />
@@ -347,10 +374,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
+  flushMicroEdits() {
+    const hasEdits = Object.keys(this.microEdits).length !== 0;
+    if (hasEdits) {
+      this.props.onScreenEditChange(this.microEdits);
+      this.microEdits = {};
+    }
+  }
+
   render(): React.ReactNode {
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: "hidden" }} id="haha">
+        <Tags.EmbedCon style={{ overflow: "hidden" }}>
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}
@@ -389,15 +424,71 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
             {this.props.screen.parentScreenId !== 0 &&
-              this.props.screenEdits &&
-              this.props.screenEdits.edits.map((edit) => {
-                console.log(edit);
-                return <></>;
-              })}
+              this.props.localEdits
+                .sort((m, n) => n[2] - m[2])
+                .map((e) => (
+                  <Tags.EditLIPCon
+                    key={e[IdxEditItem.KEY]}
+                    onClick={((edit) => (evt) => {
+                      this.highlightElementForPath(edit[IdxEditItem.PATH]);
+                      this.setState({ editItemSelected: e[IdxEditItem.KEY] });
+                    })(e)}
+                  >
+                    {ScreenEditor.getEditTypeComponent(e, true)}
+                    {e[IdxEditItem.KEY] === this.state.editItemSelected && (
+                      <div style={{ display: "flex" }}>
+                        <Tags.ListActionBtn>Revert</Tags.ListActionBtn>&nbsp;&nbsp;|&nbsp;&nbsp;
+                        <Tags.ListActionBtn>Delete</Tags.ListActionBtn>
+                      </div>
+                    )}
+                  </Tags.EditLIPCon>
+                ))}
           </Tags.EditPanelSec>
         </Tags.EditPanelCon>
       </Tags.Con>
     );
+  }
+
+  highlightElementForPath(path: string) {
+    const doc = this.embedFrameRef.current?.contentDocument;
+    if (!doc) {
+      throw new Error("Iframe doc is not found while resolving element from path");
+    }
+    const el = ScreenEditor.elFromPath(path, doc) as HTMLElement;
+    if (!el) {
+      throw new Error(`Could not resolve element from path ${path}`);
+    }
+
+    // This is kind of a hack that moves the element in the view instantly and then after
+    // 3 frame shows the selector.
+    // Caveat: if the scroll is taking time to finish then this would not work
+    // TODO fix this
+    el.scrollIntoView({ block: "center", inline: "center" });
+    setTimeout(() => {
+      this.domElPicker?.selectElement(el, HighlightMode.Pinned);
+    }, 3 * 16);
+  }
+
+  static getEditTypeComponent(edit: EditItem, shouldShowLoading = false) {
+    const encoding = edit[IdxEditItem.ENCODING];
+    switch (edit[IdxEditItem.TYPE]) {
+      case ElEditType.Text:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+              <FontSizeOutlined />
+              <div style={{ marginLeft: "0.5rem", flexShrink: 0 }}>Edited to</div>
+              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: "0 4px" }}>
+                {encoding[IdxEditEncodingText.NEW_VALUE]}
+              </GTags.Txt>
+            </div>
+            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+
+      default:
+        return <></>;
+    }
   }
 
   private disposeDomPicker() {
@@ -465,11 +556,46 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
-  private onElSelect = (el: HTMLElement) => {
+  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
+    if (!el.parentNode) {
+      return loc.reverse();
+    }
+    const siblings = el.parentNode.childNodes;
+    for (let i = 0, l = siblings.length; i < l; i++) {
+      if (el === siblings[i]) {
+        loc.push(i);
+        return this.calculatePathFromEl(el.parentNode, doc, loc);
+      }
+    }
+    return loc;
+  }
+
+  static elFromPath(path: string, doc: Document) {
+    const elIdxs = path.split(".").map((id) => +id);
+    let node = doc as Node;
+    for (const id of elIdxs) {
+      node = node.childNodes[id];
+    }
+    return node;
+  }
+
+  static elPath(el: HTMLElement, doc: Document) {
+    let elPath = el.getAttribute("fab-el-path");
+    if (elPath === null) {
+      const path = ScreenEditor.calculatePathFromEl(el, doc, []);
+      elPath = path.join(".");
+      el.setAttribute("fab-el-path", elPath);
+    }
+    return elPath;
+  }
+
+  private onElSelect = (el: HTMLElement, doc: Document) => {
+    ScreenEditor.elPath(el, doc);
     this.setState({ selectedEl: el });
   };
 
   private onElDeSelect = (el: HTMLElement) => {
+    this.flushMicroEdits();
     this.setState({ selectedEl: null });
   };
 

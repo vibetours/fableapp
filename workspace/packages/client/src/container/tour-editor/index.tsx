@@ -1,6 +1,6 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import { ScreenData, TourData } from '@fable/common/dist/types';
+import React from "react";
+import { connect } from "react-redux";
+import { ScreenData, TourData } from "@fable/common/dist/types";
 import {
   createPlaceholderTour,
   getAllScreens,
@@ -8,14 +8,16 @@ import {
   loadTourAndData,
   savePlaceHolderTour,
   copyScreenForCurrentTour,
-} from '../../action/creator';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { TState } from '../../reducer';
-import Header from '../../component/header';
-import * as GTags from '../../common-styled';
-import { withRouter, WithRouterProps } from '../../router-hoc';
-import Canvas from '../../component/tour-canvas';
-import ScreenEditor from '../../component/screen-editor';
+  saveEditChunks,
+} from "../../action/creator";
+import { P_RespScreen, P_RespTour } from "../../entity-processor";
+import { TState } from "../../reducer";
+import Header from "../../component/header";
+import * as GTags from "../../common-styled";
+import { withRouter, WithRouterProps } from "../../router-hoc";
+import Canvas from "../../component/tour-canvas";
+import ScreenEditor from "../../component/screen-editor";
+import { AllEdits, EditItem, ElEditType } from "../../types";
 
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
@@ -24,6 +26,7 @@ interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
+  saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -32,7 +35,10 @@ const mapDispatchToProps = (dispatch: any) => ({
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
-  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
+  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) =>
+    dispatch(copyScreenForCurrentTour(tour, screen)),
+  saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) =>
+    dispatch(saveEditChunks(screen, editChunks)),
 });
 
 interface IAppStateProps {
@@ -43,6 +49,7 @@ interface IAppStateProps {
   isScreenLoaded: boolean;
   isTourLoaded: boolean;
   screens: P_RespScreen[];
+  localEdits: EditItem[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -53,6 +60,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   screenData: state.default.screenData,
   isScreenLoaded: state.default.screenLoaded,
   screens: state.default.screens,
+  localEdits: state.default.currentScreen?.rid ? state.default.editChunks[state.default.currentScreen.rid] || [] : [],
 });
 
 interface IOwnProps {}
@@ -132,9 +140,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         <GTags.Txt className="subsubhead">{firstLine}</GTags.Txt>
-        <GTags.Txt className="head" style={{ lineHeight: '1.5rem' }}>
+        <GTags.Txt className="head" style={{ lineHeight: "1.5rem" }}>
           {secondLine}
         </GTags.Txt>
       </div>
@@ -149,6 +157,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   private onScreenEditFinish = () => {};
 
+  private onScreenEditChange = (editChunks: AllEdits<ElEditType>) => {
+    this.props.saveEditChunks(this.props.screen!, editChunks);
+  };
+
   render() {
     if (!this.isLoadingComplete()) {
       return <div>TODO show loader</div>;
@@ -158,11 +170,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.HeaderCon>
           <Header
             shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
+            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? "/screens" : "/tours"}
             titleElOnLeft={this.getHeaderTxtEl()}
           />
         </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: '100%', background: '#fff' /* padding: '0px' */ }}>
+        <GTags.BodyCon style={{ height: "100%", background: "#fff" /* padding: '0px' */ }}>
           {/*
               TODO this is temp until siddhi is done with the screen zooming via canvas
                    after that integrate as part of Canvas
@@ -172,11 +184,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               screen={this.props.screen!}
               screenData={this.props.screenData!}
               screenEdits={null}
+              localEdits={this.props.localEdits}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
+              onScreenEditChange={this.onScreenEditChange}
             />
           ) : (
-            <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+            <div style={{ position: "relative", height: "100%", width: "100%" }}>
               <Canvas cellWidth={20} screens={this.props.screens} />
             </div>
           )}

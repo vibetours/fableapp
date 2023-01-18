@@ -35,3 +35,14 @@ export function getDisplayableTime(d: Date): string {
 
 // eslint-disable-next-line no-promise-executor-return
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export function getCurrentUtcUnixTime(): number {
+  return Math.floor(new Date().getTime() / 1000);
+}
+
+export function deepcopy<T>(obj: T): T {
+  if ('structuredClone' in window && typeof structuredClone === 'function') {
+    return structuredClone(obj) as T;
+  }
+  return JSON.parse(JSON.stringify(obj));
+}

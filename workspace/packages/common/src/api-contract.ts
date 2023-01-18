@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-16 17:10:11.
+// Generated using typescript-generator version 2.35.1025 on 2023-01-17 11:11:39.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -87,6 +87,12 @@ export interface RespTour extends ResponseBase {
     displayName: string;
     description: string;
     createdBy: RespUser;
+}
+
+export interface RespUploadUrl {
+    url: string;
+    expiry: string;
+    filename: string;
 }
 
 export interface RespUser extends ResponseBase {

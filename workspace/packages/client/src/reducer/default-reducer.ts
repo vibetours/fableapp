@@ -7,11 +7,13 @@ import {
   TGetAllScreens,
   TGetAllTours,
   TInitialize,
+  TSaveEditChunks,
   TScreenWithData,
   TTour,
   TTourWithData,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour } from '../entity-processor';
+import { EditItem, IdxEditItem } from '../types';
 
 export const initialState: {
   commonConfig: RespCommonConfig | null;
@@ -27,6 +29,7 @@ export const initialState: {
   newTourLoadingStatus: LoadingStatus;
   tourData: TourData | null;
   tourLoaded: boolean;
+  editChunks: Record<string, EditItem[]>;
 } = {
   screens: [],
   tours: [],
@@ -41,6 +44,7 @@ export const initialState: {
   newTourLoadingStatus: LoadingStatus.NotStarted,
   tourData: null,
   tourLoaded: false,
+  editChunks: {},
 };
 
 // eslint-disable-next-line default-param-last
@@ -100,6 +104,19 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TGenericLoading;
       const newState = { ...state };
       if (tAction.entity === 'tour') newState.newTourLoadingStatus = LoadingStatus.InProgress;
+      return newState;
+    }
+
+    case ActionType.SAVE_EDIT_CHUNKS: {
+      const tAction = action as TSaveEditChunks;
+      const newState = { ...state };
+      const editList: EditItem[] = newState.editChunks[tAction.screen.rid] || [];
+      const currentEditKeys = tAction.editList.reduce((store, e) => {
+        store[e[IdxEditItem.KEY]] = 1;
+        return store;
+      }, {} as Record<string, 1>);
+      const editsWithoutCollision = editList.filter((e) => !(e[IdxEditItem.KEY] in currentEditKeys));
+      newState.editChunks[tAction.screen.rid] = [...tAction.editList, ...editsWithoutCollision];
       return newState;
     }
 
