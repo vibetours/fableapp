@@ -299,3 +299,7 @@ export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEdit
     });
   };
 }
+
+export function flushEditChunksToMasterFile(screen: P_RespScreen) {
+  return async (dispatch: Dispatch<TSaveEditChunks>) => {};
+}

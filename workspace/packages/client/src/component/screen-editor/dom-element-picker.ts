@@ -36,7 +36,7 @@ export default class DomElementPicker {
   }
 
   enable() {
-    if (this.highlightMode === HighlightMode.Idle) {
+    if (this.highlightMode !== HighlightMode.Pinned) {
       this.highlightMode = HighlightMode.Selection;
     }
     return this;
@@ -176,8 +176,10 @@ export default class DomElementPicker {
   }
 
   private handleClick = () => {
-    const el = this.prevElHovered;
-    console.assert(el !== null);
-    this.pinnedMode(el as HTMLElement);
+    if (this.highlightMode === HighlightMode.Selection) {
+      const el = this.prevElHovered;
+      console.assert(el !== null);
+      this.pinnedMode(el as HTMLElement);
+    }
   };
 }

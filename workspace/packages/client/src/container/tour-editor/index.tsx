@@ -1,6 +1,6 @@
-import React from "react";
-import { connect } from "react-redux";
-import { ScreenData, TourData } from "@fable/common/dist/types";
+import React from 'react';
+import { connect } from 'react-redux';
+import { ScreenData, TourData } from '@fable/common/dist/types';
 import {
   createPlaceholderTour,
   getAllScreens,
@@ -9,15 +9,17 @@ import {
   savePlaceHolderTour,
   copyScreenForCurrentTour,
   saveEditChunks,
-} from "../../action/creator";
-import { P_RespScreen, P_RespTour } from "../../entity-processor";
-import { TState } from "../../reducer";
-import Header from "../../component/header";
-import * as GTags from "../../common-styled";
-import { withRouter, WithRouterProps } from "../../router-hoc";
-import Canvas from "../../component/tour-canvas";
-import ScreenEditor from "../../component/screen-editor";
-import { AllEdits, EditItem, ElEditType } from "../../types";
+  flushEditChunksToMasterFile,
+} from '../../action/creator';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
+import Header from '../../component/header';
+import * as GTags from '../../common-styled';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import Canvas from '../../component/tour-canvas';
+import ScreenEditor from '../../component/screen-editor';
+import { AllEdits, EditItem, ElEditType } from '../../types';
+import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
@@ -27,6 +29,7 @@ interface IDispatchProps {
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
+  flushEditChunksToMasterFile: (screen: P_RespScreen) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -35,10 +38,9 @@ const mapDispatchToProps = (dispatch: any) => ({
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
-  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) =>
-    dispatch(copyScreenForCurrentTour(tour, screen)),
-  saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) =>
-    dispatch(saveEditChunks(screen, editChunks)),
+  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
+  saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
+  flushEditChunksToMasterFile: (screen: P_RespScreen) => dispatch(flushEditChunksToMasterFile(screen)),
 });
 
 interface IAppStateProps {
@@ -75,6 +77,10 @@ type IProps = IOwnProps &
 interface IOwnStateProps {}
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
+  private static LOCAL_STORAGE_KEY_PREFIX = 'fable/editchunk';
+
+  private chunkSyncManager: ChunkSyncManager | null = null;
+
   componentDidMount(): void {
     if (this.props.match.params.tourId) {
       this.props.loadTourAndData(this.props.match.params.tourId);
@@ -87,11 +93,24 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     // TODO do this only when add screen to tour button is clicked from
     this.props.getAllScreens();
+    this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
+      onSyncNeeded: this.flushEdits,
+    });
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
     if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
       this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
+    }
+  }
+
+  getStorageKeyForEditChunks(type: 'edit-chunk'): string {
+    switch (type) {
+      case 'edit-chunk':
+        return `${TourEditor.LOCAL_STORAGE_KEY_PREFIX}/${this.props.screen?.rid!}`;
+
+      default:
+        return '';
     }
   }
 
@@ -140,13 +159,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     return (
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
         <GTags.Txt className="subsubhead">{firstLine}</GTags.Txt>
-        <GTags.Txt className="head" style={{ lineHeight: "1.5rem" }}>
+        <GTags.Txt className="head" style={{ lineHeight: '1.5rem' }}>
           {secondLine}
         </GTags.Txt>
       </div>
     );
+  };
+
+  private flushEdits = () => {
+    this.props.flushEditChunksToMasterFile(this.props.screen!);
   };
 
   private onScreenEditStart = () => {
@@ -158,8 +181,34 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private onScreenEditFinish = () => {};
 
   private onScreenEditChange = (editChunks: AllEdits<ElEditType>) => {
-    this.props.saveEditChunks(this.props.screen!, editChunks);
+    const mergedEditChunks = this.chunkSyncManager!.add(
+      this.getStorageKeyForEditChunks('edit-chunk'),
+      editChunks,
+      (storedEdits: AllEdits<ElEditType> | null, edits: AllEdits<ElEditType>) => {
+        if (storedEdits === null) {
+          return edits;
+        }
+
+        for (const path of Object.keys(edits)) {
+          if (path in storedEdits) {
+            const perElEdit = edits[path];
+            for (const editType of Object.keys(perElEdit)) {
+              storedEdits[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+            }
+          } else {
+            storedEdits[path] = edits[path];
+          }
+        }
+
+        return storedEdits;
+      }
+    );
+    this.props.saveEditChunks(this.props.screen!, mergedEditChunks);
   };
+
+  componentWillUnmount() {
+    // this.stopEditSyncLoop();
+  }
 
   render() {
     if (!this.isLoadingComplete()) {
@@ -170,11 +219,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.HeaderCon>
           <Header
             shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? "/screens" : "/tours"}
+            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
             titleElOnLeft={this.getHeaderTxtEl()}
           />
         </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: "100%", background: "#fff" /* padding: '0px' */ }}>
+        <GTags.BodyCon style={{ height: '100%', background: '#fff' /* padding: '0px' */ }}>
           {/*
               TODO this is temp until siddhi is done with the screen zooming via canvas
                    after that integrate as part of Canvas
@@ -190,7 +239,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               onScreenEditChange={this.onScreenEditChange}
             />
           ) : (
-            <div style={{ position: "relative", height: "100%", width: "100%" }}>
+            <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas cellWidth={20} screens={this.props.screens} />
             </div>
           )}

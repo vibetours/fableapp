@@ -110,13 +110,13 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.SAVE_EDIT_CHUNKS: {
       const tAction = action as TSaveEditChunks;
       const newState = { ...state };
-      const editList: EditItem[] = newState.editChunks[tAction.screen.rid] || [];
-      const currentEditKeys = tAction.editList.reduce((store, e) => {
-        store[e[IdxEditItem.KEY]] = 1;
-        return store;
-      }, {} as Record<string, 1>);
-      const editsWithoutCollision = editList.filter((e) => !(e[IdxEditItem.KEY] in currentEditKeys));
-      newState.editChunks[tAction.screen.rid] = [...tAction.editList, ...editsWithoutCollision];
+      // const editList: EditItem[] = newState.editChunks[tAction.screen.rid] || [];
+      // const currentEditKeys = tAction.editList.reduce((store, e) => {
+      //   store[e[IdxEditItem.KEY]] = 1;
+      //   return store;
+      // }, {} as Record<string, 1>);
+      // const editsWithoutCollision = editList.filter((e) => !(e[IdxEditItem.KEY] in currentEditKeys));
+      newState.editChunks[tAction.screen.rid] = [...tAction.editList];
       return newState;
     }
 

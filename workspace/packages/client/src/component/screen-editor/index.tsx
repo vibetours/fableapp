@@ -1,24 +1,24 @@
-import { RespScreen } from "@fable/common/dist/api-contract";
-import { ScreenData, ScreenEdits, SerNode } from "@fable/common/dist/types";
-import { getCurrentUtcUnixTime } from "@fable/common/dist/utils";
-import React from "react";
-import { detect } from "@fable/common/dist/detect-browser";
-import Switch from "antd/lib/switch";
-import { EyeInvisibleOutlined, EyeOutlined, FontSizeOutlined, LoadingOutlined } from "@ant-design/icons";
-import InputNumber from "antd/lib/input-number";
-import * as Tags from "./styled";
-import * as GTags from "../../common-styled";
-import DomElPicker, { HighlightMode } from "./dom-element-picker";
-import Btn from "../btn";
-import { ElEditType, EditValueEncoding, AllEdits, EditItem, IdxEditItem, IdxEditEncodingText } from "../../types";
+import { RespScreen } from '@fable/common/dist/api-contract';
+import { ScreenData, ScreenEdits, SerNode } from '@fable/common/dist/types';
+import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import React from 'react';
+import { detect } from '@fable/common/dist/detect-browser';
+import Switch from 'antd/lib/switch';
+import { EyeInvisibleOutlined, EyeOutlined, FontSizeOutlined, LoadingOutlined } from '@ant-design/icons';
+import InputNumber from 'antd/lib/input-number';
+import * as Tags from './styled';
+import * as GTags from '../../common-styled';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
+import Btn from '../btn';
+import { ElEditType, EditValueEncoding, AllEdits, EditItem, IdxEditItem, IdxEditEncodingText } from '../../types';
 
 const browser = detect();
 
 const enum EditTargetType {
-  Text = "t",
-  Img = "i",
-  Mixed = "m",
-  None = "n",
+  Text = 't',
+  Img = 'i',
+  Mixed = 'm',
+  None = 'n',
 }
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
@@ -64,24 +64,24 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       selectedEl: null,
       targetEl: null,
       editTargetType: EditTargetType.None,
-      editItemSelected: "",
+      editItemSelected: '',
     };
   }
 
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
-      ? doc.createElementNS("http://www.w3.org/2000/svg", node.name)
+      ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
       : doc.createElement(node.name);
 
     for (const [attrKey, attrValue] of Object.entries(node.attrs)) {
       try {
         if (props.partOfSvgEl) {
-          el.setAttributeNS(null, attrKey, attrValue === null ? "true" : attrValue);
+          el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
         } else {
-          if (node.name === "iframe" && attrKey === "src") {
-            el.setAttribute(attrKey, "about:blank");
+          if (node.name === 'iframe' && attrKey === 'src') {
+            el.setAttribute(attrKey, 'about:blank');
           }
-          el.setAttribute(attrKey, attrValue === null ? "true" : attrValue);
+          el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
         }
       } catch (e) {
         console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
@@ -101,7 +101,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   deser = (serNode: SerNode, doc: Document, props: DeSerProps = { partOfSvgEl: 0 }) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
-      partOfSvgEl: props.partOfSvgEl | (serNode.name === "svg" ? 1 : 0),
+      partOfSvgEl: props.partOfSvgEl | (serNode.name === 'svg' ? 1 : 0),
     };
 
     let node;
@@ -118,7 +118,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     for (const child of serNode.chldrn) {
       // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
       // hence we altogether ignore those tags
-      if (child.name === "meta") {
+      if (child.name === 'meta') {
         continue;
       }
       const childNode = this.deser(child, doc, newProps);
@@ -152,7 +152,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const origFrameViewPort = frame.getBoundingClientRect();
     const scale = origFrameViewPort.width / this.props.screenData.vpd.w;
     frame.style.transform = `scale(${scale})`;
-    frame.style.transformOrigin = "0 0";
+    frame.style.transformOrigin = '0 0';
     const frameViewPortAfterScaling = frame.getBoundingClientRect();
     frame.style.height = `${(origFrameViewPort.height / frameViewPortAfterScaling.height) * 100}%`;
     frame.style.width = `${(origFrameViewPort.width / frameViewPortAfterScaling.width) * 100}%`;
@@ -162,12 +162,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
-        frameBody.style.display = "none";
+        frameBody.style.display = 'none';
         const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
 
         const childNodes = doc.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
-          if (((childNodes[i] as any).tagName || "").toLowerCase() === "html") {
+          if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
             doc.replaceChild(rootHTMLEl, childNodes[i]);
             break;
           }
@@ -175,7 +175,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
-          frameBody.style.display = "";
+          frameBody.style.display = '';
         });
       } else {
         console.error("Can't find body of embed iframe");
@@ -197,7 +197,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.initDomPicker();
     };
 
-    document.addEventListener("keydown", this.onKeyDown);
+    document.addEventListener('keydown', this.onKeyDown);
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
@@ -209,15 +209,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") {
+    if (e.key === 'Escape') {
+      console.log('pressee escape');
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
+        console.log(' will get get outta pinned');
         this.domElPicker.getOutOfPinMode();
       } else {
+        console.log('disabled edit mode');
         this.setState({ isInEditMode: false });
       }
 
-      if (this.state.editItemSelected !== "") {
-        this.setState({ editItemSelected: "" });
+      if (this.state.editItemSelected !== '') {
+        this.setState({ editItemSelected: '' });
       }
     }
   };
@@ -225,7 +228,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   componentWillUnmount(): void {
     this.disposeDomPicker();
     this.domElPicker = null;
-    document.removeEventListener("keydown", this.onKeyDown);
+    document.removeEventListener('keydown', this.onKeyDown);
   }
 
   componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
@@ -234,7 +237,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         this.props.onScreenEditStart();
         this.domElPicker?.enable();
       } else {
-        console.log("disabling this");
+        console.log('will stop editing');
         this.domElPicker?.disable();
         this.props.onScreenEditFinish();
       }
@@ -251,7 +254,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         this.setState(() => ({ editTargetType: EditTargetType.None, targetEl: null }));
       }
     } else {
-      console.log("same el is set twice???");
+      console.log('same el is set twice???');
     }
   }
 
@@ -270,7 +273,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       newFilter = `${filterStr.substring(0, match.index)} blur(${value}px) ${filterStr.substring(
         match.index! + match[0].length
       )}`;
-    } else if (filterStr === "none") {
+    } else if (filterStr === 'none') {
       newFilter = `blur(${value}px)`;
     } else {
       newFilter = filterStr ? `${filterStr} blur(${value}px)` : `blur(${value}px)`;
@@ -294,10 +297,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Switch
             checkedChildren={<EyeOutlined />}
             unCheckedChildren={<EyeInvisibleOutlined />}
-            defaultChecked={!!this.state.selectedEl && getComputedStyle(this.state.selectedEl).display !== "none"}
+            defaultChecked={!!this.state.selectedEl && getComputedStyle(this.state.selectedEl).display !== 'none'}
             size="small"
             onChange={((t) => (checked) => {
-              const savedOrigVal = t.getAttribute("fab-o-display");
+              const savedOrigVal = t.getAttribute('fab-o-display');
               let origVal = savedOrigVal;
               if (origVal === null) {
                 origVal = getComputedStyle(t).display;
@@ -306,7 +309,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               if (checked) {
                 t.style.display = origVal;
               } else {
-                t.style.display = "none";
+                t.style.display = 'none';
               }
             })(this.state.selectedEl!)}
           />
@@ -322,7 +325,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             addonAfter="px"
             min={0}
             size="small"
-            style={{ maxWidth: "120px" }}
+            style={{ maxWidth: '120px' }}
             onChange={((t) => (newVal) => {
               const filterStr = ScreenEditor.updateBlurValueToFilter(
                 getComputedStyle(t).filter,
@@ -341,7 +344,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case EditTargetType.Text:
         return (
           <Tags.EditCtrlCon>
-            <Tags.EditCtrlLI style={{ flexDirection: "column", alignItems: "start" }}>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
               <Tags.EditCtrlLabel>Update Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
                 defaultValue={this.state.targetEl?.textContent!}
@@ -353,7 +356,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   const attrName = `fab-orig-val-t-${ElEditType.Text}`;
                   let origVal = refEl.getAttribute(attrName);
                   if (origVal === null) {
-                    origVal = t.textContent || "";
+                    origVal = t.textContent || '';
                     refEl.setAttribute(attrName, origVal);
                   }
                   this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
@@ -385,7 +388,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   render(): React.ReactNode {
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: "hidden" }}>
+        <Tags.EmbedCon style={{ overflow: 'hidden' }}>
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}
@@ -395,15 +398,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         </Tags.EmbedCon>
         <Tags.EditPanelCon>
           <Tags.EditPanelSec>
-            <div style={{ display: "flex", flexDirection: "column", marginBottom: "1.25rem" }}>
+            <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '1.25rem' }}>
               <GTags.Txt className="title">Edit Screen</GTags.Txt>
             </div>
             <div
-              style={{ justifyContent: "center", display: "flex", flexDirection: "column", marginBottom: "1.75rem" }}
+              style={{ justifyContent: 'center', display: 'flex', flexDirection: 'column', marginBottom: '1.75rem' }}
             >
-              <GTags.Txt className="subhead" style={{ marginBottom: "1rem" }}>
+              <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                 {!this.state.isInEditMode ? (
-                  "You can edit the screen by changing text, uploading new images, hiding or blurring elements etc."
+                  'You can edit the screen by changing text, uploading new images, hiding or blurring elements etc.'
                 ) : this.state.selectedEl === null ? (
                   <>
                     Click an element in the screen to see the edit options. Press <span className="kb-key">Esc</span> to
@@ -423,20 +426,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
-            {this.props.screen.parentScreenId !== 0 &&
-              this.props.localEdits
+            {this.props.screen.parentScreenId !== 0
+              && this.props.localEdits
                 .sort((m, n) => n[2] - m[2])
                 .map((e) => (
                   <Tags.EditLIPCon
                     key={e[IdxEditItem.KEY]}
                     onClick={((edit) => (evt) => {
+                      this.setState({ editItemSelected: e[IdxEditItem.KEY], isInEditMode: true });
                       this.highlightElementForPath(edit[IdxEditItem.PATH]);
-                      this.setState({ editItemSelected: e[IdxEditItem.KEY] });
                     })(e)}
                   >
                     {ScreenEditor.getEditTypeComponent(e, true)}
                     {e[IdxEditItem.KEY] === this.state.editItemSelected && (
-                      <div style={{ display: "flex" }}>
+                      <div style={{ display: 'flex' }}>
                         <Tags.ListActionBtn>Revert</Tags.ListActionBtn>&nbsp;&nbsp;|&nbsp;&nbsp;
                         <Tags.ListActionBtn>Delete</Tags.ListActionBtn>
                       </div>
@@ -452,7 +455,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   highlightElementForPath(path: string) {
     const doc = this.embedFrameRef.current?.contentDocument;
     if (!doc) {
-      throw new Error("Iframe doc is not found while resolving element from path");
+      throw new Error('Iframe doc is not found while resolving element from path');
     }
     const el = ScreenEditor.elFromPath(path, doc) as HTMLElement;
     if (!el) {
@@ -463,7 +466,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // 3 frame shows the selector.
     // Caveat: if the scroll is taking time to finish then this would not work
     // TODO fix this
-    el.scrollIntoView({ block: "center", inline: "center" });
+    // INFO Changing value of block and inline would shift the parent element to make the el in the center of the screen
+    // that we don't want. So be careful with this values.
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     setTimeout(() => {
       this.domElPicker?.selectElement(el, HighlightMode.Pinned);
     }, 3 * 16);
@@ -475,10 +480,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case ElEditType.Text:
         return (
           <Tags.EditLICon>
-            <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <FontSizeOutlined />
-              <div style={{ marginLeft: "0.5rem", flexShrink: 0 }}>Edited to</div>
-              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: "0 4px" }}>
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
+              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
                 {encoding[IdxEditEncodingText.NEW_VALUE]}
               </GTags.Txt>
             </div>
@@ -492,8 +497,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   private disposeDomPicker() {
-    this.embedFrameRef?.current!.removeEventListener("mouseout", this.onMouseOutOfIframe);
-    this.embedFrameRef?.current!.removeEventListener("mouseenter", this.onMouseEnterOnIframe);
+    this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
+    this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
     if (this.domElPicker) {
       this.domElPicker.dispose();
       this.domElPicker = null;
@@ -510,10 +515,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
 
       if (el2.nodeName) {
-        if (el2.nodeName.toLowerCase() === "img" || el2.nodeName.toLowerCase() === "svg") {
+        if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
           return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
         }
-        if (el2.nodeName.toLowerCase() === "div" || el2.nodeName.toLowerCase() === "span") {
+        if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
           const bgImage = getComputedStyle(el2).backgroundImage;
           if (bgImage.search(/^url\(/) !== -1) {
             return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
@@ -533,7 +538,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }
       }
       return targetByTypes;
-    })(el);
+    }(el));
 
     const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
     const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
@@ -571,7 +576,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   static elFromPath(path: string, doc: Document) {
-    const elIdxs = path.split(".").map((id) => +id);
+    const elIdxs = path.split('.').map((id) => +id);
     let node = doc as Node;
     for (const id of elIdxs) {
       node = node.childNodes[id];
@@ -580,11 +585,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   static elPath(el: HTMLElement, doc: Document) {
-    let elPath = el.getAttribute("fab-el-path");
+    let elPath = el.getAttribute('fab-el-path');
     if (elPath === null) {
       const path = ScreenEditor.calculatePathFromEl(el, doc, []);
-      elPath = path.join(".");
-      el.setAttribute("fab-el-path", elPath);
+      elPath = path.join('.');
+      el.setAttribute('fab-el-path', elPath);
     }
     return elPath;
   }
@@ -603,15 +608,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     requestAnimationFrame(() => {
       const el = this.embedFrameRef?.current;
       let doc;
-      if ((doc = el?.contentDocument)) {
+      if ((doc = el?.contentDocument) && !this.domElPicker) {
         this.domElPicker = new DomElPicker(doc, { onElSelect: this.onElSelect, onElDeSelect: this.onElDeSelect });
-        this.domElPicker.addEventListener("keydown", this.onKeyDown);
+        this.domElPicker.addEventListener('keydown', this.onKeyDown);
         this.domElPicker.setupHighlighting();
 
-        el.addEventListener("mouseout", this.onMouseOutOfIframe);
-        el.addEventListener("mouseenter", this.onMouseEnterOnIframe);
+        el.addEventListener('mouseout', this.onMouseOutOfIframe);
+        el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
       } else {
-        console.error("Iframe doc not found");
+        console.error('Iframe doc not found');
       }
     });
   }
