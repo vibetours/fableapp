@@ -3,121 +3,121 @@
 // Generated using typescript-generator version 2.35.1025 on 2023-01-17 11:11:39.
 
 export interface ApiResp<T> {
-    status: ResponseStatus;
-    data: T;
-    errStr: string;
-    errCode: ErrorCode;
+  status: ResponseStatus;
+  data: T;
+  errStr: string;
+  errCode: ErrorCode;
 }
 
 export interface ReqCopyScreen {
-    parentId: number;
-    tourRid: string;
+  parentId: number;
+  tourRid: string;
 }
 
 export interface ReqNewOrg {
-    displayName: string;
-    thumbnail: string;
+  displayName: string;
+  thumbnail: string;
 }
 
 export interface ReqNewScreen {
-    name: string;
-    url: string;
-    thumbnail: string;
-    favIcon?: string;
-    body: string;
+  name: string;
+  url: string;
+  thumbnail: string;
+  favIcon?: string;
+  body: string;
 }
 
 export interface ReqNewTour {
-    name: string;
-    description?: string;
+  name: string;
+  description?: string;
 }
 
 export interface ReqNewUser {
-    firstName: string;
-    lastName: string;
-    email: string;
-    avatar: string;
-    belongsToOrg: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar: string;
+  belongsToOrg: number;
 }
 
 export interface ReqProxyAsset {
-    origin: string;
-    clientInfo: string;
+  origin: string;
+  clientInfo: string;
 }
 
 export interface RespCommonConfig extends ResponseBase {
-    commonAssetPath: string;
-    screenAssetPath: string;
-    tourAssetPath: string;
-    dataFileName: string;
-    editFileName: string;
-    latestSchemaVersion: SchemaVersion;
+  commonAssetPath: string;
+  screenAssetPath: string;
+  tourAssetPath: string;
+  dataFileName: string;
+  editFileName: string;
+  latestSchemaVersion: SchemaVersion;
 }
 
 export interface RespHealth extends ResponseBase {
-    status: string;
+  status: string;
 }
 
 export interface RespOrg extends ResponseBase {
-    rid: string;
-    displayName: string;
-    thumbnail: string;
+  rid: string;
+  displayName: string;
+  thumbnail: string;
 }
 
 export interface RespProxyAsset extends ResponseBase {
-    proxyUri: string;
+  proxyUri: string;
 }
 
 export interface RespScreen extends ResponseBase {
-    id: number;
-    parentScreenId: number;
-    rid: string;
-    assetPrefixHash: string;
-    displayName: string;
-    createdBy: RespUser;
-    thumbnail: string;
-    url: string;
-    icon: string;
-    tour?: RespTour;
+  id: number;
+  parentScreenId: number;
+  rid: string;
+  assetPrefixHash: string;
+  displayName: string;
+  createdBy: RespUser;
+  thumbnail: string;
+  url: string;
+  icon: string;
+  tour?: RespTour;
 }
 
 export interface RespTour extends ResponseBase {
-    rid: string;
-    assetPrefixHash: string;
-    displayName: string;
-    description: string;
-    createdBy: RespUser;
+  rid: string;
+  assetPrefixHash: string;
+  displayName: string;
+  description: string;
+  createdBy: RespUser;
 }
 
 export interface RespUploadUrl {
-    url: string;
-    expiry: string;
-    filename: string;
+  url: string;
+  expiry: string;
+  filename: string;
 }
 
 export interface RespUser extends ResponseBase {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    avatar: string;
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar: string;
 }
 
 export interface ResponseBase {
-    createdAt: Date;
-    updatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const enum SchemaVersion {
-    V1 = "2023-01-10",
+  V1 = "2023-01-10",
 }
 
 export const enum ResponseStatus {
-    Success = "Success",
-    Failure = "Failure",
+  Success = "Success",
+  Failure = "Failure",
 }
 
 export const enum ErrorCode {
-    IllegalArgs = 100,
-    NotFound = 101,
+  IllegalArgs = 100,
+  NotFound = 101,
 }
