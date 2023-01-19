@@ -108,6 +108,12 @@ export interface ResponseBase {
   updatedAt: Date;
 }
 
+export interface RespUploadUrl {
+  url: string;
+  expiry: string;
+  filename: string;
+}
+
 export const enum SchemaVersion {
   V1 = "2023-01-10",
 }

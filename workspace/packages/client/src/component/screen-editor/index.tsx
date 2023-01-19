@@ -1,5 +1,6 @@
-import { RespScreen } from '@fable/common/dist/api-contract';
+import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
 import { ScreenData, ScreenEdits, SerNode } from '@fable/common/dist/types';
+import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
@@ -10,7 +11,7 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
-import { ElEditType, EditValueEncoding, AllEdits, EditItem, IdxEditItem, IdxEditEncodingText } from '../../types';
+import { AllEdits, EditItem, EditValueEncoding, ElEditType, IdxEditEncodingText, IdxEditItem } from '../../types';
 
 const browser = detect();
 
@@ -68,18 +69,244 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
+  static getImageUploadUrl = async (type: string): Promise<string> => {
+    const res = await api<null, ApiResp<RespUploadUrl>>(`/getuploadlink?te=${btoa(type)}`, {
+      auth: true,
+    });
+    return res.status === ResponseStatus.Failure ? '' : res.data.url;
+  };
+
+  static setDimensionAttributes = (selectedImageEl: HTMLElement): void => {
+    const styles = getComputedStyle(selectedImageEl);
+    const originalHeight = styles.height;
+    const originalWidth = styles.width;
+
+    const originalStyleAttrs = selectedImageEl.getAttribute('style');
+    selectedImageEl.setAttribute(
+      'style',
+      `${originalStyleAttrs || ''}; 
+        height: ${originalHeight} !important; 
+        width: ${originalWidth} !important; 
+        object-fit: cover !important;`
+    );
+  };
+
+  static changeSelectedImage = (selectedImageEl: HTMLElement, uploadedImageSrc: string): void => {
+    if (selectedImageEl.nodeName.toUpperCase() === 'SVG') {
+      const originalAttrs = selectedImageEl.attributes;
+      const newImgEl = document.createElement('img');
+      for (let i = 0; i < originalAttrs.length; i++) {
+        switch (originalAttrs[i].name.toLowerCase()) {
+          case 'viewbox':
+            break;
+          default:
+            newImgEl.setAttribute(originalAttrs[i].name, originalAttrs[i].value);
+        }
+      }
+
+      newImgEl.src = uploadedImageSrc;
+      newImgEl.srcset = uploadedImageSrc;
+      ScreenEditor.setDimensionAttributes(selectedImageEl);
+      selectedImageEl.replaceWith(newImgEl);
+    } else if (selectedImageEl.nodeName.toUpperCase() === 'IMG') {
+      const el = selectedImageEl as HTMLImageElement;
+      el.src = uploadedImageSrc;
+      el.srcset = uploadedImageSrc;
+      ScreenEditor.setDimensionAttributes(selectedImageEl);
+    } else {
+      // TODO https://github.com/sharefable/app/issues/48 #2
+    }
+  };
+
+  static uploadImageAsBinary = async (selectedImage: any, awsSignedUrl: string): Promise<string> => {
+    const uploadedImageSrc = awsSignedUrl.split('?')[0];
+
+    const reader = new FileReader();
+    reader.readAsArrayBuffer(selectedImage);
+    return new Promise((resolve) => {
+      reader.addEventListener('load', async () => {
+        const binaryData = reader.result;
+        // TODO our api utility is should ideally be able to address this. Fix later.
+        const res = await fetch(awsSignedUrl, {
+          method: 'PUT',
+          body: binaryData,
+          headers: { 'Content-Type': selectedImage.type },
+        });
+
+        if (res.status === 200) {
+          // this.changeSelectedImage(uploadedImageSrc);
+          resolve(uploadedImageSrc);
+        }
+      });
+    });
+  };
+
+  static handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
+    const selectedImage = e.target.files[0];
+    if (!selectedImage) {
+      return;
+    }
+    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
+    if (!awsSignedUrl) {
+      //  TODO[error-handling] show error to user that something has gone wrong, try again later
+      return;
+    }
+    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
+    ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
+  };
+
+  static getBlurValueFromFilter(filterStr: string): number {
+    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
+    if (!match) {
+      return 0;
+    }
+    return +match[2];
+  }
+
+  static updateBlurValueToFilter(filterStr: string, value: number) {
+    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
+    let newFilter;
+    if (match) {
+      newFilter = `${filterStr.substring(0, match.index)} blur(${value}px) ${filterStr.substring(
+        match.index! + match[0].length
+      )}`;
+    } else if (filterStr === 'none') {
+      newFilter = `blur(${value}px)`;
+    } else {
+      newFilter = filterStr ? `${filterStr} blur(${value}px)` : `blur(${value}px)`;
+    }
+    return newFilter;
+  }
+
+  static getEditTypeComponent(edit: EditItem, shouldShowLoading = false) {
+    const encoding = edit[IdxEditItem.ENCODING];
+    switch (edit[IdxEditItem.TYPE]) {
+      case ElEditType.Text:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <FontSizeOutlined />
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
+              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
+                {encoding[IdxEditEncodingText.NEW_VALUE]}
+              </GTags.Txt>
+            </div>
+            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+
+      default:
+        return <></>;
+    }
+  }
+
+  static getEditTargetType(el: HTMLElement): {
+    targetType: EditTargetType;
+    target?: HTMLElement;
+  } {
+    const nestedEditTargetTypes = (function rec(el2: HTMLElement): EditTargets {
+      if (el2.nodeType === Node.TEXT_NODE) {
+        return { [EditTargetType.Text]: [el2], [EditTargetType.Img]: [] };
+      }
+
+      if (el2.nodeName) {
+        if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
+          return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+        }
+        if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
+          const bgImage = getComputedStyle(el2).backgroundImage;
+          if (bgImage.search(/^url\(/) !== -1) {
+            return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+          }
+        }
+      }
+
+      const children = Array.from(el2.childNodes);
+      const targetByTypes: EditTargets = {
+        [EditTargetType.Text]: [],
+        [EditTargetType.Img]: [],
+      };
+      for (const child of children) {
+        const targetType = rec(child as HTMLElement);
+        for (const [tType, tTargets] of Object.entries(targetType)) {
+          targetByTypes[tType].push(...tTargets);
+        }
+      }
+      return targetByTypes;
+    }(el));
+
+    const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
+    const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
+
+    if (noOfImgs === 1 && noOfTexts === 0) {
+      return {
+        targetType: EditTargetType.Img,
+        target: nestedEditTargetTypes[EditTargetType.Img][0] as HTMLElement,
+      };
+    }
+
+    if (noOfTexts === 1 && noOfImgs === 0) {
+      return {
+        targetType: EditTargetType.Text,
+        target: nestedEditTargetTypes[EditTargetType.Text][0] as HTMLElement,
+      };
+    }
+    return {
+      targetType: EditTargetType.Mixed,
+    };
+  }
+
+  static elFromPath(path: string, doc: Document) {
+    const elIdxs = path.split('.').map((id) => +id);
+    let node = doc as Node;
+    for (const id of elIdxs) {
+      node = node.childNodes[id];
+    }
+    return node;
+  }
+
+  static elPath(el: HTMLElement, doc: Document) {
+    let elPath = el.getAttribute('fab-el-path');
+    if (elPath === null) {
+      const path = ScreenEditor.calculatePathFromEl(el, doc, []);
+      elPath = path.join('.');
+      el.setAttribute('fab-el-path', elPath);
+    }
+    return elPath;
+  }
+
+  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
+    if (!el.parentNode) {
+      return loc.reverse();
+    }
+    const siblings = el.parentNode.childNodes;
+    for (let i = 0, l = siblings.length; i < l; i++) {
+      if (el === siblings[i]) {
+        loc.push(i);
+        return this.calculatePathFromEl(el.parentNode, doc, loc);
+      }
+    }
+    return loc;
+  }
+
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
       : doc.createElement(node.name);
 
-    for (const [attrKey, attrValue] of Object.entries(node.attrs)) {
+    let attrKey;
+    let attrValue;
+    for ([attrKey, attrValue] of Object.entries(node.attrs)) {
       try {
         if (props.partOfSvgEl) {
           el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
         } else {
           if (node.name === 'iframe' && attrKey === 'src') {
             el.setAttribute(attrKey, 'about:blank');
+          }
+          if (node.name === 'a' && attrKey === 'href') {
+            // eslint-disable-next-line no-script-url
+            attrValue = 'javascript:void(0);';
           }
           el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
         }
@@ -204,34 +431,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     document.addEventListener('keydown', this.onKeyDown);
   }
 
-  private onMouseOutOfIframe = (e: MouseEvent) => {
-    this.domElPicker?.disable();
-  };
-
-  private onMouseEnterOnIframe = (e: MouseEvent) => {
-    this.state.isInEditMode && this.domElPicker?.enable();
-  };
-
-  private onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      console.log('pressee escape');
-      if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
-        console.log(' will get get outta pinned');
-        this.domElPicker.getOutOfPinMode();
-      } else {
-        console.log('disabled edit mode');
-        this.setState({ isInEditMode: false });
-      }
-
-      if (this.state.editItemSelected !== '') {
-        this.setState({ editItemSelected: '' });
-      }
-    }
-  };
-
   componentWillUnmount(): void {
     this.disposeDomPicker();
-    this.domElPicker = null;
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
@@ -255,42 +456,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           targetEl: editTargetType.target || state.selectedEl,
         }));
       } else {
-        this.setState(() => ({ editTargetType: EditTargetType.None, targetEl: null }));
+        this.setState(() => ({
+          editTargetType: EditTargetType.None,
+          targetEl: null,
+        }));
       }
     } else {
       console.log('same el is set twice???');
     }
-  }
-
-  static getBlurValueFromFilter(filterStr: string): number {
-    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
-    if (!match) {
-      return 0;
-    }
-    return +match[2];
-  }
-
-  static updateBlurValueToFilter(filterStr: string, value: number) {
-    const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
-    let newFilter;
-    if (match) {
-      newFilter = `${filterStr.substring(0, match.index)} blur(${value}px) ${filterStr.substring(
-        match.index! + match[0].length
-      )}`;
-    } else if (filterStr === 'none') {
-      newFilter = `blur(${value}px)`;
-    } else {
-      newFilter = filterStr ? `${filterStr} blur(${value}px)` : `blur(${value}px)`;
-    }
-    return newFilter;
-  }
-
-  private addToMicroEdit<K extends keyof EditValueEncoding>(path: string, editType: K, edit: EditValueEncoding[K]) {
-    if (!(path in this.microEdits)) {
-      this.microEdits[path] = {};
-    }
-    const edits = this.microEdits[path];
-    edits[editType] = edit;
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
@@ -343,7 +516,23 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     );
     switch (type) {
       case EditTargetType.Img:
-        return <>image editing option</>;
+        return (
+          <Tags.EditCtrlCon>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
+              <Tags.EditCtrlLabel>Replace selected image</Tags.EditCtrlLabel>
+              <Tags.ImgUploadLabel>
+                Click to upload
+                <input
+                  style={{ display: 'none' }}
+                  onChange={ScreenEditor.handleSelectedImageChange(this.state.selectedEl!)}
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                />
+              </Tags.ImgUploadLabel>
+            </Tags.EditCtrlLI>
+            {CommonOptions}
+          </Tags.EditCtrlCon>
+        );
 
       case EditTargetType.Text:
         return (
@@ -478,26 +667,34 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }, 3 * 16);
   }
 
-  static getEditTypeComponent(edit: EditItem, shouldShowLoading = false) {
-    const encoding = edit[IdxEditItem.ENCODING];
-    switch (edit[IdxEditItem.TYPE]) {
-      case ElEditType.Text:
-        return (
-          <Tags.EditLICon>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              <FontSizeOutlined />
-              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
-              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
-                {encoding[IdxEditEncodingText.NEW_VALUE]}
-              </GTags.Txt>
-            </div>
-            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
-          </Tags.EditLICon>
-        );
+  private onMouseOutOfIframe = (e: MouseEvent) => {
+    this.domElPicker?.disable();
+  };
 
-      default:
-        return <></>;
+  private onMouseEnterOnIframe = (e: MouseEvent) => {
+    this.state.isInEditMode && this.domElPicker?.enable();
+  };
+
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
+        this.domElPicker.getOutOfPinMode();
+      } else {
+        this.setState({ isInEditMode: false });
+      }
+
+      if (this.state.editItemSelected !== '') {
+        this.setState({ editItemSelected: '' });
+      }
     }
+  };
+
+  private addToMicroEdit<K extends keyof EditValueEncoding>(path: string, editType: K, edit: EditValueEncoding[K]) {
+    if (!(path in this.microEdits)) {
+      this.microEdits[path] = {};
+    }
+    const edits = this.microEdits[path];
+    edits[editType] = edit;
   }
 
   private disposeDomPicker() {
@@ -507,95 +704,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.domElPicker.dispose();
       this.domElPicker = null;
     }
-  }
-
-  static getEditTargetType(el: HTMLElement): {
-    targetType: EditTargetType;
-    target?: HTMLElement;
-  } {
-    const nestedEditTargetTypes = (function rec(el2: HTMLElement): EditTargets {
-      if (el2.nodeType === Node.TEXT_NODE) {
-        return { [EditTargetType.Text]: [el2], [EditTargetType.Img]: [] };
-      }
-
-      if (el2.nodeName) {
-        if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
-          return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
-        }
-        if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
-          const bgImage = getComputedStyle(el2).backgroundImage;
-          if (bgImage.search(/^url\(/) !== -1) {
-            return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
-          }
-        }
-      }
-
-      const children = Array.from(el2.childNodes);
-      const targetByTypes: EditTargets = {
-        [EditTargetType.Text]: [],
-        [EditTargetType.Img]: [],
-      };
-      for (const child of children) {
-        const targetType = rec(child as HTMLElement);
-        for (const [tType, tTargets] of Object.entries(targetType)) {
-          targetByTypes[tType].push(...tTargets);
-        }
-      }
-      return targetByTypes;
-    }(el));
-
-    const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
-    const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
-
-    if (noOfImgs === 1 && noOfTexts === 0) {
-      return {
-        targetType: EditTargetType.Img,
-        target: nestedEditTargetTypes[EditTargetType.Img][0] as HTMLElement,
-      };
-    }
-
-    if (noOfTexts === 1 && noOfImgs === 0) {
-      return {
-        targetType: EditTargetType.Text,
-        target: nestedEditTargetTypes[EditTargetType.Text][0] as HTMLElement,
-      };
-    }
-    return {
-      targetType: EditTargetType.Mixed,
-    };
-  }
-
-  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
-    if (!el.parentNode) {
-      return loc.reverse();
-    }
-    const siblings = el.parentNode.childNodes;
-    for (let i = 0, l = siblings.length; i < l; i++) {
-      if (el === siblings[i]) {
-        loc.push(i);
-        return this.calculatePathFromEl(el.parentNode, doc, loc);
-      }
-    }
-    return loc;
-  }
-
-  static elFromPath(path: string, doc: Document) {
-    const elIdxs = path.split('.').map((id) => +id);
-    let node = doc as Node;
-    for (const id of elIdxs) {
-      node = node.childNodes[id];
-    }
-    return node;
-  }
-
-  static elPath(el: HTMLElement, doc: Document) {
-    let elPath = el.getAttribute('fab-el-path');
-    if (elPath === null) {
-      const path = ScreenEditor.calculatePathFromEl(el, doc, []);
-      elPath = path.join('.');
-      el.setAttribute('fab-el-path', elPath);
-    }
-    return elPath;
   }
 
   private onElSelect = (el: HTMLElement, doc: Document) => {

@@ -112,6 +112,9 @@ export default class DomElementPicker {
     }
   }
 
+  // TODO If there are other html elements spanning over image element then we miss the image element, travarse the full
+  // array returned by elementsFromPoint to checik if image element is in path.
+  // Can be replicated using google analytics right top user icon click
   private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number): HTMLElement | Text {
     for (const el of els) {
       if (el.tagName && el.tagName.toLowerCase() === 'svg') {
