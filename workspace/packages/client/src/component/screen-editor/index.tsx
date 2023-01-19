@@ -150,12 +150,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // 4. Now the container is visually smaller (for scale < 1) than the original one before it was scaled
     // 5. Figure out what's the new height and width with the scale applied
     const origFrameViewPort = frame.getBoundingClientRect();
-    const scale = origFrameViewPort.width / this.props.screenData.vpd.w;
-    frame.style.transform = `scale(${scale})`;
+    const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
+    const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
+    const scale = Math.min(scaleX, scaleY);
+    frame.style.transform = `scale(${scale}) translate(-50%, -50%)`;
     frame.style.transformOrigin = '0 0';
-    const frameViewPortAfterScaling = frame.getBoundingClientRect();
-    frame.style.height = `${(origFrameViewPort.height / frameViewPortAfterScaling.height) * 100}%`;
-    frame.style.width = `${(origFrameViewPort.width / frameViewPortAfterScaling.width) * 100}%`;
+    frame.style.top = '50%';
+    frame.style.left = '50%';
+    frame.style.position = 'absolute';
+    frame.style.width = `${this.props.screenData.vpd.w}px`;
+    frame.style.height = `${this.props.screenData.vpd.h}px`;
 
     const doc = frame?.contentDocument;
     const frameBody = doc?.body;
@@ -388,7 +392,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   render(): React.ReactNode {
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: 'hidden' }}>
+        <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}

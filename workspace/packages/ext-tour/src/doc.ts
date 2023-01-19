@@ -223,7 +223,7 @@ export function getSearializedDom(
 
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
-  const rect = doc.body.getBoundingClientRect();
+  const rect = doc.documentElement.getBoundingClientRect();
 
   let candidateIcon: SerNodeWithPath | null = null;
   for (const icon of icons) {
