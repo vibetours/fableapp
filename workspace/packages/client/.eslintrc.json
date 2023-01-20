@@ -19,15 +19,15 @@
     "ecmaVersion": 2018,
     "sourceType": "module"
   },
+  "plugins": ["react", "@typescript-eslint", "jest"],
   "overrides": [
     {
-      "files": [",*.ts", "*.tsx"],
+      "files": ["*.ts", "*.tsx"],
       "rules": {
         "no-undef": "off"
       }
     }
   ],
-  "plugins": ["react", "@typescript-eslint", "jest"],
   "rules": {
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error",
@@ -36,6 +36,7 @@
     "no-sequences": "off",
     "max-classes-per-file": "off",
     "import/no-unresolved": "off",
+    "prefer-spread": "off",
     "import/extensions": "off",
     "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
     "react/jsx-wrap-multilines": "off",
@@ -43,8 +44,10 @@
     "react/destructuring-assignment": "off",
     "no-underscore-dangle": "off",
     "react/no-array-index-key": "off",
+    "react/jsx-no-useless-fragment": "off",
     "camelcase": "off",
     "react/require-default-props": "off",
+    "react/jsx-props-no-spreading": "off",
     "no-unused-vars": "off",
     "no-use-before-define": "off",
     "no-await-in-loop": "off",
@@ -62,7 +65,7 @@
     "no-cond-assign": "off",
     "no-plusplus": "off",
     "no-return-assign": "off",
-    "max-len": ["error", { "code": 120 }],
+    "max-len": ["warn", { "code": 120 }],
     "no-restricted-syntax": 0,
     "func-names": 0,
     "no-continue": 0,

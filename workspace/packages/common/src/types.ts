@@ -1,4 +1,4 @@
-import { SchemaVersion } from '../gen/api-contract';
+import { SchemaVersion } from './api-contract';
 
 export interface SerNode {
   type: number;
@@ -52,8 +52,10 @@ export interface ScreenData {
   docTree: SerNode;
 }
 
-export enum Versions {
-  V1 = '2023-01-10',
+export interface EditFile<T> {
+  v: SchemaVersion;
+  lastUpdatedAtUtc: number;
+  edits: T;
 }
 
 export interface TourEntity {
@@ -69,6 +71,7 @@ export interface TourScreen extends TourEntity {
 
 export interface TourData {
   v: SchemaVersion;
+  lastUpdatedAtUtc: number;
   main: string;
   entities: TourEntity[];
 }

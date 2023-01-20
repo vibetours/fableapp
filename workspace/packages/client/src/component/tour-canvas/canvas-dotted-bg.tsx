@@ -1,13 +1,13 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { CanvasData } from "./types";
-import { formGrid } from "./utils";
+import React, { useCallback, useEffect, useState } from 'react';
+import { CanvasData } from './types';
+import { formGrid } from './utils';
 
 type Props = {
   canvasData: { current: CanvasData };
   cellWidth: number;
 };
 
-const CanvasDottedBg = ({ canvasData, cellWidth = 20 }: Props) => {
+function CanvasDottedBg({ canvasData, cellWidth = 20 }: Props) {
   const [bgLines, setBgLines] = useState([{ x1: 0, y1: 0, x2: 0, y2: 0 }]);
 
   const drawBgLines = useCallback(() => {
@@ -35,6 +35,6 @@ const CanvasDottedBg = ({ canvasData, cellWidth = 20 }: Props) => {
       ))}
     </g>
   );
-};
+}
 
 export default CanvasDottedBg;

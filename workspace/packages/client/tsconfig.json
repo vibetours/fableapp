@@ -12,10 +12,10 @@
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "isolatedModules": false,
     "noEmit": true,
     "jsx": "react"
   },
   "include": ["src"],
-  "exclude": ["dist", "node_modules"],
+  "exclude": ["dist", "node_modules"]
 }

@@ -1,8 +1,8 @@
-import { groupScreens, P_RespScreen } from "./entity-processor";
+import { groupScreens, P_RespScreen } from './entity-processor';
 
-describe("entity-processor", () => {
-  describe("#groupScreens", () => {
-    it("should group screens based on common ancestor", () => {
+describe('entity-processor', () => {
+  describe('#groupScreens', () => {
+    it('should group screens based on common ancestor', () => {
       const screens = [
         {
           id: 1,

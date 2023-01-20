@@ -28,13 +28,17 @@
     "redux": "^4.2.0",
     "redux-thunk": "^2.4.1",
     "serve": "^14.0.1",
+    "eslint": "8.31.0",
+    "eslint-config-airbnb": "19.0.4",
+    "@typescript-eslint/eslint-plugin": "^5.48.1",
+    "@typescript-eslint/parser": "^5.48.1",
     "styled-components": "^5.3.5",
     "typescript": "^4.8.2",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "env-cmd --verbose -e dev -r ../env.json react-scripts start",
-    "start-stage": "env-cmd --verbose -e stage -r ../env.json react-scripts start",
+    "start-stage": "env-cmd --verbose -e stage -r ../env.json  react-scripts start",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
     "install-staging": "aws s3 cp ./build/ s3://app.sharefable.com --recursive --profile fable",
     "build": "env-cmd -e prod react-scripts build",

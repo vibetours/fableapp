@@ -1,5 +1,5 @@
-import styled from "styled-components";
-import { Link } from "react-router-dom";
+import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 
 export const NoScreenMsgCon = styled.div``;
 
@@ -33,10 +33,10 @@ export const CardCon = styled(Link)`
   &.multi {
     margin-right: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 6px 6px 0px 0px #ffffff, 6px 6px 0px 1px #dddddd, 12px 12px 0px 0px #fff, 12px 12px 0px 1px #dddddd;
+    box-shadow: 6px 6px 0 0 #ffffff, 6px 6px 0 1px #dddddd, 12px 12px 0 0 #fff, 12px 12px 0 1px #dddddd;
 
     &:hover {
-      box-shadow: 4px 4px 0px 0px #ffffff, 4px 4px 0px 1px ${(props) => props.theme.colors.light.selection.background},
+      box-shadow: 4px 4px 0 0 #ffffff, 4px 4px 0 1px ${(props) => props.theme.colors.light.selection.background},
         8px 8px 0px 0px #fff, 8px 8px 0px 1px ${(props) => props.theme.colors.light.selection.background};
     }
   }
@@ -82,4 +82,40 @@ export const CardIconSm = styled.img`
   height: 8px;
   width: 8px;
   margin-right: 0.35rem;
+`;
+
+export const MultiScreenChooserLineItem = styled(Link)`
+  display: flex;
+  align-items: center;
+  padding: 1rem 0.75rem;
+  border-radius: 6px;
+  font-size: 1.15rem;
+  color: #16023e;
+  text-decoration: none;
+
+  &:hover {
+    box-shadow: 0 0 0 1px #16023e;
+    cursor: pointer;
+    color: #16023e;
+    text-decoration: none;
+  }
+
+  .ent {
+    display: flex;
+    align-items: center;
+  }
+
+  .mark-tour {
+    background: #d0d0ff;
+    margin: 0 0.5rem;
+    border-radius: 20px;
+    padding: 0 0.85rem 0 0.45rem;
+  }
+
+  .mark-new {
+    border: 1px solid #16023e;
+    margin: 0 0.5rem;
+    border-radius: 20px;
+    padding: 0 0.85rem 0 0.45rem;
+  }
 `;

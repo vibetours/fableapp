@@ -1,28 +1,31 @@
-import { RespScreen, RespTour } from "@fable/common/dist/api-contract";
-import { TState } from "./reducer";
-import { getDisplayableTime } from "@fable/common/dist/utils";
+import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { getDisplayableTime } from '@fable/common/dist/utils';
+import { TourData } from '@fable/common/dist/types';
+import { TState } from './reducer';
+import { AllEdits, EditItem, ElEditType } from './types';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
   thumbnailUri: URL;
   dataFileUri: URL;
+  editFileUri: URL;
   displayableUpdatedAt: string;
   related: P_RespScreen[];
 }
 
 export function processRawScreenData(screen: RespScreen, state: TState): P_RespScreen {
   const d = new Date(screen.updatedAt);
-  const processedScreen: P_RespScreen = {
+  return {
     ...screen,
     createdAt: new Date(screen.createdAt),
     updatedAt: d,
     displayableUpdatedAt: getDisplayableTime(d),
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
-    dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}index.json`),
+    dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.dataFileName}`),
+    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}`),
     related: [],
   };
-  return processedScreen;
 }
 
 function allScreensTillParent(
@@ -77,16 +80,68 @@ export function groupScreens(screens: P_RespScreen[]): P_RespScreen[] {
 export interface P_RespTour extends RespTour {
   dataFileUri: URL;
   displayableUpdatedAt: string;
+  isPlaceholder: boolean;
 }
 
-export function processRawTourData(tour: RespTour, state: TState): P_RespTour {
+export function processRawTourData(tour: RespTour, state: TState, isPlaceholder = false): P_RespTour {
   const d = new Date(tour.updatedAt);
-  const processedTour: P_RespTour = {
+  return {
     ...tour,
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
     displayableUpdatedAt: getDisplayableTime(d),
-    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}index.json`),
+    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${state.default.commonConfig?.dataFileName}`),
+    isPlaceholder,
   };
-  return processedTour;
+}
+
+export function createEmptyTour(): RespTour {
+  const name = 'Untitled';
+  // TODO add the logged in user from state as createdBy once login is implemented
+  const user = {} as RespUser;
+  return {
+    rid: `xxx-xx-${name.toLowerCase()}`,
+    assetPrefixHash: '$local$',
+    displayName: name,
+    description: '',
+    createdBy: user,
+    createdAt: new Date(new Date().toUTCString()),
+    updatedAt: new Date(new Date().toUTCString()),
+  };
+}
+
+export function createEmptyTourDataFile(): TourData {
+  return {
+    v: SchemaVersion.V1,
+    lastUpdatedAtUtc: -1,
+    main: '',
+    entities: [],
+  };
+}
+
+/* ************************************************************************* */
+
+export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits<ElEditType>): AllEdits<ElEditType> {
+  for (const path of Object.keys(incomingEdits)) {
+    if (path in master) {
+      const perElEdit = incomingEdits[path];
+      for (const editType of Object.keys(perElEdit)) {
+        master[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+      }
+    } else {
+      master[path] = incomingEdits[path];
+    }
+  }
+
+  return master;
+}
+
+export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
+  const editList: EditItem[] = [];
+  for (const [path, edits] of Object.entries(editChunks)) {
+    for (const [type, editDetails] of Object.entries(edits)) {
+      editList.push([`${path}:${type}`, path, +type, editTypeLocal, editDetails[0], editDetails]);
+    }
+  }
+  return editList;
 }

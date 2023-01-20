@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from "react";
-import loader from "@fable/common/dist/loader";
-import { sleep } from "@fable/common/dist/utils";
+import React, { useEffect, useRef } from 'react';
+import loader from '@fable/common/dist/loader';
+import { sleep } from '@fable/common/dist/utils';
 
 interface Props {
   txtBefore?: string;
@@ -25,12 +25,12 @@ export default function Loader(props: Props) {
     let p: Promise<void>;
     (function continuousLoader() {
       timer = setTimeout(async () => {
-        p = loader(con!, 600, 500, 400, "", { height: "6px", zIndex: "0" });
+        p = loader(con!, 600, 500, 400, '', { height: '6px', zIndex: '0' });
         await p;
         await sleep(100);
         continuousLoader();
       }, 16);
-    })();
+    }());
 
     return async () => {
       p && (await p);
@@ -39,14 +39,14 @@ export default function Loader(props: Props) {
   }, []);
 
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      {props.txtBefore && <div style={{ marginRight: "0.75rem" }}>{props.txtBefore}</div>}
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      {props.txtBefore && <div style={{ marginRight: '0.75rem' }}>{props.txtBefore}</div>}
       <div
         style={{
           width: props.width,
-          marginTop: "2px",
-          overflow: "hidden",
-          position: "relative",
+          marginTop: '2px',
+          overflow: 'hidden',
+          position: 'relative',
         }}
         ref={conRef}
       />

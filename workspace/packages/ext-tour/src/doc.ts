@@ -1,4 +1,4 @@
-import { SerDoc, PostProcess, SerNodeWithPath, SerNode } from "@fable/common/dist/types";
+import { PostProcess, SerDoc, SerNode, SerNodeWithPath } from "@fable/common/dist/types";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -44,11 +44,7 @@ export function getSearializedDom(
     // *************** utils starts *************** //
 
     function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
-      if (str1 && str2 && str1.toLowerCase() === str2.toLowerCase()) {
-        return true;
-      }
-
-      return false;
+      return !!(str1 && str2 && str1.toLowerCase() === str2.toLowerCase());
     }
 
     function isContentEmpty(el: Text): boolean {
@@ -57,10 +53,7 @@ export function getSearializedDom(
       }
       let content = el.textContent;
       content = content.replace(/[\s\n]+/g, "");
-      if (content === "") {
-        return true;
-      }
-      return false;
+      return content === "";
     }
 
     function isCrossOrigin(url1: string, url2: string): boolean {
@@ -230,7 +223,7 @@ export function getSearializedDom(
 
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
-  const rect = doc.body.getBoundingClientRect();
+  const rect = doc.documentElement.getBoundingClientRect();
 
   let candidateIcon: SerNodeWithPath | null = null;
   for (const icon of icons) {
@@ -251,7 +244,7 @@ export function getSearializedDom(
     userAgent: doc.defaultView?.navigator.userAgent || "",
     name: doc.defaultView?.name || "",
     postProcesses,
-    // When returning the serailized version of DOM, we stringify the JSON. Otherwise chrome removes some of the
+    // When returning the serialized version of DOM, we stringify the JSON. Otherwise, chrome removes some
     // nested objects in JSON data for some reason.
     docTreeStr: JSON.stringify(rep.serNode),
     rect: {

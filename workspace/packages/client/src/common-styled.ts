@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 export const ColCon = styled.div`
   display: flex;
@@ -22,7 +22,7 @@ export const Txt = styled.div`
 
   &.subhead {
     opacity: 0.65;
-    line-height: 1.05rem;
+    line-height: 1.1rem;
     margin-top: 0.25rem;
   }
 
@@ -54,6 +54,18 @@ export const Txt = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &.emph {
+    font-weight: bold;
+  }
+
+  span.kb-key {
+    background: lightgray;
+    color: #000;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-style: italic;
   }
 `;
 
