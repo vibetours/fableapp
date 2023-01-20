@@ -5,7 +5,7 @@ import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
 import Switch from 'antd/lib/switch';
-import { EyeInvisibleOutlined, EyeOutlined, FontSizeOutlined, PictureOutlined, LoadingOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeOutlined, FontSizeOutlined, PictureOutlined, LoadingOutlined, EditOutlined } from '@ant-design/icons';
 import InputNumber from 'antd/lib/input-number';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -258,6 +258,34 @@ export default class ScreenEditor extends React.PureComponent<
               </GTags.Txt>
             </div>
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+      case ElEditType.Blur:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <EyeOutlined />
+                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>
+                  Blured text
+                </div>
+              </div>
+              {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+            </div>
+          </Tags.EditLICon>
+        );
+      case ElEditType.Display:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <EditOutlined />
+                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>
+                  Hide element
+                </div>
+              </div>
+              {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+            </div>
           </Tags.EditLICon>
         );
 
@@ -589,41 +617,82 @@ export default class ScreenEditor extends React.PureComponent<
             }
             size="small"
             onChange={((t) => (checked) => {
+              const displayStyle = getComputedStyle(t).display;
+              let newVal: string;
+
+              const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const attrName = `fab-orig-val-t-${ElEditType.Display}`;
+
               const savedOrigVal = t.getAttribute('fab-o-display');
               let origVal = savedOrigVal;
               if (origVal === null) {
-                origVal = getComputedStyle(t).display;
+                origVal = displayStyle;
+                t.setAttribute('fab-o-display', displayStyle);
               }
 
               if (checked) {
                 t.style.display = origVal;
+                newVal = origVal;
               } else {
                 t.style.display = 'none';
+                newVal = 'none';
               }
+
+              this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
+              this.flushMicroEdits();
             })(this.state.selectedEl!)}
           />
         </Tags.EditCtrlLI>
         <Tags.EditCtrlLI>
           <Tags.EditCtrlLabel>Blur Element</Tags.EditCtrlLabel>
-          <InputNumber
-            defaultValue={
-              this.state.selectedEl
-                ? ScreenEditor.getBlurValueFromFilter(
-                  getComputedStyle(this.state.selectedEl).filter
-                )
-                : 0
+          <Switch
+            checkedChildren={<EyeOutlined />}
+            unCheckedChildren={<EyeInvisibleOutlined />}
+            defaultChecked={
+              !!this.state.selectedEl
+              && ScreenEditor.getBlurValueFromFilter(getComputedStyle(this.state.selectedEl).filter) === 3
             }
-            addonAfter="px"
-            min={0}
-            size="small"
-            style={{ maxWidth: '120px' }}
-            onChange={((t) => (newVal) => {
-              const filterStr = ScreenEditor.updateBlurValueToFilter(
-                getComputedStyle(t).filter,
-                +(newVal === undefined || newVal === null ? 0 : +newVal)
-              );
-              t.style.filter = filterStr;
+            onChange={((t) => (checked) => {
+              const filterStyle = getComputedStyle(t).filter;
+              const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const attrName = `fab-orig-val-t-${ElEditType.Blur}`;
+              const origStrVal = refEl.getAttribute(attrName);
+
+              let oldFilterStr: string;
+              let newFilterStr: string;
+              let oldBlurValue: number;
+              let newBlurValue: number;
+
+              if (origStrVal === null) {
+                refEl.setAttribute(attrName, filterStyle);
+                oldBlurValue = ScreenEditor.getBlurValueFromFilter(filterStyle);
+                oldFilterStr = filterStyle;
+              } else {
+                oldBlurValue = ScreenEditor.getBlurValueFromFilter(origStrVal);
+                oldFilterStr = origStrVal;
+              }
+
+              if (checked) {
+                newBlurValue = 3;
+                newFilterStr = ScreenEditor.updateBlurValueToFilter(oldFilterStr, newBlurValue);
+                t.style.filter = newFilterStr;
+              } else {
+                newBlurValue = oldBlurValue;
+                newFilterStr = oldFilterStr;
+                t.style.filter = oldFilterStr;
+              }
+              this.addToMicroEdit(path, ElEditType.Blur, [
+                getCurrentUtcUnixTime(),
+                oldBlurValue,
+                newBlurValue,
+                oldFilterStr,
+                newFilterStr
+              ]);
+              this.flushMicroEdits();
             })(this.state.selectedEl!)}
+            size="small"
           />
         </Tags.EditCtrlLI>
       </>
