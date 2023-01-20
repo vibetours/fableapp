@@ -409,6 +409,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
+  disableClick(e: Event) {
+    e.preventDefault();
+  }
+
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)

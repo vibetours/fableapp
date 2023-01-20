@@ -207,6 +207,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             */}
           {this.shouldShowScreen() ? (
             <ScreenEditor
+              key={this.props.screen?.rid}
               screen={this.props.screen!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
