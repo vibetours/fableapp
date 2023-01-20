@@ -5,17 +5,28 @@ export const enum ElEditType {
   Blur,
 }
 
-export interface EditValueEncoding {
-  [ElEditType.Text]: [timeInSec: number, oldValue: string, newValue: string];
-  [ElEditType.Image]: [timeInSec: number, oldValue: string, newValue: string, height: string, width: string];
-  [ElEditType.Blur]: [
+export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string];
+export const enum IdxEncodingTypeText {
+  TIMESTAMP = 0,
+  OLD_VALUE,
+  NEW_VALUE
+}
+
+export type EncodingTypeImage = [timeInSec: number, oldValue: string, newValue: string, height: string, width: string];
+export type EncodingTypeBlur = [
     timeInSec: number,
     oldBlurValue: number,
     newBlurValue: number,
     oldFilterPropertyValue: string,
     newFilterPropertyValue: string
   ];
-  [ElEditType.Display]: [timeInSec: number, oldValue: string, newVal: string];
+export type EncodingTypeDisplay = [timeInSec: number, oldValue: string, newVal: string];
+
+export interface EditValueEncoding {
+  [ElEditType.Text]: EncodingTypeText;
+  [ElEditType.Image]: EncodingTypeImage;
+  [ElEditType.Blur]: EncodingTypeBlur;
+  [ElEditType.Display]: EncodingTypeDisplay;
 }
 
 export const enum IdxEditEncodingText {
@@ -30,6 +41,7 @@ export type EditItem = [
   key: string,
   path: string,
   type: ElEditType,
+  isLocalEdit: boolean,
   timestamp: number,
   edit: Partial<EditValueEncoding[keyof EditValueEncoding]>
 ];
@@ -38,6 +50,7 @@ export const enum IdxEditItem {
   KEY = 0,
   PATH,
   TYPE,
+  EDIT_TYPE_LOCAL,
   TIMESTAMP,
   ENCODING,
 }

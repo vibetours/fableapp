@@ -7,16 +7,19 @@ import {
   ApiResp,
   ReqCopyScreen,
   ReqNewTour,
+  ReqRecordEdit,
   RespCommonConfig,
   RespScreen,
   RespTour,
 } from '@fable/common/dist/api-contract';
-import { sleep } from '@fable/common/dist/utils';
-import { ScreenData, TourData, ScreenEdits } from '@fable/common/dist/types';
+import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
+import { EditFile, ScreenData, TourData } from '@fable/common/dist/types';
 import {
+  convertEditsToLineItems,
   createEmptyTour,
   createEmptyTourDataFile,
   groupScreens,
+  mergeEdits,
   P_RespScreen,
   P_RespTour,
   processRawScreenData,
@@ -70,11 +73,13 @@ export function init() {
 export interface TScreenWithData {
   type: ActionType.SCREEN_AND_DATA_LOADED;
   screenData: ScreenData;
-  screenEdits: ScreenEdits | null;
+  screenEdits: EditFile<AllEdits<ElEditType>> | null;
+  remoteEdits: EditItem[];
   screen: P_RespScreen;
+  isScreenInPreviewMode: boolean;
 }
 
-export function loadScreenAndData(screenRid: string) {
+export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = false) {
   return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
     const state = getState();
     let screen: RespScreen | null = null;
@@ -100,18 +105,29 @@ export function loadScreenAndData(screenRid: string) {
       // that could crate lag in the browser's tab for less powerful device.
       // The data would be cached in disk any way and browser would not make another call to the data file and instead
       // return from disk cache
-      const commonConfig = state.default.commonConfig!;
-      const dataFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
-      const editFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.editFileName}`;
+      const pScreen = processRawScreenData(screen, state);
       const [data, edits] = await Promise.all([
-        api<null, ScreenData>(dataFileUrl),
-        screen.parentScreenId ? api<null, ScreenEdits>(editFileUrl) : Promise.resolve(null),
+        api<null, ScreenData>(pScreen.dataFileUri.href),
+        screen.parentScreenId
+          ? api<null, EditFile<AllEdits<ElEditType>>>(pScreen.editFileUri.href)
+          : Promise.resolve(null),
       ]);
+      let remoteEdits: EditItem[] = [];
+      if (edits !== null) {
+        if (edits.edits instanceof Array) {
+          // WARN this if conditions only for the cases where screens are created earlier with edit.json file having
+          // wrong format for edits key
+        } else {
+          remoteEdits = convertEditsToLineItems(edits.edits, false);
+        }
+      }
       dispatch({
         type: ActionType.SCREEN_AND_DATA_LOADED,
         screenData: data,
         screenEdits: edits,
+        remoteEdits,
         screen: processRawScreenData(screen, getState()),
+        isScreenInPreviewMode,
       });
     } else {
       // TODO error
@@ -130,16 +146,18 @@ export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScr
     });
     const screen = screenResp.data;
 
-    const state = getState();
-    const commonConfig = state.default.commonConfig!;
-    const dataFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.dataFileName}`;
-    const editFileUrl = `${commonConfig.screenAssetPath}${screen.assetPrefixHash}/${commonConfig.editFileName}`;
-    const [data, edits] = await Promise.all([api<null, ScreenData>(dataFileUrl), api<null, ScreenEdits>(editFileUrl)]);
+    const pScreen = processRawScreenData(screen, getState());
+    const [data, edits] = await Promise.all([
+      api<null, ScreenData>(pScreen.dataFileUri.href),
+      api<null, EditFile<AllEdits<ElEditType>>>(pScreen.editFileUri.href)
+    ]);
     dispatch({
       type: ActionType.SCREEN_AND_DATA_LOADED,
       screenData: data,
       screenEdits: edits,
       screen: processRawScreenData(screen, getState()),
+      remoteEdits: [],
+      isScreenInPreviewMode: false,
     });
     window.history.replaceState(null, tour.displayName, `/tour/${tour.rid}/${screen.rid}`);
   };
@@ -281,25 +299,51 @@ export interface TSaveEditChunks {
   type: ActionType.SAVE_EDIT_CHUNKS;
   screen: P_RespScreen;
   editList: EditItem[];
+  isLocal: boolean;
+  editFile?: EditFile<AllEdits<ElEditType>>
 }
 
 export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEditType>) {
   return async (dispatch: Dispatch<TSaveEditChunks>) => {
-    const editList: EditItem[] = [];
-    for (const [path, edits] of Object.entries(editChunks)) {
-      for (const [type, editDetails] of Object.entries(edits)) {
-        editList.push([`${path}:${type}`, path, +type, editDetails[0], editDetails]);
-      }
-    }
-
     dispatch({
       type: ActionType.SAVE_EDIT_CHUNKS,
       screen,
-      editList,
+      editList: convertEditsToLineItems(editChunks, true),
+      isLocal: true,
     });
   };
 }
 
-export function flushEditChunksToMasterFile(screen: P_RespScreen) {
-  return async (dispatch: Dispatch<TSaveEditChunks>) => {};
+export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: AllEdits<ElEditType>) {
+  return async (dispatch: Dispatch<TSaveEditChunks>, getState: () => TState) => {
+    const savedEditData = getState().default.screenEdits;
+    if (savedEditData) {
+      let masterEdit = savedEditData?.edits;
+      if (masterEdit) {
+        if (masterEdit instanceof Array) {
+          // WARN this is only for the cases where screens are created earlier with edit.json file having wrong format
+          // for edits key
+          masterEdit = {};
+        }
+        savedEditData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+        savedEditData.edits = mergeEdits(masterEdit, localEdits);
+
+        const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordedit', {
+          auth: true,
+          body: {
+            rid: screen.rid,
+            editData: JSON.stringify(savedEditData),
+          },
+        });
+
+        dispatch({
+          type: ActionType.SAVE_EDIT_CHUNKS,
+          screen,
+          editList: convertEditsToLineItems(savedEditData.edits, false),
+          editFile: savedEditData,
+          isLocal: false,
+        });
+      }
+    }
+  };
 }

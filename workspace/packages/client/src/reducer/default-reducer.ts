@@ -1,6 +1,6 @@
 import { Action } from 'redux';
 import { RespCommonConfig } from '@fable/common/dist/api-contract';
-import { LoadingStatus, ScreenData, TourData, ScreenEdits } from '@fable/common/dist/types';
+import { EditFile, LoadingStatus, ScreenData, TourData } from '@fable/common/dist/types';
 import ActionType from '../action/type';
 import {
   TGenericLoading,
@@ -13,7 +13,7 @@ import {
   TTourWithData,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour } from '../entity-processor';
-import { EditItem, IdxEditItem } from '../types';
+import { AllEdits, EditItem, ElEditType } from '../types';
 
 export const initialState: {
   commonConfig: RespCommonConfig | null;
@@ -23,13 +23,15 @@ export const initialState: {
   principalFetched: boolean;
   screenLoaded: boolean;
   screenData: ScreenData | null;
-  screenEdits: ScreenEdits | null;
+  screenEdits: EditFile<AllEdits<ElEditType>> | null;
   currentScreen: P_RespScreen | null;
   currentTour: P_RespTour | null;
   newTourLoadingStatus: LoadingStatus;
   tourData: TourData | null;
   tourLoaded: boolean;
-  editChunks: Record<string, EditItem[]>;
+  localEdits: Record<string, EditItem[]>;
+  remoteEdits: Record<string, EditItem[]>;
+  isScreenInPreviewMode: boolean;
 } = {
   screens: [],
   tours: [],
@@ -44,7 +46,9 @@ export const initialState: {
   newTourLoadingStatus: LoadingStatus.NotStarted,
   tourData: null,
   tourLoaded: false,
-  editChunks: {},
+  localEdits: {},
+  remoteEdits: {},
+  isScreenInPreviewMode: false,
 };
 
 // eslint-disable-next-line default-param-last
@@ -88,6 +92,8 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.screenData = tAction.screenData;
       newState.screenEdits = tAction.screenEdits;
       newState.screenLoaded = true;
+      newState.remoteEdits[tAction.screen.rid] = tAction.remoteEdits;
+      newState.isScreenInPreviewMode = tAction.isScreenInPreviewMode;
       return newState;
     }
 
@@ -110,13 +116,13 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.SAVE_EDIT_CHUNKS: {
       const tAction = action as TSaveEditChunks;
       const newState = { ...state };
-      // const editList: EditItem[] = newState.editChunks[tAction.screen.rid] || [];
-      // const currentEditKeys = tAction.editList.reduce((store, e) => {
-      //   store[e[IdxEditItem.KEY]] = 1;
-      //   return store;
-      // }, {} as Record<string, 1>);
-      // const editsWithoutCollision = editList.filter((e) => !(e[IdxEditItem.KEY] in currentEditKeys));
-      newState.editChunks[tAction.screen.rid] = [...tAction.editList];
+      if (tAction.isLocal) {
+        newState.localEdits[tAction.screen.rid] = [...tAction.editList];
+      } else {
+        newState.remoteEdits[tAction.screen.rid] = [...tAction.editList];
+        newState.localEdits[tAction.screen.rid] = [];
+        newState.screenEdits = tAction.editFile!;
+      }
       return newState;
     }
 

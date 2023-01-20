@@ -2,11 +2,13 @@ import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dis
 import { getDisplayableTime } from '@fable/common/dist/utils';
 import { TourData } from '@fable/common/dist/types';
 import { TState } from './reducer';
+import { AllEdits, EditItem, ElEditType } from './types';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
   thumbnailUri: URL;
   dataFileUri: URL;
+  editFileUri: URL;
   displayableUpdatedAt: string;
   related: P_RespScreen[];
 }
@@ -20,7 +22,8 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     displayableUpdatedAt: getDisplayableTime(d),
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
-    dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}index.json`),
+    dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.dataFileName}`),
+    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}`),
     related: [],
   };
 }
@@ -117,3 +120,28 @@ export function createEmptyTourDataFile(): TourData {
 }
 
 /* ************************************************************************* */
+
+export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits<ElEditType>): AllEdits<ElEditType> {
+  for (const path of Object.keys(incomingEdits)) {
+    if (path in master) {
+      const perElEdit = incomingEdits[path];
+      for (const editType of Object.keys(perElEdit)) {
+        master[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+      }
+    } else {
+      master[path] = incomingEdits[path];
+    }
+  }
+
+  return master;
+}
+
+export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
+  const editList: EditItem[] = [];
+  for (const [path, edits] of Object.entries(editChunks)) {
+    for (const [type, editDetails] of Object.entries(edits)) {
+      editList.push([`${path}:${type}`, path, +type, editTypeLocal, editDetails[0], editDetails]);
+    }
+  }
+  return editList;
+}

@@ -2,16 +2,16 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { ScreenData, TourData } from '@fable/common/dist/types';
 import {
+  copyScreenForCurrentTour,
   createPlaceholderTour,
+  flushEditChunksToMasterFile,
   getAllScreens,
   loadScreenAndData,
   loadTourAndData,
-  savePlaceHolderTour,
-  copyScreenForCurrentTour,
   saveEditChunks,
-  flushEditChunksToMasterFile,
+  savePlaceHolderTour,
 } from '../../action/creator';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { mergeEdits, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import Header from '../../component/header';
 import * as GTags from '../../common-styled';
@@ -25,22 +25,22 @@ interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
   getAllScreens: () => void;
   createPlaceholderTour: () => void;
-  loadScreenAndData: (rid: string) => void;
+  loadScreenAndData: (rid: string, isPreviewMode: boolean) => void;
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
-  flushEditChunksToMasterFile: (screen: P_RespScreen) => void;
+  flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadTourAndData: (rid: string) => dispatch(loadTourAndData(rid)),
   getAllScreens: () => dispatch(getAllScreens()),
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
-  loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
+  loadScreenAndData: (rid: string, isPreviewMode: boolean) => dispatch(loadScreenAndData(rid, isPreviewMode)),
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
-  flushEditChunksToMasterFile: (screen: P_RespScreen) => dispatch(flushEditChunksToMasterFile(screen)),
+  flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screen, edits)),
 });
 
 interface IAppStateProps {
@@ -51,7 +51,8 @@ interface IAppStateProps {
   isScreenLoaded: boolean;
   isTourLoaded: boolean;
   screens: P_RespScreen[];
-  localEdits: EditItem[];
+  allEdits: EditItem[];
+  isScreenInPreviewMode: boolean;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -62,7 +63,11 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   screenData: state.default.screenData,
   isScreenLoaded: state.default.screenLoaded,
   screens: state.default.screens,
-  localEdits: state.default.currentScreen?.rid ? state.default.editChunks[state.default.currentScreen.rid] || [] : [],
+  isScreenInPreviewMode: state.default.isScreenInPreviewMode,
+  allEdits: [
+    ...(state.default.currentScreen?.rid ? state.default.localEdits[state.default.currentScreen.rid] || [] : []),
+    ...(state.default.currentScreen?.rid ? state.default.remoteEdits[state.default.currentScreen.rid] || [] : [])
+  ],
 });
 
 interface IOwnProps {}
@@ -82,13 +87,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private chunkSyncManager: ChunkSyncManager | null = null;
 
   componentDidMount(): void {
-    if (this.props.match.params.tourId) {
-      this.props.loadTourAndData(this.props.match.params.tourId);
-    } else {
+    const isPreviewMode = !this.props.match.params.tourId;
+    if (isPreviewMode) {
       this.props.createPlaceholderTour();
+    } else {
+      this.props.loadTourAndData(this.props.match.params.tourId);
     }
     if (this.props.match.params.screenId) {
-      this.props.loadScreenAndData(this.props.match.params.screenId);
+      this.props.loadScreenAndData(this.props.match.params.screenId, isPreviewMode);
     }
 
     // TODO do this only when add screen to tour button is clicked from
@@ -102,7 +108,16 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
       this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
     }
+    if (this.props.isScreenLoaded && !this.props.isScreenInPreviewMode) {
+      this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
+    }
   }
+
+  onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
+    if (key.endsWith(this.props.screen!.rid)) {
+      this.props.saveEditChunks(this.props.screen!, edits);
+    }
+  };
 
   getStorageKeyForEditChunks(type: 'edit-chunk'): string {
     switch (type) {
@@ -168,46 +183,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     );
   };
 
-  private flushEdits = () => {
-    this.props.flushEditChunksToMasterFile(this.props.screen!);
-  };
-
-  private onScreenEditStart = () => {
-    if (this.props.tour?.isPlaceholder) {
-      this.props.savePlaceHolderTour(this.props.tour, this.props.screen!);
-    }
-  };
-
-  private onScreenEditFinish = () => {};
-
-  private onScreenEditChange = (editChunks: AllEdits<ElEditType>) => {
-    const mergedEditChunks = this.chunkSyncManager!.add(
-      this.getStorageKeyForEditChunks('edit-chunk'),
-      editChunks,
-      (storedEdits: AllEdits<ElEditType> | null, edits: AllEdits<ElEditType>) => {
-        if (storedEdits === null) {
-          return edits;
-        }
-
-        for (const path of Object.keys(edits)) {
-          if (path in storedEdits) {
-            const perElEdit = edits[path];
-            for (const editType of Object.keys(perElEdit)) {
-              storedEdits[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
-            }
-          } else {
-            storedEdits[path] = edits[path];
-          }
-        }
-
-        return storedEdits;
-      }
-    );
-    this.props.saveEditChunks(this.props.screen!, mergedEditChunks);
-  };
-
   componentWillUnmount() {
-    // this.stopEditSyncLoop();
+    this.chunkSyncManager?.end();
   }
 
   render() {
@@ -232,8 +209,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             <ScreenEditor
               screen={this.props.screen!}
               screenData={this.props.screenData!}
-              // screenEdits={null}
-              localEdits={this.props.localEdits}
+              allEdits={this.props.allEdits}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
@@ -251,6 +227,32 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       </GTags.ColCon>
     );
   }
+
+  private flushEdits = (key: string, value: AllEdits<ElEditType>) => {
+    this.props.flushEditChunksToMasterFile(this.props.screen!, value);
+  };
+
+  private onScreenEditStart = () => {
+    if (this.props.tour?.isPlaceholder) {
+      this.props.savePlaceHolderTour(this.props.tour, this.props.screen!);
+    }
+  };
+
+  private onScreenEditFinish = () => {};
+
+  private onScreenEditChange = (editChunks: AllEdits<ElEditType>) => {
+    const mergedEditChunks = this.chunkSyncManager!.add(
+      this.getStorageKeyForEditChunks('edit-chunk'),
+      editChunks,
+      (storedEdits: AllEdits<ElEditType> | null, edits: AllEdits<ElEditType>) => {
+        if (storedEdits === null) {
+          return edits;
+        }
+        return mergeEdits(storedEdits, edits);
+      }
+    );
+    this.props.saveEditChunks(this.props.screen!, mergedEditChunks);
+  };
 }
 
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(

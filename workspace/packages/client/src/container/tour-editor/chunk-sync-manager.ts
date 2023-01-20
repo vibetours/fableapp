@@ -3,7 +3,7 @@ export enum SyncTarget {
 }
 
 interface CB {
-  onSyncNeeded: <T>(key: string, value: T) => void;
+  onSyncNeeded: <T extends Record<string, any>>(key: string, value: T) => void;
 }
 
 export default class ChunkSyncManager {
@@ -16,6 +16,8 @@ export default class ChunkSyncManager {
   private readonly interval: number;
 
   private timer: number = 0;
+
+  private isStarted: boolean = false;
 
   private readonly cb: CB;
 
@@ -37,7 +39,11 @@ export default class ChunkSyncManager {
     return newVal;
   }
 
-  start() {
+  startIfNotAlreadyStarted<K>(onLocalEditsLeft: (key: string, v: K) => void) {
+    if (this.isStarted) {
+      return;
+    }
+    this.isStarted = true;
     if (!this.timer) {
       this.timer = setInterval(this.poll, this.interval) as unknown as number;
     }
@@ -46,7 +52,13 @@ export default class ChunkSyncManager {
       const key = localStorage.key(len);
       if (!key) break;
       if (key.startsWith(this.lookupKeyLike)) {
-        this.lookupKeys[key] = 1;
+        const val = localStorage.getItem(key);
+        if (!val) {
+          localStorage.removeItem(key);
+        } else {
+          this.lookupKeys[key] = 1;
+          onLocalEditsLeft(key, JSON.parse(val) as K);
+        }
       }
     }
   }
@@ -55,7 +67,7 @@ export default class ChunkSyncManager {
     for (const key of Object.keys(this.lookupKeys)) {
       const val = localStorage.getItem(key);
       if (val) {
-        this.cb.onSyncNeeded(key, val);
+        this.cb.onSyncNeeded(key, JSON.parse(val));
       }
       localStorage.removeItem(key);
       delete this.lookupKeys[key];

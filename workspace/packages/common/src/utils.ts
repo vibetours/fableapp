@@ -46,3 +46,11 @@ export function deepcopy<T>(obj: T): T {
   }
   return JSON.parse(JSON.stringify(obj));
 }
+
+export function trimSpaceAndNewLine(txt: string): string {
+  return txt
+    .split('\n')
+    .map((t) => t.trim())
+    .filter((t) => t !== '')
+    .join('\n');
+}

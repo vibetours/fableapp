@@ -1,7 +1,7 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import { ScreenData, ScreenEdits, SerNode } from '@fable/common/dist/types';
+import { ScreenData, SerNode } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
-import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
 import Switch from 'antd/lib/switch';
@@ -11,7 +11,16 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
-import { AllEdits, EditItem, EditValueEncoding, ElEditType, IdxEditEncodingText, IdxEditItem } from '../../types';
+import {
+  AllEdits,
+  EditItem,
+  EditValueEncoding,
+  ElEditType,
+  EncodingTypeText,
+  IdxEditEncodingText,
+  IdxEditItem,
+  IdxEncodingTypeText
+} from '../../types';
 
 const browser = detect();
 
@@ -26,8 +35,7 @@ type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 interface IOwnProps {
   screen: RespScreen;
   screenData: ScreenData;
-  // screenEdits: ScreenEdits | null;
-  localEdits: EditItem[];
+  allEdits: EditItem[];
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
@@ -47,10 +55,9 @@ interface DeSerProps {
 /*
  * This component should only be loaded once all the screen data is available.
  */
-export default class ScreenEditor extends React.PureComponent<
-  IOwnProps,
-  IOwnStateProps
-> {
+export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
+  private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
+
   private readonly embedFrameRef: React.RefObject<HTMLIFrameElement>;
 
   private assetLoadingPromises: Promise<unknown>[] = [];
@@ -408,6 +415,27 @@ export default class ScreenEditor extends React.PureComponent<
     return loc;
   }
 
+  private static applyEdits(allEdits: EditItem[], doc: Document) {
+    const mem: Record<string, Node> = {};
+    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+    for (const edit of allEdits) {
+      const path = edit[IdxEditItem.PATH];
+      let el: Node;
+      if (path in mem) el = mem[path];
+      else {
+        el = ScreenEditor.elFromPath(path, doc);
+        mem[path] = el;
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
+      }
+    }
+  }
+
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
@@ -463,7 +491,7 @@ export default class ScreenEditor extends React.PureComponent<
     let node;
     switch (serNode.type) {
       case Node.TEXT_NODE:
-        node = doc.createTextNode(serNode.props.textContent!);
+        node = doc.createTextNode(trimSpaceAndNewLine(serNode.props.textContent!));
         break;
       case Node.ELEMENT_NODE:
         node = this.createHtmlElement(serNode, doc, newProps);
@@ -491,6 +519,15 @@ export default class ScreenEditor extends React.PureComponent<
   };
 
   deserDomIntoFrame = (frame: HTMLIFrameElement) => {
+    /*
+     * FIXME By default assume all pages are responsive via css
+     *       But there will always be pages like gmail, analytics where responsiveness is implemented via js
+     *       For those cases ask user to select if the page is responsive or not.
+     *       If it's responsive don't apply any scaling / zooming
+     *       If it's not responsive for chrome apply zoom, for firefox apply the following logic.
+     *       For scaling, always do width fitting and height should take up the whole height of parent
+     */
+
     // This calculation is to make transform: scale work like zoom property.
     // We can't use Zoom property as it's only supported by chrome and some version of ie.
     //
@@ -509,13 +546,20 @@ export default class ScreenEditor extends React.PureComponent<
     const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
     const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
     const scale = Math.min(scaleX, scaleY);
-    frame.style.transform = `scale(${scale}) translate(-50%, -50%)`;
+    const divPadding = 18;
+    frame.style.transform = `scale(${scale})`;
     frame.style.transformOrigin = '0 0';
-    frame.style.top = '50%';
-    frame.style.left = '50%';
     frame.style.position = 'absolute';
     frame.style.width = `${this.props.screenData.vpd.w}px`;
     frame.style.height = `${this.props.screenData.vpd.h}px`;
+    const viewPortAfterScaling = frame.getBoundingClientRect();
+    // Bring the iframe in center
+    if (origFrameViewPort.width > viewPortAfterScaling.width) {
+      frame.style.left = `${((origFrameViewPort.width - viewPortAfterScaling.width) / 2) + divPadding}px`;
+    }
+    if (origFrameViewPort.height - viewPortAfterScaling.height) {
+      frame.style.top = `${((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + divPadding}px`;
+    }
 
     const doc = frame?.contentDocument;
     const frameBody = doc?.body;
@@ -523,11 +567,7 @@ export default class ScreenEditor extends React.PureComponent<
     if (doc) {
       if (frameHtml && frameBody) {
         frameBody.style.display = 'none';
-        const rootHTMLEl = this.deser(
-          this.props.screenData.docTree,
-          doc
-        ) as HTMLElement;
-
+        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
         const childNodes = doc.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
           if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
@@ -536,6 +576,7 @@ export default class ScreenEditor extends React.PureComponent<
           }
         }
 
+        ScreenEditor.applyEdits(this.props.allEdits, doc);
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
           frameBody.style.display = '';
@@ -733,14 +774,9 @@ export default class ScreenEditor extends React.PureComponent<
                 autoFocus
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
-                  const refEl = (
-                    t.nodeType === Node.TEXT_NODE ? t.parentNode : t
-                  ) as HTMLElement;
-                  const path = ScreenEditor.elPath(
-                    refEl,
-                    this.embedFrameRef?.current?.contentDocument!
-                  );
-                  const attrName = `fab-orig-val-t-${ElEditType.Text}`;
+                  const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+                  const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
                   let origVal = refEl.getAttribute(attrName);
                   if (origVal === null) {
                     origVal = t.textContent || '';
@@ -779,6 +815,7 @@ export default class ScreenEditor extends React.PureComponent<
   render(): React.ReactNode {
     return (
       <Tags.Con>
+        <PictureOutlined />
         <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
           <Tags.EmbedFrame
             src="about:blank"
@@ -833,8 +870,8 @@ export default class ScreenEditor extends React.PureComponent<
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
             {this.props.screen.parentScreenId !== 0
-              && this.props.localEdits
-                .sort((m, n) => n[2] - m[2])
+              && this.props.allEdits
+                .sort((m, n) => n[IdxEditItem.TIMESTAMP] - m[IdxEditItem.TIMESTAMP])
                 .map((e) => (
                   <Tags.EditLIPCon
                     key={e[IdxEditItem.KEY]}
@@ -846,7 +883,7 @@ export default class ScreenEditor extends React.PureComponent<
                       this.highlightElementForPath(edit[IdxEditItem.PATH]);
                     })(e)}
                   >
-                    {ScreenEditor.getEditTypeComponent(e, true)}
+                    {ScreenEditor.getEditTypeComponent(e, e[IdxEditItem.EDIT_TYPE_LOCAL])}
                     {e[IdxEditItem.KEY] === this.state.editItemSelected && (
                       <div style={{ display: 'flex' }}>
                         <Tags.ListActionBtn>Revert</Tags.ListActionBtn>

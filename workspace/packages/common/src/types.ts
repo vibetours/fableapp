@@ -52,10 +52,10 @@ export interface ScreenData {
   docTree: SerNode;
 }
 
-export interface ScreenEdits {
+export interface EditFile<T> {
   v: SchemaVersion;
   lastUpdatedAtUtc: number;
-  edits: Array<any>; // TODO specific type
+  edits: T;
 }
 
 export interface TourEntity {
