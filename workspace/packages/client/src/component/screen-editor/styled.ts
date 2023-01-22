@@ -110,3 +110,21 @@ export const ListActionBtn = styled.span`
     text-decoration: underline;
   }
 `;
+
+export const AnotCrtPanelCon = styled.div`
+  display: flex;
+  background: lightgray;
+  flex-direction: column;
+`;
+
+export const AnotCrtPanelSec = styled.div`
+  display: flex;
+  flex-direction: ${(p: AnotPanelSecOri) => (p.row ? 'row' : 'column')};
+  align-items: ${(p: AnotPanelSecOri) => (p.row ? 'center' : 'unset')};
+  width: 100%;
+  margin-bottom: 0.75rem;
+`;
+
+interface AnotPanelSecOri {
+  row?: boolean;
+}

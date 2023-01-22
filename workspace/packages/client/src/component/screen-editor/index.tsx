@@ -1,5 +1,5 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import { ScreenData, SerNode } from '@fable/common/dist/types';
+import { AnnotationPositions, ScreenData, SerNode } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
@@ -14,6 +14,7 @@ import {
   EditOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
+import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
@@ -53,8 +54,16 @@ interface IOwnProps {
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
 }
+
+const enum ElSelReqType {
+  NA = 0,
+  EditEl,
+  AnnotateEl,
+}
+
 interface IOwnStateProps {
-  isInEditMode: boolean;
+  isInElSelectionMode: boolean;
+  elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
@@ -84,7 +93,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.embedFrameRef = React.createRef();
     this.microEdits = {};
     this.state = {
-      isInEditMode: false,
+      isInElSelectionMode: false,
+      elSelRequestedBy: ElSelReqType.NA,
       selectedEl: null,
       targetEl: null,
       editTargetType: EditTargetType.None,
@@ -409,10 +419,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  disableClick(e: Event) {
-    e.preventDefault();
-  }
-
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
@@ -577,12 +583,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
-    if (prevState.isInEditMode !== this.state.isInEditMode) {
-      if (this.state.isInEditMode) {
+    if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
+      if (this.state.isInElSelectionMode) {
         this.props.onScreenEditStart();
         this.domElPicker?.enable();
       } else {
-        console.log('will stop editing');
         this.domElPicker?.disable();
         this.props.onScreenEditFinish();
       }
@@ -784,28 +789,49 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 marginBottom: '1.75rem',
               }}
             >
-              <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
-                {!this.state.isInEditMode ? (
-                  'You can edit the screen by changing text, uploading new images, hiding or blurring elements etc. \n'
-                  + '\n'
-                  + 'You can add annotation to an element to create a guided tour aldfj asljdf llasjdf'
-                ) : this.state.selectedEl === null ? (
-                  <>
-                    Click an element in the screen to see the edit options and annotation creation guide.
-                    Press <span className="kb-key">Esc</span> to
-                    exit from edit mode.
-                  </>
-                ) : (
-                  <>
-                    You are now editing the selected element. Press <span className="kb-key">Esc</span> to complete
-                    editing.
-                  </>
-                )}
-              </GTags.Txt>
-              {!this.state.isInEditMode && (
-                <Btn icon="plus" onClick={() => this.setState({ isInEditMode: true })}>
-                  Start Editing / Add Annotation
-                </Btn>
+              {!this.state.isInElSelectionMode ? (
+                <>
+                  <GTags.Txt className="subhead" style={{ margin: '0rem 0 .5rem' }}>
+                    You can edit the screen by changing text, uploading new images, hiding or blurring elements etc
+                  </GTags.Txt>
+                  <Btn
+                    icon="edit"
+                    type="link"
+                    onClick={() => this.setState({ isInElSelectionMode: true, elSelRequestedBy: ElSelReqType.EditEl })}
+                  >
+                    Start Editing
+                  </Btn>
+                  <GTags.Txt className="subhead" style={{ margin: '1.5rem 0 .5rem' }}>
+                    You can add annotation to an element to start creating a guided tour of your product
+                  </GTags.Txt>
+                  <Btn
+                    type="primary"
+                    icon="plus"
+                    onClick={() => this.setState({
+                      isInElSelectionMode: true,
+                      elSelRequestedBy: ElSelReqType.AnnotateEl,
+                    })}
+                  >
+                    Add an annotation
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  {this.state.selectedEl === null ? (
+                    <GTags.Txt className="subhead">
+                      {this.state.elSelRequestedBy === ElSelReqType.EditEl
+                        ? 'Click an element in the screen to see the edit options.\n'
+                        : 'Click an element in the screen to add annotations.'}
+                      Press <span className="kb-key">Esc</span> to exit from edit mode.
+                    </GTags.Txt>
+                  ) : (
+
+                    <GTags.Txt className="subhead">
+                      You are now editing the selected element. Press <span className="kb-key">Esc</span> to complete
+                      editing.
+                    </GTags.Txt>
+                  )}
+                </>
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
@@ -818,7 +844,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     onClick={((edit) => (evt) => {
                       this.setState({
                         editItemSelected: e[IdxEditItem.KEY],
-                        isInEditMode: true,
+                        isInElSelectionMode: true,
+                        elSelRequestedBy: ElSelReqType.EditEl,
                       });
                       this.highlightElementForPath(edit[IdxEditItem.PATH]);
                     })(e)}
@@ -834,6 +861,22 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   </Tags.EditLIPCon>
                 ))}
           </Tags.EditPanelSec>
+          {/* TODO for local dev for auto refresh */}
+          <Tags.EditPanelSec>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                marginBottom: '1.25rem',
+              }}
+            >
+              <AnnotationCreatorPanel config={{
+                bodyContent: 'Write a description about what this feature of your product does to your user.',
+                positioning: AnnotationPositions.Auto
+              }}
+              />
+            </div>
+          </Tags.EditPanelSec>
           {this.state.selectedEl && (
             <Tags.EditPanelSec>
               <div
@@ -847,10 +890,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                   Annotations are guide to your product mean to get your user acquiented with your product.
                 </GTags.Txt>
-
-                <Btn icon="plus">
-                  Add an annotation
-                </Btn>
+                {/* this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (<AnnotationCreatorPanel />) : (
+                  <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
+                    Add an annotation
+                  </Btn>
+                ) */}
               </div>
             </Tags.EditPanelSec>
           )}
@@ -886,7 +930,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   private onMouseEnterOnIframe = (e: MouseEvent) => {
-    this.state.isInEditMode && this.domElPicker?.enable();
+    this.state.isInElSelectionMode && this.domElPicker?.enable();
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -894,7 +938,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
       } else {
-        this.setState({ isInEditMode: false });
+        this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
 
       if (this.state.editItemSelected !== '') {

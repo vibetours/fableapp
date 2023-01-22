@@ -81,3 +81,17 @@ export enum LoadingStatus {
   InProgress,
   Done,
 }
+
+export enum AnnotationPositions {
+  Auto = 'auto',
+  Top = 'top',
+  Left = 'left',
+  Right = 'right',
+  AboveOrBelow = 'above-or-below',
+  LeftOrRight = 'left-or-right',
+}
+
+export interface IAnnotationConfig {
+  bodyContent: string;
+  positioning: AnnotationPositions,
+}

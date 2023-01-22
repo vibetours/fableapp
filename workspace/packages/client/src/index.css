@@ -16,3 +16,7 @@ html, body {
   width: 100%;
 }
 
+.ant-wave, .wave-motion-appear, .wave-motion-appear-active, .wave-motion {
+  display: none !important;
+}
+

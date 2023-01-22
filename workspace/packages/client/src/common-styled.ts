@@ -71,7 +71,7 @@ export const Txt = styled.div`
 `;
 
 export const BodyCon = styled.div`
-  overflow-y: auto;
+  overflow-y: hidden;
   padding: 0.25rem 2rem;
   display: flex;
   flex-direction: column;
