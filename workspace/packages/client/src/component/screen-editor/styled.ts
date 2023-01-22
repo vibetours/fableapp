@@ -12,7 +12,6 @@ export const Con = styled.div`
 `;
 
 export const EmbedCon = styled.div`
-  height: 100%;
   width: 77%;
   background: #fcfcfc;
   border-radius: 20px;
@@ -35,6 +34,7 @@ export const EditPanelCon = styled.div`
   width: 23%;
   min-width: 320px;
   display: flex;
+  flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
   border-top-right-radius: 20px;
@@ -45,7 +45,6 @@ export const EditPanelSec = styled.div`
   display: flex;
   padding: 1rem 0.75rem;
   flex-direction: column;
-  width: 100%;
 `;
 
 export const EditCtrlCon = styled.div`

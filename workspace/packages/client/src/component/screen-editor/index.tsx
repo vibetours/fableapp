@@ -774,7 +774,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 marginBottom: '1.25rem',
               }}
             >
-              <GTags.Txt className="title">Edit Screen</GTags.Txt>
+              <GTags.Txt className="title">Edit Screen {this.state.selectedEl ? '' : 'or Add annotations'}</GTags.Txt>
             </div>
             <div
               style={{
@@ -786,10 +786,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             >
               <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                 {!this.state.isInEditMode ? (
-                  'You can edit the screen by changing text, uploading new images, hiding or blurring elements etc.'
+                  'You can edit the screen by changing text, uploading new images, hiding or blurring elements etc. \n'
+                  + '\n'
+                  + 'You can add annotation to an element to create a guided tour aldfj asljdf llasjdf'
                 ) : this.state.selectedEl === null ? (
                   <>
-                    Click an element in the screen to see the edit options. Press <span className="kb-key">Esc</span> to
+                    Click an element in the screen to see the edit options and annotation creation guide.
+                    Press <span className="kb-key">Esc</span> to
                     exit from edit mode.
                   </>
                 ) : (
@@ -801,7 +804,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               </GTags.Txt>
               {!this.state.isInEditMode && (
                 <Btn icon="plus" onClick={() => this.setState({ isInEditMode: true })}>
-                  Click here to start editing
+                  Start Editing / Add Annotation
                 </Btn>
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
@@ -831,6 +834,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   </Tags.EditLIPCon>
                 ))}
           </Tags.EditPanelSec>
+          {this.state.selectedEl && (
+            <Tags.EditPanelSec>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <GTags.Txt className="title">Add an annotation</GTags.Txt>
+                <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
+                  Annotations are guide to your product mean to get your user acquiented with your product.
+                </GTags.Txt>
+
+                <Btn icon="plus">
+                  Add an annotation
+                </Btn>
+              </div>
+            </Tags.EditPanelSec>
+          )}
         </Tags.EditPanelCon>
       </Tags.Con>
     );

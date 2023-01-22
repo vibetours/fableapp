@@ -24,6 +24,7 @@ export const Txt = styled.div`
     opacity: 0.65;
     line-height: 1.1rem;
     margin-top: 0.25rem;
+    white-space: pre-line;
   }
 
   &.subsubhead {
@@ -70,7 +71,6 @@ export const Txt = styled.div`
 `;
 
 export const BodyCon = styled.div`
-  width: 100%;
   overflow-y: auto;
   padding: 0.25rem 2rem;
   display: flex;
