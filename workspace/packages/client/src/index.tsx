@@ -1,15 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './brand.css';
 import './index.css';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
+import AntDesignThemeConfigProvider from 'antd/lib/config-provider';
 import App from './container/app';
 import reportWebVitals from './reportWebVitals';
 import config from './store-config';
 
 const theme = {
   colors: {
+    component: {
+      primary: '#7567ff',
+    },
     dark: {
       idle: {
         background: '#160245',
@@ -41,7 +44,18 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <Provider store={config}>
     <ThemeProvider theme={theme}>
-      <App />
+      <AntDesignThemeConfigProvider theme={{
+        token: {
+          colorPrimary: theme.colors.component.primary,
+          colorBorder: theme.colors.component.primary,
+          colorLink: theme.colors.component.primary,
+          colorLinkHover: theme.colors.dark.idle.background,
+          fontSize: 16,
+        }
+      }}
+      >
+        <App />
+      </AntDesignThemeConfigProvider>
     </ThemeProvider>
   </Provider>
 );
