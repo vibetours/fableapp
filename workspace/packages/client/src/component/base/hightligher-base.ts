@@ -44,4 +44,37 @@ export default abstract class HighlighterBase {
       this.maskEl = null;
     }
   }
+
+  elFromPath(path: string) {
+    const elIdxs = path.split('.').map((id) => +id);
+    let node = this.doc as Node;
+    for (const id of elIdxs) {
+      node = node.childNodes[id];
+    }
+    return node;
+  }
+
+  elPath(el: HTMLElement) {
+    let elPath = el.getAttribute('fab-el-path');
+    if (elPath === null) {
+      const path = HighlighterBase.calculatePathFromEl(el, this.doc, []);
+      elPath = path.join('.');
+      el.setAttribute('fab-el-path', elPath);
+    }
+    return elPath;
+  }
+
+  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
+    if (!el.parentNode) {
+      return loc.reverse();
+    }
+    const siblings = el.parentNode.childNodes;
+    for (let i = 0, l = siblings.length; i < l; i++) {
+      if (el === siblings[i]) {
+        loc.push(i);
+        return this.calculatePathFromEl(el.parentNode, doc, loc);
+      }
+    }
+    return loc;
+  }
 }

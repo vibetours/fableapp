@@ -35,6 +35,7 @@ import {
   IdxEncodingTypeImage,
   IdxEncodingTypeText,
 } from '../../types';
+import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 
 const browser = detect();
 
@@ -85,6 +86,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   private assetLoadingPromises: Promise<unknown>[] = [];
 
   private domElPicker: DomElPicker | null = null;
+
+  private annotationLCM: AnnotationLifecycleManager | null = null;
 
   private microEdits: AllEdits<ElEditType>;
 
@@ -192,7 +195,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
     const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
 
-    const path = ScreenEditor.elPath(imgEl, this.embedFrameRef?.current?.contentDocument!);
+    const path = this.domElPicker!.elPath(imgEl);
     const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
     let origVal = imgEl.getAttribute(attrName);
     if (origVal === null) {
@@ -338,40 +341,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
-  static elFromPath(path: string, doc: Document) {
-    const elIdxs = path.split('.').map((id) => +id);
-    let node = doc as Node;
-    for (const id of elIdxs) {
-      node = node.childNodes[id];
-    }
-    return node;
-  }
-
-  static elPath(el: HTMLElement, doc: Document) {
-    let elPath = el.getAttribute('fab-el-path');
-    if (elPath === null) {
-      const path = ScreenEditor.calculatePathFromEl(el, doc, []);
-      elPath = path.join('.');
-      el.setAttribute('fab-el-path', elPath);
-    }
-    return elPath;
-  }
-
-  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
-    if (!el.parentNode) {
-      return loc.reverse();
-    }
-    const siblings = el.parentNode.childNodes;
-    for (let i = 0, l = siblings.length; i < l; i++) {
-      if (el === siblings[i]) {
-        loc.push(i);
-        return this.calculatePathFromEl(el.parentNode, doc, loc);
-      }
-    }
-    return loc;
-  }
-
-  private static applyEdits(allEdits: EditItem[], doc: Document) {
+  private applyEdits(allEdits: EditItem[]) {
     const mem: Record<string, Node> = {};
     const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
     const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
@@ -382,7 +352,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       let el: Node;
       if (path in mem) el = mem[path];
       else {
-        el = ScreenEditor.elFromPath(path, doc);
+        el = this.domElPicker!.elFromPath(path);
         mem[path] = el;
       }
 
@@ -548,12 +518,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             break;
           }
         }
-
-        ScreenEditor.applyEdits(this.props.allEdits, doc);
-        // Make the iframe visible after all the assets are loaded
-        Promise.all(this.assetLoadingPromises).then(() => {
-          frameBody.style.display = '';
-        });
       } else {
         console.error("Can't find body of embed iframe");
       }
@@ -571,14 +535,22 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
-      this.initDomPicker();
+      requestAnimationFrame(() => {
+        this.initDomPickerAndAnnotationLCM();
+        this.applyEdits(this.props.allEdits);
+        const frameBody = frame.contentDocument?.body;
+        // Make the iframe visible after all the assets are loaded
+        Promise.all(this.assetLoadingPromises).then(() => {
+          frameBody!.style.display = '';
+        });
+      });
     };
 
     document.addEventListener('keydown', this.onKeyDown);
   }
 
   componentWillUnmount(): void {
-    this.disposeDomPicker();
+    this.disposeDomPickerAndAnnotationLCM();
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
@@ -623,7 +595,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             size="small"
             onChange={((t) => (checked) => {
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const path = this.domElPicker!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
 
               const savedOrigVal = t.getAttribute(attrName);
@@ -654,7 +626,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onChange={((t) => (checked) => {
               const filterStyle = getComputedStyle(t).filter;
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const path = this.domElPicker!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
               const origStrVal = refEl.getAttribute(attrName);
 
@@ -726,7 +698,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
                   const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-                  const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+                  const path = this.domElPicker!.elPath(refEl);
                   const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
                   let origVal = refEl.getAttribute(attrName);
                   if (origVal === null) {
@@ -910,7 +882,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!doc) {
       throw new Error('Iframe doc is not found while resolving element from path');
     }
-    const el = ScreenEditor.elFromPath(path, doc) as HTMLElement;
+    const el = this.domElPicker!.elFromPath(path) as HTMLElement;
     if (!el) {
       throw new Error(`Could not resolve element from path ${path}`);
     }
@@ -957,17 +929,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     edits[editType] = edit;
   }
 
-  private disposeDomPicker() {
+  private disposeDomPickerAndAnnotationLCM() {
     this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
     this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
     if (this.domElPicker) {
       this.domElPicker.dispose();
       this.domElPicker = null;
     }
+    if (this.annotationLCM) {
+      this.annotationLCM.dispose();
+      this.annotationLCM = null;
+    }
   }
 
-  private onElSelect = (el: HTMLElement, doc: Document) => {
-    ScreenEditor.elPath(el, doc);
+  private onElSelect = (el: HTMLElement, _doc: Document) => {
+    this.domElPicker!.elPath(el);
     this.setState({ selectedEl: el });
   };
 
@@ -976,11 +952,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: null });
   };
 
-  private initDomPicker() {
-    requestAnimationFrame(() => {
-      const el = this.embedFrameRef?.current;
-      let doc;
-      if ((doc = el?.contentDocument) && !this.domElPicker) {
+  private initDomPickerAndAnnotationLCM() {
+    const el = this.embedFrameRef?.current;
+    let doc;
+    if (doc = el?.contentDocument) {
+      if (!this.domElPicker) {
         this.domElPicker = new DomElPicker(doc, {
           onElSelect: this.onElSelect,
           onElDeSelect: this.onElDeSelect,
@@ -990,9 +966,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
         el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
-      } else {
-        console.error('Iframe doc not found');
+        console.log('inited');
       }
-    });
+
+      if (!this.annotationLCM) {
+        this.annotationLCM = new AnnotationLifecycleManager(doc);
+      }
+    } else {
+      console.error('Iframe doc not found');
+    }
   }
 }
