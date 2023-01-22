@@ -1,3 +1,5 @@
+import HighlighterBase from '../base/hightligher-base';
+
 export enum HighlightMode {
   Idle,
   Selection,
@@ -7,14 +9,8 @@ export enum HighlightMode {
 
 type ElSelectCallback = (el: HTMLElement, doc: Document) => void;
 
-export default class DomElementPicker {
-  private readonly doc: Document;
-
-  private readonly win: Window;
-
+export default class DomElementPicker extends HighlighterBase {
   private highlightMode: HighlightMode;
-
-  private maskEl: HTMLDivElement | null;
 
   private prevElHovered: Element | Text | null;
 
@@ -24,9 +20,8 @@ export default class DomElementPicker {
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
 
-  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback }) {
-    this.doc = doc;
-    this.win = doc.defaultView as Window;
+  constructor(doc: Document, cbs: {onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback}) {
+    super(doc);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;
@@ -81,35 +76,13 @@ export default class DomElementPicker {
     this.highlightMode = HighlightMode.Idle;
     this.doc.removeEventListener('mousemove', this.handleMouseMove);
     this.doc.removeEventListener('click', this.handleClick);
-    this.removeMaskIfPresent();
     for (const [eventName, fns] of Object.entries(this.evts)) {
       for (const fn of fns) {
         this.doc.removeEventListener(eventName, fn);
       }
     }
     this.evts = {};
-  }
-
-  private getOrCreateMask() {
-    if (this.maskEl) {
-      return this.maskEl;
-    }
-    const cls = `fable-el-mask-${(Math.random() * 10 ** 6) | 0}`;
-    const mask = this.doc.createElement('div');
-    mask.setAttribute('class', cls);
-    mask.style.position = 'fixed';
-    mask.style.pointerEvents = 'none';
-    mask.style.zIndex = '99999';
-    this.maskEl = mask;
-    this.doc.body.appendChild(mask);
-    return mask;
-  }
-
-  private removeMaskIfPresent() {
-    if (this.maskEl) {
-      this.maskEl.remove();
-      this.maskEl = null;
-    }
+    super.dispose();
   }
 
   // TODO If there are other html elements spanning over image element then we miss the image element, travarse the full
@@ -158,15 +131,7 @@ export default class DomElementPicker {
   };
 
   selectElement(el: HTMLElement, mode = HighlightMode.NOOP) {
-    const elSize: DOMRect = el.getBoundingClientRect();
-    const maskBox = this.getOrCreateMask();
-    maskBox.style.top = `${elSize.top}px`;
-    maskBox.style.left = `${elSize.left}px`;
-    maskBox.style.width = `${elSize.width}px`;
-    maskBox.style.height = `${elSize.height}px`;
-    maskBox.style.background = '#fedf644f';
-    maskBox.style.boxShadow = 'rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0.0) 0px 0px 0px 1000vw';
-
+    super.selectElement(el);
     if (mode === HighlightMode.Pinned) {
       this.pinnedMode(el);
     }

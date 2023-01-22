@@ -6,7 +6,7 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 
 interface IProps {
-  config: IAnnotationConfig
+  config?: IAnnotationConfig
 }
 
 interface IState {
@@ -15,6 +15,10 @@ interface IState {
 
 export default class AnnotationCreatorPanel extends React.PureComponent<IProps, IState> {
   render() {
+    if (!this.props.config) {
+      return <></>;
+    }
+
     return (
       <Tags.AnotCrtPanelCon>
         <Tags.AnotCrtPanelSec>

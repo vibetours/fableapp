@@ -1,5 +1,5 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import { AnnotationPositions, ScreenData, SerNode } from '@fable/common/dist/types';
+import { AnnotationPositions, IAnnotationConfig, ScreenData, SerNode } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
@@ -11,9 +11,9 @@ import {
   FontSizeOutlined,
   PictureOutlined,
   LoadingOutlined,
-  EditOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
+import { getPlaceholderAnnotationConfig } from './mics';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -862,7 +862,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 ))}
           </Tags.EditPanelSec>
           {/* TODO for local dev for auto refresh */}
-          <Tags.EditPanelSec>
+          {/* <Tags.EditPanelSec>
             <div
               style={{
                 display: 'flex',
@@ -876,7 +876,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               }}
               />
             </div>
-          </Tags.EditPanelSec>
+          </Tags.EditPanelSec> */}
           {this.state.selectedEl && (
             <Tags.EditPanelSec>
               <div
@@ -890,11 +890,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                   Annotations are guide to your product mean to get your user acquiented with your product.
                 </GTags.Txt>
-                {/* this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (<AnnotationCreatorPanel />) : (
+                {this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (
+                  <AnnotationCreatorPanel config={getPlaceholderAnnotationConfig()} />
+                ) : (
                   <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
                     Add an annotation
                   </Btn>
-                ) */}
+                )}
               </div>
             </Tags.EditPanelSec>
           )}
