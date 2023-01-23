@@ -84,14 +84,12 @@ export enum LoadingStatus {
 
 export enum AnnotationPositions {
   Auto = 'auto',
-  Top = 'top',
-  Left = 'left',
-  Right = 'right',
   AboveOrBelow = 'above-or-below',
   LeftOrRight = 'left-or-right',
 }
 
 export interface IAnnotationConfig {
+  localId: number;
   bodyContent: string;
   positioning: AnnotationPositions,
 }

@@ -89,13 +89,18 @@ export default class DomElementPicker extends HighlighterBase {
   // array returned by elementsFromPoint to checik if image element is in path.
   // Can be replicated using google analytics right top user icon click
   private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number): HTMLElement | Text {
+    let i = 0;
     for (const el of els) {
       if (el.tagName && el.tagName.toLowerCase() === 'svg') {
         return el;
       }
+      i++;
+      if (el.getAttribute('fable-ignr-sel')) {
+        break;
+      }
     }
 
-    const elBelowMouse = els[0] as HTMLElement;
+    const elBelowMouse = els[i < els.length - 1 ? i : 0] as HTMLElement;
     const text = this.findTextDescendantsBelowMouse(elBelowMouse, x, y);
     return text || elBelowMouse;
   }

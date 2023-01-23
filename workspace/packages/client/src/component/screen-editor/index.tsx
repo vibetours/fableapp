@@ -91,10 +91,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private microEdits: AllEdits<ElEditType>;
 
+  private scaleFactor: number;
+
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
     this.microEdits = {};
+    this.scaleFactor = 1;
     this.state = {
       isInElSelectionMode: false,
       elSelRequestedBy: ElSelReqType.NA,
@@ -489,6 +492,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
     const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
     const scale = Math.min(scaleX, scaleY);
+    this.scaleFactor = scale;
     const divPadding = 18;
     frame.style.transform = `scale(${scale})`;
     frame.style.transformOrigin = '0 0';
@@ -541,7 +545,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         const frameBody = frame.contentDocument?.body;
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
-          frameBody!.style.display = '';
+          if (frameBody) frameBody.style.display = '';
         });
       });
     };
@@ -943,7 +947,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   private onElSelect = (el: HTMLElement, _doc: Document) => {
+    console.log('el', el);
     this.domElPicker!.elPath(el);
+    this.annotationLCM!.show();
+    this.annotationLCM!.addOrReplaceAnnotation(el, getPlaceholderAnnotationConfig(), true);
     this.setState({ selectedEl: el });
   };
 
@@ -970,7 +977,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
 
       if (!this.annotationLCM) {
-        this.annotationLCM = new AnnotationLifecycleManager(doc);
+        this.annotationLCM = new AnnotationLifecycleManager(doc, { scaleFactor: this.scaleFactor });
       }
     } else {
       console.error('Iframe doc not found');

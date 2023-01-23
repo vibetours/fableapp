@@ -1,15 +1,29 @@
 export default abstract class HighlighterBase {
   protected readonly doc: Document;
 
+  protected readonly win: Window;
+
   protected maskEl: HTMLDivElement | null;
 
   constructor(doc: Document) {
     this.doc = doc;
+    this.win = doc.defaultView as Window;
     this.maskEl = null;
   }
 
   protected dispose() {
     this.removeMaskIfPresent();
+  }
+
+  protected isElInViewPort(el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+
+    return (
+      rect.top >= 0
+      && rect.left >= 0
+      && rect.bottom <= (this.win.innerHeight || this.doc.documentElement.clientHeight)
+      && rect.right <= (this.win.innerWidth || this.doc.documentElement.clientWidth)
+    );
   }
 
   protected selectElement(el: HTMLElement) {
@@ -32,7 +46,7 @@ export default abstract class HighlighterBase {
     mask.setAttribute('class', cls);
     mask.style.position = 'fixed';
     mask.style.pointerEvents = 'none';
-    mask.style.zIndex = '99999';
+    mask.style.zIndex = `${Number.MAX_SAFE_INTEGER - 1}`;
     this.maskEl = mask;
     this.doc.body.appendChild(mask);
     return mask;
