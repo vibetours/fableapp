@@ -10,5 +10,16 @@ export const BubbleCon = styled.div`
   padding: 0.5rem;
   justify-items: center;
   align-items: center;
-  z-index: ${Number.MAX_SAFE_INTEGER - 2};
+`;
+
+export const AnContent = styled.div`
+  font-size: 1.1rem;
+  position: absolute;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0;
+  margin: 0;
+  justify-items: center;
+  align-items: center;
+  background: green;
 `;

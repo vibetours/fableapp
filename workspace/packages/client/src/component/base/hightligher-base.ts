@@ -5,10 +5,21 @@ export default abstract class HighlighterBase {
 
   protected maskEl: HTMLDivElement | null;
 
+  protected readonly maxZIndex: number;
+
   constructor(doc: Document) {
     this.doc = doc;
     this.win = doc.defaultView as Window;
     this.maskEl = null;
+    this.maxZIndex = this.getMaxZIndex();
+  }
+
+  private getMaxZIndex() {
+    return Array.from(this.doc.querySelectorAll('body *'))
+      .map(a => parseFloat(this.win.getComputedStyle(a).zIndex))
+      .filter(a => !Number.isNaN(a))
+      .sort()
+      .pop() || 1;
   }
 
   protected dispose() {
@@ -33,9 +44,11 @@ export default abstract class HighlighterBase {
     maskBox.style.left = `${elSize.left}px`;
     maskBox.style.width = `${elSize.width}px`;
     maskBox.style.height = `${elSize.height}px`;
-    maskBox.style.background = '#fedf644f';
-    maskBox.style.boxShadow = 'rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, 0.0) 0px 0px 0px 1000vw';
   }
+
+  abstract maskHasDarkBg(): boolean;
+
+  abstract highlightBgColor(): string;
 
   protected getOrCreateMask() {
     if (this.maskEl) {
@@ -44,12 +57,25 @@ export default abstract class HighlighterBase {
     const cls = `fable-el-mask-${(Math.random() * 10 ** 6) | 0}`;
     const mask = this.doc.createElement('div');
     mask.setAttribute('class', cls);
-    mask.style.position = 'fixed';
+    mask.style.position = 'absolute';
     mask.style.pointerEvents = 'none';
-    mask.style.zIndex = `${Number.MAX_SAFE_INTEGER - 1}`;
+    mask.style.zIndex = `${this.maxZIndex + 1}`;
+    mask.style.background = this.highlightBgColor();
+    mask.style.boxShadow = `rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.45' : '0.0'
+    }) 0px 0px 0px 1000vw`;
     this.maskEl = mask;
-    this.doc.body.appendChild(mask);
+    this.attachElToUmbrellaDiv(mask);
     return mask;
+  }
+
+  protected attachElToUmbrellaDiv(el: Element) {
+    const umbrellaDiv = this.doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+    if (!umbrellaDiv) {
+      throw new Error('Container div not found');
+    }
+
+    umbrellaDiv.appendChild(el);
+    return this;
   }
 
   protected removeMaskIfPresent() {

@@ -1,6 +1,5 @@
-import {IAnnotationConfig} from '@fable/common/dist/types';
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import React from 'react';
-import {StyleSheetManager} from 'styled-components';
 import * as Tags from './styled';
 
 interface IProps {
@@ -24,8 +23,8 @@ export class AnnotationBubble extends React.PureComponent<IProps> {
 }
 
 export class AnnotationContent extends React.PureComponent<{
-  config: IAnnotationConfig,
-  display: 'flex' | 'none',
+  config: IAnnotationConfig;
+  isInDisplay: boolean;
   width: number;
   top: number,
   left: number,
@@ -41,26 +40,20 @@ export class AnnotationContent extends React.PureComponent<{
 
   render() {
     return (
-
-      <div
+      <Tags.AnContent
         ref={this.conRef}
         style={{
-          position: 'absolute',
-          background: '#fff',
           minWidth: `${AnnotationContent.MIN_WIDTH}px`,
           width: `${this.props.width}px`,
-          borderRadius: '8px',
-          padding: '0.5rem',
-          display: this.props.display ? 'flex' : 'none',
-          justifyItems: 'center',
-          alignItems: 'center',
+          display: this.props.isInDisplay ? 'flex' : 'none',
           left: this.props.left,
           top: this.props.top,
-          zIndex: Number.MAX_SAFE_INTEGER,
         }}
       >
-        {this.props.config.bodyContent}
-      </div>
+        <div style={{ padding: '16px' }}>
+          {this.props.config.bodyContent}
+        </div>
+      </Tags.AnContent>
     );
   }
 }
@@ -73,64 +66,66 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   render() {
     let l = -9999;
     let t = -9999;
-    const elBox = this.props.box;
-    const winW = this.props.annotationDisplayConfig.windowWidth;
-    const winH = this.props.annotationDisplayConfig.windowHeight;
-    const mar = this.props.annotationDisplayConfig.minDim.w / this.props.annotationDisplayConfig.minDim.h;
+    let w = 0;
+    let h = 0;
+    if (this.props.annotationDisplayConfig.isInViewPort) {
+      const elBox = this.props.box;
+      const winW = this.props.annotationDisplayConfig.windowWidth;
+      const winH = this.props.annotationDisplayConfig.windowHeight;
+      const mar = this.props.annotationDisplayConfig.minDim.w / this.props.annotationDisplayConfig.minDim.h;
 
-    let w;
-    let h;
-    if ((Math.ceil(mar * 10)) >= 12) {
-      // if aspect ration is greater than 1.2, then the smallest size is appropriate
-      w = this.props.annotationDisplayConfig.minDim.w;
-      h = this.props.annotationDisplayConfig.minDim.h;
-    } else {
-      // otherwise will try to place it height wise as
-      w = this.props.annotationDisplayConfig.maxDim.w;
-      h = this.props.annotationDisplayConfig.maxDim.h;
-    }
-
-    const leftSpace = elBox.left;
-    const rightSpace = winW - elBox.right;
-    const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
-    const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
-    let p: 'l' | 'r' | 't' | 'b' | undefined;
-    if (ml > 1 || mr > 1) {
-      p = ml > mr ? 'l' : 'r';
-    }
-
-    if (p === 'l' || p === 'r') {
-      t = elBox.top + elBox.height / 2 - (h / 2);
-      if (p === 'l') {
-        l = elBox.left - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
+      if ((Math.ceil(mar * 10)) >= 12) {
+        // if aspect ration is greater than 1.2, then the smallest size is appropriate
+        w = this.props.annotationDisplayConfig.minDim.w;
+        h = this.props.annotationDisplayConfig.minDim.h;
       } else {
-        l = elBox.right + AnnotationCard.ANNOTAITON_EL_MARGIN;
+        // otherwise will try to place it height wise as
+        w = this.props.annotationDisplayConfig.maxDim.w;
+        h = this.props.annotationDisplayConfig.maxDim.h;
       }
-    } else {
-      const topSpace = elBox.top;
-      const bottomSpace = winH - elBox.bottom;
-      const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
-      const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
-      if (mb > 1 || mt > 1) {
-        p = mb > mt ? 'b' : 't';
+
+      const leftSpace = elBox.left;
+      const rightSpace = winW - elBox.right;
+      const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
+      const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
+      let p: 'l' | 'r' | 't' | 'b' | undefined;
+      if (ml > 1 || mr > 1) {
+        p = ml > mr ? 'l' : 'r';
       }
-      if (p === 't' || p === 'b') {
-        l = elBox.left + elBox.width / 2;
-        if (p === 't') {
-          t = elBox.top - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+
+      if (p === 'l' || p === 'r') {
+        t = elBox.top + elBox.height / 2 - (h / 2);
+        if (p === 'l') {
+          l = elBox.left - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
         } else {
-          t = elBox.bottom + AnnotationCard.ANNOTAITON_EL_MARGIN;
+          l = elBox.right + AnnotationCard.ANNOTAITON_EL_MARGIN;
+        }
+      } else {
+        const topSpace = elBox.top;
+        const bottomSpace = winH - elBox.bottom;
+        const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
+        const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
+        if (mb > 1 || mt > 1) {
+          p = mb > mt ? 'b' : 't';
+        }
+        if (p === 't' || p === 'b') {
+          l = elBox.left + elBox.width / 2 - (w / 2);
+          if (p === 't') {
+            t = elBox.top - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+          } else {
+            t = elBox.bottom + AnnotationCard.ANNOTAITON_EL_MARGIN;
+          }
         }
       }
+      if (!p) {
+        l = elBox.right - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
+        t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+      }
     }
-    if (!p) {
-      l = elBox.right - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
-      t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
-    }
-
+    // This container should never have padding ever
     return <AnnotationContent
       config={this.props.annotationDisplayConfig.config}
-      display="flex"
+      isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
       width={w}
       top={t}
       left={l}
@@ -150,22 +145,15 @@ export interface IAnnoationDisplayConfig {
 
 interface IConProps {
   data: Array<{conf: IAnnoationDisplayConfig, box: DOMRect}>
-  doc: Document
 }
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
-    return (
-      <StyleSheetManager target={this.props.doc.head}>
-        <React.Fragment>
-          {this.props.data.map((p) => {
-            if (!p.conf.isMaximized) {
-              return <AnnotationBubble key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />;
-            }
-            return (<AnnotationCard key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />);
-          })}
-        </React.Fragment>
-      </StyleSheetManager>
-    );
+    return this.props.data.map((p) => {
+      if (!p.conf.isMaximized) {
+        return <AnnotationBubble key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />;
+      }
+      return (<AnnotationCard key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />);
+    });
   }
 }

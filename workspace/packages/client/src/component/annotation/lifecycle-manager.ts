@@ -1,9 +1,9 @@
-import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import ReactDOM, {Root} from 'react-dom/client';
+import {IAnnotationConfig} from '@fable/common/dist/types';
 import React from 'react';
-import { StyledComponent } from 'styled-components';
+import {StyleSheetManager} from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
-import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
+import {IAnnoationDisplayConfig, AnnotationCon, AnnotationContent} from '.';
 
 export enum AnnotationViewMode {
   Show,
@@ -54,6 +54,16 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.con.style.display = '';
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  maskHasDarkBg(): boolean {
+    return true;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  highlightBgColor(): string {
+    return '#ffffff00';
+  }
+
   private onScroll = () => {
     if (this.mode === AnnotationViewMode.Hide) {
       return;
@@ -79,7 +89,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     // this.con.style.height = `${this.vp.h}px`;
     con.style.left = '0';
     con.style.top = '0';
-    this.doc.body.appendChild(con);
+    con.style.zIndex = `${this.maxZIndex + 2}`;
+    this.attachElToUmbrellaDiv(con);
     this.doc.body.addEventListener('scroll', this.onScroll, true);
     const rRoot = ReactDOM.createRoot(con);
     return [con, rRoot];
@@ -116,13 +127,24 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           conf: annotationDisplayConfig,
         });
       }
+
+      if (annotationDisplayConfig.isMaximized) {
+        this.selectElement(el);
+      }
     }
-    this.rRoot.render(React.createElement(AnnotationCon, { data: props, doc: this.doc }));
+    this.rRoot.render(
+      React.createElement(
+        StyleSheetManager,
+        {target: this.doc.head},
+        React.createElement(AnnotationCon, {data: props})
+      )
+    );
   }
 
   async addOrReplaceAnnotation(el: HTMLElement, config: IAnnotationConfig, showImmediate = false) {
     const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
+    console.log('dim', dim);
 
     this.annotationElMap[path] = [el, {
       config,
@@ -154,39 +176,49 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }> {
     const elMinW = await new Promise((resolve: (e: HTMLDivElement) => void) => {
       this.rRoot.render(
-        React.createElement(AnnotationContent, {
-          onRender: resolve,
-          display: 'flex',
-          config,
-          width: AnnotationContent.MIN_WIDTH,
-          top: -9999,
-          left: -999,
-          key: -777
-        })
+        React.createElement(
+          StyleSheetManager,
+          {target: this.doc.head},
+          React.createElement(AnnotationContent, {
+            onRender: resolve,
+            isInDisplay: true,
+            config,
+            width: AnnotationContent.MIN_WIDTH,
+            top: -9999,
+            left: -9999,
+            key: -777
+          })
+        )
       );
     });
     const minB = elMinW.getBoundingClientRect();
 
     const elMaxW = await new Promise((resolve: (e: HTMLDivElement) => void) => {
       this.rRoot.render(
-        React.createElement(AnnotationContent, {
-          onRender: resolve,
-          display: 'flex',
-          config,
-          width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
-          top: -9999,
-          left: -9999,
-          key: -666
-        })
+        React.createElement(
+          StyleSheetManager,
+          {target: this.doc.head},
+          React.createElement(AnnotationContent, {
+            onRender: resolve,
+            isInDisplay: true,
+            config,
+            width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
+            top: -9999,
+            left: -9999,
+            key: -666
+          })
+        )
       );
     });
-
     const maxB = elMaxW.getBoundingClientRect();
+
     return {
       minW: minB.width,
       hForMinW: minB.height,
       maxW: maxB.width,
       hForMaxW: maxB.height
+      // maxW: 0,
+      // hForMaxW: 0
     };
   }
 

@@ -540,12 +540,25 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
       requestAnimationFrame(() => {
-        this.initDomPickerAndAnnotationLCM();
         this.applyEdits(this.props.allEdits);
-        const frameBody = frame.contentDocument?.body;
+        const doc = frame.contentDocument;
+        const frameBody = doc?.body;
         // Make the iframe visible after all the assets are loaded
         Promise.all(this.assetLoadingPromises).then(() => {
-          if (frameBody) frameBody.style.display = '';
+          // create a elative container that would contain all the falbe related els
+          if (frameBody) {
+            let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+            if (!umbrellaDiv) {
+              umbrellaDiv = doc.createElement('div');
+              umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+              umbrellaDiv.style.position = 'absolute';
+              umbrellaDiv.style.left = `${0}`;
+              umbrellaDiv.style.top = `${0}`;
+              frameBody.appendChild(umbrellaDiv);
+            }
+            this.initDomPickerAndAnnotationLCM();
+            frameBody.style.display = '';
+          }
         });
       });
     };

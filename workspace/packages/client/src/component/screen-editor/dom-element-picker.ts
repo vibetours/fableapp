@@ -37,6 +37,16 @@ export default class DomElementPicker extends HighlighterBase {
     return this;
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  maskHasDarkBg(): boolean {
+    return false;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  highlightBgColor(): string {
+    return '#fedf644f';
+  }
+
   disable() {
     if (this.highlightMode !== HighlightMode.Pinned) {
       this.highlightMode = HighlightMode.Idle;
