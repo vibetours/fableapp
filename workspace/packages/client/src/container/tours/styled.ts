@@ -20,6 +20,7 @@ export const TourCardCon = styled(Link)`
   padding: 0.5rem;
   color: #16023e;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  text-decoration: none;
 
   &:hover {
     border: 1px solid ${(props) => props.theme.colors.light.selection.background};

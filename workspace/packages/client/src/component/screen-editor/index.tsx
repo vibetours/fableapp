@@ -540,7 +540,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
       requestAnimationFrame(() => {
-        this.applyEdits(this.props.allEdits);
         const doc = frame.contentDocument;
         const frameBody = doc?.body;
         // Make the iframe visible after all the assets are loaded
@@ -557,6 +556,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               frameBody.appendChild(umbrellaDiv);
             }
             this.initDomPickerAndAnnotationLCM();
+            this.applyEdits(this.props.allEdits);
             frameBody.style.display = '';
           }
         });

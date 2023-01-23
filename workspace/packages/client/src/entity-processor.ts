@@ -23,7 +23,7 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.dataFileName}`),
-    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}`),
+    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
     related: [],
   };
 }

@@ -21,5 +21,4 @@ export const AnContent = styled.div`
   margin: 0;
   justify-items: center;
   align-items: center;
-  background: green;
 `;

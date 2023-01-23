@@ -30,7 +30,7 @@ export class AnnotationContent extends React.PureComponent<{
   left: number,
   onRender?: (el: HTMLDivElement) => void,
 }> {
-  static readonly MIN_WIDTH = 280;
+  static readonly MIN_WIDTH = 320;
 
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
