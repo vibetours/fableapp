@@ -571,7 +571,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
-  componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
+  async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
     if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
       if (this.state.isInElSelectionMode) {
         this.props.onScreenEditStart();
@@ -604,19 +604,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       console.log('same el is set twice???');
     }
 
-    if ((this.state.selectedEl
-      && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
-      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-      // If elment is already selected and user just clicked on the "Add an annotaiton" button after
-      // the element is slected. This happens when user clicks on "Edit an element" first >> select
-      // the element >> click on "Add an annotaiton" button
-    ) || (
-      elJustSelected
-        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-        // this happens when user clicks on "Add an annotation" first
-    )) {
-      this.annotationLCM!.addOrReplaceAnnotation(this.state.selectedEl!, getPlaceholderAnnotationConfig(), true);
-    }
+    /*
+        if ((this.state.selectedEl
+          && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
+          && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+          // If elment is already selected and user just clicked on the "Add an annotaiton" button after
+          // the element is slected. This happens when user clicks on "Edit an element" first >> select
+          // the element >> click on "Add an annotaiton" button
+        ) || (
+          elJustSelected
+            && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+            // this happens when user clicks on "Add an annotation" first
+        )) {
+          await this.annotationLCM!.addOrReplaceAnnotation(
+            this.state.selectedEl!,
+            getPlaceholderAnnotationConfig(),
+            getDefaultThemeConfig(),
+            true
+          );
+        }
+        */
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
@@ -778,7 +785,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
           />
         </Tags.EmbedCon>
-        <Tags.EditPanelCon>
+        <Tags.EditPanelCon style={{ overflowY: 'auto' }}>
           <Tags.EditPanelSec>
             <div
               style={{
@@ -870,7 +877,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 ))}
           </Tags.EditPanelSec>
           {/* TODO for local dev for auto refresh */}
-          <Tags.EditPanelSec>
+          {/* <Tags.EditPanelSec>
             <div
               style={{
                 display: 'flex',
@@ -884,7 +891,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onConfigChange={(c, t) => console.log('anot config change', c, t)}
               />
             </div>
-          </Tags.EditPanelSec>
+        </Tags.EditPanelSec> */}
           {this.state.selectedEl && (
             <Tags.EditPanelSec>
               <div
@@ -901,7 +908,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 {this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (
                   <AnnotationCreatorPanel
                     config={getPlaceholderAnnotationConfig()}
-                    onConfigChange={(c, t) => console.log('anot config change', c, t)}
+                    globalThemeConfig={getDefaultThemeConfig()}
+                    onConfigChange={async (config, theme) => {
+                      console.log('anot config change', config, theme);
+                      await this.annotationLCM!.addOrReplaceAnnotation(
+                        this.state.selectedEl!,
+                        config,
+                        theme,
+                        true
+                      );
+                    }}
                   />
                 ) : (
                   <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
@@ -984,8 +1000,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private onElSelect = (el: HTMLElement, _doc: Document) => {
     this.domElPicker!.elPath(el);
-    // this.annotationLCM!.show();
-    // this.annotationLCM!.addOrReplaceAnnotation(el, getPlaceholderAnnotationConfig(), true);
     this.setState({ selectedEl: el });
   };
 

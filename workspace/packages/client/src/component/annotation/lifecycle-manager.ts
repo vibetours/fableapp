@@ -1,9 +1,10 @@
 import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
+import { getDefaultThemeConfig } from '../screen-editor/mics';
 
 export enum AnnotationViewMode {
   Show,
@@ -12,6 +13,10 @@ export enum AnnotationViewMode {
 
 export default class AnnotationLifecycleManager extends HighlighterBase {
   private annotationElMap: Record<string, [HTMLElement, IAnnoationDisplayConfig]>;
+
+  // TODO since theme is global across the annotations, we keep only once instance of this.
+  //      we reingest the theme on every render. Handle it in a better way
+  private themeConfig: IAnnotationTheme = getDefaultThemeConfig();
 
   private con: HTMLDivElement;
 
@@ -91,10 +96,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     con.setAttribute('class', 'fable-ans');
     con.setAttribute('fable-ignr-sel', 'true');
     con.style.position = 'absolute';
-    // this.con.style.transform = 'translate(-1000px, -1000px)';
-    // this.con.style.boxShadow = 'inset 0 0 0 2px #ff5722';
-    // this.con.style.width = `${this.vp.w}px`;
-    // this.con.style.height = `${this.vp.h}px`;
     con.style.left = '0';
     con.style.top = '0';
     con.style.zIndex = `${this.maxZIndex + 2}`;
@@ -107,6 +108,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   showAnnotationFor(el: HTMLElement) {
     const path = this.elPath(el);
     for (const [elPath, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+      annotationDisplayConfig.themeConfig = this.themeConfig;
       if (elPath === path) annotationDisplayConfig.isMaximized = true;
       else annotationDisplayConfig.isMaximized = false;
     }
@@ -149,13 +151,18 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     );
   }
 
-  async addOrReplaceAnnotation(el: HTMLElement, config: IAnnotationConfig, showImmediate = false) {
+  async addOrReplaceAnnotation(
+    el: HTMLElement,
+    config: IAnnotationConfig,
+    themeConfig: IAnnotationTheme,
+    showImmediate = false
+  ) {
     const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
-    console.log('dim', dim);
-
+    this.themeConfig = themeConfig;
     this.annotationElMap[path] = [el, {
       config,
+      themeConfig,
       isMaximized: false,
       isInViewPort: false,
       minDim: {
@@ -191,6 +198,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             onRender: resolve,
             isInDisplay: true,
             config,
+            themeConfig: this.themeConfig,
             width: AnnotationContent.MIN_WIDTH,
             top: -9999,
             left: -9999,
@@ -210,6 +218,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             onRender: resolve,
             isInDisplay: true,
             config,
+            themeConfig: this.themeConfig,
             width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
             top: -9999,
             left: -9999,
@@ -225,8 +234,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       hForMinW: minB.height,
       maxW: maxB.width,
       hForMaxW: maxB.height
-      // maxW: 0,
-      // hForMaxW: 0
     };
   }
 

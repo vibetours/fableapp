@@ -128,7 +128,7 @@ export interface IAnnotationHotspot {
 }
 
 export interface IAnnotationConfig {
-  localId: number;
+  id: string;
   bodyContent: string;
   positioning: AnnotationPositions,
   themeOverride?: IAnnotationTheme,

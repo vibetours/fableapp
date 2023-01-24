@@ -1,4 +1,4 @@
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
 import React from 'react';
 import * as Tags from './styled';
 
@@ -16,7 +16,7 @@ export class AnnotationBubble extends React.PureComponent<IProps> {
         top: this.props.box.y - 5,
       }}
       >
-        {this.props.annotationDisplayConfig.config.localId}
+        {this.props.annotationDisplayConfig.config.id}
       </Tags.BubbleCon>
     );
   }
@@ -24,6 +24,7 @@ export class AnnotationBubble extends React.PureComponent<IProps> {
 
 export class AnnotationContent extends React.PureComponent<{
   config: IAnnotationConfig;
+  themeConfig: IAnnotationTheme;
   isInDisplay: boolean;
   width: number;
   top: number,
@@ -50,8 +51,20 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
         }}
       >
-        <div style={{ padding: '16px' }}>
-          {this.props.config.bodyContent}
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column' }}>
+          <div>
+            {this.props.config.bodyContent}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+            {this.props.config.buttons.map(btnConf => (
+              <Tags.ABtn
+                key={btnConf.id}
+                btnStyle={btnConf.style}
+                color={this.props.themeConfig.primaryColor}
+                size={btnConf.size}
+              >{btnConf.text}
+              </Tags.ABtn>))}
+          </div>
         </div>
       </Tags.AnContent>
     );
@@ -125,6 +138,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     // This container should never have padding ever
     return <AnnotationContent
       config={this.props.annotationDisplayConfig.config}
+      themeConfig={this.props.annotationDisplayConfig.themeConfig}
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
       width={w}
       top={t}
@@ -135,6 +149,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
 export interface IAnnoationDisplayConfig {
   config: IAnnotationConfig;
+  themeConfig: IAnnotationTheme,
   isMaximized: boolean;
   isInViewPort: boolean;
   minDim: {w: number, h: number};
@@ -151,9 +166,9 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
     return this.props.data.map((p) => {
       if (!p.conf.isMaximized) {
-        return <AnnotationBubble key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />;
+        return <AnnotationBubble key={p.conf.config.id} annotationDisplayConfig={p.conf} box={p.box} />;
       }
-      return (<AnnotationCard key={p.conf.config.localId} annotationDisplayConfig={p.conf} box={p.box} />);
+      return (<AnnotationCard key={p.conf.config.id} annotationDisplayConfig={p.conf} box={p.box} />);
     });
   }
 }

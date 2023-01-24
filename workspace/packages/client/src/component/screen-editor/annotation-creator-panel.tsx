@@ -1,5 +1,12 @@
-import React, { MouseEventHandler } from 'react';
-import { IAnnotationConfig, AnnotationPositions, IAnnotationTheme, AnnotationButtonStyle, AnnotationButtonSize, IAnnotationButton } from '@fable/common/dist/types';
+import React from 'react';
+import {
+  IAnnotationConfig,
+  AnnotationPositions,
+  IAnnotationTheme,
+  AnnotationButtonStyle,
+  AnnotationButtonSize,
+  IAnnotationButton
+} from '@fable/common/dist/types';
 import TextArea from 'antd/lib/input/TextArea';
 import Select from 'antd/lib/select';
 import Button from 'antd/lib/button';
@@ -15,7 +22,7 @@ import {
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import * as ATags from './annotation-creator-styled';
+import * as ATags from '../annotation/styled';
 
 interface IProps {
   config?: IAnnotationConfig,
