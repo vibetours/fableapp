@@ -582,14 +582,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
     }
 
+    let elJustSelected = false;
     if (prevState.selectedEl !== this.state.selectedEl) {
       if (this.state.selectedEl) {
+        elJustSelected = true;
         const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
         this.setState((state) => ({
           editTargetType: editTargetType.targetType,
           targetEl: editTargetType.target || state.selectedEl,
         }));
+
+        this.annotationLCM!.show();
       } else {
+        this.annotationLCM!.hide();
         this.setState(() => ({
           editTargetType: EditTargetType.None,
           targetEl: null,
@@ -597,6 +602,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
     } else {
       console.log('same el is set twice???');
+    }
+
+    if ((this.state.selectedEl
+      && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
+      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+      // If elment is already selected and user just clicked on the "Add an annotaiton" button after
+      // the element is slected. This happens when user clicks on "Edit an element" first >> select
+      // the element >> click on "Add an annotaiton" button
+    ) || (
+      elJustSelected
+        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+        // this happens when user clicks on "Add an annotation" first
+    )) {
+      this.annotationLCM!.addOrReplaceAnnotation(this.state.selectedEl!, getPlaceholderAnnotationConfig(), true);
     }
   }
 
@@ -928,6 +947,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (e.key === 'Escape') {
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
+        this.setState({ elSelRequestedBy: ElSelReqType.NA });
       } else {
         this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
@@ -960,10 +980,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   private onElSelect = (el: HTMLElement, _doc: Document) => {
-    console.log('el', el);
     this.domElPicker!.elPath(el);
-    this.annotationLCM!.show();
-    this.annotationLCM!.addOrReplaceAnnotation(el, getPlaceholderAnnotationConfig(), true);
+    // this.annotationLCM!.show();
+    // this.annotationLCM!.addOrReplaceAnnotation(el, getPlaceholderAnnotationConfig(), true);
     this.setState({ selectedEl: el });
   };
 

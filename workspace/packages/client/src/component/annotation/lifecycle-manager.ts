@@ -1,9 +1,9 @@
-import ReactDOM, {Root} from 'react-dom/client';
-import {IAnnotationConfig} from '@fable/common/dist/types';
+import ReactDOM, { Root } from 'react-dom/client';
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import React from 'react';
-import {StyleSheetManager} from 'styled-components';
+import { StyleSheetManager } from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
-import {IAnnoationDisplayConfig, AnnotationCon, AnnotationContent} from '.';
+import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
 
 export enum AnnotationViewMode {
   Show,
@@ -40,9 +40,17 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.mode = AnnotationViewMode.Hide;
   }
 
+  private hideAllAnnotations() {
+    for (const [, [_, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+      annotationDisplayConfig.isMaximized = false;
+    }
+  }
+
   hide() {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
+    this.removeMaskIfPresent();
+    this.hideAllAnnotations();
   }
 
   show() {
@@ -135,8 +143,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        {target: this.doc.head},
-        React.createElement(AnnotationCon, {data: props})
+        { target: this.doc.head },
+        React.createElement(AnnotationCon, { data: props })
       )
     );
   }
@@ -178,7 +186,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          {target: this.doc.head},
+          { target: this.doc.head },
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,
@@ -197,7 +205,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          {target: this.doc.head},
+          { target: this.doc.head },
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,
