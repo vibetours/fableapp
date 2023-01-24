@@ -82,14 +82,56 @@ export enum LoadingStatus {
   Done,
 }
 
+// ---- types for Annotation ----
+
 export enum AnnotationPositions {
   Auto = 'auto',
   AboveOrBelow = 'above-or-below',
   LeftOrRight = 'left-or-right',
 }
 
+export interface IAnnotationHotSpot {
+  type: 'button',
+}
+
+export enum AnnotationButtonStyle {
+  Primary = 'primary',
+  Link = 'link',
+  Outline = 'outline'
+}
+
+export enum AnnotationButtonSize {
+  Large = 'large',
+  Medium = 'medium',
+  Small = 'small'
+}
+
+export interface IAnnotationButton {
+  id: string;
+  type: 'next' | 'prev' | 'custom';
+  text: string;
+  style: AnnotationButtonStyle;
+  size: AnnotationButtonSize;
+  exclude?: boolean;
+}
+
+export interface IAnnotationTheme {
+  primaryColor: string;
+}
+
+export interface IAnnotationHotspot {
+  type: 'el' | 'an-btn',
+  on: 'click',
+  target: string;
+  navigate?: string;
+  open?: string;
+}
+
 export interface IAnnotationConfig {
   localId: number;
   bodyContent: string;
   positioning: AnnotationPositions,
+  themeOverride?: IAnnotationTheme,
+  buttons: IAnnotationButton[],
+  hotspots: IAnnotationHotSpot[]
 }

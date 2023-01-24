@@ -13,7 +13,7 @@ import {
   LoadingOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import { getPlaceholderAnnotationConfig } from './mics';
+import { getDefaultThemeConfig, getPlaceholderAnnotationConfig } from './mics';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -870,7 +870,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 ))}
           </Tags.EditPanelSec>
           {/* TODO for local dev for auto refresh */}
-          {/* <Tags.EditPanelSec>
+          <Tags.EditPanelSec>
             <div
               style={{
                 display: 'flex',
@@ -878,13 +878,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 marginBottom: '1.25rem',
               }}
             >
-              <AnnotationCreatorPanel config={{
-                bodyContent: 'Write a description about what this feature of your product does to your user.',
-                positioning: AnnotationPositions.Auto
-              }}
+              <AnnotationCreatorPanel
+                config={getPlaceholderAnnotationConfig()}
+                globalThemeConfig={getDefaultThemeConfig()}
+                onConfigChange={(c, t) => console.log('anot config change', c, t)}
               />
             </div>
-          </Tags.EditPanelSec> */}
+          </Tags.EditPanelSec>
           {this.state.selectedEl && (
             <Tags.EditPanelSec>
               <div
@@ -899,7 +899,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   Annotations are guide to your product mean to get your user acquiented with your product.
                 </GTags.Txt>
                 {this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (
-                  <AnnotationCreatorPanel config={getPlaceholderAnnotationConfig()} />
+                  <AnnotationCreatorPanel
+                    config={getPlaceholderAnnotationConfig()}
+                    onConfigChange={(c, t) => console.log('anot config change', c, t)}
+                  />
                 ) : (
                   <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
                     Add an annotation

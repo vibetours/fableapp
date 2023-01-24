@@ -38,6 +38,10 @@ export const Txt = styled.div`
     font-weight: 600;
   }
 
+  &.title2 {
+    font-weight: 600;
+  }
+
   &.link {
     &:hover {
       text-decoration: underline;

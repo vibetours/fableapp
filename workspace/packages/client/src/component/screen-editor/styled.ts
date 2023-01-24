@@ -113,7 +113,7 @@ export const ListActionBtn = styled.span`
 
 export const AnotCrtPanelCon = styled.div`
   display: flex;
-  background: lightgray;
+  // background: lightgray;
   flex-direction: column;
 `;
 
@@ -123,6 +123,41 @@ export const AnotCrtPanelSec = styled.div`
   align-items: ${(p: AnotPanelSecOri) => (p.row ? 'center' : 'unset')};
   width: 100%;
   margin-bottom: 0.75rem;
+`;
+
+export const AABtnCtrlLine = styled.div`
+ display: flex;
+ flex-direction: column;
+ margin-bottom: 0.15rem;
+ margin-top: 0.15rem;
+ padding: 0.15rem;
+ border-radius: 4px;
+
+
+ .a-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between ;
+ }
+
+ .n-vis {
+   visibility: hidden;
+ }
+
+ .n-details {
+  padding: 0.15rem;
+  margin: 0.15rem;
+ }
+
+ &:hover {
+  .n-vis {
+    visibility: visible;
+  }
+ }
+
+ &.sel {
+  background: #f5f5f5;
+ }
 `;
 
 interface AnotPanelSecOri {
