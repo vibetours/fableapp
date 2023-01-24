@@ -11,12 +11,15 @@ export function getPlaceholderAnnotationConfig(): IAnnotationConfig {
       style: AnnotationButtonStyle.Primary,
       size: AnnotationButtonSize.Large,
       text: 'Next',
+      order: 9999,
+
     }, {
       id: '2345',
       type: 'prev',
       style: AnnotationButtonStyle.Outline,
       size: AnnotationButtonSize.Medium,
       text: 'Prev',
+      order: 0
     },
     {
       id: '3456',
@@ -24,6 +27,7 @@ export function getPlaceholderAnnotationConfig(): IAnnotationConfig {
       style: AnnotationButtonStyle.Link,
       size: AnnotationButtonSize.Small,
       text: 'Goto payment',
+      order: 1
     }
     ],
     hotspots: []

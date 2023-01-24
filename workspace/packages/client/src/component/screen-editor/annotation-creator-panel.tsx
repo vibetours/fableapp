@@ -48,7 +48,7 @@ export default class AnnotationCreatorPanel extends React.PureComponent<IProps, 
     this.state = {
       config: undefined,
       globalThemeConfig: undefined,
-      btnEditing: '1234',
+      btnEditing: '',
     };
   }
 

@@ -113,6 +113,11 @@ export interface IAnnotationButton {
   style: AnnotationButtonStyle;
   size: AnnotationButtonSize;
   exclude?: boolean;
+  // This is used to sort buttons for display
+  // next button normally have very high order since it would be towards the end
+  // prev button normally have very low order since it would be towards the start
+  // all the other buttons are in between
+  order: number;
 }
 
 export interface IAnnotationTheme {
