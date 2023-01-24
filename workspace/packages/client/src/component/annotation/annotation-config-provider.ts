@@ -83,7 +83,7 @@ export default class AnnotationConfigProvider {
         type: 'next',
         style: AnnotationButtonStyle.Primary,
         size: AnnotationButtonSize.Large,
-        text: 'Next',
+        text: 'Back',
         order: 9999,
 
       }, {
