@@ -40,6 +40,7 @@ export class AnnotationContent extends React.PureComponent<{
   }
 
   render() {
+    const btns = this.props.config.buttons.filter(c => !c.exclude);
     return (
       <Tags.AnContent
         ref={this.conRef}
@@ -55,8 +56,14 @@ export class AnnotationContent extends React.PureComponent<{
           <div>
             {this.props.config.bodyContent}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-            {this.props.config.buttons.slice(0).sort((m, n) => m.order - n.order).map(btnConf => (
+          <div style={{
+            display: 'flex',
+            justifyContent: btns.length > 1 ? 'space-between' : 'center',
+            alignItems: 'center',
+            marginTop: '1rem'
+          }}
+          >
+            {btns.sort((m, n) => m.order - n.order).map(btnConf => (
               <Tags.ABtn
                 key={btnConf.id}
                 btnStyle={btnConf.style}

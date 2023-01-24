@@ -15,6 +15,7 @@ import {
   DeleteOutlined,
   DisconnectOutlined,
   EditOutlined,
+  EyeInvisibleOutlined,
   EyeOutlined,
   QuestionCircleOutlined,
   SubnodeOutlined
@@ -23,10 +24,12 @@ import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
+import AnnotationConfigProvider from '../annotation/annotation-config-provider';
 
 interface IProps {
-  config?: IAnnotationConfig,
-  globalThemeConfig?: IAnnotationTheme,
+  provider: AnnotationConfigProvider,
+  // config?: IAnnotationConfig,
+  // globalThemeConfig?: IAnnotationTheme,
   onConfigChange: (config: IAnnotationConfig, globalThemeConfig: IAnnotationTheme) => void;
 }
 
@@ -53,12 +56,18 @@ export default class AnnotationCreatorPanel extends React.PureComponent<IProps, 
   }
 
   componentDidMount() {
-    this.setState({ config: this.props.config, globalThemeConfig: this.props.globalThemeConfig });
+    this.setState({
+      config: this.props.provider.getConfig(),
+      globalThemeConfig: this.props.provider.getGlobalThemeConfig()
+    });
   }
 
   componentDidUpdate(prevProps: IProps, prevState: IState) {
-    if (prevProps.config !== this.props.config || prevProps.globalThemeConfig !== this.props.globalThemeConfig) {
-      this.setState({ config: this.props.config, globalThemeConfig: this.props.globalThemeConfig });
+    if (prevProps.provider !== this.props.provider) {
+      this.setState({
+        config: this.props.provider.getConfig(),
+        globalThemeConfig: this.props.provider.getGlobalThemeConfig()
+      });
     }
 
     if (
@@ -164,20 +173,6 @@ export default class AnnotationCreatorPanel extends React.PureComponent<IProps, 
                     >{btnConf.text}
                     </ATags.ABtn>
                     <div style={{ display: 'flex', }}>
-                      {btnConf.type === 'custom' && (
-                        <Button
-                          className="n-vis"
-                          icon={<DeleteOutlined />}
-                          type="text"
-                          size="small"
-                          style={{ color: '#bdbdbd' }}
-                          onClick={() => {
-                            const conf = this.state.config!;
-                            const buttons = conf.buttons.slice(0).filter(b => b.id !== btnConf.id);
-                            this.setState({ config: { ...conf, buttons } });
-                          }}
-                        />
-                      )}
                       <Tooltip
                         placement="topRight"
                         title={
@@ -188,7 +183,38 @@ export default class AnnotationCreatorPanel extends React.PureComponent<IProps, 
                       >
                         <Button icon={<DisconnectOutlined />} type="text" size="small" style={{ color: '#FF7450' }} />
                       </Tooltip>
-                      <Button icon={<EyeOutlined />} type="text" size="small" style={{ color: '#bdbdbd' }} />
+                      {btnConf.type === 'custom' ? (
+                        <Button
+                          icon={<DeleteOutlined />}
+                          type="text"
+                          size="small"
+                          style={{ color: '#bdbdbd' }}
+                          onClick={() => {
+                            const conf = this.state.config!;
+                            const buttons = conf.buttons.slice(0).filter(b => b.id !== btnConf.id);
+                            this.setState({ config: { ...conf, buttons } });
+                          }}
+                        />
+                      ) : (
+                        <Button
+                          icon={btnConf.exclude ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                          type="text"
+                          size="small"
+                          style={{ color: '#bdbdbd' }}
+                          onClick={() => {
+                            const conf = this.state.config!;
+                            const buttons = conf.buttons.slice(0);
+                            const thisButton = buttons.map((b, i) => ([b, i] as [IAnnotationButton, number]))
+                              .filter(([b, i]) => b.id === btnConf.id);
+                            buttons[thisButton[0][1]] = {
+                              ...thisButton[0][0],
+                              exclude: !thisButton[0][0].exclude
+                            };
+
+                            this.setState({ config: { ...conf, buttons } });
+                          }}
+                        />
+                      )}
                       <Button
                         icon={<EditOutlined />}
                         type="text"
@@ -284,7 +310,16 @@ export default class AnnotationCreatorPanel extends React.PureComponent<IProps, 
                 </Tags.AABtnCtrlLine>
               );
             })}
-            <Button type="link" icon={<SubnodeOutlined />} style={{ marginTop: '1rem' }}>Create a custom button</Button>
+            <Button
+              type="link"
+              icon={<SubnodeOutlined />}
+              style={{ marginTop: '1rem' }}
+              onClick={() => {
+                const conf = this.props.provider.addCustomBtn();
+                this.setState({ config: conf });
+              }}
+            >Create a custom button
+            </Button>
           </Tags.AnotCrtPanelSec>
         </Tags.AnotCrtPanelSec>
       </Tags.AnotCrtPanelCon>

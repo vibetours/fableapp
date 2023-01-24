@@ -13,7 +13,6 @@ import {
   LoadingOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import { getDefaultThemeConfig, getPlaceholderAnnotationConfig } from './mics';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -36,6 +35,7 @@ import {
   IdxEncodingTypeText,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
+import AnnotationConfigProvider from '../annotation/annotation-config-provider';
 
 const browser = detect();
 
@@ -93,11 +93,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private scaleFactor: number;
 
+  private annotationConfigProvider: AnnotationConfigProvider;
+
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
     this.microEdits = {};
     this.scaleFactor = 1;
+    this.annotationConfigProvider = new AnnotationConfigProvider();
     this.state = {
       isInElSelectionMode: false,
       elSelRequestedBy: ElSelReqType.NA,
@@ -907,8 +910,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 </GTags.Txt>
                 {this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (
                   <AnnotationCreatorPanel
-                    config={getPlaceholderAnnotationConfig()}
-                    globalThemeConfig={getDefaultThemeConfig()}
+                    provider={this.annotationConfigProvider}
                     onConfigChange={async (config, theme) => {
                       console.log('anot config change', config, theme);
                       await this.annotationLCM!.addOrReplaceAnnotation(

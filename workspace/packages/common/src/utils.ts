@@ -54,3 +54,7 @@ export function trimSpaceAndNewLine(txt: string): string {
     .filter((t) => t !== '')
     .join('\n');
 }
+
+export function getRandomId(): string {
+  return `${+new Date() / 1000 | 0}${Math.random().toString(16).substring(2, 15)}`;
+}

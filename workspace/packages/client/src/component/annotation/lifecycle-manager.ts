@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import { getDefaultThemeConfig } from '../screen-editor/mics';
+import AnnotaitonConfigProvider from './annotation-config-provider';
 
 export enum AnnotationViewMode {
   Show,
@@ -16,7 +16,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   // TODO since theme is global across the annotations, we keep only once instance of this.
   //      we reingest the theme on every render. Handle it in a better way
-  private themeConfig: IAnnotationTheme = getDefaultThemeConfig();
+  private themeConfig: IAnnotationTheme = AnnotaitonConfigProvider.getDefaultThemeConfig();
 
   private con: HTMLDivElement;
 
