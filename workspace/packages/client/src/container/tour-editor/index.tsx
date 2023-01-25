@@ -1,4 +1,5 @@
 import {
+  AnnotationPerScreen,
   IAnnotationConfig, IAnnotationTheme, ScreenData, TourData, TourDataWoScheme, TourScreenEntity
 } from '@fable/common/dist/types';
 import React from 'react';
@@ -64,23 +65,32 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
   screenData: ScreenData | null;
-  tourData: TourData | null;
   isScreenLoaded: boolean;
   isTourLoaded: boolean;
   screens: P_RespScreen[];
+  flattenedScreens: P_RespScreen[];
   allEdits: EditItem[];
   isScreenInPreviewMode: boolean;
-  allAnnotations: IAnnotationConfig[];
+  allAnnotationsForScreen: IAnnotationConfig[];
   globalAnnotationTheme: IAnnotationTheme;
+  allAnnotationsForTour: AnnotationPerScreen[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
-  let allAnnotations = [
+  const anPerScreen: AnnotationPerScreen[] = [];
+  for (const [screenId, an] of Object.entries(state.default.remoteAnnotations)) {
+    const screen = state.default.flattenedScreens.find(s => s.id === +screenId);
+    if (screen) {
+      anPerScreen.push({ screen, annotations: an });
+    }
+  }
+
+  let allAnnotationsForScreen = [
     ...(state.default.currentScreen?.id ? state.default.localAnnotations[state.default.currentScreen.id] || [] : []),
     ...(state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : []),
   ];
   const hm: Record<string, IAnnotationConfig> = {};
-  for (const an of allAnnotations) {
+  for (const an of allAnnotationsForScreen) {
     if (an.id in hm) {
       if (hm[an.id].updatedAt < an.updatedAt) {
         hm[an.id] = an;
@@ -89,7 +99,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
       hm[an.id] = an;
     }
   }
-  allAnnotations = Object.values(hm).sort((m, n) => m.updatedAt - n.updatedAt);
+  allAnnotationsForScreen = Object.values(hm).sort((m, n) => m.updatedAt - n.updatedAt);
 
   let allEdits = [
     ...(state.default.currentScreen?.id ? state.default.localEdits[state.default.currentScreen.id] || [] : []),
@@ -109,19 +119,18 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   }
   allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
 
-  console.log('alledits', allEdits);
-
   return {
     tour: state.default.currentTour,
-    tourData: state.default.tourData,
     isTourLoaded: state.default.tourLoaded,
     screen: state.default.currentScreen,
+    flattenedScreens: state.default.flattenedScreens,
     screenData: state.default.screenData,
     isScreenLoaded: state.default.screenLoaded,
     screens: state.default.screens,
     isScreenInPreviewMode: state.default.isScreenInPreviewMode,
     allEdits,
-    allAnnotations,
+    allAnnotationsForScreen,
+    allAnnotationsForTour: anPerScreen,
     globalAnnotationTheme: state.default.localTheme || getDefaultThemeConfig()
   };
 };
@@ -134,6 +143,7 @@ type IProps = IOwnProps &
   WithRouterProps<{
     tourId: string;
     screenId: string;
+    annotationId?: string;
   }>;
 interface IOwnStateProps {}
 
@@ -278,16 +288,33 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               screen={this.props.screen!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
+              toAnnotationId={this.props.match.params.annotationId}
+              navigate={(uri, type) => {
+                let url = '';
+                if (type === 'annotation-hotspot') {
+                  const [screenId, anId] = uri.split('/');
+                  const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
+                  if (screen) {
+                    url = `/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
+                  } else {
+                    throw new Error(`Can't navigate because screenId ${screenId} is not found`);
+                  }
+                } else {
+                  url = uri;
+                }
+                this.props.navigate(url);
+              }}
               createDefaultAnnotation={
-                (c, t) => this.onTourDataChange('annotation-and-theme', { config: c, theme: t }, true)
+                (c, t) => this.onTourDataChange('annotation-and-theme', null, { config: c, theme: t }, true)
               }
-              allAnnotations={this.props.allAnnotations}
+              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
               globalAnnotationTheme={this.props.globalAnnotationTheme}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
               onAnnotationCreateOrChange={
-                (c, t) => this.onTourDataChange('annotation-and-theme', { config: c, theme: t })
+                (screenId, c, t) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, theme: t })
               }
             />
           ) : (
@@ -321,14 +348,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   private onTourDataChange = (
     changeType: 'annotation-and-theme' | 'screen',
-    changeObj: {config: IAnnotationConfig, theme: IAnnotationTheme},
-    isLocal = false
+    screenId: number | null,
+    changeObj: {config: IAnnotationConfig, theme: IAnnotationTheme | null},
+    isDefault = false
   ) => {
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
-        theme: changeObj.theme,
+        theme: isDefault
+          ? (this.props.globalAnnotationTheme || changeObj.theme)
+          : (changeObj.theme || this.props.globalAnnotationTheme),
         entities: {
-          [this.props.screen!.id]: {
+          [screenId || this.props.screen!.id]: {
             type: 'screen',
             ref: `${this.props.screen?.id!}`,
             annotations: {

@@ -1,10 +1,11 @@
-import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
+import ReactDOM, {Root} from 'react-dom/client';
+import {IAnnotationConfig, IAnnotationTheme} from '@fable/common/dist/types';
 import React from 'react';
-import { StyleSheetManager } from 'styled-components';
+import {StyleSheetManager} from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
-import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import { getDefaultThemeConfig } from './annotation-config-utils';
+import {IAnnoationDisplayConfig, AnnotationCon, AnnotationContent} from '.';
+import {getDefaultThemeConfig} from './annotation-config-utils';
+import {NavFn} from '../../types';
 
 export enum AnnotationViewMode {
   Show,
@@ -30,10 +31,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private frameIds: number[] = [];
 
+  private nav: NavFn;
+
   // Take the initial annotation config from here
-  constructor(doc: Document, opts: {scaleFactor: number}) {
+  constructor(doc: Document, opts: {scaleFactor: number, navigate: NavFn}) {
     super(doc);
     this.scaleFactor = opts.scaleFactor;
+    this.nav = opts.navigate;
     this.vp = {
       w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
       h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
@@ -112,7 +116,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (elPath === path) annotationDisplayConfig.isMaximized = true;
       else annotationDisplayConfig.isMaximized = false;
     }
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    el.scrollIntoView({behavior: 'smooth', block: 'nearest', inline: 'nearest'});
     this.render();
   }
 
@@ -146,8 +150,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.head },
-        React.createElement(AnnotationCon, { data: props })
+        {target: this.doc.head},
+        React.createElement(AnnotationCon, {data: props, nav: this.nav})
       )
     );
   }
@@ -194,7 +198,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          { target: this.doc.head },
+          {target: this.doc.head},
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,
@@ -203,7 +207,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             width: AnnotationContent.MIN_WIDTH,
             top: -9999,
             left: -9999,
-            key: -777
+            key: -777,
+            nav: this.nav,
           })
         )
       );
@@ -214,7 +219,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          { target: this.doc.head },
+          {target: this.doc.head},
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,
@@ -223,7 +228,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
             top: -9999,
             left: -9999,
-            key: -666
+            key: -666,
+            nav: this.nav,
           })
         )
       );

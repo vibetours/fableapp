@@ -4,6 +4,7 @@ import {
   AnnotationPositions,
   IAnnotationButton,
   IAnnotationConfig,
+  IAnnotationHotSpot,
   IAnnotationTheme
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
@@ -89,7 +90,8 @@ function getCustomBtnTemplate(order: number, size: AnnotationButtonSize): IAnnot
     style: AnnotationButtonStyle.Outline,
     size,
     text: 'Your custom button',
-    order
+    order,
+    hotspot: null
   };
 }
 
@@ -142,14 +144,15 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
       size: AnnotationButtonSize.Large,
       text: 'Next',
       order: 9999,
-
+      hotspot: null,
     }, {
       id: getRandomId(),
       type: 'prev',
       style: AnnotationButtonStyle.Outline,
       size: AnnotationButtonSize.Large,
       text: 'Back',
-      order: 0
+      order: 0,
+      hotspot: null
     }],
   };
 }

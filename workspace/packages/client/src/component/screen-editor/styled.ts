@@ -176,6 +176,20 @@ export const AnnotationLI = styled.div`
   }
 `;
 
+export const AnnotationHotspotSelector = styled.div`
+  max-width: 400px;
+  margin: 0.25rem 0rem;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+
+  &:hover {
+    cursor: pointer;
+    box-shadow:  0 0 0 1px #7666ff;
+  }
+`;
+
 interface AnotPanelSecOri {
   row?: boolean;
 }

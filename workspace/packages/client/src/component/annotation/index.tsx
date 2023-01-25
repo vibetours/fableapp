@@ -1,10 +1,12 @@
 import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
 import React from 'react';
+import { NavFn } from '../../types';
 import * as Tags from './styled';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
-  box: DOMRect
+  box: DOMRect,
+  nav: NavFn
 }
 
 export class AnnotationBubble extends React.PureComponent<IProps> {
@@ -30,6 +32,7 @@ export class AnnotationContent extends React.PureComponent<{
   top: number,
   left: number,
   onRender?: (el: HTMLDivElement) => void,
+  nav: NavFn,
 }> {
   static readonly MIN_WIDTH = 320;
 
@@ -69,8 +72,12 @@ export class AnnotationContent extends React.PureComponent<{
                 btnStyle={btnConf.style}
                 color={this.props.themeConfig.primaryColor}
                 size={btnConf.size}
-              >{btnConf.text}
-              </Tags.ABtn>))}
+                onClick={() => {
+                  btnConf.hotspot && this.props.nav(btnConf.hotspot.actionValue, 'annotation-hotspot');
+                }}
+              > {btnConf.text}
+              </Tags.ABtn>
+            ))}
           </div>
         </div>
       </Tags.AnContent>
@@ -147,6 +154,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       config={this.props.annotationDisplayConfig.config}
       themeConfig={this.props.annotationDisplayConfig.themeConfig}
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+      nav={this.props.nav}
       width={w}
       top={t}
       left={l}
@@ -166,16 +174,28 @@ export interface IAnnoationDisplayConfig {
 }
 
 interface IConProps {
-  data: Array<{conf: IAnnoationDisplayConfig, box: DOMRect}>
+  data: Array<{conf: IAnnoationDisplayConfig, box: DOMRect}>,
+  nav: NavFn
 }
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
     return this.props.data.map((p) => {
       if (!p.conf.isMaximized) {
-        return <AnnotationBubble key={p.conf.config.id} annotationDisplayConfig={p.conf} box={p.box} />;
+        // return <AnnotationBubble
+        //   key={p.conf.config.id}
+        //   annotationDisplayConfig={p.conf}
+        //   box={p.box}
+        //   nav={this.props.nav}
+        // />;
+        return <div key={p.conf.config.id} />;
       }
-      return (<AnnotationCard key={p.conf.config.id} annotationDisplayConfig={p.conf} box={p.box} />);
+      return (<AnnotationCard
+        key={p.conf.config.id}
+        annotationDisplayConfig={p.conf}
+        box={p.box}
+        nav={this.props.nav}
+      />);
     });
   }
 }

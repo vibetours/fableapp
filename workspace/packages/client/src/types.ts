@@ -75,3 +75,5 @@ export const enum IdxEditItem {
   TIMESTAMP,
   ENCODING,
 }
+
+export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;

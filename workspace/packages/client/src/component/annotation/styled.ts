@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { AnnotationButtonSize, AnnotationButtonStyle } from '@fable/common/dist/types';
+import { Link } from 'react-router-dom';
 
 export const BubbleCon = styled.div`
   position: absolute;

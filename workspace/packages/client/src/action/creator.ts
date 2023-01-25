@@ -42,14 +42,17 @@ export interface TGenericLoading {
 export interface TGetAllScreens {
   type: ActionType.ALL_SCREENS_RETRIEVED;
   screens: Array<P_RespScreen>;
+  flattenedScreens: Array<P_RespScreen>;
 }
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
     const data = await api<null, ApiResp<RespScreen[]>>('/screens', {auth: true});
+    const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
-      screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
+      screens: groupScreens(pScreens),
+      flattenedScreens: pScreens,
     });
   };
 }
@@ -367,7 +370,6 @@ export interface TSaveTourEntities {
 export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
     const annotationAndTheme = getThemeAndAnnotationFromDataFile(data as TourData, true);
-    console.log('localdata', annotationAndTheme);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,
       tour,
@@ -386,7 +388,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
       savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
       const mergedData = {
         ...savedData,
-        ...mergeTourData(savedData, localEdits, false)
+        ...mergeTourData(savedData, localEdits)
       };
 
       const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {

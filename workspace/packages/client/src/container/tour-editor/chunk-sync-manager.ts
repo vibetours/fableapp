@@ -21,7 +21,7 @@ export default class ChunkSyncManager {
 
   private readonly cb: CB;
 
-  constructor(target: SyncTarget, lookupKeyLike: string, cb: CB, pollingInterval = 5000) {
+  constructor(target: SyncTarget, lookupKeyLike: string, cb: CB, pollingInterval = 3000) {
     this.target = target;
     this.interval = pollingInterval;
     this.cb = cb;

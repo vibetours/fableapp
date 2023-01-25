@@ -177,12 +177,8 @@ export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits
 export function mergeTourData(
   master: TourDataWoScheme,
   incoming: Partial<TourDataWoScheme>,
-  isDefault = false
 ): TourDataWoScheme {
   const inOb = deepcopy(incoming) as any;
-  if (isDefault && inOb.theme) {
-    inOb.theme = undefined;
-  }
 
   // only support merging primitive value, array, js objects
   function recMerge(to: any, from: any) {

@@ -1,4 +1,4 @@
-import { SchemaVersion } from './api-contract';
+import { RespScreen, SchemaVersion } from './api-contract';
 
 export interface SerNode {
   type: number;
@@ -122,6 +122,9 @@ export interface IAnnotationButton {
   // prev button normally have very low order since it would be towards the start
   // all the other buttons are in between
   order: number;
+  // TODO right now hotspots are created from here for. Later on with other entity check where
+  // the hotspot could be created
+  hotspot: ITourEntityHotspot | null;
 }
 
 export interface IAnnotationTheme {
@@ -131,7 +134,7 @@ export interface IAnnotationTheme {
   updatedAt: number;
 }
 
-export interface IAnnotationHotspot {
+export interface ITourEntityHotspot {
   type: 'el' | 'an-btn',
   on: 'click',
   target: string;
@@ -155,3 +158,5 @@ export interface IAnnotationOriginConfig {
 export interface IAnnotationConfig extends IAnnotationOriginConfig {
   syncPending?: boolean;
 }
+
+export type AnnotationPerScreen = {screen: RespScreen, annotations: IAnnotationConfig[]};

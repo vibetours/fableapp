@@ -19,6 +19,7 @@ import {AllEdits, EditItem, ElEditType} from '../types';
 export const initialState: {
   commonConfig: RespCommonConfig | null;
   screens: Array<P_RespScreen>;
+  flattenedScreens: Array<P_RespScreen>;
   tours: Array<P_RespTour>;
   inited: boolean;
   principalFetched: boolean;
@@ -39,6 +40,7 @@ export const initialState: {
   isScreenInPreviewMode: boolean;
 } = {
   screens: [],
+  flattenedScreens: [],
   tours: [],
   commonConfig: null,
   inited: false,
@@ -67,6 +69,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TGetAllScreens;
       const newState = {...state};
       newState.screens = tAction.screens;
+      newState.flattenedScreens = tAction.flattenedScreens;
       return newState;
     }
 
