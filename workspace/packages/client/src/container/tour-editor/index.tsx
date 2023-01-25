@@ -290,19 +290,18 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId}
               navigate={(uri, type) => {
-                let url = '';
                 if (type === 'annotation-hotspot') {
                   const [screenId, anId] = uri.split('/');
                   const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
                   if (screen) {
-                    url = `/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
+                    const url = `/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
+                    this.props.navigate(url);
                   } else {
                     throw new Error(`Can't navigate because screenId ${screenId} is not found`);
                   }
                 } else {
-                  url = uri;
+                  window.open(uri, '_blank')?.focus();
                 }
-                this.props.navigate(url);
               }}
               createDefaultAnnotation={
                 (c, t) => this.onTourDataChange('annotation-and-theme', null, { config: c, theme: t }, true)

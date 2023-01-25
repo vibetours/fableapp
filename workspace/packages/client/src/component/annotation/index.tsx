@@ -73,7 +73,10 @@ export class AnnotationContent extends React.PureComponent<{
                 color={this.props.themeConfig.primaryColor}
                 size={btnConf.size}
                 onClick={() => {
-                  btnConf.hotspot && this.props.nav(btnConf.hotspot.actionValue, 'annotation-hotspot');
+                  btnConf.hotspot && this.props.nav(
+                    btnConf.hotspot.actionValue,
+                    btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+                  );
                 }}
               > {btnConf.text}
               </Tags.ABtn>

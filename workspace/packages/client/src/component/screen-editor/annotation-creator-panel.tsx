@@ -72,21 +72,11 @@ const usePrevious = <T extends unknown>(value: T): T | undefined => {
   return ref.current;
 };
 
-// props.allAnnotationsForTour.map(screenAnPair => (
-// <div style={{display: 'flex', flexDirection: 'column'}}>
-// <div>For btn {btnConf.type}</div>
-// <div>For screen {screenAnPair.screen.displayName}</div>
-// {screenAnPair.annotations.map(an => (
-// <div style={{display: 'flex', flexDirection: 'column'}}>
-// {an.bodyContent}
-// </div>
-// ))}
-// </div>
-
 export default function AnnotationCreatorPanel(props: IProps) {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
   const [theme, setTheme] = useState<IAnnotationTheme>(props.globalThemeConfig);
   const [btnEditing, setBtnEditing] = useState<string>('');
+  const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
 
   const prevConfig = usePrevious(config);
   const prevTheme = usePrevious(theme);
@@ -172,23 +162,38 @@ export default function AnnotationCreatorPanel(props: IProps) {
             return (
               <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''}>
                 <div className="a-head">
-                  <ATags.ABtn
-                    type="button"
-                    btnStyle={btnConf.style}
-                    color={primaryColor}
-                    size={btnConf.size}
-                  >{btnConf.text}
-                  </ATags.ABtn>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <ATags.ABtn
+                      type="button"
+                      btnStyle={btnConf.style}
+                      color={primaryColor}
+                      size={btnConf.size}
+                    >
+                      {btnConf.text}
+                    </ATags.ABtn>
+                  </div>
                   <div style={{ display: 'flex', }}>
                     <Tooltip
                       placement="topRight"
                       title={
                         <GTags.Txt className="subsubhead">
-                          No action defined for what would happen if user clicks this button
+                          {
+                            btnConf.hotspot
+                              ? 'Click to configure'
+                              : 'No action defined for what would happen if user clicks this button'
+                          }
                         </GTags.Txt>
                       }
                     >
                       <Popover
+                        open={openConnectionPopover === btnConf.id}
+                        onOpenChange={(newOpen: boolean) => {
+                          if (newOpen) {
+                            setOpenConnectionPopover(btnConf.id);
+                          } else {
+                            setOpenConnectionPopover('');
+                          }
+                        }}
                         trigger="click"
                         placement="topRight"
                         content={
@@ -212,14 +217,18 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                       {props.allAnnotationsForTour.map(screenAntnPair => (
                                         <div key={screenAntnPair.screen.id}>
                                           <GTags.Txt className="title2">
-                                            Screen: {screenAntnPair.screen.displayName}
+                                            {
+                                              screenAntnPair.screen.id === props.screen.id
+                                                ? 'Current screen'
+                                                : `Screen: ${screenAntnPair.screen.displayName}`
+                                            }
                                           </GTags.Txt>
                                           <div>
                                             {screenAntnPair.annotations.filter(an => an.id !== config.id).map(an => (
                                               <div style={{ margin: '0.25rem 0rem' }} key={an.id}>
                                                 <Tags.AnnotationHotspotSelector
                                                   style={{
-                                                    flexDirection: btnConf.type === 'next' ? 'row' : 'row-reverse',
+                                                    flexDirection: btnConf.type === 'prev' ? 'row-reverse' : 'row',
                                                   }}
                                                   onClick={e => {
                                                     let navigateTo = '';
@@ -281,6 +290,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                       actionValue: navigateTo,
                                                     } as ITourEntityHotspot);
                                                     setConfig(thisAntn);
+                                                    setOpenConnectionPopover('');
                                                   }}
                                                 >
                                                   {btnConf.type !== 'custom' && (
@@ -318,11 +328,30 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                     </GTags.Txt>
                                     <div style={{ display: 'flex', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
                                       <Input
-                                        onChange={(e) => console.log(e.target.value)}
+                                        defaultValue={
+                                          btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                            ? btnConf.hotspot.actionValue
+                                            : ''
+                                        }
+                                        onBlur={(e) => {
+                                          const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', {
+                                            type: 'an-btn',
+                                            on: 'click',
+                                            target: '$this',
+                                            actionType: 'open',
+                                            actionValue: e.target.value,
+                                          } as ITourEntityHotspot);
+                                          setConfig(thisAntn);
+                                        }}
                                         size="small"
                                         style={{ marginRight: '1rem' }}
                                       />
-                                      <Button type="default" size="small">Submit</Button>
+                                      <Button
+                                        type="default"
+                                        size="small"
+                                        onClick={() => setOpenConnectionPopover('')}
+                                      >Submit
+                                      </Button>
                                     </div>
                                   </div>
                                 )
@@ -422,10 +451,6 @@ export default function AnnotationCreatorPanel(props: IProps) {
                             setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
                           }}
                         />
-                      </Tags.AnotCrtPanelSec>
-                      <Tags.AnotCrtPanelSec row>
-                        <GTags.Txt style={{ marginRight: '0.5rem' }}>Action</GTags.Txt>
-                        {btnConf.type === 'next' ? 'Select or create an annotation' : (btnConf.type === 'prev' ? 'Will be automatically detected' : 'Custom action')}
                       </Tags.AnotCrtPanelSec>
                     </div>)
                 }
