@@ -151,6 +151,7 @@ export interface IAnnotationOriginConfig {
   updatedAt: number;
 }
 
+// TODO perform this conversion, client side
 export interface IAnnotationConfig extends IAnnotationOriginConfig {
-  syncPending: boolean;
+  syncPending?: boolean;
 }

@@ -129,7 +129,6 @@ export function getDefaultThemeConfig(): IAnnotationTheme {
 export function getSampleConfig(elPath: string): IAnnotationConfig {
   return {
     id: elPath,
-    syncPending: true,
     refId: getRandomId(),
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),

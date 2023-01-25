@@ -624,11 +624,23 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
-        const conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
-        this.props.createDefaultAnnotation(
-          conf,
-          getDefaultThemeConfig()
-        );
+        const path = this.domElPicker?.elPath(state.selectedEl!);
+        const existingAnnotaiton = this.props.allAnnotations.filter(an => an.id === path);
+        let conf: IAnnotationConfig;
+        let theme: IAnnotationTheme;
+        if (existingAnnotaiton.length) {
+          conf = existingAnnotaiton[0];
+          theme = this.props.globalAnnotationTheme;
+          this.showAnnotation(conf, theme);
+        } else {
+          conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
+          theme = this.props.globalAnnotationTheme || getDefaultThemeConfig();
+          this.props.createDefaultAnnotation(
+            conf,
+            theme
+          );
+          this.showAnnotation(conf, theme);
+        }
         return { selectedAnnotationId: conf.id };
       });
     }
@@ -917,14 +929,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           this.annotationLCM!.hide();
                           this.setState({ selectedAnnotationId: '' });
                         } else {
-                          console.log('show annotation');
                           this.showAnnotation(config, this.props.globalAnnotationTheme);
                           this.setState({ selectedAnnotationId: config.id });
                         }
                       }}
                     >
                       <GTags.Txt className="oneline">{config.bodyContent}</GTags.Txt>
-                      {config.syncPending && <LoadingOutlined />}
                     </div>
                     {this.state.selectedAnnotationId === config.id && (
                       <div style={{ marginTop: '0.5rem', color: 'black' }}>
@@ -932,7 +942,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           config={config}
                           globalThemeConfig={this.props.globalAnnotationTheme /* this.props.themeConfig */}
                           onConfigChange={async (conf, theme) => {
-                            console.log('show annotaiton because config changes');
                             this.showAnnotation(conf, theme);
                             this.props.onAnnotationCreateOrChange(conf, theme);
                           }}
@@ -994,10 +1003,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       // TODO handle pin mode and annotation selection
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
-        this.setState({ elSelRequestedBy: ElSelReqType.NA, selectedAnnotationId: '' });
+        this.setState({ elSelRequestedBy: ElSelReqType.NA });
       } else {
         this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
+      this.setState({ selectedAnnotationId: '' });
+      this.annotationLCM!.hide();
 
       if (this.state.editItemSelected !== '') {
         this.setState({ editItemSelected: '' });
