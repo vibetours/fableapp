@@ -101,7 +101,7 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.screenData = tAction.screenData;
       newState.screenEdits = tAction.screenEdits;
       newState.screenLoaded = true;
-      newState.remoteEdits[tAction.screen.rid] = tAction.remoteEdits;
+      newState.remoteEdits[tAction.screen.id] = tAction.remoteEdits;
       newState.isScreenInPreviewMode = tAction.isScreenInPreviewMode;
       return newState;
     }
@@ -128,7 +128,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TSaveEditChunks;
       const newState = {...state};
       if (tAction.isLocal) {
-        newState.localEdits[tAction.screen.rid] = [...tAction.editList];
+        newState.localEdits[tAction.screen.id] = [...tAction.editList];
       } else {
         newState.remoteEdits[tAction.screen.id] = [...tAction.editList];
         newState.localEdits[tAction.screen.id] = [];
@@ -146,6 +146,9 @@ export default function projectReducer(state = initialState, action: Action) {
       } else {
         newState.localTheme = null;
         newState.localAnnotations = {};
+        newState.remoteAnnotations = tAction.annotations;
+        newState.remoteTheme = tAction.theme;
+        newState.tourData = tAction.data;
       }
       return newState;
     }

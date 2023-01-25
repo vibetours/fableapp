@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   IAnnotationConfig,
   AnnotationPositions,
@@ -24,7 +24,7 @@ import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
-import {addCustomBtn, removeButtonWithId, toggleBooleanButtonProp, updateAnnotationText, updateButtonProp, updateGlobalThemeConfig} from '../annotation/annotation-config-utils';
+import { addCustomBtn, removeButtonWithId, toggleBooleanButtonProp, updateAnnotationText, updateButtonProp, updateGlobalThemeConfig } from '../annotation/annotation-config-utils';
 
 interface IProps {
   config: IAnnotationConfig,
@@ -47,38 +47,51 @@ const commonInputStyles: React.CSSProperties = {
   borderRadius: '4px',
 };
 
+const usePrevious = <T extends unknown>(value: T): T | undefined => {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+};
+
 export default function AnnotationCreatorPanel(props: IProps) {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
   const [theme, setTheme] = useState<IAnnotationTheme>(props.globalThemeConfig);
   const [btnEditing, setBtnEditing] = useState<string>('');
 
+  const prevConfig = usePrevious(config);
+  const prevTheme = usePrevious(theme);
+
   useEffect(() => {
-    props.onConfigChange(config, theme);
+    console.log('useeffect', prevConfig, prevTheme, config, theme);
+    if (prevConfig && prevTheme && (config.monoIncKey > prevConfig.monoIncKey || theme.monoIncKey > prevTheme.monoIncKey)) {
+      console.log('calling onconfig change');
+      props.onConfigChange(config, theme);
+    }
   }, [config, theme]);
 
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
-        <GTags.Txt className="title2" style={{marginBottom: '0.25rem'}}>Body text</GTags.Txt>
+        <GTags.Txt className="title2" style={{ marginBottom: '0.25rem' }}>Body text</GTags.Txt>
         <TextArea
-          style={{...commonInputStyles, width: '100%'}}
+          style={{ ...commonInputStyles, width: '100%' }}
           rows={4}
           defaultValue={config.bodyContent}
           bordered={false}
           onBlur={e => {
             setConfig(c => updateAnnotationText(c, e.target.value));
-            // this.setState(state => {});
-            // this.setState({config: updateAnnotationText(this.state.config!, e.target.value) });
           }}
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec row>
-        <GTags.Txt className="title2" style={{marginRight: '0.5rem'}}>Positioning</GTags.Txt>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Positioning</GTags.Txt>
         <Select
           defaultValue={config.positioning}
           size="small"
           bordered={false}
-          style={{...commonInputStyles, minWidth: '120px', }}
+          style={{ ...commonInputStyles, minWidth: '120px', }}
           options={Object.values(AnnotationPositions).map(v => ({
             value: v,
             label: `${v} ${v === AnnotationPositions.Auto ? '' : '(not yet supported)'}`,
@@ -87,8 +100,8 @@ export default function AnnotationCreatorPanel(props: IProps) {
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec>
-        <div style={{display: 'flex', alignItems: 'center'}}>
-          <GTags.Txt className="title2" style={{marginRight: '0.5rem'}}>Theme </GTags.Txt>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Theme </GTags.Txt>
           <Tooltip
             placement="right"
             title={
@@ -100,7 +113,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
             <QuestionCircleOutlined />
           </Tooltip>
         </div>
-        <div style={{marginTop: '0.5rem', display: 'flex', alignItems: 'center'}}>
+        <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center' }}>
           <GTags.Txt>Primary color</GTags.Txt>
           <div style={{
             height: '18px',
@@ -113,7 +126,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
           />
           <Input
             defaultValue={theme.primaryColor}
-            style={{...commonInputStyles, width: '120px'}}
+            style={{ ...commonInputStyles, width: '120px' }}
             size="small"
             bordered={false}
             onBlur={e => {
@@ -122,9 +135,9 @@ export default function AnnotationCreatorPanel(props: IProps) {
           />
         </div>
       </Tags.AnotCrtPanelSec>
-      <Tags.AnotCrtPanelSec style={{marginBottom: 0}}>
+      <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
         <GTags.Txt className="title2">Buttons</GTags.Txt>
-        <Tags.AnotCrtPanelSec style={{marginBottom: 0}}>
+        <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
           {config.buttons.map(btnConf => {
             const primaryColor = theme.primaryColor;
             return (
@@ -137,7 +150,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                     size={btnConf.size}
                   >{btnConf.text}
                   </ATags.ABtn>
-                  <div style={{display: 'flex', }}>
+                  <div style={{ display: 'flex', }}>
                     <Tooltip
                       placement="topRight"
                       title={
@@ -146,14 +159,14 @@ export default function AnnotationCreatorPanel(props: IProps) {
                         </GTags.Txt>
                       }
                     >
-                      <Button icon={<DisconnectOutlined />} type="text" size="small" style={{color: '#FF7450'}} />
+                      <Button icon={<DisconnectOutlined />} type="text" size="small" style={{ color: '#FF7450' }} />
                     </Tooltip>
                     {btnConf.type === 'custom' ? (
                       <Button
                         icon={<DeleteOutlined />}
                         type="text"
                         size="small"
-                        style={{color: '#bdbdbd'}}
+                        style={{ color: '#bdbdbd' }}
                         onClick={() => {
                           setConfig(c => removeButtonWithId(c, btnConf.id));
                         }}
@@ -163,7 +176,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                         icon={btnConf.exclude ? <EyeInvisibleOutlined /> : <EyeOutlined />}
                         type="text"
                         size="small"
-                        style={{color: '#bdbdbd'}}
+                        style={{ color: '#bdbdbd' }}
                         onClick={() => {
                           setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
                         }}
@@ -186,12 +199,12 @@ export default function AnnotationCreatorPanel(props: IProps) {
                 {btnConf.id === btnEditing && (
                   <div className="n-details">
                     <Tags.AnotCrtPanelSec row>
-                      <GTags.Txt style={{marginRight: '0.5rem'}}>Button style</GTags.Txt>
+                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Button style</GTags.Txt>
                       <Select
                         defaultValue={btnConf.style}
                         size="small"
                         bordered={false}
-                        style={{...commonInputStyles, minWidth: '120px', }}
+                        style={{ ...commonInputStyles, minWidth: '120px', }}
                         options={Object.values(AnnotationButtonStyle).map(v => ({
                           value: v,
                           label: v,
@@ -202,12 +215,12 @@ export default function AnnotationCreatorPanel(props: IProps) {
                       />
                     </Tags.AnotCrtPanelSec>
                     <Tags.AnotCrtPanelSec row>
-                      <GTags.Txt style={{marginRight: '0.5rem'}}>Button size</GTags.Txt>
+                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Button size</GTags.Txt>
                       <Select
                         defaultValue={btnConf.size}
                         size="small"
                         bordered={false}
-                        style={{...commonInputStyles, minWidth: '120px', }}
+                        style={{ ...commonInputStyles, minWidth: '120px', }}
                         options={Object.values(AnnotationButtonSize).map(v => ({
                           value: v,
                           label: v,
@@ -218,19 +231,19 @@ export default function AnnotationCreatorPanel(props: IProps) {
                       />
                     </Tags.AnotCrtPanelSec>
                     <Tags.AnotCrtPanelSec row>
-                      <GTags.Txt style={{marginRight: '0.5rem'}}>Button text</GTags.Txt>
+                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Button text</GTags.Txt>
                       <Input
                         defaultValue={btnConf.text}
                         size="small"
                         bordered={false}
-                        style={{...commonInputStyles, width: '160px', }}
+                        style={{ ...commonInputStyles, width: '160px', }}
                         onBlur={e => {
                           setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
                         }}
                       />
                     </Tags.AnotCrtPanelSec>
                     <Tags.AnotCrtPanelSec row>
-                      <GTags.Txt style={{marginRight: '0.5rem'}}>Action</GTags.Txt>
+                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Action</GTags.Txt>
                       {btnConf.type === 'next' ? 'Select or create an annotation' : (btnConf.type === 'prev' ? 'Will be automatically detected' : 'Custom action')}
                     </Tags.AnotCrtPanelSec>
                   </div>)}
@@ -240,7 +253,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
           <Button
             type="link"
             icon={<SubnodeOutlined />}
-            style={{marginTop: '1rem'}}
+            style={{ marginTop: '1rem' }}
             onClick={() => {
               setConfig(c => addCustomBtn(c));
             }}

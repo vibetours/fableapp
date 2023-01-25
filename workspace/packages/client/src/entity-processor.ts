@@ -197,6 +197,10 @@ export function mergeTourData(
         continue;
       }
 
+      if (key === 'createdAt' && typeof from[key] === 'number') {
+        continue;
+      }
+
       if (typeof value === 'object') {
         if (typeof to[key] !== 'object') {
           to[key] = deepcopy(value);

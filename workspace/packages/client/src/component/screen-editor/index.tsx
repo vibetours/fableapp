@@ -860,7 +860,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             </div>
             {this.props.screen.parentScreenId !== 0
               && this.props.allEdits
-                .sort((m, n) => n[IdxEditItem.TIMESTAMP] - m[IdxEditItem.TIMESTAMP])
                 .map((e) => (
                   <Tags.EditLIPCon
                     key={e[IdxEditItem.KEY]}
@@ -918,6 +917,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           this.annotationLCM!.hide();
                           this.setState({ selectedAnnotationId: '' });
                         } else {
+                          console.log('show annotation');
                           this.showAnnotation(config, this.props.globalAnnotationTheme);
                           this.setState({ selectedAnnotationId: config.id });
                         }
@@ -932,7 +932,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           config={config}
                           globalThemeConfig={this.props.globalAnnotationTheme /* this.props.themeConfig */}
                           onConfigChange={async (conf, theme) => {
-                            console.log('here');
+                            console.log('show annotaiton because config changes');
                             this.showAnnotation(conf, theme);
                             this.props.onAnnotationCreateOrChange(conf, theme);
                           }}

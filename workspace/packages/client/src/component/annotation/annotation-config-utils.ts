@@ -6,14 +6,16 @@ import {
   IAnnotationConfig,
   IAnnotationTheme
 } from '@fable/common/dist/types';
-import { getRandomId } from '@fable/common/dist/utils';
+import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 
 export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
 }
 
 export function updateAnnotationText(config: IAnnotationConfig, txt: string): IAnnotationConfig {
-  const newConfig = { ...config, bodyContent: txt };
+  const newConfig = newConfigFrom(config);
+  newConfig.bodyContent = txt;
+  newConfig.updatedAt = getCurrentUtcUnixTime();
   return newConfig;
 }
 
@@ -22,13 +24,20 @@ export function updateGlobalThemeConfig(
   key: keyof IAnnotationTheme,
   value: IAnnotationTheme[keyof IAnnotationTheme]
 ): IAnnotationTheme {
-  const newGlobalTheme = { ...theme };
-  newGlobalTheme[key] = value;
+  const newGlobalTheme = newConfigFrom(theme);
+  (newGlobalTheme as any)[key] = value;
+  newGlobalTheme.monoIncKey++;
   return newGlobalTheme;
 }
 
+function newConfigFrom<T extends IAnnotationTheme | IAnnotationConfig>(c: T): T {
+  const newConfig = { ...c };
+  newConfig.monoIncKey++;
+  return newConfig;
+}
+
 export function removeButtonWithId(config: IAnnotationConfig, id: string) {
-  const newConf = { ...config };
+  const newConf = newConfigFrom(config);
   const buttons = newConf.buttons.slice(0).filter(b => b.id !== id);
   newConf.buttons = buttons;
   return newConf;
@@ -46,7 +55,7 @@ export function updateButtonProp(
   prop: keyof IAnnotationButton,
   value: IAnnotationButton[keyof IAnnotationButton]
 ) {
-  const newConfig = { ...config };
+  const newConfig = newConfigFrom(config);
   const buttons = newConfig.buttons.slice(0);
   const thisButton = findBtnById(newConfig, id);
   buttons[thisButton[0][1]] = {
@@ -62,7 +71,7 @@ export function toggleBooleanButtonProp(
   id: string,
   prop: keyof IAnnotationButton
 ): IAnnotationConfig {
-  const newConfig = { ...config };
+  const newConfig = newConfigFrom(config);
   const buttons = newConfig.buttons.slice(0);
   const thisButton = findBtnById(config, id);
   buttons[thisButton[0][1]] = {
@@ -102,7 +111,7 @@ export function addCustomBtn(config: IAnnotationConfig): IAnnotationConfig {
   const size = nextBtn.size;
   const btn = getCustomBtnTemplate(order, size);
 
-  const newConfig = { ...config };
+  const newConfig = newConfigFrom(config);
   newConfig.buttons = newConfig.buttons.slice(0);
   newConfig.buttons.push(btn);
   return newConfig;
@@ -111,6 +120,9 @@ export function addCustomBtn(config: IAnnotationConfig): IAnnotationConfig {
 export function getDefaultThemeConfig(): IAnnotationTheme {
   return {
     primaryColor: '#7567FF',
+    monoIncKey: 0,
+    createdAt: getCurrentUtcUnixTime(),
+    updatedAt: getCurrentUtcUnixTime(),
   };
 }
 
@@ -119,8 +131,11 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     id: elPath,
     syncPending: true,
     refId: getRandomId(),
+    createdAt: getCurrentUtcUnixTime(),
+    updatedAt: getCurrentUtcUnixTime(),
     bodyContent: 'Write a description about what this feature of your product does to your user.',
     positioning: AnnotationPositions.Auto,
+    monoIncKey: 0,
     buttons: [{
       id: getRandomId(),
       type: 'next',

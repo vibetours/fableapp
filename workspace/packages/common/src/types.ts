@@ -126,6 +126,9 @@ export interface IAnnotationButton {
 
 export interface IAnnotationTheme {
   primaryColor: string;
+  monoIncKey: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface IAnnotationHotspot {
@@ -136,15 +139,18 @@ export interface IAnnotationHotspot {
   actionValue: string;
 }
 
-export interface IOriginAnnotationConfig {
+export interface IAnnotationOriginConfig {
   id: string;
   refId: string;
   bodyContent: string;
   positioning: AnnotationPositions,
   themeOverride?: IAnnotationTheme,
   buttons: IAnnotationButton[],
+  monoIncKey: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
-export interface IAnnotationConfig extends IOriginAnnotationConfig {
+export interface IAnnotationConfig extends IAnnotationOriginConfig {
   syncPending: boolean;
 }

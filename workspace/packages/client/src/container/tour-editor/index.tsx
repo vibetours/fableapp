@@ -23,7 +23,7 @@ import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AllEdits, EditItem, ElEditType } from '../../types';
+import { AllEdits, EditItem, ElEditType, IdxEditItem } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 
 interface IDispatchProps {
@@ -74,25 +74,57 @@ interface IAppStateProps {
   globalAnnotationTheme: IAnnotationTheme;
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  tourData: state.default.tourData,
-  isTourLoaded: state.default.tourLoaded,
-  screen: state.default.currentScreen,
-  screenData: state.default.screenData,
-  isScreenLoaded: state.default.screenLoaded,
-  screens: state.default.screens,
-  isScreenInPreviewMode: state.default.isScreenInPreviewMode,
-  allEdits: [
-    ...(state.default.currentScreen?.rid ? state.default.localEdits[state.default.currentScreen.rid] || [] : []),
-    ...(state.default.currentScreen?.rid ? state.default.remoteEdits[state.default.currentScreen.rid] || [] : []),
-  ],
-  allAnnotations: [
+const mapStateToProps = (state: TState): IAppStateProps => {
+  let allAnnotations = [
     ...(state.default.currentScreen?.id ? state.default.localAnnotations[state.default.currentScreen.id] || [] : []),
     ...(state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : []),
-  ],
-  globalAnnotationTheme: state.default.localTheme || getDefaultThemeConfig()
-});
+  ];
+  const hm: Record<string, IAnnotationConfig> = {};
+  for (const an of allAnnotations) {
+    if (an.id in hm) {
+      if (hm[an.id].updatedAt < an.updatedAt) {
+        hm[an.id] = an;
+      }
+    } else {
+      hm[an.id] = an;
+    }
+  }
+  allAnnotations = Object.values(hm).sort((m, n) => m.updatedAt - n.updatedAt);
+
+  let allEdits = [
+    ...(state.default.currentScreen?.id ? state.default.localEdits[state.default.currentScreen.id] || [] : []),
+    ...(state.default.currentScreen?.id ? state.default.remoteEdits[state.default.currentScreen.id] || [] : []),
+  ];
+
+  const hm2: Record<string, EditItem> = {};
+  for (const edit of allEdits) {
+    const key = edit[IdxEditItem.KEY];
+    if (key in hm2) {
+      if (hm2[key][IdxEditItem.TIMESTAMP] < edit[IdxEditItem.TIMESTAMP]) {
+        hm2[key] = edit;
+      }
+    } else {
+      hm2[key] = edit;
+    }
+  }
+  allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
+
+  console.log('alledits', allEdits);
+
+  return {
+    tour: state.default.currentTour,
+    tourData: state.default.tourData,
+    isTourLoaded: state.default.tourLoaded,
+    screen: state.default.currentScreen,
+    screenData: state.default.screenData,
+    isScreenLoaded: state.default.screenLoaded,
+    screens: state.default.screens,
+    isScreenInPreviewMode: state.default.isScreenInPreviewMode,
+    allEdits,
+    allAnnotations,
+    globalAnnotationTheme: state.default.localTheme || getDefaultThemeConfig()
+  };
+};
 
 interface IOwnProps {}
 
