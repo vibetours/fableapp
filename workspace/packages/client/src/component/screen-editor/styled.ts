@@ -113,7 +113,9 @@ export const ListActionBtn = styled.span`
 
 export const AnotCrtPanelCon = styled.div`
   display: flex;
-  // background: lightgray;
+  background: #ffffffcc;
+  padding: 0.75rem;
+  border-radius: 8px;
   flex-direction: column;
 `;
 
@@ -158,6 +160,20 @@ export const AABtnCtrlLine = styled.div`
  &.sel {
   background: #f5f5f5;
  }
+`;
+
+export const AnnotationLI = styled.div`
+  margin: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  background: #FF7450;
+  border-radius: 13px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    cursor: pointer;
+  }
 `;
 
 interface AnotPanelSecOri {

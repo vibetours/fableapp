@@ -1,7 +1,7 @@
 /* TODO There are some repetation of code across creators, fix those
  */
 
-import { Dispatch } from 'react';
+import {Dispatch} from 'react';
 import api from '@fable/common/dist/api';
 import {
   ApiResp,
@@ -12,8 +12,8 @@ import {
   RespScreen,
   RespTour,
 } from '@fable/common/dist/api-contract';
-import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
-import { EditFile, ScreenData, TourData } from '@fable/common/dist/types';
+import {getCurrentUtcUnixTime, sleep} from '@fable/common/dist/utils';
+import {EditFile, IAnnotationConfig, IAnnotationTheme, ScreenData, TourData, TourDataWoScheme, TourScreenEntity} from '@fable/common/dist/types';
 import {
   convertEditsToLineItems,
   createEmptyTour,
@@ -24,10 +24,13 @@ import {
   P_RespTour,
   processRawScreenData,
   processRawTourData,
+  normalizeTourDataFile,
+  mergeTourData,
+  getThemeAndAnnotationFromDataFile,
 } from '../entity-processor';
-import { TState } from '../reducer';
+import {TState} from '../reducer';
 import ActionType from './type';
-import { AllEdits, EditItem, ElEditType } from '../types';
+import {AllEdits, EditItem, ElEditType} from '../types';
 
 export interface TGenericLoading {
   type: ActionType.GENERIC_LOADING;
@@ -43,7 +46,7 @@ export interface TGetAllScreens {
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
+    const data = await api<null, ApiResp<RespScreen[]>>('/screens', {auth: true});
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
       screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
@@ -172,7 +175,7 @@ export interface TGetAllTours {
 
 export function getAllTours() {
   return async (dispatch: Dispatch<TGetAllTours>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
+    const data = await api<null, ApiResp<RespTour[]>>('/tours', {auth: true});
     dispatch({
       type: ActionType.ALL_TOURS_RETRIEVED,
       tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
@@ -192,7 +195,7 @@ export interface TTour {
 export function createNewTour(tourName = 'Untitled', description = '', mode: SupportedPerformedAction = 'new') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
     if (mode !== 'replace') {
-      dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
+      dispatch({type: ActionType.GENERIC_LOADING, entity: 'tour'});
     }
 
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
@@ -218,12 +221,14 @@ export interface TTourWithData {
   type: ActionType.TOUR_AND_DATA_LOADED;
   tour: P_RespTour;
   tourData: TourData;
+  annotations: Record<string, IAnnotationConfig[]>;
+  theme: IAnnotationTheme;
 }
 
 export function loadTourAndData(tourRid: string) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const state = getState();
-    let tour: RespTour | null = null;
+    let tour: P_RespTour | null = null;
     let isTourFound = false;
     for (const t of state.default.tours) {
       if (t.rid === tourRid) {
@@ -235,24 +240,21 @@ export function loadTourAndData(tourRid: string) {
     if (!isTourFound) {
       try {
         const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}`);
-        tour = data.data;
+        tour = processRawTourData(data.data, state);
       } catch (e) {
         console.error(e);
       }
     }
     if (tour) {
-      // We don't save the data of the screen in screen object
-      // As with more and more screen and more and more screen interaction if js holds the data
-      // that could crate lag in the browser's tab for less powerful device.
-      // The data would be cached in disk any way and browser would not make another call to the data file and instead
-      // return from disk cache
-      const commonConfig = state.default.commonConfig!;
-      const url = `${commonConfig.tourAssetPath}${tour.assetPrefixHash}/${commonConfig.dataFileName}`;
-      const data = await api<null, TourData>(url);
+      const data = await api<null, TourData>(tour.dataFileUri.href);
+      const nData = normalizeTourDataFile(data);
+      const annotationAndTheme = getThemeAndAnnotationFromDataFile(nData, true);
       dispatch({
         type: ActionType.TOUR_AND_DATA_LOADED,
-        tourData: data,
+        tourData: nData,
         tour: processRawTourData(tour, getState()),
+        annotations: annotationAndTheme.annotations,
+        theme: annotationAndTheme.theme,
       });
     } else {
       // TODO error
@@ -264,11 +266,14 @@ export function createPlaceholderTour() {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const tour = createEmptyTour();
     const data = createEmptyTourDataFile();
+    const annotationAndTheme = getThemeAndAnnotationFromDataFile(data, false);
 
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
       tour: processRawTourData(tour, getState(), true),
+      annotations: annotationAndTheme.annotations,
+      theme: annotationAndTheme.theme
     });
   };
 }
@@ -328,7 +333,7 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
         savedEditData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
         savedEditData.edits = mergeEdits(masterEdit, localEdits);
 
-        const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordedit', {
+        const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordeledit', {
           auth: true,
           body: {
             rid: screen.rid,
@@ -344,6 +349,63 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
           isLocal: false,
         });
       }
+    }
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TSaveTourEntities {
+  type: ActionType.SAVE_TOUR_ENTITIES;
+  tour: P_RespTour;
+  data: TourData | null,
+  annotations: Record<string, IAnnotationConfig[]>,
+  theme: IAnnotationTheme,
+  isLocal: boolean,
+}
+
+export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
+  return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+    const annotationAndTheme = getThemeAndAnnotationFromDataFile(data as TourData, true);
+    console.log('localdata', annotationAndTheme);
+    dispatch({
+      type: ActionType.SAVE_TOUR_ENTITIES,
+      tour,
+      data: getState().default.tourData,
+      annotations: annotationAndTheme.annotations,
+      theme: annotationAndTheme.theme,
+      isLocal: true,
+    });
+  };
+}
+
+export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<TourDataWoScheme>) {
+  return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+    const savedData = getState().default.tourData;
+    if (savedData) {
+      savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+      const mergedData = {
+        ...savedData,
+        ...mergeTourData(savedData, localEdits, false)
+      };
+
+      const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+        auth: true,
+        body: {
+          rid: tour.rid,
+          editData: JSON.stringify(mergedData),
+        },
+      });
+
+      const annotationAndTheme = getThemeAndAnnotationFromDataFile(mergedData, false);
+      dispatch({
+        type: ActionType.SAVE_TOUR_ENTITIES,
+        tour,
+        data: mergedData,
+        annotations: annotationAndTheme.annotations,
+        theme: annotationAndTheme.theme,
+        isLocal: false,
+      });
     }
   };
 }

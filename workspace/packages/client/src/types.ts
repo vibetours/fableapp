@@ -21,7 +21,13 @@ export const enum IdxEncodingTypeImage {
   WIDTH,
 }
 
-export type EncodingTypeBlur = [timeInSec: number, oldBlurValue: number, newBlurValue: number, oldFilterPropertyValue: string, newFilterPropertyValue: string];
+export type EncodingTypeBlur = [
+  timeInSec: number,
+  oldBlurValue: number,
+  newBlurValue: number,
+  oldFilterPropertyValue: string,
+  newFilterPropertyValue: string
+];
 export const enum IdxEncodingTypeBlur {
   TIMESTAMP = 0,
   OLD_BLUR_VALUE,

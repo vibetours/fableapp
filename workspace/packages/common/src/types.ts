@@ -64,16 +64,20 @@ export interface TourEntity {
   navigation: any[]; // TODO
 }
 
-export interface TourScreen extends TourEntity {
+export interface TourScreenEntity extends TourEntity {
   type: 'screen';
-  annotations: any[];
+  annotations: Record<string, IAnnotationConfig>;
 }
 
-export interface TourData {
+export interface TourDataWoScheme {
+  main: string;
+  theme: IAnnotationTheme,
+  entities: Record<string, TourEntity>;
+}
+
+export interface TourData extends TourDataWoScheme {
   v: SchemaVersion;
   lastUpdatedAtUtc: number;
-  main: string;
-  entities: TourEntity[];
 }
 
 export enum LoadingStatus {
@@ -128,15 +132,19 @@ export interface IAnnotationHotspot {
   type: 'el' | 'an-btn',
   on: 'click',
   target: string;
-  navigate?: string;
-  open?: string;
+  actionType: 'navigate' | 'open';
+  actionValue: string;
 }
 
-export interface IAnnotationConfig {
+export interface IOriginAnnotationConfig {
   id: string;
+  refId: string;
   bodyContent: string;
   positioning: AnnotationPositions,
   themeOverride?: IAnnotationTheme,
   buttons: IAnnotationButton[],
-  hotspots: IAnnotationHotSpot[]
+}
+
+export interface IAnnotationConfig extends IOriginAnnotationConfig {
+  syncPending: boolean;
 }

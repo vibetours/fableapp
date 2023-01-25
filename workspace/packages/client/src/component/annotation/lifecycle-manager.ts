@@ -1,10 +1,10 @@
-import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
+import ReactDOM, {Root} from 'react-dom/client';
+import {IAnnotationConfig, IAnnotationTheme} from '@fable/common/dist/types';
 import React from 'react';
-import { StyleSheetManager } from 'styled-components';
+import {StyleSheetManager} from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
-import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import AnnotaitonConfigProvider from './annotation-config-provider';
+import {IAnnoationDisplayConfig, AnnotationCon, AnnotationContent} from '.';
+import {getDefaultThemeConfig} from './annotation-config-utils';
 
 export enum AnnotationViewMode {
   Show,
@@ -16,7 +16,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   // TODO since theme is global across the annotations, we keep only once instance of this.
   //      we reingest the theme on every render. Handle it in a better way
-  private themeConfig: IAnnotationTheme = AnnotaitonConfigProvider.getDefaultThemeConfig();
+  private themeConfig: IAnnotationTheme = getDefaultThemeConfig();
 
   private con: HTMLDivElement;
 
@@ -145,8 +145,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.head },
-        React.createElement(AnnotationCon, { data: props })
+        {target: this.doc.head},
+        React.createElement(AnnotationCon, {data: props})
       )
     );
   }
@@ -193,7 +193,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          { target: this.doc.head },
+          {target: this.doc.head},
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,
@@ -213,7 +213,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
-          { target: this.doc.head },
+          {target: this.doc.head},
           React.createElement(AnnotationContent, {
             onRender: resolve,
             isInDisplay: true,

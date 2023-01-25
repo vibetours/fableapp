@@ -1,8 +1,9 @@
 import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
-import { getDisplayableTime } from '@fable/common/dist/utils';
-import { TourData } from '@fable/common/dist/types';
+import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
+import { IAnnotationConfig, IAnnotationTheme, TourData, TourDataWoScheme, TourEntity, TourScreenEntity } from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AllEdits, EditItem, ElEditType } from './types';
+import { getDefaultThemeConfig } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -90,7 +91,7 @@ export function processRawTourData(tour: RespTour, state: TState, isPlaceholder 
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
     displayableUpdatedAt: getDisplayableTime(d),
-    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${state.default.commonConfig?.dataFileName}`),
+    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.dataFileName}?ts=${+new Date()}`),
     isPlaceholder,
   };
 }
@@ -115,8 +116,45 @@ export function createEmptyTourDataFile(): TourData {
     v: SchemaVersion.V1,
     lastUpdatedAtUtc: -1,
     main: '',
-    entities: [],
+    theme: getDefaultThemeConfig(),
+    entities: {},
   };
+}
+
+export function getThemeAndAnnotationFromDataFile(data: TourData, syncPending: boolean): {
+  annotations: Record<string, IAnnotationConfig[]>,
+  theme: IAnnotationTheme,
+} {
+  const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
+  for (const [screenId, entity] of Object.entries(data.entities)) {
+    if (entity.type === 'screen') {
+      const annotationList = annotationsPerScreen[screenId] || [];
+      const screenEntity = entity as TourScreenEntity;
+      for (const [, annotation] of Object.entries(screenEntity.annotations)) {
+        annotation.syncPending = syncPending;
+        annotationList.push(annotation);
+      }
+      annotationsPerScreen[screenId] = annotationList;
+    }
+  }
+
+  return {
+    annotations: annotationsPerScreen,
+    theme: data.theme
+  };
+}
+
+export function normalizeTourDataFile(data: TourData) {
+  if (!data.theme) {
+    data.theme = getDefaultThemeConfig();
+  }
+  if (data.main === null || data.main === undefined) {
+    data.main = '';
+  }
+  if (!data.entities || data.entities instanceof Array) {
+    data.entities = {};
+  }
+  return data;
 }
 
 /* ************************************************************************* */
@@ -135,6 +173,58 @@ export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits
 
   return master;
 }
+
+export function mergeTourData(
+  master: TourDataWoScheme,
+  incoming: Partial<TourDataWoScheme>,
+  isDefault = false
+): TourDataWoScheme {
+  const inOb = deepcopy(incoming) as any;
+  if (isDefault && inOb.theme) {
+    inOb.theme = undefined;
+  }
+
+  // only support merging primitive value, array, js objects
+  function recMerge(to: any, from: any) {
+    for (const [key, value] of Object.entries(from)) {
+      // TODO this is plain old wrong. SyncPending is a local key to
+      // detect if annotation edit is synced. While merging we conditionally
+      // delete this. This is done in the interest of the time. Ideally this
+      // should be handled like chunk edit
+      if (value === null) {
+        delete to[key];
+      } if (value === undefined) {
+        continue;
+      }
+
+      if (typeof value === 'object') {
+        if (typeof to[key] !== 'object') {
+          to[key] = deepcopy(value);
+        } else if (value instanceof Array) {
+          // Recursive merge inside array is not yet supported, not needed right now
+          to[key] = deepcopy(value);
+        } else /* both are js object */ {
+          recMerge(to[key], from[key]);
+        }
+      } else {
+        to[key] = value;
+      }
+    }
+  }
+  const m = deepcopy(master);
+  recMerge(m, inOb);
+  return m;
+}
+
+// if (incoming.id in master) {
+//   const annotationsInMaster = master[incoming.id].annotations;
+//   for (const [id, annotationConfig] of Object.entries(incoming.annotations)) {
+//     annotationsInMaster[id] = annotationConfig;
+//   }
+// } else {
+//   master[incoming.id] = incoming;
+// }
+// return master;
 
 export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
   const editList: EditItem[] = [];

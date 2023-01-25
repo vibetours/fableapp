@@ -1,5 +1,7 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import { AnnotationPositions, IAnnotationConfig, ScreenData, SerNode } from '@fable/common/dist/types';
+import {
+  IAnnotationConfig, IAnnotationTheme, ScreenData, SerNode
+} from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
@@ -35,7 +37,7 @@ import {
   IdxEncodingTypeText,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import AnnotationConfigProvider from '../annotation/annotation-config-provider';
+import { getSampleConfig, getDefaultThemeConfig } from '../annotation/annotation-config-utils';
 
 const browser = detect();
 
@@ -51,6 +53,10 @@ interface IOwnProps {
   screen: RespScreen;
   screenData: ScreenData;
   allEdits: EditItem[];
+  allAnnotations: IAnnotationConfig[];
+  globalAnnotationTheme: IAnnotationTheme;
+  createDefaultAnnotation: (config: IAnnotationConfig, theme: IAnnotationTheme) => void;
+  onAnnotationCreateOrChange: (config: IAnnotationConfig, theme: IAnnotationTheme) => void;
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
@@ -66,6 +72,7 @@ interface IOwnStateProps {
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
+  selectedAnnotationId: string;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
   editItemSelected: string;
@@ -93,14 +100,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private scaleFactor: number;
 
-  private annotationConfigProvider: AnnotationConfigProvider;
-
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
     this.microEdits = {};
     this.scaleFactor = 1;
-    this.annotationConfigProvider = new AnnotationConfigProvider();
     this.state = {
       isInElSelectionMode: false,
       elSelRequestedBy: ElSelReqType.NA,
@@ -108,6 +112,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
+      selectedAnnotationId: ''
     };
   }
 
@@ -607,26 +612,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       console.log('same el is set twice???');
     }
 
-    /*
-        if ((this.state.selectedEl
-          && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
-          && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-          // If elment is already selected and user just clicked on the "Add an annotaiton" button after
-          // the element is slected. This happens when user clicks on "Edit an element" first >> select
-          // the element >> click on "Add an annotaiton" button
-        ) || (
-          elJustSelected
-            && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-            // this happens when user clicks on "Add an annotation" first
-        )) {
-          await this.annotationLCM!.addOrReplaceAnnotation(
-            this.state.selectedEl!,
-            getPlaceholderAnnotationConfig(),
-            getDefaultThemeConfig(),
-            true
-          );
-        }
-        */
+    if ((this.state.selectedEl
+      && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
+      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+      // If elment is already selected and user just clicked on the "Add an annotaiton" button after
+      // the element is slected. This happens when user clicks on "Edit an element" first >> select
+      // the element >> click on "Add an annotaiton" button
+    ) || (
+      elJustSelected
+        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+        // this happens when user clicks on "Add an annotation" first
+    )) {
+      this.setState(state => {
+        const conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
+        this.props.createDefaultAnnotation(
+          conf,
+          getDefaultThemeConfig()
+        );
+        return { selectedAnnotationId: conf.id };
+      });
+    }
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
@@ -879,23 +884,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   </Tags.EditLIPCon>
                 ))}
           </Tags.EditPanelSec>
-          {/* TODO for local dev for auto refresh */}
-          {/* <Tags.EditPanelSec>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                marginBottom: '1.25rem',
-              }}
-            >
-              <AnnotationCreatorPanel
-                config={getPlaceholderAnnotationConfig()}
-                globalThemeConfig={getDefaultThemeConfig()}
-                onConfigChange={(c, t) => console.log('anot config change', c, t)}
-              />
-            </div>
-        </Tags.EditPanelSec> */}
-          {this.state.selectedEl && (
+          {this.state.selectedEl && this.state.elSelRequestedBy !== ElSelReqType.AnnotateEl && (
             <Tags.EditPanelSec>
               <div
                 style={{
@@ -908,29 +897,65 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                   Annotations are guide to your product mean to get your user acquiented with your product.
                 </GTags.Txt>
-                {this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? (
-                  <AnnotationCreatorPanel
-                    provider={this.annotationConfigProvider}
-                    onConfigChange={async (config, theme) => {
-                      console.log('anot config change', config, theme);
-                      await this.annotationLCM!.addOrReplaceAnnotation(
-                        this.state.selectedEl!,
-                        config,
-                        theme,
-                        true
-                      );
-                    }}
-                  />
-                ) : (
-                  <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
-                    Add an annotation
-                  </Btn>
-                )}
+                <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
+                  Add an annotation
+                </Btn>
               </div>
+            </Tags.EditPanelSec>
+          )}
+          {this.props.allAnnotations.length > 0 && (
+            <Tags.EditPanelSec>
+              <GTags.Txt className="title2">Annotaitons applied on page</GTags.Txt>
+              {this.props.screen.parentScreenId !== 0
+                && this.props.allAnnotations.map(config => (
+                  <Tags.AnnotationLI
+                    key={config.id}
+                  >
+                    <div
+                      style={{ display: 'flex' }}
+                      onClick={(e) => {
+                        if (this.state.selectedAnnotationId === config.id) {
+                          this.annotationLCM!.hide();
+                          this.setState({ selectedAnnotationId: '' });
+                        } else {
+                          this.showAnnotation(config, this.props.globalAnnotationTheme);
+                          this.setState({ selectedAnnotationId: config.id });
+                        }
+                      }}
+                    >
+                      <GTags.Txt className="oneline">{config.bodyContent}</GTags.Txt>
+                      {config.syncPending && <LoadingOutlined />}
+                    </div>
+                    {this.state.selectedAnnotationId === config.id && (
+                      <div style={{ marginTop: '0.5rem', color: 'black' }}>
+                        <AnnotationCreatorPanel
+                          config={config}
+                          globalThemeConfig={this.props.globalAnnotationTheme /* this.props.themeConfig */}
+                          onConfigChange={async (conf, theme) => {
+                            console.log('here');
+                            this.showAnnotation(conf, theme);
+                            this.props.onAnnotationCreateOrChange(conf, theme);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </Tags.AnnotationLI>
+                ))}
             </Tags.EditPanelSec>
           )}
         </Tags.EditPanelCon>
       </Tags.Con>
+    );
+  }
+
+  async showAnnotation(conf: IAnnotationConfig, theme: IAnnotationTheme) {
+    const targetEl = this.domElPicker?.elFromPath(conf.id);
+    this.annotationLCM!.show();
+    await this.annotationLCM!.addOrReplaceAnnotation(
+      targetEl as HTMLElement,
+      conf,
+      theme,
+      true
     );
   }
 
@@ -966,9 +991,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
+      // TODO handle pin mode and annotation selection
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
-        this.setState({ elSelRequestedBy: ElSelReqType.NA });
+        this.setState({ elSelRequestedBy: ElSelReqType.NA, selectedAnnotationId: '' });
       } else {
         this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
@@ -1024,7 +1050,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
         el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
-        console.log('inited');
       }
 
       if (!this.annotationLCM) {
