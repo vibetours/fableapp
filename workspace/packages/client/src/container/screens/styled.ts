@@ -101,6 +101,12 @@ export const MultiScreenChooserLineItem = styled(Link)`
     text-decoration: none;
   }
 
+  &.no-hovr:hover {
+    box-shadow: none;
+    cursor: default;
+    text-decoration: none;
+  }
+
   .ent {
     display: flex;
     align-items: center;

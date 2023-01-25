@@ -1,32 +1,40 @@
-import React from "react";
-import { connect } from "react-redux";
-import Modal from "antd/lib/modal";
-import { getAllScreens } from "../../action/creator";
-import { P_RespScreen } from "../../entity-processor";
-import { TState } from "../../reducer";
-import SidePanel from "../../component/side-panel";
-import Header from "../../component/header";
-import * as Tags from "./styled";
-import * as GTags from "../../common-styled";
-import linkOpenIcon from "../../assets/link.svg";
-import { withRouter, WithRouterProps } from "../../router-hoc";
-import tourIcon from "../../assets/tours-icon-dark.svg";
-import plusOutlined from "../../assets/plus-outlined.svg";
+import React from 'react';
+import { connect } from 'react-redux';
+import Modal from 'antd/lib/modal';
+import Dropdown from 'antd/lib/dropdown';
+import { DownOutlined } from '@ant-design/icons';
+import Button from 'antd/lib/button';
+import { getDisplayableTime } from '@fable/common/dist/utils';
+import { getAllScreens, getAllTours } from '../../action/creator';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
+import SidePanel from '../../component/side-panel';
+import Header from '../../component/header';
+import * as Tags from './styled';
+import * as GTags from '../../common-styled';
+import linkOpenIcon from '../../assets/link.svg';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import tourIcon from '../../assets/tours-icon-dark.svg';
+import plusOutlined from '../../assets/plus-outlined.svg';
 
 interface IDispatchProps {
   getAllScreens: () => void;
+  getAllTours: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllScreens: () => dispatch(getAllScreens()),
+  getAllTours: () => dispatch(getAllTours())
 });
 
 interface IAppStateProps {
   screens: P_RespScreen[];
+  tours: P_RespTour[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   screens: state.default.screens,
+  tours: state.default.tours,
 });
 
 interface IOwnProps {}
@@ -50,10 +58,12 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     this.props.getAllScreens();
+    this.props.getAllTours();
   }
 
   render() {
     const hasScreen = this.props.screens.length > 0;
+    const hm: Record<string, 1> = {};
     return (
       <GTags.RowCon className="screen-con">
         <GTags.SidePanelCon>
@@ -63,7 +73,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.HeaderCon>
             <Header rBtnTxt="Record a screen" />
           </GTags.HeaderCon>
-          <GTags.BodyCon className={hasScreen ? "" : "centered"}>
+          <GTags.BodyCon className={hasScreen ? '' : 'centered'}>
             {hasScreen ? (
               <>
                 <Tags.TxtCon>
@@ -78,16 +88,16 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                   {this.props.screens.map((screen, i) => (
                     <Tags.CardCon
                       key={screen.rid}
-                      className={screen.related.length > 0 ? "multi" : ""}
+                      className={screen.related.length > 0 ? 'multi' : ''}
                       onClick={((idx) => () => {
                         if (screen.related.length) {
                           this.setState({ showGroupedScreenFor: idx });
                         }
                       })(i)}
-                      to={screen.related.length > 0 ? "" : `/screen/${screen.rid}`}
+                      to={screen.related.length > 0 ? '' : `/screen/${screen.rid}`}
                     >
                       <Tags.CardImg src={screen.thumbnailUri.href} />
-                      <Tags.CardFlexColCon style={{ marginTop: "0.35rem" }}>
+                      <Tags.CardFlexColCon style={{ marginTop: '0.35rem' }}>
                         <Tags.CardFlexRowCon>
                           {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
                           <GTags.Txt className="title oneline" title={screen.displayName}>
@@ -100,7 +110,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                             {screen.urlStructured.hostname}
                           </GTags.Txt>
                         </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon style={{ justifyContent: "space-between" }}>
+                        <Tags.CardFlexRowCon style={{ justifyContent: 'space-between' }}>
                           <GTags.Txt>Edited {screen.displayableUpdatedAt}</GTags.Txt>
                           <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
                         </Tags.CardFlexRowCon>
@@ -124,14 +134,17 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                   footer={null}
                   width="50%"
                 >
-                  {this.state.showGroupedScreenFor > -1 &&
-                    this.props.screens[this.state.showGroupedScreenFor].related.length && (
-                      <div style={{ display: "flex", flexDirection: "column" }}>
+                  {this.state.showGroupedScreenFor > -1
+                    && this.props.screens[this.state.showGroupedScreenFor].related.length && (
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {[
                           this.props.screens[this.state.showGroupedScreenFor],
                           ...this.props.screens[this.state.showGroupedScreenFor].related,
-                        ].map((s) =>
-                          s.tour ? (
+                        ].map((s) => {
+                          if (s.tour) {
+                            hm[s.tour.rid] = 1;
+                          }
+                          return (s.tour ? (
                             <Tags.MultiScreenChooserLineItem key={s.rid} to={`/tour/${s.tour.rid}/${s.rid}`}>
                               <div>Edit the screen used in</div>
                               <div className="ent mark-tour">
@@ -140,33 +153,66 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                                   alt=""
                                   height={16}
                                   width={16}
-                                  style={{ margin: "0 0.15rem 0 0.5rem" }}
+                                  style={{ margin: '0 0.15rem 0 0.5rem' }}
                                 />
                                 {s.tour.displayName}
                               </div>
                               <div>tour</div>
-                              <div style={{ marginLeft: "1rem", opacity: 0.55, fontSize: "0.9rem" }}>
-                                Edited {s.displayableUpdatedAt}
+                              <div style={{ marginLeft: '0.5rem', opacity: 0.55, fontSize: '0.9rem' }}>
+                                that was edited {getDisplayableTime(new Date(s.tour.updatedAt))}
                               </div>
                             </Tags.MultiScreenChooserLineItem>
                           ) : (
-                            <Tags.MultiScreenChooserLineItem key={s.rid} to={`/screen/${s.rid}`}>
-                              <div>Edit screen by </div>
-                              <div className="ent mark-new">
-                                <img
-                                  src={plusOutlined}
-                                  alt=""
-                                  height={12}
-                                  width={12}
-                                  style={{ margin: "0 0.35rem 0 0.5rem" }}
-                                />
-                                creating a new tour
-                              </div>
-                            </Tags.MultiScreenChooserLineItem>
-                          )
-                        )}
+                            <div key={`${s.rid}`}>
+                              {this.props.tours.length && (
+                                <Tags.MultiScreenChooserLineItem className="no-hovr" to="">
+                                  <div style={{ marginRight: '.75rem' }}><em>or</em> add this screen to an</div>
+                                  <Dropdown
+                                    trigger={['click']}
+                                    menu={{
+                                      items: this.props.tours.filter(t => !(t.rid in hm)).map(t => ({
+                                        key: t.rid,
+                                        label: (
+                                          <div>
+                                            <GTags.Txt
+                                              className="title2"
+                                              style={{ fontSize: '0.9rem' }}
+                                            >{t.displayName}
+                                            </GTags.Txt>
+                                            <GTags.Txt className="subsubhead">
+                                              Last updated {t.displayableUpdatedAt}
+                                            </GTags.Txt>
+                                          </div>
+                                        )
+                                      }
+                                      ))
+                                    }}
+                                  >
+                                    <Button>
+                                      existing tour
+                                      <DownOutlined />
+                                    </Button>
+                                  </Dropdown>
+                                </Tags.MultiScreenChooserLineItem>
+                              )}
+                              <Tags.MultiScreenChooserLineItem to={`/screen/${s.rid}`}>
+                                <div><em>or</em> edit screen by </div>
+                                <div className="ent mark-new">
+                                  <img
+                                    src={plusOutlined}
+                                    alt=""
+                                    height={12}
+                                    width={12}
+                                    style={{ margin: '0 0.35rem 0 0.5rem' }}
+                                  />
+                                  creating a new tour
+                                </div>
+                              </Tags.MultiScreenChooserLineItem>
+                            </div>
+                          ));
+                        })}
                       </div>
-                    )}
+                  )}
                 </Modal>
               </>
             ) : (

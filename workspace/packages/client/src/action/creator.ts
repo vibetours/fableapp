@@ -13,7 +13,14 @@ import {
   RespTour,
 } from '@fable/common/dist/api-contract';
 import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
-import { EditFile, IAnnotationConfig, IAnnotationTheme, ScreenData, TourData, TourDataWoScheme, TourScreenEntity } from '@fable/common/dist/types';
+import {
+  EditFile,
+  IAnnotationConfig,
+  IAnnotationTheme,
+  ScreenData,
+  TourData,
+  TourDataWoScheme
+} from '@fable/common/dist/types';
 import {
   convertEditsToLineItems,
   createEmptyTour,
