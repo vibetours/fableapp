@@ -4,7 +4,9 @@
     "es6": true,
     "jest": true
   },
-  "extends": ["airbnb"],
+  "extends": [
+    "airbnb"
+  ],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly",
@@ -21,13 +23,20 @@
   },
   "overrides": [
     {
-      "files": [",*.ts", "*.tsx"],
+      "files": [
+        "*.ts",
+        "*.tsx"
+      ],
       "rules": {
         "no-undef": "off"
       }
     }
   ],
-  "plugins": ["react", "@typescript-eslint", "jest"],
+  "plugins": [
+    "react",
+    "@typescript-eslint",
+    "jest"
+  ],
   "rules": {
     "import/no-extraneous-dependencies": "off",
     "import/prefer-default-export": "off",
@@ -35,7 +44,14 @@
     "max-classes-per-file": "off",
     "import/no-unresolved": "off",
     "import/extensions": "off",
-    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [
+          ".tsx"
+        ]
+      }
+    ],
     "react/jsx-wrap-multilines": "off",
     "prefer-destructuring": "off",
     "react/destructuring-assignment": "off",
@@ -61,7 +77,12 @@
     "no-cond-assign": "off",
     "no-plusplus": "off",
     "no-return-assign": "off",
-    "max-len": ["error", { "code": 120 }],
+    "max-len": [
+      "error",
+      {
+        "code": 120
+      }
+    ],
     "no-restricted-syntax": 0,
     "func-names": 0,
     "no-continue": 0,
@@ -70,7 +91,13 @@
     "no-bitwise": 0,
     "no-constant-condition": 0,
     "react/jsx-one-expression-per-line": "off",
-    "quotes": [2, "double", { "avoidEscape": true }],
+    "quotes": [
+      2,
+      "double",
+      {
+        "avoidEscape": true
+      }
+    ],
     "jest/valid-expect": [
       "error",
       {
@@ -81,7 +108,11 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [".js", ".ts", ".tsx"]
+        "extensions": [
+          ".js",
+          ".ts",
+          ".tsx"
+        ]
       }
     }
   }

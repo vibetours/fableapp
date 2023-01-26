@@ -221,9 +221,28 @@ export function getSearializedDom(
     return { serNode: sNode };
   }
 
+  function getViewport(): [w: number, h: number] {
+    let viewPortWidth;
+    let viewPortHeight;
+
+    if (typeof window.innerWidth !== "undefined") {
+      viewPortWidth = window.innerWidth,
+      viewPortHeight = window.innerHeight;
+    } else if (typeof document.documentElement !== "undefined"
+      && typeof document.documentElement.clientWidth
+      !== "undefined" && document.documentElement.clientWidth !== 0) {
+      viewPortWidth = document.documentElement.clientWidth,
+      viewPortHeight = document.documentElement.clientHeight;
+    } else {
+      viewPortWidth = document.getElementsByTagName("body")[0].clientWidth,
+      viewPortHeight = document.getElementsByTagName("body")[0].clientHeight;
+    }
+    return [viewPortWidth, viewPortHeight];
+  }
+
   const frameUrl = isTest ? "test://case" : document.URL;
   const rep = getRep(doc.documentElement, frameUrl, []);
-  const rect = doc.documentElement.getBoundingClientRect();
+  const [w, h] = getViewport();
 
   let candidateIcon: SerNodeWithPath | null = null;
   for (const icon of icons) {
@@ -248,8 +267,8 @@ export function getSearializedDom(
     // nested objects in JSON data for some reason.
     docTreeStr: JSON.stringify(rep.serNode),
     rect: {
-      height: rect.height,
-      width: rect.width,
+      width: w,
+      height: h,
     },
     icon: candidateIcon,
     baseURI: doc.body.baseURI,
