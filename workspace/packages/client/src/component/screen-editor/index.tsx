@@ -989,6 +989,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
         this.showAnnotation(an, this.props.globalAnnotationTheme);
+        this.setState({ selectedAnnotationId: an.id });
       } else {
         // throw new Error(`Annotation with id ${id} requested but not found`);
       }
