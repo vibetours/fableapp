@@ -220,7 +220,7 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
         description,
       },
     });
-    await sleep(3000);
+    // await sleep(3000);
     const tour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,
@@ -302,7 +302,7 @@ export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) 
         description: tour.description,
       },
     });
-    await sleep(3000);
+    // await sleep(3000);
     const pTour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,

@@ -321,7 +321,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             />
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-              <Canvas cellWidth={20} screens={this.props.screens} />
+              <Canvas cellWidth={20} screens={this.props.screens} allAnnotationsForTour={this.props.allAnnotationsForTour} />
             </div>
           )}
         </GTags.BodyCon>

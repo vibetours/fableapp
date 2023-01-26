@@ -4,6 +4,7 @@ export enum Mode {
   ConnectMode,
   EmptyMode,
   SelectScreenMode,
+  CanvasMode,
 }
 
 export type CanvasData = {
@@ -60,3 +61,21 @@ export type Line = {
   x2: number;
   y2: number;
 };
+
+export type Screen = {
+  id: string;
+  screenId: number;
+  screenHref: string;
+  annotationText: string;
+  annotationId: string;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+}
+
+export type Connector = {
+  from: string;
+  to: string;
+  points: Point[];
+}

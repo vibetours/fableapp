@@ -1,14 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  AnnotationPerScreen,
+} from '@fable/common/dist/types';
 import * as Tags from './styled';
-import { CanvasData } from './types';
+import { CanvasData, Connector, Screen } from './types';
 import CanvasDottedBg from './canvas-dotted-bg';
 import { P_RespScreen } from '../../entity-processor';
 import EmptyCanvas from './empty-canvas';
 import AddScreen from './add-screen';
+import { formPathUsingPoints } from './utils';
+import { formConnectors, formScreens } from './utils/arrangeEls';
 
 type CanvasProps = {
   cellWidth: number;
   screens: P_RespScreen[];
+  allAnnotationsForTour: AnnotationPerScreen[];
 };
 
 enum Mode {
@@ -17,6 +23,7 @@ enum Mode {
   ConnectMode,
   EmptyMode,
   SelectScreenMode,
+  CanvasMode,
 }
 
 const initialData: CanvasData = {
@@ -29,7 +36,7 @@ const initialData: CanvasData = {
   panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
 };
 
-function Canvas({ cellWidth, screens }: CanvasProps) {
+function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
   const canvasData = useRef({
     ...initialData,
   });
@@ -38,6 +45,8 @@ function Canvas({ cellWidth, screens }: CanvasProps) {
     `0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`
   );
   const [mode, setMode] = useState(Mode.EmptyMode);
+  const [screenElements, setScreenElements] = useState<Screen[]>();
+  const [connectors, setConnectors] = useState<Connector[]>();
   const svgRef = useRef(null);
 
   useEffect(() => {
@@ -67,10 +76,71 @@ function Canvas({ cellWidth, screens }: CanvasProps) {
     }
   }, [cellWidth]);
 
+  useEffect(() => {
+    const screenEls = formScreens(allAnnotationsForTour);
+    if (screenEls.length > 0) {
+      setScreenElements(screenEls);
+      setMode(Mode.CanvasMode);
+    } else {
+      setMode(Mode.EmptyMode);
+    }
+
+    const conns = formConnectors(allAnnotationsForTour, screenEls);
+    if (conns) {
+      setConnectors(conns);
+    }
+  }, [allAnnotationsForTour]);
+
   return (
     <>
       <Tags.SVGCanvas viewBox={viewBoxStr} ref={svgRef} mode={mode}>
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
+        {
+          mode === Mode.CanvasMode && <>
+            {
+              screenElements?.map(screenEl => <g key={screenEl.id}>
+                <image
+                  href={screenEl.screenHref}
+                  x={screenEl.x}
+                  y={screenEl.y}
+                  width={screenEl.width}
+                  height={screenEl.height}
+                />
+                <text x={screenEl.x} y={screenEl.y + screenEl.height}>{screenEl.annotationText}</text>
+                                              </g>)
+            }
+            {
+              connectors?.map(connector => {
+                const d = formPathUsingPoints(connector.points);
+
+                return (
+                  <path
+                    key={Math.random()}
+                    fill="none"
+                    strokeWidth="2px"
+                    stroke="black"
+                    markerEnd="url(#arrow)"
+                    style={{ cursor: 'pointer' }}
+                    d={d}
+                  />
+                );
+              })
+            }
+                                      </>
+        }
+        <defs>
+          <marker
+            id="arrow"
+            markerWidth="10"
+            markerHeight="10"
+            refX="8"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+          </marker>
+        </defs>
       </Tags.SVGCanvas>
       {mode === Mode.EmptyMode && <EmptyCanvas setMode={setMode} />}
       {mode === Mode.SelectScreenMode && <AddScreen screens={screens} />}
