@@ -1,3 +1,6 @@
+import { IAnnotationConfig } from '@fable/common/dist/types';
+import { P_RespScreen } from './entity-processor';
+
 export const enum ElEditType {
   Text = 1,
   Image,
@@ -77,3 +80,4 @@ export const enum IdxEditItem {
 }
 
 export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;
+export type AnnotationPerScreen = {screen: P_RespScreen, annotations: IAnnotationConfig[]};

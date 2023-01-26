@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  AnnotationPerScreen, ITourEntityHotspot,
-} from '@fable/common/dist/types';
+import { ITourEntityHotspot } from '@fable/common/dist/types';
 import { ArrowsAltOutlined, DragOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
-import { CanvasData, CanvasMode, Conn, Connector, ConnectorData, ElementCoords, Mode, Screen } from './types';
+import { CanvasData, CanvasMode, Conn, ConnectorData, ElementCoords, Mode, Screen } from './types';
 import CanvasDottedBg from './canvas-dotted-bg';
 import { P_RespScreen } from '../../entity-processor';
 import EmptyCanvas from './empty-canvas';
@@ -16,6 +14,7 @@ import { zoom } from './utils/zoom';
 import { initialConnectorData, initialLine } from './init-data';
 import { startConnecting, stopConnecting, updateConnecting } from './utils/connector';
 import { updateButtonProp } from '../annotation/annotation-config-utils';
+import { AnnotationPerScreen } from '../../types';
 
 type CanvasProps = {
   cellWidth: number;
@@ -83,14 +82,14 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDat
           const el = screenElements[+node.dataset.index];
 
           connectorData.current = startConnecting(
-          connectorData.current as ConnectorData,
-          {
-            x: el.x,
-            y: el.y,
-            width: el.width,
-          } as ElementCoords,
-          event,
-          svgRef.current
+            connectorData.current as ConnectorData,
+            {
+              x: el.x,
+              y: el.y,
+              width: el.width,
+            } as ElementCoords,
+            event,
+            svgRef.current
           );
           connectorData.current.isDrawing = true;
         }
@@ -137,9 +136,9 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDat
 
       connectorData.current = stopConnecting(
         connectorData.current as ConnectorData,
-          { x: el.x, y: el.y } as ElementCoords,
-          event,
-          svgRef.current
+        { x: el.x, y: el.y } as ElementCoords,
+        event,
+        svgRef.current
       );
       setTemporaryConnector((prev) => ({
         ...prev,
@@ -349,71 +348,71 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDat
       >
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
         {
-        mode === Mode.CanvasMode && <>
-          {
-            screenElements?.map((screenEl, idx) => <g key={screenEl.id}>
-              <rect
-                className="canvasElArea"
-                data-type="canvasElementArea"
-                data-index={idx}
-                x={screenEl.x - 30}
-                y={screenEl.y - 30}
-                width={screenEl.width + 60}
-                height={screenEl.height + 60}
-              />
-              <image
-                data-id={screenEl.screenId}
-                href={screenEl.screenHref}
-                data-type="canvasElement"
-                data-index={idx}
-                x={screenEl.x}
-                y={screenEl.y}
-                width={screenEl.width}
-                height={screenEl.height}
-                preserveAspectRatio="none"
-                onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
-              />
-              <text
-                x={screenEl.x}
-                y={screenEl.y + screenEl.height}
-              >
-                {screenEl.annotationText.substring(0, 45)} ...
-              </text>
-            </g>)
-          }
-          {temporaryConnector.show && (
-          <line
-            markerEnd="url(#arrow)"
-            key={Math.random()}
-            x1={temporaryConnector.coords.x1}
-            y1={temporaryConnector.coords.y1}
-            x2={temporaryConnector.coords.x2}
-            y2={temporaryConnector.coords.y2}
-            data-idx="normal"
-            data-hello="hello"
-            stroke="black"
-            strokeWidth="2px"
-          />
-          )}
-          {
-            connectors?.map(connector => {
-              const d = formPathUsingPoints(connector.points);
-
-              return (
-                <path
-                  key={Math.random()}
-                  fill="none"
-                  strokeWidth="2px"
-                  stroke="black"
-                  markerEnd="url(#arrow)"
-                  style={{ cursor: 'pointer' }}
-                  d={d}
+          mode === Mode.CanvasMode && <>
+            {
+              screenElements?.map((screenEl, idx) => <g key={screenEl.id}>
+                <rect
+                  className="canvasElArea"
+                  data-type="canvasElementArea"
+                  data-index={idx}
+                  x={screenEl.x - 30}
+                  y={screenEl.y - 30}
+                  width={screenEl.width + 60}
+                  height={screenEl.height + 60}
                 />
-              );
-            })
-          }
-        </>
-      }
+                <image
+                  data-id={screenEl.screenId}
+                  href={screenEl.screenHref}
+                  data-type="canvasElement"
+                  data-index={idx}
+                  x={screenEl.x}
+                  y={screenEl.y}
+                  width={screenEl.width}
+                  height={screenEl.height}
+                  preserveAspectRatio="none"
+                  onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
+                />
+                <text
+                  x={screenEl.x}
+                  y={screenEl.y + screenEl.height}
+                >
+                  {screenEl.annotationText.substring(0, 45)} ...
+                </text>
+              </g>)
+            }
+            {temporaryConnector.show && (
+              <line
+                markerEnd="url(#arrow)"
+                key={Math.random()}
+                x1={temporaryConnector.coords.x1}
+                y1={temporaryConnector.coords.y1}
+                x2={temporaryConnector.coords.x2}
+                y2={temporaryConnector.coords.y2}
+                data-idx="normal"
+                data-hello="hello"
+                stroke="black"
+                strokeWidth="2px"
+              />
+            )}
+            {
+              connectors?.map(connector => {
+                const d = formPathUsingPoints(connector.points);
+
+                return (
+                  <path
+                    key={Math.random()}
+                    fill="none"
+                    strokeWidth="2px"
+                    stroke="black"
+                    markerEnd="url(#arrow)"
+                    style={{ cursor: 'pointer' }}
+                    d={d}
+                  />
+                );
+              })
+            }
+          </>
+        }
         <defs>
           <marker
             id="arrow"
@@ -442,12 +441,12 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDat
           type="button"
           onClick={() => setCanvasMode(CanvasMode.ConnectMode)}
           className={
-                    canvasMode === CanvasMode.ConnectMode ? 'active' : ''
-                  }
+            canvasMode === CanvasMode.ConnectMode ? 'active' : ''
+          }
         >
           <ArrowsAltOutlined />
         </button>
-                                   </Tags.ModeOptions>}
+      </Tags.ModeOptions>}
     </>
   );
 }

@@ -1,5 +1,5 @@
-import { AnnotationPerScreen } from '@fable/common/dist/types';
 import { Conn, Screen } from '../types';
+import { AnnotationPerScreen } from '../../../types';
 
 export function formScreens(data: AnnotationPerScreen[]) {
   const arr = [];
@@ -10,7 +10,7 @@ export function formScreens(data: AnnotationPerScreen[]) {
         id: `${el.screen.id}/${annotation.refId}`,
         screenId: el.screen.id,
         screenRid: el.screen.rid,
-        screenHref: `https://fable-tour-app-gamma.s3.ap-south-1.amazonaws.com/root/cmn/${el.screen.thumbnail}`,
+        screenHref: el.screen.thumbnailUri.href,
         annotationText: annotation.bodyContent,
         annotationId: annotation.refId,
         width: 300,

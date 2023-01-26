@@ -157,5 +157,3 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
 export interface IAnnotationConfig extends IAnnotationOriginConfig {
   syncPending?: boolean;
 }
-
-export type AnnotationPerScreen = {screen: RespScreen, annotations: IAnnotationConfig[]};

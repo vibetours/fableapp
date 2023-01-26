@@ -1,6 +1,9 @@
 import {
-  AnnotationPerScreen,
-  IAnnotationConfig, ScreenData, ITourDataOpts, TourDataWoScheme, TourScreenEntity
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData,
+  TourDataWoScheme,
+  TourScreenEntity
 } from '@fable/common/dist/types';
 import React from 'react';
 import { connect } from 'react-redux';
@@ -24,7 +27,7 @@ import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AllEdits, EditItem, ElEditType, IdxEditItem } from '../../types';
+import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 
 interface IDispatchProps {
@@ -72,7 +75,6 @@ interface IAppStateProps {
   screens: P_RespScreen[];
   flattenedScreens: P_RespScreen[];
   allEdits: EditItem[];
-  isScreenInPreviewMode: boolean;
   allAnnotationsForScreen: IAnnotationConfig[];
   tourOpts: ITourDataOpts;
   allAnnotationsForTour: AnnotationPerScreen[];
@@ -129,7 +131,6 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     screenData: state.default.screenData,
     isScreenLoaded: state.default.screenLoaded,
     screens: state.default.screens,
-    isScreenInPreviewMode: state.default.isScreenInPreviewMode,
     allEdits,
     allAnnotationsForScreen,
     allAnnotationsForTour: anPerScreen,

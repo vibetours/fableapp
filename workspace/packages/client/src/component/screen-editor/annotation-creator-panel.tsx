@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  IAnnotationConfig,
-  AnnotationPositions,
-  AnnotationButtonStyle,
   AnnotationButtonSize,
-  IAnnotationButton,
-  AnnotationPerScreen,
-  ITourEntityHotspot,
-  ITourDataOpts
+  AnnotationButtonStyle,
+  AnnotationPositions,
+  IAnnotationConfig,
+  ITourDataOpts,
+  ITourEntityHotspot
 } from '@fable/common/dist/types';
 import TextArea from 'antd/lib/input/TextArea';
 import Select from 'antd/lib/select';
@@ -39,7 +37,8 @@ import {
   updateButtonProp,
   updateTourDataOpts
 } from '../annotation/annotation-config-utils';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { P_RespScreen } from '../../entity-processor';
+import { AnnotationPerScreen } from '../../types';
 
 interface IProps {
   screen: P_RespScreen,
@@ -66,7 +65,7 @@ const commonInputStyles: React.CSSProperties = {
   padding: '0.4rem 0.6rem'
 };
 
-const commonIconStyle : React.CSSProperties = {
+const commonIconStyle: React.CSSProperties = {
   fontSize: '0.8rem',
   color: '#16023E',
 };
@@ -109,15 +108,6 @@ export default function AnnotationCreatorPanel(props: IProps) {
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
-        {/*
-        <Tags.AnotCrtPanelSecLabel>
-          <div>
-            <span style={{ width: '1rem' }} />
-            <GTags.Txt className="title2" style={{ marginBottom: '0.25rem' }}>Body text</GTags.Txt>
-          </div>
-          <div />
-        </Tags.AnotCrtPanelSecLabel>
-        */}
         <TextArea
           style={{ ...commonInputStyles, width: '100%', backgroundColor: '#FFF' }}
           rows={3}
@@ -125,6 +115,33 @@ export default function AnnotationCreatorPanel(props: IProps) {
           bordered={false}
           onBlur={e => {
             setConfig(c => updateAnnotationText(c, e.target.value));
+          }}
+        />
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec row>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Entry point</GTags.Txt>
+        <Tooltip
+          placement="right"
+          title={
+            <GTags.Txt className="subsubhead">
+              Is this the annotaiton user would see when they load first. Ideally for this annotation, there won't be
+              any Back button visible.
+            </GTags.Txt>
+          }
+        >
+          <QuestionCircleOutlined />
+        </Tooltip>
+        <Checkbox
+          style={{ marginLeft: '0.75rem' }}
+          checked={opts.main === qualifiedAnnotationId}
+          onChange={e => {
+            let newOpts;
+            if (e.target.checked) {
+              newOpts = updateTourDataOpts(opts, 'main', qualifiedAnnotationId);
+            } else {
+              newOpts = updateTourDataOpts(opts, 'main', '');
+            }
+            setTourDataOpts(newOpts);
           }}
         />
       </Tags.AnotCrtPanelSec>
@@ -430,9 +447,9 @@ export default function AnnotationCreatorPanel(props: IProps) {
                       ) : (
                         <Button
                           icon={
-                              btnConf.exclude
-                                ? <EyeInvisibleOutlined style={{ ...commonIconStyle }} />
-                                : <EyeOutlined style={{ ...commonIconStyle }} />
+                            btnConf.exclude
+                              ? <EyeInvisibleOutlined style={{ ...commonIconStyle }} />
+                              : <EyeOutlined style={{ ...commonIconStyle }} />
                           }
                           type="text"
                           size="small"

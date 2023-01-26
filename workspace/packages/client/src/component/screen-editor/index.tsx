@@ -1,24 +1,18 @@
-import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import {
-  AnnotationPerScreen,
-  IAnnotationConfig,
-  ITourDataOpts,
-  ScreenData,
-  SerNode
-} from '@fable/common/dist/types';
+import { ApiResp, ResponseStatus, RespUploadUrl } from '@fable/common/dist/api-contract';
+import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
 import Switch from 'antd/lib/switch';
 import {
+  DownOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
-  FontSizeOutlined,
-  PictureOutlined,
-  LoadingOutlined,
   FilterOutlined,
-  DownOutlined,
+  FontSizeOutlined,
+  LoadingOutlined,
+  PictureOutlined,
   RightOutlined
 } from '@ant-design/icons';
 import AnnotationCreatorPanel from './annotation-creator-panel';
@@ -28,6 +22,7 @@ import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
 import {
   AllEdits,
+  AnnotationPerScreen,
   EditItem,
   EditValueEncoding,
   ElEditType,
@@ -44,8 +39,8 @@ import {
   NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import { getSampleConfig, getDefaultTourOpts } from '../annotation/annotation-config-utils';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { getDefaultTourOpts, getSampleConfig } from '../annotation/annotation-config-utils';
+import { P_RespScreen } from '../../entity-processor';
 
 const browser = detect();
 
@@ -208,30 +203,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return '';
   };
 
-  handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
-    const originalImgSrc = ScreenEditor.getOriginalImgSrc(imgEl);
-    const selectedImage = e.target.files[0];
-    if (!selectedImage) {
-      return;
-    }
-    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
-    if (!awsSignedUrl) {
-      //  TODO[error-handling] show error to user that something has gone wrong, try again later
-      return;
-    }
-    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
-    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
-
-    const path = this.domElPicker!.elPath(imgEl);
-    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
-    let origVal = imgEl.getAttribute(attrName);
-    if (origVal === null) {
-      origVal = originalImgSrc || '';
-      imgEl.setAttribute(attrName, origVal);
-    }
-    this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
-  };
-
   static getBlurValueFromFilter(filterStr: string): number {
     const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
     if (!match) {
@@ -368,53 +339,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
-  private applyEdits(allEdits: EditItem[]) {
-    const mem: Record<string, Node> = {};
-    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
-    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
-    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
-    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
-    for (const edit of allEdits) {
-      const path = edit[IdxEditItem.PATH];
-      let el: Node;
-      if (path in mem) el = mem[path];
-      else {
-        el = this.annotationLCM!.elFromPath(path);
-        mem[path] = el;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
-        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
-        const tEl = el as HTMLElement;
-        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
-        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
-        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
-        const tEl = el as HTMLImageElement;
-        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
-        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
-        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
-        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
-        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
-        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
-        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
-      }
+  handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
+    const originalImgSrc = ScreenEditor.getOriginalImgSrc(imgEl);
+    const selectedImage = e.target.files[0];
+    if (!selectedImage) {
+      return;
     }
-  }
+    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
+    if (!awsSignedUrl) {
+      //  TODO[error-handling] show error to user that something has gone wrong, try again later
+      return;
+    }
+    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
+    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
+
+    const path = this.domElPicker!.elPath(imgEl);
+    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+    let origVal = imgEl.getAttribute(attrName);
+    if (origVal === null) {
+      origVal = originalImgSrc || '';
+      imgEl.setAttribute(attrName, origVal);
+    }
+    this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+  };
 
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
@@ -1067,6 +1014,54 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     setTimeout(() => {
       this.domElPicker?.selectElement(el, HighlightMode.Pinned);
     }, 3 * 16);
+  }
+
+  private applyEdits(allEdits: EditItem[]) {
+    const mem: Record<string, Node> = {};
+    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
+    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
+    for (const edit of allEdits) {
+      const path = edit[IdxEditItem.PATH];
+      let el: Node;
+      if (path in mem) el = mem[path];
+      else {
+        el = this.annotationLCM!.elFromPath(path);
+        mem[path] = el;
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+        const tEl = el as HTMLElement;
+        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
+        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
+        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
+        const tEl = el as HTMLImageElement;
+        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
+        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
+        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
+        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
+        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
+        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
+        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
+      }
+    }
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
