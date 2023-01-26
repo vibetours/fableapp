@@ -1,4 +1,4 @@
-import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   IAnnotationConfig,
@@ -88,10 +88,20 @@ export interface P_RespTour extends RespTour {
   dataFileUri: URL;
   displayableUpdatedAt: string;
   isPlaceholder: boolean;
+  screens?: P_RespScreen[];
 }
 
-export function processRawTourData(tour: RespTour, state: TState, isPlaceholder = false): P_RespTour {
+export function processRawTourData(
+  tour: RespTour | RespTourWithScreens,
+  state: TState,
+  isPlaceholder = false
+): P_RespTour {
   const d = new Date(tour.updatedAt);
+
+  let tTour;
+  if ((tTour = (tour as RespTourWithScreens)).screens) {
+    tTour.screens = tTour.screens.map(s => processRawScreenData(s, state));
+  }
   return {
     ...tour,
     createdAt: new Date(tour.createdAt),
@@ -99,7 +109,7 @@ export function processRawTourData(tour: RespTour, state: TState, isPlaceholder 
     displayableUpdatedAt: getDisplayableTime(d),
     dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.dataFileName}?ts=${+new Date()}`),
     isPlaceholder,
-  };
+  } as P_RespTour;
 }
 
 export function createEmptyTour(): RespTour {

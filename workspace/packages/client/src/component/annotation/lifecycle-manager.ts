@@ -33,8 +33,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private nav: NavFn;
 
+  private isPlayMode: boolean;
+
   // Take the initial annotation config from here
-  constructor(doc: Document, opts: {scaleFactor: number, navigate: NavFn}) {
+  constructor(doc: Document, opts: {scaleFactor: number, navigate: NavFn, isPlayMode: boolean}) {
     super(doc);
     this.scaleFactor = opts.scaleFactor;
     this.nav = opts.navigate;
@@ -47,6 +49,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.con = con;
     this.rRoot = root;
     this.mode = AnnotationViewMode.Hide;
+    this.isPlayMode = opts.isPlayMode;
   }
 
   private hideAllAnnotations() {
@@ -116,7 +119,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (elPath === path) annotationDisplayConfig.isMaximized = true;
       else annotationDisplayConfig.isMaximized = false;
     }
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    el.scrollIntoView({
+      behavior: 'smooth',
+      block: this.isPlayMode ? 'center' : 'nearest',
+      inline: this.isPlayMode ? 'center' : 'nearest'
+    });
     this.render();
   }
 

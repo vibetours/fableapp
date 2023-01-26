@@ -238,9 +238,10 @@ export interface TTourWithData {
   tourData: TourData;
   annotations: Record<string, IAnnotationConfig[]>;
   opts: ITourDataOpts;
+  allCorrespondingScreens: boolean,
 }
 
-export function loadTourAndData(tourRid: string) {
+export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const state = getState();
     let tour: P_RespTour | null = null;
@@ -254,7 +255,7 @@ export function loadTourAndData(tourRid: string) {
     }
     if (!isTourFound) {
       try {
-        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}`);
+        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
         tour = processRawTourData(data.data, state);
       } catch (e) {
         console.error(e);
@@ -270,6 +271,7 @@ export function loadTourAndData(tourRid: string) {
         tour: processRawTourData(tour, getState()),
         annotations: annotationAndOpts.annotations,
         opts: annotationAndOpts.opts,
+        allCorrespondingScreens: shouldGetScreens,
       });
     } else {
       // TODO error
@@ -288,7 +290,8 @@ export function createPlaceholderTour() {
       tourData: data,
       tour: processRawTourData(tour, getState(), true),
       annotations: annotationAndOpts.annotations,
-      opts: annotationAndOpts.opts
+      opts: annotationAndOpts.opts,
+      allCorrespondingScreens: false,
     });
   };
 }

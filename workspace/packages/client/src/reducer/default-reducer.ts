@@ -117,6 +117,9 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.remoteAnnotations = tAction.annotations;
       newState.remoteTourOpts = tAction.opts;
       newState.tourLoaded = true;
+      if (tAction.allCorrespondingScreens && tAction.tour.screens) {
+        newState.flattenedScreens = tAction.tour.screens;
+      }
       return newState;
     }
 

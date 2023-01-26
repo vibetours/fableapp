@@ -91,7 +91,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
     }
   }, [config, opts]);
 
-  const qualifiedAnnotationId = `${props.screen.id}/${props.config.id}`;
+  const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>

@@ -38,6 +38,7 @@ interface IDispatchProps {
   saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => void;
   flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => void;
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
+  loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -45,6 +46,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   getAllScreens: () => dispatch(getAllScreens()),
   createPlaceholderTour: () => dispatch(createPlaceholderTour()),
   loadScreenAndData: (rid: string, isPreviewMode: boolean) => dispatch(loadScreenAndData(rid, isPreviewMode)),
+  loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
   copyScreenForCurrentTour:
     (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
@@ -135,7 +137,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   };
 };
 
-interface IOwnProps {}
+interface IOwnProps {
+  playMode?: boolean;
+}
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -157,34 +161,59 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private chunkSyncManager: ChunkSyncManager | null = null;
 
   componentDidMount(): void {
-    const isPreviewMode = !this.props.match.params.tourId;
-    if (isPreviewMode) {
-      this.props.createPlaceholderTour();
+    if (this.props.playMode) {
+      this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     } else {
-      this.props.loadTourAndData(this.props.match.params.tourId);
-    }
-    if (this.props.match.params.screenId) {
-      this.props.loadScreenAndData(this.props.match.params.screenId, isPreviewMode);
-    }
+      const isPreviewMode = !this.props.match.params.tourId;
 
-    // TODO do this only when add screen to tour button is clicked from
-    this.props.getAllScreens();
-    this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
-      onSyncNeeded: this.flushEdits,
-    });
+      if (isPreviewMode) {
+        this.props.createPlaceholderTour();
+      } else {
+        this.props.loadTourAndData(this.props.match.params.tourId);
+      }
+      if (this.props.match.params.screenId) {
+        this.props.loadScreenAndData(this.props.match.params.screenId, isPreviewMode);
+      }
+
+      // TODO dont' run this in play mode
+      this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
+        onSyncNeeded: this.flushEdits,
+      });
+      this.props.getAllScreens();
+    }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
-    if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
-      this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
+    if (!this.props.playMode) {
+      if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
+        this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
+      }
+      if (this.props.isScreenLoaded && !this.props.isScreenInPreviewMode) {
+        this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
+      }
+    } else if (prevProps.isTourLoaded !== this.props.isTourLoaded && this.props.isTourLoaded) {
+      const main = this.props.tourOpts.main;
+      if (!main) {
+        throw new Error('No main in config');
+      }
+      this.navigateTo(main);
     }
-    if (this.props.isScreenLoaded && !this.props.isScreenInPreviewMode) {
-      this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
-    }
+
     if (prevProps.match.params.screenId !== this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId, false);
     }
   }
+
+  navigateTo = (qualifiedAnnotaionUri: string) => {
+    const [screenId, anId] = qualifiedAnnotaionUri.split('/');
+    const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
+    if (screen) {
+      const url = `${this.props.playMode ? '/p' : ''}/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
+      this.props.navigate(url);
+    } else {
+      throw new Error(`Can't navigate because screenId ${screenId} is not found`);
+    }
+  };
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
     if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK) || key.endsWith(this.props.screen!.rid)) {
@@ -273,14 +302,22 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
     return (
       <GTags.ColCon>
-        <GTags.HeaderCon>
-          <Header
-            shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
-            titleElOnLeft={this.getHeaderTxtEl()}
-          />
-        </GTags.HeaderCon>
-        <GTags.BodyCon style={{ height: '100%', background: '#fff' /* padding: '0px' */ }}>
+        {!this.props.playMode && (
+          <GTags.HeaderCon>
+            <Header
+              shouldShowLogoOnLeft
+              navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
+              titleElOnLeft={this.getHeaderTxtEl()}
+            />
+          </GTags.HeaderCon>
+        )}
+        <GTags.BodyCon style={{
+          height: '100%',
+          background: '#fff',
+          padding: this.props.playMode ? '0' : '0.25rem 2rem'
+          /* padding: '0px' */
+        }}
+        >
           {/*
               TODO this is temp until siddhi is done with the screen zooming via canvas
                    after that integrate as part of Canvas
@@ -289,19 +326,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             <ScreenEditor
               key={this.props.screen?.rid}
               screen={this.props.screen!}
+              playMode={!!this.props.playMode}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId}
               navigate={(uri, type) => {
                 if (type === 'annotation-hotspot') {
-                  const [screenId, anId] = uri.split('/');
-                  const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
-                  if (screen) {
-                    const url = `/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
-                    this.props.navigate(url);
-                  } else {
-                    throw new Error(`Can't navigate because screenId ${screenId} is not found`);
-                  }
+                  this.navigateTo(uri);
                 } else {
                   window.open(uri, '_blank')?.focus();
                 }
