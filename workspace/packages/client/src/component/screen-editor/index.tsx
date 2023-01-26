@@ -18,6 +18,8 @@ import {
   PictureOutlined,
   LoadingOutlined,
   FilterOutlined,
+  DownOutlined,
+  RightOutlined
 } from '@ant-design/icons';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
@@ -968,13 +970,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           )}
           {this.props.allAnnotationsForScreen.length > 0 && (
             <Tags.EditPanelSec>
-              <GTags.Txt className="title2">Annotaitons applied on page</GTags.Txt>
+              <GTags.Txt className="title2">Annotations applied on page</GTags.Txt>
               {this.props.screen.parentScreenId !== 0
                 && this.props.allAnnotationsForScreen.map(config => (
                   <Tags.AnnotationLI
                     key={config.id}
                   >
-                    <div
+                    <Tags.AnotCrtPanelSecLabel
                       style={{ display: 'flex' }}
                       onClick={(e) => {
                         if (this.state.selectedAnnotationId === config.id) {
@@ -986,10 +988,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         }
                       }}
                     >
-                      <GTags.Txt className="oneline">{config.bodyContent}</GTags.Txt>
-                    </div>
+                      <div>
+                        <span style={{ width: '1rem' }} />
+                        <GTags.Txt className="title2">
+                          {config.bodyContent.split(' ').slice(0, 4).join(' ')}...
+                        </GTags.Txt>
+                      </div>
+                      {
+                        this.state.selectedAnnotationId === config.id
+                          ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                          : <RightOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                      }
+                    </Tags.AnotCrtPanelSecLabel>
                     {this.state.selectedAnnotationId === config.id && (
-                      <div style={{ marginTop: '0.5rem', color: 'black' }}>
+                      <div style={{ color: 'black' }}>
                         <AnnotationCreatorPanel
                           config={config}
                           opts={this.props.tourDataOpts}

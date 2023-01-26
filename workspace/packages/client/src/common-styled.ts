@@ -15,6 +15,7 @@ export const RowCon = styled.div`
 `;
 
 export const Txt = styled.div`
+  color: #16023E;
   &.head {
     font-size: ${(props) => props.theme.typography.size.heading};
     font-weight: bold;
