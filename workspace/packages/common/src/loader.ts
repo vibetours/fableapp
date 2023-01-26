@@ -24,13 +24,14 @@ export default function showLoader(
   const [container, ylwBar, redBar, prplBar] = Array(4).fill(0).map(createEl);
   container.style.zIndex = ctrl.zIndex;
 
+  el = el || document.body;
   const rect = el.getBoundingClientRect();
   [container, ylwBar, redBar, prplBar].forEach((d, i) => {
     const w = (d.__width__ = rect.width - Math.max(i - 1, 0) * 20);
     d.style.width = `${w}px`;
   });
 
-  [ylwBar, redBar, prplBar].forEach((d, i) => {
+  [ylwBar, redBar, prplBar].forEach((d) => {
     d.style.transform = `translate(${0}px, 0px)`;
     d.style.position = 'absolute';
   });
@@ -46,7 +47,7 @@ export default function showLoader(
   redBar.style.background = '#FF7450';
   prplBar.style.background = '#7567FF';
 
-  const tXs = [ylwBar, redBar, prplBar].map((d, i) => {
+  const tXs = [ylwBar, redBar, prplBar].map((d) => {
     const offset = d.__width__;
     d.style.transform = `translate(-${offset}px, 0px)`;
     return offset;
