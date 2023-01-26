@@ -6,7 +6,7 @@ import SidePanel from '../../component/side-panel';
 import Header from '../../component/header';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import { createNewTour, getAllTours } from '../../action/creator';
+import { createNewTour, getAllTours, renameTour } from '../../action/creator';
 import { P_RespTour } from '../../entity-processor';
 import Btn from '../../component/btn';
 import tourIcon from '../../assets/tours-icon-dark.svg';
@@ -16,11 +16,13 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 interface IDispatchProps {
   getAllTours: () => void;
   createNewTour: () => void;
+  renameTour: (tour: P_RespTour, newVal: string) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours()),
   createNewTour: () => dispatch(createNewTour()),
+  renameTour: (tour: P_RespTour, newVal: string) => dispatch(renameTour(tour, newVal)),
 });
 
 interface IAppStateProps {
@@ -37,9 +39,16 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
 
 interface IOwnProps {}
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
-interface IOwnStateProps {}
+interface IOwnStateProps {
+  editable: [string, 'pinned' | 'notpinned'];
+}
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
+  constructor(props: IProps) {
+    super(props);
+    this.state = { editable: ['', 'notpinned'] };
+  }
+
   componentDidMount(): void {
     this.props.getAllTours();
   }
@@ -79,7 +88,39 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
                       <Tags.TourCardLane>
                         <img src={tourIcon} alt="" style={{ height: '16px', width: '16px', marginRight: '0.25rem' }} />
-                        <GTags.Txt className="title">{tour.displayName}</GTags.Txt>
+                        <GTags.Txt
+                          contentEditable={this.state.editable[0] === tour.rid}
+                          className="title markeditable"
+                          onMouseOver={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (this.state.editable[1] === 'notpinned') {
+                              this.setState({ editable: [tour.rid, 'notpinned'] });
+                            }
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            this.setState({ editable: [tour.rid, 'pinned'] });
+                          }}
+                          onMouseOut={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (this.state.editable[1] === 'notpinned') {
+                              this.setState({ editable: ['', 'pinned'] });
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const newVal = e.target.innerText || '';
+                            const nNewVal = newVal.replace(/\s+/, ' ').trim().toLowerCase();
+                            if (nNewVal === tour.displayName.toLowerCase()) {
+                              return;
+                            }
+                            this.props.renameTour(tour, nNewVal);
+                          }}
+                        >
+                          {tour.displayName}
+                        </GTags.Txt>
                       </Tags.TourCardLane>
                       <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
                         <GTags.Txt

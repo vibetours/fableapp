@@ -8,6 +8,7 @@ import {
   ReqCopyScreen,
   ReqNewTour,
   ReqRecordEdit,
+  ReqRenameTour,
   RespCommonConfig,
   RespScreen,
   RespTour,
@@ -16,7 +17,7 @@ import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
 import {
   EditFile,
   IAnnotationConfig,
-  IAnnotationTheme,
+  ITourDataOpts,
   ScreenData,
   TourData,
   TourDataWoScheme
@@ -220,7 +221,6 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
         description,
       },
     });
-    await sleep(3000);
     const tour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,
@@ -232,15 +232,34 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
 
 /* ************************************************************************* */
 
+export function renameTour(tour: P_RespTour, newVal: string) {
+  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
+    const data = await api<ReqRenameTour, ApiResp<RespTour>>('/renametour', {
+      auth: true,
+      body: {
+        newName: newVal,
+        rid: tour.rid,
+      },
+    });
+    const renamedTour = processRawTourData(data.data, getState());
+    dispatch({
+      type: ActionType.TOUR,
+      tour: renamedTour,
+      performedAction: 'rename',
+    });
+  };
+}
+
 export interface TTourWithData {
   type: ActionType.TOUR_AND_DATA_LOADED;
   tour: P_RespTour;
   tourData: TourData;
   annotations: Record<string, IAnnotationConfig[]>;
-  theme: IAnnotationTheme;
+  opts: ITourDataOpts;
+  allCorrespondingScreens: boolean,
 }
 
-export function loadTourAndData(tourRid: string) {
+export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const state = getState();
     let tour: P_RespTour | null = null;
@@ -254,7 +273,7 @@ export function loadTourAndData(tourRid: string) {
     }
     if (!isTourFound) {
       try {
-        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}`);
+        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
         tour = processRawTourData(data.data, state);
       } catch (e) {
         console.error(e);
@@ -263,13 +282,14 @@ export function loadTourAndData(tourRid: string) {
     if (tour) {
       const data = await api<null, TourData>(tour.dataFileUri.href);
       const nData = normalizeTourDataFile(data);
-      const annotationAndTheme = getThemeAndAnnotationFromDataFile(nData, true);
+      const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData, true);
       dispatch({
         type: ActionType.TOUR_AND_DATA_LOADED,
         tourData: nData,
         tour: processRawTourData(tour, getState()),
-        annotations: annotationAndTheme.annotations,
-        theme: annotationAndTheme.theme,
+        annotations: annotationAndOpts.annotations,
+        opts: annotationAndOpts.opts,
+        allCorrespondingScreens: shouldGetScreens,
       });
     } else {
       // TODO error
@@ -281,14 +301,15 @@ export function createPlaceholderTour() {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const tour = createEmptyTour();
     const data = createEmptyTourDataFile();
-    const annotationAndTheme = getThemeAndAnnotationFromDataFile(data, false);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
 
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
       tour: processRawTourData(tour, getState(), true),
-      annotations: annotationAndTheme.annotations,
-      theme: annotationAndTheme.theme
+      annotations: annotationAndOpts.annotations,
+      opts: annotationAndOpts.opts,
+      allCorrespondingScreens: false,
     });
   };
 }
@@ -375,19 +396,19 @@ export interface TSaveTourEntities {
   tour: P_RespTour;
   data: TourData | null,
   annotations: Record<string, IAnnotationConfig[]>,
-  theme: IAnnotationTheme,
+  opts: ITourDataOpts,
   isLocal: boolean,
 }
 
 export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
-    const annotationAndTheme = getThemeAndAnnotationFromDataFile(data as TourData, true);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData, true);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,
       tour,
       data: getState().default.tourData,
-      annotations: annotationAndTheme.annotations,
-      theme: annotationAndTheme.theme,
+      annotations: annotationAndOpts.annotations,
+      opts: annotationAndOpts.opts,
       isLocal: true,
     });
   };
@@ -411,13 +432,13 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         },
       });
 
-      const annotationAndTheme = getThemeAndAnnotationFromDataFile(mergedData, false);
+      const annotationAndOpts = getThemeAndAnnotationFromDataFile(mergedData, false);
       dispatch({
         type: ActionType.SAVE_TOUR_ENTITIES,
         tour,
         data: mergedData,
-        annotations: annotationAndTheme.annotations,
-        theme: annotationAndTheme.theme,
+        annotations: annotationAndOpts.annotations,
+        opts: annotationAndOpts.opts,
         isLocal: false,
       });
     }

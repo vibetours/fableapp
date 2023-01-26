@@ -1,4 +1,4 @@
-import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { NavFn } from '../../types';
 import * as Tags from './styled';
@@ -9,24 +9,24 @@ interface IProps {
   nav: NavFn
 }
 
-export class AnnotationBubble extends React.PureComponent<IProps> {
-  render() {
-    return (
-      <Tags.BubbleCon style={{
-        display: this.props.annotationDisplayConfig.isInViewPort ? 'flex' : 'none',
-        left: this.props.box.x - 5,
-        top: this.props.box.y - 5,
-      }}
-      >
-        {this.props.annotationDisplayConfig.config.id}
-      </Tags.BubbleCon>
-    );
-  }
-}
+// export class AnnotationBubble extends React.PureComponent<IProps> {
+//   render() {
+//     return (
+//       <Tags.BubbleCon style={{
+//         display: this.props.annotationDisplayConfig.isInViewPort ? 'flex' : 'none',
+//         left: this.props.box.x - 5,
+//         top: this.props.box.y - 5,
+//       }}
+//       >
+//         {this.props.annotationDisplayConfig.config.id}
+//       </Tags.BubbleCon>
+//     );
+//   }
+// }
 
 export class AnnotationContent extends React.PureComponent<{
   config: IAnnotationConfig;
-  themeConfig: IAnnotationTheme;
+  opts: ITourDataOpts;
   isInDisplay: boolean;
   width: number;
   top: number,
@@ -70,7 +70,7 @@ export class AnnotationContent extends React.PureComponent<{
               <Tags.ABtn
                 key={btnConf.id}
                 btnStyle={btnConf.style}
-                color={this.props.themeConfig.primaryColor}
+                color={this.props.opts.primaryColor}
                 size={btnConf.size}
                 onClick={() => {
                   btnConf.hotspot && this.props.nav(
@@ -155,7 +155,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     // This container should never have padding ever
     return <AnnotationContent
       config={this.props.annotationDisplayConfig.config}
-      themeConfig={this.props.annotationDisplayConfig.themeConfig}
+      opts={this.props.annotationDisplayConfig.opts}
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
       nav={this.props.nav}
       width={w}
@@ -167,7 +167,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
 export interface IAnnoationDisplayConfig {
   config: IAnnotationConfig;
-  themeConfig: IAnnotationTheme,
+  opts: ITourDataOpts,
   isMaximized: boolean;
   isInViewPort: boolean;
   minDim: {w: number, h: number};

@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   IAnnotationConfig,
   AnnotationPositions,
-  IAnnotationTheme,
   AnnotationButtonStyle,
   AnnotationButtonSize,
   IAnnotationButton,
   AnnotationPerScreen,
-  ITourEntityHotspot
+  ITourEntityHotspot,
+  ITourDataOpts
 } from '@fable/common/dist/types';
 import TextArea from 'antd/lib/input/TextArea';
 import Select from 'antd/lib/select';
@@ -15,6 +15,7 @@ import Button from 'antd/lib/button';
 import Input from 'antd/lib/input';
 import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
+import Checkbox from 'antd/lib/checkbox';
 import {
   ArrowRightOutlined,
   DeleteOutlined,
@@ -36,32 +37,45 @@ import {
   toggleBooleanButtonProp,
   updateAnnotationText,
   updateButtonProp,
-  updateGlobalThemeConfig
+  updateTourDataOpts
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 
 interface IProps {
   screen: P_RespScreen,
   config: IAnnotationConfig,
-  globalThemeConfig: IAnnotationTheme,
+  opts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[],
   onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig) => void;
   onConfigChange: (
     config: IAnnotationConfig,
-    globalThemeConfig: IAnnotationTheme,
+    opts: ITourDataOpts,
   ) => void;
 }
 
 interface IState {
   config?: IAnnotationConfig;
-  globalThemeConfig?: IAnnotationTheme;
   btnEditing: string;
 }
 
 const commonInputStyles: React.CSSProperties = {
-  boxShadow: '0 0 0 1px #ff74502e',
-  background: '#f5f5f599',
-  borderRadius: '4px',
+  borderRadius: '8px',
+  border: '1px solid #DDDDDD',
+  fontSize: '1rem',
+  backgroundColor: '#f9f9f9',
+  padding: '0.4rem 0.6rem'
+};
+
+const commonIconStyle : React.CSSProperties = {
+  fontSize: '0.8rem',
+  color: '#16023E',
+};
+const buttonSecStyle: React.CSSProperties = {
+  padding: '1rem',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  border: '1px solid #DDDDDD',
 };
 
 const usePrevious = <T extends unknown>(value: T): T | undefined => {
@@ -74,29 +88,39 @@ const usePrevious = <T extends unknown>(value: T): T | undefined => {
 
 export default function AnnotationCreatorPanel(props: IProps) {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
-  const [theme, setTheme] = useState<IAnnotationTheme>(props.globalThemeConfig);
+  const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
   const [btnEditing, setBtnEditing] = useState<string>('');
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
 
   const prevConfig = usePrevious(config);
-  const prevTheme = usePrevious(theme);
+  const prevOpts = usePrevious(opts);
 
   useEffect(() => {
     if (
       prevConfig
-      && prevTheme
-      && (config.monoIncKey > prevConfig.monoIncKey || theme.monoIncKey > prevTheme.monoIncKey)) {
-      props.onConfigChange(config, theme);
+      && prevOpts
+      && (config.monoIncKey > prevConfig.monoIncKey
+        || opts.monoIncKey > prevOpts.monoIncKey)) {
+      props.onConfigChange(config, opts);
     }
-  }, [config, theme]);
+  }, [config, opts]);
 
+  const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
-        <GTags.Txt className="title2" style={{ marginBottom: '0.25rem' }}>Body text</GTags.Txt>
+        {/*
+        <Tags.AnotCrtPanelSecLabel>
+          <div>
+            <span style={{ width: '1rem' }} />
+            <GTags.Txt className="title2" style={{ marginBottom: '0.25rem' }}>Body text</GTags.Txt>
+          </div>
+          <div />
+        </Tags.AnotCrtPanelSecLabel>
+        */}
         <TextArea
-          style={{ ...commonInputStyles, width: '100%' }}
-          rows={4}
+          style={{ ...commonInputStyles, width: '100%', backgroundColor: '#FFF' }}
+          rows={3}
           defaultValue={config.bodyContent}
           bordered={false}
           onBlur={e => {
@@ -104,7 +128,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
           }}
         />
       </Tags.AnotCrtPanelSec>
-      <Tags.AnotCrtPanelSec row>
+      <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
         <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Positioning</GTags.Txt>
         <Select
           defaultValue={config.positioning}
@@ -124,7 +148,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
           <Tooltip
             placement="right"
             title={
-              <GTags.Txt className="subsubhead">
+              <GTags.Txt className="subsubhead" style={{ color: 'white' }}>
                 Changing theme here affects all other annotations in this tour
               </GTags.Txt>
             }
@@ -132,33 +156,51 @@ export default function AnnotationCreatorPanel(props: IProps) {
             <QuestionCircleOutlined />
           </Tooltip>
         </div>
-        <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center' }}>
-          <GTags.Txt>Primary color</GTags.Txt>
-          <div style={{
-            height: '18px',
-            width: '18px',
-            borderRadius: '18px',
-            background: theme.primaryColor,
-            marginRight: '0.5rem',
-            marginLeft: '0.5rem'
+        <div
+          style={{
+            marginTop: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
           }}
-          />
-          <Input
-            defaultValue={theme.primaryColor}
-            style={{ ...commonInputStyles, width: '120px' }}
-            size="small"
-            bordered={false}
-            onBlur={e => {
-              setTheme(t => updateGlobalThemeConfig(t, 'primaryColor', e.target.value));
+        >
+          <GTags.Txt>Primary color</GTags.Txt>
+          <div
+            style={{
+              ...commonInputStyles,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxSizing: 'border-box',
+              width: '120px',
+              padding: '0.4rem 0.6rem',
             }}
-          />
+          >
+            <div>
+              <div style={{
+                height: '18px',
+                width: '18px',
+                borderRadius: '18rem',
+                background: opts.primaryColor,
+              }}
+              />
+            </div>
+            <Input
+              defaultValue={opts.primaryColor}
+              size="small"
+              bordered={false}
+              onBlur={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
+              }}
+            />
+          </div>
         </div>
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
         <GTags.Txt className="title2">Buttons</GTags.Txt>
         <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
           {config.buttons.map(btnConf => {
-            const primaryColor = theme.primaryColor;
+            const primaryColor = opts.primaryColor;
             return (
               <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''}>
                 <div className="a-head">
@@ -172,11 +214,11 @@ export default function AnnotationCreatorPanel(props: IProps) {
                       {btnConf.text}
                     </ATags.ABtn>
                   </div>
-                  <div style={{ display: 'flex', }}>
+                  <Tags.ButtonSecCon>
                     <Tooltip
                       placement="topRight"
                       title={
-                        <GTags.Txt className="subsubhead">
+                        <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
                           {
                             btnConf.hotspot
                               ? 'Click to configure'
@@ -247,8 +289,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                           on: 'click',
                                                           target: '$this',
                                                           actionType: 'navigate',
-                                                          actionValue:
-                                                            `${props.screen.id}/${config.refId}`,
+                                                          actionValue: qualifiedAnnotationId,
                                                         } as ITourEntityHotspot
                                                       );
                                                       props.onSideEffectConfigChange(
@@ -270,8 +311,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                           on: 'click',
                                                           target: '$this',
                                                           actionType: 'navigate',
-                                                          actionValue:
-                                                            `${props.screen.id}/${config.refId}`,
+                                                          actionValue: qualifiedAnnotationId,
                                                         } as ITourEntityHotspot
                                                       );
                                                       props.onSideEffectConfigChange(
@@ -361,30 +401,42 @@ export default function AnnotationCreatorPanel(props: IProps) {
                         }
                       >
                         <Button
-                          icon={btnConf.hotspot ? <NodeIndexOutlined /> : <DisconnectOutlined />}
+                          icon={
+                            btnConf.hotspot
+                              ? <NodeIndexOutlined
+                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
+                              />
+                              : <DisconnectOutlined
+                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
+                              />
+                          }
                           type="text"
                           size="small"
-                          style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
+                          style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
                         />
                       </Popover>
                     </Tooltip>
                     {
                       btnConf.type === 'custom' ? (
                         <Button
-                          icon={<DeleteOutlined />}
+                          icon={<DeleteOutlined style={{ ...commonIconStyle }} />}
                           type="text"
                           size="small"
-                          style={{ color: '#bdbdbd' }}
+                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
                           onClick={() => {
                             setConfig(c => removeButtonWithId(c, btnConf.id));
                           }}
                         />
                       ) : (
                         <Button
-                          icon={btnConf.exclude ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                          icon={
+                              btnConf.exclude
+                                ? <EyeInvisibleOutlined style={{ ...commonIconStyle }} />
+                                : <EyeOutlined style={{ ...commonIconStyle }} />
+                          }
                           type="text"
                           size="small"
-                          style={{ color: '#bdbdbd' }}
+                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
                           onClick={() => {
                             setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
                           }}
@@ -392,18 +444,19 @@ export default function AnnotationCreatorPanel(props: IProps) {
                       )
                     }
                     <Button
-                      icon={<EditOutlined />}
+                      icon={<EditOutlined style={{ ...commonIconStyle }} />}
                       type="text"
                       size="small"
                       style={{
-                        color: '#bdbdbd'
+                        color: '#bdbdbd',
+                        ...buttonSecStyle
                       }}
                       onClick={() => {
                         if (btnEditing === btnConf.id) setBtnEditing('');
                         else setBtnEditing(btnConf.id);
                       }}
                     />
-                  </div>
+                  </Tags.ButtonSecCon>
                 </div>
                 {
                   btnConf.id === btnEditing && (
@@ -441,12 +494,17 @@ export default function AnnotationCreatorPanel(props: IProps) {
                         />
                       </Tags.AnotCrtPanelSec>
                       <Tags.AnotCrtPanelSec row>
-                        <GTags.Txt style={{ marginRight: '0.5rem' }}>Button text</GTags.Txt>
+                        {/* <GTags.Txt style={{ marginRight: '0.5rem' }}>Button text</GTags.Txt> */}
                         <Input
                           defaultValue={btnConf.text}
                           size="small"
                           bordered={false}
-                          style={{ ...commonInputStyles, width: '160px', }}
+                          style={{
+                            ...commonInputStyles,
+                            width: '100%',
+                            backgroundColor: '#fff'
+                          }}
+                          placeholder="Button text"
                           onBlur={e => {
                             setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
                           }}

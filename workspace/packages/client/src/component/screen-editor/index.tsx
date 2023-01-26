@@ -1,7 +1,10 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
 import {
   AnnotationPerScreen,
-  IAnnotationConfig, IAnnotationTheme, ScreenData, SerNode
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData,
+  SerNode
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
@@ -15,6 +18,8 @@ import {
   PictureOutlined,
   LoadingOutlined,
   FilterOutlined,
+  DownOutlined,
+  RightOutlined
 } from '@ant-design/icons';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
@@ -39,7 +44,7 @@ import {
   NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import { getSampleConfig, getDefaultThemeConfig } from '../annotation/annotation-config-utils';
+import { getSampleConfig, getDefaultTourOpts } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 
 const browser = detect();
@@ -53,17 +58,18 @@ const enum EditTargetType {
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
 interface IOwnProps {
+  playMode: boolean;
   screen: P_RespScreen;
   navigate: NavFn;
   screenData: ScreenData;
   allEdits: EditItem[];
   allAnnotationsForScreen: IAnnotationConfig[];
-  globalAnnotationTheme: IAnnotationTheme;
-  createDefaultAnnotation: (config: IAnnotationConfig, theme: IAnnotationTheme) => void;
+  tourDataOpts: ITourDataOpts;
+  createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
   onAnnotationCreateOrChange: (
     screenId: number | null,
     config: IAnnotationConfig,
-    theme: IAnnotationTheme | null
+    opts: ITourDataOpts | null
   ) => void;
   onScreenEditStart: () => void;
   toAnnotationId: string | undefined;
@@ -373,7 +379,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       let el: Node;
       if (path in mem) el = mem[path];
       else {
-        el = this.domElPicker!.elFromPath(path);
+        el = this.annotationLCM!.elFromPath(path);
         mem[path] = el;
       }
 
@@ -511,7 +517,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
     const scale = Math.min(scaleX, scaleY);
     this.scaleFactor = scale;
-    const divPadding = 18;
+    const divPadding = this.props.playMode ? 0 : 18;
     frame.style.transform = `scale(${scale})`;
     frame.style.transformOrigin = '0 0';
     frame.style.position = 'absolute';
@@ -597,6 +603,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
+    if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
+      this.reachAnnotation(this.props.toAnnotationId);
+    }
+
+    if (this.props.playMode) {
+      return;
+    }
+
     if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
       if (this.state.isInElSelectionMode) {
         this.props.onScreenEditStart();
@@ -605,10 +619,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         this.domElPicker?.disable();
         this.props.onScreenEditFinish();
       }
-    }
-
-    if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
-      this.reachAnnotation(this.props.toAnnotationId);
     }
 
     let elJustSelected = false;
@@ -630,7 +640,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }));
       }
     } else {
-      console.log('same el is set twice???');
+      // TODO same el is set twice???
     }
 
     if ((this.state.selectedEl
@@ -648,19 +658,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         const path = this.domElPicker?.elPath(state.selectedEl!);
         const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
         let conf: IAnnotationConfig;
-        let theme: IAnnotationTheme;
+        let opts: ITourDataOpts;
         if (existingAnnotaiton.length) {
           conf = existingAnnotaiton[0];
-          theme = this.props.globalAnnotationTheme;
-          this.showAnnotation(conf, theme);
+          opts = this.props.tourDataOpts;
+          this.showAnnotation(conf, opts);
         } else {
           conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
-          theme = this.props.globalAnnotationTheme || getDefaultThemeConfig();
+          opts = this.props.tourDataOpts || getDefaultTourOpts();
           this.props.createDefaultAnnotation(
             conf,
-            theme
+            opts
           );
-          this.showAnnotation(conf, theme);
+          this.showAnnotation(conf, opts);
         }
         return { selectedAnnotationId: conf.id };
       });
@@ -816,6 +826,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   render(): React.ReactNode {
+    if (this.props.playMode) {
+      return (
+        <Tags.Con>
+          <Tags.EmbedCon style={{
+            overflow: 'hidden',
+            position: 'relative',
+            height: '100%',
+            width: '100%',
+            padding: '0',
+            margin: '0',
+            background: 'none',
+          }}
+          >
+            <Tags.EmbedFrame
+              src="about:blank"
+              title={this.props.screen.displayName}
+              ref={this.embedFrameRef}
+              srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
+            />
+          </Tags.EmbedCon>
+        </Tags.Con>
+      );
+    }
     return (
       <Tags.Con>
         <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
@@ -937,39 +970,47 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           )}
           {this.props.allAnnotationsForScreen.length > 0 && (
             <Tags.EditPanelSec>
-              <GTags.Txt className="title2">Annotaitons applied on page</GTags.Txt>
+              <GTags.Txt>Annotations applied on page</GTags.Txt>
               {this.props.screen.parentScreenId !== 0
                 && this.props.allAnnotationsForScreen.map(config => (
                   <Tags.AnnotationLI
                     key={config.id}
                   >
-                    <div
+                    <Tags.AnotCrtPanelSecLabel
                       style={{ display: 'flex' }}
                       onClick={(e) => {
                         if (this.state.selectedAnnotationId === config.id) {
                           this.annotationLCM!.hide();
                           this.setState({ selectedAnnotationId: '' });
                         } else {
-                          this.showAnnotation(config, this.props.globalAnnotationTheme);
+                          this.showAnnotation(config, this.props.tourDataOpts);
                           this.setState({ selectedAnnotationId: config.id });
                         }
                       }}
                     >
-                      <GTags.Txt className="oneline">{config.bodyContent}</GTags.Txt>
-                    </div>
+
+                      <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
+                        {config.bodyContent}
+                      </GTags.Txt>
+                      {
+                        this.state.selectedAnnotationId === config.id
+                          ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                          : <RightOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                      }
+                    </Tags.AnotCrtPanelSecLabel>
                     {this.state.selectedAnnotationId === config.id && (
-                      <div style={{ marginTop: '0.5rem', color: 'black' }}>
+                      <div style={{ color: 'black' }}>
                         <AnnotationCreatorPanel
                           config={config}
-                          globalThemeConfig={this.props.globalAnnotationTheme}
+                          opts={this.props.tourDataOpts}
                           allAnnotationsForTour={this.props.allAnnotationsForTour}
                           screen={this.props.screen}
                           onSideEffectConfigChange={(screenId: number, c: IAnnotationConfig) => {
                             this.props.onAnnotationCreateOrChange(screenId, c, null);
                           }}
-                          onConfigChange={async (conf, theme) => {
-                            this.showAnnotation(conf, theme);
-                            this.props.onAnnotationCreateOrChange(null, conf, theme);
+                          onConfigChange={async (conf, opts) => {
+                            this.showAnnotation(conf, opts);
+                            this.props.onAnnotationCreateOrChange(null, conf, opts);
                           }}
                         />
                       </div>
@@ -984,11 +1025,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   reachAnnotation(id: string | undefined) {
-    console.log('called to reach annoitation');
     if (id) {
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
-        this.showAnnotation(an, this.props.globalAnnotationTheme);
+        this.showAnnotation(an, this.props.tourDataOpts);
         this.setState({ selectedAnnotationId: an.id });
       } else {
         // throw new Error(`Annotation with id ${id} requested but not found`);
@@ -996,13 +1036,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  async showAnnotation(conf: IAnnotationConfig, theme: IAnnotationTheme) {
-    const targetEl = this.domElPicker!.elFromPath(conf.id);
+  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
+    const targetEl = this.annotationLCM!.elFromPath(conf.id);
     this.annotationLCM!.show();
     await this.annotationLCM!.addOrReplaceAnnotation(
       targetEl as HTMLElement,
       conf,
-      theme,
+      opts,
       true
     );
   }
@@ -1090,7 +1130,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
-      if (!this.domElPicker) {
+      if (!this.props.playMode && !this.domElPicker) {
         this.domElPicker = new DomElPicker(doc, {
           onElSelect: this.onElSelect,
           onElDeSelect: this.onElDeSelect,
@@ -1104,7 +1144,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
       if (!this.annotationLCM) {
         this.annotationLCM = new AnnotationLifecycleManager(doc, {
-          scaleFactor: this.scaleFactor, navigate: this.props.navigate
+          scaleFactor: this.scaleFactor,
+          navigate: this.props.navigate,
+          isPlayMode: this.props.playMode,
         });
       }
     } else {

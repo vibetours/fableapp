@@ -4,8 +4,8 @@ import {
   AnnotationPositions,
   IAnnotationButton,
   IAnnotationConfig,
-  IAnnotationHotSpot,
-  IAnnotationTheme
+  IChronoUpdatable,
+  ITourDataOpts
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 
@@ -16,24 +16,23 @@ export function getBigramId(config: IAnnotationConfig): string {
 export function updateAnnotationText(config: IAnnotationConfig, txt: string): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.bodyContent = txt;
-  newConfig.updatedAt = getCurrentUtcUnixTime();
   return newConfig;
 }
 
-export function updateGlobalThemeConfig(
-  theme: IAnnotationTheme,
-  key: keyof IAnnotationTheme,
-  value: IAnnotationTheme[keyof IAnnotationTheme]
-): IAnnotationTheme {
-  const newGlobalTheme = newConfigFrom(theme);
-  (newGlobalTheme as any)[key] = value;
-  newGlobalTheme.monoIncKey++;
-  return newGlobalTheme;
+export function updateTourDataOpts(
+  opts: ITourDataOpts,
+  key: keyof ITourDataOpts,
+  value: ITourDataOpts[keyof ITourDataOpts]
+): ITourDataOpts {
+  const newOpts = newConfigFrom(opts);
+  (newOpts as any)[key] = value;
+  return newOpts;
 }
 
-function newConfigFrom<T extends IAnnotationTheme | IAnnotationConfig>(c: T): T {
+function newConfigFrom<T extends IChronoUpdatable>(c: T): T {
   const newConfig = { ...c };
   newConfig.monoIncKey++;
+  newConfig.updatedAt = getCurrentUtcUnixTime();
   return newConfig;
 }
 
@@ -119,8 +118,9 @@ export function addCustomBtn(config: IAnnotationConfig): IAnnotationConfig {
   return newConfig;
 }
 
-export function getDefaultThemeConfig(): IAnnotationTheme {
+export function getDefaultTourOpts(): ITourDataOpts {
   return {
+    main: '',
     primaryColor: '#7567FF',
     monoIncKey: 0,
     createdAt: getCurrentUtcUnixTime(),
