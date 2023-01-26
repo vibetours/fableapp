@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   AnnotationPerScreen,
 } from '@fable/common/dist/types';
+import { ArrowsAltOutlined, DragOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
-import { CanvasData, Conn, Connector, Screen } from './types';
+import { CanvasData, CanvasMode, Conn, Connector, Screen } from './types';
 import CanvasDottedBg from './canvas-dotted-bg';
 import { P_RespScreen } from '../../entity-processor';
 import EmptyCanvas from './empty-canvas';
@@ -51,6 +52,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
   const [screenElements, setScreenElements] = useState<Screen[]>();
   const [connectors, setConnectors] = useState<Conn[]>();
   const svgRef = useRef(null);
+  const [canvasMode, setCanvasMode] = useState(CanvasMode.PanMode);
 
   const startPanning = (event: React.MouseEvent) => {
     canvasData.current = startPan(canvasData.current, event);
@@ -71,15 +73,21 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
   };
 
   const handleMouseStart = (event: React.MouseEvent) => {
-    startPanning(event);
+    if (canvasMode === CanvasMode.PanMode) {
+      startPanning(event);
+    }
   };
 
   const handleMouseMove = (event: React.MouseEvent) => {
-    updatePanning(event);
+    if (canvasMode === CanvasMode.PanMode) {
+      updatePanning(event);
+    }
   };
 
   const handleMouseEnd = () => {
-    stopPanning();
+    if (canvasMode === CanvasMode.PanMode) {
+      stopPanning();
+    }
   };
 
   useEffect(() => {
@@ -166,7 +174,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
       <Tags.SVGCanvas
         viewBox={viewBoxStr}
         ref={svgRef}
-        mode={mode}
+        mode={canvasMode}
         onMouseDown={handleMouseStart}
         onMouseUp={handleMouseEnd}
         onMouseLeave={handleMouseEnd}
@@ -192,7 +200,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               >
                 {screenEl.annotationText.substring(0, 45)} ...
               </text>
-                                            </g>)
+            </g>)
           }
           {
             connectors?.map(connector => {
@@ -211,7 +219,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               );
             })
           }
-                                    </>
+        </>
       }
         <defs>
           <marker
@@ -229,6 +237,24 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
       </Tags.SVGCanvas>
       {mode === Mode.EmptyMode && <EmptyCanvas setMode={setMode} />}
       {mode === Mode.SelectScreenMode && <AddScreen screens={screens} />}
+      {mode === Mode.CanvasMode && <Tags.ModeOptions>
+        <button
+          type="button"
+          onClick={() => setCanvasMode(CanvasMode.PanMode)}
+          className={canvasMode === CanvasMode.PanMode ? 'active' : ''}
+        >
+          <DragOutlined />
+        </button>
+        <button
+          type="button"
+          onClick={() => setCanvasMode(CanvasMode.ConnectMode)}
+          className={
+                    canvasMode === CanvasMode.ConnectMode ? 'active' : ''
+                  }
+        >
+          <ArrowsAltOutlined />
+        </button>
+                                   </Tags.ModeOptions>}
     </>
   );
 }
