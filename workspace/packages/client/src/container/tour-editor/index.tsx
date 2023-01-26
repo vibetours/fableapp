@@ -131,7 +131,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allEdits,
     allAnnotationsForScreen,
     allAnnotationsForTour: anPerScreen,
-    globalAnnotationTheme: state.default.localTheme || getDefaultThemeConfig()
+    globalAnnotationTheme: state.default.localTheme || state.default.remoteTheme || getDefaultThemeConfig()
   };
 };
 
