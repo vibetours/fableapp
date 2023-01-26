@@ -970,7 +970,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           )}
           {this.props.allAnnotationsForScreen.length > 0 && (
             <Tags.EditPanelSec>
-              <GTags.Txt className="title2">Annotations applied on page</GTags.Txt>
+              <GTags.Txt>Annotations applied on page</GTags.Txt>
               {this.props.screen.parentScreenId !== 0
                 && this.props.allAnnotationsForScreen.map(config => (
                   <Tags.AnnotationLI
