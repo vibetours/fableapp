@@ -988,12 +988,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         }
                       }}
                     >
-                      <div>
-                        <span style={{ width: '1rem' }} />
-                        <GTags.Txt className="title2">
-                          {config.bodyContent.split(' ').slice(0, 4).join(' ')}...
-                        </GTags.Txt>
-                      </div>
+
+                      <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
+                        {config.bodyContent}
+                      </GTags.Txt>
                       {
                         this.state.selectedAnnotationId === config.id
                           ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
