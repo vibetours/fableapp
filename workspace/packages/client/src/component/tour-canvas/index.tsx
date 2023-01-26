@@ -3,7 +3,7 @@ import {
   AnnotationPerScreen,
 } from '@fable/common/dist/types';
 import * as Tags from './styled';
-import { CanvasData, Connector, Screen } from './types';
+import { CanvasData, Conn, Connector, Screen } from './types';
 import CanvasDottedBg from './canvas-dotted-bg';
 import { P_RespScreen } from '../../entity-processor';
 import EmptyCanvas from './empty-canvas';
@@ -49,7 +49,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
   );
   const [mode, setMode] = useState(Mode.EmptyMode);
   const [screenElements, setScreenElements] = useState<Screen[]>();
-  const [connectors, setConnectors] = useState<Connector[]>();
+  const [connectors, setConnectors] = useState<Conn[]>();
   const svgRef = useRef(null);
 
   const startPanning = (event: React.MouseEvent) => {

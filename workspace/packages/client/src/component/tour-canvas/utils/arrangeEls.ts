@@ -1,5 +1,5 @@
 import { AnnotationPerScreen } from '@fable/common/dist/types';
-import { Screen } from '../types';
+import { Conn, Screen } from '../types';
 
 export function formScreens(data: AnnotationPerScreen[]) {
   const arr = [];
@@ -27,7 +27,7 @@ export function formScreens(data: AnnotationPerScreen[]) {
 export function formConnectors(
   data: AnnotationPerScreen[],
   screenElements: Screen[]
-) {
+): Conn[] | undefined {
   const conns = [];
   for (const el of data) {
     for (const annotation of el.annotations) {
@@ -38,18 +38,18 @@ export function formConnectors(
           const toId = button.hotspot.actionValue;
           const points = formPoints(fromId, toId, screenElements);
           if (points) {
-            conns.push({
-              from: fromId,
-              to: toId,
-              points,
-            });
+            conns.push(points);
           }
         }
       }
     }
   }
+  if (conns.length > 0) {
+    // @ts-ignore
+    return conns as Conn[];
+  }
 
-  return conns;
+  return undefined;
 }
 
 export function formPoints(
@@ -72,7 +72,19 @@ export function formPoints(
         x: toScreen.x,
         y: toScreen.y + toScreen.height / 2,
       };
-      return [fromPoints, toPoints];
+      return {
+        from: {
+          element: fromId,
+          relX: fromScreen.width,
+          relY: fromScreen.height / 2
+        },
+        to: {
+          element: toId,
+          relX: 0,
+          relY: fromScreen.height / 2,
+        },
+        points: [fromPoints, toPoints]
+      };
     }
     const fromPoints = {
       x: fromScreen.x,
@@ -82,11 +94,20 @@ export function formPoints(
       x: toScreen.x + toScreen.width,
       y: toScreen.y + toScreen.height / 2,
     };
-    return [fromPoints, toPoints];
+    return {
+      from: {
+        element: fromId,
+        relX: 0,
+        relY: fromScreen.height / 2
+      },
+      to: {
+        element: toId,
+        relX: fromScreen.width,
+        relY: fromScreen.height / 2,
+      },
+      points: [fromPoints, toPoints]
+    };
   }
 
-  return [
-    { x: 0, y: 0 },
-    { x: 0, y: 0 },
-  ];
+  return undefined;
 }

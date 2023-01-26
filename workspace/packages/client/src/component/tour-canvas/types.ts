@@ -41,20 +41,6 @@ export type Point = {
   y: number;
 };
 
-export type ElementCoords = {
-  x: number;
-  y: number;
-  width: number;
-};
-
-export type ConnectorData = {
-  isDrawing: boolean;
-  pointerOrigin: Point;
-  line: Line;
-  newLine: Line;
-  isImageConnecting: false;
-};
-
 export type Line = {
   x1: number;
   y1: number;
@@ -73,10 +59,39 @@ export type Screen = {
   y: number;
   height: number;
   width: number;
-}
+};
 
 export type Connector = {
   from: string;
   to: string;
   points: Point[];
-}
+};
+
+export type ElementCoords = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type ConnectorData = {
+  isDrawing: boolean;
+  pointerOrigin: Point;
+  line: Line;
+  newLine: Line;
+  isImageConnecting: boolean;
+  start: EndPoint;
+  end: EndPoint;
+};
+
+export type Conn = {
+  from: EndPoint;
+  to: EndPoint;
+  points: Point[];
+};
+
+export type EndPoint = {
+  element: number;
+  relY: number;
+  relX: number;
+};
