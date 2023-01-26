@@ -186,8 +186,13 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
                 height={screenEl.height}
                 onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
               />
-              <text x={screenEl.x} y={screenEl.y + screenEl.height}>{screenEl.annotationText}</text>
-            </g>)
+              <text
+                x={screenEl.x}
+                y={screenEl.y + screenEl.height}
+              >
+                {screenEl.annotationText.substring(0, 45)} ...
+              </text>
+                                            </g>)
           }
           {
             connectors?.map(connector => {
@@ -206,7 +211,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               );
             })
           }
-        </>
+                                    </>
       }
         <defs>
           <marker
