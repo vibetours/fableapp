@@ -17,6 +17,7 @@ type CanvasProps = {
   cellWidth: number;
   screens: P_RespScreen[];
   allAnnotationsForTour: AnnotationPerScreen[];
+  navigate: Function;
 };
 
 enum Mode {
@@ -38,7 +39,7 @@ const initialData: CanvasData = {
   panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
 };
 
-function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
+function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasProps) {
   const canvasData = useRef({
     ...initialData,
   });
@@ -137,10 +138,14 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
           const el = event.target as HTMLElement;
           const elId = el.dataset.id;
           if (elId) {
-            const selectedScreen = screenElements?.filter(
-              (screen) => screen.id === elId
-            )[0];
-            console.log(selectedScreen);
+            const selectedScreen = screenElements?.filter((screen) => {
+              console.log(screen.id);
+              return screen.id === elId;
+            })[0];
+            if (selectedScreen) {
+              console.log('here');
+              navigate(`${selectedScreen.screenRid}/${selectedScreen.annotationId}`);
+            }
           }
         } else {
           canvasData.current.viewBox = { x, y, width, height };
@@ -169,39 +174,40 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
       >
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
         {
-          mode === Mode.CanvasMode && <>
-            {
-              screenElements?.map(screenEl => <g key={screenEl.id}>
-                <image
-                  data-id={screenEl.id}
-                  href={screenEl.screenHref}
-                  x={screenEl.x}
-                  y={screenEl.y}
-                  width={screenEl.width}
-                  height={screenEl.height}
-                />
-                <text x={screenEl.x} y={screenEl.y + screenEl.height}>{screenEl.annotationText}</text>
-                                              </g>)
-            }
-            {
-              connectors?.map(connector => {
-                const d = formPathUsingPoints(connector.points);
+        mode === Mode.CanvasMode && <>
+          {
+            screenElements?.map(screenEl => <g key={screenEl.id}>
+              <image
+                data-id={screenEl.id}
+                href={screenEl.screenHref}
+                x={screenEl.x}
+                y={screenEl.y}
+                width={screenEl.width}
+                height={screenEl.height}
+                onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
+              />
+              <text x={screenEl.x} y={screenEl.y + screenEl.height}>{screenEl.annotationText}</text>
+            </g>)
+          }
+          {
+            connectors?.map(connector => {
+              const d = formPathUsingPoints(connector.points);
 
-                return (
-                  <path
-                    key={Math.random()}
-                    fill="none"
-                    strokeWidth="2px"
-                    stroke="black"
-                    markerEnd="url(#arrow)"
-                    style={{ cursor: 'pointer' }}
-                    d={d}
-                  />
-                );
-              })
-            }
-                                      </>
-        }
+              return (
+                <path
+                  key={Math.random()}
+                  fill="none"
+                  strokeWidth="2px"
+                  stroke="black"
+                  markerEnd="url(#arrow)"
+                  style={{ cursor: 'pointer' }}
+                  d={d}
+                />
+              );
+            })
+          }
+        </>
+      }
         <defs>
           <marker
             id="arrow"

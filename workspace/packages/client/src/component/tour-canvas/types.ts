@@ -65,6 +65,7 @@ export type Line = {
 export type Screen = {
   id: string;
   screenId: number;
+  screenRid: string;
   screenHref: string;
   annotationText: string;
   annotationId: string;
