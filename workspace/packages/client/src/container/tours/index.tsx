@@ -79,7 +79,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
                       <Tags.TourCardLane>
                         <img src={tourIcon} alt="" style={{ height: '16px', width: '16px', marginRight: '0.25rem' }} />
-                        <GTags.Txt className="title">{tour.displayName}</GTags.Txt>
+                        <GTags.Txt className="title editable">{tour.displayName}</GTags.Txt>
                       </Tags.TourCardLane>
                       <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
                         <GTags.Txt

@@ -1,6 +1,6 @@
 import {
   AnnotationPerScreen,
-  IAnnotationConfig, IAnnotationTheme, ScreenData, TourData, TourDataWoScheme, TourScreenEntity
+  IAnnotationConfig, ScreenData, ITourDataOpts, TourDataWoScheme, TourScreenEntity
 } from '@fable/common/dist/types';
 import React from 'react';
 import { connect } from 'react-redux';
@@ -17,7 +17,7 @@ import {
   saveTourData
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
-import { getDefaultThemeConfig } from '../../component/annotation/annotation-config-utils';
+import { getDefaultTourOpts } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
 import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
@@ -72,7 +72,7 @@ interface IAppStateProps {
   allEdits: EditItem[];
   isScreenInPreviewMode: boolean;
   allAnnotationsForScreen: IAnnotationConfig[];
-  globalAnnotationTheme: IAnnotationTheme;
+  tourOpts: ITourDataOpts;
   allAnnotationsForTour: AnnotationPerScreen[];
 }
 
@@ -131,7 +131,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allEdits,
     allAnnotationsForScreen,
     allAnnotationsForTour: anPerScreen,
-    globalAnnotationTheme: state.default.localTheme || state.default.remoteTheme || getDefaultThemeConfig()
+    tourOpts: state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts()
   };
 };
 
@@ -307,16 +307,16 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 }
               }}
               createDefaultAnnotation={
-                (c, t) => this.onTourDataChange('annotation-and-theme', null, { config: c, theme: t }, true)
+                (c, o) => this.onTourDataChange('annotation-and-theme', null, { config: c, opts: o }, true)
               }
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
               allAnnotationsForTour={this.props.allAnnotationsForTour}
-              globalAnnotationTheme={this.props.globalAnnotationTheme}
+              tourDataOpts={this.props.tourOpts}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
               onAnnotationCreateOrChange={
-                (screenId, c, t) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, theme: t })
+                (screenId, c, o) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, opts: o })
               }
             />
           ) : (
@@ -351,14 +351,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private onTourDataChange = (
     changeType: 'annotation-and-theme' | 'screen',
     screenId: number | null,
-    changeObj: {config: IAnnotationConfig, theme: IAnnotationTheme | null},
+    changeObj: {config: IAnnotationConfig, opts: ITourDataOpts | null},
     isDefault = false
   ) => {
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
-        theme: isDefault
-          ? (this.props.globalAnnotationTheme || changeObj.theme)
-          : (changeObj.theme || this.props.globalAnnotationTheme),
+        opts: isDefault
+          ? (this.props.tourOpts || changeObj.opts)
+          : (changeObj.opts || this.props.tourOpts),
         entities: {
           [screenId || this.props.screen!.id]: {
             type: 'screen',

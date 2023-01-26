@@ -20,6 +20,14 @@ export const Txt = styled.div`
     font-weight: bold;
   }
 
+  &.editable {
+    cursor: text;
+  }
+
+    &.editable:hover {
+      box-shadow: 0 0 0 1px blue;
+    }
+
   &.subhead {
     opacity: 0.65;
     line-height: 1.1rem;

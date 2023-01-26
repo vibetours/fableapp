@@ -69,9 +69,19 @@ export interface TourScreenEntity extends TourEntity {
   annotations: Record<string, IAnnotationConfig>;
 }
 
-export interface TourDataWoScheme {
+export interface IChronoUpdatable {
+  monoIncKey: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ITourDataOpts extends IChronoUpdatable {
+  primaryColor: string;
   main: string;
-  theme: IAnnotationTheme,
+}
+
+export interface TourDataWoScheme {
+  opts: ITourDataOpts,
   entities: Record<string, TourEntity>;
 }
 
@@ -127,13 +137,6 @@ export interface IAnnotationButton {
   hotspot: ITourEntityHotspot | null;
 }
 
-export interface IAnnotationTheme {
-  primaryColor: string;
-  monoIncKey: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
 export interface ITourEntityHotspot {
   type: 'el' | 'an-btn',
   on: 'click',
@@ -142,16 +145,12 @@ export interface ITourEntityHotspot {
   actionValue: string;
 }
 
-export interface IAnnotationOriginConfig {
+export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
   bodyContent: string;
   positioning: AnnotationPositions,
-  themeOverride?: IAnnotationTheme,
   buttons: IAnnotationButton[],
-  monoIncKey: number;
-  createdAt: number;
-  updatedAt: number;
 }
 
 // TODO perform this conversion, client side

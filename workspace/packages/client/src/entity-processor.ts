@@ -1,9 +1,15 @@
 import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
-import { IAnnotationConfig, IAnnotationTheme, TourData, TourDataWoScheme, TourEntity, TourScreenEntity } from '@fable/common/dist/types';
+import {
+  IAnnotationConfig,
+  ITourDataOpts,
+  TourData,
+  TourDataWoScheme,
+  TourScreenEntity
+} from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AllEdits, EditItem, ElEditType } from './types';
-import { getDefaultThemeConfig } from './component/annotation/annotation-config-utils';
+import { getDefaultTourOpts } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -115,15 +121,14 @@ export function createEmptyTourDataFile(): TourData {
   return {
     v: SchemaVersion.V1,
     lastUpdatedAtUtc: -1,
-    main: '',
-    theme: getDefaultThemeConfig(),
+    opts: getDefaultTourOpts(),
     entities: {},
   };
 }
 
 export function getThemeAndAnnotationFromDataFile(data: TourData, syncPending: boolean): {
   annotations: Record<string, IAnnotationConfig[]>,
-  theme: IAnnotationTheme,
+  opts: ITourDataOpts,
 } {
   const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
   for (const [screenId, entity] of Object.entries(data.entities)) {
@@ -140,16 +145,19 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, syncPending: b
 
   return {
     annotations: annotationsPerScreen,
-    theme: data.theme
+    opts: data.opts
   };
 }
 
 export function normalizeTourDataFile(data: TourData) {
-  if (!data.theme) {
-    data.theme = getDefaultThemeConfig();
+  if (!data.opts) {
+    data.opts = getDefaultTourOpts();
   }
-  if (data.main === null || data.main === undefined) {
-    data.main = '';
+  if ('main' in data) {
+    delete (data as any).main;
+  }
+  if ('theme' in data) {
+    delete (data as any).theme;
   }
   if (!data.entities || data.entities instanceof Array) {
     data.entities = {};

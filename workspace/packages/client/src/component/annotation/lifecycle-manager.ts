@@ -1,10 +1,10 @@
 import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig, IAnnotationTheme } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import HighlighterBase from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import { getDefaultThemeConfig } from './annotation-config-utils';
+import { getDefaultTourOpts } from './annotation-config-utils';
 import { NavFn } from '../../types';
 
 export enum AnnotationViewMode {
@@ -17,7 +17,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   // TODO since theme is global across the annotations, we keep only once instance of this.
   //      we reingest the theme on every render. Handle it in a better way
-  private themeConfig: IAnnotationTheme = getDefaultThemeConfig();
+  private opts: ITourDataOpts = getDefaultTourOpts();
 
   private con: HTMLDivElement;
 
@@ -112,7 +112,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   showAnnotationFor(el: HTMLElement) {
     const path = this.elPath(el);
     for (const [elPath, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
-      annotationDisplayConfig.themeConfig = this.themeConfig;
+      annotationDisplayConfig.opts = this.opts;
       if (elPath === path) annotationDisplayConfig.isMaximized = true;
       else annotationDisplayConfig.isMaximized = false;
     }
@@ -159,15 +159,15 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   async addOrReplaceAnnotation(
     el: HTMLElement,
     config: IAnnotationConfig,
-    themeConfig: IAnnotationTheme,
+    opts: ITourDataOpts,
     showImmediate = false
   ) {
     const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
-    this.themeConfig = themeConfig;
+    this.opts = opts;
     this.annotationElMap[path] = [el, {
       config,
-      themeConfig,
+      opts,
       isMaximized: false,
       isInViewPort: false,
       minDim: {
@@ -203,7 +203,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             onRender: resolve,
             isInDisplay: true,
             config,
-            themeConfig: this.themeConfig,
+            opts: this.opts,
             width: AnnotationContent.MIN_WIDTH,
             top: -9999,
             left: -9999,
@@ -224,7 +224,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             onRender: resolve,
             isInDisplay: true,
             config,
-            themeConfig: this.themeConfig,
+            opts: this.opts,
             width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
             top: -9999,
             left: -9999,

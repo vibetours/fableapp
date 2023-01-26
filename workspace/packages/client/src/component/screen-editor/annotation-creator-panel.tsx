@@ -2,12 +2,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   IAnnotationConfig,
   AnnotationPositions,
-  IAnnotationTheme,
   AnnotationButtonStyle,
   AnnotationButtonSize,
   IAnnotationButton,
   AnnotationPerScreen,
-  ITourEntityHotspot
+  ITourEntityHotspot,
+  ITourDataOpts
 } from '@fable/common/dist/types';
 import TextArea from 'antd/lib/input/TextArea';
 import Select from 'antd/lib/select';
@@ -15,6 +15,7 @@ import Button from 'antd/lib/button';
 import Input from 'antd/lib/input';
 import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
+import Checkbox from 'antd/lib/checkbox';
 import {
   ArrowRightOutlined,
   DeleteOutlined,
@@ -36,25 +37,24 @@ import {
   toggleBooleanButtonProp,
   updateAnnotationText,
   updateButtonProp,
-  updateGlobalThemeConfig
+  updateTourDataOpts
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 
 interface IProps {
   screen: P_RespScreen,
   config: IAnnotationConfig,
-  globalThemeConfig: IAnnotationTheme,
+  opts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[],
   onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig) => void;
   onConfigChange: (
     config: IAnnotationConfig,
-    globalThemeConfig: IAnnotationTheme,
+    opts: ITourDataOpts,
   ) => void;
 }
 
 interface IState {
   config?: IAnnotationConfig;
-  globalThemeConfig?: IAnnotationTheme;
   btnEditing: string;
 }
 
@@ -74,22 +74,24 @@ const usePrevious = <T extends unknown>(value: T): T | undefined => {
 
 export default function AnnotationCreatorPanel(props: IProps) {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
-  const [theme, setTheme] = useState<IAnnotationTheme>(props.globalThemeConfig);
+  const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
   const [btnEditing, setBtnEditing] = useState<string>('');
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
 
   const prevConfig = usePrevious(config);
-  const prevTheme = usePrevious(theme);
+  const prevOpts = usePrevious(opts);
 
   useEffect(() => {
     if (
       prevConfig
-      && prevTheme
-      && (config.monoIncKey > prevConfig.monoIncKey || theme.monoIncKey > prevTheme.monoIncKey)) {
-      props.onConfigChange(config, theme);
+      && prevOpts
+      && (config.monoIncKey > prevConfig.monoIncKey
+        || opts.monoIncKey > prevOpts.monoIncKey)) {
+      props.onConfigChange(config, opts);
     }
-  }, [config, theme]);
+  }, [config, opts]);
 
+  const qualifiedAnnotationId = `${props.screen.id}/${props.config.id}`;
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
@@ -101,6 +103,33 @@ export default function AnnotationCreatorPanel(props: IProps) {
           bordered={false}
           onBlur={e => {
             setConfig(c => updateAnnotationText(c, e.target.value));
+          }}
+        />
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec row>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Entry point</GTags.Txt>
+        <Tooltip
+          placement="right"
+          title={
+            <GTags.Txt className="subsubhead">
+              Is this the annotaiton user would see when they load first. Ideally for this annotation, there won't be
+              any Back button visible.
+            </GTags.Txt>
+          }
+        >
+          <QuestionCircleOutlined />
+        </Tooltip>
+        <Checkbox
+          style={{ marginLeft: '0.75rem' }}
+          checked={opts.main === qualifiedAnnotationId}
+          onChange={e => {
+            let newOpts;
+            if (e.target.checked) {
+              newOpts = updateTourDataOpts(opts, 'main', qualifiedAnnotationId);
+            } else {
+              newOpts = updateTourDataOpts(opts, 'main', '');
+            }
+            setTourDataOpts(newOpts);
           }}
         />
       </Tags.AnotCrtPanelSec>
@@ -138,18 +167,18 @@ export default function AnnotationCreatorPanel(props: IProps) {
             height: '18px',
             width: '18px',
             borderRadius: '18px',
-            background: theme.primaryColor,
+            background: opts.primaryColor,
             marginRight: '0.5rem',
             marginLeft: '0.5rem'
           }}
           />
           <Input
-            defaultValue={theme.primaryColor}
+            defaultValue={opts.primaryColor}
             style={{ ...commonInputStyles, width: '120px' }}
             size="small"
             bordered={false}
             onBlur={e => {
-              setTheme(t => updateGlobalThemeConfig(t, 'primaryColor', e.target.value));
+              setTourDataOpts(o => updateTourDataOpts(o, 'primaryColor', e.target.value));
             }}
           />
         </div>
@@ -158,7 +187,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
         <GTags.Txt className="title2">Buttons</GTags.Txt>
         <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
           {config.buttons.map(btnConf => {
-            const primaryColor = theme.primaryColor;
+            const primaryColor = opts.primaryColor;
             return (
               <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''}>
                 <div className="a-head">
@@ -247,8 +276,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                           on: 'click',
                                                           target: '$this',
                                                           actionType: 'navigate',
-                                                          actionValue:
-                                                            `${props.screen.id}/${config.refId}`,
+                                                          actionValue: qualifiedAnnotationId,
                                                         } as ITourEntityHotspot
                                                       );
                                                       props.onSideEffectConfigChange(
@@ -270,8 +298,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                           on: 'click',
                                                           target: '$this',
                                                           actionType: 'navigate',
-                                                          actionValue:
-                                                            `${props.screen.id}/${config.refId}`,
+                                                          actionValue: qualifiedAnnotationId,
                                                         } as ITourEntityHotspot
                                                       );
                                                       props.onSideEffectConfigChange(

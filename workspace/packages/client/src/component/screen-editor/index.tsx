@@ -1,7 +1,10 @@
 import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
 import {
   AnnotationPerScreen,
-  IAnnotationConfig, IAnnotationTheme, ScreenData, SerNode
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData,
+  SerNode
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
@@ -39,7 +42,7 @@ import {
   NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import { getSampleConfig, getDefaultThemeConfig } from '../annotation/annotation-config-utils';
+import { getSampleConfig, getDefaultTourOpts } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 
 const browser = detect();
@@ -58,12 +61,12 @@ interface IOwnProps {
   screenData: ScreenData;
   allEdits: EditItem[];
   allAnnotationsForScreen: IAnnotationConfig[];
-  globalAnnotationTheme: IAnnotationTheme;
-  createDefaultAnnotation: (config: IAnnotationConfig, theme: IAnnotationTheme) => void;
+  tourDataOpts: ITourDataOpts;
+  createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
   onAnnotationCreateOrChange: (
     screenId: number | null,
     config: IAnnotationConfig,
-    theme: IAnnotationTheme | null
+    opts: ITourDataOpts | null
   ) => void;
   onScreenEditStart: () => void;
   toAnnotationId: string | undefined;
@@ -648,19 +651,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         const path = this.domElPicker?.elPath(state.selectedEl!);
         const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
         let conf: IAnnotationConfig;
-        let theme: IAnnotationTheme;
+        let opts: ITourDataOpts;
         if (existingAnnotaiton.length) {
           conf = existingAnnotaiton[0];
-          theme = this.props.globalAnnotationTheme;
-          this.showAnnotation(conf, theme);
+          opts = this.props.tourDataOpts;
+          this.showAnnotation(conf, opts);
         } else {
           conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
-          theme = this.props.globalAnnotationTheme || getDefaultThemeConfig();
+          opts = this.props.tourDataOpts || getDefaultTourOpts();
           this.props.createDefaultAnnotation(
             conf,
-            theme
+            opts
           );
-          this.showAnnotation(conf, theme);
+          this.showAnnotation(conf, opts);
         }
         return { selectedAnnotationId: conf.id };
       });
@@ -950,7 +953,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           this.annotationLCM!.hide();
                           this.setState({ selectedAnnotationId: '' });
                         } else {
-                          this.showAnnotation(config, this.props.globalAnnotationTheme);
+                          this.showAnnotation(config, this.props.tourDataOpts);
                           this.setState({ selectedAnnotationId: config.id });
                         }
                       }}
@@ -961,15 +964,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       <div style={{ marginTop: '0.5rem', color: 'black' }}>
                         <AnnotationCreatorPanel
                           config={config}
-                          globalThemeConfig={this.props.globalAnnotationTheme}
+                          opts={this.props.tourDataOpts}
                           allAnnotationsForTour={this.props.allAnnotationsForTour}
                           screen={this.props.screen}
                           onSideEffectConfigChange={(screenId: number, c: IAnnotationConfig) => {
                             this.props.onAnnotationCreateOrChange(screenId, c, null);
                           }}
-                          onConfigChange={async (conf, theme) => {
-                            this.showAnnotation(conf, theme);
-                            this.props.onAnnotationCreateOrChange(null, conf, theme);
+                          onConfigChange={async (conf, opts) => {
+                            this.showAnnotation(conf, opts);
+                            this.props.onAnnotationCreateOrChange(null, conf, opts);
                           }}
                         />
                       </div>
@@ -984,11 +987,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   reachAnnotation(id: string | undefined) {
-    console.log('called to reach annoitation');
     if (id) {
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
-        this.showAnnotation(an, this.props.globalAnnotationTheme);
+        this.showAnnotation(an, this.props.tourDataOpts);
         this.setState({ selectedAnnotationId: an.id });
       } else {
         // throw new Error(`Annotation with id ${id} requested but not found`);
@@ -996,13 +998,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  async showAnnotation(conf: IAnnotationConfig, theme: IAnnotationTheme) {
+  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
     const targetEl = this.domElPicker!.elFromPath(conf.id);
     this.annotationLCM!.show();
     await this.annotationLCM!.addOrReplaceAnnotation(
       targetEl as HTMLElement,
       conf,
-      theme,
+      opts,
       true
     );
   }
