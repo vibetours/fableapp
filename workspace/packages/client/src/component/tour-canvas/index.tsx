@@ -68,17 +68,17 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
     canvasData.current = stopPan(canvasData.current);
   };
 
-  function handleMouseStart(event: React.MouseEvent) {
+  const handleMouseStart = (event: React.MouseEvent) => {
     startPanning(event);
-  }
+  };
 
-  function handleMouseMove(event: React.MouseEvent) {
+  const handleMouseMove = (event: React.MouseEvent) => {
     updatePanning(event);
-  }
+  };
 
-  function handleMouseEnd() {
+  const handleMouseEnd = () => {
     stopPanning();
-  }
+  };
 
   useEffect(() => {
     if (svgRef.current) {
