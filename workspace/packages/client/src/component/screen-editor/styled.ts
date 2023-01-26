@@ -1,6 +1,7 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
+import Button from 'antd/lib/button';
 
 export const Con = styled.div`
   height: 100%;
@@ -12,7 +13,6 @@ export const Con = styled.div`
 `;
 
 export const EmbedCon = styled.div`
-  height: 100%;
   width: 77%;
   background: #fcfcfc;
   border-radius: 20px;
@@ -35,6 +35,7 @@ export const EditPanelCon = styled.div`
   width: 23%;
   min-width: 320px;
   display: flex;
+  flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
   border-top-right-radius: 20px;
@@ -45,7 +46,6 @@ export const EditPanelSec = styled.div`
   display: flex;
   padding: 1rem 0.75rem;
   flex-direction: column;
-  width: 100%;
 `;
 
 export const EditCtrlCon = styled.div`
@@ -111,3 +111,113 @@ export const ListActionBtn = styled.span`
     text-decoration: underline;
   }
 `;
+
+export const AnotCrtPanelCon = styled.div`
+  display: flex;
+  padding: 0.75rem;
+  border-radius: 8px;
+  flex-direction: column;
+`;
+
+export const AnotCrtPanelSec = styled.div`
+  display: flex;
+  flex-direction: ${(p: AnotPanelSecOri) => (p.row ? 'row' : 'column')};
+  align-items: ${(p: AnotPanelSecOri) => (p.row ? 'center' : 'unset')};
+  justify-content: ${(p: AnotPanelSecOri) => (p.row ? 'space-between' : 'unset')};
+  width: 100%;
+  margin-bottom: 0.75rem;
+`;
+
+export const AnotCrtPanelSecLabel = styled.div`
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  & > div:first-child {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    span {
+      widht: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: #FF7450;
+      margin-right: 0.6rem;
+    }
+  }
+`;
+
+export const AABtnCtrlLine = styled.div`
+ display: flex;
+ flex-direction: column;
+ margin-bottom: 0.15rem;
+ margin-top: 0.15rem;
+ padding: 0.15rem;
+ border-radius: 4px;
+
+
+ .a-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between ;
+ }
+
+ .n-vis {
+   visibility: hidden;
+ }
+
+ .n-details {
+  padding: 0.15rem;
+  margin: 0.15rem;
+ }
+
+ &:hover {
+  .n-vis {
+    visibility: visible;
+  }
+ }
+
+ &.sel {
+  /* background: #f5f5f5; */
+ }
+`;
+
+export const AnnotationLI = styled.div`
+  margin: 0.25rem;
+  background: #F9F9F9;
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  color: #16023E;
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+export const AnnotationHotspotSelector = styled.div`
+  max-width: 400px;
+  margin: 0.25rem 0rem;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+
+  &:hover {
+    cursor: pointer;
+    box-shadow:  0 0 0 1px #7666ff;
+  }
+`;
+
+export const ButtonSecCon = styled.div`
+  display: flex;
+  & > *:not(:last-child) {
+    margin-right: 0.5rem;
+  }
+`;
+
+interface AnotPanelSecOri {
+  row?: boolean;
+}

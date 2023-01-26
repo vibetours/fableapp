@@ -1,9 +1,16 @@
 export enum Mode {
+  EmptyMode,
+  SelectScreenMode,
+  CanvasMode,
+}
+
+export enum CanvasMode {
   SelectMode,
   PanMode,
   ConnectMode,
   EmptyMode,
   SelectScreenMode,
+  DragMode,
 }
 
 export type CanvasData = {
@@ -40,10 +47,38 @@ export type Point = {
   y: number;
 };
 
+export type Line = {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+};
+
+export type Screen = {
+  id: string;
+  screenId: number;
+  screenRid: string;
+  screenHref: string;
+  annotationText: string;
+  annotationId: string;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  annotation: any;
+};
+
+export type Connector = {
+  from: string;
+  to: string;
+  points: Point[];
+};
+
 export type ElementCoords = {
   x: number;
   y: number;
   width: number;
+  height: number;
 };
 
 export type ConnectorData = {
@@ -51,12 +86,19 @@ export type ConnectorData = {
   pointerOrigin: Point;
   line: Line;
   newLine: Line;
-  isImageConnecting: false;
+  isImageConnecting: boolean;
+  start: EndPoint;
+  end: EndPoint;
 };
 
-export type Line = {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+export type Conn = {
+  from: EndPoint;
+  to: EndPoint;
+  points: Point[];
+};
+
+export type EndPoint = {
+  element: number;
+  relY: number;
+  relX: number;
 };

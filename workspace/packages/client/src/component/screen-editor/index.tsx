@@ -1,25 +1,28 @@
-import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
-import { ScreenData, SerNode } from '@fable/common/dist/types';
+import { ApiResp, ResponseStatus, RespUploadUrl } from '@fable/common/dist/api-contract';
+import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { detect } from '@fable/common/dist/detect-browser';
 import Switch from 'antd/lib/switch';
 import {
+  DownOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
-  FontSizeOutlined,
-  PictureOutlined,
-  LoadingOutlined,
-  EditOutlined,
   FilterOutlined,
+  FontSizeOutlined,
+  LoadingOutlined,
+  PictureOutlined,
+  RightOutlined
 } from '@ant-design/icons';
+import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
 import {
   AllEdits,
+  AnnotationPerScreen,
   EditItem,
   EditValueEncoding,
   ElEditType,
@@ -33,7 +36,11 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
   IdxEncodingTypeText,
+  NavFn,
 } from '../../types';
+import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
+import { getDefaultTourOpts, getSampleConfig } from '../annotation/annotation-config-utils';
+import { P_RespScreen } from '../../entity-processor';
 
 const browser = detect();
 
@@ -46,16 +53,37 @@ const enum EditTargetType {
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
 interface IOwnProps {
-  screen: RespScreen;
+  playMode: boolean;
+  screen: P_RespScreen;
+  navigate: NavFn;
   screenData: ScreenData;
   allEdits: EditItem[];
+  allAnnotationsForScreen: IAnnotationConfig[];
+  tourDataOpts: ITourDataOpts;
+  createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
+  onAnnotationCreateOrChange: (
+    screenId: number | null,
+    config: IAnnotationConfig,
+    opts: ITourDataOpts | null
+  ) => void;
   onScreenEditStart: () => void;
+  toAnnotationId: string | undefined;
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
+  allAnnotationsForTour: AnnotationPerScreen[];
 }
+
+const enum ElSelReqType {
+  NA = 0,
+  EditEl,
+  AnnotateEl,
+}
+
 interface IOwnStateProps {
-  isInEditMode: boolean;
+  isInElSelectionMode: boolean;
+  elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
+  selectedAnnotationId: string;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
   editItemSelected: string;
@@ -77,18 +105,25 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private domElPicker: DomElPicker | null = null;
 
+  private annotationLCM: AnnotationLifecycleManager | null = null;
+
   private microEdits: AllEdits<ElEditType>;
+
+  private scaleFactor: number;
 
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
     this.microEdits = {};
+    this.scaleFactor = 1;
     this.state = {
-      isInEditMode: false,
+      isInElSelectionMode: false,
+      elSelRequestedBy: ElSelReqType.NA,
       selectedEl: null,
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
+      selectedAnnotationId: ''
     };
   }
 
@@ -166,30 +201,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       return el.src;
     }
     return '';
-  };
-
-  handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
-    const originalImgSrc = ScreenEditor.getOriginalImgSrc(imgEl);
-    const selectedImage = e.target.files[0];
-    if (!selectedImage) {
-      return;
-    }
-    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
-    if (!awsSignedUrl) {
-      //  TODO[error-handling] show error to user that something has gone wrong, try again later
-      return;
-    }
-    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
-    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
-
-    const path = ScreenEditor.elPath(imgEl, this.embedFrameRef?.current?.contentDocument!);
-    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
-    let origVal = imgEl.getAttribute(attrName);
-    if (origVal === null) {
-      origVal = originalImgSrc || '';
-      imgEl.setAttribute(attrName, origVal);
-    }
-    this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
   };
 
   static getBlurValueFromFilter(filterStr: string): number {
@@ -328,90 +339,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
-  static elFromPath(path: string, doc: Document) {
-    const elIdxs = path.split('.').map((id) => +id);
-    let node = doc as Node;
-    for (const id of elIdxs) {
-      node = node.childNodes[id];
+  handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
+    const originalImgSrc = ScreenEditor.getOriginalImgSrc(imgEl);
+    const selectedImage = e.target.files[0];
+    if (!selectedImage) {
+      return;
     }
-    return node;
-  }
-
-  static elPath(el: HTMLElement, doc: Document) {
-    let elPath = el.getAttribute('fab-el-path');
-    if (elPath === null) {
-      const path = ScreenEditor.calculatePathFromEl(el, doc, []);
-      elPath = path.join('.');
-      el.setAttribute('fab-el-path', elPath);
+    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
+    if (!awsSignedUrl) {
+      //  TODO[error-handling] show error to user that something has gone wrong, try again later
+      return;
     }
-    return elPath;
-  }
+    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
+    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
 
-  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
-    if (!el.parentNode) {
-      return loc.reverse();
+    const path = this.domElPicker!.elPath(imgEl);
+    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+    let origVal = imgEl.getAttribute(attrName);
+    if (origVal === null) {
+      origVal = originalImgSrc || '';
+      imgEl.setAttribute(attrName, origVal);
     }
-    const siblings = el.parentNode.childNodes;
-    for (let i = 0, l = siblings.length; i < l; i++) {
-      if (el === siblings[i]) {
-        loc.push(i);
-        return this.calculatePathFromEl(el.parentNode, doc, loc);
-      }
-    }
-    return loc;
-  }
-
-  private static applyEdits(allEdits: EditItem[], doc: Document) {
-    const mem: Record<string, Node> = {};
-    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
-    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
-    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
-    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
-    for (const edit of allEdits) {
-      const path = edit[IdxEditItem.PATH];
-      let el: Node;
-      if (path in mem) el = mem[path];
-      else {
-        el = ScreenEditor.elFromPath(path, doc);
-        mem[path] = el;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
-        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
-        const tEl = el as HTMLElement;
-        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
-        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
-        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
-        const tEl = el as HTMLImageElement;
-        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
-        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
-        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
-        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
-        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
-        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
-        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
-      }
-    }
-  }
-
-  disableClick(e: Event) {
-    e.preventDefault();
-  }
+    this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+  };
 
   createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
     const el = props.partOfSvgEl
@@ -513,7 +463,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
     const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
     const scale = Math.min(scaleX, scaleY);
-    const divPadding = 18;
+    this.scaleFactor = scale;
+    const divPadding = this.props.playMode ? 0 : 18;
     frame.style.transform = `scale(${scale})`;
     frame.style.transformOrigin = '0 0';
     frame.style.position = 'absolute';
@@ -542,12 +493,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             break;
           }
         }
-
-        ScreenEditor.applyEdits(this.props.allEdits, doc);
-        // Make the iframe visible after all the assets are loaded
-        Promise.all(this.assetLoadingPromises).then(() => {
-          frameBody.style.display = '';
-        });
+        if (frame && frame.contentDocument && frame.contentDocument.body) {
+          frame.contentDocument.body.style.display = 'none';
+        }
       } else {
         console.error("Can't find body of embed iframe");
       }
@@ -565,44 +513,114 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     frame.onload = () => {
       this.deserDomIntoFrame(frame);
-      this.initDomPicker();
+      /* requestAnimationFrame */setTimeout(() => {
+        const doc = frame.contentDocument;
+        const frameBody = doc?.body;
+        // Make the iframe visible after all the assets are loaded
+        Promise.all(this.assetLoadingPromises).then(() => {
+          // create a elative container that would contain all the falbe related els
+          if (frameBody) {
+            let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+            if (!umbrellaDiv) {
+              umbrellaDiv = doc.createElement('div');
+              umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+              umbrellaDiv.style.position = 'absolute';
+              umbrellaDiv.style.left = `${0}`;
+              umbrellaDiv.style.top = `${0}`;
+              frameBody.appendChild(umbrellaDiv);
+            }
+            this.initDomPickerAndAnnotationLCM();
+            this.applyEdits(this.props.allEdits);
+            frameBody.style.display = '';
+            this.reachAnnotation(this.props.toAnnotationId);
+          }
+        });
+        // this is a puma number for the following code to wait for the css to be aplied
+        // (not downloaded) we already wait for css downlod
+        // TODO Fix this deterministically
+      }, 300);
     };
 
     document.addEventListener('keydown', this.onKeyDown);
   }
 
   componentWillUnmount(): void {
-    this.disposeDomPicker();
+    this.disposeDomPickerAndAnnotationLCM();
     document.removeEventListener('keydown', this.onKeyDown);
   }
 
-  componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
-    if (prevState.isInEditMode !== this.state.isInEditMode) {
-      if (this.state.isInEditMode) {
+  async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
+    if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
+      this.reachAnnotation(this.props.toAnnotationId);
+    }
+
+    if (this.props.playMode) {
+      return;
+    }
+
+    if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
+      if (this.state.isInElSelectionMode) {
         this.props.onScreenEditStart();
         this.domElPicker?.enable();
       } else {
-        console.log('will stop editing');
         this.domElPicker?.disable();
         this.props.onScreenEditFinish();
       }
     }
 
+    let elJustSelected = false;
     if (prevState.selectedEl !== this.state.selectedEl) {
       if (this.state.selectedEl) {
+        elJustSelected = true;
         const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
         this.setState((state) => ({
           editTargetType: editTargetType.targetType,
           targetEl: editTargetType.target || state.selectedEl,
         }));
+
+        this.annotationLCM!.show();
       } else {
+        this.annotationLCM!.hide();
         this.setState(() => ({
           editTargetType: EditTargetType.None,
           targetEl: null,
         }));
       }
     } else {
-      console.log('same el is set twice???');
+      // TODO same el is set twice???
+    }
+
+    if ((this.state.selectedEl
+      && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
+      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+      // If elment is already selected and user just clicked on the "Add an annotaiton" button after
+      // the element is slected. This happens when user clicks on "Edit an element" first >> select
+      // the element >> click on "Add an annotaiton" button
+    ) || (
+      elJustSelected
+        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+        // this happens when user clicks on "Add an annotation" first
+    )) {
+      this.setState(state => {
+        const path = this.domElPicker?.elPath(state.selectedEl!);
+        const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
+        let conf: IAnnotationConfig;
+        let opts: ITourDataOpts;
+        if (existingAnnotaiton.length) {
+          conf = existingAnnotaiton[0];
+          opts = this.props.tourDataOpts;
+          this.showAnnotation(conf, opts);
+        } else {
+          conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
+          opts = this.props.tourDataOpts || getDefaultTourOpts();
+          this.props.createDefaultAnnotation(
+            conf,
+            opts
+          );
+          this.showAnnotation(conf, opts);
+        }
+        return { selectedAnnotationId: conf.id };
+      });
     }
   }
 
@@ -618,7 +636,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             size="small"
             onChange={((t) => (checked) => {
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const path = this.domElPicker!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
 
               const savedOrigVal = t.getAttribute(attrName);
@@ -649,7 +667,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onChange={((t) => (checked) => {
               const filterStyle = getComputedStyle(t).filter;
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+              const path = this.domElPicker!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
               const origStrVal = refEl.getAttribute(attrName);
 
@@ -721,7 +739,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
                   const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-                  const path = ScreenEditor.elPath(refEl, this.embedFrameRef?.current?.contentDocument!);
+                  const path = this.domElPicker!.elPath(refEl);
                   const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
                   let origVal = refEl.getAttribute(attrName);
                   if (origVal === null) {
@@ -755,6 +773,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   render(): React.ReactNode {
+    if (this.props.playMode) {
+      return (
+        <Tags.Con>
+          <Tags.EmbedCon style={{
+            overflow: 'hidden',
+            position: 'relative',
+            height: '100%',
+            width: '100%',
+            padding: '0',
+            margin: '0',
+            background: 'none',
+          }}
+          >
+            <Tags.EmbedFrame
+              src="about:blank"
+              title={this.props.screen.displayName}
+              ref={this.embedFrameRef}
+              srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
+            />
+          </Tags.EmbedCon>
+        </Tags.Con>
+      );
+    }
     return (
       <Tags.Con>
         <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
@@ -765,7 +806,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
           />
         </Tags.EmbedCon>
-        <Tags.EditPanelCon>
+        <Tags.EditPanelCon style={{ overflowY: 'auto' }}>
           <Tags.EditPanelSec>
             <div
               style={{
@@ -774,7 +815,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 marginBottom: '1.25rem',
               }}
             >
-              <GTags.Txt className="title">Edit Screen</GTags.Txt>
+              <GTags.Txt className="title">Edit Screen {this.state.selectedEl ? '' : 'or Add annotations'}</GTags.Txt>
             </div>
             <div
               style={{
@@ -784,38 +825,62 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 marginBottom: '1.75rem',
               }}
             >
-              <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
-                {!this.state.isInEditMode ? (
-                  'You can edit the screen by changing text, uploading new images, hiding or blurring elements etc.'
-                ) : this.state.selectedEl === null ? (
-                  <>
-                    Click an element in the screen to see the edit options. Press <span className="kb-key">Esc</span> to
-                    exit from edit mode.
-                  </>
-                ) : (
-                  <>
-                    You are now editing the selected element. Press <span className="kb-key">Esc</span> to complete
-                    editing.
-                  </>
-                )}
-              </GTags.Txt>
-              {!this.state.isInEditMode && (
-                <Btn icon="plus" onClick={() => this.setState({ isInEditMode: true })}>
-                  Click here to start editing
-                </Btn>
+              {!this.state.isInElSelectionMode ? (
+                <>
+                  <GTags.Txt className="subhead" style={{ margin: '0rem 0 .5rem' }}>
+                    You can edit the screen by changing text, uploading new images, hiding or blurring elements etc
+                  </GTags.Txt>
+                  <Btn
+                    icon="edit"
+                    type="link"
+                    onClick={() => this.setState({ isInElSelectionMode: true, elSelRequestedBy: ElSelReqType.EditEl })}
+                  >
+                    Start Editing
+                  </Btn>
+                  <GTags.Txt className="subhead" style={{ margin: '1.5rem 0 .5rem' }}>
+                    You can add annotation to an element to start creating a guided tour of your product
+                  </GTags.Txt>
+                  <Btn
+                    type="primary"
+                    icon="plus"
+                    onClick={() => this.setState({
+                      isInElSelectionMode: true,
+                      elSelRequestedBy: ElSelReqType.AnnotateEl,
+                    })}
+                  >
+                    Add an annotation
+                  </Btn>
+                </>
+              ) : (
+                <>
+                  {this.state.selectedEl === null ? (
+                    <GTags.Txt className="subhead">
+                      {this.state.elSelRequestedBy === ElSelReqType.EditEl
+                        ? 'Click an element in the screen to see the edit options.\n'
+                        : 'Click an element in the screen to add annotations.'}
+                      Press <span className="kb-key">Esc</span> to exit from edit mode.
+                    </GTags.Txt>
+                  ) : (
+
+                    <GTags.Txt className="subhead">
+                      You are now editing the selected element. Press <span className="kb-key">Esc</span> to complete
+                      editing.
+                    </GTags.Txt>
+                  )}
+                </>
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
             {this.props.screen.parentScreenId !== 0
               && this.props.allEdits
-                .sort((m, n) => n[IdxEditItem.TIMESTAMP] - m[IdxEditItem.TIMESTAMP])
                 .map((e) => (
                   <Tags.EditLIPCon
                     key={e[IdxEditItem.KEY]}
                     onClick={((edit) => (evt) => {
                       this.setState({
                         editItemSelected: e[IdxEditItem.KEY],
-                        isInEditMode: true,
+                        isInElSelectionMode: true,
+                        elSelRequestedBy: ElSelReqType.EditEl,
                       });
                       this.highlightElementForPath(edit[IdxEditItem.PATH]);
                     })(e)}
@@ -831,8 +896,101 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   </Tags.EditLIPCon>
                 ))}
           </Tags.EditPanelSec>
+          {this.state.selectedEl && this.state.elSelRequestedBy !== ElSelReqType.AnnotateEl && (
+            <Tags.EditPanelSec>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <GTags.Txt className="title">Add an annotation</GTags.Txt>
+                <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
+                  Annotations are guide to your product mean to get your user acquiented with your product.
+                </GTags.Txt>
+                <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
+                  Add an annotation
+                </Btn>
+              </div>
+            </Tags.EditPanelSec>
+          )}
+          {this.props.allAnnotationsForScreen.length > 0 && (
+            <Tags.EditPanelSec>
+              <GTags.Txt>Annotations applied on page</GTags.Txt>
+              {this.props.screen.parentScreenId !== 0
+                && this.props.allAnnotationsForScreen.map(config => (
+                  <Tags.AnnotationLI
+                    key={config.id}
+                  >
+                    <Tags.AnotCrtPanelSecLabel
+                      style={{ display: 'flex' }}
+                      onClick={(e) => {
+                        if (this.state.selectedAnnotationId === config.id) {
+                          this.annotationLCM!.hide();
+                          this.setState({ selectedAnnotationId: '' });
+                        } else {
+                          this.showAnnotation(config, this.props.tourDataOpts);
+                          this.setState({ selectedAnnotationId: config.id });
+                        }
+                      }}
+                    >
+
+                      <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
+                        {config.bodyContent}
+                      </GTags.Txt>
+                      {
+                        this.state.selectedAnnotationId === config.id
+                          ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                          : <RightOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                      }
+                    </Tags.AnotCrtPanelSecLabel>
+                    {this.state.selectedAnnotationId === config.id && (
+                      <div style={{ color: 'black' }}>
+                        <AnnotationCreatorPanel
+                          config={config}
+                          opts={this.props.tourDataOpts}
+                          allAnnotationsForTour={this.props.allAnnotationsForTour}
+                          screen={this.props.screen}
+                          onSideEffectConfigChange={(screenId: number, c: IAnnotationConfig) => {
+                            this.props.onAnnotationCreateOrChange(screenId, c, null);
+                          }}
+                          onConfigChange={async (conf, opts) => {
+                            this.showAnnotation(conf, opts);
+                            this.props.onAnnotationCreateOrChange(null, conf, opts);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </Tags.AnnotationLI>
+                ))}
+            </Tags.EditPanelSec>
+          )}
         </Tags.EditPanelCon>
       </Tags.Con>
+    );
+  }
+
+  reachAnnotation(id: string | undefined) {
+    if (id) {
+      const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
+      if (an) {
+        this.showAnnotation(an, this.props.tourDataOpts);
+        this.setState({ selectedAnnotationId: an.id });
+      } else {
+        // throw new Error(`Annotation with id ${id} requested but not found`);
+      }
+    }
+  }
+
+  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
+    const targetEl = this.annotationLCM!.elFromPath(conf.id);
+    this.annotationLCM!.show();
+    await this.annotationLCM!.addOrReplaceAnnotation(
+      targetEl as HTMLElement,
+      conf,
+      opts,
+      true
     );
   }
 
@@ -841,7 +999,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!doc) {
       throw new Error('Iframe doc is not found while resolving element from path');
     }
-    const el = ScreenEditor.elFromPath(path, doc) as HTMLElement;
+    const el = this.domElPicker!.elFromPath(path) as HTMLElement;
     if (!el) {
       throw new Error(`Could not resolve element from path ${path}`);
     }
@@ -858,21 +1016,73 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }, 3 * 16);
   }
 
+  private applyEdits(allEdits: EditItem[]) {
+    const mem: Record<string, Node> = {};
+    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
+    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
+    for (const edit of allEdits) {
+      const path = edit[IdxEditItem.PATH];
+      let el: Node;
+      if (path in mem) el = mem[path];
+      else {
+        el = this.annotationLCM!.elFromPath(path);
+        mem[path] = el;
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+        const tEl = el as HTMLElement;
+        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
+        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
+        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
+        const tEl = el as HTMLImageElement;
+        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
+        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
+        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
+        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
+        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
+        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
+        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
+      }
+    }
+  }
+
   private onMouseOutOfIframe = (e: MouseEvent) => {
     this.domElPicker?.disable();
   };
 
   private onMouseEnterOnIframe = (e: MouseEvent) => {
-    this.state.isInEditMode && this.domElPicker?.enable();
+    this.state.isInElSelectionMode && this.domElPicker?.enable();
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
+      // TODO handle pin mode and annotation selection
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
+        this.setState({ elSelRequestedBy: ElSelReqType.NA });
       } else {
-        this.setState({ isInEditMode: false });
+        this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
+      this.setState({ selectedAnnotationId: '' });
+      this.annotationLCM!.hide();
 
       if (this.state.editItemSelected !== '') {
         this.setState({ editItemSelected: '' });
@@ -888,17 +1098,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     edits[editType] = edit;
   }
 
-  private disposeDomPicker() {
+  private disposeDomPickerAndAnnotationLCM() {
     this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
     this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
     if (this.domElPicker) {
       this.domElPicker.dispose();
       this.domElPicker = null;
     }
+    if (this.annotationLCM) {
+      this.annotationLCM.dispose();
+      this.annotationLCM = null;
+    }
   }
 
-  private onElSelect = (el: HTMLElement, doc: Document) => {
-    ScreenEditor.elPath(el, doc);
+  private onElSelect = (el: HTMLElement, _doc: Document) => {
+    this.domElPicker!.elPath(el);
     this.setState({ selectedEl: el });
   };
 
@@ -907,11 +1121,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: null });
   };
 
-  private initDomPicker() {
-    requestAnimationFrame(() => {
-      const el = this.embedFrameRef?.current;
-      let doc;
-      if ((doc = el?.contentDocument) && !this.domElPicker) {
+  private initDomPickerAndAnnotationLCM() {
+    const el = this.embedFrameRef?.current;
+    let doc;
+    if (doc = el?.contentDocument) {
+      if (!this.props.playMode && !this.domElPicker) {
         this.domElPicker = new DomElPicker(doc, {
           onElSelect: this.onElSelect,
           onElDeSelect: this.onElDeSelect,
@@ -921,9 +1135,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
         el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
-      } else {
-        console.error('Iframe doc not found');
       }
-    });
+
+      if (!this.annotationLCM) {
+        this.annotationLCM = new AnnotationLifecycleManager(doc, {
+          scaleFactor: this.scaleFactor,
+          navigate: this.props.navigate,
+          isPlayMode: this.props.playMode,
+        });
+      }
+    } else {
+      console.error('Iframe doc not found');
+    }
   }
 }

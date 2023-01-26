@@ -6,14 +6,12 @@ export const Con = styled.div`
   background-color: ${(props) => props.theme.colors.dark.idle.background};
   color: ${(props) => props.theme.colors.dark.idle.color};
   border-radius: 0 24px 24px 0;
-  padding: 1.8rem 0;
   display: flex;
   flex-direction: column;
   overflow-y: hidden;
 `;
 
 export const ConLogo = styled.div`
-  width: 100%;
   padding-left: 2rem;
 `;
 
@@ -39,6 +37,7 @@ export const ConNavBtn = styled(Link)`
   transition: all 0.3s ease-out;
   position: relative;
   color: #fff;
+  text-decoration: none;
 
   &:hover,
   &.selected {

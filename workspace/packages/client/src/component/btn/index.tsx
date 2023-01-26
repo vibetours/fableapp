@@ -1,9 +1,10 @@
 import React, { MouseEventHandler } from 'react';
 import Button, { ButtonType } from 'antd/lib/button';
+import { EditOutlined, PlusOutlined } from '@ant-design/icons';
 import plusOutlined from '../../assets/plus-outlined.svg';
 
 interface IProps {
-  icon?: 'plus';
+  icon?: 'plus' | 'edit';
   children: React.ReactNode;
   onClick?: MouseEventHandler<HTMLButtonElement> & MouseEventHandler<HTMLAnchorElement>;
   type?: ButtonType;
@@ -14,30 +15,19 @@ export default function Btn(props: IProps) {
   if (props.icon === 'plus') {
     icon = plusOutlined;
   }
+
+  let iconEl;
+  if (props.icon === 'plus') iconEl = <PlusOutlined />;
+  else if (props.icon === 'edit') iconEl = <EditOutlined />;
+
   return (
     <Button
       onClick={props.onClick}
-      type="link"
-      icon={
-        icon && (
-          <img
-            src={icon}
-            alt=""
-            style={{
-              height: '14px',
-              width: '14px',
-              marginRight: '0.5rem',
-            }}
-          />
-        )
-      }
-      size="large"
+      type={props.type}
+      icon={iconEl}
+      size="middle"
       style={{
-        fontWeight: '600',
-        border: '1px solid #16023E',
-        display: 'flex',
-        alignItems: 'center',
-        alignSelf: 'center',
+        margin: '0 1rem '
       }}
     >
       {props.children}

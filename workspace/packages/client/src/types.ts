@@ -1,3 +1,6 @@
+import { IAnnotationConfig } from '@fable/common/dist/types';
+import { P_RespScreen } from './entity-processor';
+
 export const enum ElEditType {
   Text = 1,
   Image,
@@ -21,7 +24,13 @@ export const enum IdxEncodingTypeImage {
   WIDTH,
 }
 
-export type EncodingTypeBlur = [timeInSec: number, oldBlurValue: number, newBlurValue: number, oldFilterPropertyValue: string, newFilterPropertyValue: string];
+export type EncodingTypeBlur = [
+  timeInSec: number,
+  oldBlurValue: number,
+  newBlurValue: number,
+  oldFilterPropertyValue: string,
+  newFilterPropertyValue: string
+];
 export const enum IdxEncodingTypeBlur {
   TIMESTAMP = 0,
   OLD_BLUR_VALUE,
@@ -69,3 +78,6 @@ export const enum IdxEditItem {
   TIMESTAMP,
   ENCODING,
 }
+
+export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;
+export type AnnotationPerScreen = {screen: P_RespScreen, annotations: IAnnotationConfig[]};

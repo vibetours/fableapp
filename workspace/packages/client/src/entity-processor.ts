@@ -1,8 +1,15 @@
-import { RespScreen, RespTour, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
-import { getDisplayableTime } from '@fable/common/dist/utils';
-import { TourData } from '@fable/common/dist/types';
+import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
+import {
+  IAnnotationConfig,
+  ITourDataOpts,
+  TourData,
+  TourDataWoScheme,
+  TourScreenEntity
+} from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AllEdits, EditItem, ElEditType } from './types';
+import { getDefaultTourOpts } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -23,7 +30,7 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.dataFileName}`),
-    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}`),
+    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash}/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
     related: [],
   };
 }
@@ -81,18 +88,28 @@ export interface P_RespTour extends RespTour {
   dataFileUri: URL;
   displayableUpdatedAt: string;
   isPlaceholder: boolean;
+  screens?: P_RespScreen[];
 }
 
-export function processRawTourData(tour: RespTour, state: TState, isPlaceholder = false): P_RespTour {
+export function processRawTourData(
+  tour: RespTour | RespTourWithScreens,
+  state: TState,
+  isPlaceholder = false
+): P_RespTour {
   const d = new Date(tour.updatedAt);
+
+  let tTour;
+  if ((tTour = (tour as RespTourWithScreens)).screens) {
+    tTour.screens = tTour.screens.map(s => processRawScreenData(s, state));
+  }
   return {
     ...tour,
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
     displayableUpdatedAt: getDisplayableTime(d),
-    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${state.default.commonConfig?.dataFileName}`),
+    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.dataFileName}?ts=${+new Date()}`),
     isPlaceholder,
-  };
+  } as P_RespTour;
 }
 
 export function createEmptyTour(): RespTour {
@@ -114,9 +131,48 @@ export function createEmptyTourDataFile(): TourData {
   return {
     v: SchemaVersion.V1,
     lastUpdatedAtUtc: -1,
-    main: '',
-    entities: [],
+    opts: getDefaultTourOpts(),
+    entities: {},
   };
+}
+
+export function getThemeAndAnnotationFromDataFile(data: TourData, syncPending: boolean): {
+  annotations: Record<string, IAnnotationConfig[]>,
+  opts: ITourDataOpts,
+} {
+  const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
+  for (const [screenId, entity] of Object.entries(data.entities)) {
+    if (entity.type === 'screen') {
+      const annotationList = annotationsPerScreen[screenId] || [];
+      const screenEntity = entity as TourScreenEntity;
+      for (const [, annotation] of Object.entries(screenEntity.annotations)) {
+        annotation.syncPending = syncPending;
+        annotationList.push(annotation);
+      }
+      annotationsPerScreen[screenId] = annotationList;
+    }
+  }
+
+  return {
+    annotations: annotationsPerScreen,
+    opts: data.opts
+  };
+}
+
+export function normalizeTourDataFile(data: TourData) {
+  if (!data.opts) {
+    data.opts = getDefaultTourOpts();
+  }
+  if ('main' in data) {
+    delete (data as any).main;
+  }
+  if ('theme' in data) {
+    delete (data as any).theme;
+  }
+  if (!data.entities || data.entities instanceof Array) {
+    data.entities = {};
+  }
+  return data;
 }
 
 /* ************************************************************************* */
@@ -135,6 +191,58 @@ export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits
 
   return master;
 }
+
+export function mergeTourData(
+  master: TourDataWoScheme,
+  incoming: Partial<TourDataWoScheme>,
+): TourDataWoScheme {
+  const inOb = deepcopy(incoming) as any;
+
+  // only support merging primitive value, array, js objects
+  function recMerge(to: any, from: any) {
+    for (const [key, value] of Object.entries(from)) {
+      // TODO this is plain old wrong. SyncPending is a local key to
+      // detect if annotation edit is synced. While merging we conditionally
+      // delete this. This is done in the interest of the time. Ideally this
+      // should be handled like chunk edit
+      if (value === null) {
+        delete to[key];
+      } if (value === undefined) {
+        continue;
+      }
+
+      if (key === 'createdAt' && typeof from[key] === 'number') {
+        continue;
+      }
+
+      if (typeof value === 'object') {
+        if (typeof to[key] !== 'object') {
+          to[key] = deepcopy(value);
+        } else if (value instanceof Array) {
+          // Recursive merge inside array is not yet supported, not needed right now
+          to[key] = deepcopy(value);
+        } else /* both are js object */ {
+          recMerge(to[key], from[key]);
+        }
+      } else {
+        to[key] = value;
+      }
+    }
+  }
+  const m = deepcopy(master);
+  recMerge(m, inOb);
+  return m;
+}
+
+// if (incoming.id in master) {
+//   const annotationsInMaster = master[incoming.id].annotations;
+//   for (const [id, annotationConfig] of Object.entries(incoming.annotations)) {
+//     annotationsInMaster[id] = annotationConfig;
+//   }
+// } else {
+//   master[incoming.id] = incoming;
+// }
+// return master;
 
 export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
   const editList: EditItem[] = [];

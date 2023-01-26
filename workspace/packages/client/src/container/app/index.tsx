@@ -50,6 +50,9 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="/screen/:screenId" element={<TourEditor />} />
             <Route path="/tour/:tourId" element={<TourEditor />} />
             <Route path="/tour/:tourId/:screenId" element={<TourEditor />} />
+            <Route path="/tour/:tourId/:screenId/:annotationId" element={<TourEditor />} />
+            <Route path="p/tour/:tourId" element={<TourEditor playMode />} />
+            <Route path="p/tour/:tourId/:screenId/:annotationId" element={<TourEditor playMode />} />
           </Routes>
         </div>
       </Router>

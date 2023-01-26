@@ -15,15 +15,25 @@ export const RowCon = styled.div`
 `;
 
 export const Txt = styled.div`
+  color: #16023E;
   &.head {
     font-size: ${(props) => props.theme.typography.size.heading};
     font-weight: bold;
   }
 
+  &.editable {
+    cursor: text;
+  }
+
+    &.editable:hover {
+      box-shadow: 0 0 0 1px blue;
+    }
+
   &.subhead {
     opacity: 0.65;
     line-height: 1.1rem;
     margin-top: 0.25rem;
+    white-space: pre-line;
   }
 
   &.subsubhead {
@@ -37,6 +47,10 @@ export const Txt = styled.div`
     font-weight: 600;
   }
 
+  &.title2 {
+    font-weight: 600;
+  }
+
   &.link {
     &:hover {
       text-decoration: underline;
@@ -46,6 +60,15 @@ export const Txt = styled.div`
 
   &.faded {
     opacity: 0.65;
+  }
+
+  &.markeditable {
+    cursor: text;
+  }
+
+  &.markeditable:hover {
+    box-shadow: 0 0 0 1px black;
+    background: #D0D0FF;
   }
 
   &.oneline {
@@ -70,8 +93,7 @@ export const Txt = styled.div`
 `;
 
 export const BodyCon = styled.div`
-  width: 100%;
-  overflow-y: auto;
+  overflow-y: hidden;
   padding: 0.25rem 2rem;
   display: flex;
   flex-direction: column;
@@ -84,7 +106,7 @@ export const BodyCon = styled.div`
 
 export const SidePanelCon = styled.div`
   height: 100%;
-  width: 30%;
+  /* width: 30%; */
   max-width: 285px;
   min-width: 230px;
 `;

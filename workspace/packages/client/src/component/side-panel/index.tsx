@@ -14,7 +14,7 @@ interface Props {
 export default function SidePanel(props: Props): JSX.Element {
   return (
     <Tags.Con>
-      <Tags.ConLogo>
+      <Tags.ConLogo style={{ marginTop: '1.8rem' }}>
         <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
       </Tags.ConLogo>
       <Tags.ConNav>
@@ -35,7 +35,7 @@ export default function SidePanel(props: Props): JSX.Element {
           <p>Analytics</p>
         </Tags.ConNavBtn>
       </Tags.ConNav>
-      <Tags.Footer>
+      <Tags.Footer style={{ marginBottom: '1.8rem' }}>
         <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>
           <Tags.FooterItemProfileIcon src={iconSettings} alt="illustration setting" />
           <p>Settings</p>

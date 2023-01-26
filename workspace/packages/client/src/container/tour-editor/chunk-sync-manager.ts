@@ -63,6 +63,8 @@ export default class ChunkSyncManager {
     }
   }
 
+  // TODO this function does not wait to check if the server has failed to receive the data
+  //      Edits could be lost when there if the server is not available
   poll = () => {
     for (const key of Object.keys(this.lookupKeys)) {
       const val = localStorage.getItem(key);

@@ -8,12 +8,20 @@ import {
   ReqCopyScreen,
   ReqNewTour,
   ReqRecordEdit,
+  ReqRenameTour,
   RespCommonConfig,
   RespScreen,
   RespTour,
 } from '@fable/common/dist/api-contract';
 import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
-import { EditFile, ScreenData, TourData } from '@fable/common/dist/types';
+import {
+  EditFile,
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData,
+  TourData,
+  TourDataWoScheme
+} from '@fable/common/dist/types';
 import {
   convertEditsToLineItems,
   createEmptyTour,
@@ -24,6 +32,9 @@ import {
   P_RespTour,
   processRawScreenData,
   processRawTourData,
+  normalizeTourDataFile,
+  mergeTourData,
+  getThemeAndAnnotationFromDataFile,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import ActionType from './type';
@@ -39,14 +50,17 @@ export interface TGenericLoading {
 export interface TGetAllScreens {
   type: ActionType.ALL_SCREENS_RETRIEVED;
   screens: Array<P_RespScreen>;
+  flattenedScreens: Array<P_RespScreen>;
 }
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
     const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
+    const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
-      screens: groupScreens(data.data.map((d: RespScreen) => processRawScreenData(d, getState()))),
+      screens: groupScreens(pScreens),
+      flattenedScreens: pScreens,
     });
   };
 }
@@ -135,7 +149,7 @@ export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = fal
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen) {
+export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen, refresh = false) {
   return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
     const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
       auth: true,
@@ -159,7 +173,12 @@ export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScr
       remoteEdits: [],
       isScreenInPreviewMode: false,
     });
-    window.history.replaceState(null, tour.displayName, `/tour/${tour.rid}/${screen.rid}`);
+    const uri = `/tour/${tour.rid}/${screen.rid}`;
+    if (refresh) {
+      window.history.replaceState(null, tour.displayName, uri);
+    } else {
+      window.location.replace(uri);
+    }
   };
 }
 
@@ -202,7 +221,6 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
         description,
       },
     });
-    await sleep(3000);
     const tour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,
@@ -214,16 +232,37 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
 
 /* ************************************************************************* */
 
+export function renameTour(tour: P_RespTour, newVal: string) {
+  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
+    const data = await api<ReqRenameTour, ApiResp<RespTour>>('/renametour', {
+      auth: true,
+      body: {
+        newName: newVal,
+        rid: tour.rid,
+      },
+    });
+    const renamedTour = processRawTourData(data.data, getState());
+    dispatch({
+      type: ActionType.TOUR,
+      tour: renamedTour,
+      performedAction: 'rename',
+    });
+  };
+}
+
 export interface TTourWithData {
   type: ActionType.TOUR_AND_DATA_LOADED;
   tour: P_RespTour;
   tourData: TourData;
+  annotations: Record<string, IAnnotationConfig[]>;
+  opts: ITourDataOpts;
+  allCorrespondingScreens: boolean,
 }
 
-export function loadTourAndData(tourRid: string) {
+export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const state = getState();
-    let tour: RespTour | null = null;
+    let tour: P_RespTour | null = null;
     let isTourFound = false;
     for (const t of state.default.tours) {
       if (t.rid === tourRid) {
@@ -234,25 +273,23 @@ export function loadTourAndData(tourRid: string) {
     }
     if (!isTourFound) {
       try {
-        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}`);
-        tour = data.data;
+        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
+        tour = processRawTourData(data.data, state);
       } catch (e) {
         console.error(e);
       }
     }
     if (tour) {
-      // We don't save the data of the screen in screen object
-      // As with more and more screen and more and more screen interaction if js holds the data
-      // that could crate lag in the browser's tab for less powerful device.
-      // The data would be cached in disk any way and browser would not make another call to the data file and instead
-      // return from disk cache
-      const commonConfig = state.default.commonConfig!;
-      const url = `${commonConfig.tourAssetPath}${tour.assetPrefixHash}/${commonConfig.dataFileName}`;
-      const data = await api<null, TourData>(url);
+      const data = await api<null, TourData>(tour.dataFileUri.href);
+      const nData = normalizeTourDataFile(data);
+      const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData, true);
       dispatch({
         type: ActionType.TOUR_AND_DATA_LOADED,
-        tourData: data,
+        tourData: nData,
         tour: processRawTourData(tour, getState()),
+        annotations: annotationAndOpts.annotations,
+        opts: annotationAndOpts.opts,
+        allCorrespondingScreens: shouldGetScreens,
       });
     } else {
       // TODO error
@@ -264,11 +301,15 @@ export function createPlaceholderTour() {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const tour = createEmptyTour();
     const data = createEmptyTourDataFile();
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
 
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
       tour: processRawTourData(tour, getState(), true),
+      annotations: annotationAndOpts.annotations,
+      opts: annotationAndOpts.opts,
+      allCorrespondingScreens: false,
     });
   };
 }
@@ -328,7 +369,7 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
         savedEditData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
         savedEditData.edits = mergeEdits(masterEdit, localEdits);
 
-        const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordedit', {
+        const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordeledit', {
           auth: true,
           body: {
             rid: screen.rid,
@@ -344,6 +385,62 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
           isLocal: false,
         });
       }
+    }
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TSaveTourEntities {
+  type: ActionType.SAVE_TOUR_ENTITIES;
+  tour: P_RespTour;
+  data: TourData | null,
+  annotations: Record<string, IAnnotationConfig[]>,
+  opts: ITourDataOpts,
+  isLocal: boolean,
+}
+
+export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
+  return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData, true);
+    dispatch({
+      type: ActionType.SAVE_TOUR_ENTITIES,
+      tour,
+      data: getState().default.tourData,
+      annotations: annotationAndOpts.annotations,
+      opts: annotationAndOpts.opts,
+      isLocal: true,
+    });
+  };
+}
+
+export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<TourDataWoScheme>) {
+  return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+    const savedData = getState().default.tourData;
+    if (savedData) {
+      savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+      const mergedData = {
+        ...savedData,
+        ...mergeTourData(savedData, localEdits)
+      };
+
+      const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+        auth: true,
+        body: {
+          rid: tour.rid,
+          editData: JSON.stringify(mergedData),
+        },
+      });
+
+      const annotationAndOpts = getThemeAndAnnotationFromDataFile(mergedData, false);
+      dispatch({
+        type: ActionType.SAVE_TOUR_ENTITIES,
+        tour,
+        data: mergedData,
+        annotations: annotationAndOpts.annotations,
+        opts: annotationAndOpts.opts,
+        isLocal: false,
+      });
     }
   };
 }

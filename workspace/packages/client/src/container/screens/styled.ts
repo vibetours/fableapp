@@ -29,6 +29,7 @@ export const CardCon = styled(Link)`
   margin-bottom: 1rem;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
   color: #16023e;
+  text-decoration: none;
 
   &.multi {
     margin-right: 2rem;
@@ -97,6 +98,12 @@ export const MultiScreenChooserLineItem = styled(Link)`
     box-shadow: 0 0 0 1px #16023e;
     cursor: pointer;
     color: #16023e;
+    text-decoration: none;
+  }
+
+  &.no-hovr:hover {
+    box-shadow: none;
+    cursor: default;
     text-decoration: none;
   }
 
