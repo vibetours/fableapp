@@ -30,6 +30,8 @@ export function formConnectors(
   screenElements: Screen[]
 ): Conn[] | undefined {
   const conns = [];
+  let fromCount = 0;
+  let toCount = 0;
   for (const el of data) {
     for (const annotation of el.annotations) {
       const fromId = `${el.screen.id}/${annotation.refId}`;
@@ -37,9 +39,14 @@ export function formConnectors(
       for (const button of annotation.buttons) {
         if (button.type === 'next' && button.hotspot) {
           const toId = button.hotspot.actionValue;
-          const points = formPoints(fromId, toId, screenElements);
+          const { from, points } = formPoints(fromId, toId, screenElements, fromCount, toCount);
           if (points) {
             conns.push(points);
+            if (!from) {
+              fromCount++;
+            } else {
+              toCount++;
+            }
           }
         }
       }
@@ -56,7 +63,9 @@ export function formConnectors(
 export function formPoints(
   fromId: string,
   toId: string,
-  screenElements: Screen[]
+  screenElements: Screen[],
+  toCount: number,
+  fromCount: number,
 ) {
   const fromScreen = screenElements?.filter(
     (screen) => screen.id === fromId
@@ -67,48 +76,54 @@ export function formPoints(
     if (fromScreen.x < toScreen.x) {
       const fromPoints = {
         x: fromScreen.x + fromScreen.width,
-        y: fromScreen.y + fromScreen.height / 2 - 20,
+        y: fromScreen.y + fromScreen.height / 2 - 20 - fromCount * 20,
       };
       const toPoints = {
         x: toScreen.x,
-        y: toScreen.y + toScreen.height / 2 - 20,
+        y: toScreen.y + toScreen.height / 2 - 20 - fromCount * 20,
       };
       return {
-        from: {
-          element: fromId,
-          relX: fromScreen.width,
-          relY: fromScreen.height / 2
-        },
-        to: {
-          element: toId,
-          relX: 0,
-          relY: fromScreen.height / 2,
-        },
-        points: [fromPoints, toPoints]
+        from: true,
+        points: {
+          from: {
+            element: fromId,
+            relX: fromScreen.width,
+            relY: fromScreen.height / 2
+          },
+          to: {
+            element: toId,
+            relX: 0,
+            relY: fromScreen.height / 2,
+          },
+          points: [fromPoints, toPoints]
+        }
       };
     }
     const fromPoints = {
       x: fromScreen.x,
-      y: fromScreen.y + fromScreen.height / 2 + 20,
+      y: fromScreen.y + fromScreen.height / 2 + 20 + toCount * 20,
     };
     const toPoints = {
       x: toScreen.x + toScreen.width,
-      y: toScreen.y + toScreen.height / 2 + 20,
+      y: toScreen.y + toScreen.height / 2 + 20 + toCount * 20,
     };
     return {
-      from: {
-        element: fromId,
-        relX: 0,
-        relY: fromScreen.height / 2
-      },
-      to: {
-        element: toId,
-        relX: fromScreen.width,
-        relY: fromScreen.height / 2,
-      },
-      points: [fromPoints, toPoints]
+      from: false,
+      points: {
+        from: {
+          element: fromId,
+          relX: 0,
+          relY: fromScreen.height / 2
+        },
+        to: {
+          element: toId,
+          relX: fromScreen.width,
+          relY: fromScreen.height / 2,
+        },
+        points: [fromPoints, toPoints]
+      }
     };
   }
 
-  return undefined;
+  return { from: undefined, points: undefined };
 }
