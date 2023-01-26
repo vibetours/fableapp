@@ -188,9 +188,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
         this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
       }
-      if (this.props.isScreenLoaded && !this.props.isScreenInPreviewMode) {
-        this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
-      }
+      this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
     } else if (prevProps.isTourLoaded !== this.props.isTourLoaded && this.props.isTourLoaded) {
       const main = this.props.tourOpts.main;
       if (!main) {
@@ -353,7 +351,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             />
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-              <Canvas cellWidth={20} screens={this.props.screens} />
+              <Canvas
+                cellWidth={20}
+                screens={this.props.screens}
+                allAnnotationsForTour={this.props.allAnnotationsForTour}
+                navigate={this.props.navigate}
+                onTourDataChange={this.onTourDataChange}
+              />
             </div>
           )}
         </GTags.BodyCon>

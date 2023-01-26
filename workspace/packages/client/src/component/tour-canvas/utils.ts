@@ -1,3 +1,5 @@
+import { Point } from './types';
+
 export function roundToNearest(numToRound: number, numToRoundTo: number): number {
   return Math.round(numToRound / numToRoundTo) * numToRoundTo;
 }
@@ -32,4 +34,26 @@ export function adjustElementsWithGrid(
   const adjustedHeight = roundToNearest(height, cellWidth);
 
   return { adjustedX, adjustedY, adjustedWidth, adjustedHeight };
+}
+
+export function formPathUsingPoints(points: Point[]) {
+  let d = 'M ';
+  points.forEach((point, index) => {
+    if (index === 0) {
+      d += Object.values(point).join(',');
+    }
+    d = `${d} L ${Object.values(point).join(',')}`;
+  });
+  return d;
+}
+
+export function getSVGPoint(x: number, y: number, svg: SVGGraphicsElement | null) {
+  if (x && y && svg) {
+    const pt = new DOMPoint(x, y);
+    const cursorpt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+
+    return { x: cursorpt.x, y: cursorpt.y };
+  }
+
+  return { x, y };
 }

@@ -1,8 +1,8 @@
 import styled from 'styled-components';
-import { Mode } from './types';
+import { CanvasMode } from './types';
 
 type SVGProps = {
-  mode: Mode;
+  mode: CanvasMode;
 };
 
 export const SVGCanvas = styled.svg`
@@ -10,7 +10,7 @@ export const SVGCanvas = styled.svg`
   top: 0;
   left: 0;
   bottom: 0;
-  cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? 'default' : 'move')};
+  cursor: ${(p: SVGProps) => (p.mode === CanvasMode.SelectMode ? 'default' : 'move')};
 
   image {
     cursor: pointer;
@@ -21,8 +21,17 @@ export const SVGCanvas = styled.svg`
   }
 
   line {
-    cursor: ${(p: SVGProps) => (p.mode === Mode.SelectMode ? 'pointer' : 'default')};
+    cursor: ${(p: SVGProps) => (p.mode === CanvasMode.SelectMode ? 'pointer' : 'default')};
   }
+
+  .canvasElArea {
+    fill: transparent
+  }
+  
+  .canvasElArea:hover {
+    fill: ${(p: SVGProps) => (p.mode === CanvasMode.ConnectMode ? '#e5e7eb' : 'transparent')}
+  }
+
 `;
 
 export const EmptyCanvasContainer = styled.div`
@@ -190,5 +199,33 @@ export const Screen = styled.div`
     color: #16023E;
     margin: 0;
     margin-top: 1rem;
+  }
+`;
+
+export const ModeOptions = styled.div`
+  background: white;
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0px;
+  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  padding: 1rem 0;
+  button {
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0.25rem 1rem;
+    display: block;
+    background: transparent;
+    border: none;
+    margin: 0.5rem 0.25rem;
+  }
+  button:hover {
+    color: #7e22ce;
+  }
+  
+  .active {
+    color: #7e22ce;
   }
 `;
