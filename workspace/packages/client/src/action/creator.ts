@@ -8,6 +8,7 @@ import {
   ReqCopyScreen,
   ReqNewTour,
   ReqRecordEdit,
+  ReqRenameTour,
   RespCommonConfig,
   RespScreen,
   RespTour,
@@ -220,7 +221,6 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
         description,
       },
     });
-    await sleep(3000);
     const tour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,
@@ -231,6 +231,24 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
 }
 
 /* ************************************************************************* */
+
+export function renameTour(tour: P_RespTour, newVal: string) {
+  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
+    const data = await api<ReqRenameTour, ApiResp<RespTour>>('/renametour', {
+      auth: true,
+      body: {
+        newName: newVal,
+        rid: tour.rid,
+      },
+    });
+    const renamedTour = processRawTourData(data.data, getState());
+    dispatch({
+      type: ActionType.TOUR,
+      tour: renamedTour,
+      performedAction: 'rename',
+    });
+  };
+}
 
 export interface TTourWithData {
   type: ActionType.TOUR_AND_DATA_LOADED;

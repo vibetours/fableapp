@@ -62,6 +62,15 @@ export const Txt = styled.div`
     opacity: 0.65;
   }
 
+  &.markeditable {
+    cursor: text;
+  }
+
+  &.markeditable:hover {
+    box-shadow: 0 0 0 1px black;
+    background: #D0D0FF;
+  }
+
   &.oneline {
     display: inline-block;
     width: 100%;
