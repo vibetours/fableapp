@@ -1,19 +1,19 @@
 import React from 'react';
-import {connect} from 'react-redux';
+import { connect } from 'react-redux';
 import Modal from 'antd/lib/modal';
 import Dropdown from 'antd/lib/dropdown';
-import {DownOutlined} from '@ant-design/icons';
+import { DownOutlined } from '@ant-design/icons';
 import Button from 'antd/lib/button';
-import {getDisplayableTime} from '@fable/common/dist/utils';
-import {getAllScreens, getAllTours, copyScreenForCurrentTour} from '../../action/creator';
-import {P_RespScreen, P_RespTour} from '../../entity-processor';
-import {TState} from '../../reducer';
+import { getDisplayableTime } from '@fable/common/dist/utils';
+import { getAllScreens, getAllTours, copyScreenForCurrentTour } from '../../action/creator';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
 import SidePanel from '../../component/side-panel';
 import Header from '../../component/header';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import linkOpenIcon from '../../assets/link.svg';
-import {withRouter, WithRouterProps} from '../../router-hoc';
+import { withRouter, WithRouterProps } from '../../router-hoc';
 import tourIcon from '../../assets/tours-icon-dark.svg';
 import plusOutlined from '../../assets/plus-outlined.svg';
 
@@ -56,7 +56,7 @@ interface IOwnStateProps {
 class Screens extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
-    this.state = {showGroupedScreenFor: -1};
+    this.state = { showGroupedScreenFor: -1 };
   }
 
   componentDidMount(): void {
@@ -95,12 +95,12 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                       key={screen.rid}
                       className={screen.related.length > 0 ? 'multi' : ''}
                       onClick={((idx) => () => {
-                        this.setState({showGroupedScreenFor: idx});
+                        this.setState({ showGroupedScreenFor: idx });
                       })(i)}
                       to={this.props.tours.length ? '' : `/screen/${screen.rid}`}
                     >
                       <Tags.CardImg src={screen.thumbnailUri.href} />
-                      <Tags.CardFlexColCon style={{marginTop: '0.35rem'}}>
+                      <Tags.CardFlexColCon style={{ marginTop: '0.35rem' }}>
                         <Tags.CardFlexRowCon>
                           {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
                           <GTags.Txt className="title oneline" title={screen.displayName}>
@@ -113,7 +113,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                             {screen.urlStructured.hostname}
                           </GTags.Txt>
                         </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon style={{justifyContent: 'space-between'}}>
+                        <Tags.CardFlexRowCon style={{ justifyContent: 'space-between' }}>
                           <GTags.Txt>Edited {screen.displayableUpdatedAt}</GTags.Txt>
                           <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
                         </Tags.CardFlexRowCon>
@@ -135,12 +135,12 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                   centered
                   open={this.state.showGroupedScreenFor !== -1}
-                  onCancel={() => this.setState({showGroupedScreenFor: -1})}
+                  onCancel={() => this.setState({ showGroupedScreenFor: -1 })}
                   footer={null}
                   width="50%"
                 >
                   {this.state.showGroupedScreenFor > -1 && (
-                    <div style={{display: 'flex', flexDirection: 'column'}}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {[
                         this.props.screens[this.state.showGroupedScreenFor],
                         ...relatedScreens,
@@ -157,12 +157,12 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                                 alt=""
                                 height={16}
                                 width={16}
-                                style={{margin: '0 0.15rem 0 0.5rem'}}
+                                style={{ margin: '0 0.15rem 0 0.5rem' }}
                               />
                               {s.tour.displayName}
                             </div>
                             <div>tour</div>
-                            <div style={{marginLeft: '0.5rem', opacity: 0.55, fontSize: '0.9rem'}}>
+                            <div style={{ marginLeft: '0.5rem', opacity: 0.55, fontSize: '0.9rem' }}>
                               that was edited {getDisplayableTime(new Date(s.tour.updatedAt))}
                             </div>
                           </Tags.MultiScreenChooserLineItem>
@@ -170,7 +170,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                           <div key={`${s.rid}`}>
                             {this.props.tours.length && (
                               <Tags.MultiScreenChooserLineItem className="no-hovr" to="">
-                                <div style={{marginRight: '.75rem'}}>
+                                <div style={{ marginRight: '.75rem' }}>
                                   {relatedScreens.length > 0
                                     ? (<span><em>or</em> add this screen to an</span>)
                                     : (<span>Add this screen to an</span>)}
@@ -185,7 +185,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                                         this.props.copyScreenForCurrentTour(tourToBeCopiedTo, s);
                                       } else {
                                         throw new Error(`Cannot find tour by id ${tourRid
-                                          } in tour list while associating a tour with screen`);
+                                        } in tour list while associating a tour with screen`);
                                       }
                                     },
                                     items: this.props.tours.filter(t => !(t.rid in hm)).map(t => ({
@@ -194,7 +194,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                                         <div>
                                           <GTags.Txt
                                             className="title2"
-                                            style={{fontSize: '0.9rem'}}
+                                            style={{ fontSize: '0.9rem' }}
                                           >{t.displayName}
                                           </GTags.Txt>
                                           <GTags.Txt className="subsubhead">
@@ -221,7 +221,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                                   alt=""
                                   height={12}
                                   width={12}
-                                  style={{margin: '0 0.35rem 0 0.5rem'}}
+                                  style={{ margin: '0 0.35rem 0 0.5rem' }}
                                 />
                                 creating a new tour
                               </div>
