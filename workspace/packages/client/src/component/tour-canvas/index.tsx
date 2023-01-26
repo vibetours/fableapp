@@ -10,6 +10,7 @@ import EmptyCanvas from './empty-canvas';
 import AddScreen from './add-screen';
 import { formPathUsingPoints } from './utils';
 import { formConnectors, formScreens } from './utils/arrangeEls';
+import { startPan, stopPan, updatePan } from './utils/pan';
 
 type CanvasProps = {
   cellWidth: number;
@@ -48,6 +49,36 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
   const [screenElements, setScreenElements] = useState<Screen[]>();
   const [connectors, setConnectors] = useState<Connector[]>();
   const svgRef = useRef(null);
+
+  const startPanning = (event: React.MouseEvent) => {
+    canvasData.current = startPan(canvasData.current, event);
+  };
+
+  const updatePanning = (event: React.MouseEvent) => {
+    if (canvasData.current.isPanning) {
+      canvasData.current = updatePan(canvasData.current, event);
+      const viewBoxString = Object.values(canvasData.current.newViewBox).join(
+        ' '
+      );
+      setViewBoxStr(viewBoxString);
+    }
+  };
+
+  const stopPanning = () => {
+    canvasData.current = stopPan(canvasData.current);
+  };
+
+  function handleMouseStart(event: React.MouseEvent) {
+    startPanning(event);
+  }
+
+  function handleMouseMove(event: React.MouseEvent) {
+    updatePanning(event);
+  }
+
+  function handleMouseEnd() {
+    stopPanning();
+  }
 
   useEffect(() => {
     if (svgRef.current) {
@@ -93,7 +124,15 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
 
   return (
     <>
-      <Tags.SVGCanvas viewBox={viewBoxStr} ref={svgRef} mode={mode}>
+      <Tags.SVGCanvas
+        viewBox={viewBoxStr}
+        ref={svgRef}
+        mode={mode}
+        onMouseDown={handleMouseStart}
+        onMouseUp={handleMouseEnd}
+        onMouseLeave={handleMouseEnd}
+        onMouseMove={handleMouseMove}
+      >
         <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
         {
           mode === Mode.CanvasMode && <>
