@@ -12,7 +12,6 @@ export const Con = styled.div`
 `;
 
 export const ConLogo = styled.div`
-  width: 100%;
   padding-left: 2rem;
 `;
 

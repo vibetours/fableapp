@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
 

@@ -1,7 +1,7 @@
 /* TODO There are some repetation of code across creators, fix those
  */
 
-import { Dispatch } from 'react';
+import {Dispatch} from 'react';
 import api from '@fable/common/dist/api';
 import {
   ApiResp,
@@ -12,7 +12,7 @@ import {
   RespScreen,
   RespTour,
 } from '@fable/common/dist/api-contract';
-import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
+import {getCurrentUtcUnixTime, sleep} from '@fable/common/dist/utils';
 import {
   EditFile,
   IAnnotationConfig,
@@ -35,9 +35,9 @@ import {
   mergeTourData,
   getThemeAndAnnotationFromDataFile,
 } from '../entity-processor';
-import { TState } from '../reducer';
+import {TState} from '../reducer';
 import ActionType from './type';
-import { AllEdits, EditItem, ElEditType } from '../types';
+import {AllEdits, EditItem, ElEditType} from '../types';
 
 export interface TGenericLoading {
   type: ActionType.GENERIC_LOADING;
@@ -54,7 +54,7 @@ export interface TGetAllScreens {
 
 export function getAllScreens() {
   return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
+    const data = await api<null, ApiResp<RespScreen[]>>('/screens', {auth: true});
     const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
     dispatch({
       type: ActionType.ALL_SCREENS_RETRIEVED,
@@ -148,7 +148,7 @@ export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = fal
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen) {
+export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen, refresh = false) {
   return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
     const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
       auth: true,
@@ -172,7 +172,12 @@ export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScr
       remoteEdits: [],
       isScreenInPreviewMode: false,
     });
-    window.history.replaceState(null, tour.displayName, `/tour/${tour.rid}/${screen.rid}`);
+    const uri = `/tour/${tour.rid}/${screen.rid}`;
+    if (refresh) {
+      window.history.replaceState(null, tour.displayName, uri);
+    } else {
+      window.location.replace(uri)
+    }
   };
 }
 
@@ -185,7 +190,7 @@ export interface TGetAllTours {
 
 export function getAllTours() {
   return async (dispatch: Dispatch<TGetAllTours>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
+    const data = await api<null, ApiResp<RespTour[]>>('/tours', {auth: true});
     dispatch({
       type: ActionType.ALL_TOURS_RETRIEVED,
       tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
@@ -205,7 +210,7 @@ export interface TTour {
 export function createNewTour(tourName = 'Untitled', description = '', mode: SupportedPerformedAction = 'new') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
     if (mode !== 'replace') {
-      dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
+      dispatch({type: ActionType.GENERIC_LOADING, entity: 'tour'});
     }
 
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {

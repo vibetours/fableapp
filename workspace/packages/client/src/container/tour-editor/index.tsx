@@ -181,6 +181,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.isScreenLoaded && !this.props.isScreenInPreviewMode) {
       this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
     }
+    if (prevProps.match.params.screenId !== this.props.match.params.screenId) {
+      this.props.loadScreenAndData(this.props.match.params.screenId, false);
+    }
   }
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
