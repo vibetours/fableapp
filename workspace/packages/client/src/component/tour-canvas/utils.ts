@@ -46,3 +46,14 @@ export function formPathUsingPoints(points: Point[]) {
   });
   return d;
 }
+
+export function getSVGPoint(x: number, y: number, svg: SVGGraphicsElement | null) {
+  if (x && y && svg) {
+    const pt = new DOMPoint(x, y);
+    const cursorpt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+
+    return { x: cursorpt.x, y: cursorpt.y };
+  }
+
+  return { x, y };
+}

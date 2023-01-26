@@ -11,6 +11,7 @@ import AddScreen from './add-screen';
 import { formPathUsingPoints } from './utils';
 import { formConnectors, formScreens } from './utils/arrangeEls';
 import { startPan, stopPan, updatePan } from './utils/pan';
+import { zoom } from './utils/zoom';
 
 type CanvasProps = {
   cellWidth: number;
@@ -122,6 +123,39 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
     }
   }, [allAnnotationsForTour]);
 
+  useEffect(() => {
+    const svgElementVal = svgRef.current;
+
+    if (svgElementVal) {
+      const svgElement = svgElementVal as SVGSVGElement;
+
+      const zoomSVG = (event: WheelEvent) => {
+        event.preventDefault();
+        const { x, y, width, height } = zoom(svgElement, event);
+
+        if (width < 500 && event.deltaY > 0) {
+          const el = event.target as HTMLElement;
+          const elId = el.dataset.id;
+          if (elId) {
+            const selectedScreen = screenElements?.filter(
+              (screen) => screen.id === elId
+            )[0];
+            console.log(selectedScreen);
+          }
+        } else {
+          canvasData.current.viewBox = { x, y, width, height };
+          canvasData.current.newViewBox = { x, y, width, height };
+          setViewBoxStr(`${x} ${y} ${width} ${height}`);
+        }
+      };
+      svgElement.addEventListener('wheel', zoomSVG);
+
+      return () => {
+        svgElement.removeEventListener('wheel', zoomSVG);
+      };
+    }
+  }, [svgRef]);
+
   return (
     <>
       <Tags.SVGCanvas
@@ -139,6 +173,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour }: CanvasProps) {
             {
               screenElements?.map(screenEl => <g key={screenEl.id}>
                 <image
+                  data-id={screenEl.id}
                   href={screenEl.screenHref}
                   x={screenEl.x}
                   y={screenEl.y}
