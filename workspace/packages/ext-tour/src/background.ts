@@ -1,7 +1,7 @@
-import { ApiResp, ReqProxyAsset, ReqNewScreen, RespProxyAsset, RespScreen } from "@fable/common/dist/api-contract";
+import { ApiResp, ReqNewScreen, ReqProxyAsset, RespProxyAsset, RespScreen } from "@fable/common/dist/api-contract";
 import api from "@fable/common/dist/api";
-import { SerDoc, SerNode, ScreenData } from "@fable/common/dist/types";
-import { getActiveTab, captureVisibleTab } from "./common";
+import { ScreenData, SerDoc, SerNode } from "@fable/common/dist/types";
+import { captureVisibleTab, getActiveTab } from "./common";
 import { getSearializedDom } from "./doc";
 import { Msg, MsgPayload } from "./msg";
 import { IExtStoredState, IUser } from "./types";
@@ -55,6 +55,24 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender, sendRe
   }
 });
 
+function showLoadingIcon(tabId: number) {
+  chrome.action.setBadgeText({
+    tabId,
+    text: "....",
+  });
+  chrome.action.setBadgeBackgroundColor({
+    tabId,
+    color: "#FEDF64"
+  });
+}
+
+function clearLoadingIcon(tabId: number) {
+  chrome.action.setBadgeText({
+    tabId,
+    text: "",
+  });
+}
+
 chrome.commands.onCommand.addListener(async (command) => {
   if (command === "save-screen") {
     serializeDoc();
@@ -66,6 +84,7 @@ async function serializeDoc() {
   if (!(tab && tab.id)) {
     throw new Error("Active tab not found. Are you focused on the browser?");
   }
+  showLoadingIcon(tab.id);
 
   // Cross origin frames document are not accessible because of CORS hence we inject separate scripts to all
   // cross origin frames. The same origin frames are read from inside the the parent frame itself
@@ -91,6 +110,7 @@ async function serializeDoc() {
 
   const mainFrame = await postProcessSerDocs(results);
   console.log(">>> MAIN", mainFrame);
+  clearLoadingIcon(tab.id);
 }
 
 function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
@@ -131,6 +151,7 @@ class CreateLookupWithProp<T> {
 
 type FrameResult = chrome.scripting.InjectionResult<SerDoc>;
 async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> {
+  const imageData = await captureVisibleTab();
   let mainFrame;
   let iconPath: string | undefined;
   const lookupWithProp = new CreateLookupWithProp<FrameResult>();
@@ -175,7 +196,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
 
         if (!subFrame) {
           console.warn("Node", node);
-          console.warn("No subframe present for node ^^^");
+          throw new Error("No subframe present for node ^^^");
         } else {
           node.chldrn.push(subFrame.result.docTree!);
           process(subFrame.result, subFrame.frameId);
@@ -214,7 +235,6 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
   }
 
   await process(mainFrame.result, mainFrame.frameId);
-  const imageData = await captureVisibleTab();
   const screenBody: ScreenData = {
     vpd: {
       h: mainFrame.result.rect.height,
