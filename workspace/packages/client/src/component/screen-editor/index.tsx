@@ -1,4 +1,4 @@
-import {ApiResp, ResponseStatus, RespScreen, RespUploadUrl} from '@fable/common/dist/api-contract';
+import { ApiResp, ResponseStatus, RespScreen, RespUploadUrl } from '@fable/common/dist/api-contract';
 import {
   AnnotationPerScreen,
   IAnnotationConfig,
@@ -7,9 +7,9 @@ import {
   SerNode
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
-import {getCurrentUtcUnixTime, trimSpaceAndNewLine} from '@fable/common/dist/utils';
+import { getCurrentUtcUnixTime, trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
-import {detect} from '@fable/common/dist/detect-browser';
+import { detect } from '@fable/common/dist/detect-browser';
 import Switch from 'antd/lib/switch';
 import {
   EyeInvisibleOutlined,
@@ -22,7 +22,7 @@ import {
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import DomElPicker, {HighlightMode} from './dom-element-picker';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
 import Btn from '../btn';
 import {
   AllEdits,
@@ -42,8 +42,8 @@ import {
   NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import {getSampleConfig, getDefaultTourOpts} from '../annotation/annotation-config-utils';
-import {P_RespScreen, P_RespTour} from '../../entity-processor';
+import { getSampleConfig, getDefaultTourOpts } from '../annotation/annotation-config-utils';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 
 const browser = detect();
 
@@ -184,7 +184,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         const res = await fetch(awsSignedUrl, {
           method: 'PUT',
           body: binaryData,
-          headers: {'Content-Type': selectedImage.type},
+          headers: { 'Content-Type': selectedImage.type },
         });
 
         if (res.status === 200) {
@@ -259,10 +259,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case ElEditType.Text:
         return (
           <Tags.EditLICon>
-            <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <FontSizeOutlined />
-              <div style={{marginLeft: '0.5rem', flexShrink: 0}}>Edited to</div>
-              <GTags.Txt className="oneline subsubhead" style={{flexShrink: 2, margin: '0 4px'}}>
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
+              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
                 {encoding[IdxEditEncodingText.NEW_VALUE]}
               </GTags.Txt>
             </div>
@@ -272,10 +272,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case ElEditType.Blur:
         return (
           <Tags.EditLICon>
-            <div style={{display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between'}}>
-              <div style={{display: 'flex', alignItems: 'center'}}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <FilterOutlined />
-                <div style={{marginLeft: '0.5rem', flexShrink: 0}}>Blured text</div>
+                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Blured text</div>
               </div>
               {shouldShowLoading && <LoadingOutlined title="Saving..." />}
             </div>
@@ -284,10 +284,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case ElEditType.Display:
         return (
           <Tags.EditLICon>
-            <div style={{display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between'}}>
-              <div style={{display: 'flex', alignItems: 'center'}}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
                 <EyeOutlined />
-                <div style={{marginLeft: '0.5rem', flexShrink: 0}}>Hide element</div>
+                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Hide element</div>
               </div>
               {shouldShowLoading && <LoadingOutlined title="Saving..." />}
             </div>
@@ -297,9 +297,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case ElEditType.Image:
         return (
           <Tags.EditLICon>
-            <div style={{display: 'flex', alignItems: 'center', width: '100%'}}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <PictureOutlined />
-              <div style={{marginLeft: '0.5rem', flexShrink: 0}}>Image edited</div>
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Image edited</div>
             </div>
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
           </Tags.EditLICon>
@@ -316,17 +316,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   } {
     const nestedEditTargetTypes = (function rec(el2: HTMLElement): EditTargets {
       if (el2.nodeType === Node.TEXT_NODE) {
-        return {[EditTargetType.Text]: [el2], [EditTargetType.Img]: []};
+        return { [EditTargetType.Text]: [el2], [EditTargetType.Img]: [] };
       }
 
       if (el2.nodeName) {
         if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
-          return {[EditTargetType.Text]: [], [EditTargetType.Img]: [el2]};
+          return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
         }
         if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
           const bgImage = getComputedStyle(el2).backgroundImage;
           if (bgImage.search(/^url\(/) !== -1) {
-            return {[EditTargetType.Text]: [], [EditTargetType.Img]: [el2]};
+            return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
           }
         }
       }
@@ -377,7 +377,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       let el: Node;
       if (path in mem) el = mem[path];
       else {
-        el = this.domElPicker!.elFromPath(path);
+        el = this.annotationLCM!.elFromPath(path);
         mem[path] = el;
       }
 
@@ -450,7 +450,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return el;
   };
 
-  deser = (serNode: SerNode, doc: Document, props: DeSerProps = {partOfSvgEl: 0}) => {
+  deser = (serNode: SerNode, doc: Document, props: DeSerProps = { partOfSvgEl: 0 }) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
       partOfSvgEl: props.partOfSvgEl | (serNode.name === 'svg' ? 1 : 0),
@@ -648,10 +648,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       // the element is slected. This happens when user clicks on "Edit an element" first >> select
       // the element >> click on "Add an annotaiton" button
     ) || (
-        elJustSelected
+      elJustSelected
         && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
         // this happens when user clicks on "Add an annotation" first
-      )) {
+    )) {
       this.setState(state => {
         const path = this.domElPicker?.elPath(state.selectedEl!);
         const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
@@ -670,7 +670,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           );
           this.showAnnotation(conf, opts);
         }
-        return {selectedAnnotationId: conf.id};
+        return { selectedAnnotationId: conf.id };
       });
     }
   }
@@ -763,12 +763,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case EditTargetType.Img:
         return (
           <Tags.EditCtrlCon>
-            <Tags.EditCtrlLI style={{flexDirection: 'column', alignItems: 'start'}}>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
               <Tags.EditCtrlLabel>Replace selected image</Tags.EditCtrlLabel>
               <Tags.ImgUploadLabel>
                 Click to upload
                 <input
-                  style={{display: 'none'}}
+                  style={{ display: 'none' }}
                   onChange={this.handleSelectedImageChange(this.state.selectedEl!)}
                   type="file"
                   accept="image/png, image/jpeg, image/webp, image/svg+xml"
@@ -782,7 +782,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       case EditTargetType.Text:
         return (
           <Tags.EditCtrlCon>
-            <Tags.EditCtrlLI style={{flexDirection: 'column', alignItems: 'start'}}>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
               <Tags.EditCtrlLabel>Update Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
                 defaultValue={this.state.targetEl?.textContent!}
@@ -849,7 +849,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
     return (
       <Tags.Con>
-        <Tags.EmbedCon style={{overflow: 'hidden', position: 'relative'}}>
+        <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
           <Tags.EmbedFrame
             src="about:blank"
             title={this.props.screen.displayName}
@@ -857,7 +857,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
           />
         </Tags.EmbedCon>
-        <Tags.EditPanelCon style={{overflowY: 'auto'}}>
+        <Tags.EditPanelCon style={{ overflowY: 'auto' }}>
           <Tags.EditPanelSec>
             <div
               style={{
@@ -878,17 +878,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             >
               {!this.state.isInElSelectionMode ? (
                 <>
-                  <GTags.Txt className="subhead" style={{margin: '0rem 0 .5rem'}}>
+                  <GTags.Txt className="subhead" style={{ margin: '0rem 0 .5rem' }}>
                     You can edit the screen by changing text, uploading new images, hiding or blurring elements etc
                   </GTags.Txt>
                   <Btn
                     icon="edit"
                     type="link"
-                    onClick={() => this.setState({isInElSelectionMode: true, elSelRequestedBy: ElSelReqType.EditEl})}
+                    onClick={() => this.setState({ isInElSelectionMode: true, elSelRequestedBy: ElSelReqType.EditEl })}
                   >
                     Start Editing
                   </Btn>
-                  <GTags.Txt className="subhead" style={{margin: '1.5rem 0 .5rem'}}>
+                  <GTags.Txt className="subhead" style={{ margin: '1.5rem 0 .5rem' }}>
                     You can add annotation to an element to start creating a guided tour of your product
                   </GTags.Txt>
                   <Btn
@@ -938,7 +938,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   >
                     {ScreenEditor.getEditTypeComponent(e, e[IdxEditItem.EDIT_TYPE_LOCAL])}
                     {e[IdxEditItem.KEY] === this.state.editItemSelected && (
-                      <div style={{display: 'flex'}}>
+                      <div style={{ display: 'flex' }}>
                         <Tags.ListActionBtn>Revert</Tags.ListActionBtn>
                         &nbsp;&nbsp;|&nbsp;&nbsp;
                         <Tags.ListActionBtn>Delete</Tags.ListActionBtn>
@@ -957,10 +957,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 }}
               >
                 <GTags.Txt className="title">Add an annotation</GTags.Txt>
-                <GTags.Txt className="subhead" style={{marginBottom: '1rem'}}>
+                <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
                   Annotations are guide to your product mean to get your user acquiented with your product.
                 </GTags.Txt>
-                <Btn icon="plus" onClick={() => this.setState({elSelRequestedBy: ElSelReqType.AnnotateEl})}>
+                <Btn icon="plus" onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}>
                   Add an annotation
                 </Btn>
               </div>
@@ -975,21 +975,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     key={config.id}
                   >
                     <div
-                      style={{display: 'flex'}}
+                      style={{ display: 'flex' }}
                       onClick={(e) => {
                         if (this.state.selectedAnnotationId === config.id) {
                           this.annotationLCM!.hide();
-                          this.setState({selectedAnnotationId: ''});
+                          this.setState({ selectedAnnotationId: '' });
                         } else {
                           this.showAnnotation(config, this.props.tourDataOpts);
-                          this.setState({selectedAnnotationId: config.id});
+                          this.setState({ selectedAnnotationId: config.id });
                         }
                       }}
                     >
                       <GTags.Txt className="oneline">{config.bodyContent}</GTags.Txt>
                     </div>
                     {this.state.selectedAnnotationId === config.id && (
-                      <div style={{marginTop: '0.5rem', color: 'black'}}>
+                      <div style={{ marginTop: '0.5rem', color: 'black' }}>
                         <AnnotationCreatorPanel
                           config={config}
                           opts={this.props.tourDataOpts}
@@ -1019,7 +1019,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
         this.showAnnotation(an, this.props.tourDataOpts);
-        this.setState({selectedAnnotationId: an.id});
+        this.setState({ selectedAnnotationId: an.id });
       } else {
         // throw new Error(`Annotation with id ${id} requested but not found`);
       }
@@ -1053,7 +1053,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // TODO fix this
     // INFO Changing value of block and inline would shift the parent element to make the el in the center of the screen
     // that we don't want. So be careful with this values.
-    el.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     setTimeout(() => {
       this.domElPicker?.selectElement(el, HighlightMode.Pinned);
     }, 3 * 16);
@@ -1072,15 +1072,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       // TODO handle pin mode and annotation selection
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
         this.domElPicker.getOutOfPinMode();
-        this.setState({elSelRequestedBy: ElSelReqType.NA});
+        this.setState({ elSelRequestedBy: ElSelReqType.NA });
       } else {
-        this.setState({isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA});
+        this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
       }
-      this.setState({selectedAnnotationId: ''});
+      this.setState({ selectedAnnotationId: '' });
       this.annotationLCM!.hide();
 
       if (this.state.editItemSelected !== '') {
-        this.setState({editItemSelected: ''});
+        this.setState({ editItemSelected: '' });
       }
     }
   };
@@ -1108,12 +1108,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private onElSelect = (el: HTMLElement, _doc: Document) => {
     this.domElPicker!.elPath(el);
-    this.setState({selectedEl: el});
+    this.setState({ selectedEl: el });
   };
 
   private onElDeSelect = (el: HTMLElement) => {
     this.flushMicroEdits();
-    this.setState({selectedEl: null});
+    this.setState({ selectedEl: null });
   };
 
   private initDomPickerAndAnnotationLCM() {

@@ -308,6 +308,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               shouldShowLogoOnLeft
               navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
               titleElOnLeft={this.getHeaderTxtEl()}
+              showPreview={`/p/tour/${this.props.tour?.rid}`}
             />
           </GTags.HeaderCon>
         )}

@@ -11,6 +11,7 @@ interface IOwnProps {
   navigateToWhenLogoIsClicked?: string;
   titleTxtOnLeft?: string;
   titleElOnLeft?: ReactElement;
+  showPreview?: string;
 }
 
 type IProps = IOwnProps;
@@ -35,6 +36,23 @@ class Header extends React.PureComponent<IProps, IOwnStateProps> {
           {this.props.titleElOnLeft && this.props.titleElOnLeft}
         </Tags.LMenuCon>
         <Tags.RMenuCon>
+          {this.props.showPreview && (
+            <Tags.MenuItem>
+              <Button
+                shape="round"
+                size="middle"
+                type="primary"
+                style={{
+                  background: '#16023E',
+                }}
+                onClick={e => {
+                  window.open(this.props.showPreview)?.focus();
+                }}
+              >
+                Get embed URL
+              </Button>
+            </Tags.MenuItem>
+          )}
           {this.props.rBtnTxt && (
             <Tags.MenuItem>
               <Button shape="round" size="middle">
