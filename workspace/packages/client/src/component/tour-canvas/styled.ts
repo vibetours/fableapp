@@ -23,6 +23,15 @@ export const SVGCanvas = styled.svg`
   line {
     cursor: ${(p: SVGProps) => (p.mode === CanvasMode.SelectMode ? 'pointer' : 'default')};
   }
+
+  .canvasElArea {
+    fill: transparent
+  }
+  
+  .canvasElArea:hover {
+    fill: ${(p: SVGProps) => (p.mode === CanvasMode.ConnectMode ? '#e5e7eb' : 'transparent')}
+  }
+
 `;
 
 export const EmptyCanvasContainer = styled.div`

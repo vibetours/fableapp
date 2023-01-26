@@ -4,7 +4,7 @@ import {
 } from '@fable/common/dist/types';
 import { ArrowsAltOutlined, DragOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
-import { CanvasData, CanvasMode, Conn, Connector, Screen } from './types';
+import { CanvasData, CanvasMode, Conn, Connector, ConnectorData, ElementCoords, Mode, Screen } from './types';
 import CanvasDottedBg from './canvas-dotted-bg';
 import { P_RespScreen } from '../../entity-processor';
 import EmptyCanvas from './empty-canvas';
@@ -13,6 +13,8 @@ import { formPathUsingPoints } from './utils';
 import { formConnectors, formScreens } from './utils/arrangeEls';
 import { startPan, stopPan, updatePan } from './utils/pan';
 import { zoom } from './utils/zoom';
+import { initialConnectorData, initialLine } from './init-data';
+import { startConnecting, stopConnecting, updateConnecting } from './utils/connector';
 
 type CanvasProps = {
   cellWidth: number;
@@ -20,15 +22,6 @@ type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: Function;
 };
-
-enum Mode {
-  SelectMode,
-  PanMode,
-  ConnectMode,
-  EmptyMode,
-  SelectScreenMode,
-  CanvasMode,
-}
 
 const initialData: CanvasData = {
   isPanning: false,
@@ -53,6 +46,8 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
   const [connectors, setConnectors] = useState<Conn[]>();
   const svgRef = useRef(null);
   const [canvasMode, setCanvasMode] = useState(CanvasMode.PanMode);
+  const [temporaryConnector, setTemporaryConnector] = useState(initialLine);
+  const connectorData = useRef<ConnectorData>(initialConnectorData);
 
   const startPanning = (event: React.MouseEvent) => {
     canvasData.current = startPan(canvasData.current, event);
@@ -72,9 +67,134 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
     canvasData.current = stopPan(canvasData.current);
   };
 
+  function startConnector(event: React.MouseEvent) {
+    const { isDrawing } = connectorData.current;
+    const node = event.target as HTMLElement;
+
+    if (!isDrawing && node.dataset.type === 'canvasElementArea') {
+      const node = event.target as SVGSVGElement;
+
+      if (node.dataset.index) {
+        connectorData.current.start.element = +node.dataset.index;
+
+        if (screenElements) {
+          const el = screenElements[+node.dataset.index];
+
+          connectorData.current = startConnecting(
+          connectorData.current as ConnectorData,
+          {
+            x: el.x,
+            y: el.y,
+            width: el.width,
+          } as ElementCoords,
+          event,
+          svgRef.current
+          );
+          connectorData.current.isDrawing = true;
+        }
+      }
+    }
+  }
+
+  function updateConnector(event: React.MouseEvent) {
+    const { isDrawing } = connectorData.current;
+
+    if (isDrawing) {
+      connectorData.current = updateConnecting(
+        connectorData.current as ConnectorData,
+        event,
+        svgRef.current
+      );
+      setTemporaryConnector((prev) => ({
+        ...prev,
+        show: true,
+        coords: { ...connectorData.current.newLine },
+      }));
+    }
+  }
+
+  function stopConnector(event: React.MouseEvent) {
+    const { isDrawing } = connectorData.current;
+
+    if (!isDrawing) {
+      return;
+    }
+
+    const node = event.target as SVGSVGElement;
+
+    if (node.dataset.type !== 'canvasElementArea' || !node.dataset.index) {
+      connectorData.current.isDrawing = false;
+      setTemporaryConnector((prev) => ({ ...prev, show: false }));
+      return;
+    }
+
+    connectorData.current.end.element = +node.dataset.index!;
+
+    if (screenElements) {
+      const el = screenElements[+node.dataset.index!];
+
+      connectorData.current = stopConnecting(
+        connectorData.current as ConnectorData,
+          { x: el.x, y: el.y } as ElementCoords,
+          event,
+          svgRef.current
+      );
+      setTemporaryConnector((prev) => ({
+        ...prev,
+        show: false,
+        coords: { ...connectorData.current.newLine },
+      }));
+
+      const isConnectorPresent = connectors?.filter(
+        (connector) => connector.from.element === connectorData.current.start.element
+          && connector.to.element === connectorData.current.end.element
+      );
+
+      if (isConnectorPresent && isConnectorPresent.length > 0) {
+        connectorData.current.isDrawing = false;
+        setTemporaryConnector((prev) => ({ ...prev, show: false }));
+        return;
+      }
+
+      const { x1, y1, x2, y2 } = connectorData.current.newLine;
+
+      const newConnector = {
+        from: {
+          element: connectorData.current.start.element,
+          relY: connectorData.current.start.relY,
+          relX: connectorData.current.start.relX,
+        },
+        to: {
+          element: connectorData.current.end.element,
+          relY: connectorData.current.end.relY,
+          relX: connectorData.current.end.relX,
+        },
+        points: [
+          { x: x1, y: y1 },
+          { x: x2, y: y2 },
+        ],
+      } as Conn;
+
+      setConnectors((prev) => {
+        if (prev) {
+          return [
+            ...prev, newConnector,
+          ];
+        }
+        return undefined;
+      });
+
+      connectorData.current.isDrawing = false;
+    }
+  }
+
   const handleMouseStart = (event: React.MouseEvent) => {
     if (canvasMode === CanvasMode.PanMode) {
       startPanning(event);
+    }
+
+    if (canvasMode === CanvasMode.ConnectMode) {
+      startConnector(event);
     }
   };
 
@@ -82,11 +202,19 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
     if (canvasMode === CanvasMode.PanMode) {
       updatePanning(event);
     }
+
+    if (canvasMode === CanvasMode.ConnectMode) {
+      updateConnector(event);
+    }
   };
 
-  const handleMouseEnd = () => {
+  const handleMouseEnd = (event: React.MouseEvent) => {
     if (canvasMode === CanvasMode.PanMode) {
       stopPanning();
+    }
+
+    if (canvasMode === CanvasMode.ConnectMode) {
+      stopConnector(event);
     }
   };
 
@@ -184,14 +312,26 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
         {
         mode === Mode.CanvasMode && <>
           {
-            screenElements?.map(screenEl => <g key={screenEl.id}>
+            screenElements?.map((screenEl, idx) => <g key={screenEl.id}>
+              <rect
+                className="canvasElArea"
+                data-type="canvasElementArea"
+                data-index={idx}
+                x={screenEl.x - 30}
+                y={screenEl.y - 30}
+                width={screenEl.width + 60}
+                height={screenEl.height + 60}
+              />
               <image
-                data-id={screenEl.id}
+                data-id={screenEl.screenId}
                 href={screenEl.screenHref}
+                data-type="canvasElement"
+                data-index={idx}
                 x={screenEl.x}
                 y={screenEl.y}
                 width={screenEl.width}
                 height={screenEl.height}
+                preserveAspectRatio="none"
                 onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
               />
               <text
@@ -200,8 +340,22 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               >
                 {screenEl.annotationText.substring(0, 45)} ...
               </text>
-            </g>)
+                                                   </g>)
           }
+          {temporaryConnector.show && (
+          <line
+            markerEnd="url(#arrow)"
+            key={Math.random()}
+            x1={temporaryConnector.coords.x1}
+            y1={temporaryConnector.coords.y1}
+            x2={temporaryConnector.coords.x2}
+            y2={temporaryConnector.coords.y2}
+            data-idx="normal"
+            data-hello="hello"
+            stroke="black"
+            strokeWidth="2px"
+          />
+          )}
           {
             connectors?.map(connector => {
               const d = formPathUsingPoints(connector.points);
@@ -219,7 +373,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               );
             })
           }
-        </>
+                                    </>
       }
         <defs>
           <marker
@@ -254,7 +408,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
         >
           <ArrowsAltOutlined />
         </button>
-                                   </Tags.ModeOptions>}
+      </Tags.ModeOptions>}
     </>
   );
 }
