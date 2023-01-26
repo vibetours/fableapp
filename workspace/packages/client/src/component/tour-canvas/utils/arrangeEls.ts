@@ -17,6 +17,7 @@ export function formScreens(data: AnnotationPerScreen[]) {
         height: 180,
         x: 100 + i * 400,
         y: 100,
+        annotation,
       });
       i++;
     }
@@ -66,11 +67,11 @@ export function formPoints(
     if (fromScreen.x < toScreen.x) {
       const fromPoints = {
         x: fromScreen.x + fromScreen.width,
-        y: fromScreen.y + fromScreen.height / 2,
+        y: fromScreen.y + fromScreen.height / 2 - 20,
       };
       const toPoints = {
         x: toScreen.x,
-        y: toScreen.y + toScreen.height / 2,
+        y: toScreen.y + toScreen.height / 2 - 20,
       };
       return {
         from: {
@@ -88,11 +89,11 @@ export function formPoints(
     }
     const fromPoints = {
       x: fromScreen.x,
-      y: fromScreen.y + fromScreen.height / 2,
+      y: fromScreen.y + fromScreen.height / 2 + 20,
     };
     const toPoints = {
       x: toScreen.x + toScreen.width,
-      y: toScreen.y + toScreen.height / 2,
+      y: toScreen.y + toScreen.height / 2 + 20,
     };
     return {
       from: {

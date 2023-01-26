@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  AnnotationPerScreen,
+  AnnotationPerScreen, ITourEntityHotspot,
 } from '@fable/common/dist/types';
 import { ArrowsAltOutlined, DragOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
@@ -15,12 +15,14 @@ import { startPan, stopPan, updatePan } from './utils/pan';
 import { zoom } from './utils/zoom';
 import { initialConnectorData, initialLine } from './init-data';
 import { startConnecting, stopConnecting, updateConnecting } from './utils/connector';
+import { updateButtonProp } from '../annotation/annotation-config-utils';
 
 type CanvasProps = {
   cellWidth: number;
   screens: P_RespScreen[];
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: Function;
+  onTourDataChange: Function;
 };
 
 const initialData: CanvasData = {
@@ -33,7 +35,7 @@ const initialData: CanvasData = {
   panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
 };
 
-function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasProps) {
+function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDataChange }: CanvasProps) {
   const canvasData = useRef({
     ...initialData,
   });
@@ -175,6 +177,9 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
         ],
       } as Conn;
 
+      const fromScreen = screenElements[newConnector.from.element];
+      const toScreen = screenElements[newConnector.to.element];
+
       setConnectors((prev) => {
         if (prev) {
           return [
@@ -183,6 +188,43 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
         }
         return undefined;
       });
+
+      setTemporaryConnector((prev) => ({ ...prev, show: false }));
+
+      const nextBtnOfPrevAntn = fromScreen.annotation.buttons.find((btn: any) => btn.type === 'next');
+      console.log('before', fromScreen.annotation);
+      const prevAntn = updateButtonProp(
+        fromScreen.annotation,
+        nextBtnOfPrevAntn.id,
+        'hotspot',
+        {
+          type: 'an-btn',
+          on: 'click',
+          target: '$this',
+          actionType: 'navigate',
+          actionValue:
+            `${toScreen.screenId}/${toScreen.annotationId}`,
+        } as ITourEntityHotspot
+      );
+      console.log('after', prevAntn);
+
+      const prevBtnOfNextAntn = toScreen.annotation.buttons.find((btn: any) => btn.type === 'prev');
+      const nextAntn = updateButtonProp(
+        toScreen.annotation,
+        prevBtnOfNextAntn.id,
+        'hotspot',
+        {
+          type: 'an-btn',
+          on: 'click',
+          target: '$this',
+          actionType: 'navigate',
+          actionValue:
+            `${fromScreen.screenId}/${fromScreen.annotationId}`,
+        } as ITourEntityHotspot
+      );
+
+      onTourDataChange('annotation-and-theme', fromScreen.screenId, { config: prevAntn });
+      onTourDataChange('annotation-and-theme', toScreen.screenId, { config: nextAntn });
 
       connectorData.current.isDrawing = false;
     }
@@ -258,6 +300,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
     if (conns) {
       setConnectors(conns);
     }
+    console.log('useEffect', allAnnotationsForTour);
   }, [allAnnotationsForTour]);
 
   useEffect(() => {
@@ -274,12 +317,8 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
           const el = event.target as HTMLElement;
           const elId = el.dataset.id;
           if (elId) {
-            const selectedScreen = screenElements?.filter((screen) => {
-              console.log(screen.id);
-              return screen.id === elId;
-            })[0];
+            const selectedScreen = screenElements?.filter((screen) => screen.id === elId)[0];
             if (selectedScreen) {
-              console.log('here');
               navigate(`${selectedScreen.screenRid}/${selectedScreen.annotationId}`);
             }
           }
@@ -340,7 +379,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               >
                 {screenEl.annotationText.substring(0, 45)} ...
               </text>
-                                                   </g>)
+            </g>)
           }
           {temporaryConnector.show && (
           <line
@@ -373,7 +412,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
               );
             })
           }
-                                    </>
+        </>
       }
         <defs>
           <marker
@@ -408,7 +447,7 @@ function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate }: CanvasP
         >
           <ArrowsAltOutlined />
         </button>
-      </Tags.ModeOptions>}
+                                   </Tags.ModeOptions>}
     </>
   );
 }

@@ -326,6 +326,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 screens={this.props.screens}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 navigate={this.props.navigate}
+                onTourDataChange={this.onTourDataChange}
               />
             </div>
           )}

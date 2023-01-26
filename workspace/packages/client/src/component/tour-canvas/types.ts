@@ -65,6 +65,7 @@ export type Screen = {
   y: number;
   height: number;
   width: number;
+  annotation: any;
 };
 
 export type Connector = {
