@@ -41,6 +41,7 @@ import {
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import { getDefaultTourOpts, getSampleConfig } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
+import Preview, { IOwnProps as PreviewProps } from './preview';
 
 const browser = detect();
 
@@ -99,7 +100,7 @@ interface DeSerProps {
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
   private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
-  private readonly embedFrameRef: React.RefObject<HTMLIFrameElement>;
+  private readonly embedFrameRef: React.RefObject<HTMLIFrameElement | null>;
 
   private assetLoadingPromises: Promise<unknown>[] = [];
 
@@ -417,7 +418,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         break;
     }
     for (const child of serNode.chldrn) {
-      // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
+      // Meta tags are not used in FrameFwdRefrendering and can be harmful if cors + base properties are altered
       // hence we altogether ignore those tags
       if (child.name === 'meta') {
         continue;
@@ -434,115 +435,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     //   parent.appendChild(el);
     // }
   };
-
-  deserDomIntoFrame = (frame: HTMLIFrameElement) => {
-    /*
-     * FIXME By default assume all pages are responsive via css
-     *       But there will always be pages like gmail, analytics where responsiveness is implemented via js
-     *       For those cases ask user to select if the page is responsive or not.
-     *       If it's responsive don't apply any scaling / zooming
-     *       If it's not responsive for chrome apply zoom, for firefox apply the following logic.
-     *       For scaling, always do width fitting and height should take up the whole height of parent
-     */
-
-    // This calculation is to make transform: scale work like zoom property.
-    // We can't use Zoom property as it's only supported by chrome and some version of ie.
-    //
-    // There might be pages (Google Analytics) that are not responsive and while capturing from extension it was
-    // captured from a different dimension than a screen that is used to preview the screen.
-    //
-    // To support screen dimension interchangeably, we have to zoom in / zoom out the screen keeping the aspect ratio
-    // same. The following calculation is done >>>
-    //
-    // 1. Calculate the boundingRect for iframe before we scale. Ideally that's the actual dimension of the frame.
-    // 2. Figure out the scale factor for the current screen vs the screen the page was captured
-    // 3. Apply scale to the element (wrt origin 0, 0 ; default scaling is centered)
-    // 4. Now the container is visually smaller (for scale < 1) than the original one before it was scaled
-    // 5. Figure out what's the new height and width with the scale applied
-    const origFrameViewPort = frame.getBoundingClientRect();
-    const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
-    const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
-    const scale = Math.min(scaleX, scaleY);
-    this.scaleFactor = scale;
-    const divPadding = this.props.playMode ? 0 : 18;
-    frame.style.transform = `scale(${scale})`;
-    frame.style.transformOrigin = '0 0';
-    frame.style.position = 'absolute';
-    frame.style.width = `${this.props.screenData.vpd.w}px`;
-    frame.style.height = `${this.props.screenData.vpd.h}px`;
-    const viewPortAfterScaling = frame.getBoundingClientRect();
-    // Bring the iframe in center
-    if (origFrameViewPort.width > viewPortAfterScaling.width) {
-      frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2 + divPadding}px`;
-    }
-    if (origFrameViewPort.height - viewPortAfterScaling.height) {
-      frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2 + divPadding}px`;
-    }
-
-    const doc = frame?.contentDocument;
-    const frameBody = doc?.body;
-    const frameHtml = doc?.documentElement;
-    if (doc) {
-      if (frameHtml && frameBody) {
-        frameBody.style.display = 'none';
-        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
-        const childNodes = doc.childNodes;
-        for (let i = 0; i < childNodes.length; i++) {
-          if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
-            doc.replaceChild(rootHTMLEl, childNodes[i]);
-            break;
-          }
-        }
-        if (frame && frame.contentDocument && frame.contentDocument.body) {
-          frame.contentDocument.body.style.display = 'none';
-        }
-      } else {
-        console.error("Can't find body of embed iframe");
-      }
-    } else {
-      console.error("Can't find document of embed iframe");
-    }
-  };
-
-  componentDidMount() {
-    const frame = this.embedFrameRef.current;
-    if (!frame) {
-      console.warn("Can't find embed iframe");
-      return;
-    }
-
-    frame.onload = () => {
-      this.deserDomIntoFrame(frame);
-      /* requestAnimationFrame */setTimeout(() => {
-        const doc = frame.contentDocument;
-        const frameBody = doc?.body;
-        // Make the iframe visible after all the assets are loaded
-        Promise.all(this.assetLoadingPromises).then(() => {
-          // create a elative container that would contain all the falbe related els
-          if (frameBody) {
-            let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
-            if (!umbrellaDiv) {
-              umbrellaDiv = doc.createElement('div');
-              umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
-              umbrellaDiv.style.position = 'absolute';
-              umbrellaDiv.style.left = `${0}`;
-              umbrellaDiv.style.top = `${0}`;
-              frameBody.appendChild(umbrellaDiv);
-            }
-            this.initDomPickerAndAnnotationLCM();
-            this.applyEdits(this.props.allEdits);
-            frameBody.style.display = '';
-            this.reachAnnotation(this.props.toAnnotationId);
-          }
-        });
-        // this is a puma number for the following code to wait for the css to be aplied
-        // (not downloaded) we already wait for css downlod
-        // TODO Fix this deterministically
-      }, 300);
-    };
-
-    document.addEventListener('keydown', this.onKeyDown);
-  }
 
   componentWillUnmount(): void {
     this.disposeDomPickerAndAnnotationLCM();
@@ -772,11 +664,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
+  onBeforeFrameBodyDisplay = () => {
+    this.initDomPickerAndAnnotationLCM();
+    this.applyEdits(this.props.allEdits);
+  };
+
+  onFrameAssetLoad = () => {
+    this.reachAnnotation(this.props.toAnnotationId);
+  };
+
   render(): React.ReactNode {
     if (this.props.playMode) {
       return (
-        <Tags.Con>
-          <Tags.EmbedCon style={{
+        <GTags.PreviewAndActionCon>
+          <GTags.EmbedCon style={{
             overflow: 'hidden',
             position: 'relative',
             height: '100%',
@@ -786,27 +687,31 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             background: 'none',
           }}
           >
-            <Tags.EmbedFrame
-              src="about:blank"
-              title={this.props.screen.displayName}
-              ref={this.embedFrameRef}
-              srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
+            <Preview
+              screen={this.props.screen}
+              screenData={this.props.screenData}
+              divPadding={0}
+              innerRef={this.embedFrameRef}
+              onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
+              onFrameAssetLoad={this.onFrameAssetLoad}
             />
-          </Tags.EmbedCon>
-        </Tags.Con>
+          </GTags.EmbedCon>
+        </GTags.PreviewAndActionCon>
       );
     }
     return (
-      <Tags.Con>
-        <Tags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
-          <Tags.EmbedFrame
-            src="about:blank"
-            title={this.props.screen.displayName}
-            ref={this.embedFrameRef}
-            srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
+      <GTags.PreviewAndActionCon>
+        <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }}>
+          <Preview
+            screen={this.props.screen}
+            screenData={this.props.screenData}
+            divPadding={18}
+            innerRef={this.embedFrameRef}
+            onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
+            onFrameAssetLoad={this.onFrameAssetLoad}
           />
-        </Tags.EmbedCon>
-        <Tags.EditPanelCon style={{ overflowY: 'auto' }}>
+        </GTags.EmbedCon>
+        <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
           <Tags.EditPanelSec>
             <div
               style={{
@@ -966,8 +871,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 ))}
             </Tags.EditPanelSec>
           )}
-        </Tags.EditPanelCon>
-      </Tags.Con>
+        </GTags.EditPanelCon>
+      </GTags.PreviewAndActionCon>
     );
   }
 
@@ -1014,54 +919,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     setTimeout(() => {
       this.domElPicker?.selectElement(el, HighlightMode.Pinned);
     }, 3 * 16);
-  }
-
-  private applyEdits(allEdits: EditItem[]) {
-    const mem: Record<string, Node> = {};
-    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
-    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
-    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
-    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
-    for (const edit of allEdits) {
-      const path = edit[IdxEditItem.PATH];
-      let el: Node;
-      if (path in mem) el = mem[path];
-      else {
-        el = this.annotationLCM!.elFromPath(path);
-        mem[path] = el;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
-        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
-        const tEl = el as HTMLElement;
-        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
-        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
-        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
-        const tEl = el as HTMLImageElement;
-        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
-        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
-        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
-        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
-        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
-        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
-        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
-      }
-    }
   }
 
   private onMouseOutOfIframe = (e: MouseEvent) => {
@@ -1120,6 +977,54 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.flushMicroEdits();
     this.setState({ selectedEl: null });
   };
+
+  private applyEdits(allEdits: EditItem[]) {
+    const mem: Record<string, Node> = {};
+    const txtOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+    const imgOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+    const dispOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
+    const blurOrigValAttr = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
+    for (const edit of allEdits) {
+      const path = edit[IdxEditItem.PATH];
+      let el: Node;
+      if (path in mem) el = mem[path];
+      else {
+        el = this.annotationLCM!.elFromPath(path);
+        mem[path] = el;
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+        const tEl = el as HTMLElement;
+        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
+        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
+        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
+        const tEl = el as HTMLImageElement;
+        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
+        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
+        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
+        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
+        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
+        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
+        const tEl = el as HTMLElement;
+        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
+        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
+      }
+    }
+  }
 
   private initDomPickerAndAnnotationLCM() {
     const el = this.embedFrameRef?.current;

@@ -41,7 +41,7 @@
     "start-stage": "env-cmd --verbose -e stage -r ../env.json  react-scripts start",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
     "install-staging": "aws s3 cp ./build/ s3://app.sharefable.com --recursive --profile fable",
-    "build": "env-cmd -e prod react-scripts build",
+    "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
     "test": "react-scripts test"
   },
   "eslintConfig": {

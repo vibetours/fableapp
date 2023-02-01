@@ -22,6 +22,7 @@ import {
   TourData,
   TourDataWoScheme
 } from '@fable/common/dist/types';
+import { rmSync } from 'fs';
 import {
   convertEditsToLineItems,
   createEmptyTour,
@@ -41,28 +42,7 @@ import ActionType from './type';
 import { AllEdits, EditItem, ElEditType } from '../types';
 
 export interface TGenericLoading {
-  type: ActionType.GENERIC_LOADING;
-  entity: 'tour';
-}
-
-/* ************************************************************************* */
-
-export interface TGetAllScreens {
-  type: ActionType.ALL_SCREENS_RETRIEVED;
-  screens: Array<P_RespScreen>;
-  flattenedScreens: Array<P_RespScreen>;
-}
-
-export function getAllScreens() {
-  return async (dispatch: Dispatch<TGetAllScreens>, getState: () => TState) => {
-    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
-    const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
-    dispatch({
-      type: ActionType.ALL_SCREENS_RETRIEVED,
-      screens: groupScreens(pScreens),
-      flattenedScreens: pScreens,
-    });
-  };
+  type: ActionType.ALL_SCREENS_LOADING | ActionType.SCREEN_LOADING | ActionType.ALL_TOURS_LOADING;
 }
 
 /* ************************************************************************* */
@@ -84,21 +64,45 @@ export function init() {
 
 /* ************************************************************************* */
 
+export interface TGetAllScreens {
+  type: ActionType.ALL_SCREENS_LOADED;
+  allScreens: Array<P_RespScreen>;
+  rootScreens: Array<P_RespScreen>;
+}
+
+export function getAllScreens() {
+  return async (dispatch: Dispatch<TGetAllScreens | TGenericLoading>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.ALL_SCREENS_LOADING,
+    });
+    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
+    const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
+    dispatch({
+      type: ActionType.ALL_SCREENS_LOADED,
+      allScreens: pScreens,
+      rootScreens: groupScreens(pScreens),
+    });
+  };
+}
+
 export interface TScreenWithData {
   type: ActionType.SCREEN_AND_DATA_LOADED;
   screenData: ScreenData;
   screenEdits: EditFile<AllEdits<ElEditType>> | null;
   remoteEdits: EditItem[];
   screen: P_RespScreen;
-  isScreenInPreviewMode: boolean;
 }
 
-export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = false) {
-  return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
+export function loadScreenAndData(screenRid: string) {
+  return async (dispatch: Dispatch<TScreenWithData | TGenericLoading>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.SCREEN_LOADING,
+    });
+
     const state = getState();
-    let screen: RespScreen | null = null;
+    let screen: P_RespScreen | null = null;
     let isScreenFound = false;
-    for (const s of state.default.screens) {
+    for (const s of state.default.allScreens) {
       if (s.rid === screenRid) {
         screen = s;
         isScreenFound = true;
@@ -108,32 +112,22 @@ export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = fal
     if (!isScreenFound) {
       try {
         const data = await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
-        screen = data.data;
+        screen = processRawScreenData(data.data, state);
       } catch (e) {
-        console.error(e);
+        const err = e as Error;
+        throw new Error(`Error encountered while getting screen with id=${screenRid} with message ${err.message}`);
       }
     }
     if (screen) {
-      // We don't save the data of the screen in screen object
-      // As with more and more screen and more and more screen interaction if js holds the data
-      // that could crate lag in the browser's tab for less powerful device.
-      // The data would be cached in disk any way and browser would not make another call to the data file and instead
-      // return from disk cache
-      const pScreen = processRawScreenData(screen, state);
       const [data, edits] = await Promise.all([
-        api<null, ScreenData>(pScreen.dataFileUri.href),
+        api<null, ScreenData>(screen.dataFileUri.href),
         screen.parentScreenId
-          ? api<null, EditFile<AllEdits<ElEditType>>>(pScreen.editFileUri.href)
+          ? api<null, EditFile<AllEdits<ElEditType>>>(screen.editFileUri.href)
           : Promise.resolve(null),
       ]);
       let remoteEdits: EditItem[] = [];
       if (edits !== null) {
-        if (edits.edits instanceof Array) {
-          // WARN this if conditions only for the cases where screens are created earlier with edit.json file having
-          // wrong format for edits key
-        } else {
-          remoteEdits = convertEditsToLineItems(edits.edits, false);
-        }
+        remoteEdits = convertEditsToLineItems(edits.edits, false);
       }
       dispatch({
         type: ActionType.SCREEN_AND_DATA_LOADED,
@@ -141,59 +135,67 @@ export function loadScreenAndData(screenRid: string, isScreenInPreviewMode = fal
         screenEdits: edits,
         remoteEdits,
         screen: processRawScreenData(screen, getState()),
-        isScreenInPreviewMode,
       });
     } else {
-      // TODO error
+      throw new Error(`Can't find the screen with rid=${screenRid}`);
     }
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour, withScreen: P_RespScreen, refresh = false) {
+export function clearCurrentScreenSelection() {
+  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_CURRENT_SCREEN }>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.CLEAR_CURRENT_SCREEN,
+    });
+  };
+}
+
+export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_RespScreen) {
   return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
+    let tourAnyway: P_RespTour;
+    if (!tour) {
+      const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
+        auth: true,
+        body: {
+          name: 'Untitled', // default name if no name is given
+          description: '',
+        },
+      });
+      tourAnyway = processRawTourData(data.data, getState());
+    } else {
+      tourAnyway = tour;
+    }
+
     const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
       auth: true,
       body: {
         parentId: withScreen.id,
-        tourRid: tour.rid,
+        tourRid: tourAnyway.rid,
       },
     });
     const screen = screenResp.data;
 
-    const pScreen = processRawScreenData(screen, getState());
-    const [data, edits] = await Promise.all([
-      api<null, ScreenData>(pScreen.dataFileUri.href),
-      api<null, EditFile<AllEdits<ElEditType>>>(pScreen.editFileUri.href)
-    ]);
-    dispatch({
-      type: ActionType.SCREEN_AND_DATA_LOADED,
-      screenData: data,
-      screenEdits: edits,
-      screen: processRawScreenData(screen, getState()),
-      remoteEdits: [],
-      isScreenInPreviewMode: false,
-    });
-    const uri = `/tour/${tour.rid}/${screen.rid}`;
-    if (refresh) {
-      window.history.replaceState(null, tour.displayName, uri);
-    } else {
-      window.location.replace(uri);
-    }
+    // it does nto change the reducer data because the screen would be refreshed anyway
+
+    window.location.replace(`/tour/${tourAnyway.rid}/${screen.rid}`);
   };
 }
 
 /* ************************************************************************* */
 
 export interface TGetAllTours {
-  type: ActionType.ALL_TOURS_RETRIEVED;
+  type: ActionType.ALL_TOURS_LOADED;
   tours: Array<P_RespTour>;
 }
 
 export function getAllTours() {
-  return async (dispatch: Dispatch<TGetAllTours>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TGetAllTours | TGenericLoading>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.ALL_TOURS_LOADING,
+    });
     const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
     dispatch({
-      type: ActionType.ALL_TOURS_RETRIEVED,
+      type: ActionType.ALL_TOURS_LOADED,
       tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
     });
   };
@@ -210,9 +212,10 @@ export interface TTour {
 
 export function createNewTour(tourName = 'Untitled', description = '', mode: SupportedPerformedAction = 'new') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
-    if (mode !== 'replace') {
-      dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
-    }
+    // TODO[now]  should not be required any more
+    // if (mode !== 'replace') {
+    //   dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
+    // }
 
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
@@ -297,23 +300,6 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
   };
 }
 
-export function createPlaceholderTour() {
-  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
-    const tour = createEmptyTour();
-    const data = createEmptyTourDataFile();
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
-
-    dispatch({
-      type: ActionType.TOUR_AND_DATA_LOADED,
-      tourData: data,
-      tour: processRawTourData(tour, getState(), true),
-      annotations: annotationAndOpts.annotations,
-      opts: annotationAndOpts.opts,
-      allCorrespondingScreens: false,
-    });
-  };
-}
-
 export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
@@ -323,7 +309,6 @@ export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) 
         description: tour.description,
       },
     });
-    await sleep(3000);
     const pTour = processRawTourData(data.data, getState());
     dispatch({
       type: ActionType.TOUR,

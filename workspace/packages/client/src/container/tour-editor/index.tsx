@@ -1,6 +1,7 @@
 import {
   IAnnotationConfig,
   ITourDataOpts,
+  LoadingStatus,
   ScreenData,
   TourDataWoScheme,
   TourScreenEntity
@@ -8,15 +9,13 @@ import {
 import React from 'react';
 import { connect } from 'react-redux';
 import {
-  copyScreenForCurrentTour,
-  createPlaceholderTour,
+  clearCurrentScreenSelection,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
   getAllScreens,
   loadScreenAndData,
   loadTourAndData,
   saveEditChunks,
-  savePlaceHolderTour,
   saveTourData
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
@@ -33,26 +32,20 @@ import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
   getAllScreens: () => void;
-  createPlaceholderTour: () => void;
-  loadScreenAndData: (rid: string, isPreviewMode: boolean) => void;
-  savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => void;
-  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
+  loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => void;
   flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => void;
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
+  clearCurrentScreenSelection: () => void,
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadTourAndData: (rid: string) => dispatch(loadTourAndData(rid)),
   getAllScreens: () => dispatch(getAllScreens()),
-  createPlaceholderTour: () => dispatch(createPlaceholderTour()),
-  loadScreenAndData: (rid: string, isPreviewMode: boolean) => dispatch(loadScreenAndData(rid, isPreviewMode)),
+  loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
-  savePlaceHolderTour: (tour: P_RespTour, screen: P_RespScreen) => dispatch(savePlaceHolderTour(tour, screen)),
-  copyScreenForCurrentTour:
-    (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
@@ -64,6 +57,7 @@ const mapDispatchToProps = (dispatch: any) => ({
     ) => dispatch(saveTourData(tour, data)),
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
+  clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
 });
 
 interface IAppStateProps {
@@ -83,7 +77,7 @@ interface IAppStateProps {
 const mapStateToProps = (state: TState): IAppStateProps => {
   const anPerScreen: AnnotationPerScreen[] = [];
   for (const [screenId, an] of Object.entries(state.default.remoteAnnotations)) {
-    const screen = state.default.flattenedScreens.find(s => s.id === +screenId);
+    const screen = state.default.allScreens.find(s => s.id === +screenId);
     if (screen) {
       anPerScreen.push({ screen, annotations: an });
     }
@@ -127,10 +121,10 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     tour: state.default.currentTour,
     isTourLoaded: state.default.tourLoaded,
     screen: state.default.currentScreen,
-    flattenedScreens: state.default.flattenedScreens,
+    flattenedScreens: state.default.allScreens,
     screenData: state.default.screenData,
-    isScreenLoaded: state.default.screenLoaded,
-    screens: state.default.screens,
+    isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
+    screens: state.default.rootScreens,
     allEdits,
     allAnnotationsForScreen,
     allAnnotationsForTour: anPerScreen,
@@ -165,15 +159,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.playMode) {
       this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     } else {
-      const isPreviewMode = !this.props.match.params.tourId;
-
-      if (isPreviewMode) {
-        this.props.createPlaceholderTour();
-      } else {
-        this.props.loadTourAndData(this.props.match.params.tourId);
-      }
+      this.props.loadTourAndData(this.props.match.params.tourId);
       if (this.props.match.params.screenId) {
-        this.props.loadScreenAndData(this.props.match.params.screenId, isPreviewMode);
+        this.props.loadScreenAndData(this.props.match.params.screenId);
       }
 
       // TODO dont' run this in play mode
@@ -186,9 +174,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
     if (!this.props.playMode) {
-      if (prevProps.isTourLoaded && prevProps.tour?.isPlaceholder === true && !this.props.tour?.isPlaceholder) {
-        this.props.copyScreenForCurrentTour(this.props.tour!, this.props.screen!);
-      }
       this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
     } else if (prevProps.isTourLoaded !== this.props.isTourLoaded && this.props.isTourLoaded) {
       const main = this.props.tourOpts.main;
@@ -199,7 +184,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (prevProps.match.params.screenId !== this.props.match.params.screenId) {
-      this.props.loadScreenAndData(this.props.match.params.screenId, false);
+      this.props.loadScreenAndData(this.props.match.params.screenId);
     }
   }
 
@@ -292,6 +277,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   componentWillUnmount() {
+    this.props.clearCurrentScreenSelection();
     this.chunkSyncManager?.end();
   }
 
@@ -318,10 +304,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           /* padding: '0px' */
         }}
         >
-          {/*
-              TODO this is temp until siddhi is done with the screen zooming via canvas
-                   after that integrate as part of Canvas
-            */}
           {this.shouldShowScreen() ? (
             <ScreenEditor
               key={this.props.screen?.rid}
@@ -376,11 +358,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  private onScreenEditStart = () => {
-    if (this.props.tour?.isPlaceholder) {
-      this.props.savePlaceHolderTour(this.props.tour, this.props.screen!);
-    }
-  };
+  // eslint-disable-next-line class-methods-use-this
+  private onScreenEditStart = () => { /* noop */ };
 
   // eslint-disable-next-line class-methods-use-this
   private onScreenEditFinish = () => { /* noop */ };

@@ -6,6 +6,7 @@ import { TState } from '../../reducer';
 import { init } from '../../action/creator';
 import Tours from '../tours';
 import TourEditor from '../tour-editor';
+import Screen from '../screen';
 
 interface IDispatchProps {
   init: () => void;
@@ -47,7 +48,9 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <Routes>
             <Route path="/screens" element={<Screens />} />
             <Route path="/tours" element={<Tours />} />
-            <Route path="/screen/:screenId" element={<TourEditor />} />
+            {/* todo */}
+            <Route path="/screen/:screenId" element={<Screen />} />
+            <Route path="/screen2/:screenId" element={<TourEditor />} />
             <Route path="/tour/:tourId" element={<TourEditor />} />
             <Route path="/tour/:tourId/:screenId" element={<TourEditor />} />
             <Route path="/tour/:tourId/:screenId/:annotationId" element={<TourEditor />} />
