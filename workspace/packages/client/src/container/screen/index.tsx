@@ -97,6 +97,7 @@ class Screen extends React.PureComponent<IProps, IOwnStateProps> {
     if ((currIsLoaded && prevScreenId !== currScreenId)
     || (prevIsLoaded !== currIsLoaded && currIsLoaded && currScreenId)) {
       const toursIncluded: Record<string, 1> = {};
+      console.log('>>>', this.props.screen?.related);
       this.props.screen!.related.reduce((hm, s) => {
         if (s.tour?.rid) {
           hm[s.tour.rid] = 1;

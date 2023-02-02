@@ -1,15 +1,14 @@
 import { ScreenData, SerNode } from '@fable/common/dist/types';
 import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
-import * as Tags from './styled';
 import { P_RespScreen } from '../../entity-processor';
-import { EditItem, ElEditType, IdxEditItem } from '../../types';
+import * as Tags from './styled';
 
 export interface IOwnProps {
   screen: P_RespScreen;
   screenData: ScreenData;
   divPadding: number;
-  innerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
+  innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
   onBeforeFrameBodyDisplay: () => void;
   onFrameAssetLoad: () => void;
 }
@@ -208,8 +207,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         title={this.props.screen.displayName}
         ref={ref => {
           this.embedFrameRef.current = ref;
-          if (this.props.innerRef) {
-            this.props.innerRef.current = ref;
+          if (this.props.innerRefs) {
+            this.props.innerRefs.forEach(r => r.current = ref);
           }
         }}
         srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"

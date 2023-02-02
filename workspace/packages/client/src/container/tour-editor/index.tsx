@@ -26,8 +26,9 @@ import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem } from '../../types';
+import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, NavFn } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
+import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 
 interface IDispatchProps {
   loadTourAndData: (rid: string) => void;
@@ -160,15 +161,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     } else {
       this.props.loadTourAndData(this.props.match.params.tourId);
-      if (this.props.match.params.screenId) {
-        this.props.loadScreenAndData(this.props.match.params.screenId);
-      }
-
-      // TODO dont' run this in play mode
       this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
         onSyncNeeded: this.flushEdits,
       });
       this.props.getAllScreens();
+    }
+    if (this.props.match.params.screenId) {
+      this.props.loadScreenAndData(this.props.match.params.screenId);
     }
   }
 
@@ -281,6 +280,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.chunkSyncManager?.end();
   }
 
+  navFn: NavFn = (uri, type) => {
+    if (type === 'annotation-hotspot') {
+      this.navigateTo(uri);
+    } else {
+      window.open(uri, '_blank')?.focus();
+    }
+  };
+
   render() {
     if (!this.isLoadingComplete()) {
       return <div>TODO show loader</div>;
@@ -305,33 +312,42 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         }}
         >
           {this.shouldShowScreen() ? (
-            <ScreenEditor
-              key={this.props.screen?.rid}
-              screen={this.props.screen!}
-              playMode={!!this.props.playMode}
-              screenData={this.props.screenData!}
-              allEdits={this.props.allEdits}
-              toAnnotationId={this.props.match.params.annotationId}
-              navigate={(uri, type) => {
-                if (type === 'annotation-hotspot') {
-                  this.navigateTo(uri);
-                } else {
-                  window.open(uri, '_blank')?.focus();
-                }
-              }}
-              createDefaultAnnotation={
-                (c, o) => this.onTourDataChange('annotation-and-theme', null, { config: c, opts: o }, true)
-              }
-              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-              allAnnotationsForTour={this.props.allAnnotationsForTour}
-              tourDataOpts={this.props.tourOpts}
-              onScreenEditStart={this.onScreenEditStart}
-              onScreenEditFinish={this.onScreenEditFinish}
-              onScreenEditChange={this.onScreenEditChange}
-              onAnnotationCreateOrChange={
-                (screenId, c, o) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, opts: o })
-              }
-            />
+            this.props.playMode ? (
+              <>
+                <PreviewWithEditsAndAnRO
+                  screen={this.props.screen!}
+                  screenData={this.props.screenData!}
+                  divPadding={0}
+                  navigate={this.navFn}
+                  playMode={false}
+                  onBeforeFrameBodyDisplay={() => {}}
+                  allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+                  tourDataOpts={this.props.tourOpts}
+                  allEdits={this.props.allEdits}
+                  toAnnotationId={this.props.match.params.annotationId || ''}
+                />
+              </>)
+              : (
+                <ScreenEditor
+                  key={this.props.screen?.rid}
+                  screen={this.props.screen!}
+                  screenData={this.props.screenData!}
+                  allEdits={this.props.allEdits}
+                  toAnnotationId={this.props.match.params.annotationId || ''}
+                  navigate={this.navFn}
+                  createDefaultAnnotation={
+                    (c, o) => this.onTourDataChange('annotation-and-theme', null, { config: c, opts: o }, true)
+                  }
+                  allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+                  allAnnotationsForTour={this.props.allAnnotationsForTour}
+                  tourDataOpts={this.props.tourOpts}
+                  onScreenEditStart={this.onScreenEditStart}
+                  onScreenEditFinish={this.onScreenEditFinish}
+                  onScreenEditChange={this.onScreenEditChange}
+                  onAnnotationCreateOrChange={
+                    (screenId, c, o) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, opts: o })
+                  }
+                />)
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas

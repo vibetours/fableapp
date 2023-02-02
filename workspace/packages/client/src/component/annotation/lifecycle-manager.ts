@@ -23,8 +23,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private rRoot: Root;
 
-  private scaleFactor: number;
-
   private vp: {w: number, h: number};
 
   private mode: AnnotationViewMode;
@@ -36,9 +34,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private isPlayMode: boolean;
 
   // Take the initial annotation config from here
-  constructor(doc: Document, opts: {scaleFactor: number, navigate: NavFn, isPlayMode: boolean}) {
+  constructor(doc: Document, opts: {navigate: NavFn, isPlayMode: boolean}) {
     super(doc);
-    this.scaleFactor = opts.scaleFactor;
     this.nav = opts.navigate;
     this.vp = {
       w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
