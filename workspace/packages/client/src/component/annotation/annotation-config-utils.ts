@@ -137,6 +137,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     bodyContent: 'Write a description about what this feature of your product does to your user.',
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
+    syncPending: true,
     buttons: [{
       id: getRandomId(),
       type: 'next',

@@ -14,6 +14,7 @@ import Input from 'antd/lib/input';
 import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
 import Checkbox from 'antd/lib/checkbox';
+import Modal from 'antd/lib/modal';
 import {
   ArrowRightOutlined,
   DeleteOutlined,
@@ -23,7 +24,8 @@ import {
   EyeOutlined,
   NodeIndexOutlined,
   QuestionCircleOutlined,
-  SubnodeOutlined
+  SubnodeOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
@@ -40,14 +42,17 @@ import {
 import { P_RespScreen } from '../../entity-processor';
 import { AnnotationPerScreen } from '../../types';
 
+const { confirm } = Modal;
+
 interface IProps {
   screen: P_RespScreen,
   config: IAnnotationConfig,
   opts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[],
-  onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig) => void;
+  onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig, actionType: 'upsert' | 'delete') => void;
   onConfigChange: (
     config: IAnnotationConfig,
+    actionType: 'upsert' | 'delete',
     opts: ITourDataOpts,
   ) => void;
 }
@@ -100,14 +105,54 @@ export default function AnnotationCreatorPanel(props: IProps) {
       && prevOpts
       && (config.monoIncKey > prevConfig.monoIncKey
         || opts.monoIncKey > prevOpts.monoIncKey)) {
-      props.onConfigChange(config, opts);
+      props.onConfigChange(config, 'upsert', opts);
     }
   }, [config, opts]);
+
+  const showDeleteConfirm = () => {
+    confirm({
+      title: 'Are you sure you want to delete this annotation?',
+      icon: <ExclamationCircleOutlined />,
+      okText: 'Yes',
+      okType: 'danger',
+      onOk: () => {
+        const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
+        for (const entry of props.allAnnotationsForTour) {
+          for (const an of entry.annotations) {
+            flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
+          }
+        }
+        const btns = config.buttons;
+        const nextBtn = btns.find(btn => btn.type === 'next')!;
+        const prevBtn = btns.find(btn => btn.type === 'prev')!;
+        const updates: [string, IAnnotationConfig][] = [];
+        if (nextBtn.hotspot) {
+          const nextAnnId = nextBtn.hotspot.actionValue;
+          const [screenId] = nextAnnId.split('/');
+          const nextAnn = flatAnnotationMap[nextAnnId];
+          const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
+          const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', null);
+          updates.push([screenId, update]);
+        }
+        if (prevBtn.hotspot) {
+          const prevAnnId = prevBtn.hotspot.actionValue;
+          const [screenId] = prevAnnId.split('/');
+          const prevAnn = flatAnnotationMap[prevAnnId];
+          const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
+          const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', null);
+          updates.push([screenId, update]);
+        }
+        props.onConfigChange(config, 'delete', opts);
+        updates.forEach(update => props.onSideEffectConfigChange(+update[0], update[1], 'upsert'));
+      },
+    });
+  };
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
   return (
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
+        <GTags.Txt>Change text content</GTags.Txt>
         <TextArea
           style={{ ...commonInputStyles, width: '100%', backgroundColor: '#FFF' }}
           rows={3}
@@ -119,18 +164,20 @@ export default function AnnotationCreatorPanel(props: IProps) {
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec row>
-        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Entry point</GTags.Txt>
-        <Tooltip
-          placement="right"
-          title={
-            <GTags.Txt className="subsubhead">
-              Is this the annotaiton user would see when they load first. Ideally for this annotation, there won't be
-              any Back button visible.
-            </GTags.Txt>
+        <div style={{ display: 'flex' }}>
+          <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Entry point</GTags.Txt>
+          <Tooltip
+            placement="right"
+            title={
+              <GTags.Txt className="subsubhead" color="#fff">
+                Is this the annotaiton user would see when they load first. Ideally for this annotation, there won't be
+                any Back button visible.
+              </GTags.Txt>
           }
-        >
-          <QuestionCircleOutlined />
-        </Tooltip>
+          >
+            <QuestionCircleOutlined />
+          </Tooltip>
+        </div>
         <Checkbox
           style={{ marginLeft: '0.75rem' }}
           checked={opts.main === qualifiedAnnotationId}
@@ -311,7 +358,8 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                       );
                                                       props.onSideEffectConfigChange(
                                                         screenAntnPair.screen.id,
-                                                        prevAntn
+                                                        prevAntn,
+                                                        'upsert'
                                                       );
                                                     } else if (btnConf.type === 'next') {
                                                       // this annotations next button should point to next annotaiton
@@ -333,7 +381,8 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                                       );
                                                       props.onSideEffectConfigChange(
                                                         screenAntnPair.screen.id,
-                                                        nextAntn
+                                                        nextAntn,
+                                                        'upsert'
                                                       );
                                                     } else {
                                                       // just one way connection
@@ -542,6 +591,11 @@ export default function AnnotationCreatorPanel(props: IProps) {
           >Create a custom button
           </Button>
         </Tags.AnotCrtPanelSec>
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec>
+        <Button type="text" icon={<DeleteOutlined />} danger onClick={showDeleteConfirm}>
+          Delete this annotation
+        </Button>
       </Tags.AnotCrtPanelSec>
     </Tags.AnotCrtPanelCon>
 

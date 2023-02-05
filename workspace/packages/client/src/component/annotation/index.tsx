@@ -9,21 +9,6 @@ interface IProps {
   nav: NavFn
 }
 
-// export class AnnotationBubble extends React.PureComponent<IProps> {
-//   render() {
-//     return (
-//       <Tags.BubbleCon style={{
-//         display: this.props.annotationDisplayConfig.isInViewPort ? 'flex' : 'none',
-//         left: this.props.box.x - 5,
-//         top: this.props.box.y - 5,
-//       }}
-//       >
-//         {this.props.annotationDisplayConfig.config.id}
-//       </Tags.BubbleCon>
-//     );
-//   }
-// }
-
 export class AnnotationContent extends React.PureComponent<{
   config: IAnnotationConfig;
   opts: ITourDataOpts;
@@ -46,6 +31,7 @@ export class AnnotationContent extends React.PureComponent<{
     const btns = this.props.config.buttons.filter(c => !c.exclude);
     return (
       <Tags.AnContent
+        className="fable-test-cl"
         ref={this.conRef}
         style={{
           minWidth: `${AnnotationContent.MIN_WIDTH}px`,

@@ -129,7 +129,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
       hm[an.id] = an;
     }
   }
-  allAnnotationsForScreen = Object.values(hm).sort((m, n) => m.updatedAt - n.updatedAt);
+  allAnnotationsForScreen = Object.values(hm).sort((m, n) => m.createdAt - n.createdAt);
 
   let allEdits = [
     ...(state.default.currentScreen?.id ? state.default.localEdits[state.default.currentScreen.id] || [] : []),
@@ -356,6 +356,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   tourDataOpts={this.props.tourOpts}
                   allEdits={this.props.allEdits}
                   toAnnotationId={this.props.match.params.annotationId || ''}
+                  onFrameAssetLoad={() => {}}
                 />
               </>)
               : (
@@ -367,7 +368,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   toAnnotationId={this.props.match.params.annotationId || ''}
                   navigate={this.navFn}
                   createDefaultAnnotation={
-                    (c, o) => this.onTourDataChange('annotation-and-theme', null, { config: c, opts: o }, true)
+                    (c, o) => this.onTourDataChange(
+                      'annotation-and-theme',
+                      null,
+                      { config: c, opts: o, actionType: 'upsert' },
+                      true
+                    )
                   }
                   allAnnotationsForScreen={this.props.allAnnotationsForScreen}
                   allAnnotationsForTour={this.props.allAnnotationsForTour}
@@ -376,7 +382,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   onScreenEditFinish={this.onScreenEditFinish}
                   onScreenEditChange={this.onScreenEditChange}
                   onAnnotationCreateOrChange={
-                    (screenId, c, o) => this.onTourDataChange('annotation-and-theme', screenId, { config: c, opts: o })
+                    (screenId, c, actionType, o) => this.onTourDataChange(
+                      'annotation-and-theme',
+                      screenId,
+                      { config: c, actionType, opts: o }
+                    )
                   }
                 />)
           ) : (
@@ -425,7 +435,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             type: 'screen',
             ref: `${this.props.screen?.id!}`,
             annotations: {
-              [changeObj.config.id]: changeObj.config
+              [changeObj.config.id]: changeObj.actionType === 'upsert' ? changeObj.config : null
             }
           } as TourScreenEntity
         }

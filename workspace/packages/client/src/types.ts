@@ -8,14 +8,21 @@ export const enum ElEditType {
   Blur,
 }
 
-export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string];
+export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string | null];
 export const enum IdxEncodingTypeText {
   TIMESTAMP = 0,
   OLD_VALUE,
   NEW_VALUE,
 }
 
-export type EncodingTypeImage = [timeInSec: number, oldValue: string, newValue: string, height: string, width: string];
+export type EncodingTypeImage = [
+  timeInSec: number,
+  oldValue: string,
+  newValue: string | null,
+  height: string,
+  width: string
+];
+
 export const enum IdxEncodingTypeImage {
   TIMESTAMP = 0,
   OLD_VALUE,
@@ -27,9 +34,9 @@ export const enum IdxEncodingTypeImage {
 export type EncodingTypeBlur = [
   timeInSec: number,
   oldBlurValue: number,
-  newBlurValue: number,
+  newBlurValue: number | null,
   oldFilterPropertyValue: string,
-  newFilterPropertyValue: string
+  newFilterPropertyValue: string | null
 ];
 export const enum IdxEncodingTypeBlur {
   TIMESTAMP = 0,
@@ -39,7 +46,7 @@ export const enum IdxEncodingTypeBlur {
   NEW_FILTER_VALUE,
 }
 
-export type EncodingTypeDisplay = [timeInSec: number, oldValue: string, newVal: string];
+export type EncodingTypeDisplay = [timeInSec: number, oldValue: string, newVal: string | null];
 export const enum IdxEncodingTypeDisplay {
   TIMESTAMP = 0,
   OLD_VALUE,
@@ -85,6 +92,10 @@ export type AnnotationPerScreen = {screen: P_RespScreen, annotations: IAnnotatio
 export type TourDataChangeFn = (
     changeType: 'annotation-and-theme' | 'screen',
     screenId: number | null,
-    changeObj: {config: IAnnotationConfig, opts?: ITourDataOpts | null},
+    changeObj: {config: IAnnotationConfig, opts?: ITourDataOpts | null, actionType: 'upsert' | 'delete'},
     isDefault?: boolean
 ) => void;
+
+export type FrameAssetLoadFn = (params: {
+  foundAnnotation: boolean;
+}) => void;

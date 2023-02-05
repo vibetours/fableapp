@@ -1,7 +1,6 @@
 /* TODO There are some repetation of code across creators, fix those
  */
 
-import { Dispatch } from 'react';
 import api from '@fable/common/dist/api';
 import {
   ApiResp,
@@ -11,9 +10,8 @@ import {
   ReqRenameTour,
   RespCommonConfig,
   RespScreen,
-  RespTour,
+  RespTour
 } from '@fable/common/dist/api-contract';
-import { getCurrentUtcUnixTime, sleep } from '@fable/common/dist/utils';
 import {
   EditFile,
   IAnnotationConfig,
@@ -22,24 +20,17 @@ import {
   TourData,
   TourDataWoScheme
 } from '@fable/common/dist/types';
-import { rmSync } from 'fs';
+import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { Dispatch } from 'react';
 import {
-  convertEditsToLineItems,
-  createEmptyTour,
-  createEmptyTourDataFile,
-  groupScreens,
-  mergeEdits,
-  P_RespScreen,
-  P_RespTour,
-  processRawScreenData,
-  processRawTourData,
-  normalizeTourDataFile,
-  mergeTourData,
-  getThemeAndAnnotationFromDataFile,
+  convertEditsToLineItems, getThemeAndAnnotationFromDataFile, groupScreens,
+  mergeEdits, mergeTourData, normalizeTourDataFile, processRawScreenData,
+  processRawTourData, P_RespScreen,
+  P_RespTour
 } from '../entity-processor';
 import { TState } from '../reducer';
-import ActionType from './type';
 import { AllEdits, EditItem, ElEditType } from '../types';
+import ActionType from './type';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING | ActionType.SCREEN_LOADING | ActionType.ALL_TOURS_LOADING;
@@ -273,11 +264,11 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
       const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
       tour = processRawTourData(data.data, state);
     } catch (e) {
-      console.error(e);
+      throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
     const data = await api<null, TourData>(tour!.dataFileUri.href);
     const nData = normalizeTourDataFile(data);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData, true);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData);
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: nData,
@@ -357,7 +348,7 @@ export interface TSaveTourEntities {
 
 export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData, true);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,
       tour,
@@ -374,9 +365,10 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
     const savedData = getState().default.tourData;
     if (savedData) {
       savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+      const mergedMasterData = mergeTourData(savedData, localEdits, true);
       const mergedData = {
         ...savedData,
-        ...mergeTourData(savedData, localEdits)
+        ...mergedMasterData
       };
 
       const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {

@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
+import { ITourEntityHotspot } from '@fable/common/dist/types';
 import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
@@ -150,7 +150,8 @@ export default function TourCanvas(props: CanvasProps) {
       update = updateButtonProp(fromOldAn, nextBtn.id, 'hotspot', null);
       allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx] = update; // Updated config push it back to list
       updateFn('annotation-and-theme', allAnns[fromOldScrnIdx].screen.id, {
-        config: update
+        config: update,
+        actionType: 'upsert'
       });
     }
 
@@ -163,7 +164,8 @@ export default function TourCanvas(props: CanvasProps) {
       update = updateButtonProp(toOldAn, prevBtn.id, 'hotspot', null);
       allAnns[toOldScrnIdx].annotations[toOldAnnIdx] = update; // updated value push it back to the list
       updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
-        config: update
+        config: update,
+        actionType: 'upsert'
       });
     }
 
@@ -179,7 +181,8 @@ export default function TourCanvas(props: CanvasProps) {
     } as ITourEntityHotspot);
     allAnns[toScreenIdx].annotations[toAnIdx] = update; // updated value push it back to the list
     updateFn('annotation-and-theme', allAnns[toScreenIdx].screen.id, {
-      config: update
+      config: update,
+      actionType: 'upsert'
     });
 
     update = updateButtonProp(fromAn, nextBtnOfFromAn.id, 'hotspot', {
@@ -191,7 +194,8 @@ export default function TourCanvas(props: CanvasProps) {
     } as ITourEntityHotspot);
     allAnns[fromScreenIdx].annotations[fromAnIdx] = update; // updated value push it back to the list
     updateFn('annotation-and-theme', allAnns[fromScreenIdx].screen.id, {
-      config: update
+      config: update,
+      actionType: 'upsert'
     });
   };
 

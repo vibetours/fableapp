@@ -26,6 +26,8 @@ export default abstract class HighlighterBase {
     this.removeMaskIfPresent();
   }
 
+  // WARN this does not work for elements that are visible but height is greater than the
+  // window height or width is greater than the window width
   protected isElInViewPort(el: HTMLElement) {
     const rect = el.getBoundingClientRect();
 
@@ -85,13 +87,16 @@ export default abstract class HighlighterBase {
     }
   }
 
-  elFromPath(path: string) {
+  elFromPath(path: string): HTMLElement | null {
     const elIdxs = path.split('.').map((id) => +id);
     let node = this.doc as Node;
     for (const id of elIdxs) {
       node = node.childNodes[id];
     }
-    return node;
+    if (node === this.doc) {
+      return null;
+    }
+    return node as HTMLElement;
   }
 
   elPath(el: HTMLElement) {

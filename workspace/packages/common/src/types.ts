@@ -61,12 +61,11 @@ export interface EditFile<T> {
 export interface TourEntity {
   type: 'screen' | 'qualification';
   ref: string;
-  navigation: any[]; // TODO
 }
 
 export interface TourScreenEntity extends TourEntity {
   type: 'screen';
-  annotations: Record<string, IAnnotationConfig>;
+  annotations: Record<string, IAnnotationOriginConfig>;
 }
 
 export interface IChronoUpdatable {
@@ -155,5 +154,5 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
 
 // TODO perform this conversion, client side
 export interface IAnnotationConfig extends IAnnotationOriginConfig {
-  syncPending?: boolean;
+  syncPending: boolean;
 }

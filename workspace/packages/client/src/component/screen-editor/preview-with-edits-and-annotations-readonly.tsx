@@ -6,7 +6,7 @@ import {
   EncodingTypeBlur,
   EncodingTypeDisplay,
   EncodingTypeImage,
-  EncodingTypeText, IdxEditItem,
+  EncodingTypeText, FrameAssetLoadFn, IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
@@ -28,6 +28,7 @@ export interface IOwnProps {
   tourDataOpts: ITourDataOpts;
   allEdits: EditItem[];
   toAnnotationId: string;
+  onFrameAssetLoad: FrameAssetLoadFn;
 }
 
 interface IOwnStateProps {
@@ -64,7 +65,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       let el: Node;
       if (path in mem) el = mem[path];
       else {
-        el = this.annotationLCM!.elFromPath(path);
+        el = this.annotationLCM!.elFromPath(path) as HTMLElement;
         mem[path] = el;
       }
 
@@ -78,8 +79,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
         const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
         const tEl = el as HTMLImageElement;
-        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
-        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE];
+        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
+        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
         tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
         tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
         tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
@@ -89,20 +90,21 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
         const tEl = el as HTMLElement;
         tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
-        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE];
+        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE]!;
       }
 
       if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
         const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
         const tEl = el as HTMLElement;
         tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
-        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE];
+        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE]!;
       }
     }
   }
 
   onFrameAssetLoad = () => {
-    this.reachAnnotation(this.props.toAnnotationId);
+    const foundAnnotation = this.reachAnnotation(this.props.toAnnotationId);
+    this.props.onFrameAssetLoad({ foundAnnotation });
   };
 
   private initAnnotationLCM() {
@@ -127,15 +129,17 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   }
 
-  reachAnnotation(id: string) {
+  reachAnnotation(id: string): boolean {
     if (id) {
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
         this.showAnnotation(an, this.props.tourDataOpts);
+        return true;
       }
-    } else {
-      this.annotationLCM!.hide();
+      return false;
     }
+    this.annotationLCM?.hide();
+    return false;
   }
 
   async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
@@ -151,9 +155,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   }
 
   async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
-    if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
-      this.reachAnnotation(this.props.toAnnotationId);
-    }
+    this.reachAnnotation(this.props.toAnnotationId);
   }
 
   componentWillUnmount(): void {

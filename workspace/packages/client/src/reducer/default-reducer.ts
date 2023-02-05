@@ -20,7 +20,7 @@ import {
   TTour,
   TTourWithData,
 } from '../action/creator';
-import { P_RespScreen, P_RespTour } from '../entity-processor';
+import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType } from '../types';
 
 export const initialState: {

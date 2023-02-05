@@ -2,13 +2,23 @@ import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } fr
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   IAnnotationConfig,
+  IAnnotationOriginConfig,
   ITourDataOpts,
   TourData,
   TourDataWoScheme,
   TourScreenEntity
 } from '@fable/common/dist/types';
 import { TState } from './reducer';
-import { AllEdits, EditItem, ElEditType } from './types';
+import {
+  AllEdits,
+  EditItem,
+  ElEditType,
+  EditValueEncoding,
+  IdxEncodingTypeText,
+  IdxEncodingTypeImage,
+  IdxEncodingTypeBlur,
+  IdxEncodingTypeDisplay
+} from './types';
 import { getDefaultTourOpts } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
@@ -119,25 +129,26 @@ export function createEmptyTourDataFile(): TourData {
   };
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, syncPending: boolean): {
+export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true): {
   annotations: Record<string, IAnnotationConfig[]>,
   opts: ITourDataOpts,
 } {
   const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
   for (const [screenId, entity] of Object.entries(data.entities)) {
     if (entity.type === 'screen') {
-      const annotationList = annotationsPerScreen[screenId] || [];
-      const screenEntity = entity as TourScreenEntity;
-      for (const [, annotation] of Object.entries(screenEntity.annotations)) {
-        annotation.syncPending = syncPending;
-        annotationList.push(annotation);
-      }
-      annotationsPerScreen[screenId] = annotationList;
+      const anns = Object.values((entity as TourScreenEntity).annotations);
+      annotationsPerScreen[screenId] = isLocal
+        ? (anns as IAnnotationConfig[])
+        : anns.map(remoteToLocalAnnotationConfig);
+    } else {
+      throw new Error('TODO not yet implemented');
     }
   }
 
   return {
-    annotations: annotationsPerScreen,
+    annotations: isLocal ? annotationsPerScreen : remoteToLocalAnnotationConfigMap(
+      annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>
+    ),
     opts: data.opts
   };
 }
@@ -160,12 +171,38 @@ export function normalizeTourDataFile(data: TourData) {
 
 /* ************************************************************************* */
 
+const isEditToBeRemoved = (
+  editType: ElEditType,
+  editArray: EditValueEncoding[keyof EditValueEncoding]
+): boolean => {
+  switch (editType) {
+    case ElEditType.Text:
+      return editArray[IdxEncodingTypeText.NEW_VALUE] === null;
+
+    case ElEditType.Image:
+      return editArray[IdxEncodingTypeImage.NEW_VALUE] === null;
+
+    case ElEditType.Blur:
+      return editArray[IdxEncodingTypeBlur.NEW_BLUR_VALUE] === null;
+
+    case ElEditType.Display:
+      return editArray[IdxEncodingTypeDisplay.OLD_VALUE] === null;
+
+    default:
+      return false;
+  }
+};
+
 export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits<ElEditType>): AllEdits<ElEditType> {
   for (const path of Object.keys(incomingEdits)) {
     if (path in master) {
       const perElEdit = incomingEdits[path];
       for (const editType of Object.keys(perElEdit)) {
-        master[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+        if (isEditToBeRemoved(+editType as ElEditType, perElEdit[+editType as ElEditType]!)) {
+          delete master[path][+editType as ElEditType];
+        } else {
+          master[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+        }
       }
     } else {
       master[path] = incomingEdits[path];
@@ -175,57 +212,79 @@ export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits
   return master;
 }
 
+export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotationOriginConfig {
+  return {
+    id: lc.id,
+    refId: lc.refId,
+    bodyContent: lc.bodyContent,
+    buttons: lc.buttons,
+    monoIncKey: lc.monoIncKey,
+    createdAt: lc.createdAt,
+    updatedAt: lc.updatedAt,
+    positioning: lc.positioning,
+  };
+}
+
+export function remoteToLocalAnnotationConfig(rc: IAnnotationOriginConfig): IAnnotationConfig {
+  return {
+    ...rc,
+    syncPending: false,
+  };
+}
+
+export function remoteToLocalAnnotationConfigMap(
+  config: Record<string, IAnnotationOriginConfig[]>
+): Record<string, IAnnotationConfig[]> {
+  const config2: Record<string, IAnnotationConfig[]> = {};
+  for (const [screenId, anns] of Object.entries(config)) {
+    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(an));
+  }
+  return config2;
+}
+
+// the atomicity of merge is not granular (property level changes), rather logical entity level.
+// like if an annotation config needs to be merged we merge the full annotation config object as a whole
+// not property of config level
 export function mergeTourData(
   master: TourDataWoScheme,
   incoming: Partial<TourDataWoScheme>,
-): TourDataWoScheme {
-  const inOb = deepcopy(incoming) as any;
-
-  // only support merging primitive value, array, js objects
-  function recMerge(to: any, from: any) {
-    for (const [key, value] of Object.entries(from)) {
-      // TODO this is plain old wrong. SyncPending is a local key to
-      // detect if annotation edit is synced. While merging we conditionally
-      // delete this. This is done in the interest of the time. Ideally this
-      // should be handled like chunk edit
-      if (value === null) {
-        delete to[key];
-      } if (value === undefined) {
+  convertLocalToRemote = false
+) {
+  const newMaster = deepcopy(master);
+  if (incoming.opts) {
+    newMaster.opts = incoming.opts;
+  }
+  if (incoming.entities) {
+    for (const [entityKey, entity] of Object.entries(incoming.entities)) {
+      if (entity === null) {
+        delete newMaster.entities[entityKey];
         continue;
       }
 
-      if (key === 'createdAt' && typeof from[key] === 'number') {
-        continue;
-      }
-
-      if (typeof value === 'object') {
-        if (typeof to[key] !== 'object') {
-          to[key] = deepcopy(value);
-        } else if (value instanceof Array) {
-          // Recursive merge inside array is not yet supported, not needed right now
-          to[key] = deepcopy(value);
-        } else /* both are js object */ {
-          recMerge(to[key], from[key]);
+      if (entityKey in newMaster.entities) {
+        if (entity.type === 'screen') {
+          const newMasterScreenEntity = newMaster.entities[entityKey] as TourScreenEntity;
+          const screenEntity = entity as TourScreenEntity;
+          for (const [anId, ann] of Object.entries(screenEntity.annotations)) {
+            if (ann === null) {
+              delete newMasterScreenEntity.annotations[anId];
+              continue;
+            }
+            const typedConfig = (convertLocalToRemote
+              ? localToRemoteAnnotationConfig(ann as IAnnotationConfig)
+              : ann) as IAnnotationOriginConfig;
+            newMasterScreenEntity.annotations[anId] = typedConfig;
+          }
+        } else {
+          throw new Error('TODO not yet implemented');
         }
       } else {
-        to[key] = value;
+        newMaster.entities[entityKey] = entity;
       }
     }
   }
-  const m = deepcopy(master);
-  recMerge(m, inOb);
-  return m;
+  return newMaster;
 }
-
-// if (incoming.id in master) {
-//   const annotationsInMaster = master[incoming.id].annotations;
-//   for (const [id, annotationConfig] of Object.entries(incoming.annotations)) {
-//     annotationsInMaster[id] = annotationConfig;
-//   }
-// } else {
-//   master[incoming.id] = incoming;
-// }
-// return master;
 
 export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
   const editList: EditItem[] = [];

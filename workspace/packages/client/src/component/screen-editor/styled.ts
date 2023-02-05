@@ -30,18 +30,6 @@ export const EmbedFrame = styled.iframe`
   }
 `;
 
-// export const EditPanelCon = styled.div`
-//   height: 100%;
-//   width: 23%;
-//   min-width: 320px;
-//   display: flex;
-//   flex-direction: column;
-//   background: #fff;
-//   border-left: 1px solid #ddd;
-//   border-top-right-radius: 20px;
-//   border-bottom-right-radius: 20px;
-// `;
-
 export const EditPanelSec = styled.div`
   display: flex;
   padding: 1rem 0.75rem;
@@ -52,6 +40,7 @@ export const EditCtrlCon = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-top: 1.5rem;
 `;
 
 export const EditCtrlLabel = styled.div``;
@@ -181,6 +170,19 @@ export const AABtnCtrlLine = styled.div`
  &.sel {
   /* background: #f5f5f5; */
  }
+`;
+
+export const ActionMenuCon = styled.div`
+  padding: 0.85rem 0.35rem;
+  margin: 0.25rem;
+`;
+
+export const ActionMenuConBar = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.15rem 0.75rem;
+  background: #eeeeee;
+  border-radius: 8px;
 `;
 
 export const AnnotationLI = styled.div`

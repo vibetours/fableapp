@@ -113,8 +113,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const path = this.elPath(el);
     for (const [elPath, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       annotationDisplayConfig.opts = this.opts;
-      if (elPath === path) annotationDisplayConfig.isMaximized = true;
-      else annotationDisplayConfig.isMaximized = false;
+      if (elPath === path) {
+        annotationDisplayConfig.isMaximized = true;
+        annotationDisplayConfig.isInViewPort = true;
+      } else {
+        annotationDisplayConfig.isMaximized = false;
+        annotationDisplayConfig.isInViewPort = false;
+      }
     }
     el.scrollIntoView({
       behavior: 'smooth',
@@ -133,20 +138,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       conf: IAnnoationDisplayConfig,
     })[] = [];
     for (const [, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
-      if (this.isElInViewPort(el)) {
-        annotationDisplayConfig.isInViewPort = true;
-        props.push({
-          box: el.getBoundingClientRect(),
-          conf: annotationDisplayConfig,
-        });
-      } else {
-        annotationDisplayConfig.isInViewPort = false;
-        props.push({
-          box: el.getBoundingClientRect(),
-          conf: annotationDisplayConfig,
-        });
-      }
-
+      props.push({
+        box: el.getBoundingClientRect(),
+        conf: annotationDisplayConfig,
+      });
       if (annotationDisplayConfig.isMaximized) {
         this.selectElement(el);
       }

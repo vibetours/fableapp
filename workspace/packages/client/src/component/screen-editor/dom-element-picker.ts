@@ -69,7 +69,10 @@ export default class DomElementPicker extends HighlighterBase {
       (this.evts as any)[eventName] = fns;
     }
     fns.push(fn);
-    this.doc.addEventListener(eventName, fn);
+    if (eventName !== 'click') {
+      // we already install click listeners from this, hence outside clicks needs to be handled differently
+      this.doc.addEventListener(eventName, fn);
+    }
   }
 
   getMode() {
@@ -158,11 +161,17 @@ export default class DomElementPicker extends HighlighterBase {
     this.onElSelect(el, this.doc);
   }
 
-  private handleClick = () => {
+  private handleClick = (e: MouseEvent) => {
     if (this.highlightMode === HighlightMode.Selection) {
       const el = this.prevElHovered;
-      console.assert(el !== null);
+      if (!el) {
+        throw new Error("Can't pin an element as the previously hovered element is not found");
+      }
+      e.stopPropagation();
+      e.preventDefault();
       this.pinnedMode(el as HTMLElement);
+    } else {
+      (this.evts.click || []).map(f => f(e));
     }
   };
 }
