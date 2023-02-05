@@ -10,6 +10,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import {
   clearCurrentScreenSelection,
+  copyScreenForCurrentTour,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
   getAllScreens,
@@ -26,12 +27,11 @@ import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, NavFn } from '../../types';
+import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourDataChangeFn, NavFn } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 
 interface IDispatchProps {
-  loadTourAndData: (rid: string) => void;
   getAllScreens: () => void;
   loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
@@ -40,13 +40,15 @@ interface IDispatchProps {
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   clearCurrentScreenSelection: () => void,
+  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
-  loadTourAndData: (rid: string) => dispatch(loadTourAndData(rid)),
   getAllScreens: () => dispatch(getAllScreens()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
+  copyScreenForCurrentTour:
+    (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen, false)),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
@@ -77,10 +79,39 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => {
   const anPerScreen: AnnotationPerScreen[] = [];
-  for (const [screenId, an] of Object.entries(state.default.remoteAnnotations)) {
-    const screen = state.default.allScreens.find(s => s.id === +screenId);
-    if (screen) {
-      anPerScreen.push({ screen, annotations: an });
+  const combinedAnnotations: Record<string, IAnnotationConfig> = {};
+  for (const [screenId, anns] of Object.entries(state.default.localAnnotations)) {
+    for (const an of anns) {
+      combinedAnnotations[`${screenId}/${an.refId}`] = an;
+    }
+  }
+  for (const [screenId, anns] of Object.entries(state.default.remoteAnnotations)) {
+    for (const an of anns) {
+      const key = `${screenId}/${an.refId}`;
+      if (!(key in combinedAnnotations)) {
+        combinedAnnotations[key] = an;
+      }
+    }
+  }
+  const screenAnMap: Record<string, IAnnotationConfig[]> = {};
+  for (const [qId, an] of Object.entries(combinedAnnotations)) {
+    const [screenId] = qId.split('/');
+    if (screenId in screenAnMap) {
+      screenAnMap[screenId].push(an);
+    } else {
+      screenAnMap[screenId] = [an];
+      const screen = state.default.allScreens.find(s => s.id === +screenId);
+      if (screen) {
+        anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
+      }
+    }
+  }
+  // If there are screen present as part of a tour but no annotation is yet made then also we
+  // show this
+  const screensForTours = state.default.currentTour?.screens || [];
+  for (const screen of screensForTours) {
+    if (!(screen.id in screenAnMap)) {
+      anPerScreen.push({ screen, annotations: [] });
     }
   }
 
@@ -157,10 +188,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private chunkSyncManager: ChunkSyncManager | null = null;
 
   componentDidMount(): void {
-    if (this.props.playMode) {
-      this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
-    } else {
-      this.props.loadTourAndData(this.props.match.params.tourId);
+    this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
+    if (!this.props.playMode) {
       this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
         onSyncNeeded: this.flushEdits,
       });
@@ -182,7 +211,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       this.navigateTo(main);
     }
 
-    if (prevProps.match.params.screenId !== this.props.match.params.screenId) {
+    if (prevProps.match.params.screenId !== this.props.match.params.screenId && this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
   }
@@ -191,7 +220,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `${this.props.playMode ? '/p' : ''}/tour/${this.props.tour!.rid}/${screen.rid}/${anId}`;
+      const url = `${this.props.playMode
+        ? '/p'
+        : ''}/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
       this.props.navigate(url);
     } else {
       throw new Error(`Can't navigate because screenId ${screenId} is not found`);
@@ -307,7 +338,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.BodyCon style={{
           height: '100%',
           background: '#fff',
-          padding: this.props.playMode ? '0' : '0.25rem 2rem'
+          padding: this.props.playMode || !this.shouldShowScreen() ? '0' : '0.25rem 2rem'
           /* padding: '0px' */
         }}
         >
@@ -351,10 +382,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas
-                cellWidth={20}
-                screens={this.props.screens}
+                key={this.props.tour?.rid}
+                addScreenToTour={
+                  (screen: P_RespScreen) => this.props.copyScreenForCurrentTour(this.props.tour!, screen)
+                }
+                rootScreens={this.props.screens}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
-                navigate={this.props.navigate}
+                navigate={this.navigateTo}
                 onTourDataChange={this.onTourDataChange}
               />
             </div>
@@ -380,12 +414,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   // eslint-disable-next-line class-methods-use-this
   private onScreenEditFinish = () => { /* noop */ };
 
-  private onTourDataChange = (
-    changeType: 'annotation-and-theme' | 'screen',
-    screenId: number | null,
-    changeObj: {config: IAnnotationConfig, opts: ITourDataOpts | null},
-    isDefault = false
-  ) => {
+  private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, isDefault = false) => {
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
         opts: isDefault

@@ -14,8 +14,12 @@ export const RowCon = styled.div`
   flex-direction: row;
 `;
 
+export interface TxtProp {
+  color?: string
+}
+
 export const Txt = styled.div`
-  color: #16023E;
+  color: ${(props: TxtProp) => (props.color ? props.color : '#16023E')};
   &.head {
     font-size: ${(props) => props.theme.typography.size.heading};
     font-weight: bold;

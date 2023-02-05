@@ -150,8 +150,8 @@ export function clearCurrentScreenSelection() {
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_RespScreen) {
-  return async (dispatch: Dispatch<TScreenWithData>, getState: () => TState) => {
+export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_RespScreen, shouldNavigate = true) {
+  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     let tourAnyway: P_RespTour;
     if (!tour) {
       const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
@@ -176,8 +176,11 @@ export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_
     const screen = screenResp.data;
 
     // it does nto change the reducer data because the screen would be refreshed anyway
-
-    window.location.replace(`/tour/${tourAnyway.rid}/${screen.rid}`);
+    if (shouldNavigate) {
+      window.location.replace(`/tour/${tourAnyway.rid}/${screen.rid}`);
+    } else {
+      loadTourAndData(tourAnyway.rid, true)(dispatch, getState);
+    }
   };
 }
 
@@ -265,57 +268,24 @@ export interface TTourWithData {
 export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     const state = getState();
-    let tour: P_RespTour | null = null;
-    let isTourFound = false;
-    for (const t of state.default.tours) {
-      if (t.rid === tourRid) {
-        tour = t;
-        isTourFound = true;
-        break;
-      }
+    let tour: P_RespTour;
+    try {
+      const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
+      tour = processRawTourData(data.data, state);
+    } catch (e) {
+      console.error(e);
     }
-    if (!isTourFound) {
-      try {
-        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
-        tour = processRawTourData(data.data, state);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    if (tour) {
-      const data = await api<null, TourData>(tour.dataFileUri.href);
-      const nData = normalizeTourDataFile(data);
-      const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData, true);
-      dispatch({
-        type: ActionType.TOUR_AND_DATA_LOADED,
-        tourData: nData,
-        tour: processRawTourData(tour, getState()),
-        annotations: annotationAndOpts.annotations,
-        opts: annotationAndOpts.opts,
-        allCorrespondingScreens: shouldGetScreens,
-      });
-    } else {
-      // TODO error
-    }
-  };
-}
-
-export function savePlaceHolderTour(tour: P_RespTour, withScreen: P_RespScreen) {
-  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
-    const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
-      auth: true,
-      body: {
-        name: tour.displayName,
-        description: tour.description,
-      },
-    });
-    const pTour = processRawTourData(data.data, getState());
+    const data = await api<null, TourData>(tour!.dataFileUri.href);
+    const nData = normalizeTourDataFile(data);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData, true);
     dispatch({
-      type: ActionType.TOUR,
-      tour: pTour,
-      performedAction: 'replace',
+      type: ActionType.TOUR_AND_DATA_LOADED,
+      tourData: nData,
+      tour: processRawTourData(tour!, getState()),
+      annotations: annotationAndOpts.annotations,
+      opts: annotationAndOpts.opts,
+      allCorrespondingScreens: shouldGetScreens,
     });
-    window.history.replaceState(null, tour.displayName, `/tour/${pTour.rid}/${withScreen.rid}`);
   };
 }
 

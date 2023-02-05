@@ -1,454 +1,638 @@
+import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
+import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
+import { curveBasis, line } from 'd3-shape';
+import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
+import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
-import { ITourEntityHotspot } from '@fable/common/dist/types';
-import { ArrowsAltOutlined, DragOutlined } from '@ant-design/icons';
-import * as Tags from './styled';
-import { CanvasData, CanvasMode, Conn, ConnectorData, ElementCoords, Mode, Screen } from './types';
-import CanvasDottedBg from './canvas-dotted-bg';
-import { P_RespScreen } from '../../entity-processor';
-import EmptyCanvas from './empty-canvas';
-import AddScreen from './add-screen';
-import { formPathUsingPoints } from './utils';
-import { formConnectors, formScreens } from './utils/arrangeEls';
-import { startPan, stopPan, updatePan } from './utils/pan';
-import { zoom } from './utils/zoom';
-import { initialConnectorData, initialLine } from './init-data';
-import { startConnecting, stopConnecting, updateConnecting } from './utils/connector';
+import * as GTags from '../../common-styled';
+import { AnnotationPerScreen, NavFn, TourDataChangeFn } from '../../types';
 import { updateButtonProp } from '../annotation/annotation-config-utils';
-import { AnnotationPerScreen } from '../../types';
+import Btn from '../btn';
+import * as Tags from './styled';
+import { AnnotationNode, Box, CanvasGrid, EdgeWithData } from './types';
+import { formPathUsingPoints, formScreens2, getEdges } from './utils';
+import { P_RespScreen } from '../../entity-processor';
 
 type CanvasProps = {
-  cellWidth: number;
-  screens: P_RespScreen[];
   allAnnotationsForTour: AnnotationPerScreen[];
-  navigate: Function;
-  onTourDataChange: Function;
+  navigate: NavFn;
+  onTourDataChange: TourDataChangeFn;
+  rootScreens: P_RespScreen[];
+  addScreenToTour: (screen: P_RespScreen) => void;
 };
 
-const initialData: CanvasData = {
-  isPanning: false,
-  pointerOrigin: { x: 0, y: 0 },
-  origViewBox: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
-  viewBox: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
-  newViewBox: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight },
-  ratio: 1,
-  panLimit: { XMIN: 0, XMAX: window.innerWidth, YMIN: 10, YMAX: window.innerHeight },
+interface ConnectionErrMsg {
+  msg: string;
+  position: 'l' | 'r';
+  x: number;
+  y: number;
+  h: number;
+  w: number;
+  renderingW: number;
+}
+
+type AnnoationLookupMap = Record<string, [number, number]>;
+
+const CONNECTION_ERR_MSG = 'You can\'t connect an annotation to a screen. Click on the screen to create an annotation first.';
+
+const canvasGrid: CanvasGrid = {
+  gridSize: 36,
+  gridDotSize: 2,
+  initial: {
+    tx: 260,
+    ty: 180,
+    scale: 1
+  }
+};
+const connectionErrInitData: ConnectionErrMsg = {
+  msg: '',
+  position: 'l',
+  x: 0,
+  y: 0,
+  h: 0,
+  w: 0,
+  renderingW: 0
 };
 
-function Canvas({ cellWidth, screens, allAnnotationsForTour, navigate, onTourDataChange }: CanvasProps) {
-  const canvasData = useRef({
-    ...initialData,
-  });
+export default function TourCanvas(props: CanvasProps) {
+  const isGuideArrowDrawing = useRef(0);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const rootGRef = useRef<SVGGElement | null>(null);
+  const [showScreenSelector, setShowScreenSelector] = useState(false);
+  const [screensNotPartOfTour, setScreensNotPartOfTour] = useState<P_RespScreen[]>([]);
+  const [connectionErr, setConnectionErr] = useState<ConnectionErrMsg>(connectionErrInitData);
 
-  const [viewBoxStr, setViewBoxStr] = useState(
-    `0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`
-  );
-  const [mode, setMode] = useState(Mode.EmptyMode);
-  const [screenElements, setScreenElements] = useState<Screen[]>();
-  const [connectors, setConnectors] = useState<Conn[]>();
-  const svgRef = useRef(null);
-  const [canvasMode, setCanvasMode] = useState(CanvasMode.PanMode);
-  const [temporaryConnector, setTemporaryConnector] = useState(initialLine);
-  const connectorData = useRef<ConnectorData>(initialConnectorData);
+  const [init] = useState(1);
 
-  const startPanning = (event: React.MouseEvent) => {
-    canvasData.current = startPan(canvasData.current, event);
-  };
-
-  const updatePanning = (event: React.MouseEvent) => {
-    if (canvasData.current.isPanning) {
-      canvasData.current = updatePan(canvasData.current, event);
-      const viewBoxString = Object.values(canvasData.current.newViewBox).join(
-        ' '
-      );
-      setViewBoxStr(viewBoxString);
-    }
-  };
-
-  const stopPanning = () => {
-    canvasData.current = stopPan(canvasData.current);
-  };
-
-  function startConnector(event: React.MouseEvent) {
-    const { isDrawing } = connectorData.current;
-    const node = event.target as HTMLElement;
-
-    if (!isDrawing && node.dataset.type === 'canvasElementArea') {
-      const node = event.target as SVGSVGElement;
-
-      if (node.dataset.index) {
-        connectorData.current.start.element = +node.dataset.index;
-
-        if (screenElements) {
-          const el = screenElements[+node.dataset.index];
-
-          connectorData.current = startConnecting(
-            connectorData.current as ConnectorData,
-            {
-              x: el.x,
-              y: el.y,
-              width: el.width,
-            } as ElementCoords,
-            event,
-            svgRef.current
-          );
-          connectorData.current.isDrawing = true;
-        }
-      }
-    }
-  }
-
-  function updateConnector(event: React.MouseEvent) {
-    const { isDrawing } = connectorData.current;
-
-    if (isDrawing) {
-      connectorData.current = updateConnecting(
-        connectorData.current as ConnectorData,
-        event,
-        svgRef.current
-      );
-      setTemporaryConnector((prev) => ({
-        ...prev,
-        show: true,
-        coords: { ...connectorData.current.newLine },
-      }));
-    }
-  }
-
-  function stopConnector(event: React.MouseEvent) {
-    const { isDrawing } = connectorData.current;
-
-    if (!isDrawing) {
+  const drawGrid = () => {
+    const svgEl = svgRef.current;
+    if (!svgEl) {
       return;
     }
+    const svg = select('svg');
+    svg
+      .selectAll('pattern')
+      .data([1])
+      .enter()
+      .append('pattern')
+      .attr('id', 'grid-pattern')
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', canvasGrid.gridSize)
+      .attr('height', canvasGrid.gridSize)
+      .append('rect')
+      .attr('width', canvasGrid.gridDotSize)
+      .attr('height', canvasGrid.gridDotSize)
+      .attr('fill', '#a4a4a4')
+      .attr('x', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2))
+      .attr('y', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2));
 
-    const node = event.target as SVGSVGElement;
+    // Append a "backdrop" rect to your svg, and fill it with your pattern.
+    // You shouldn't need to touch this again after adding it.
+    svg.select('#pattern-fill')
+      .attr('fill', 'url(#grid-pattern)');
+  };
 
-    if (node.dataset.type !== 'canvasElementArea' || !node.dataset.index) {
-      connectorData.current.isDrawing = false;
-      setTemporaryConnector((prev) => ({ ...prev, show: false }));
+  const updateGrid = (ze: D3ZoomEvent<SVGGElement, unknown>) => {
+    const svgEl = svgRef.current;
+    if (!svgEl) {
       return;
     }
+    const svg = select(svgEl);
+    svg.select('#grid-pattern')
+      .attr('x', ze.transform.x)
+      .attr('y', ze.transform.y)
+      .attr('width', canvasGrid.gridSize * ze.transform.k)
+      .attr('height', canvasGrid.gridSize * ze.transform.k)
+      .selectAll('rect')
+      .attr('x', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
+      .attr('y', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
+      .attr('opacity', Math.min(ze.transform.k, 1));
+  };
 
-    connectorData.current.end.element = +node.dataset.index!;
-
-    if (screenElements) {
-      const el = screenElements[+node.dataset.index!];
-
-      connectorData.current = stopConnecting(
-        connectorData.current as ConnectorData,
-        { x: el.x, y: el.y } as ElementCoords,
-        event,
-        svgRef.current
-      );
-      setTemporaryConnector((prev) => ({
-        ...prev,
-        show: false,
-        coords: { ...connectorData.current.newLine },
-      }));
-
-      const isConnectorPresent = connectors?.filter(
-        (connector) => connector.from.element === connectorData.current.start.element
-          && connector.to.element === connectorData.current.end.element
-      );
-
-      if (isConnectorPresent && isConnectorPresent.length > 0) {
-        connectorData.current.isDrawing = false;
-        setTemporaryConnector((prev) => ({ ...prev, show: false }));
-        return;
+  const getAnnotationLookupMap = (allAnns: AnnotationPerScreen[]) => {
+    const lookupMap: AnnoationLookupMap = {};
+    for (let i = 0, l = allAnns.length; i < l; i++) {
+      const sId = allAnns[i].screen.id;
+      for (let k = 0, s = allAnns[i].annotations.length; k < s; k++) {
+        const qId = `${sId}/${allAnns[i].annotations[k].refId}`;
+        lookupMap[qId] = [i, k];
       }
+    }
+    return lookupMap;
+  };
 
-      const { x1, y1, x2, y2 } = connectorData.current.newLine;
+  const updateConnection = (
+    allAnns: AnnotationPerScreen[],
+    lookupMap: AnnoationLookupMap,
+    from: string,
+    to: string,
+    updateFn: TourDataChangeFn
+  ) => {
+    const [fromScreenIdx, fromAnIdx] = lookupMap[from];
+    const [toScreenIdx, toAnIdx] = lookupMap[to];
+    const fromAn = allAnns[fromScreenIdx].annotations[fromAnIdx];
+    const toAn = allAnns[toScreenIdx].annotations[toAnIdx];
 
-      const newConnector = {
-        from: {
-          element: connectorData.current.start.element,
-          relY: connectorData.current.start.relY,
-          relX: connectorData.current.start.relX,
-        },
-        to: {
-          element: connectorData.current.end.element,
-          relY: connectorData.current.end.relY,
-          relX: connectorData.current.end.relX,
-        },
-        points: [
-          { x: x1, y: y1 },
-          { x: x2, y: y2 },
-        ],
-      } as Conn;
+    const prevBtnOfToAn = toAn.buttons.find(btn => btn.type === 'prev')!;
+    let update;
+    if (prevBtnOfToAn.hotspot !== null) {
+      // if former connection does exists;
+      // B -> A and a connection is getting established with C
+      //  C.next => A
+      //  A.prev.next = null (A.prev === B) // true
+      //  A.prev = C
+      const fromOldAnnId = prevBtnOfToAn.hotspot.actionValue;
+      const [fromOldScrnIdx, fromOldAnnIdx] = lookupMap[fromOldAnnId];
+      const fromOldAn = allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx];
+      const nextBtn = fromOldAn.buttons.find(btn => btn.type === 'next')!;
+      update = updateButtonProp(fromOldAn, nextBtn.id, 'hotspot', null);
+      allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx] = update; // Updated config push it back to list
+      updateFn('annotation-and-theme', allAnns[fromOldScrnIdx].screen.id, {
+        config: update
+      });
+    }
 
-      const fromScreen = screenElements[newConnector.from.element];
-      const toScreen = screenElements[newConnector.to.element];
+    const nextBtnOfFromAn = fromAn.buttons.find(btn => btn.type === 'next')!;
+    if (nextBtnOfFromAn.hotspot !== null) {
+      const toOldAnnId = nextBtnOfFromAn.hotspot.actionValue;
+      const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId];
+      const toOldAn = allAnns[toOldScrnIdx].annotations[toOldAnnIdx];
+      const prevBtn = toOldAn.buttons.find(btn => btn.type === 'prev')!;
+      update = updateButtonProp(toOldAn, prevBtn.id, 'hotspot', null);
+      allAnns[toOldScrnIdx].annotations[toOldAnnIdx] = update; // updated value push it back to the list
+      updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
+        config: update
+      });
+    }
 
-      setConnectors((prev) => {
-        if (prev) {
-          return [
-            ...prev, newConnector,
-          ];
+    // if former connection does not exist
+    //  update next btn of from annotation
+    //  update prev btn of to annoatation
+    update = updateButtonProp(toAn, prevBtnOfToAn.id, 'hotspot', {
+      type: 'an-btn',
+      on: 'click',
+      target: '$this',
+      actionType: 'navigate',
+      actionValue: `${allAnns[fromScreenIdx].screen.id}/${allAnns[fromScreenIdx].annotations[fromAnIdx].refId}`,
+    } as ITourEntityHotspot);
+    allAnns[toScreenIdx].annotations[toAnIdx] = update; // updated value push it back to the list
+    updateFn('annotation-and-theme', allAnns[toScreenIdx].screen.id, {
+      config: update
+    });
+
+    update = updateButtonProp(fromAn, nextBtnOfFromAn.id, 'hotspot', {
+      type: 'an-btn',
+      on: 'click',
+      target: '$this',
+      actionType: 'navigate',
+      actionValue: `${allAnns[toScreenIdx].screen.id}/${allAnns[toScreenIdx].annotations[toAnIdx].refId}`,
+    } as ITourEntityHotspot);
+    allAnns[fromScreenIdx].annotations[fromAnIdx] = update; // updated value push it back to the list
+    updateFn('annotation-and-theme', allAnns[fromScreenIdx].screen.id, {
+      config: update
+    });
+  };
+
+  const hideGuideConnector = (sel: D3Selection<SVGPathElement, {}, SVGGElement, AnnotationPerScreen[]>) => {
+    sel.remove();
+  };
+
+  const prevent = (e: any) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+
+  const resetState = () => {
+    setShowScreenSelector(false);
+    setConnectionErr(connectionErrInitData);
+  };
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    const rootG = rootGRef.current;
+    if (svg && rootG) {
+      drawGrid();
+
+      const z = zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.5, 2])
+        .on('zoom', null)
+        .on('zoom', (e: D3ZoomEvent<SVGGElement, unknown>) => {
+          updateGrid(e);
+          select(rootG).attr('transform', e.transform.toString());
+        });
+
+      select(svg)
+        .call(z)
+        .call(z.translateBy, canvasGrid.initial.tx, canvasGrid.initial.ty)
+        .call(z.scaleBy, canvasGrid.initial.scale);
+      select(rootG).attr(
+        'transform',
+        zoomIdentity
+          .translate(canvasGrid.initial.tx, canvasGrid.initial.ty)
+          .scale(canvasGrid.initial.scale)
+          .toString()
+      );
+
+      const svgSel = select(svg);
+      svgSel
+        .on('mousemove', null)
+        .on('mousemove', (e: MouseEvent) => {
+          if (isGuideArrowDrawing.current === 0) { return; }
+          const relativeCoord = fromPointer(e, rootG);
+          svgSel.select<SVGGElement>('g.connectors')
+            .selectAll<SVGPathElement, SVGGElement>('path.guide-arr')
+            .attr('d', pEl => {
+              const d = select<SVGGElement, AnnotationNode<dagre.Node>>(pEl).datum();
+              return formPathUsingPoints([{
+                x: d.storedData!.x,
+                y: d.storedData!.y,
+              }, {
+                x: relativeCoord[0],
+                y: relativeCoord[1]
+              }]);
+            });
+        })
+        .on('mousedown', null)
+        .on('mousedown', () => {
+          resetState();
+        })
+        .on('click', null)
+        .on('click', resetState)
+        .on('mouseup', null)
+        .on('mouseup', () => {
+          const guidePath = svgSel.select<SVGGElement>('g.connectors').selectAll<SVGPathElement, {}>('path.guide-arr');
+          hideGuideConnector(guidePath);
+          isGuideArrowDrawing.current = 0;
+        });
+    }
+  }, [init]);
+
+  useEffect(() => {
+    const rootScreensMap = props.rootScreens.reduce((store, srn) => {
+      store[srn.id] = srn;
+      return store;
+    }, {} as Record<string, P_RespScreen>);
+    for (const screenAnnPair of props.allAnnotationsForTour) {
+      delete rootScreensMap[screenAnnPair.screen.parentScreenId];
+    }
+    const srnNotPartOfTour = Object.values(rootScreensMap).sort((m, n) => +n.updatedAt - +m.updatedAt);
+    setScreensNotPartOfTour(srnNotPartOfTour);
+
+    const rootG = rootGRef.current;
+    const svgEl = svgRef.current;
+    if (!rootG || !svgEl) {
+      return;
+    }
+    const g = select(rootG);
+
+    const gBoundData = g
+      .selectAll<SVGGElement, number>('g.connectors')
+      .data([props.allAnnotationsForTour], () => 1);
+
+    const connectorG = gBoundData
+      .enter()
+      .append('g')
+      .attr('class', 'connectors')
+      .merge(gBoundData);
+
+    const nodeWithDim = formScreens2(props.allAnnotationsForTour, canvasGrid);
+    const edges = getEdges(props.allAnnotationsForTour);
+    const nodeLookup = nodeWithDim.reduce((hm, n) => {
+      hm[n.id] = n;
+      return hm;
+    }, {} as Record<string, AnnotationNode<dagre.Node>>);
+
+    const graph = new dagre.graphlib.Graph();
+    graph.setGraph({ rankdir: 'LR', ranksep: canvasGrid.gridSize * 3, nodesep: canvasGrid.gridSize * 3 });
+    graph.setDefaultEdgeLabel(() => ({}));
+    nodeWithDim.forEach(node => graph.setNode(node.id, { label: node.id, width: node.width, height: node.height }));
+    edges.forEach(edge => graph.setEdge(edge[0], edge[1]));
+    dagre.layout(graph);
+
+    const newNodesWithPositions: AnnotationNode<dagre.Node>[] = graph.nodes().map(v => {
+      const graphNode = graph.node(v);
+      const logicalNode = nodeLookup[graphNode.label!];
+      logicalNode.storedData = graphNode;
+      return logicalNode;
+    });
+    const newEdgesWithPositions: EdgeWithData[] = graph.edges().map(ed => {
+      const e = graph.edge(ed);
+      return {
+        ...e,
+        srcId: ed.v,
+        destId: ed.w,
+      };
+    });
+
+    const lines = line<EdgeWithData>()
+      .curve(curveBasis)
+      .x(d => d.x)
+      .y(d => d.y);
+
+    const connectorGDataBound = connectorG
+      .selectAll<SVGPathElement, EdgeWithData>('path.edge')
+      .data(newEdgesWithPositions);
+    connectorGDataBound
+      .enter()
+      .append('path')
+      .attr('class', 'edge')
+      .style('marker-end', 'url(#triangle-arrowhead)')
+      .attr('fill', 'none')
+      .attr('stroke-width', 1)
+      .attr('stroke', 'black')
+      .merge(connectorGDataBound)
+      .attr('d', ({ points }) => lines(points as any));
+
+    connectorGDataBound.exit().remove();
+
+    const nodeG = g
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+      .data<AnnotationNode<dagre.Node>>(newNodesWithPositions, d => d.id);
+    nodeG
+      .enter()
+      .append('g')
+      .attr('class', 'node')
+      .on('mouseover', null)
+      .on('mouseover', function () {
+        const gEl = select(this);
+        gEl.select('rect.interaction-marker')
+          .style('stroke-width', '4px')
+          .style('cursor', 'ew-resize');
+      })
+      .on('mousedown', null)
+      .on('mousedown', function (e: MouseEvent, d) {
+        prevent(e);
+        connectorG
+          .selectAll('path.guide-arr')
+          .data([this])
+          .enter()
+          .append('path')
+          .attr('class', 'guide-arr')
+          .style('fill', 'none')
+          .style('stroke', 'black')
+          .style('stroke-width', '2px')
+          .style('marker-end', 'url(#triangle-arrowhead)')
+          .attr('d', '');
+        isGuideArrowDrawing.current = 1;
+      })
+      .on('mouseup', null)
+      .on('mouseup', function (e: MouseEvent) {
+        prevent(e);
+        const toEl = this;
+        const fromEl = connectorG.selectAll<SVGPathElement, SVGGElement>('path.guide-arr').datum();
+        const fromElSel = select<SVGGElement, AnnotationNode<dagre.Node>>(fromEl);
+        const fromElData = fromElSel.datum();
+        const toElData = select<SVGGElement, AnnotationNode<dagre.Node>>(toEl).datum();
+
+        isGuideArrowDrawing.current = 0;
+        if (fromElData.id === toElData.id) {
+          // self loop, treat this as click
+          props.navigate(toElData.id, 'annotation-hotspot');
+          return;
         }
-        return undefined;
-      });
 
-      setTemporaryConnector((prev) => ({ ...prev, show: false }));
-
-      const nextBtnOfPrevAntn = fromScreen.annotation.buttons.find((btn: any) => btn.type === 'next');
-      console.log('before', fromScreen.annotation);
-      const prevAntn = updateButtonProp(
-        fromScreen.annotation,
-        nextBtnOfPrevAntn.id,
-        'hotspot',
-        {
-          type: 'an-btn',
-          on: 'click',
-          target: '$this',
-          actionType: 'navigate',
-          actionValue:
-            `${toScreen.screenId}/${toScreen.annotationId}`,
-        } as ITourEntityHotspot
-      );
-      console.log('after', prevAntn);
-
-      const prevBtnOfNextAntn = toScreen.annotation.buttons.find((btn: any) => btn.type === 'prev');
-      const nextAntn = updateButtonProp(
-        toScreen.annotation,
-        prevBtnOfNextAntn.id,
-        'hotspot',
-        {
-          type: 'an-btn',
-          on: 'click',
-          target: '$this',
-          actionType: 'navigate',
-          actionValue:
-            `${fromScreen.screenId}/${fromScreen.annotationId}`,
-        } as ITourEntityHotspot
-      );
-
-      onTourDataChange('annotation-and-theme', fromScreen.screenId, { config: prevAntn });
-      onTourDataChange('annotation-and-theme', toScreen.screenId, { config: nextAntn });
-
-      connectorData.current.isDrawing = false;
-    }
-  }
-
-  const handleMouseStart = (event: React.MouseEvent) => {
-    if (canvasMode === CanvasMode.PanMode) {
-      startPanning(event);
-    }
-
-    if (canvasMode === CanvasMode.ConnectMode) {
-      startConnector(event);
-    }
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (canvasMode === CanvasMode.PanMode) {
-      updatePanning(event);
-    }
-
-    if (canvasMode === CanvasMode.ConnectMode) {
-      updateConnector(event);
-    }
-  };
-
-  const handleMouseEnd = (event: React.MouseEvent) => {
-    if (canvasMode === CanvasMode.PanMode) {
-      stopPanning();
-    }
-
-    if (canvasMode === CanvasMode.ConnectMode) {
-      stopConnector(event);
-    }
-  };
-
-  useEffect(() => {
-    if (svgRef.current) {
-      const svg: SVGAElement = svgRef.current;
-      const pEl = svg.parentNode as HTMLElement;
-      const parentRect = pEl.getBoundingClientRect();
-      canvasData.current.origViewBox = {
-        x: 0,
-        y: 0,
-        width: parentRect.width,
-        height: parentRect.height,
-      };
-      canvasData.current.panLimit = {
-        ...canvasData.current.panLimit,
-        XMAX: parentRect.width,
-        YMAX: parentRect.height,
-      };
-      setViewBoxStr(`0 0 ${canvasData.current.origViewBox.width} ${canvasData.current.origViewBox.height}`);
-      const ratio = canvasData.current.viewBox.width / svg.getBoundingClientRect().width;
-      canvasData.current.ratio = ratio;
-
-      window.addEventListener('resize', () => {
-        canvasData.current.ratio = ratio;
-        setViewBoxStr(`0 0 ${parentRect.width} ${parentRect.height}`);
-      });
-    }
-  }, [cellWidth]);
-
-  useEffect(() => {
-    const screenEls = formScreens(allAnnotationsForTour);
-    if (screenEls.length > 0) {
-      setScreenElements(screenEls);
-      setMode(Mode.CanvasMode);
-    } else {
-      setMode(Mode.EmptyMode);
-    }
-
-    const conns = formConnectors(allAnnotationsForTour, screenEls);
-    if (conns) {
-      setConnectors(conns);
-    }
-    console.log('useEffect', allAnnotationsForTour);
-  }, [allAnnotationsForTour]);
-
-  useEffect(() => {
-    const svgElementVal = svgRef.current;
-
-    if (svgElementVal) {
-      const svgElement = svgElementVal as SVGSVGElement;
-
-      const zoomSVG = (event: WheelEvent) => {
-        event.preventDefault();
-        const { x, y, width, height } = zoom(svgElement, event);
-
-        if (width < 500 && event.deltaY > 0) {
-          const el = event.target as HTMLElement;
-          const elId = el.dataset.id;
-          if (elId) {
-            const selectedScreen = screenElements?.filter((screen) => screen.id === elId)[0];
-            if (selectedScreen) {
-              navigate(`${selectedScreen.screenRid}/${selectedScreen.annotationId}`);
-            }
-          }
+        if (toElData.type === 'screen' || fromElData.type === 'screen') {
+          const target = toElData.type === 'screen' ? toEl : fromEl;
+          const bbox = target.getBoundingClientRect();
+          const remainingSpaceOnRight = window.innerWidth - (bbox.x + bbox.width);
+          const remainingSpaceOnLeft = bbox.x;
+          const position = remainingSpaceOnLeft > remainingSpaceOnRight ? 'l' : 'r';
+          requestAnimationFrame(() => {
+            setConnectionErr({
+              msg: CONNECTION_ERR_MSG,
+              x: bbox.x,
+              y: bbox.y,
+              h: bbox.height,
+              w: bbox.width,
+              position,
+              renderingW: position === 'l' ? remainingSpaceOnLeft : remainingSpaceOnRight,
+            });
+          });
         } else {
-          canvasData.current.viewBox = { x, y, width, height };
-          canvasData.current.newViewBox = { x, y, width, height };
-          setViewBoxStr(`${x} ${y} ${width} ${height}`);
+          const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
+          const lookupMap = getAnnotationLookupMap(allAnns);
+          updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange);
         }
-      };
-      svgElement.addEventListener('wheel', zoomSVG);
 
-      return () => {
-        svgElement.removeEventListener('wheel', zoomSVG);
-      };
-    }
-  }, [svgRef]);
+        hideGuideConnector(connectorG.selectAll('path.guide-arr'));
+      })
+      .on('mouseout', null)
+      .on('mouseout', function () {
+        const gEl = select(this);
+        gEl.select('rect.interaction-marker')
+          .style('stroke-width', '1px');
+      })
+      .call(p => {
+        p
+          .append('image')
+          .attr('x', 0)
+          .attr('preserveAspectRatio', 'xMidYMid meet')
+          .attr('y', 20);
+
+        p.append('foreignObject')
+          .attr('class', 'screen-info')
+          .call(fo => {
+            fo.append('xhtml:p');
+          });
+
+        p.filter(d => d.type === 'annotation')
+          .append('foreignObject')
+          .attr('class', 'ann-info')
+          .call(fo => {
+            fo.append('xhtml:p');
+          });
+        p.append('rect')
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('class', 'interaction-marker')
+          .style('fill', 'none')
+          .style('stroke', '#16023E')
+          .style('stroke-width', '1px');
+      })
+      .merge(nodeG)
+      .attr(
+        'transform',
+        d => {
+          const pos = d.storedData!;
+          const x = pos.x - pos.width / 2;
+          const y = pos.y - pos.height / 2;
+          return `translate(${x}, ${y})`;
+        }
+      )
+      .call(p => {
+        p.selectAll<SVGImageElement, AnnotationNode<dagre.Node>>('image')
+          .attr('href', d => d.imageUrl)
+          .attr('width', d => d.width);
+
+        p
+          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
+          .attr('width', d => d.width)
+          .attr('height', 20)
+          .attr('x', 0)
+          .attr('y', 0)
+          .call(fo => {
+            fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .style('width', d => d.width)
+              .style('height', '15px')
+              .style('display', 'block')
+              .style('margin', 0)
+              .style('font-size', '12px')
+              .style('background', '#16023E')
+              .style('color', 'white')
+              .style('padding', '2px')
+              .style('display', 'flex')
+              .style('align-items', 'center')
+              .style('justify-content', 'center')
+              .text(d => `${d.screenTitle.substring(0, 30)}${d.screenTitle.length > 30 ? '...' : ''}`);
+          });
+
+        p
+          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
+          .attr('width', d => d.width)
+          .attr('height', 40)
+          .attr('x', 0)
+          .attr('y', d => d.height - 40)
+          .call(fo => {
+            fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .style('width', d => d.width)
+              .style('height', '40px')
+              .style('display', 'block')
+              .style('margin', 0)
+              .style('font-size', '12px')
+              .style('background', '#16023E')
+              .style('color', 'white')
+              .style('padding', '2px')
+              .style('display', 'flex')
+              .style('align-items', 'center')
+              .style('justify-content', 'center')
+              .text(d => `${d.text!.substring(0, 65)}${d.text!.length > 65 ? '...' : ''}`);
+          });
+        p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect')
+          .attr('width', d => d.width)
+          .attr('height', d => d.height);
+      })
+      .exit()
+      .remove();
+  }, [props.allAnnotationsForTour]);
+
+  const viewBox = `0 0 ${window.innerWidth} ${window.innerHeight}`;
 
   return (
     <>
       <Tags.SVGCanvas
-        viewBox={viewBoxStr}
+        id="fab-tour-canvas"
+        viewBox={viewBox}
         ref={svgRef}
-        mode={canvasMode}
-        onMouseDown={handleMouseStart}
-        onMouseUp={handleMouseEnd}
-        onMouseLeave={handleMouseEnd}
-        onMouseMove={handleMouseMove}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <CanvasDottedBg canvasData={canvasData} cellWidth={cellWidth} />
-        {
-          mode === Mode.CanvasMode && <>
-            {
-              screenElements?.map((screenEl, idx) => <g key={screenEl.id}>
-                <rect
-                  className="canvasElArea"
-                  data-type="canvasElementArea"
-                  data-index={idx}
-                  x={screenEl.x - 30}
-                  y={screenEl.y - 30}
-                  width={screenEl.width + 60}
-                  height={screenEl.height + 60}
-                />
-                <image
-                  data-id={screenEl.screenId}
-                  href={screenEl.screenHref}
-                  data-type="canvasElement"
-                  data-index={idx}
-                  x={screenEl.x}
-                  y={screenEl.y}
-                  width={screenEl.width}
-                  height={screenEl.height}
-                  preserveAspectRatio="none"
-                  onClick={() => navigate(`${screenEl.screenRid}/${screenEl.annotationId}`)}
-                />
-                <text
-                  x={screenEl.x}
-                  y={screenEl.y + screenEl.height}
-                >
-                  {screenEl.annotationText.substring(0, 45)} ...
-                </text>
-              </g>)
-            }
-            {temporaryConnector.show && (
-              <line
-                markerEnd="url(#arrow)"
-                key={Math.random()}
-                x1={temporaryConnector.coords.x1}
-                y1={temporaryConnector.coords.y1}
-                x2={temporaryConnector.coords.x2}
-                y2={temporaryConnector.coords.y2}
-                data-idx="normal"
-                data-hello="hello"
-                stroke="black"
-                strokeWidth="2px"
-              />
-            )}
-            {
-              connectors?.map(connector => {
-                const d = formPathUsingPoints(connector.points);
-
-                return (
-                  <path
-                    key={Math.random()}
-                    fill="none"
-                    strokeWidth="2px"
-                    stroke="black"
-                    markerEnd="url(#arrow)"
-                    style={{ cursor: 'pointer' }}
-                    d={d}
-                  />
-                );
-              })
-            }
-          </>
-        }
         <defs>
           <marker
-            id="arrow"
-            markerWidth="10"
+            id="triangle-arrowhead"
+            markerWidth="5"
             markerHeight="10"
-            refX="8"
-            refY="3"
+            refX="5"
+            refY="5"
             orient="auto"
-            markerUnits="strokeWidth"
           >
-            <path d="M0,0 L0,6 L9,3 z" fill="#000" />
+            <path d="M 0 0 5 5 0 10 Z" style={{ fill: 'black' }} />
           </marker>
         </defs>
+        <rect id="pattern-fill" width="100%" height="100%" />
+        <g id="fab-tour-canvas-main" ref={rootGRef} />
       </Tags.SVGCanvas>
-      {mode === Mode.EmptyMode && <EmptyCanvas setMode={setMode} />}
-      {mode === Mode.SelectScreenMode && <AddScreen screens={screens} />}
-      {mode === Mode.CanvasMode && <Tags.ModeOptions>
-        <button
-          type="button"
-          onClick={() => setCanvasMode(CanvasMode.PanMode)}
-          className={canvasMode === CanvasMode.PanMode ? 'active' : ''}
+      <Tags.CanvasMenuCon
+        onClick={prevent}
+        onMouseUp={prevent}
+        onMouseDown={prevent}
+      >
+        <Tags.CanvasMenuItemCon>
+          <Btn
+            title="Add a new screen to this tour"
+            icon="new-screen"
+            style={{
+              margin: 0,
+              border: '1px solid black',
+            }}
+            onClick={() => setShowScreenSelector(!showScreenSelector)}
+          />
+        </Tags.CanvasMenuItemCon>
+      </Tags.CanvasMenuCon>
+      <Tags.CanvasMenuCon>
+        <Tags.CanvasMenuItemCon>
+          <Btn
+            title="Add a new screen to this tour"
+            icon="new-screen"
+            style={{
+              margin: 0,
+              border: '1px solid black',
+            }}
+            onClick={() => setShowScreenSelector(!showScreenSelector)}
+          />
+        </Tags.CanvasMenuItemCon>
+      </Tags.CanvasMenuCon>
+      {showScreenSelector && (
+      <Tags.SelectScreenContainer>
+        <Tags.ScreensContainer>
+          {screensNotPartOfTour.length > 0 ? (
+            <>
+              <GTags.Txt
+                className="title"
+                style={{ marginBottom: '0.5rem' }}
+              >Select a screen to add it in the tour
+              </GTags.Txt>
+              <Tags.ScreenSlider style={{ flexDirection: 'column' }}>
+                <div style={{ display: 'flex', gap: '1.25rem' }}>
+                  {screensNotPartOfTour.map(screen => (
+                    <Tags.Screen
+                      key={screen.id}
+                      onClick={() => {
+                        props.addScreenToTour(screen);
+                        // TODO this is just arbitrary timeout after which the popup would close
+                        // normally wait for the request to finish, show a loader and then add the
+                        // screen
+                        setTimeout(() => {
+                          setShowScreenSelector(false);
+                        }, 500);
+                      }}
+                    >
+                      <img src={screen.thumbnailUri.href} alt={screen.displayName} />
+                      <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
+                    </Tags.Screen>
+                  ))}
+                </div>
+                <div />
+              </Tags.ScreenSlider>
+            </>
+          ) : (
+            <GTags.Txt>
+              All captured screens are already part of this tour.
+              <br />
+              Any new screen captured will be available here.
+            </GTags.Txt>
+          )}
+        </Tags.ScreensContainer>
+      </Tags.SelectScreenContainer>
+      )}
+      {!!connectionErr.msg && (
+        <div style={{
+          background: '#FF7450',
+          padding: '8px',
+          borderRadius: '8px',
+          width: '240px',
+          top: `${connectionErr.y - (connectionErr.h / 2)}px`,
+          position: 'absolute',
+          whiteSpace: 'pre-line',
+          left: `${connectionErr.position === 'l'
+            ? connectionErr.x - (10 + 16 /* both side padding */ + 360 /* width */)
+            : connectionErr.x + connectionErr.w + (10 + 8 /* padding one side */)}px`,
+        }}
         >
-          <DragOutlined />
-        </button>
-        <button
-          type="button"
-          onClick={() => setCanvasMode(CanvasMode.ConnectMode)}
-          className={
-            canvasMode === CanvasMode.ConnectMode ? 'active' : ''
-          }
-        >
-          <ArrowsAltOutlined />
-        </button>
-      </Tags.ModeOptions>}
+          <GTags.Txt color="#fff">{connectionErr.msg}</GTags.Txt>
+          <GTags.Txt color="#fff" className="subhead">Click outside to cancel this popup</GTags.Txt>
+        </div>
+      )}
     </>
   );
 }
-
-export default Canvas;

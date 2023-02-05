@@ -1,4 +1,4 @@
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import { P_RespScreen } from './entity-processor';
 
 export const enum ElEditType {
@@ -81,3 +81,10 @@ export const enum IdxEditItem {
 
 export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;
 export type AnnotationPerScreen = {screen: P_RespScreen, annotations: IAnnotationConfig[]};
+
+export type TourDataChangeFn = (
+    changeType: 'annotation-and-theme' | 'screen',
+    screenId: number | null,
+    changeObj: {config: IAnnotationConfig, opts?: ITourDataOpts | null},
+    isDefault?: boolean
+) => void;

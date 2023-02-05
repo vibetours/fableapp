@@ -1,16 +1,11 @@
 import styled from 'styled-components';
-import { CanvasMode } from './types';
-
-type SVGProps = {
-  mode: CanvasMode;
-};
 
 export const SVGCanvas = styled.svg`
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  cursor: ${(p: SVGProps) => (p.mode === CanvasMode.SelectMode ? 'default' : 'move')};
+  cursor: move;
 
   image {
     cursor: pointer;
@@ -21,19 +16,37 @@ export const SVGCanvas = styled.svg`
   }
 
   line {
-    cursor: ${(p: SVGProps) => (p.mode === CanvasMode.SelectMode ? 'pointer' : 'default')};
+    cursor: pointer;
   }
 
   .canvasElArea {
     fill: transparent
   }
-  
-  .canvasElArea:hover {
-    fill: ${(p: SVGProps) => (p.mode === CanvasMode.ConnectMode ? '#e5e7eb' : 'transparent')}
-  }
-
 `;
 
+export const CanvasMenuCon = styled.div`
+  position: absolute;
+  background: #D0D0FF;
+  left: 30px;
+  position: absolute;
+  top: 30px;
+  border-radius: 8px;
+  padding: 30px 0px 0px 0px;
+  box-shadow: 0 0 4px -1px #7567ff;
+`;
+
+export const CanvasMenuItemCon = styled.div`
+  display: flex;
+  background: white;
+  flex-direction: column;
+  padding: 1rem;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 8px;
+  border-bottom-left-radius: 8px;
+`;
+
+// ----------
 export const EmptyCanvasContainer = styled.div`
   position: absolute;
   top: 50%;
@@ -109,27 +122,13 @@ export const EmptyCanvasButtons = styled.div`
 export const SelectScreenContainer = styled.div`
 
   position: absolute;
-  top: 50%;
-  left: 50%;
-  -ms-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
+  top: 30px;
+  left: 120px;
   z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
   flex-direction: column;
-
-
-  button {
-    border-radius: 5px;
-    border: 2px solid #7567FF;
-    padding: 0.75rem 2.25rem;
-    font-weight: 700;
-    line-height: 18px;
-    background: #7567FF;
-    color: #FFFFFF;
-  }
-
 `;
 
 export const ScreensContainer = styled.div`
@@ -140,8 +139,7 @@ export const ScreensContainer = styled.div`
   border-radius: 20px;
   max-width: 80vw;
   margin: auto;
-  padding: 1rem 2rem;
-  margin-top: 2rem;
+  padding: 1rem 1rem;
 
   h2 {
     font-style: normal;
@@ -154,9 +152,9 @@ export const ScreensContainer = styled.div`
 
 export const ScreenSlider = styled.div`
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
+  padding: 0.25rem;
   position: relative;
-  padding-bottom: 1rem;
   overflow-x: auto;
   scrollbar-color: #7567FF #E5E7EB;
 
@@ -168,11 +166,12 @@ export const ScreenSlider = styled.div`
   }
 
   &::-webkit-scrollbar {
-    width: 10px;
+    margin: 4px 0;
+    height: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    border-radius: 10px;
+    border-radius: 4px;
     background-color: #7567FF;
   }
 `;
@@ -182,7 +181,9 @@ export const Screen = styled.div`
   border: 1px solid #DDDDDD;
   border-radius: 10px;
   padding: 1rem;
-  min-width: 260px;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -193,13 +194,11 @@ export const Screen = styled.div`
     object-fit: cover;
   }
 
-  p {
-    font-weight: 700;
-    line-height: 20px;
-    color: #16023E;
-    margin: 0;
-    margin-top: 1rem;
+  &:hover {
+    box-shadow: 0 0 0 1px black;
+    cursor: pointer;
   }
+
 `;
 
 export const ModeOptions = styled.div`
@@ -224,7 +223,7 @@ export const ModeOptions = styled.div`
   button:hover {
     color: #7e22ce;
   }
-  
+
   .active {
     color: #7e22ce;
   }

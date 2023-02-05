@@ -2,7 +2,7 @@ import React from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import EmptyCanvasImage from '../../assets/emptycanvas.png';
-import { Mode } from './types';
+// import { Mode } from './types';
 
 type EmptyCanvasProps = {
     setMode: Function,
@@ -18,7 +18,13 @@ function EmptyCanvas({ setMode }: EmptyCanvasProps) {
         odio mattis. Class aptent taciti sociosqu{' '}
       </p>
       <Tags.EmptyCanvasButtons>
-        <button type="button" className="primary-btn" onClick={() => setMode(Mode.SelectScreenMode)}>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={() => {
+            // setMode(Mode.SelectScreenMode)
+          }}
+        >
           <PlusOutlined />
           <span>Add a screen in this flow</span>
         </button>

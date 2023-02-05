@@ -9,7 +9,7 @@ type AddScreenProps = {
 function AddScreen({ screens }: AddScreenProps) {
   return (
     <Tags.SelectScreenContainer>
-      <button>Select a screen in this flow</button>
+      <button type="button">Select a screen in this flow</button>
       <Tags.ScreensContainer>
         {screens.length > 0 && (
         <div>

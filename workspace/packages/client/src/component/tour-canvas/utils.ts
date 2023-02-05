@@ -1,39 +1,53 @@
-import { Point } from './types';
+import { AnnotationNode, Box, CanvasGrid, Point } from './types';
+import { AnnotationPerScreen } from '../../types';
 
-export function roundToNearest(numToRound: number, numToRoundTo: number): number {
-  return Math.round(numToRound / numToRoundTo) * numToRoundTo;
-}
-
-export function formGrid(cellWidth: number, XMIN: number, XMAX: number, YMIN: number, YMAX: number) {
-  const lines = [];
-
-  const x1 = roundToNearest(XMIN, cellWidth);
-  const x2 = roundToNearest(XMAX * 3, cellWidth);
-
-  for (let i = roundToNearest(YMIN, cellWidth); i < roundToNearest(YMAX, 20); i += cellWidth) {
-    lines.push({ x1, y1: i, x2, y2: i });
+export function formScreens2(data: AnnotationPerScreen[], grid: CanvasGrid): AnnotationNode<Box>[] {
+  const arr: AnnotationNode<Box>[] = [];
+  for (const el of data) {
+    if (el.annotations.length === 0) {
+      arr.push({
+        id: `${el.screen.id}`,
+        width: grid.gridSize * 6,
+        height: grid.gridSize * 4,
+        x: 0,
+        y: 0,
+        imageUrl: el.screen.thumbnailUri.href,
+        type: 'screen',
+        screenTitle: el.screen.displayName,
+      });
+    } else {
+      for (const annotation of el.annotations) {
+        arr.push({
+          id: `${el.screen.id}/${annotation.refId}`,
+          width: grid.gridSize * 6,
+          height: grid.gridSize * 4,
+          x: 0,
+          y: 0,
+          imageUrl: el.screen.thumbnailUri.href,
+          text: annotation.bodyContent,
+          type: 'annotation',
+          screenTitle: el.screen.displayName,
+        });
+      }
+    }
   }
-
-  return lines;
+  return arr;
 }
 
-export function adjustElementsWithGrid(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  cellWidth: number,
-  XMIN: number
-) {
-  const numDotsX = (x - XMIN) / cellWidth;
-  const numDotsWidth = width / cellWidth;
-
-  const adjustedX = roundToNearest(x, cellWidth) + Math.round(numDotsX);
-  const adjustedWidth = roundToNearest(width, cellWidth) + Math.round(numDotsWidth);
-  const adjustedY = roundToNearest(y, cellWidth);
-  const adjustedHeight = roundToNearest(height, cellWidth);
-
-  return { adjustedX, adjustedY, adjustedWidth, adjustedHeight };
+export function getEdges(data: AnnotationPerScreen[]) {
+  const edges: [srcId: string, destId: string][] = [];
+  for (const el of data) {
+    for (const ann of el.annotations) {
+      const fromId = `${el.screen.id}/${ann.refId}`;
+      for (const btn of ann.buttons) {
+        if (btn.type === 'next' && btn.hotspot) {
+          const toId = btn.hotspot.actionValue;
+          edges.push([fromId, toId]);
+        }
+      }
+    }
+  }
+  return edges;
 }
 
 export function formPathUsingPoints(points: Point[]) {
@@ -45,15 +59,4 @@ export function formPathUsingPoints(points: Point[]) {
     d = `${d} L ${Object.values(point).join(',')}`;
   });
   return d;
-}
-
-export function getSVGPoint(x: number, y: number, svg: SVGGraphicsElement | null) {
-  if (x && y && svg) {
-    const pt = new DOMPoint(x, y);
-    const cursorpt = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
-    return { x: cursorpt.x, y: cursorpt.y };
-  }
-
-  return { x, y };
 }
