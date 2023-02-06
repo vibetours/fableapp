@@ -27,12 +27,13 @@ interface IDispatchProps {
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
   createANewTourAndAddThisScreenToIt: (screen: P_RespScreen) => void;
   clearCurrentScreenSelection: () => void;
+  getAllScreens: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
-  getAllTours: () => dispatch(getAllTours()),
-  getAllScreens: () => dispatch(getAllScreens()),
+  getAllTours: () => dispatch(getAllTours(false)),
+  getAllScreens: () => dispatch(getAllScreens(false)),
   copyScreenForCurrentTour:
     (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
   createANewTourAndAddThisScreenToIt:
@@ -45,15 +46,19 @@ interface IAppStateProps {
   serScreenData: ScreenData | null;
   screenLoaded: LoadingStatus;
   tours: P_RespTour[];
+  rootScreens: P_RespScreen[];
   allToursLoadingStatus: LoadingStatus;
+  allScreensLoadingStatus: LoadingStatus;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   screen: state.default.currentScreen,
   serScreenData: state.default.screenData,
   screenLoaded: state.default.screenLoadingStatus,
+  rootScreens: state.default.rootScreens,
   tours: state.default.tours,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
+  allScreensLoadingStatus: state.default.allScreensLoadingStatus,
 });
 
 interface IOwnProps {}
@@ -78,7 +83,7 @@ class Screen extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     this.props.loadScreenAndData(this.props.match.params.screenId);
-    // TODO[now] if tours are not loaded then
+    this.props.getAllScreens();
     this.props.getAllTours();
   }
 
@@ -91,14 +96,21 @@ class Screen extends React.PureComponent<IProps, IOwnStateProps> {
 
     const prevScreenId = prevProps.screen ? prevProps.screen.id : '';
     const currScreenId = this.props.screen ? this.props.screen.id : '';
-    const prevIsLoaded = prevProps.allToursLoadingStatus === LoadingStatus.Done;
-    const currIsLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
+    const prevAllToursLoaded = prevProps.allToursLoadingStatus === LoadingStatus.Done;
+    const currAllTourLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
+    const prevAllScreenLoaded = prevProps.allScreensLoadingStatus === LoadingStatus.Done;
+    const currAllScreenLoaded = this.props.allScreensLoadingStatus === LoadingStatus.Done;
 
-    if ((currIsLoaded && prevScreenId !== currScreenId)
-    || (prevIsLoaded !== currIsLoaded && currIsLoaded && currScreenId)) {
+    if ((currAllTourLoaded && currAllScreenLoaded && prevScreenId !== currScreenId && currScreenId)
+    || (prevAllToursLoaded !== currAllTourLoaded && currAllTourLoaded && currAllScreenLoaded && currScreenId)
+    || (prevAllScreenLoaded !== currAllScreenLoaded && currAllTourLoaded && currAllScreenLoaded && currScreenId)) {
       const toursIncluded: Record<string, 1> = {};
-      console.log('>>>', this.props.screen?.related);
-      this.props.screen!.related.reduce((hm, s) => {
+      let screen = this.props.screen!;
+      if (screen.isRootScreen) {
+        const match = this.props.rootScreens.find(s => s.id === screen.id);
+        if (match) screen = match;
+      }
+      screen.related.reduce((hm, s) => {
         if (s.tour?.rid) {
           hm[s.tour.rid] = 1;
         }

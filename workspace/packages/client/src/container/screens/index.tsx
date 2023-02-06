@@ -56,6 +56,13 @@ interface IOwnStateProps {
   selectedScreenName: string
 }
 
+const ROOT_SCREEN_DESC = `
+Screens are like interactive snapshot of your product that you record from Fable's extension.
+You can edit a screen, annotate part of the screen and stitch multiple screens to create
+guided tour of your product. All the original unedited screens are displayed here.`;
+
+const EDITED_SCREEN_DESC = 'All edited screens are displayed here';
+
 class Screens extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
@@ -78,8 +85,8 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   handleModalOk = () => {
-    const newVal = this.state.selectedScreenName.replace(/\s+/, ' ').trim().toLowerCase();
-    if (newVal === this.state.selectedScreen!.displayName.toLowerCase()) {
+    const newVal = this.state.selectedScreenName.trim().replace(/\s+/, ' ').trim();
+    if (newVal.toLowerCase() === this.state.selectedScreen!.displayName.toLowerCase()) {
       return;
     }
     this.props.renameScreen(this.state.selectedScreen!, newVal);
@@ -94,6 +101,16 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     const hasScreen = this.props.screens.length > 0;
     const isLoaded = this.props.loadingStatus === LoadingStatus.Done;
+    const rootScreens: P_RespScreen[] = [];
+    const editedScreens: P_RespScreen[] = [];
+    for (const screen of this.props.screens) {
+      if (screen.isRootScreen) rootScreens.push(screen);
+      else editedScreens.push(screen);
+    }
+    const groups: ['root' | 'edited', P_RespScreen[]][] = [
+      ['root', rootScreens],
+      ['edited', editedScreens],
+    ];
 
     return (
       <GTags.RowCon className="screen-con">
@@ -116,69 +133,78 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
           >
             {isLoaded && hasScreen ? (
               <>
-                <Tags.TopCon>
-                  <Tags.TxtCon>
-                    <GTags.Txt className="head">All screens</GTags.Txt>
-                    <GTags.Txt className="subhead">
-                      Screens are like interactive snapshot of your product that you record from Fable's extension. You
-                      can edit a screen, annotate part of the screen and stitch multiple screens to create guided
-                      tour of your product.
-                    </GTags.Txt>
-                  </Tags.TxtCon>
-                </Tags.TopCon>
-                <Tags.ScreenCardsCon>
-                  {this.props.screens.map((screen, i) => (
-                    <Tags.CardCon
-                      key={screen.rid}
-                      to={!screen.isRootScreen ? `/tour/${screen.tour?.rid}/${screen.rid}` : `/screen/${screen.rid}`}
-                    >
-                      <Tags.CardImg src={screen.thumbnailUri.href} />
-                      <Tags.CardFlexColCon style={{ marginTop: '0.35rem' }}>
-                        <Tags.CardFlexRowCon>
-                          {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
-                          <GTags.Txt className="title oneline" title={screen.displayName}>
-                            {screen.displayName}
-                          </GTags.Txt>
-                          <Popover
-                            content={
-                              <GTags.PopoverMenuItem onClick={e => this.handleShowModal(e, screen)}>
-                                Rename Screen
-                              </GTags.PopoverMenuItem>
+                {groups.map((group, i) => (
+                  <div key={i} style={{ marginTop: '1rem' }}>
+                    <Tags.TopCon>
+                      <Tags.TxtCon>
+                        <GTags.Txt className="head">
+                          {group[0] === 'root' ? 'Unedited screens' : 'Edited Screens'}
+                        </GTags.Txt>
+                        <GTags.Txt className="subhead" style={{ whiteSpace: 'normal' }}>
+                          {group[0] === 'root' ? ROOT_SCREEN_DESC : EDITED_SCREEN_DESC}
+                        </GTags.Txt>
+                      </Tags.TxtCon>
+                    </Tags.TopCon>
+                    <Tags.ScreenCardsCon>
+                      {group[1].map((screen) => (
+                        <Tags.CardCon
+                          key={screen.rid}
+                          to={!screen.isRootScreen
+                            ? `/tour/${screen.tour?.rid}/${screen.rid}`
+                            : `/screen/${screen.rid}`}
+                        >
+                          <Tags.CardImg src={screen.thumbnailUri.href} />
+                          <Tags.CardFlexColCon style={{ marginTop: '0.35rem' }}>
+                            <Tags.CardFlexRowCon>
+                              {screen.icon && <Tags.CardIconMd src={screen.icon} alt="screen icon" />}
+                              <GTags.Txt className="title oneline" title={screen.displayName}>
+                                {screen.displayName}
+                              </GTags.Txt>
+                              <Popover
+                                content={
+                                  <GTags.PopoverMenuItem onClick={e => this.handleShowModal(e, screen)}>
+                                    Rename Screen
+                                  </GTags.PopoverMenuItem>
                             }
-                            trigger="hover"
-                            placement="right"
-                          >
-                            <MenuOutlined
-                              style={{ color: '#bdbdbd', marginLeft: '0.75rem' }}
-                              onClick={e => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                            />
-                          </Popover>
-                        </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon>
-                          <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />
-                          <GTags.Txt className="link faded" title={screen.url}>
-                            {screen.urlStructured.hostname}
-                          </GTags.Txt>
-                        </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon style={{ alignItems: 'center' }}>
-                          { !screen.isRootScreen && (<Tags.CardIconMd src={tourIcon} alt="screen icon" />)}
-                          <GTags.Txt className="faded">
-                            {screen.isRootScreen
-                              ? 'Recorded screen from extension'
-                              : (<>Used in <em>{screen.tour?.displayName}</em> tour</>)}
-                          </GTags.Txt>
-                        </Tags.CardFlexRowCon>
-                        <Tags.CardFlexRowCon style={{ justifyContent: 'space-between' }}>
-                          <GTags.Txt>Edited {screen.displayableUpdatedAt}</GTags.Txt>
-                          <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
-                        </Tags.CardFlexRowCon>
-                      </Tags.CardFlexColCon>
-                    </Tags.CardCon>
-                  ))}
-                </Tags.ScreenCardsCon>
+                                trigger="hover"
+                                placement="right"
+                              >
+                                <MenuOutlined
+                                  style={{ color: '#bdbdbd', marginLeft: '0.75rem' }}
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                />
+                              </Popover>
+                            </Tags.CardFlexRowCon>
+                            <Tags.CardFlexRowCon>
+                              <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />
+                              <GTags.Txt className="link faded" title={screen.url}>
+                                {screen.urlStructured.hostname}
+                              </GTags.Txt>
+                            </Tags.CardFlexRowCon>
+                            <Tags.CardFlexRowCon style={{ alignItems: 'center' }}>
+                              { group[0] !== 'root' && (<Tags.CardIconMd src={tourIcon} alt="screen icon" />)}
+                              <GTags.Txt className="faded">
+                                {group[0] === 'root'
+                                  ? ''
+                                  : (<>Used in <em>{screen.tour?.displayName}</em> tour</>)}
+                              </GTags.Txt>
+                            </Tags.CardFlexRowCon>
+                            <Tags.CardFlexRowCon style={{ justifyContent: 'space-between' }}>
+                              <GTags.Txt>{group[0] === 'root'
+                                ? 'Created'
+                                : 'Edited'} {screen.displayableUpdatedAt}
+                              </GTags.Txt>
+                              <Tags.CardIconLg src="https://avatars.dicebear.com/api/adventurer/tris.svg" />
+                            </Tags.CardFlexRowCon>
+                          </Tags.CardFlexColCon>
+                        </Tags.CardCon>
+                      ))}
+                    </Tags.ScreenCardsCon>
+                  </div>
+                ))}
               </>
             ) : (
               !isLoaded ? (

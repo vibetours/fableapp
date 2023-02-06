@@ -20,7 +20,7 @@ import {
   saveTourData
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
-import { getDefaultTourOpts } from '../../component/annotation/annotation-config-utils';
+import { getDefaultTourOpts, updateButtonProp, updateTourDataOpts } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
 import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
@@ -367,14 +367,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   allEdits={this.props.allEdits}
                   toAnnotationId={this.props.match.params.annotationId || ''}
                   navigate={this.navFn}
-                  createDefaultAnnotation={
-                    (c, o) => this.onTourDataChange(
-                      'annotation-and-theme',
-                      null,
-                      { config: c, opts: o, actionType: 'upsert' },
-                      true
-                    )
-                  }
+                  createDefaultAnnotation={this.createDefaultAnnotation}
                   allAnnotationsForScreen={this.props.allAnnotationsForScreen}
                   allAnnotationsForTour={this.props.allAnnotationsForTour}
                   tourDataOpts={this.props.tourOpts}
@@ -407,6 +400,57 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       </GTags.ColCon>
     );
   }
+
+  private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts) => {
+    const flatAnnsForTour: [number, IAnnotationConfig][] = [];
+    for (const annPerScreen of this.props.allAnnotationsForTour) {
+      for (const ann of annPerScreen.annotations) {
+        if (ann.refId === config.refId) continue;
+        flatAnnsForTour.push([annPerScreen.screen.id, ann]);
+      }
+    }
+
+    flatAnnsForTour.sort((m, n) => n[1].createdAt - m[1].createdAt);
+
+    let newOpts = opts;
+    let newConfig = config;
+    const thisAnnQid = `${this.props.screen!.id}/${config.refId}`;
+    if (flatAnnsForTour.length === 0) {
+      // For the first time add the first annotation id as entry point
+      newOpts = updateTourDataOpts(opts, 'main', thisAnnQid);
+    } else {
+      const [screenId, latestAnn] = flatAnnsForTour[0];
+      const nextBtnOfLatestAnn = latestAnn.buttons.find(btn => btn.type === 'next')!;
+      if (nextBtnOfLatestAnn.hotspot === null) {
+        const update = updateButtonProp(latestAnn, nextBtnOfLatestAnn.id, 'hotspot', {
+          type: 'an-btn',
+          on: 'click',
+          target: '$this',
+          actionType: 'navigate',
+          actionValue: thisAnnQid,
+        });
+        this.onTourDataChange('annotation-and-theme', screenId, {
+          config: update,
+          opts,
+          actionType: 'upsert'
+        });
+
+        const prevBtnOfNewAnn = config.buttons.find(btn => btn.type === 'prev')!;
+        newConfig = updateButtonProp(config, prevBtnOfNewAnn.id, 'hotspot', {
+          type: 'an-btn',
+          on: 'click',
+          target: '$this',
+          actionType: 'navigate',
+          actionValue: `${screenId}/${latestAnn.refId}`,
+        });
+      }
+    }
+    this.onTourDataChange('annotation-and-theme', null, {
+      config: newConfig,
+      opts: newOpts,
+      actionType: 'upsert'
+    }, flatAnnsForTour.length !== 0 /* for the first default annotation respect the value set for opts */);
+  };
 
   private flushEdits = (key: string, value: AllEdits<ElEditType> | TourDataWoScheme) => {
     if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK)) {

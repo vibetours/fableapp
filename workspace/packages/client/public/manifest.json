@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "fable",
+  "name": "Fable - Create interactive product tour",
   "icons": [
     {
       "src": "favicon.png",

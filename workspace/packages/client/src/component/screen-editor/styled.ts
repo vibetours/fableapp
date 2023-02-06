@@ -173,16 +173,14 @@ export const AABtnCtrlLine = styled.div`
 `;
 
 export const ActionMenuCon = styled.div`
-  padding: 0.85rem 0.35rem;
-  margin: 0.25rem;
+  margin-bottom: 1rem;
 `;
 
 export const ActionMenuConBar = styled.div`
   display: flex;
   gap: 0.75rem;
   padding: 0.15rem 0.75rem;
-  background: #eeeeee;
-  border-radius: 8px;
+  background: #f5f5f5;
 `;
 
 export const AnnotationLI = styled.div`

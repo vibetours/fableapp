@@ -516,13 +516,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId && this.state.selectedAnnotationId) {
-      const path = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
-      if (path) {
-        const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
-        if (el) {
-          this.domElPicker?.selectElement(el, HighlightMode.Pinned);
-        }
-      }
+      this.selectElementIfAnnoted();
       this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
     }
   }
@@ -536,6 +530,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const path = this.domElPicker?.elPath(el);
     const an = this.props.allAnnotationsForScreen.filter(a => a.id === path);
     return an.length >= 1 ? an[0].refId : '';
+  }
+
+  selectElementIfAnnoted() {
+    if (!this.state.selectedAnnotationId) return;
+    const path = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
+    if (path) {
+      const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
+      if (el) {
+        this.domElPicker?.selectElement(el, HighlightMode.Pinned);
+      }
+    }
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
@@ -692,7 +697,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   // eslint-disable-next-line class-methods-use-this
   onFrameAssetLoad: FrameAssetLoadFn = ({ foundAnnotation }) => {
-    this.setState({ isInElSelectionMode: true, elSelRequestedBy: ElSelReqType.EditEl });
+    this.setState(state => ({
+      isInElSelectionMode: true,
+      elSelRequestedBy: state.elSelRequestedBy === ElSelReqType.NA
+        ? ElSelReqType.EditEl
+        : state.elSelRequestedBy }));
   };
 
   render(): React.ReactNode {
@@ -769,6 +778,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 justifyContent: 'center',
                 display: 'flex',
                 flexDirection: 'column',
+                marginBottom: '1rem'
               }}
             >
               {this.state.isInElSelectionMode && (
@@ -794,7 +804,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
             </div>
-            {/* TODO[now]  this.props.screen.parentScreenId !== 0 */ false
+            {this.props.screen.parentScreenId !== 0
               && this.props.allEdits
                 .map((editEncoding) => (
                   <Tags.EditLIPCon
@@ -846,7 +856,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           )}
           {this.props.allAnnotationsForScreen.length > 0 && (
             <Tags.EditPanelSec>
-              <GTags.Txt>Annotations applied on page</GTags.Txt>
+              <GTags.Txt className="title2">Annotations applied on page</GTags.Txt>
               {this.props.screen.parentScreenId !== 0
                 && this.props.allAnnotationsForScreen.map(config => (
                   <Tags.AnnotationLI
@@ -1001,6 +1011,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
         el.addEventListener('mouseenter', this.onMouseEnterOnIframe);
+        this.selectElementIfAnnoted();
       }
     } else {
       throw new Error("Can't init dompicker as iframe document is null");

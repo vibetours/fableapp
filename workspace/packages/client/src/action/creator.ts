@@ -61,18 +61,21 @@ export interface TGetAllScreens {
   rootScreens: Array<P_RespScreen>;
 }
 
-export function getAllScreens() {
+export function getAllScreens(shouldRefreshIfPresent = true) {
   return async (dispatch: Dispatch<TGetAllScreens | TGenericLoading>, getState: () => TState) => {
-    dispatch({
-      type: ActionType.ALL_SCREENS_LOADING,
-    });
-    const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
-    const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
-    dispatch({
-      type: ActionType.ALL_SCREENS_LOADED,
-      allScreens: pScreens,
-      rootScreens: groupScreens(pScreens),
-    });
+    const state = getState().default;
+    if (shouldRefreshIfPresent || state.allScreens.length === 0) {
+      dispatch({
+        type: ActionType.ALL_SCREENS_LOADING,
+      });
+      const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
+      const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
+      dispatch({
+        type: ActionType.ALL_SCREENS_LOADED,
+        allScreens: pScreens,
+        rootScreens: groupScreens(pScreens),
+      });
+    }
   };
 }
 
@@ -206,16 +209,19 @@ export interface TGetAllTours {
   tours: Array<P_RespTour>;
 }
 
-export function getAllTours() {
+export function getAllTours(shouldRefreshIfPresent = true) {
   return async (dispatch: Dispatch<TGetAllTours | TGenericLoading>, getState: () => TState) => {
-    dispatch({
-      type: ActionType.ALL_TOURS_LOADING,
-    });
-    const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
-    dispatch({
-      type: ActionType.ALL_TOURS_LOADED,
-      tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
-    });
+    const state = getState().default;
+    if (shouldRefreshIfPresent || state.tours.length === 0) {
+      dispatch({
+        type: ActionType.ALL_TOURS_LOADING,
+      });
+      const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
+      dispatch({
+        type: ActionType.ALL_TOURS_LOADED,
+        tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
+      });
+    }
   };
 }
 

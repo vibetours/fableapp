@@ -65,8 +65,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   handleModalOk = () => {
-    const newVal = this.state.selectedTourName.replace(/\s+/, ' ').trim().toLowerCase();
-    if (newVal === this.state.selectedTour!.displayName.toLowerCase()) {
+    const newVal = this.state.selectedTourName.trim().replace(/\s+/, ' ');
+    if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
       return;
     }
     this.props.renameTour(this.state.selectedTour!, newVal);
