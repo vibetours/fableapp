@@ -6,7 +6,6 @@
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^4.8.0",
-    "@types/d3-shape": "^3.1.1",
     "antd": "^5.1.2",
     "d3-selection": "^3.0.0",
     "d3-shape": "^3.2.0",
@@ -20,6 +19,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/d3-selection": "^3.0.4",
     "@types/d3-zoom": "^3.0.2",
+    "@types/d3-shape": "^3.1.1",
     "@types/dagre": "^0.7.48",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.11.56",
