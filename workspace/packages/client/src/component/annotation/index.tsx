@@ -6,7 +6,8 @@ import * as Tags from './styled';
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
   box: DOMRect,
-  nav: NavFn
+  nav: NavFn,
+  win: Window,
 }
 
 export class AnnotationContent extends React.PureComponent<{
@@ -145,8 +146,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
       nav={this.props.nav}
       width={w}
-      top={t}
-      left={l}
+      top={t + this.props.win.scrollY}
+      left={l + this.props.win.scrollX}
     />;
   }
 }
@@ -164,7 +165,8 @@ export interface IAnnoationDisplayConfig {
 
 interface IConProps {
   data: Array<{conf: IAnnoationDisplayConfig, box: DOMRect}>,
-  nav: NavFn
+  nav: NavFn,
+  win: Window
 }
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
@@ -184,6 +186,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         annotationDisplayConfig={p.conf}
         box={p.box}
         nav={this.props.nav}
+        win={this.props.win}
       />);
     });
   }

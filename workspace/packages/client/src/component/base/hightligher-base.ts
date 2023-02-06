@@ -42,8 +42,8 @@ export default abstract class HighlighterBase {
   protected selectElement(el: HTMLElement) {
     const elSize: DOMRect = el.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
-    maskBox.style.top = `${elSize.top}px`;
-    maskBox.style.left = `${elSize.left}px`;
+    maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
+    maskBox.style.left = `${elSize.left + this.win.screenX}px`;
     maskBox.style.width = `${elSize.width}px`;
     maskBox.style.height = `${elSize.height}px`;
   }

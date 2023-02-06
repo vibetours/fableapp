@@ -123,8 +123,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
     el.scrollIntoView({
       behavior: 'smooth',
-      block: this.isPlayMode ? 'center' : 'nearest',
-      inline: this.isPlayMode ? 'center' : 'nearest'
+      block: 'center',
+      inline: 'center'
     });
     this.render();
   }
@@ -150,7 +150,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       React.createElement(
         StyleSheetManager,
         { target: this.doc.head },
-        React.createElement(AnnotationCon, { data: props, nav: this.nav })
+        React.createElement(AnnotationCon, { data: props, nav: this.nav, win: this.win })
       )
     );
   }
