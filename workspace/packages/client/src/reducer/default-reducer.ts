@@ -16,6 +16,7 @@ import {
   TInitialize,
   TSaveEditChunks,
   TSaveTourEntities,
+  TScreen,
   TScreenWithData,
   TTour,
   TTourWithData,
@@ -38,6 +39,7 @@ export const initialState: {
   screenLoadingStatus: LoadingStatus;
   currentTour: P_RespTour | null;
   newTourLoadingStatus: LoadingStatus;
+  newScreenLoadingStatus: LoadingStatus;
   tourData: TourData | null;
   tourLoaded: boolean;
   localEdits: Record<string, EditItem[]>;
@@ -64,6 +66,7 @@ export const initialState: {
   screenLoadingStatus: LoadingStatus.NotStarted,
   currentTour: null,
   newTourLoadingStatus: LoadingStatus.NotStarted,
+  newScreenLoadingStatus: LoadingStatus.NotStarted,
   tourData: null,
   tourLoaded: false,
   localEdits: {},
@@ -121,6 +124,14 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.currentTour = tAction.tour;
       if (tAction.performedAction === 'new') newState.newTourLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.SCREEN: {
+      const tAction = action as TScreen;
+      const newState = { ...state };
+      newState.currentScreen = tAction.screen;
+      if (tAction.performedAction === 'new') newState.newScreenLoadingStatus = LoadingStatus.Done;
       return newState;
     }
 

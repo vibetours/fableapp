@@ -1,6 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { LoadingStatus } from '@fable/common/dist/types';
+import { MenuOutlined } from '@ant-design/icons';
+import Popover from 'antd/lib/popover';
+import Modal from 'antd/lib/modal';
 import { TState } from '../../reducer';
 import SidePanel from '../../component/side-panel';
 import Header from '../../component/header';
@@ -40,18 +43,45 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
 interface IOwnProps {}
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 interface IOwnStateProps {
-  editable: [string, 'pinned' | 'notpinned'];
+  showModal: boolean;
+  selectedTour: P_RespTour | null;
+  selectedTourName: string;
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
-    this.state = { editable: ['', 'notpinned'] };
+    this.state = { showModal: false, selectedTour: null, selectedTourName: '' };
   }
 
   componentDidMount(): void {
     this.props.getAllTours();
   }
+
+  handleShowModal = (e: React.MouseEvent<HTMLDivElement>, tour: P_RespTour) => {
+    e.stopPropagation();
+    e.preventDefault();
+    this.setState({ selectedTour: tour, selectedTourName: tour.displayName, showModal: true });
+  };
+
+  handleModalOk = () => {
+    const newVal = this.state.selectedTourName.replace(/\s+/, ' ').trim().toLowerCase();
+    if (newVal === this.state.selectedTour!.displayName.toLowerCase()) {
+      return;
+    }
+    this.props.renameTour(this.state.selectedTour!, newVal);
+    this.state.selectedTour!.displayName = newVal;
+    this.setState({ selectedTour: null, selectedTourName: '', showModal: false });
+  };
+
+  handleRenameTourFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    this.handleModalOk();
+  };
+
+  handleModalCancel = () => {
+    this.setState({ selectedTour: null, selectedTourName: '', showModal: false });
+  };
 
   render() {
     const hasTours = this.props.tours.length > 0;
@@ -88,39 +118,26 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
                       <Tags.TourCardLane>
                         <img src={tourIcon} alt="" style={{ height: '16px', width: '16px', marginRight: '0.25rem' }} />
-                        <GTags.Txt
-                          contentEditable={this.state.editable[0] === tour.rid}
-                          className="title markeditable"
-                          onMouseOver={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            if (this.state.editable[1] === 'notpinned') {
-                              this.setState({ editable: [tour.rid, 'notpinned'] });
-                            }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            this.setState({ editable: [tour.rid, 'pinned'] });
-                          }}
-                          onMouseOut={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            if (this.state.editable[1] === 'notpinned') {
-                              this.setState({ editable: ['', 'pinned'] });
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const newVal = e.target.innerText || '';
-                            const nNewVal = newVal.replace(/\s+/, ' ').trim().toLowerCase();
-                            if (nNewVal === tour.displayName.toLowerCase()) {
-                              return;
-                            }
-                            this.props.renameTour(tour, nNewVal);
-                          }}
-                        >
+                        <GTags.Txt className="title">
                           {tour.displayName}
                         </GTags.Txt>
+                        <Popover
+                          content={
+                            <GTags.PopoverMenuItem onClick={e => this.handleShowModal(e, tour)}>
+                              Rename Tour
+                            </GTags.PopoverMenuItem>
+                          }
+                          trigger="hover"
+                          placement="right"
+                        >
+                          <MenuOutlined
+                            onClick={e => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            style={{ display: 'block', marginLeft: 'auto', padding: '0.4rem', color: '#bdbdbd' }}
+                          />
+                        </Popover>
                       </Tags.TourCardLane>
                       <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
                         <GTags.Txt
@@ -148,6 +165,29 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             )}
           </GTags.BodyCon>
         </GTags.MainCon>
+        <Modal
+          title="Rename Tour"
+          open={this.state.showModal}
+          onOk={this.handleModalOk}
+          onCancel={this.handleModalCancel}
+        >
+          <form onSubmit={this.handleRenameTourFormSubmit}>
+            <label htmlFor="renameTour">
+              What would you like to rename the selected tour?
+              <input
+                id="renameTour"
+                style={{ padding: '0.5rem 1rem',
+                  marginTop: '0.75rem',
+                  fontSize: '1rem',
+                  borderRadius: '8px',
+                  width: 'calc(100% - 2rem)'
+                }}
+                value={this.state.selectedTourName}
+                onChange={e => this.setState({ selectedTourName: e.target.value })}
+              />
+            </label>
+          </form>
+        </Modal>
       </GTags.RowCon>
     );
   }

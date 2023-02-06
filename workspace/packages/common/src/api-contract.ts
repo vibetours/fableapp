@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-01-26 13:10:51.
+// Generated using typescript-generator version 2.35.1025 on 2023-02-02 06:34:19.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -50,7 +50,7 @@ export interface ReqRecordEdit {
     editData: string;
 }
 
-export interface ReqRenameTour {
+export interface ReqRenameGeneric {
     newName: string;
     rid: string;
 }

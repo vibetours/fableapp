@@ -154,3 +154,12 @@ export const EditPanelCon = styled.div`
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
 `;
+
+export const PopoverMenuItem = styled.div`
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  &:hover {
+    background: #eaeaea;
+  }
+`;

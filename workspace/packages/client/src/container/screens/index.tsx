@@ -1,7 +1,10 @@
 import { LoadingStatus } from '@fable/common/dist/types';
+import { MenuOutlined } from '@ant-design/icons';
+import Popover from 'antd/lib/popover';
+import Modal from 'antd/lib/modal';
 import React from 'react';
 import { connect } from 'react-redux';
-import { copyScreenForCurrentTour, getAllScreens } from '../../action/creator';
+import { copyScreenForCurrentTour, getAllScreens, renameScreen } from '../../action/creator';
 import linkOpenIcon from '../../assets/link.svg';
 import tourIcon from '../../assets/tours-icon-dark.svg';
 import * as GTags from '../../common-styled';
@@ -15,12 +18,14 @@ import * as Tags from './styled';
 
 interface IDispatchProps {
   getAllScreens: () => void;
+  renameScreen: (screen: P_RespScreen, newVal: string) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllScreens: () => dispatch(getAllScreens()),
   copyScreenForCurrentTour:
     (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen)),
+  renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
 });
 
 interface IAppStateProps {
@@ -42,12 +47,46 @@ type IProps = IOwnProps &
     screenId: string;
   }>;
 
-interface IOwnStateProps {}
+interface IOwnStateProps {
+  showModal: boolean;
+  selectedScreen: P_RespScreen | null,
+  selectedScreenName: string
+}
 
 class Screens extends React.PureComponent<IProps, IOwnStateProps> {
+  constructor(props: IProps) {
+    super(props);
+    this.state = { showModal: false, selectedScreen: null, selectedScreenName: '' };
+  }
+
   componentDidMount(): void {
     this.props.getAllScreens();
   }
+
+  handleRenameScreenFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    this.handleModalOk();
+  };
+
+  handleShowModal = (e: React.MouseEvent<HTMLDivElement>, screen: P_RespScreen) => {
+    e.stopPropagation();
+    e.preventDefault();
+    this.setState({ showModal: true, selectedScreen: screen, selectedScreenName: screen.displayName });
+  };
+
+  handleModalOk = () => {
+    const newVal = this.state.selectedScreenName.replace(/\s+/, ' ').trim().toLowerCase();
+    if (newVal === this.state.selectedScreen!.displayName.toLowerCase()) {
+      return;
+    }
+    this.props.renameScreen(this.state.selectedScreen!, newVal);
+    this.state.selectedScreen!.displayName = newVal;
+    this.setState({ showModal: false, selectedScreen: null, selectedScreenName: '' });
+  };
+
+  handleModalCancel = () => {
+    this.setState({ showModal: false, selectedScreen: null, selectedScreenName: '' });
+  };
 
   render() {
     const hasScreen = this.props.screens.length > 0;
@@ -86,6 +125,23 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
                           <GTags.Txt className="title oneline" title={screen.displayName}>
                             {screen.displayName}
                           </GTags.Txt>
+                          <Popover
+                            content={
+                              <GTags.PopoverMenuItem onClick={e => this.handleShowModal(e, screen)}>
+                                Rename Screen
+                              </GTags.PopoverMenuItem>
+                            }
+                            trigger="hover"
+                            placement="right"
+                          >
+                            <MenuOutlined
+                              style={{ color: '#bdbdbd', marginLeft: '0.75rem' }}
+                              onClick={e => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                            />
+                          </Popover>
                         </Tags.CardFlexRowCon>
                         <Tags.CardFlexRowCon>
                           <Tags.CardIconSm src={linkOpenIcon} alt="screen icon" />
@@ -121,6 +177,30 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
             )}
           </GTags.BodyCon>
         </GTags.MainCon>
+        <Modal
+          title="Rename Screen"
+          open={this.state.showModal}
+          onOk={this.handleModalOk}
+          onCancel={this.handleModalCancel}
+        >
+          <form onSubmit={this.handleRenameScreenFormSubmit}>
+            <label htmlFor="renameScreen">
+              What would you like to rename the selected screen?
+              <input
+                id="renameScreen"
+                style={{
+                  padding: '0.5rem 1rem',
+                  marginTop: '0.75rem',
+                  fontSize: '1rem',
+                  borderRadius: '8px',
+                  width: 'calc(100% - 2rem)'
+                }}
+                value={this.state.selectedScreenName}
+                onChange={e => this.setState({ selectedScreenName: e.target.value })}
+              />
+            </label>
+          </form>
+        </Modal>
       </GTags.RowCon>
     );
   }

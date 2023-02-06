@@ -7,7 +7,7 @@ import {
   ReqCopyScreen,
   ReqNewTour,
   ReqRecordEdit,
-  ReqRenameTour,
+  ReqRenameGeneric,
   RespCommonConfig,
   RespScreen,
   RespTour
@@ -82,6 +82,30 @@ export interface TScreenWithData {
   screenEdits: EditFile<AllEdits<ElEditType>> | null;
   remoteEdits: EditItem[];
   screen: P_RespScreen;
+}
+
+export interface TScreen {
+  type: ActionType.SCREEN;
+  screen: P_RespScreen;
+  performedAction: SupportedPerformedAction;
+}
+
+export function renameScreen(screen: P_RespScreen, newVal: string) {
+  return async (dispatch: Dispatch<TScreen>, getState: () => TState) => {
+    const data = await api<ReqRenameGeneric, ApiResp<RespScreen>>('/renamescreen', {
+      auth: true,
+      body: {
+        newName: newVal,
+        rid: screen.rid,
+      },
+    });
+    const renamedScreen = processRawScreenData(data.data, getState());
+    dispatch({
+      type: ActionType.SCREEN,
+      screen: renamedScreen,
+      performedAction: 'rename',
+    });
+  };
 }
 
 export function loadScreenAndData(screenRid: string) {
@@ -231,7 +255,7 @@ export function createNewTour(tourName = 'Untitled', description = '', mode: Sup
 
 export function renameTour(tour: P_RespTour, newVal: string) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
-    const data = await api<ReqRenameTour, ApiResp<RespTour>>('/renametour', {
+    const data = await api<ReqRenameGeneric, ApiResp<RespTour>>('/renametour', {
       auth: true,
       body: {
         newName: newVal,
