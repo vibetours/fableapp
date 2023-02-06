@@ -340,7 +340,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           </GTags.HeaderCon>
         )}
         <GTags.BodyCon style={{
-          height: 'calc(100% - 72px)',
+          height: this.props.playMode ? '100%' : 'calc(100% - 72px)',
           background: '#fff',
           padding: this.props.playMode || !this.shouldShowScreen() ? '0' : '0.25rem 2rem',
           overflowY: 'hidden',
