@@ -97,7 +97,6 @@ export const Txt = styled.div`
 `;
 
 export const BodyCon = styled.div`
-  overflow-y: hidden;
   padding: 0.25rem 2rem;
   display: flex;
   flex-direction: column;
@@ -110,9 +109,10 @@ export const BodyCon = styled.div`
 
 export const SidePanelCon = styled.div`
   height: 100%;
-  /* width: 30%; */
-  max-width: 285px;
-  min-width: 230px;
+  width: 230px;
+  position: fixed;
+  left: 0;
+  top: 0;
 `;
 
 export const MainCon = styled.div`
@@ -120,11 +120,13 @@ export const MainCon = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  margin-left: 230px;
 `;
 
 export const HeaderCon = styled.div`
   width: 100%;
-  height: 75px;
+  /* height: 75px; */
+  border-bottom: 1px solid #E0E0E0;
 `;
 
 export const PreviewAndActionCon = styled.div`

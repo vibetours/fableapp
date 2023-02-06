@@ -1,20 +1,23 @@
 import { LoadingStatus } from '@fable/common/dist/types';
-import { MenuOutlined } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
 import Modal from 'antd/lib/modal';
 import React from 'react';
 import { connect } from 'react-redux';
+import Space from 'antd/lib/space';
+import { CaretDownFilled, AppstoreOutlined, MenuOutlined } from '@ant-design/icons';
+import Button from 'antd/lib/button';
 import { copyScreenForCurrentTour, getAllScreens, renameScreen } from '../../action/creator';
 import linkOpenIcon from '../../assets/link.svg';
 import tourIcon from '../../assets/tours-icon-dark.svg';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
-import Loader from '../../component/loader';
 import SidePanel from '../../component/side-panel';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import * as Tags from './styled';
+import Loader from '../../component/loader';
+import EmptyScreenIllustration from '../../assets/empty-screens-illustration.svg';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -101,17 +104,28 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.HeaderCon>
             <Header rBtnTxt="Record a screen" />
           </GTags.HeaderCon>
-          <GTags.BodyCon className={hasScreen ? '' : 'centered'}>
+          <GTags.BodyCon
+            style={{
+              minHeight: hasScreen ? '' : 'calc(100vh - 72px)',
+              alignItems: 'unset',
+              display: !hasScreen ? 'block' : 'flex',
+              position: 'relative',
+              height: '100%',
+            }}
+            className={hasScreen ? '' : 'centered'}
+          >
             {isLoaded && hasScreen ? (
               <>
-                <Tags.TxtCon>
-                  <GTags.Txt className="head">All screens</GTags.Txt>
-                  <GTags.Txt className="subhead">
-                    Screens are like interactive snapshot of your product that you record from Fable's extension. You
-                    can edit a screen, annotate part of the screen and stitch multiple screens to create guided tour of
-                    your product.
-                  </GTags.Txt>
-                </Tags.TxtCon>
+                <Tags.TopCon>
+                  <Tags.TxtCon>
+                    <GTags.Txt className="head">All screens</GTags.Txt>
+                    <GTags.Txt className="subhead">
+                      Screens are like interactive snapshot of your product that you record from Fable's extension. You
+                      can edit a screen, annotate part of the screen and stitch multiple screens to create guided
+                      tour of your product.
+                    </GTags.Txt>
+                  </Tags.TxtCon>
+                </Tags.TopCon>
                 <Tags.ScreenCardsCon>
                   {this.props.screens.map((screen, i) => (
                     <Tags.CardCon
@@ -168,10 +182,42 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
               </>
             ) : (
               !isLoaded ? (
-                <Loader width="240px" />
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                >
+                  <Loader
+                    width="240px"
+                  />
+                </div>
               ) : (
                 <Tags.NoScreenMsgCon>
-                  <em>TODO</em> You don't have any screen recorded yet.
+                  <Tags.TxtCon>
+                    <GTags.Txt className="head">All screens</GTags.Txt>
+                    <GTags.Txt className="subhead">
+                      Screens are like interactive snapshot of your product that you record from Fable's extension. You
+                      can edit a screen, annotate part of the screen and stitch multiple screens to create guided tour
+                      of your product.
+                    </GTags.Txt>
+                  </Tags.TxtCon>
+                  <Tags.ScreenEmptyCon>
+                    <img
+                      src={EmptyScreenIllustration}
+                      alt="Illustration"
+                    />
+                    <GTags.Txt className="head">Record a new screen to get started with editing</GTags.Txt>
+                    <GTags.Txt className="subhead">
+                      You can use our chrome extension to record interactive version of your product.
+                      All your screens from product would appear here.
+                    </GTags.Txt>
+                    <Tags.EditScreenBtn>
+                      Download Fable Extension
+                    </Tags.EditScreenBtn>
+                  </Tags.ScreenEmptyCon>
                 </Tags.NoScreenMsgCon>
               )
             )}

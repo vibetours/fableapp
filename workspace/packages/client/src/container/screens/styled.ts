@@ -1,20 +1,103 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
+import Btn from 'antd/lib/button';
+import Dropdown from 'antd/lib/dropdown';
 
-export const NoScreenMsgCon = styled.div``;
+export const NoScreenMsgCon = styled.div`
+`;
 
 export const TxtCon = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
+`;
+
+export const TopCon = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 5rem;
+`;
+
+export const OptionsCon = styled.div`
+  min-width: fit-content;
+  display: flex;
+  align-items: center;
+  color: #333;
+
+  & > *:not(:last-child) {
+    margin-right: 1rem;
+  }
+`;
+
+export const DropdownBtn = styled(Dropdown)`
+  padding: 0rem 0.5rem;
+  border: 1px solid #ddd;
+
+  & > * {
+    font-size: 0.9rem;
+
+    &:hover {
+      color: #333;
+    }
+  }
+`;
+
+export const DropdownCon = styled.div`
+  span:first-child {
+    font-weight: 500;
+  }
+  & > *:not(:last-child) {
+    margin-right: 0.5rem;
+  }
+`;
+
+export const LayoutBtn = styled.div`
+  cursor: pointer;
+  border: 1px solid #ddd;
+  height: 1.8rem;
+  width: 1.8rem;
+  display: grid;
+  place-content: center;
+
+  span {
+    font-size: 1.4rem;
+    color: #ddd;
+  }
 `;
 
 export const ScreenCardsCon = styled.div`
-  margin-top: 1rem;
+  margin: 1rem 0;
   display: flex;
   background: #fafafa;
   padding: 1rem;
   align-items: flex-start;
   flex-wrap: wrap;
+`;
+
+export const ScreenEmptyCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  margin: 1rem 0;
+  border-radius: 4px;
+  text-align: center;
+  height: 100%;
+  padding: 1rem 4rem;
+  min-height: calc(100vh - 200px);
+
+  & > * {
+    max-width: 50rem;
+
+    &:not(:last-child) {
+      margin-bottom: 1.2rem;
+    }
+  }
+
+  img {
+    width: 22rem;
+  }
 `;
 
 export const CardCon = styled(Link)`
@@ -124,5 +207,21 @@ export const MultiScreenChooserLineItem = styled(Link)`
     margin: 0 0.5rem;
     border-radius: 20px;
     padding: 0 0.85rem 0 0.45rem;
+  }
+`;
+
+export const EditScreenBtn = styled(Btn)`
+  width: 20rem;
+  font-size: 1.2rem;
+  padding: 1.6rem 1rem;
+  display: grid;
+  place-content: center;
+  font-weight: 700;
+  border-radius: 10px;
+  background-color: #7567FF;
+  color: #fff;
+  
+  &:hover {
+    color: #fff !important;
   }
 `;
