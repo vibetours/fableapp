@@ -168,6 +168,14 @@ export function clearCurrentScreenSelection() {
   };
 }
 
+export function clearCurrentTourSelection() {
+  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_CURRENT_TOUR }>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.CLEAR_CURRENT_TOUR,
+    });
+  };
+}
+
 export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_RespScreen, shouldNavigate = true) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     let tourAnyway: P_RespTour;
@@ -234,21 +242,19 @@ export interface TTour {
   performedAction: SupportedPerformedAction;
 }
 
-export function createNewTour(tourName = 'Untitled', description = '', mode: SupportedPerformedAction = 'new') {
+export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mode: SupportedPerformedAction = 'new') {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
-    // TODO[now]  should not be required any more
-    // if (mode !== 'replace') {
-    //   dispatch({ type: ActionType.GENERIC_LOADING, entity: 'tour' });
-    // }
-
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
       body: {
         name: tourName,
-        description,
+        description: '',
       },
     });
     const tour = processRawTourData(data.data, getState());
+    if (shouldNavigate) {
+      window.location.replace(`/tour/${tour.rid}`);
+    }
     dispatch({
       type: ActionType.TOUR,
       tour,

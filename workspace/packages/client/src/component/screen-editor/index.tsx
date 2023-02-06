@@ -495,7 +495,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
-        this.domElPicker?.selectElement(state.selectedEl!);
+        // this.domElPicker?.selectElement(state.selectedEl!);
         const path = this.domElPicker?.elPath(state.selectedEl!);
         const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
         let conf: IAnnotationConfig;
@@ -538,7 +538,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (path) {
       const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
       if (el) {
-        this.domElPicker?.selectElement(el, HighlightMode.Pinned);
+        this.domElPicker?.selectElement(el, HighlightMode.Pinned, true);
       }
     }
   }

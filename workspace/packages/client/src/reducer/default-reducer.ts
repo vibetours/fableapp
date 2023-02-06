@@ -148,6 +148,13 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
+    case ActionType.CLEAR_CURRENT_TOUR: {
+      const newState = { ...state };
+      newState.currentTour = null;
+      newState.newTourLoadingStatus = LoadingStatus.NotStarted;
+      return newState;
+    }
+
     case ActionType.SCREEN_AND_DATA_LOADED: {
       const tAction = action as TScreenWithData;
       const newState = { ...state };

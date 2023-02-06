@@ -24,7 +24,7 @@ interface IDispatchProps {
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours()),
-  createNewTour: () => dispatch(createNewTour()),
+  createNewTour: () => dispatch(createNewTour(true)),
   renameTour: (tour: P_RespTour, newVal: string) => dispatch(renameTour(tour, newVal)),
 });
 
@@ -85,13 +85,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   render() {
     const hasTours = this.props.tours.length > 0;
-    if (hasTours && this.props.newTourLoadingStatus === LoadingStatus.Done && this.props.currentTour) {
-      requestAnimationFrame(
-        ((rid) => () => {
-          this.props.navigate(`/tour/${rid}`);
-        })(this.props.currentTour.rid)
-      );
-    }
     return (
       <GTags.RowCon className="tour-con">
         <GTags.SidePanelCon>

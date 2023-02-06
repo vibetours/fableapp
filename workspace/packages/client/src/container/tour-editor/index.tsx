@@ -10,6 +10,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import {
   clearCurrentScreenSelection,
+  clearCurrentTourSelection,
   copyScreenForCurrentTour,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
@@ -40,6 +41,7 @@ interface IDispatchProps {
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   clearCurrentScreenSelection: () => void,
+  clearCurrentTourSelection: () => void,
   copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
 }
 
@@ -61,6 +63,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
+  clearCurrentTourSelection: () => dispatch(clearCurrentTourSelection()),
 });
 
 interface IAppStateProps {
@@ -307,8 +310,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   componentWillUnmount() {
-    this.props.clearCurrentScreenSelection();
     this.chunkSyncManager?.end();
+    this.props.clearCurrentScreenSelection();
+    this.props.clearCurrentTourSelection();
   }
 
   navFn: NavFn = (uri, type) => {
@@ -336,9 +340,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           </GTags.HeaderCon>
         )}
         <GTags.BodyCon style={{
-          height: '100%',
+          height: 'calc(100% - 72px)',
           background: '#fff',
-          padding: this.props.playMode || !this.shouldShowScreen() ? '0' : '0.25rem 2rem'
+          padding: this.props.playMode || !this.shouldShowScreen() ? '0' : '0.25rem 2rem',
+          overflowY: 'hidden',
           /* padding: '0px' */
         }}
         >
@@ -421,7 +426,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     } else {
       const [screenId, latestAnn] = flatAnnsForTour[0];
       const nextBtnOfLatestAnn = latestAnn.buttons.find(btn => btn.type === 'next')!;
-      if (nextBtnOfLatestAnn.hotspot === null) {
+      const prevBtnOfNewAnn = config.buttons.find(btn => btn.type === 'prev')!;
+      const nextBtnOfNewAnn = config.buttons.find(btn => btn.type === 'next')!;
+      if (prevBtnOfNewAnn.hotspot === null && nextBtnOfNewAnn.hotspot === null && nextBtnOfLatestAnn.hotspot === null) {
         const update = updateButtonProp(latestAnn, nextBtnOfLatestAnn.id, 'hotspot', {
           type: 'an-btn',
           on: 'click',
@@ -435,7 +442,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           actionType: 'upsert'
         });
 
-        const prevBtnOfNewAnn = config.buttons.find(btn => btn.type === 'prev')!;
         newConfig = updateButtonProp(config, prevBtnOfNewAnn.id, 'hotspot', {
           type: 'an-btn',
           on: 'click',

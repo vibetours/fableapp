@@ -316,112 +316,9 @@ export default function AnnotationCreatorPanel(props: IProps) {
                                 label: 'Navigate to',
                                 children: (
                                   <div>
-                                    <GTags.Txt>
-                                      Select an annotation that would be navigated to when the button is clicked
+                                    <GTags.Txt className="title">
+                                      Use the canvas to make connection between annotations
                                     </GTags.Txt>
-                                    <div>
-                                      {props.allAnnotationsForTour.map(screenAntnPair => (
-                                        <div key={screenAntnPair.screen.id}>
-                                          <GTags.Txt className="title2">
-                                            {
-                                              screenAntnPair.screen.id === props.screen.id
-                                                ? 'Current screen'
-                                                : `Screen: ${screenAntnPair.screen.displayName}`
-                                            }
-                                          </GTags.Txt>
-                                          <div>
-                                            {screenAntnPair.annotations.filter(an => an.id !== config.id).map(an => (
-                                              <div style={{ margin: '0.25rem 0rem' }} key={an.id}>
-                                                <Tags.AnnotationHotspotSelector
-                                                  style={{
-                                                    flexDirection: btnConf.type === 'prev' ? 'row-reverse' : 'row',
-                                                  }}
-                                                  onClick={e => {
-                                                    let navigateTo = '';
-                                                    if (btnConf.type === 'prev') {
-                                                      //  prev annotation's next button should point to this annotation
-                                                      //  this annotation's prev button should point to prev annotation
-                                                      //    => navigateTo
-                                                      const nextBtnOfPrevAntn = an.buttons
-                                                        .find(btn => btn.type === 'next');
-                                                      const prevAntn = updateButtonProp(
-                                                        an,
-                                                        nextBtnOfPrevAntn!.id,
-                                                        'hotspot',
-                                                        {
-                                                          type: 'an-btn',
-                                                          on: 'click',
-                                                          target: '$this',
-                                                          actionType: 'navigate',
-                                                          actionValue: qualifiedAnnotationId,
-                                                        } as ITourEntityHotspot
-                                                      );
-                                                      props.onSideEffectConfigChange(
-                                                        screenAntnPair.screen.id,
-                                                        prevAntn,
-                                                        'upsert'
-                                                      );
-                                                    } else if (btnConf.type === 'next') {
-                                                      // this annotations next button should point to next annotaiton
-                                                      //    => navigateTo
-                                                      // next annotations prev button should point to this annotation
-                                                      const prevBtnOfNextAntn = an.buttons
-                                                        .find(btn => btn.type === 'prev');
-                                                      const nextAntn = updateButtonProp(
-                                                        an,
-                                                        prevBtnOfNextAntn!.id,
-                                                        'hotspot',
-                                                        {
-                                                          type: 'an-btn',
-                                                          on: 'click',
-                                                          target: '$this',
-                                                          actionType: 'navigate',
-                                                          actionValue: qualifiedAnnotationId,
-                                                        } as ITourEntityHotspot
-                                                      );
-                                                      props.onSideEffectConfigChange(
-                                                        screenAntnPair.screen.id,
-                                                        nextAntn,
-                                                        'upsert'
-                                                      );
-                                                    } else {
-                                                      // just one way connection
-                                                    }
-                                                    navigateTo = `${screenAntnPair.screen.id}/${an.refId}`;
-                                                    const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', {
-                                                      type: 'an-btn',
-                                                      on: 'click',
-                                                      target: '$this',
-                                                      actionType: 'navigate',
-                                                      actionValue: navigateTo,
-                                                    } as ITourEntityHotspot);
-                                                    setConfig(thisAntn);
-                                                    setOpenConnectionPopover('');
-                                                  }}
-                                                >
-                                                  {btnConf.type !== 'custom' && (
-                                                    <div style={{ fontSize: '1.5rem', margin: '0rem 1.5rem' }}>
-                                                      <ArrowRightOutlined />
-                                                    </div>
-                                                  )}
-                                                  <div style={{
-                                                    background: '#d0d0ff',
-                                                    borderRadius: '8px',
-                                                    padding: '0.25rem 0.5rem 0.25rem 0.5rem',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                  }}
-                                                  >
-                                                    <GTags.Txt className="subhead">{an.bodyContent}</GTags.Txt>
-                                                  </div>
-                                                </Tags.AnnotationHotspotSelector>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
                                   </div>
                                 )
                               }, {
@@ -601,3 +498,108 @@ export default function AnnotationCreatorPanel(props: IProps) {
 
   );
 }
+
+// {props.allAnnotationsForTour.map(screenAntnPair => (
+//                                         <div key={screenAntnPair.screen.id}>
+//                                           <GTags.Txt className="title2">
+//                                             {
+//                                               screenAntnPair.screen.id === props.screen.id
+//                                                 ? 'Current screen'
+//                                                 : `Screen: ${screenAntnPair.screen.displayName}`
+//                                             }
+//                                           </GTags.Txt>
+//                                           <div>
+//                                             {screenAntnPair.annotations.filter(an => an.id !== config.id).map(an => (
+//                                               <div style={{ margin: '0.25rem 0rem' }} key={an.id}>
+//                                                 <Tags.AnnotationHotspotSelector
+//                                                   style={{
+//                                                     flexDirection: btnConf.type === 'prev' ? 'row-reverse' : 'row',
+//                                                   }}
+//                                                   onClick={e => {
+//                                                     // A similar canvas like logic would be needed here
+//                                                     // the commented out logic is incomplete
+
+//                                                     // let navigateTo = '';
+//                                                     // if (btnConf.type === 'prev') {
+//                                                     //   //  prev annotation's next button should point to this annotation
+//                                                     //   //  this annotation's prev button should point to prev annotation
+//                                                     //   //    => navigateTo
+//                                                     //   const nextBtnOfPrevAntn = an.buttons
+//                                                     //     .find(btn => btn.type === 'next');
+//                                                     //   const prevAntn = updateButtonProp(
+//                                                     //     an,
+//                                                     //     nextBtnOfPrevAntn!.id,
+//                                                     //     'hotspot',
+//                                                     //     {
+//                                                     //       type: 'an-btn',
+//                                                     //       on: 'click',
+//                                                     //       target: '$this',
+//                                                     //       actionType: 'navigate',
+//                                                     //       actionValue: qualifiedAnnotationId,
+//                                                     //     } as ITourEntityHotspot
+//                                                     //   );
+//                                                     //   props.onSideEffectConfigChange(
+//                                                     //     screenAntnPair.screen.id,
+//                                                     //     prevAntn,
+//                                                     //     'upsert'
+//                                                     //   );
+//                                                     // } else if (btnConf.type === 'next') {
+//                                                     //   // this annotations next button should point to next annotaiton
+//                                                     //   //    => navigateTo
+//                                                     //   // next annotations prev button should point to this annotation
+//                                                     //   const prevBtnOfNextAntn = an.buttons
+//                                                     //     .find(btn => btn.type === 'prev');
+//                                                     //   const nextAntn = updateButtonProp(
+//                                                     //     an,
+//                                                     //     prevBtnOfNextAntn!.id,
+//                                                     //     'hotspot',
+//                                                     //     {
+//                                                     //       type: 'an-btn',
+//                                                     //       on: 'click',
+//                                                     //       target: '$this',
+//                                                     //       actionType: 'navigate',
+//                                                     //       actionValue: qualifiedAnnotationId,
+//                                                     //     } as ITourEntityHotspot
+//                                                     //   );
+//                                                     //   props.onSideEffectConfigChange(
+//                                                     //     screenAntnPair.screen.id,
+//                                                     //     nextAntn,
+//                                                     //     'upsert'
+//                                                     //   );
+//                                                     // } else {
+//                                                     //   // just one way connection
+//                                                     // }
+//                                                     // navigateTo = `${screenAntnPair.screen.id}/${an.refId}`;
+//                                                     // const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', {
+//                                                     //   type: 'an-btn',
+//                                                     //   on: 'click',
+//                                                     //   target: '$this',
+//                                                     //   actionType: 'navigate',
+//                                                     //   actionValue: navigateTo,
+//                                                     // } as ITourEntityHotspot);
+//                                                     // setConfig(thisAntn);
+//                                                     // setOpenConnectionPopover('');
+//                                                   }}
+//                                                 >
+//                                                   {btnConf.type !== 'custom' && (
+//                                                     <div style={{ fontSize: '1.5rem', margin: '0rem 1.5rem' }}>
+//                                                       <ArrowRightOutlined />
+//                                                     </div>
+//                                                   )}
+//                                                   <div style={{
+//                                                     background: '#d0d0ff',
+//                                                     borderRadius: '8px',
+//                                                     padding: '0.25rem 0.5rem 0.25rem 0.5rem',
+//                                                     display: 'flex',
+//                                                     alignItems: 'center',
+//                                                     justifyContent: 'center'
+//                                                   }}
+//                                                   >
+//                                                     <GTags.Txt className="subhead">{an.bodyContent}</GTags.Txt>
+//                                                   </div>
+//                                                 </Tags.AnnotationHotspotSelector>
+//                                               </div>
+//                                             ))}
+//                                           </div>
+//                                         </div>
+//                                       ))}

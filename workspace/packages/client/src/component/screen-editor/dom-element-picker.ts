@@ -148,8 +148,8 @@ export default class DomElementPicker extends HighlighterBase {
     this.selectElement(anchorEl);
   };
 
-  selectElement(el: HTMLElement, mode = HighlightMode.NOOP) {
-    super.selectElement(el);
+  selectElement(el: HTMLElement, mode = HighlightMode.NOOP, ghost = false) {
+    !ghost && super.selectElement(el);
     if (mode === HighlightMode.Pinned) {
       this.pinnedMode(el);
     }
