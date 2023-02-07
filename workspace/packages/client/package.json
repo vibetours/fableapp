@@ -48,7 +48,8 @@
     "start": "env-cmd --verbose -e dev -r ../env.json react-scripts start",
     "start-stage": "env-cmd --verbose -e stage -r ../env.json  react-scripts start",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
-    "install-staging": "aws s3 cp ./build/ s3://app.sharefable.com --recursive --profile fable",
+    "clean-staging": "aws s3 rm s3://app.sharefable.com --recursive --profile fable",
+    "install-staging": "yarn clean-staging && aws s3 cp ./build/ s3://app.sharefable.com --recursive --profile fable",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
     "test": "react-scripts test"
   },

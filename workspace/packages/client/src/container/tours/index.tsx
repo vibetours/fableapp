@@ -30,14 +30,12 @@ const mapDispatchToProps = (dispatch: any) => ({
 
 interface IAppStateProps {
   tours: P_RespTour[];
-  newTourLoadingStatus: LoadingStatus;
-  currentTour: P_RespTour | null;
+  allToursLoadingStatus: LoadingStatus;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
-  newTourLoadingStatus: state.default.newTourLoadingStatus,
-  currentTour: state.default.currentTour,
+  allToursLoadingStatus: state.default.allToursLoadingStatus,
 });
 
 interface IOwnProps {}
@@ -84,7 +82,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render() {
-    const hasTours = this.props.tours.length > 0;
+    const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
     return (
       <GTags.RowCon className="tour-con">
         <GTags.SidePanelCon>
@@ -95,17 +93,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             <Header />
           </GTags.HeaderCon>
           <GTags.BodyCon style={{ height: '100%' }}>
-            {hasTours ? (
+            {toursLoaded ? (
               <>
-                {this.props.newTourLoadingStatus === LoadingStatus.InProgress ? (
-                  <Loader width="80px" txtBefore="Creating a new flow for you" />
-                ) : (
-                  <Tags.TopPanel>
-                    <Btn icon="plus" onClick={this.props.createNewTour}>
-                      Create a new tour
-                    </Btn>
-                  </Tags.TopPanel>
-                )}
+                <Tags.TopPanel>
+                  <Btn icon="plus" onClick={this.props.createNewTour}>
+                    Create a new tour
+                  </Btn>
+                </Tags.TopPanel>
                 <Tags.BottomPanel>
                   {this.props.tours.map((tour) => (
                     <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
@@ -153,7 +147,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               </>
             ) : (
               <div>
-                <em>TODO</em> You don't have any screen recorded yet.
+                <Loader width="80px" txtBefore="Loading tours for you" />
               </div>
             )}
           </GTags.BodyCon>
