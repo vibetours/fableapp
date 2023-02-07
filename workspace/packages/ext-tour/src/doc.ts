@@ -151,6 +151,17 @@ export function getSearializedDom(
       return { serNode: sNode, shouldSkip: true };
     }
 
+    if (sNode.name === "style") {
+      const tNode = node as HTMLStyleElement;
+      const cssRules = tNode.sheet?.cssRules ?? [];
+      let cssText = "";
+      for (let i = 0; i < cssRules.length; i++) {
+        cssText += `${cssRules[i].cssText} `;
+      }
+      sNode.attrs.cssRules = cssText;
+      return { serNode: sNode };
+    }
+
     if (sNode.name === "iframe" || sNode.name === "frame") {
       const tNode = node as HTMLIFrameElement;
       const url = sNode.attrs.src || "";

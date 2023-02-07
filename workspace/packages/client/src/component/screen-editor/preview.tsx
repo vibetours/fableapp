@@ -46,6 +46,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             // eslint-disable-next-line no-script-url
             attrValue = 'javascript:void(0);';
           }
+          if (node.name === 'style') {
+            el.textContent = node.attrs.cssRules;
+          }
           el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
         }
       } catch (e) {
