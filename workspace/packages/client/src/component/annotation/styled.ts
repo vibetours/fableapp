@@ -28,6 +28,7 @@ export const AnContent = styled.div`
 export const ABtn = styled.button`
   border-radius: 8px;
   align-self: flex-start;
+  font-size: 18px;
 
   border: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Outline) return `1px solid ${p.color}`;

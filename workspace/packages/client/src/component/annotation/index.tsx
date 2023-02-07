@@ -40,6 +40,8 @@ export class AnnotationContent extends React.PureComponent<{
           display: this.props.isInDisplay ? 'flex' : 'none',
           left: this.props.left,
           top: this.props.top,
+          fontSize: '18px',
+          boxShadow: '0 0 5px 0px #bdbdbd',
         }}
       >
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', width: '100%' }}>

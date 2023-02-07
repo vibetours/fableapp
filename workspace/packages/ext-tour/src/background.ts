@@ -211,7 +211,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
           })
         );
 
-        const assetUrlStr = getAbsoluteUrl(node.attrs.href || "", frame.baseURI);
+        const assetUrlStr = getAbsoluteUrl(node.props.proxyUrl || "", frame.baseURI);
         const assetUrl = new URL(assetUrlStr);
         if (assetUrl.protocol === "http:" || assetUrl.protocol === "https:") {
           const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>("/proxyasset", {
@@ -222,8 +222,8 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
             },
           });
           console.log("origin", assetUrlStr, "proxy", data.data.proxyUri);
-          node.props.origHref = node.attrs.href;
-          node.attrs.href = data.data.proxyUri;
+          node.props.origHref = node.props.proxyUrl;
+          node.attrs[node.props.proxyAttr || ""] = data.data.proxyUri;
         }
 
         if (frameId === 0 && postProcess.path === frame.icon?.path) {

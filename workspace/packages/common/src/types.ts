@@ -5,6 +5,8 @@ export interface SerNode {
   name: string;
   attrs: Record<string, string | null>;
   props: {
+    proxyUrl?: string;
+    proxyAttr?: 'href' | 'src';
     isStylesheet?: boolean;
     textContent?: string | null;
     isHidden?: boolean;

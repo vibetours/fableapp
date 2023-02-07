@@ -142,6 +142,8 @@ export function getSearializedDom(
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
       if (tNode.sheet) {
+        sNode.props.proxyUrl = sNode.attrs.href || undefined;
+        sNode.props.proxyAttr = "href";
         return { serNode: sNode, postProcess: true };
       }
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
@@ -149,6 +151,16 @@ export function getSearializedDom(
         return { serNode: sNode, postProcess: true, isIcon: true };
       }
       return { serNode: sNode, shouldSkip: true };
+    }
+
+    if (sNode.name === "img") {
+      const tNode = node as HTMLImageElement;
+      const src = sNode.attrs.src;
+      sNode.props.proxyUrl = src || undefined;
+      sNode.props.proxyAttr = "src";
+      if (src) {
+        return { serNode: sNode, postProcess: true };
+      }
     }
 
     if (sNode.name === "style") {
