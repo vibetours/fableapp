@@ -5,20 +5,17 @@ export default abstract class HighlighterBase {
 
   protected maskEl: HTMLDivElement | null;
 
-  protected readonly maxZIndex: number;
-
   constructor(doc: Document) {
     this.doc = doc;
     this.win = doc.defaultView as Window;
     this.maskEl = null;
-    this.maxZIndex = this.getMaxZIndex();
   }
 
   private getMaxZIndex() {
     return Array.from(this.doc.querySelectorAll('body *'))
       .map(a => parseFloat(this.win.getComputedStyle(a).zIndex))
       .filter(a => !Number.isNaN(a))
-      .sort()
+      .sort((m, n) => n - m)
       .pop() || 1;
   }
 
@@ -43,7 +40,7 @@ export default abstract class HighlighterBase {
     const elSize: DOMRect = el.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
     maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
-    maskBox.style.left = `${elSize.left + this.win.screenX}px`;
+    maskBox.style.left = `${elSize.left + this.win.scrollX}px`;
     maskBox.style.width = `${elSize.width}px`;
     maskBox.style.height = `${elSize.height}px`;
   }
@@ -61,10 +58,10 @@ export default abstract class HighlighterBase {
     mask.setAttribute('class', cls);
     mask.style.position = 'absolute';
     mask.style.pointerEvents = 'none';
-    mask.style.zIndex = `${this.maxZIndex + 1}`;
+    mask.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     mask.style.background = this.highlightBgColor();
     mask.style.boxShadow = `rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.45' : '0.0'
-    }) 0px 0px 0px 1000vw`;
+      }) 0px 0px 0px 1000vw`;
     this.maskEl = mask;
     this.attachElToUmbrellaDiv(mask);
     return mask;
@@ -72,11 +69,12 @@ export default abstract class HighlighterBase {
 
   protected attachElToUmbrellaDiv(el: Element) {
     const umbrellaDiv = this.doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+    const annotationsContainer = this.doc.getElementsByClassName('fable-annotations-container')[0] as HTMLDivElement;
     if (!umbrellaDiv) {
       throw new Error('Container div not found');
     }
 
-    umbrellaDiv.appendChild(el);
+    umbrellaDiv.insertBefore(el, annotationsContainer);
     return this;
   }
 

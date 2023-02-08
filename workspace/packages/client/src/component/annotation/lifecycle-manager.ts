@@ -23,7 +23,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private rRoot: Root;
 
-  private vp: {w: number, h: number};
+  private vp: { w: number, h: number };
 
   private mode: AnnotationViewMode;
 
@@ -34,7 +34,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private isPlayMode: boolean;
 
   // Take the initial annotation config from here
-  constructor(doc: Document, opts: {navigate: NavFn, isPlayMode: boolean}) {
+  constructor(doc: Document, opts: { navigate: NavFn, isPlayMode: boolean }) {
     super(doc);
     this.nav = opts.navigate;
     this.vp = {
@@ -97,12 +97,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private createContainerRoot(): [HTMLDivElement, Root] {
     const con = this.doc.createElement('div');
-    con.setAttribute('class', 'fable-ans');
+    con.setAttribute('class', 'fable-annotations-container');
     con.setAttribute('fable-ignr-sel', 'true');
     con.style.position = 'absolute';
     con.style.left = '0';
     con.style.top = '0';
-    con.style.zIndex = `${this.maxZIndex + 2}`;
+    con.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     this.attachElToUmbrellaDiv(con);
     this.doc.body.addEventListener('scroll', this.onScroll, true);
     const rRoot = ReactDOM.createRoot(con);

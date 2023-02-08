@@ -9,6 +9,75 @@ export enum HighlightMode {
 
 type ElSelectCallback = (el: HTMLElement, doc: Document) => void;
 
+const SVG_EL = {
+  a: 1,
+  animate: 1,
+  animateMotion: 1,
+  animateTransform: 1,
+  circle: 1,
+  clipPath: 1,
+  defs: 1,
+  desc: 1,
+  discard: 1,
+  ellipse: 1,
+  feBlend: 1,
+  feColorMatrix: 1,
+  feComponentTransfer: 1,
+  feComposite: 1,
+  feConvolveMatrix: 1,
+  feDiffuseLighting: 1,
+  feDisplacementMap: 1,
+  feDropShadow: 1,
+  feFlood: 1,
+  feFuncA: 1,
+  feFuncB: 1,
+  feDistantLight: 1,
+  feFuncG: 1,
+  feFuncR: 1,
+  feGaussianBlur: 1,
+  feImage: 1,
+  feMerge: 1,
+  feMergeNode: 1,
+  feMorphology: 1,
+  feOffset: 1,
+  fePointLight: 1,
+  feSpecularLighting: 1,
+  feSpotLight: 1,
+  feTile: 1,
+  feTurbulence: 1,
+  filter: 1,
+  foreignObject: 1,
+  g: 1,
+  hatch: 1,
+  hatchpath: 1,
+  image: 1,
+  line: 1,
+  linearGradient: 1,
+  marker: 1,
+  mask: 1,
+  metadata: 1,
+  mpath: 1,
+  path: 1,
+  pattern: 1,
+  polygon: 1,
+  polyline: 1,
+  radialGradient: 1,
+  rect: 1,
+  script: 1,
+  set: 1,
+  stop: 1,
+  style: 1,
+  svg: 1,
+  switch: 1,
+  symbol: 1,
+  text: 1,
+  textPath: 1,
+  title: 1,
+  tspan: 1,
+  use: 1,
+  view: 1
+};
+
 export default class DomElementPicker extends HighlighterBase {
   private highlightMode: HighlightMode;
 
@@ -20,7 +89,7 @@ export default class DomElementPicker extends HighlighterBase {
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
 
-  constructor(doc: Document, cbs: {onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback}) {
+  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback }) {
     super(doc);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
@@ -103,9 +172,10 @@ export default class DomElementPicker extends HighlighterBase {
   // Can be replicated using google analytics right top user icon click
   private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number): HTMLElement | Text {
     let i = 0;
+    let svgEl: HTMLElement;
     for (const el of els) {
       if (el.tagName && el.tagName.toLowerCase() === 'svg') {
-        return el;
+        svgEl = el;
       }
       i++;
       if (el.getAttribute('fable-ignr-sel')) {
@@ -113,7 +183,13 @@ export default class DomElementPicker extends HighlighterBase {
       }
     }
 
-    const elBelowMouse = els[i < els.length - 1 ? i : 0] as HTMLElement;
+    const elToBeReturned = els[i < els.length - 1 ? i : 0];
+
+    if (elToBeReturned.tagName.toLowerCase() in SVG_EL) {
+      return svgEl!;
+    }
+
+    const elBelowMouse = elToBeReturned as HTMLElement;
     const text = this.findTextDescendantsBelowMouse(elBelowMouse, x, y);
     return text || elBelowMouse;
   }
