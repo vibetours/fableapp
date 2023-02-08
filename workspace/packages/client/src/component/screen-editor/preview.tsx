@@ -32,6 +32,26 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
       : doc.createElement(node.name);
 
+    if (node.name === 'canvas') {
+      const element = el as HTMLCanvasElement;
+      element.width = +(node.attrs.width ?? 0);
+      element.height = +(node.attrs.height ?? 0);
+      const ctx = element.getContext('2d');
+
+      if (ctx) {
+        ctx.clearRect(0, 0, +node.attrs.width!, +node.attrs.height!);
+
+        const img = document.createElement('img');
+        img.src = node.attrs.src!;
+
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, +node.attrs.width!, +node.attrs.height!);
+        };
+      }
+
+      return element;
+    }
+
     let attrKey;
     let attrValue;
     for ([attrKey, attrValue] of Object.entries(node.attrs)) {

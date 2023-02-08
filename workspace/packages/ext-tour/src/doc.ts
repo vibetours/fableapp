@@ -174,6 +174,17 @@ export function getSearializedDom(
       return { serNode: sNode };
     }
 
+    if (sNode.name === "canvas") {
+      const tNode = node as HTMLCanvasElement;
+      const { width, height } = tNode.getBoundingClientRect();
+      const imageData = tNode.toDataURL("image/png");
+      sNode.attrs.src = imageData;
+      sNode.attrs.width = `${width}`;
+      sNode.attrs.height = `${height}`;
+
+      return { serNode: sNode };
+    }
+
     if (sNode.name === "iframe" || sNode.name === "frame") {
       const tNode = node as HTMLIFrameElement;
       const url = sNode.attrs.src || "";
