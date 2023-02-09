@@ -4,13 +4,14 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
+import { drag, D3DragEvent } from 'd3-drag';
 import * as GTags from '../../common-styled';
 import { AnnotationPerScreen, NavFn, TourDataChangeFn } from '../../types';
 import { updateButtonProp } from '../annotation/annotation-config-utils';
 import Btn from '../btn';
 import * as Tags from './styled';
 import { AnnotationNode, Box, CanvasGrid, EdgeWithData } from './types';
-import { formPathUsingPoints, formScreens2, getEdges } from './utils';
+import { formPathUsingPoints, formScreens2, getEdges, getEndPointsUsingPath } from './utils';
 import { P_RespScreen } from '../../entity-processor';
 
 type CanvasProps = {
@@ -109,6 +110,84 @@ export default function TourCanvas(props: CanvasProps) {
       .attr('x', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
       .attr('y', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
       .attr('opacity', Math.min(ze.transform.k, 1));
+  };
+
+  const nodeDraggable = () => {
+    let relX = 0;
+    let relY = 0;
+    let newX = 0;
+    let newY = 0;
+    let id = '';
+
+    return drag<SVGForeignObjectElement, AnnotationNode<dagre.Node>>()
+      .on('start', function (
+        event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
+        d
+      ) {
+        const [eventX, eventY] = fromPointer(event, rootGRef.current);
+
+        const selectedScreen = select<SVGForeignObjectElement, AnnotationNode<dagre.Node>>(this);
+        const data = selectedScreen.datum();
+        // Find out where in the box the mousedown for drag is fired relative to the current box.
+        relX = eventX - (data.storedData!.x - data.storedData!.width / 2);
+        relY = eventY - (data.storedData!.y - data.storedData!.height / 2);
+        id = data.id;
+      })
+      .on('drag', function (
+        event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
+        d: any
+      ) {
+        prevent(event.sourceEvent);
+
+        const [x, y] = fromPointer(event, rootGRef.current);
+        newX = x - relX;
+        newY = y - relY;
+
+        // eslint-disable-next-line react/no-this-in-sfc
+        const el = select<SVGGElement, AnnotationNode<dagre.Node>>(this.parentNode as SVGGElement);
+        el.attr('transform', `translate(${newX}, ${newY})`);
+
+        const fromEl = selectAll<SVGPathElement, EdgeWithData>('path.edge').filter((data) => data.srcId === d.id);
+        const toEl = selectAll<SVGPathElement, EdgeWithData>('path.edge').filter((data) => data.destId === d.id);
+
+        const data = el.datum();
+
+        if (fromEl.node()) {
+          const fromElNode = fromEl.node() as SVGPathElement;
+          const pathD = fromElNode.getAttribute('d') ?? '';
+          const endPoints = getEndPointsUsingPath(pathD);
+          const newPoints = { x: newX + data.width, y: newY + data.height / 2 };
+          fromEl.attr('d', formPathUsingPoints([newPoints, endPoints[1]]));
+        }
+
+        if (toEl.node()) {
+          const toElNode = toEl.node() as SVGPathElement;
+          const pathD = toElNode.getAttribute('d') ?? '';
+          const endPoints = getEndPointsUsingPath(pathD);
+          const newPoints = { x: newX, y: newY + data.height / 2 };
+          toEl.attr('d', formPathUsingPoints([endPoints[0], newPoints]));
+        }
+      })
+      .on('end', () => {
+        const nodeG = select<SVGGElement, AnnotationNode<dagre.Node>>(rootGRef.current!)
+          .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+        const existingData = nodeG.data();
+        const updatedNodeData = existingData.map(node => {
+          if (node.id === id) {
+            node.storedData!.x = newX + node.storedData!.width / 2;
+            node.storedData!.y = newY + node.storedData!.height / 2;
+          }
+          return node;
+        });
+        const nodeGDataBound = nodeG.data<AnnotationNode<dagre.Node>>(updatedNodeData, d => d.id);
+        nodeGDataBound.merge(nodeGDataBound).call(updateNodePos);
+
+        relX = 0;
+        relY = 0;
+        id = '';
+        newX = 0;
+        newY = 0;
+      });
   };
 
   const getAnnotationLookupMap = (allAnns: AnnotationPerScreen[]) => {
@@ -213,6 +292,18 @@ export default function TourCanvas(props: CanvasProps) {
     setConnectionErr(connectionErrInitData);
   };
 
+  const updateNodePos = (node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, SVGGElement, {}>) => {
+    node.attr(
+      'transform',
+      d => {
+        const pos = d.storedData!;
+        const x = pos.x - pos.width / 2;
+        const y = pos.y - pos.height / 2;
+        return `translate(${x}, ${y})`;
+      }
+    );
+  };
+
   useEffect(() => {
     const svg = svgRef.current;
     const rootG = rootGRef.current;
@@ -243,20 +334,21 @@ export default function TourCanvas(props: CanvasProps) {
       svgSel
         .on('mousemove', null)
         .on('mousemove', (e: MouseEvent) => {
-          if (isGuideArrowDrawing.current === 0) { return; }
-          const relativeCoord = fromPointer(e, rootG);
-          svgSel.select<SVGGElement>('g.connectors')
-            .selectAll<SVGPathElement, SVGGElement>('path.guide-arr')
-            .attr('d', pEl => {
-              const d = select<SVGGElement, AnnotationNode<dagre.Node>>(pEl).datum();
-              return formPathUsingPoints([{
-                x: d.storedData!.x,
-                y: d.storedData!.y,
-              }, {
-                x: relativeCoord[0],
-                y: relativeCoord[1]
-              }]);
-            });
+          if (isGuideArrowDrawing.current !== 0) {
+            const relativeCoord = fromPointer(e, rootG);
+            svgSel.select<SVGGElement>('g.connectors')
+              .selectAll<SVGPathElement, SVGGElement>('path.guide-arr')
+              .attr('d', pEl => {
+                const d = select<SVGGElement, AnnotationNode<dagre.Node>>(pEl).datum();
+                return formPathUsingPoints([{
+                  x: d.storedData!.x,
+                  y: d.storedData!.y,
+                }, {
+                  x: relativeCoord[0],
+                  y: relativeCoord[1]
+                }]);
+              });
+          }
         })
         .on('mousedown', null)
         .on('mousedown', () => {
@@ -456,26 +548,21 @@ export default function TourCanvas(props: CanvasProps) {
           .style('stroke-width', '1px');
       })
       .merge(nodeG)
-      .attr(
-        'transform',
-        d => {
-          const pos = d.storedData!;
-          const x = pos.x - pos.width / 2;
-          const y = pos.y - pos.height / 2;
-          return `translate(${x}, ${y})`;
-        }
-      )
+      .call(updateNodePos)
       .call(p => {
         p.selectAll<SVGImageElement, AnnotationNode<dagre.Node>>('image')
+          .data(p.data(), d => d.id)
           .attr('href', d => d.imageUrl)
           .attr('width', d => d.width);
 
         p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
+          .data(p.data(), d => d.id)
           .attr('width', d => d.width)
           .attr('height', 20)
           .attr('x', 0)
           .attr('y', 0)
+          .call(nodeDraggable())
           .call(fo => {
             fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
               .style('width', d => d.width)
@@ -494,6 +581,7 @@ export default function TourCanvas(props: CanvasProps) {
 
         p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
+          .data(p.data(), d => d.id)
           .attr('width', d => d.width)
           .attr('height', 40)
           .attr('x', 0)
@@ -513,7 +601,9 @@ export default function TourCanvas(props: CanvasProps) {
               .style('justify-content', 'center')
               .text(d => `${d.text!.substring(0, 65)}${d.text!.length > 65 ? '...' : ''}`);
           });
+
         p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect')
+          .data(p.data(), d => d.id)
           .attr('width', d => d.width)
           .attr('height', d => d.height);
       })

@@ -60,3 +60,20 @@ export function formPathUsingPoints(points: Point[]) {
   });
   return d;
 }
+
+export function getEndPointsUsingPath(d: string) {
+  const commands = d.split(/(?=[LMC])/);
+  const pointArrays = commands.map((dStr: string) => {
+    const pointsArray = dStr.slice(1, dStr.length).split(',');
+    const pairsArray = [];
+    for (let i = 0; i < pointsArray.length; i += 2) {
+      pairsArray.push([+pointsArray[i], +pointsArray[i + 1]]);
+    }
+    return pairsArray[0];
+  });
+
+  const start = pointArrays[0];
+  const end = pointArrays[pointArrays.length - 1];
+
+  return [{ x: start[0], y: start[1] }, { x: end[0], y: end[1] }];
+}
