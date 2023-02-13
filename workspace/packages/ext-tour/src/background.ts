@@ -236,6 +236,7 @@ async function postProcessSerDocs(results: Array<FrameResult>): Promise<SerDoc> 
 
   await process(mainFrame.result, mainFrame.frameId);
   const screenBody: ScreenData = {
+    version: "2023-01-10",
     vpd: {
       h: mainFrame.result.rect.height,
       w: mainFrame.result.rect.width,

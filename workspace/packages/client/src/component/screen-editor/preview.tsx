@@ -17,6 +17,14 @@ interface DeSerProps {
   partOfSvgEl: number;
 }
 
+function calculateScrollTopFromScrollFactor(scrollFactor: string, el: Element):number {
+  return parseFloat(scrollFactor) * (el.scrollHeight - el.clientHeight);
+}
+
+function calculateScrollLeftFromScrollFactor(scrollFactor: string, el: Element):number {
+  return parseFloat(scrollFactor) * (el.scrollWidth - el.clientWidth);
+}
+
 export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
@@ -27,7 +35,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
   embedFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
 
-  private createHtmlElement = (node: SerNode, doc: Document, props: DeSerProps) => {
+  private createHtmlElement = (node: SerNode, doc: Document, version: string, props: DeSerProps) => {
     const el = props.partOfSvgEl
       ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
       : doc.createElement(node.name);
@@ -66,14 +74,21 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             // eslint-disable-next-line no-script-url
             attrValue = 'javascript:void(0);';
           }
-          if (node.name === 'style') {
-            el.textContent = node.attrs.cssRules;
-          }
           el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
         }
       } catch (e) {
         console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
       }
+    }
+
+    switch (version) {
+      case '2023-01-10':
+        if (node.name === 'style' && node.props.cssRules) el.textContent = node.props.cssRules;
+        break;
+      default:
+        if (node.name === 'style') {
+          el.textContent = node.attrs.cssRules;
+        }
     }
 
     if (node.props.isStylesheet) {
@@ -86,7 +101,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     return el;
   };
 
-  deser = (serNode: SerNode, doc: Document, props: DeSerProps = { partOfSvgEl: 0 }) => {
+  deser = (serNode: SerNode, doc: Document, version: string, props: DeSerProps = { partOfSvgEl: 0 }) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
       partOfSvgEl: props.partOfSvgEl | (serNode.name === 'svg' ? 1 : 0),
@@ -98,7 +113,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         node = doc.createTextNode(trimSpaceAndNewLine(serNode.props.textContent!));
         break;
       case Node.ELEMENT_NODE:
-        node = this.createHtmlElement(serNode, doc, newProps);
+        node = this.createHtmlElement(serNode, doc, version, newProps);
         break;
       default:
         break;
@@ -109,7 +124,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       if (child.name === 'meta') {
         continue;
       }
-      const childNode = this.deser(child, doc, newProps);
+      const childNode = this.deser(child, doc, version, newProps);
       if (childNode && node) {
         node.appendChild(childNode);
       }
@@ -168,7 +183,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     if (doc) {
       if (frameHtml && frameBody) {
         frameBody.style.display = 'none';
-        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc) as HTMLElement;
+        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc, this.props.screenData.version) as HTMLElement;
         const childNodes = doc.childNodes;
         for (let i = 0; i < childNodes.length; i++) {
           if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
@@ -214,6 +229,27 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             this.props.onBeforeFrameBodyDisplay();
             frameBody.style.display = '';
             this.props.onFrameAssetLoad();
+
+            switch (this.props.screenData.version) {
+              case '2023-01-10': {
+                // Apply original scroll positins to elements
+                const allDocEls = doc.querySelectorAll('*');
+                for (let i = 0; i < allDocEls.length; i++) {
+                  const el = allDocEls[i];
+                  const scrollTopFactor = allDocEls[i].getAttribute('fable-stf') || '0';
+                  const scrollLeftFactor = allDocEls[i].getAttribute('fable-slf') || '0';
+                  const scrollTop = calculateScrollTopFromScrollFactor(scrollTopFactor, el);
+                  const scrollLeft = calculateScrollLeftFromScrollFactor(scrollLeftFactor, el);
+                  allDocEls[i].removeAttribute('fable-stf');
+                  allDocEls[i].removeAttribute('fable-slf');
+                  el.scroll({ top: scrollTop, left: scrollLeft });
+                }
+                break;
+              }
+
+              default:
+                break;
+            }
           }
         });
         // this is a puma number for the following code to wait for the css to be aplied

@@ -5,6 +5,7 @@ export interface SerNode {
   name: string;
   attrs: Record<string, string | null>;
   props: {
+    cssRules?: string;
     proxyUrl?: string;
     proxyAttr?: 'href' | 'src';
     isStylesheet?: boolean;
@@ -50,6 +51,7 @@ export interface CapturedViewPort {
 }
 
 export interface ScreenData {
+  version: string;
   vpd: CapturedViewPort;
   docTree: SerNode;
 }
