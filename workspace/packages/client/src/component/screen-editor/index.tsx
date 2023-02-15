@@ -8,7 +8,8 @@ import {
   LoadingOutlined,
   PictureOutlined,
   RightOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons';
 import api from '@fable/common/dist/api';
 import { ApiResp, ResponseStatus, RespUploadUrl } from '@fable/common/dist/api-contract';
@@ -20,6 +21,7 @@ import React from 'react';
 import Button from 'antd/lib/button';
 import Tooltip from 'antd/lib/tooltip';
 import Modal from 'antd/lib/modal';
+import Collapse from 'antd/lib/collapse';
 import * as GTags from '../../common-styled';
 import { P_RespScreen } from '../../entity-processor';
 import {
@@ -37,17 +39,24 @@ import {
   NavFn
 } from '../../types';
 import ListActionBtn from './list-action-btn';
-import { getDefaultTourOpts, getSampleConfig } from '../annotation/annotation-config-utils';
+import {
+  cloneAnnotation,
+  getDefaultTourOpts,
+  getSampleConfig,
+  replaceAnnotation
+} from '../annotation/annotation-config-utils';
 import Btn from '../btn';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
 import * as Tags from './styled';
 import emptyEditAnnIllustration from '../../assets/empty-edit-ann.svg';
+import AdvanceElementPicker from './advance-element.picker';
 
 const browser = detect();
 
 const { confirm } = Modal;
+const { Panel } = Collapse;
 
 const enum EditTargetType {
   Text = 't',
@@ -88,6 +97,8 @@ interface IOwnStateProps {
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
+  selectedElAnnFwd: string;
+  selectedElsParents: HTMLElement [];
   selectedAnnotationId: string;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
@@ -113,7 +124,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.state = {
       isInElSelectionMode: false,
       elSelRequestedBy: ElSelReqType.NA,
+      selectedElAnnFwd: '',
       selectedEl: null,
+      selectedElsParents: [],
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
@@ -495,23 +508,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
-        // this.domElPicker?.selectElement(state.selectedEl!);
-        const path = this.domElPicker?.elPath(state.selectedEl!);
-        const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
-        let conf: IAnnotationConfig;
-        let opts: ITourDataOpts;
-        if (existingAnnotaiton.length) {
-          conf = existingAnnotaiton[0];
-          opts = this.props.tourDataOpts;
+        let opts: ITourDataOpts = this.props.tourDataOpts;
+        let conf = this.getAnnnotationFromEl(state.selectedEl!);
+        let selectedAnnotationId;
+        if (!conf) {
+          if (state.selectedElAnnFwd) {
+            // Annotation is being replaced, this happens from advanced anntoation selector
+            selectedAnnotationId = state.selectedElAnnFwd;
+          } else {
+            conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
+            opts = this.props.tourDataOpts || getDefaultTourOpts();
+            this.props.createDefaultAnnotation(
+              conf,
+              opts
+            );
+            selectedAnnotationId = conf.refId;
+          }
         } else {
-          conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
-          opts = this.props.tourDataOpts || getDefaultTourOpts();
-          this.props.createDefaultAnnotation(
-            conf,
-            opts
-          );
+          selectedAnnotationId = conf.refId;
         }
-        return { selectedAnnotationId: conf.refId };
+        return { selectedAnnotationId, selectedElAnnFwd: '' };
       });
     }
 
@@ -521,15 +537,24 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
+  getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
+    const path = this.domElPicker?.elPath(el);
+    const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
+    let conf: IAnnotationConfig | null = null;
+    if (existingAnnotaiton.length) {
+      conf = existingAnnotaiton[0];
+    }
+    return conf;
+  }
+
   getAnnotationPathFromRefId(refId: string): string {
     const an = this.props.allAnnotationsForScreen.filter(a => a.refId === refId);
     return an.length >= 1 ? an[0].id : '';
   }
 
   getAnnotatonIdForEl(el: HTMLElement): string {
-    const path = this.domElPicker?.elPath(el);
-    const an = this.props.allAnnotationsForScreen.filter(a => a.id === path);
-    return an.length >= 1 ? an[0].refId : '';
+    const ann = this.getAnnnotationFromEl(el);
+    return ann ? ann.refId : '';
   }
 
   selectElementIfAnnoted() {
@@ -765,6 +790,52 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             </Tags.ActionMenuConBar>
           </Tags.ActionMenuCon>
           <Tags.EditPanelSec>
+            {this.state.selectedEl && this.domElPicker?.getMode() === HighlightMode.Pinned && (
+              <Collapse
+                bordered={false}
+                style={{
+                  marginBottom: '1rem',
+                }}
+              >
+                <Panel
+                  header="Advanced element picker"
+                  key="1"
+                  style={{
+                    fontSize: '14px',
+                    margin: 0,
+                    padding: 0
+                  }}
+                >
+                  <AdvanceElementPicker
+                    elements={this.state.selectedElsParents}
+                    domElPicker={this.domElPicker}
+                    selectedEl={this.state.selectedEl}
+                    count={this.state.selectedElsParents.length}
+                    setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                      let fwdAnnotation = '';
+                      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+                      if (!annOnNewEl) {
+                        // If there is annotation on top of new element then don't do anything
+                        const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                        if (annOnOldEl) {
+                          this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
+                          const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
+                          const updates = replaceAnnotation(
+                            this.props.allAnnotationsForTour,
+                            annOnOldEl,
+                            replaceWithAnn,
+                            this.props.screen.id
+                          );
+                          fwdAnnotation = replaceWithAnn.refId;
+                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
+                        }
+                      }
+                      this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                    }}
+                  />
+                </Panel>
+              </Collapse>
+            )}
             <div
               style={{
                 display: 'flex',
@@ -795,10 +866,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </GTags.Txt>
                     </>
                   ) : (
-                    <GTags.Txt className="subhead">
-                      You are now editing the selected element. Press <span className="kb-key">Esc</span> or {' '}
-                      click outside to complete editing.
-                    </GTags.Txt>
+                    <div>
+                      <GTags.Txt className="subhead">
+                        You are now editing the selected element. Press <span className="kb-key">Esc</span> or {' '}
+                        click outside to complete editing.
+                      </GTags.Txt>
+                    </div>
                   )}
                 </>
               )}
@@ -986,9 +1059,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  private onElSelect = (el: HTMLElement, _doc: Document) => {
+  private onElSelect = (el: HTMLElement, _doc: Document, parents: HTMLElement[]) => {
     this.domElPicker!.elPath(el);
-    this.setState({ selectedEl: el });
+    this.setState({ selectedEl: el, selectedElsParents: parents });
   };
 
   private onElDeSelect = (_: HTMLElement) => {

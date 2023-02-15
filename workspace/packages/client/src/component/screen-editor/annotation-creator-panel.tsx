@@ -37,10 +37,11 @@ import {
   toggleBooleanButtonProp,
   updateAnnotationText,
   updateButtonProp,
-  updateTourDataOpts
+  updateTourDataOpts,
+  deleteAnnotation,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
-import { AnnotationPerScreen } from '../../types';
+import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
 
 const { confirm } = Modal;
 
@@ -49,7 +50,7 @@ interface IProps {
   config: IAnnotationConfig,
   opts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[],
-  onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig, actionType: 'upsert' | 'delete') => void;
+  onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig, actionType: AnnotationMutationType) => void;
   onConfigChange: (
     config: IAnnotationConfig,
     actionType: 'upsert' | 'delete',
@@ -116,34 +117,14 @@ export default function AnnotationCreatorPanel(props: IProps) {
       okText: 'Yes',
       okType: 'danger',
       onOk: () => {
-        const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
-        for (const entry of props.allAnnotationsForTour) {
-          for (const an of entry.annotations) {
-            flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
+        const mutationUpdates = deleteAnnotation(props.allAnnotationsForTour, config, null);
+        for (const update of mutationUpdates) {
+          if (update[0] === null) {
+            props.onConfigChange(update[1], update[2], opts);
+          } else {
+            props.onSideEffectConfigChange(update[0], update[1], update[2]);
           }
         }
-        const btns = config.buttons;
-        const nextBtn = btns.find(btn => btn.type === 'next')!;
-        const prevBtn = btns.find(btn => btn.type === 'prev')!;
-        const updates: [string, IAnnotationConfig][] = [];
-        if (nextBtn.hotspot) {
-          const nextAnnId = nextBtn.hotspot.actionValue;
-          const [screenId] = nextAnnId.split('/');
-          const nextAnn = flatAnnotationMap[nextAnnId];
-          const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
-          const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', null);
-          updates.push([screenId, update]);
-        }
-        if (prevBtn.hotspot) {
-          const prevAnnId = prevBtn.hotspot.actionValue;
-          const [screenId] = prevAnnId.split('/');
-          const prevAnn = flatAnnotationMap[prevAnnId];
-          const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
-          const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', null);
-          updates.push([screenId, update]);
-        }
-        props.onConfigChange(config, 'delete', opts);
-        updates.forEach(update => props.onSideEffectConfigChange(+update[0], update[1], 'upsert'));
       },
     });
   };

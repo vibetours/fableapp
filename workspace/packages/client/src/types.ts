@@ -99,3 +99,10 @@ export type TourDataChangeFn = (
 export type FrameAssetLoadFn = (params: {
   foundAnnotation: boolean;
 }) => void;
+
+export type AnnotationMutationType = 'upsert' | 'delete';
+export type AnnotationMutation = [
+  screenId: number | null,
+  updatedConfig: IAnnotationConfig,
+  mutationType: AnnotationMutationType
+];

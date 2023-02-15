@@ -267,7 +267,14 @@ export function mergeTourData(
           const screenEntity = entity as TourScreenEntity;
           for (const [anId, ann] of Object.entries(screenEntity.annotations)) {
             if (ann === null) {
-              delete newMasterScreenEntity.annotations[anId];
+              if (!convertLocalToRemote) {
+                // TODO take care of the type in a better way this keeps the null value to the local copy of
+                // the annotation data, otherwise while merging to master it would have no information about
+                // the annotation that to be deleted
+                (newMasterScreenEntity.annotations as any)[anId] = null;
+              } else {
+                delete newMasterScreenEntity.annotations[anId];
+              }
               continue;
             }
             const typedConfig = (convertLocalToRemote

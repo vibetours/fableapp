@@ -60,8 +60,9 @@ export default abstract class HighlighterBase {
     mask.style.pointerEvents = 'none';
     mask.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     mask.style.background = this.highlightBgColor();
-    mask.style.boxShadow = `rgb(117, 102, 255) 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.45' : '0.0'
-      }) 0px 0px 0px 1000vw`;
+    mask.style.borderRadius = '2px';
+    mask.style.boxShadow = `#2196f3 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.45' : '0.0'
+    }) 0px 0px 0px 1000vw`;
     this.maskEl = mask;
     this.attachElToUmbrellaDiv(mask);
     return mask;

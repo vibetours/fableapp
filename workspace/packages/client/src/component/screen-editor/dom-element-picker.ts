@@ -7,7 +7,13 @@ export enum HighlightMode {
   NOOP,
 }
 
-type ElSelectCallback = (el: HTMLElement, doc: Document) => void;
+type ElSelectCallback = (
+  el: HTMLElement,
+  doc: Document,
+  parents: HTMLElement[]
+) => void;
+
+type ElDeSelectCallback = (el: HTMLElement, doc: Document) => void;
 
 const SVG_EL = {
   a: 1,
@@ -85,11 +91,11 @@ export default class DomElementPicker extends HighlighterBase {
 
   private onElSelect: ElSelectCallback;
 
-  private onElDeSelect: ElSelectCallback;
+  private onElDeSelect: ElDeSelectCallback;
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
 
-  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElSelectCallback }) {
+  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback }) {
     super(doc);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
@@ -113,7 +119,7 @@ export default class DomElementPicker extends HighlighterBase {
 
   // eslint-disable-next-line class-methods-use-this
   highlightBgColor(): string {
-    return '#fedf644f';
+    return '#2196f317';
   }
 
   disable() {
@@ -232,9 +238,23 @@ export default class DomElementPicker extends HighlighterBase {
     // rest of the mode support is not yet required hence not added
   }
 
+  static getParents(el: any): HTMLElement[] {
+    let tagName = el.tagName;
+    const res = [];
+    let temp = el;
+    while (tagName !== 'BODY') {
+      const newEl = temp.parentElement;
+      res.push(temp);
+      temp = newEl;
+      tagName = newEl.tagName;
+    }
+    return res.reverse();
+  }
+
   private pinnedMode(el: HTMLElement) {
     this.highlightMode = HighlightMode.Pinned;
-    this.onElSelect(el, this.doc);
+    const parents = DomElementPicker.getParents(el);
+    this.onElSelect(el, this.doc, parents);
   }
 
   private handleClick = (e: MouseEvent) => {

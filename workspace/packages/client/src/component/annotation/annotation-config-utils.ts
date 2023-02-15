@@ -4,10 +4,12 @@ import {
   AnnotationPositions,
   IAnnotationButton,
   IAnnotationConfig,
+  ITourEntityHotspot,
   IChronoUpdatable,
   ITourDataOpts
 } from '@fable/common/dist/types';
-import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
+import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
+import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 
 export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
@@ -156,4 +158,112 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
       hotspot: null
     }],
   };
+}
+
+export function cloneAnnotation(elPath: string, from: IAnnotationConfig): IAnnotationConfig {
+  const newConf: IAnnotationConfig = {
+    ...from,
+
+    id: elPath,
+    refId: getRandomId(),
+    updatedAt: getCurrentUtcUnixTime(),
+    monoIncKey: 0,
+    buttons: from.buttons.map(btn => ({
+      ...btn,
+      id: getRandomId(),
+    }))
+  };
+  return newConf;
+}
+
+export function replaceAnnotation(
+  allAnnotationsForTour: AnnotationPerScreen[],
+  replaceThisAnn: IAnnotationConfig,
+  replaceWithAnn: IAnnotationConfig,
+  currentScreenId: number
+): AnnotationMutation[] {
+  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
+  for (const entry of allAnnotationsForTour) {
+    for (const an of entry.annotations) {
+      flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
+    }
+  }
+  const updates: AnnotationMutation[] = [];
+  const btns = replaceThisAnn.buttons;
+  const nextBtn = btns.find(btn => btn.type === 'next')!;
+  const prevBtn = btns.find(btn => btn.type === 'prev')!;
+
+  if (nextBtn.hotspot) {
+    const nextAnnId = nextBtn.hotspot.actionValue;
+    const [screenId] = nextAnnId.split('/');
+    const nextAnn = flatAnnotationMap[nextAnnId];
+    const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
+    const hotspot = prevBtnOfNextAnn.hotspot;
+    let newHostspotVal: ITourEntityHotspot | null = null;
+    if (!prevBtnOfNextAnn.exclude && hotspot && hotspot.actionType === 'navigate') {
+      newHostspotVal = {
+        ...hotspot,
+        actionValue: `${currentScreenId}/${replaceWithAnn.refId}`,
+      };
+    }
+    const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', newHostspotVal);
+    updates.push([+screenId, update, 'upsert']);
+  }
+  if (prevBtn.hotspot) {
+    const prevAnnId = prevBtn.hotspot.actionValue;
+    const [screenId] = prevAnnId.split('/');
+    const prevAnn = flatAnnotationMap[prevAnnId];
+    const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
+    const hotspot = nextBtnOfPrevAnn.hotspot;
+    let newHostspotVal: ITourEntityHotspot | null = null;
+    if (!nextBtnOfPrevAnn.exclude && hotspot && hotspot.actionType === 'navigate') {
+      newHostspotVal = {
+        ...hotspot,
+        actionValue: `${currentScreenId}/${replaceWithAnn.refId}`,
+      };
+    }
+    const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', newHostspotVal);
+    updates.push([+screenId, update, 'upsert']);
+  }
+
+  updates.push([+currentScreenId, replaceThisAnn, 'delete']);
+  updates.push([+currentScreenId, replaceWithAnn, 'upsert']);
+
+  return updates;
+}
+
+export function deleteAnnotation(
+  allAnnotationsForTour: AnnotationPerScreen[],
+  ann: IAnnotationConfig,
+  currentScreenId: number | null,
+): AnnotationMutation[] {
+  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
+  for (const entry of allAnnotationsForTour) {
+    for (const an of entry.annotations) {
+      flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
+    }
+  }
+  const btns = ann.buttons;
+  const nextBtn = btns.find(btn => btn.type === 'next')!;
+  const prevBtn = btns.find(btn => btn.type === 'prev')!;
+  const updates: AnnotationMutation[] = [];
+  if (nextBtn.hotspot) {
+    const nextAnnId = nextBtn.hotspot.actionValue;
+    const [screenId] = nextAnnId.split('/');
+    const nextAnn = flatAnnotationMap[nextAnnId];
+    const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
+    const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', null);
+    updates.push([+screenId, update, 'upsert']);
+  }
+  if (prevBtn.hotspot) {
+    const prevAnnId = prevBtn.hotspot.actionValue;
+    const [screenId] = prevAnnId.split('/');
+    const prevAnn = flatAnnotationMap[prevAnnId];
+    const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
+    const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', null);
+    updates.push([+screenId, update, 'upsert']);
+  }
+
+  updates.push([currentScreenId, ann, 'delete']);
+  return updates;
 }
