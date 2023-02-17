@@ -218,6 +218,17 @@ export const ButtonSecCon = styled.div`
   }
 `;
 
+export const CreateCoverAnnotationBtn = styled.div`
+    margin: 0.5rem 0.25rem;
+    background: #F9F9F9;
+    border-radius: 10px;
+    color: #16023E;
+    padding: 0.8rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    cursor: pointer;
+`;
+
 interface AnotPanelSecOri {
   row?: boolean;
 }

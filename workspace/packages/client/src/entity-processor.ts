@@ -222,6 +222,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     createdAt: lc.createdAt,
     updatedAt: lc.updatedAt,
     positioning: lc.positioning,
+    type: lc.type
   };
 }
 

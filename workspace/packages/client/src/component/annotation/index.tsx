@@ -83,6 +83,17 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
   render() {
+    if (this.props.annotationDisplayConfig.config.type === 'cover') {
+      return <AnnotationContent
+        config={this.props.annotationDisplayConfig.config}
+        opts={this.props.annotationDisplayConfig.opts}
+        isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+        nav={this.props.nav}
+        width={this.props.annotationDisplayConfig.maxDim.w}
+        top={this.props.annotationDisplayConfig.windowHeight / 2 - this.props.annotationDisplayConfig.maxDim.h / 2}
+        left={this.props.annotationDisplayConfig.windowWidth / 2 - this.props.annotationDisplayConfig.maxDim.w / 2}
+      />;
+    }
     let l = -9999;
     let t = -9999;
     let w = 0;

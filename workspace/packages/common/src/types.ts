@@ -154,6 +154,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   bodyContent: string;
   positioning: AnnotationPositions,
   buttons: IAnnotationButton[],
+  type: 'cover' | 'default',
 }
 
 // TODO perform this conversion, client side

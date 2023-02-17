@@ -144,7 +144,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
     if (!this.annotationLCM) return;
-    const targetEl = this.annotationLCM.elFromPath(conf.id);
+    let targetEl;
+    if (conf.type === 'cover') {
+      targetEl = this.embedFrameRef?.current?.contentDocument?.body!;
+    } else {
+      targetEl = this.annotationLCM.elFromPath(conf.id);
+    }
     this.annotationLCM!.show();
     await this.annotationLCM!.addOrReplaceAnnotation(
       targetEl as HTMLElement,

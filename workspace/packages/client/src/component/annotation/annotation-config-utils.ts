@@ -131,15 +131,19 @@ export function getDefaultTourOpts(): ITourDataOpts {
 }
 
 export function getSampleConfig(elPath: string): IAnnotationConfig {
+  const isCoverAnn = elPath === '$';
+  const id = getRandomId();
+
   return {
-    id: elPath,
-    refId: getRandomId(),
+    id: isCoverAnn ? `$#${id}` : elPath,
+    refId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
     bodyContent: 'Write a description about what this feature of your product does to your user.',
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
     syncPending: true,
+    type: isCoverAnn ? 'cover' : 'default',
     buttons: [{
       id: getRandomId(),
       type: 'next',

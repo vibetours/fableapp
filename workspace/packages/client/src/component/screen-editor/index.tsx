@@ -479,13 +479,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     let elJustSelected = false;
     if (prevState.selectedEl !== this.state.selectedEl) {
       if (this.state.selectedEl) {
-        elJustSelected = true;
-        const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
-        this.setState((state) => ({
-          editTargetType: editTargetType.targetType,
-          targetEl: editTargetType.target || state.selectedEl,
-          selectedAnnotationId: this.getAnnotatonIdForEl(state.selectedEl!)
-        }));
+        if (!this.isFullPageAnnotation(this.state.selectedEl)) {
+          elJustSelected = true;
+          const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
+          this.setState((state) => ({
+            editTargetType: editTargetType.targetType,
+            targetEl: editTargetType.target || state.selectedEl,
+            selectedAnnotationId: this.getAnnotatonIdForEl(state.selectedEl!)
+          }));
+        }
       } else {
         this.setState(() => ({
           editTargetType: EditTargetType.None,
@@ -500,11 +502,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if ((this.state.selectedEl
       && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
       && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+      && !this.isFullPageAnnotation(this.state.selectedEl)
       // If elment is already selected and user just clicked on the "Add an annotaiton" button after
       // the element is slected. This happens when user clicks on "Edit an element" first >> select
       // the element >> click on "Add an annotaiton" button
     ) || (
-      elJustSelected && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+      elJustSelected
+      && this.state.selectedEl !== this.getIframeBody() // for default annotation (not full page annotatons)
+      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
     // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
@@ -552,18 +557,37 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return an.length >= 1 ? an[0].id : '';
   }
 
+  getAnnotationTypeFromRefId(refId: string): string {
+    const an = this.props.allAnnotationsForScreen.filter(a => a.refId === refId);
+    return an.length >= 1 ? an[0].type : 'default';
+  }
+
   getAnnotatonIdForEl(el: HTMLElement): string {
     const ann = this.getAnnnotationFromEl(el);
     return ann ? ann.refId : '';
   }
 
+  getIframeBody() {
+    return this.embedFrameRef.current?.contentDocument?.body!;
+  }
+
+  isFullPageAnnotation(el: HTMLElement) {
+    return this.getIframeBody() === el;
+  }
+
   selectElementIfAnnoted() {
     if (!this.state.selectedAnnotationId) return;
-    const path = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
-    if (path) {
-      const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
-      if (el) {
-        this.domElPicker?.selectElement(el, HighlightMode.Pinned, true);
+    const type = this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId);
+
+    if (type === 'cover') {
+      this.domElPicker?.selectElement(this.getIframeBody(), HighlightMode.Pinned, true);
+    } else {
+      const path = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
+      if (path) {
+        const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
+        if (el) {
+          this.domElPicker?.selectElement(el, HighlightMode.Pinned, true);
+        }
       }
     }
   }
@@ -729,6 +753,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         : state.elSelRequestedBy }));
   };
 
+  createCoverAnnotation = () => {
+    const conf = getSampleConfig('$');
+    const opts = this.props.tourDataOpts || getDefaultTourOpts();
+    this.props.createDefaultAnnotation(
+      conf,
+      opts
+    );
+    this.setState({ selectedAnnotationId: conf.refId });
+  };
+
   render(): React.ReactNode {
     return (
       <GTags.PreviewAndActionCon>
@@ -854,18 +888,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             >
               {this.state.isInElSelectionMode && (
                 <>
-                  {this.state.selectedEl === null ? (
-                    <>
-                      <img
-                        style={{ margin: '1rem' }}
-                        src={emptyEditAnnIllustration}
-                        alt="empty state edit annotations"
-                      />
-                      <GTags.Txt className="subhead">
-                        Click an element in the screen to see the edit options or to add annotations.
-                      </GTags.Txt>
-                    </>
-                  ) : (
+
+                  {(this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId) === 'cover'
+                  || this.state.selectedEl !== null) && (
                     <div>
                       <GTags.Txt className="subhead">
                         You are now editing the selected element. Press <span className="kb-key">Esc</span> or {' '}
@@ -873,6 +898,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </GTags.Txt>
                     </div>
                   )}
+                  {
+                    (this.state.selectedEl === null && this.state.selectedAnnotationId === '') && (
+                      <>
+                        <img
+                          style={{ margin: '1rem' }}
+                          src={emptyEditAnnIllustration}
+                          alt="empty state edit annotations"
+                        />
+                        <GTags.Txt className="subhead">
+                          Click an element in the screen to see the edit options or to add annotations.
+                        </GTags.Txt>
+                        <Tags.CreateCoverAnnotationBtn
+                          onClick={() => { this.createCoverAnnotation(); }}
+                        >
+                          Create cover annotation
+                        </Tags.CreateCoverAnnotationBtn>
+                      </>
+                    )
+                  }
+
                 </>
               )}
               {this.getEditingCtrlForElType(this.state.editTargetType)}
@@ -939,7 +984,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       style={{ display: 'flex' }}
                       onClick={() => {
                         if (this.state.selectedAnnotationId === config.refId) {
-                          this.setState({ selectedAnnotationId: '' });
+                          this.setState({ selectedAnnotationId: '', selectedEl: null });
+                          this.goToSelectionMode();
                         } else {
                           this.setState({ selectedAnnotationId: config.refId });
                         }

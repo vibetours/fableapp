@@ -257,6 +257,14 @@ export default class DomElementPicker extends HighlighterBase {
     this.onElSelect(el, this.doc, parents);
   }
 
+  createFullScreenMask() {
+    const el = this.doc.querySelector('body');
+    if (el) {
+      this.highlightMode = HighlightMode.Pinned;
+      super.createFullScreenMask();
+    }
+  }
+
   private handleClick = (e: MouseEvent) => {
     if (this.highlightMode === HighlightMode.Selection) {
       const el = this.prevElHovered;

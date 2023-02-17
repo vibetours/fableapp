@@ -143,7 +143,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         conf: annotationDisplayConfig,
       });
       if (annotationDisplayConfig.isMaximized) {
-        this.selectElement(el);
+        if (annotationDisplayConfig.config.type === 'cover') {
+          this.createFullScreenMask();
+        } else {
+          this.selectElement(el);
+        }
       }
     }
     this.rRoot.render(
