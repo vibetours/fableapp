@@ -3,6 +3,7 @@ import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
+  EAnnotationBoxSize,
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot
@@ -39,6 +40,7 @@ import {
   updateButtonProp,
   updateTourDataOpts,
   deleteAnnotation,
+  updateAnnotationBoxSize,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
@@ -185,6 +187,20 @@ export default function AnnotationCreatorPanel(props: IProps) {
             label: `${v} ${v === AnnotationPositions.Auto ? '' : '(not yet supported)'}`,
             disabled: v !== AnnotationPositions.Auto
           }))}
+        />
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Box sizing</GTags.Txt>
+        <Select
+          defaultValue={config.size ?? 'small'}
+          size="small"
+          bordered={false}
+          style={{ ...commonInputStyles, minWidth: '120px', }}
+          options={Object.values(['small', 'medium', 'large']).map(v => ({
+            value: v,
+            label: `${v}`
+          }))}
+          onChange={(e: EAnnotationBoxSize) => setConfig(c => updateAnnotationBoxSize(c, e))}
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec>

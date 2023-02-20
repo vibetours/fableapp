@@ -148,6 +148,8 @@ export interface ITourEntityHotspot {
   actionValue: string;
 }
 
+export type EAnnotationBoxSize = 'small' | 'medium' | 'large';
+
 export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
@@ -155,6 +157,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   positioning: AnnotationPositions,
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',
+  size: EAnnotationBoxSize,
 }
 
 // TODO perform this conversion, client side

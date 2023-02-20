@@ -83,17 +83,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
   render() {
-    if (this.props.annotationDisplayConfig.config.type === 'cover') {
-      return <AnnotationContent
-        config={this.props.annotationDisplayConfig.config}
-        opts={this.props.annotationDisplayConfig.opts}
-        isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-        nav={this.props.nav}
-        width={this.props.annotationDisplayConfig.maxDim.w}
-        top={this.props.annotationDisplayConfig.windowHeight / 2 - this.props.annotationDisplayConfig.maxDim.h / 2}
-        left={this.props.annotationDisplayConfig.windowWidth / 2 - this.props.annotationDisplayConfig.maxDim.w / 2}
-      />;
-    }
     let l = -9999;
     let t = -9999;
     let w = 0;
@@ -102,16 +91,34 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       const elBox = this.props.box;
       const winW = this.props.annotationDisplayConfig.windowWidth;
       const winH = this.props.annotationDisplayConfig.windowHeight;
-      const mar = this.props.annotationDisplayConfig.minDim.w / this.props.annotationDisplayConfig.minDim.h;
 
-      if ((Math.ceil(mar * 10)) >= 12) {
-        // if aspect ration is greater than 1.2, then the smallest size is appropriate
-        w = this.props.annotationDisplayConfig.minDim.w;
-        h = this.props.annotationDisplayConfig.minDim.h;
-      } else {
-        // otherwise will try to place it height wise as
-        w = this.props.annotationDisplayConfig.maxDim.w;
-        h = this.props.annotationDisplayConfig.maxDim.h;
+      const boxSize = this.props.annotationDisplayConfig.config.size;
+
+      if (boxSize === 'small') {
+        w = this.props.annotationDisplayConfig.dimForSmallAnnotation.w;
+        h = this.props.annotationDisplayConfig.dimForSmallAnnotation.h;
+      }
+
+      if (boxSize === 'medium') {
+        w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
+        h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
+      }
+
+      if (boxSize === 'large') {
+        w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
+        h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
+      }
+
+      if (this.props.annotationDisplayConfig.config.type === 'cover') {
+        return <AnnotationContent
+          config={this.props.annotationDisplayConfig.config}
+          opts={this.props.annotationDisplayConfig.opts}
+          isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+          nav={this.props.nav}
+          width={w}
+          top={winH / 2 - h / 2}
+          left={winW / 2 - w / 2}
+        />;
       }
 
       const leftSpace = elBox.left;
@@ -170,8 +177,9 @@ export interface IAnnoationDisplayConfig {
   opts: ITourDataOpts,
   isMaximized: boolean;
   isInViewPort: boolean;
-  minDim: {w: number, h: number};
-  maxDim: {w: number, h: number};
+  dimForSmallAnnotation: {w: number, h: number};
+  dimForMediumAnnotation: {w: number, h: number};
+  dimForLargeAnnotation: {w: number, h: number};
   windowHeight: number;
   windowWidth: number;
 }

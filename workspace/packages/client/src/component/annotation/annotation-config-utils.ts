@@ -6,7 +6,8 @@ import {
   IAnnotationConfig,
   ITourEntityHotspot,
   IChronoUpdatable,
-  ITourDataOpts
+  ITourDataOpts,
+  EAnnotationBoxSize
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -18,6 +19,12 @@ export function getBigramId(config: IAnnotationConfig): string {
 export function updateAnnotationText(config: IAnnotationConfig, txt: string): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.bodyContent = txt;
+  return newConfig;
+}
+
+export function updateAnnotationBoxSize(config: IAnnotationConfig, size: EAnnotationBoxSize): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.size = size;
   return newConfig;
 }
 
@@ -144,6 +151,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     monoIncKey: 0,
     syncPending: true,
     type: isCoverAnn ? 'cover' : 'default',
+    size: isCoverAnn ? 'medium' : 'small',
     buttons: [{
       id: getRandomId(),
       type: 'next',

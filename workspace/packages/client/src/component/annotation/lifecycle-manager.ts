@@ -173,14 +173,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       opts,
       isMaximized: false,
       isInViewPort: false,
-      minDim: {
-        w: dim.minW,
-        h: dim.hForMinW,
-      },
-      maxDim: {
-        w: dim.maxW,
-        h: dim.hForMaxW
-      },
+      dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
+      dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
+      dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
       windowHeight: this.vp.h,
       windowWidth: this.vp.w,
     }];
@@ -192,12 +187,15 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   private async probeForAnnotationSize(config: IAnnotationConfig): Promise<{
-    minW: number,
-    hForMinW: number,
-    maxW: number,
-    hForMaxW: number
+    dimForSmallAnnotation: {w: number, h: number},
+    dimForMediumAnnotation: {w: number, h: number},
+    dimForLargeAnnotation: {w: number, h: number},
   }> {
-    const elMinW = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+    const smallWidth = AnnotationContent.MIN_WIDTH;
+    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0);
+    const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 2.5 | 0);
+
+    const elSmall = await new Promise((resolve: (e: HTMLDivElement) => void) => {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
@@ -207,7 +205,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             isInDisplay: true,
             config,
             opts: this.opts,
-            width: AnnotationContent.MIN_WIDTH,
+            width: smallWidth,
             top: -9999,
             left: -9999,
             key: -777,
@@ -216,9 +214,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         )
       );
     });
-    const minB = elMinW.getBoundingClientRect();
+    const smallDim = elSmall.getBoundingClientRect();
 
-    const elMaxW = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+    const elMedium = await new Promise((resolve: (e: HTMLDivElement) => void) => {
       this.rRoot.render(
         React.createElement(
           StyleSheetManager,
@@ -228,7 +226,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             isInDisplay: true,
             config,
             opts: this.opts,
-            width: Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0),
+            width: mediumWidth,
             top: -9999,
             left: -9999,
             key: -666,
@@ -237,13 +235,33 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         )
       );
     });
-    const maxB = elMaxW.getBoundingClientRect();
+    const mediumDim = elMedium.getBoundingClientRect();
+
+    const elLarge = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+      this.rRoot.render(
+        React.createElement(
+          StyleSheetManager,
+          { target: this.doc.head },
+          React.createElement(AnnotationContent, {
+            onRender: resolve,
+            isInDisplay: true,
+            config,
+            opts: this.opts,
+            width: largeWidth,
+            top: -9999,
+            left: -9999,
+            key: -888,
+            nav: this.nav,
+          })
+        )
+      );
+    });
+    const largeDim = elLarge.getBoundingClientRect();
 
     return {
-      minW: minB.width,
-      hForMinW: minB.height,
-      maxW: maxB.width,
-      hForMaxW: maxB.height
+      dimForSmallAnnotation: { w: smallDim.width, h: smallDim.height },
+      dimForMediumAnnotation: { w: mediumDim.width, h: mediumDim.height },
+      dimForLargeAnnotation: { w: largeDim.width, h: largeDim.height },
     };
   }
 
