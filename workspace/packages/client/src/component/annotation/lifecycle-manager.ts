@@ -148,6 +148,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         } else {
           this.selectElement(el);
         }
+        this.showTransparentMask(!this.opts.showOverlay);
       }
     }
     this.rRoot.render(

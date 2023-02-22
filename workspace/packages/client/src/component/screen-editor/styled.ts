@@ -229,6 +229,33 @@ export const CreateCoverAnnotationBtn = styled.div`
     cursor: pointer;
 `;
 
+export const InputContainer = styled.div`
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+export const ColorInputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 120px;
+  padding: 0.4rem 0.6rem;
+`;
+
+type ColorCircleProps = {
+  color: string;
+}
+
+export const InputColorCircle = styled.div`
+  height: 18px;
+  width: 18px;
+  border-radius: 18rem;
+  background-color: ${(p: ColorCircleProps) => p.color};
+`;
+
 interface AnotPanelSecOri {
   row?: boolean;
 }

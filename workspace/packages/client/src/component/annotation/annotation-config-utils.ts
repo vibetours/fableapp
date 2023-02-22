@@ -131,6 +131,9 @@ export function getDefaultTourOpts(): ITourDataOpts {
   return {
     main: '',
     primaryColor: '#7567FF',
+    annotationBodyBackgroundColor: '#FFFFFF',
+    annotationBodyBorderColor: '#BDBDBD',
+    showOverlay: true,
     monoIncKey: 0,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),

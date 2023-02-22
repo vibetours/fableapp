@@ -5,6 +5,8 @@ export default abstract class HighlighterBase {
 
   protected maskEl: HTMLDivElement | null;
 
+  static ANNOTATION_PADDING_ONE_SIDE = 8;
+
   constructor(doc: Document) {
     this.doc = doc;
     this.win = doc.defaultView as Window;
@@ -39,10 +41,24 @@ export default abstract class HighlighterBase {
   protected selectElement(el: HTMLElement) {
     const elSize: DOMRect = el.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
-    maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
-    maskBox.style.left = `${elSize.left + this.win.scrollX}px`;
-    maskBox.style.width = `${elSize.width}px`;
-    maskBox.style.height = `${elSize.height}px`;
+
+    const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
+
+    const top = elSize.top + this.win.scrollY;
+    const left = elSize.left + this.win.scrollX;
+
+    const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
+    const width = rightEndpoint >= this.win.scrollX + this.win.innerWidth
+      ? elSize.width : elSize.width + (left <= 0 ? 0 : padding * 2);
+
+    const bottomEndpoint = Math.ceil(top + elSize.height + (top <= 0 ? 0 : padding * 2));
+    const height = bottomEndpoint >= this.win.scrollY + this.win.innerHeight
+      ? elSize.height : elSize.height + (top <= 0 ? 0 : padding * 2);
+
+    maskBox.style.top = `${top - (top <= 0 ? -2 : padding)}px`;
+    maskBox.style.left = `${left - (left <= 0 ? -2 : padding)}px`;
+    maskBox.style.width = `${width}px`;
+    maskBox.style.height = `${height}px`;
   }
 
   createFullScreenMask() {
@@ -78,6 +94,15 @@ export default abstract class HighlighterBase {
     this.maskEl = mask;
     this.attachElToUmbrellaDiv(mask);
     return mask;
+  }
+
+  showTransparentMask(show: boolean) {
+    if (!this.maskEl) {
+      return;
+    }
+
+    this.maskEl.style.boxShadow = `#2196f3 0px 0px 0px 2px, ${show ? 'transparent' : 'rgba(0, 0, 0, 0.45)'}
+    0px 0px 0px 1000vw`;
   }
 
   protected attachElToUmbrellaDiv(el: Element) {

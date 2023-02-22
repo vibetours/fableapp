@@ -28,6 +28,16 @@ export class AnnotationContent extends React.PureComponent<{
     this.props.onRender && this.props.onRender(this.conRef.current!);
   }
 
+  getAnnotationBorder() {
+    const borderColor = this.props.opts.annotationBodyBorderColor;
+    const defaultBorderColor = '#BDBDBD';
+
+    const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
+    const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
+
+    return `0 0 ${blur} ${spread} ${borderColor}`;
+  }
+
   render() {
     const btns = this.props.config.buttons.filter(c => !c.exclude);
     return (
@@ -41,7 +51,8 @@ export class AnnotationContent extends React.PureComponent<{
           left: this.props.left,
           top: this.props.top,
           fontSize: '18px',
-          boxShadow: '0 0 5px 0px #bdbdbd',
+          boxShadow: this.getAnnotationBorder(),
+          backgroundColor: `${this.props.opts.annotationBodyBackgroundColor}`
         }}
       >
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', width: '100%' }}>

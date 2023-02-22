@@ -16,6 +16,7 @@ import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
 import Checkbox from 'antd/lib/checkbox';
 import Modal from 'antd/lib/modal';
+import Switch from 'antd/lib/switch';
 import {
   ArrowRightOutlined,
   DeleteOutlined,
@@ -217,34 +218,15 @@ export default function AnnotationCreatorPanel(props: IProps) {
             <QuestionCircleOutlined />
           </Tooltip>
         </div>
-        <div
-          style={{
-            marginTop: '0.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}
-        >
+        <Tags.InputContainer>
           <GTags.Txt>Primary color</GTags.Txt>
-          <div
+          <Tags.ColorInputWrapper
             style={{
               ...commonInputStyles,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxSizing: 'border-box',
-              width: '120px',
-              padding: '0.4rem 0.6rem',
             }}
           >
             <div>
-              <div style={{
-                height: '18px',
-                width: '18px',
-                borderRadius: '18rem',
-                background: opts.primaryColor,
-              }}
-              />
+              <Tags.InputColorCircle color={opts.primaryColor} />
             </div>
             <Input
               defaultValue={opts.primaryColor}
@@ -254,8 +236,56 @@ export default function AnnotationCreatorPanel(props: IProps) {
                 setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
               }}
             />
-          </div>
-        </div>
+          </Tags.ColorInputWrapper>
+        </Tags.InputContainer>
+        <Tags.InputContainer>
+          <GTags.Txt>Background color</GTags.Txt>
+          <Tags.ColorInputWrapper
+            style={{
+              ...commonInputStyles,
+            }}
+          >
+            <div>
+              <Tags.InputColorCircle color={opts.annotationBodyBackgroundColor} />
+            </div>
+            <Input
+              defaultValue={opts.annotationBodyBackgroundColor}
+              size="small"
+              bordered={false}
+              onBlur={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
+              }}
+            />
+          </Tags.ColorInputWrapper>
+        </Tags.InputContainer>
+        <Tags.InputContainer>
+          <GTags.Txt>Border color</GTags.Txt>
+          <Tags.ColorInputWrapper
+            style={{
+              ...commonInputStyles,
+            }}
+          >
+            <div>
+              <Tags.InputColorCircle color={opts.annotationBodyBorderColor} />
+            </div>
+            <Input
+              defaultValue={opts.annotationBodyBorderColor}
+              size="small"
+              bordered={false}
+              onBlur={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.target.value));
+              }}
+            />
+          </Tags.ColorInputWrapper>
+        </Tags.InputContainer>
+        <Tags.InputContainer>
+          <GTags.Txt>Overlay</GTags.Txt>
+          <Switch
+            style={{ backgroundColor: opts.showOverlay ? '#7567FF' : '#BDBDBD' }}
+            defaultChecked={opts.showOverlay}
+            onChange={(e) => setTourDataOpts(t => updateTourDataOpts(t, 'showOverlay', e))}
+          />
+        </Tags.InputContainer>
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec style={{ marginBottom: 0 }}>
         <GTags.Txt className="title2">Buttons</GTags.Txt>

@@ -145,12 +145,30 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
     }
   }
 
+  const opts = normalizeTourOptsBackwardCompatibility(data.opts);
+
   return {
     annotations: isLocal ? annotationsPerScreen : remoteToLocalAnnotationConfigMap(
       annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>
     ),
-    opts: data.opts
+    opts,
   };
+}
+
+export function normalizeTourOptsBackwardCompatibility(opts: ITourDataOpts): ITourDataOpts {
+  if (opts.showOverlay === undefined || opts.showOverlay === null) {
+    opts.showOverlay = true;
+  }
+
+  if (opts.annotationBodyBackgroundColor === undefined || opts.annotationBodyBackgroundColor === null) {
+    opts.annotationBodyBackgroundColor = '#FFFFFF';
+  }
+
+  if (opts.annotationBodyBorderColor === undefined || opts.annotationBodyBorderColor === null) {
+    opts.annotationBodyBorderColor = '#BDBDBD';
+  }
+
+  return opts;
 }
 
 export function normalizeTourDataFile(data: TourData) {
