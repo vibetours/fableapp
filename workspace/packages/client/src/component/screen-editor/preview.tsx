@@ -2,6 +2,7 @@ import { ScreenData, SerNode } from '@fable/common/dist/types';
 import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { P_RespScreen } from '../../entity-processor';
+import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
 
 export interface IOwnProps {
@@ -11,18 +12,11 @@ export interface IOwnProps {
   innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
   onBeforeFrameBodyDisplay: () => void;
   onFrameAssetLoad: () => void;
+  isScreenPreview: boolean;
 }
 
 interface DeSerProps {
   partOfSvgEl: number;
-}
-
-function calculateScrollTopFromScrollFactor(scrollFactor: string, el: Element):number {
-  return parseFloat(scrollFactor) * (el.scrollHeight - el.clientHeight);
-}
-
-function calculateScrollLeftFromScrollFactor(scrollFactor: string, el: Element):number {
-  return parseFloat(scrollFactor) * (el.scrollWidth - el.clientWidth);
 }
 
 export default class ScreenPreview extends React.PureComponent<IOwnProps> {
@@ -229,26 +223,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             this.props.onBeforeFrameBodyDisplay();
             frameBody.style.display = '';
             this.props.onFrameAssetLoad();
-
-            switch (this.props.screenData.version) {
-              case '2023-01-10': {
-                // Apply original scroll positins to elements
-                const allDocEls = doc.querySelectorAll('*');
-                for (let i = 0; i < allDocEls.length; i++) {
-                  const el = allDocEls[i];
-                  const scrollTopFactor = allDocEls[i].getAttribute('fable-stf') || '0';
-                  const scrollLeftFactor = allDocEls[i].getAttribute('fable-slf') || '0';
-                  const scrollTop = calculateScrollTopFromScrollFactor(scrollTopFactor, el);
-                  const scrollLeft = calculateScrollLeftFromScrollFactor(scrollLeftFactor, el);
-                  allDocEls[i].removeAttribute('fable-stf');
-                  allDocEls[i].removeAttribute('fable-slf');
-                  el.scroll({ top: scrollTop, left: scrollLeft });
-                }
-                break;
-              }
-
-              default:
-                break;
+            if (this.props.isScreenPreview) {
+              scrollIframeEls(this.props.screenData.version, doc);
             }
           }
         });

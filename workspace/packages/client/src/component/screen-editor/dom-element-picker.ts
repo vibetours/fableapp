@@ -178,7 +178,7 @@ export default class DomElementPicker extends HighlighterBase {
   // Can be replicated using google analytics right top user icon click
   private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number): HTMLElement | Text {
     let i = 0;
-    let svgEl: HTMLElement;
+    let svgEl: HTMLElement | null = null;
     for (const el of els) {
       if (el.tagName && el.tagName.toLowerCase() === 'svg') {
         svgEl = el;
@@ -192,7 +192,9 @@ export default class DomElementPicker extends HighlighterBase {
     const elToBeReturned = els[i < els.length - 1 ? i : 0];
 
     if (elToBeReturned.tagName.toLowerCase() in SVG_EL) {
-      return svgEl!;
+      if (svgEl) {
+        return svgEl;
+      }
     }
 
     const elBelowMouse = elToBeReturned as HTMLElement;

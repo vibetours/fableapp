@@ -157,6 +157,7 @@ class Screen extends React.PureComponent<IProps, IOwnStateProps> {
                   divPadding={18}
                   onBeforeFrameBodyDisplay={() => {}}
                   onFrameAssetLoad={() => {}}
+                  isScreenPreview
                 />
               </GTags.EmbedCon>
               <GTags.EditPanelCon style={{ overflowY: 'auto' }}>

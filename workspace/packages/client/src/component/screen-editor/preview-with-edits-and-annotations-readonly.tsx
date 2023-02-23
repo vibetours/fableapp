@@ -15,6 +15,7 @@ import {
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview from './preview';
+import { scrollIframeEls } from './scroll-util';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -109,7 +110,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   }
 
-  onFrameAssetLoad = () => {
+  onFrameAssetLoad = async () => {
+    await scrollIframeEls(this.props.screenData.version, this.embedFrameRef.current?.contentDocument!);
     const foundAnnotation = this.reachAnnotation(this.props.toAnnotationId);
     this.props.onFrameAssetLoad({ foundAnnotation });
   };
@@ -186,6 +188,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       innerRefs={refs}
       onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
       onFrameAssetLoad={this.onFrameAssetLoad}
+      isScreenPreview={false}
     />;
   }
 }
