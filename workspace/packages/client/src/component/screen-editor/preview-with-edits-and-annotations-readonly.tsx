@@ -82,8 +82,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
         tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
         tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
-        tEl.setAttribute('height', imgEncodingVal[IdxEncodingTypeImage.HEIGHT]);
-        tEl.setAttribute('width', imgEncodingVal[IdxEncodingTypeImage.WIDTH]);
+        const originalStyleAttrs = tEl.getAttribute('style');
+        tEl.setAttribute(
+          'style',
+          `${originalStyleAttrs || ''};
+          height: ${imgEncodingVal[IdxEncodingTypeImage.HEIGHT]} !important; 
+          width: ${imgEncodingVal[IdxEncodingTypeImage.WIDTH]} !important; 
+          object-fit: cover !important;
+          `
+        );
       }
 
       if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {

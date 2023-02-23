@@ -157,6 +157,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
   bodyContent: string;
+  displayText: string;
   positioning: AnnotationPositions,
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',

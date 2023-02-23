@@ -25,6 +25,15 @@ export const AnContent = styled.div`
   align-items: center;
 `;
 
+export const AnTextContent = styled.div`
+  p {
+    margin: 0;
+  }
+  p img {
+    margin-top: 0.2em;
+  }
+`;
+
 export const ABtn = styled.button`
   border-radius: 8px;
   align-self: flex-start;

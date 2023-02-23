@@ -9,10 +9,7 @@ import {
   PictureOutlined,
   RightOutlined,
   ExclamationCircleOutlined,
-  CaretRightOutlined
 } from '@ant-design/icons';
-import api from '@fable/common/dist/api';
-import { ApiResp, ResponseStatus, RespUploadUrl } from '@fable/common/dist/api-contract';
 import { detect } from '@fable/common/dist/detect-browser';
 import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
@@ -24,6 +21,7 @@ import Modal from 'antd/lib/modal';
 import Collapse from 'antd/lib/collapse';
 import * as GTags from '../../common-styled';
 import { P_RespScreen } from '../../entity-processor';
+import { uploadImgToAws } from './utils/upload-img-to-aws';
 import {
   AllEdits,
   AnnotationPerScreen,
@@ -210,13 +208,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     });
   };
 
-  static getImageUploadUrl = async (type: string): Promise<string> => {
-    const res = await api<null, ApiResp<RespUploadUrl>>(`/getuploadlink?te=${btoa(type)}`, {
-      auth: true,
-    });
-    return res.status === ResponseStatus.Failure ? '' : res.data.url;
-  };
-
   static setDimensionAttributes = (selectedImageEl: HTMLElement): [dimH: string, dimW: string] => {
     const styles = getComputedStyle(selectedImageEl);
     const originalHeight = styles.height;
@@ -250,28 +241,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
     return ['', ''];
     // TODO https://github.com/sharefable/app/issues/48 #2
-  };
-
-  static uploadImageAsBinary = async (selectedImage: any, awsSignedUrl: string): Promise<string> => {
-    const uploadedImageSrc = awsSignedUrl.split('?')[0];
-
-    const reader = new FileReader();
-    reader.readAsArrayBuffer(selectedImage);
-    return new Promise((resolve) => {
-      reader.addEventListener('load', async () => {
-        const binaryData = reader.result;
-        // TODO our api utility is should ideally be able to address this. Fix later.
-        const res = await fetch(awsSignedUrl, {
-          method: 'PUT',
-          body: binaryData,
-          headers: { 'Content-Type': selectedImage.type },
-        });
-
-        if (res.status === 200) {
-          resolve(uploadedImageSrc);
-        }
-      });
-    });
   };
 
   // TODO Use this utility to extract imgSrc from different kinds of
@@ -427,12 +396,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!selectedImage) {
       return;
     }
-    const awsSignedUrl = await ScreenEditor.getImageUploadUrl(selectedImage.type);
-    if (!awsSignedUrl) {
-      //  TODO[error-handling] show error to user that something has gone wrong, try again later
-      return;
-    }
-    const newImageUrl = await ScreenEditor.uploadImageAsBinary(selectedImage, awsSignedUrl);
+    const newImageUrl = await uploadImgToAws(selectedImage);
     const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
 
     const path = this.domElPicker!.elPath(imgEl);
@@ -993,7 +957,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     >
 
                       <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
-                        {config.bodyContent}
+                        {config.displayText}
                       </GTags.Txt>
                       {
                         config.syncPending && (<LoadingOutlined />)

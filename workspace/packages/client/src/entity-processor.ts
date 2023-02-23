@@ -139,7 +139,9 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
       const anns = Object.values((entity as TourScreenEntity).annotations);
       annotationsPerScreen[screenId] = isLocal
         ? (anns as IAnnotationConfig[])
-        : anns.map(remoteToLocalAnnotationConfig);
+        : anns
+          .map(normalizeBackwardCompatibility) // delete this once the staging is cleared after release
+          .map(remoteToLocalAnnotationConfig);
     } else {
       throw new Error('TODO not yet implemented');
     }
@@ -235,6 +237,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     id: lc.id,
     refId: lc.refId,
     bodyContent: lc.bodyContent,
+    displayText: lc.displayText,
     buttons: lc.buttons,
     monoIncKey: lc.monoIncKey,
     createdAt: lc.createdAt,
@@ -250,6 +253,13 @@ export function remoteToLocalAnnotationConfig(rc: IAnnotationOriginConfig): IAnn
     ...rc,
     syncPending: false,
   };
+}
+
+export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAnnotationOriginConfig {
+  if (an.displayText === undefined || an.displayText === null) {
+    an.displayText = an.bodyContent;
+  }
+  return an;
 }
 
 export function remoteToLocalAnnotationConfigMap(

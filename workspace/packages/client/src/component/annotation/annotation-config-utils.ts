@@ -16,9 +16,10 @@ export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
 }
 
-export function updateAnnotationText(config: IAnnotationConfig, txt: string): IAnnotationConfig {
+export function updateAnnotationText(config: IAnnotationConfig, txt: string, displayText: string): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.bodyContent = txt;
+  newConfig.displayText = displayText;
   return newConfig;
 }
 
@@ -150,6 +151,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
     bodyContent: 'Write a description about what this feature of your product does to your user.',
+    displayText: 'Write a description about what this feature of your product does to your user.',
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
     syncPending: true,

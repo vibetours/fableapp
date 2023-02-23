@@ -8,7 +8,6 @@ import {
   ITourDataOpts,
   ITourEntityHotspot
 } from '@fable/common/dist/types';
-import TextArea from 'antd/lib/input/TextArea';
 import Select from 'antd/lib/select';
 import Button from 'antd/lib/button';
 import Input from 'antd/lib/input';
@@ -44,7 +43,9 @@ import {
   updateAnnotationBoxSize,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
+import AnnotationRichTextEditor from './annotation-rich-text-editor';
 import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
+
 
 const { confirm } = Modal;
 
@@ -137,14 +138,11 @@ export default function AnnotationCreatorPanel(props: IProps) {
     <Tags.AnotCrtPanelCon className="e-ignr">
       <Tags.AnotCrtPanelSec>
         <GTags.Txt>Change text content</GTags.Txt>
-        <TextArea
-          style={{ ...commonInputStyles, width: '100%', backgroundColor: '#FFF' }}
-          rows={3}
-          defaultValue={config.bodyContent}
-          bordered={false}
-          onBlur={e => {
-            setConfig(c => updateAnnotationText(c, e.target.value));
+        <AnnotationRichTextEditor
+          onBlurHandler={(htmlString, displayText) => {
+            setConfig(c => updateAnnotationText(c, htmlString, displayText));
           }}
+          defaultValue={config.bodyContent}
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec row>

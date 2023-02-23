@@ -56,9 +56,9 @@ export class AnnotationContent extends React.PureComponent<{
         }}
       >
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', width: '100%' }}>
-          <div>
-            {this.props.config.bodyContent}
-          </div>
+          {/* TODO: use some other mechanism to populate the following
+          div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
+          <Tags.AnTextContent dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }} />
           <div style={{
             display: 'flex',
             justifyContent: btns.length > 1 ? 'space-between' : 'center',

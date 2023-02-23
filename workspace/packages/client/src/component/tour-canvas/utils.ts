@@ -24,7 +24,7 @@ export function formScreens2(data: AnnotationPerScreen[], grid: CanvasGrid): Ann
           x: 0,
           y: 0,
           imageUrl: el.screen.thumbnailUri.href,
-          text: annotation.bodyContent,
+          text: annotation.displayText,
           type: 'annotation',
           screenTitle: el.screen.displayName,
         });
