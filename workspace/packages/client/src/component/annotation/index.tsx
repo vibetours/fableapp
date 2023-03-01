@@ -1,6 +1,7 @@
 import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { NavFn } from '../../types';
+import HighlighterBase from '../base/hightligher-base';
 import * as Tags from './styled';
 
 interface IProps {
@@ -140,9 +141,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       if (ml > 1 || mr > 1) {
         p = ml > mr ? 'l' : 'r';
       }
-
       if (p === 'l' || p === 'r') {
-        t = elBox.top + elBox.height / 2 - (h / 2);
+        if (elBox.top <= h / 2) {
+          t = elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
+        } else if (winH - elBox.bottom <= h / 2) {
+          t = elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
+        } else {
+          t = elBox.top + elBox.height / 2 - (h / 2);
+        }
+
         if (p === 'l') {
           l = elBox.left - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
         } else {
