@@ -173,6 +173,7 @@ export function getSearializedDom(
       if (tNode.sheet) {
         sNode.props.proxyUrl = sNode.attrs.href || undefined;
         sNode.props.proxyAttr = "href";
+        sNode.props.isStylesheet = true;
         return { serNode: sNode, postProcess: true };
       }
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();

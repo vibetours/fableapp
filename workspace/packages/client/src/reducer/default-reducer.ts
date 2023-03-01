@@ -33,8 +33,8 @@ export const initialState: {
   allScreensLoadingStatus: LoadingStatus;
   tours: Array<P_RespTour>;
   allToursLoadingStatus: LoadingStatus;
-  screenData: ScreenData | null;
-  screenEdits: EditFile<AllEdits<ElEditType>> | null;
+  screenData: Record<string, ScreenData>;
+  screenEdits: Record<string, EditFile<AllEdits<ElEditType>> | null>;
   currentScreen: P_RespScreen | null;
   screenLoadingStatus: LoadingStatus;
   currentTour: P_RespTour | null;
@@ -42,15 +42,15 @@ export const initialState: {
   newScreenLoadingStatus: LoadingStatus;
   tourData: TourData | null;
   tourLoaded: boolean;
+  // TODO remote + local edits in one state for one time consumption
   localEdits: Record<string, EditItem[]>;
   remoteEdits: Record<string, EditItem[]>;
-  // TODO remote + local edits in one state for one time consumption
+  // TODO remote + local annotation changes in one state for one time consumption
   localAnnotations: Record<string, IAnnotationConfig[]>;
   remoteAnnotations: Record<string, IAnnotationConfig[]>;
-  // TODO remote + local annotation changes in one state for one time consumption
+  // TODO remote + local opts changes in one state for one time consumption
   remoteTourOpts: ITourDataOpts | null;
   localTourOpts: ITourDataOpts | null;
-  // TODO remote + local opts changes in one state for one time consumption
 } = {
   inited: false,
   commonConfig: null,
@@ -61,8 +61,8 @@ export const initialState: {
   tours: [],
   allToursLoadingStatus: LoadingStatus.NotStarted,
   currentScreen: null,
-  screenData: null,
-  screenEdits: null,
+  screenData: {},
+  screenEdits: {},
   screenLoadingStatus: LoadingStatus.NotStarted,
   currentTour: null,
   newTourLoadingStatus: LoadingStatus.NotStarted,
@@ -158,11 +158,23 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.SCREEN_AND_DATA_LOADED: {
       const tAction = action as TScreenWithData;
       const newState = { ...state };
-      newState.currentScreen = tAction.screen;
-      newState.screenData = tAction.screenData;
-      newState.screenEdits = tAction.screenEdits;
-      newState.screenLoadingStatus = LoadingStatus.Done;
-      newState.remoteEdits[tAction.screen.id] = tAction.remoteEdits;
+      if (!tAction.preloading) {
+        // If a screen is being preloaded then don't change the current screen and loading status
+        newState.currentScreen = tAction.screen;
+        newState.screenLoadingStatus = LoadingStatus.Done;
+      }
+      newState.screenData = {
+        ...newState.screenData,
+        [tAction.screen.id]: tAction.screenData,
+      };
+      newState.screenEdits = {
+        ...newState.screenEdits,
+        [tAction.screen.id]: tAction.screenEdits,
+      };
+      newState.remoteEdits = {
+        ...newState.remoteEdits,
+        [tAction.screen.id]: tAction.remoteEdits
+      };
       return newState;
     }
 
@@ -194,7 +206,7 @@ export default function projectReducer(state = initialState, action: Action) {
       } else {
         newState.remoteEdits[tAction.screen.id] = [...tAction.editList];
         newState.localEdits[tAction.screen.id] = [];
-        newState.screenEdits = tAction.editFile!;
+        newState.screenEdits[tAction.screen.id] = tAction.editFile!;
       }
       return newState;
     }

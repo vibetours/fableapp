@@ -9,6 +9,7 @@ export interface IOwnProps {
   screen: P_RespScreen;
   screenData: ScreenData;
   divPadding: number;
+  hidden?: boolean;
   innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
   onBeforeFrameBodyDisplay: () => void;
   onFrameAssetLoad: () => void;
@@ -87,9 +88,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         }
     }
 
-    if (node.props.isStylesheet) {
+    // if (node.props.isStylesheet) {
+    if (node.name === 'link' && el.getAttribute('rel') === 'stylesheet') {
       const p = new Promise((resolve) => {
+        // on either cases we resolve the promises so that the rendering happens
         el.onload = resolve;
+        el.onerror = resolve;
+        el.onabort = resolve;
       });
       this.assetLoadingPromises.push(p);
     }
@@ -168,7 +173,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // 3. Apply scale to the element (wrt origin 0, 0 ; default scaling is centered)
     // 4. Now the container is visually smaller (for scale < 1) than the original one before it was scaled
     // 5. Figure out what's the new height and width with the scale applied
-    const origFrameViewPort = frame.getBoundingClientRect();
+    const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
     const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
     const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
     const scale = Math.min(scaleX, scaleY);
@@ -221,35 +226,38 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     frame.onload = () => {
-      this.deserDomIntoFrame(frame);
-      /* requestAnimationFrame */setTimeout(() => {
-        const doc = frame.contentDocument;
-        const frameBody = doc?.body;
-        // Make the iframe visible after all the assets are loaded
-        Promise.all(this.assetLoadingPromises).then(() => {
+      requestAnimationFrame(() => {
+        this.deserDomIntoFrame(frame);
+        /* requestAnimationFrame */setTimeout(() => {
+          const doc = frame.contentDocument;
+          const frameBody = doc?.body;
+          // Make the iframe visible after all the assets are loaded
+          Promise.all(this.assetLoadingPromises).then(() => {
           // create a elative container that would contain all the falbe related els
-          if (frameBody) {
-            let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
-            if (!umbrellaDiv) {
-              umbrellaDiv = doc.createElement('div');
-              umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
-              umbrellaDiv.style.position = 'absolute';
-              umbrellaDiv.style.left = `${0}`;
-              umbrellaDiv.style.top = `${0}`;
-              frameBody.appendChild(umbrellaDiv);
+            if (frameBody) {
+              let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+              if (!umbrellaDiv) {
+                umbrellaDiv = doc.createElement('div');
+                umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+                umbrellaDiv.style.position = 'absolute';
+                umbrellaDiv.style.left = `${0}`;
+                umbrellaDiv.style.top = `${0}`;
+                frameBody.appendChild(umbrellaDiv);
+              }
+              this.props.onBeforeFrameBodyDisplay();
+              frameBody.style.display = '';
+              this.props.onFrameAssetLoad();
+              this.assetLoadingPromises.length = 0;
+              if (this.props.isScreenPreview) {
+                scrollIframeEls(this.props.screenData.version, doc);
+              }
             }
-            this.props.onBeforeFrameBodyDisplay();
-            frameBody.style.display = '';
-            this.props.onFrameAssetLoad();
-            if (this.props.isScreenPreview) {
-              scrollIframeEls(this.props.screenData.version, doc);
-            }
-          }
-        });
+          });
         // this is a puma number for the following code to wait for the css to be aplied
-        // (not downloaded) we already wait for css downlod
+        // (not downloaded) we already wait for css download
         // TODO Fix this deterministically
-      }, 300);
+        }, 300);
+      });
     };
   }
 
@@ -258,6 +266,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       <Tags.EmbedFrame
         src="about:blank"
         title={this.props.screen.displayName}
+        style={{
+          visibility: this.props.hidden ? 'hidden' : 'visible',
+        }}
         ref={ref => {
           this.embedFrameRef.current = ref;
           if (this.props.innerRefs) {

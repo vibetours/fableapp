@@ -53,7 +53,7 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   screen: state.default.currentScreen,
-  serScreenData: state.default.screenData,
+  serScreenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
   screenLoaded: state.default.screenLoadingStatus,
   rootScreens: state.default.rootScreens,
   tours: state.default.tours,

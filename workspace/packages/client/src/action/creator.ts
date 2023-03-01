@@ -34,6 +34,7 @@ import ActionType from './type';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING | ActionType.SCREEN_LOADING | ActionType.ALL_TOURS_LOADING;
+  shouldCache?: boolean;
 }
 
 /* ************************************************************************* */
@@ -85,6 +86,7 @@ export interface TScreenWithData {
   screenEdits: EditFile<AllEdits<ElEditType>> | null;
   remoteEdits: EditItem[];
   screen: P_RespScreen;
+  preloading: boolean;
 }
 
 export interface TScreen {
@@ -111,11 +113,14 @@ export function renameScreen(screen: P_RespScreen, newVal: string) {
   };
 }
 
-export function loadScreenAndData(screenRid: string) {
+export function loadScreenAndData(screenRid: string, shouldUseCache = false, preloading = false) {
   return async (dispatch: Dispatch<TScreenWithData | TGenericLoading>, getState: () => TState) => {
-    dispatch({
-      type: ActionType.SCREEN_LOADING,
-    });
+    if (!preloading) {
+      // Only for screens that are not preloading (the current loading) set this true
+      dispatch({
+        type: ActionType.SCREEN_LOADING,
+      });
+    }
 
     const state = getState();
     let screen: P_RespScreen | null = null;
@@ -136,27 +141,35 @@ export function loadScreenAndData(screenRid: string) {
         throw new Error(`Error encountered while getting screen with id=${screenRid} with message ${err.message}`);
       }
     }
-    if (screen) {
-      const [data, edits] = await Promise.all([
-        api<null, ScreenData>(screen.dataFileUri.href),
-        screen.parentScreenId
-          ? api<null, EditFile<AllEdits<ElEditType>>>(screen.editFileUri.href)
-          : Promise.resolve(null),
+
+    const cacheDataAvailable = shouldUseCache && screen!.id in state.default.screenData;
+    let data;
+    let edits;
+    let remoteEdits: EditItem[] = [];
+    if (cacheDataAvailable) {
+      data = state.default.screenData[screen!.id];
+      remoteEdits = state.default.remoteEdits[screen!.id];
+      edits = state.default.screenEdits[screen!.id];
+    } else {
+      [data, edits] = await Promise.all([
+        api<null, ScreenData>(screen!.dataFileUri.href),
+      screen!.parentScreenId
+        ? api<null, EditFile<AllEdits<ElEditType>>>(screen!.editFileUri.href)
+        : Promise.resolve(null),
       ]);
-      let remoteEdits: EditItem[] = [];
       if (edits !== null) {
         remoteEdits = convertEditsToLineItems(edits.edits, false);
       }
-      dispatch({
-        type: ActionType.SCREEN_AND_DATA_LOADED,
-        screenData: data,
-        screenEdits: edits,
-        remoteEdits,
-        screen: processRawScreenData(screen, getState()),
-      });
-    } else {
-      throw new Error(`Can't find the screen with rid=${screenRid}`);
     }
+
+    dispatch({
+      type: ActionType.SCREEN_AND_DATA_LOADED,
+      screenData: data,
+      screenEdits: edits,
+      remoteEdits,
+      screen: processRawScreenData(screen!, getState()),
+      preloading
+    });
   };
 }
 
@@ -339,7 +352,7 @@ export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEdit
 
 export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: AllEdits<ElEditType>) {
   return async (dispatch: Dispatch<TSaveEditChunks>, getState: () => TState) => {
-    const savedEditData = getState().default.screenEdits;
+    const savedEditData = getState().default.screenEdits[screen.id];
     if (savedEditData) {
       let masterEdit = savedEditData?.edits;
       if (masterEdit) {

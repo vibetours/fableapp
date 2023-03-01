@@ -21,7 +21,11 @@ import {
   saveTourData
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
-import { getDefaultTourOpts, updateButtonProp, updateTourDataOpts } from '../../component/annotation/annotation-config-utils';
+import {
+  getDefaultTourOpts,
+  updateButtonProp,
+  updateTourDataOpts
+} from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
 import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
@@ -157,7 +161,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     isTourLoaded: state.default.tourLoaded,
     screen: state.default.currentScreen,
     flattenedScreens: state.default.allScreens,
-    screenData: state.default.screenData,
+    screenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     screens: state.default.rootScreens,
     allEdits,
@@ -167,9 +171,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   };
 };
 
-interface IOwnProps {
-  playMode?: boolean;
-}
+interface IOwnProps { }
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -192,28 +194,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
-    if (!this.props.playMode) {
-      this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
-        onSyncNeeded: this.flushEdits,
-      });
-      this.props.getAllScreens();
-    }
+    this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
+      onSyncNeeded: this.flushEdits,
+    });
+    this.props.getAllScreens();
     if (this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
-    if (!this.props.playMode) {
-      this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
-    } else if (prevProps.isTourLoaded !== this.props.isTourLoaded && this.props.isTourLoaded) {
-      const main = this.props.tourOpts.main;
-      if (!main) {
-        throw new Error('No main in config');
-      }
-      this.navigateTo(main);
-    }
-
+    this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
     if (prevProps.match.params.screenId !== this.props.match.params.screenId && this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
@@ -223,9 +214,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `${this.props.playMode
-        ? '/p'
-        : ''}/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
+      const url = `/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
       this.props.navigate(url);
     } else {
       throw new Error(`Can't navigate because screenId ${screenId} is not found`);
@@ -329,64 +318,45 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
     return (
       <GTags.ColCon>
-        {!this.props.playMode && (
-          <GTags.HeaderCon>
-            <Header
-              shouldShowLogoOnLeft
-              navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
-              titleElOnLeft={this.getHeaderTxtEl()}
-              showPreview={`/p/tour/${this.props.tour?.rid}`}
-            />
-          </GTags.HeaderCon>
-        )}
+        <GTags.HeaderCon>
+          <Header
+            shouldShowLogoOnLeft
+            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
+            titleElOnLeft={this.getHeaderTxtEl()}
+            showPreview={`/p/tour/${this.props.tour?.rid}`}
+          />
+        </GTags.HeaderCon>
+        )
         <GTags.BodyCon style={{
-          height: this.props.playMode ? '100%' : 'calc(100% - 72px)',
+          height: 'calc(100% - 72px)',
           background: '#fff',
-          padding: this.props.playMode || !this.shouldShowScreen() ? '0' : '0.25rem 2rem',
+          padding: !this.shouldShowScreen() ? '0' : '0.25rem 2rem',
           overflowY: 'hidden',
-          /* padding: '0px' */
         }}
         >
           {this.shouldShowScreen() ? (
-            this.props.playMode ? (
-              <>
-                <PreviewWithEditsAndAnRO
-                  screen={this.props.screen!}
-                  screenData={this.props.screenData!}
-                  divPadding={0}
-                  navigate={this.navFn}
-                  playMode={false}
-                  onBeforeFrameBodyDisplay={() => {}}
-                  allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-                  tourDataOpts={this.props.tourOpts}
-                  allEdits={this.props.allEdits}
-                  toAnnotationId={this.props.match.params.annotationId || ''}
-                  onFrameAssetLoad={() => {}}
-                />
-              </>)
-              : (
-                <ScreenEditor
-                  key={this.props.screen?.rid}
-                  screen={this.props.screen!}
-                  screenData={this.props.screenData!}
-                  allEdits={this.props.allEdits}
-                  toAnnotationId={this.props.match.params.annotationId || ''}
-                  navigate={this.navFn}
-                  createDefaultAnnotation={this.createDefaultAnnotation}
-                  allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-                  allAnnotationsForTour={this.props.allAnnotationsForTour}
-                  tourDataOpts={this.props.tourOpts}
-                  onScreenEditStart={this.onScreenEditStart}
-                  onScreenEditFinish={this.onScreenEditFinish}
-                  onScreenEditChange={this.onScreenEditChange}
-                  onAnnotationCreateOrChange={
-                    (screenId, c, actionType, o) => this.onTourDataChange(
-                      'annotation-and-theme',
-                      screenId,
-                      { config: c, actionType, opts: o }
-                    )
-                  }
-                />)
+            <ScreenEditor
+              key={this.props.screen?.rid}
+              screen={this.props.screen!}
+              screenData={this.props.screenData!}
+              allEdits={this.props.allEdits}
+              toAnnotationId={this.props.match.params.annotationId || ''}
+              navigate={this.navFn}
+              createDefaultAnnotation={this.createDefaultAnnotation}
+              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
+              tourDataOpts={this.props.tourOpts}
+              onScreenEditStart={this.onScreenEditStart}
+              onScreenEditFinish={this.onScreenEditFinish}
+              onScreenEditChange={this.onScreenEditChange}
+              onAnnotationCreateOrChange={
+                (screenId, c, actionType, o) => this.onTourDataChange(
+                  'annotation-and-theme',
+                  screenId,
+                  { config: c, actionType, opts: o }
+                )
+              }
+            />
           ) : (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas

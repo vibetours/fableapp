@@ -29,6 +29,7 @@ export interface IOwnProps {
   tourDataOpts: ITourDataOpts;
   allEdits: EditItem[];
   toAnnotationId: string;
+  hidden?: boolean;
   onFrameAssetLoad: FrameAssetLoadFn;
 }
 
@@ -168,7 +169,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     );
   }
 
-  async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
+  async componentDidUpdate() {
     this.reachAnnotation(this.props.toAnnotationId);
   }
 
@@ -182,6 +183,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       refs.push(this.props.innerRef);
     }
     return <Preview
+      hidden={this.props.hidden}
       screen={this.props.screen}
       screenData={this.props.screenData}
       divPadding={this.props.divPadding}

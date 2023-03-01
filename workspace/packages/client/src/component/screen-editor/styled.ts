@@ -1,33 +1,14 @@
 import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
-import Button from 'antd/lib/button';
-
-// export const Con = styled.div`
-//   height: 100%;
-//   width: 100%;
-//   display: flex;
-//   box-shadow: 0 0 3px 1px #ddd;
-//   background: #fff;
-//   border-radius: 20px;
-// `;
-
-// export const EmbedCon = styled.div`
-//   width: 77%;
-//   background: #fcfcfc;
-//   border-radius: 20px;
-//   padding: 1rem;
-// `;
 
 export const EmbedFrame = styled.iframe`
-   {
-    height: 100%;
-    width: 100%;
-    background: #fff;
-    border: none;
-    box-shadow: none;
-    border-radius: 20px;
-  }
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  border: none;
+  box-shadow: none;
+  border-radius: 20px;
 `;
 
 export const EditPanelSec = styled.div`
