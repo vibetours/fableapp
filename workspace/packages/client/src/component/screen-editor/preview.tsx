@@ -17,6 +17,8 @@ export interface IOwnProps {
 
 interface DeSerProps {
   partOfSvgEl: number;
+  shadowRoot?: ShadowRoot;
+  shadowParent: ShadowRoot | null;
 }
 
 export default class ScreenPreview extends React.PureComponent<IOwnProps> {
@@ -92,13 +94,23 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       this.assetLoadingPromises.push(p);
     }
 
+    if (node.props.isShadowHost) {
+      el.attachShadow({ mode: 'open' });
+    }
+
     return el;
   };
 
-  deser = (serNode: SerNode, doc: Document, version: string, props: DeSerProps = { partOfSvgEl: 0 }) => {
+  deser = (
+    serNode: SerNode,
+    doc: Document,
+    version: string,
+    props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
+  ) => {
     const newProps: DeSerProps = {
       // For svg and all the child nodes of svg set a flag
       partOfSvgEl: props.partOfSvgEl | (serNode.name === 'svg' ? 1 : 0),
+      shadowParent: props.shadowParent,
     };
 
     let node;
@@ -108,7 +120,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         break;
       case Node.ELEMENT_NODE:
         node = this.createHtmlElement(serNode, doc, version, newProps);
+        newProps.shadowParent = (node as HTMLElement).shadowRoot;
         break;
+
+      case Node.DOCUMENT_FRAGMENT_NODE:
+        node = newProps.shadowParent;
+        break;
+
       default:
         break;
     }
@@ -119,7 +137,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         continue;
       }
       const childNode = this.deser(child, doc, version, newProps);
-      if (childNode && node) {
+      if (childNode && node && !child.props.isShadowRoot) {
         node.appendChild(childNode);
       }
     }

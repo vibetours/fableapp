@@ -31,9 +31,9 @@ export function getSearializedDom(
   const icons: Array<SerNodeWithPath> = [];
 
   function getRep(
-    node: ChildNode,
+    node: ChildNode | ShadowRoot,
     origin: string,
-    traversalPath: Array<number>
+    traversalPath: Array<number>,
   ): {
     serNode: SerNode;
     shouldSkip?: boolean;
@@ -138,6 +138,14 @@ export function getSearializedDom(
         const scrollLeftFactor = calculateScrollLeftFactor(tNode).toString();
         sNode.attrs["fable-stf"] = scrollTopFactor;
         sNode.attrs["fable-slf"] = scrollLeftFactor;
+
+        if (tNode.shadowRoot) sNode.props.isShadowHost = true;
+
+        break;
+
+      case Node.DOCUMENT_FRAGMENT_NODE:
+        sNode.name = "#shadow-root";
+        sNode.props.isShadowRoot = true;
         break;
 
       case Node.TEXT_NODE:
@@ -244,11 +252,13 @@ export function getSearializedDom(
       return { serNode: sNode, postProcess: true };
     }
 
-    // TODO <img>, <audio>, <video>
-    // TODO <canvas>
-    // TODO background image in style
+    // TODO <audio>, <video>
+    // TODO background image in style in div
 
-    const childNodes = node.childNodes;
+    const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
+    if ((node as HTMLElement).shadowRoot) {
+      childNodes.push((node as HTMLElement).shadowRoot!);
+    }
 
     if (childNodes.length) {
       for (let i = 0, ii = 0; i < childNodes.length; i++) {
@@ -281,16 +291,16 @@ export function getSearializedDom(
     let viewPortHeight;
 
     if (typeof window.innerWidth !== "undefined") {
-      viewPortWidth = window.innerWidth,
-        viewPortHeight = window.innerHeight;
+      viewPortWidth = window.innerWidth;
+      viewPortHeight = window.innerHeight;
     } else if (typeof document.documentElement !== "undefined"
       && typeof document.documentElement.clientWidth
       !== "undefined" && document.documentElement.clientWidth !== 0) {
-      viewPortWidth = document.documentElement.clientWidth,
-        viewPortHeight = document.documentElement.clientHeight;
+      viewPortWidth = document.documentElement.clientWidth;
+      viewPortHeight = document.documentElement.clientHeight;
     } else {
-      viewPortWidth = document.getElementsByTagName("body")[0].clientWidth,
-        viewPortHeight = document.getElementsByTagName("body")[0].clientHeight;
+      viewPortWidth = document.getElementsByTagName("body")[0].clientWidth;
+      viewPortHeight = document.getElementsByTagName("body")[0].clientHeight;
     }
     return [viewPortWidth, viewPortHeight];
   }

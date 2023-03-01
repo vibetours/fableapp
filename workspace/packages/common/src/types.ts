@@ -11,6 +11,8 @@ export interface SerNode {
     isStylesheet?: boolean;
     textContent?: string | null;
     isHidden?: boolean;
+    isShadowHost?: boolean;
+    isShadowRoot?: boolean;
     origHref?: string | null;
     rect?: {
       height: number;

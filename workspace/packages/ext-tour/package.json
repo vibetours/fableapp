@@ -12,6 +12,7 @@
     "build-dev": "env-cmd --verbose -e dev -r ../env.json webpack",
     "test-debug": "node --inspect-brk ./node_modules/.bin/jest",
     "test": "jest --verbose",
+    "prebuild-staging": "yarn clean",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json webpack",
     "mock-data": "json-server --watch data/db.json -p 8182"
   },
