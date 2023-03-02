@@ -8,7 +8,7 @@ export const EmbedFrame = styled.iframe`
   background: #fff;
   border: none;
   box-shadow: none;
-  border-radius: 20px;
+  border-radius: 4px;
 `;
 
 export const EditPanelSec = styled.div`

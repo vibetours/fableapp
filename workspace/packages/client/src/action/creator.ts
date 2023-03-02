@@ -23,9 +23,14 @@ import {
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import {
-  convertEditsToLineItems, getThemeAndAnnotationFromDataFile, groupScreens,
-  mergeEdits, mergeTourData, normalizeTourDataFile, processRawScreenData,
-  processRawTourData, P_RespScreen,
+  convertEditsToLineItems,
+  getThemeAndAnnotationFromDataFile,
+  groupScreens,
+  mergeEdits,
+  mergeTourData,
+  processRawScreenData,
+  processRawTourData,
+  P_RespScreen,
   P_RespTour
 } from '../entity-processor';
 import { TState } from '../reducer';
@@ -316,11 +321,10 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
     const data = await api<null, TourData>(tour!.dataFileUri.href);
-    const nData = normalizeTourDataFile(data);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(nData);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data);
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
-      tourData: nData,
+      tourData: data,
       tour: processRawTourData(tour!, getState()),
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,

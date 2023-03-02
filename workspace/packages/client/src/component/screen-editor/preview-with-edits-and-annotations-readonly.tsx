@@ -169,8 +169,19 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     );
   }
 
-  async componentDidUpdate() {
-    this.reachAnnotation(this.props.toAnnotationId);
+  async componentDidUpdate(prevProps: IOwnProps) {
+    if (this.props.playMode) {
+      // In player, stop useless rerender leading to flashing
+      if (this.props.toAnnotationId && prevProps.toAnnotationId !== this.props.toAnnotationId) {
+        this.reachAnnotation(this.props.toAnnotationId);
+      }
+      if (prevProps.toAnnotationId && !this.props.toAnnotationId) {
+        this.annotationLCM?.hide();
+      }
+    } else {
+      // In creator mode we need this so that the annotation is updated with config change from creator panel
+      this.reachAnnotation(this.props.toAnnotationId);
+    }
   }
 
   componentWillUnmount(): void {

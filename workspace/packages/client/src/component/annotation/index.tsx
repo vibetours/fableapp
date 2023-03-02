@@ -25,8 +25,23 @@ export class AnnotationContent extends React.PureComponent<{
 
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+  private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
+
   componentDidMount() {
-    this.props.onRender && this.props.onRender(this.conRef.current!);
+    if (this.props.onRender) {
+      if (this.contentRef.current) {
+        const imgs = this.contentRef.current?.getElementsByTagName('img');
+        Promise.all(Array.from(imgs).map(img => new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.onabort = resolve;
+        }))).then(() => {
+          requestAnimationFrame(() => this.props.onRender!(this.conRef.current!));
+        });
+      } else {
+        this.props.onRender(this.conRef.current!);
+      }
+    }
   }
 
   getAnnotationBorder() {
@@ -59,7 +74,10 @@ export class AnnotationContent extends React.PureComponent<{
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', width: '100%' }}>
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
-          <Tags.AnTextContent dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }} />
+          <Tags.AnTextContent
+            ref={this.contentRef}
+            dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
+          />
           <div style={{
             display: 'flex',
             justifyContent: btns.length > 1 ? 'space-between' : 'center',
@@ -142,12 +160,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         p = ml > mr ? 'l' : 'r';
       }
       if (p === 'l' || p === 'r') {
-        if (elBox.top <= h / 2) {
-          t = elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
-        } else if (winH - elBox.bottom <= h / 2) {
-          t = elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
-        } else {
-          t = elBox.top + elBox.height / 2 - (h / 2);
+        t = elBox.top + elBox.height / 2 - (h / 2);
+        if (t <= AnnotationCard.ANNOTAITON_EL_MARGIN) {
+          // If the top of the annotation is outside the viewport
+          t = Math.max(elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.top);
+        }
+        if (t + h + AnnotationCard.ANNOTAITON_EL_MARGIN >= winH) {
+          // If the bottom of the annotation is outside the viewport
+          t = Math.min(elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.bottom - h);
         }
 
         if (p === 'l') {
@@ -172,6 +192,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           }
         }
       }
+
       if (!p) {
         l = elBox.right - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
         t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;

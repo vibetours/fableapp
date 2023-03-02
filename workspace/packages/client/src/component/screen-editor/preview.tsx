@@ -88,8 +88,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         }
     }
 
-    // if (node.props.isStylesheet) {
-    if (node.name === 'link' && el.getAttribute('rel') === 'stylesheet') {
+    if (node.props.isStylesheet) {
       const p = new Promise((resolve) => {
         // on either cases we resolve the promises so that the rendering happens
         el.onload = resolve;

@@ -85,14 +85,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (this.mode === AnnotationViewMode.Hide) {
       return;
     }
-
-    this.con!.style.display = 'none';
-    this.frameIds.forEach(id => clearTimeout(id));
-    this.frameIds.length = 0;
-    this.frameIds.push(setTimeout(() => {
-      this.render();
-      this.con!.style.display = '';
-    }, 5 * 16) as unknown as number);
+    this.render();
   };
 
   private createContainerRoot(): [HTMLDivElement, Root] {
@@ -209,7 +202,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             width: smallWidth,
             top: -9999,
             left: -9999,
-            key: -777,
+            key: 777,
             nav: this.nav,
           })
         )
@@ -230,7 +223,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             width: mediumWidth,
             top: -9999,
             left: -9999,
-            key: -666,
+            key: 666,
             nav: this.nav,
           })
         )
@@ -251,7 +244,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
             width: largeWidth,
             top: -9999,
             left: -9999,
-            key: -888,
+            key: 888,
             nav: this.nav,
           })
         )

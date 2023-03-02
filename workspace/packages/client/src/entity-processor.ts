@@ -140,53 +140,18 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
       annotationsPerScreen[screenId] = isLocal
         ? (anns as IAnnotationConfig[])
         : anns
-          .map(normalizeBackwardCompatibility) // delete this once the staging is cleared after release
           .map(remoteToLocalAnnotationConfig);
     } else {
       throw new Error('TODO not yet implemented');
     }
   }
 
-  const opts = normalizeTourOptsBackwardCompatibility(data.opts);
-
   return {
     annotations: isLocal ? annotationsPerScreen : remoteToLocalAnnotationConfigMap(
       annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>
     ),
-    opts,
+    opts: data.opts,
   };
-}
-
-export function normalizeTourOptsBackwardCompatibility(opts: ITourDataOpts): ITourDataOpts {
-  if (opts.showOverlay === undefined || opts.showOverlay === null) {
-    opts.showOverlay = true;
-  }
-
-  if (opts.annotationBodyBackgroundColor === undefined || opts.annotationBodyBackgroundColor === null) {
-    opts.annotationBodyBackgroundColor = '#FFFFFF';
-  }
-
-  if (opts.annotationBodyBorderColor === undefined || opts.annotationBodyBorderColor === null) {
-    opts.annotationBodyBorderColor = '#BDBDBD';
-  }
-
-  return opts;
-}
-
-export function normalizeTourDataFile(data: TourData) {
-  if (!data.opts) {
-    data.opts = getDefaultTourOpts();
-  }
-  if ('main' in data) {
-    delete (data as any).main;
-  }
-  if ('theme' in data) {
-    delete (data as any).theme;
-  }
-  if (!data.entities || data.entities instanceof Array) {
-    data.entities = {};
-  }
-  return data;
 }
 
 /* ************************************************************************* */
@@ -253,13 +218,6 @@ export function remoteToLocalAnnotationConfig(rc: IAnnotationOriginConfig): IAnn
     ...rc,
     syncPending: false,
   };
-}
-
-export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAnnotationOriginConfig {
-  if (an.displayText === undefined || an.displayText === null) {
-    an.displayText = an.bodyContent;
-  }
-  return an;
 }
 
 export function remoteToLocalAnnotationConfigMap(
