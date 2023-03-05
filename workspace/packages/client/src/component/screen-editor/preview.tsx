@@ -11,7 +11,7 @@ export interface IOwnProps {
   divPadding: number;
   hidden?: boolean;
   innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
-  onBeforeFrameBodyDisplay: () => void;
+  onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
   onFrameAssetLoad: () => void;
   isScreenPreview: boolean;
 }
@@ -22,15 +22,23 @@ interface DeSerProps {
   shadowParent: ShadowRoot | null;
 }
 
+const IFRAME_DEFAULT_DOC = '<!DOCTYPE html><html><head></head><body></body></html>';
+
+export const ROOT_EMBED_IFRAME_ID = `fab-reifi-${Math.random() * (10 ** 4) | 0}`;
+
 export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
   private assetLoadingPromises: Promise<unknown>[] = [];
 
+  private frameLoadingPromises: Promise<unknown>[] = [];
+
   // eslint-disable-next-line react/no-unused-class-component-methods
   scaleFactor: number = 1;
 
   embedFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
+  nestedFrames: Array<HTMLIFrameElement> = [];
 
   private createHtmlElement = (node: SerNode, doc: Document, version: string, props: DeSerProps) => {
     const el = props.partOfSvgEl
@@ -63,10 +71,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       try {
         if (props.partOfSvgEl) {
           el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
+        } else if (node.name === 'iframe' && attrKey === 'src') {
+          attrValue = 'about:blank';
+          el.setAttribute(attrKey, attrValue);
+          el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
         } else {
-          if (node.name === 'iframe' && attrKey === 'src') {
-            el.setAttribute(attrKey, 'about:blank');
-          }
           if (node.name === 'a' && attrKey === 'href') {
             // eslint-disable-next-line no-script-url
             attrValue = 'javascript:void(0);';
@@ -134,21 +143,68 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       default:
         break;
     }
-    for (const child of serNode.chldrn) {
-      // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
-      // hence we altogether ignore those tags
-      if (child.name === 'meta') {
-        continue;
+
+    if (serNode.name !== 'iframe') {
+      for (const child of serNode.chldrn) {
+        // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
+        // hence we altogether ignore those tags
+        if (child.name === 'meta') {
+          continue;
+        }
+
+        const childNode = this.deser(child, doc, version, newProps);
+        if (childNode && node && !child.props.isShadowRoot) {
+          node.appendChild(childNode);
+          if (child.name === 'iframe') {
+            const tNode = childNode as HTMLIFrameElement;
+            if (child.chldrn.length === 1) {
+              this.frameLoadingPromises.push(
+                new Promise(resolve => {
+                  tNode.onabort = () => {
+                    console.error('Iframe loading aborted');
+                    resolve(1);
+                  };
+                  tNode.onerror = () => {
+                    console.error('Iframe loading failed');
+                    resolve(1);
+                  };
+                  tNode.onload = () => {
+                    const newDoc = tNode.contentDocument!;
+                    this.deserFrame(child.chldrn[0], newDoc, version);
+                    if (newDoc.body) {
+                      const box = tNode.getBoundingClientRect();
+                      newDoc.body.setAttribute('dxdy', `${box.x},${box.y}`);
+                    }
+                    this.nestedFrames.push(tNode);
+                    resolve(1);
+                  };
+                })
+              );
+            } else {
+              console.warn('Iframe nodes are more than it could ingest', child.chldrn);
+            }
+          }
+        }
       }
-      const childNode = this.deser(child, doc, version, newProps);
-      if (childNode && node && !child.props.isShadowRoot) {
-        node.appendChild(childNode);
-      }
+    } else {
+      // if it's iframe, the previous iteration wold call deserFrame.
+      // Iframe's contentDocument is available after it's attached to body and is loaded
     }
     return node;
   };
 
-  deserDomIntoFrame = (frame: HTMLIFrameElement) => {
+  deserFrame = async (docTree: SerNode, doc: Document, v: string) => {
+    const rootHTMLEl = this.deser(docTree, doc, v) as HTMLElement;
+    const childNodes = doc.childNodes;
+    for (let i = 0; i < childNodes.length; i++) {
+      if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
+        doc.replaceChild(rootHTMLEl, childNodes[i]);
+        break;
+      }
+    }
+  };
+
+  deserDomIntoFrame = async (frame: HTMLIFrameElement) => {
     /*
      * FIXME By default assume all pages are responsive via css
      *       But there will always be pages like gmail, analytics where responsiveness is implemented via js
@@ -198,17 +254,14 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
-        frameBody.style.display = 'none';
-        const rootHTMLEl = this.deser(this.props.screenData.docTree, doc, this.props.screenData.version) as HTMLElement;
-        const childNodes = doc.childNodes;
-        for (let i = 0; i < childNodes.length; i++) {
-          if (((childNodes[i] as any).tagName || '').toLowerCase() === 'html') {
-            doc.replaceChild(rootHTMLEl, childNodes[i]);
-            break;
-          }
+        // frame.style.visibility = 'hidden';
+        this.deserFrame(this.props.screenData.docTree, doc, this.props.screenData.version);
+        while (this.frameLoadingPromises.length) {
+          await this.frameLoadingPromises.shift();
         }
         if (frame && frame.contentDocument && frame.contentDocument.body) {
-          frame.contentDocument.body.style.display = 'none';
+          frame.contentDocument.body.style.visibility = 'hidden';
+          frame.contentDocument.body.setAttribute('dxdy', '0,0');
         }
       } else {
         throw new Error("Can't find body of embed iframe");
@@ -225,8 +278,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     frame.onload = () => {
-      requestAnimationFrame(() => {
-        this.deserDomIntoFrame(frame);
+      requestAnimationFrame(async () => {
+        await this.deserDomIntoFrame(frame);
         /* requestAnimationFrame */setTimeout(() => {
           const doc = frame.contentDocument;
           const frameBody = doc?.body;
@@ -243,8 +296,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
                 umbrellaDiv.style.top = `${0}`;
                 frameBody.appendChild(umbrellaDiv);
               }
-              this.props.onBeforeFrameBodyDisplay();
-              frameBody.style.display = '';
+              this.props.onBeforeFrameBodyDisplay({
+                nestedFrames: this.nestedFrames,
+              });
+              // if (!this.props.hidden) {
+              //   frame.style.visibility = 'visible';
+              // }
+              frameBody.style.visibility = 'visible';
               this.props.onFrameAssetLoad();
               this.assetLoadingPromises.length = 0;
               if (this.props.isScreenPreview) {
@@ -252,10 +310,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               }
             }
           });
-        // this is a puma number for the following code to wait for the css to be aplied
-        // (not downloaded) we already wait for css download
-        // TODO Fix this deterministically
-        }, 300);
+        }, 100);
       });
     };
   }
@@ -265,6 +320,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       <Tags.EmbedFrame
         src="about:blank"
         title={this.props.screen.displayName}
+        id={ROOT_EMBED_IFRAME_ID}
         style={{
           visibility: this.props.hidden ? 'hidden' : 'visible',
         }}
@@ -274,7 +330,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             this.props.innerRefs.forEach(r => r.current = ref);
           }
         }}
-        srcDoc="<!DOCTYPE html><html><head></head><body></body></html>"
+        srcDoc={IFRAME_DEFAULT_DOC}
       />
     );
   }

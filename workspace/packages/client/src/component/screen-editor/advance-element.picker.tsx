@@ -2,7 +2,7 @@ import React from 'react';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 
 type PropsType = {
-    elements: HTMLElement[];
+    elements: Node[];
     domElPicker: DomElPicker | null;
     selectedEl: HTMLElement;
     count: number;
@@ -25,11 +25,11 @@ function AdvanceElementPicker({ elements, domElPicker, selectedEl, count, setSel
           fontSize: '10px',
           textTransform: 'lowercase',
           background: `${el === selectedEl ? domElPicker?.highlightBgColor() : 'white'}` }}
-        onMouseMove={(e) => { e.stopPropagation(); domElPicker?.selectElement(el, HighlightMode.Selection); }}
+        onMouseMove={(e) => { e.stopPropagation(); domElPicker?.selectElement(el as HTMLElement, HighlightMode.Selection); }}
         onMouseLeave={(e) => { e.stopPropagation(); domElPicker?.selectElement(selectedEl, HighlightMode.Pinned); }}
-        onClick={(e) => { e.stopPropagation(); setSelectedEl(el, selectedEl); }}
+        onClick={(e) => { e.stopPropagation(); setSelectedEl(el as HTMLElement, selectedEl); }}
       >
-        {elements[0].tagName}
+        {elements[0].nodeName}
         <AdvanceElementPicker
           elements={elements.slice(1)}
           domElPicker={domElPicker}

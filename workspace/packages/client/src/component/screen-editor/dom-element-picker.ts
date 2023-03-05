@@ -1,4 +1,5 @@
 import HighlighterBase from '../base/hightligher-base';
+import { ROOT_EMBED_IFRAME_ID } from './preview';
 
 export enum HighlightMode {
   Idle,
@@ -9,8 +10,7 @@ export enum HighlightMode {
 
 type ElSelectCallback = (
   el: HTMLElement,
-  doc: Document,
-  parents: HTMLElement[]
+  parents: Node[]
 ) => void;
 
 type ElDeSelectCallback = (el: HTMLElement, doc: Document) => void;
@@ -93,10 +93,14 @@ export default class DomElementPicker extends HighlighterBase {
 
   private onElDeSelect: ElDeSelectCallback;
 
-  private evts: Partial<Record<keyof HTMLElementEventMap, Array<(e: Event) => void>>>;
+  private evts: Partial<Record<keyof HTMLElementEventMap, Array<(doc: Document) => (e: Event) => void>>>;
 
-  constructor(doc: Document, cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback }) {
-    super(doc);
+  constructor(
+    doc: Document,
+    nestedFrames: HTMLIFrameElement[],
+    cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback }
+  ) {
+    super(doc, nestedFrames);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;
@@ -136,8 +140,11 @@ export default class DomElementPicker extends HighlighterBase {
     return this;
   }
 
-  addEventListener<K extends keyof DocumentEventMap>(eventName: K, fn: (e: DocumentEventMap[K]) => void) {
-    let fns: Array<(e: DocumentEventMap[K]) => void> = [];
+  addEventListener<K extends keyof DocumentEventMap>(
+    eventName: K,
+    fn: (doc: Document) => (e: DocumentEventMap[K]) => void
+  ) {
+    let fns: Array<(doc: Document) => (e: DocumentEventMap[K]) => void> = [];
     if (eventName in this.evts) {
       fns = this.evts[eventName]!;
     } else {
@@ -146,7 +153,7 @@ export default class DomElementPicker extends HighlighterBase {
     fns.push(fn);
     if (eventName !== 'click') {
       // we already install click listeners from this, hence outside clicks needs to be handled differently
-      this.doc.addEventListener(eventName, fn);
+      this.subscribeListenerToAllDoc(eventName, fn);
     }
   }
 
@@ -155,20 +162,13 @@ export default class DomElementPicker extends HighlighterBase {
   }
 
   setupHighlighting() {
-    this.doc.addEventListener('mousemove', this.handleMouseMove);
-    this.doc.addEventListener('click', this.handleClick);
+    this.subscribeListenerToAllDoc('mousemove', this.handleMouseMove);
+    this.subscribeListenerToAllDoc('click', this.handleClick);
     return this;
   }
 
   dispose() {
     this.highlightMode = HighlightMode.Idle;
-    this.doc.removeEventListener('mousemove', this.handleMouseMove);
-    this.doc.removeEventListener('click', this.handleClick);
-    for (const [eventName, fns] of Object.entries(this.evts)) {
-      for (const fn of fns) {
-        this.doc.removeEventListener(eventName, fn);
-      }
-    }
     this.evts = {};
     super.dispose();
   }
@@ -176,7 +176,7 @@ export default class DomElementPicker extends HighlighterBase {
   // TODO If there are other html elements spanning over image element then we miss the image element, travarse the full
   // array returned by elementsFromPoint to checik if image element is in path.
   // Can be replicated using google analytics right top user icon click
-  private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number): HTMLElement | Text {
+  private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number, doc: Document): HTMLElement | Text {
     let i = 0;
     let svgEl: HTMLElement | null = null;
     for (const el of els) {
@@ -198,11 +198,12 @@ export default class DomElementPicker extends HighlighterBase {
     }
 
     const elBelowMouse = elToBeReturned as HTMLElement;
-    const text = this.findTextDescendantsBelowMouse(elBelowMouse, x, y);
+    const text = this.findTextDescendantsBelowMouse(elBelowMouse, x, y, doc);
     return text || elBelowMouse;
   }
 
-  private findTextDescendantsBelowMouse(el: HTMLElement, x: number, y: number): Text | null {
+  // eslint-disable-next-line class-methods-use-this
+  private findTextDescendantsBelowMouse(el: HTMLElement, x: number, y: number, doc: Document): Text | null {
     const children = Array.from(el.childNodes);
     if (children.length === 1 && children[0].nodeType === Node.TEXT_NODE) {
       // If there is only one child and the node is child node, then consider the whole node as text node.
@@ -210,7 +211,7 @@ export default class DomElementPicker extends HighlighterBase {
     }
     for (const child of children) {
       if (child.nodeType === Node.TEXT_NODE || child instanceof Text) {
-        const range = this.doc.createRange();
+        const range = doc.createRange();
         range.selectNode(child);
         const rect = range.getBoundingClientRect();
         if (x > rect.left && x < rect.right && y > rect.top && y < rect.bottom) {
@@ -221,42 +222,58 @@ export default class DomElementPicker extends HighlighterBase {
     return null;
   }
 
-  private handleMouseMove = (event: MouseEvent) => {
+  private handleMouseMove = (doc: Document) => (event: MouseEvent) => {
     if (this.highlightMode !== HighlightMode.Selection) return;
-    const els = this.doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
+    // const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
+    const els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
     if (!els.length) return;
-    const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY);
+    const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY, doc);
+    // console.log(el);
     const anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
     if (this.prevElHovered && this.prevElHovered === anchorEl) return;
     this.prevElHovered = anchorEl;
-    this.selectElement(anchorEl);
+    this.selectElementInDoc(anchorEl, doc);
   };
 
-  selectElement(el: HTMLElement, mode = HighlightMode.NOOP, ghost = false) {
-    !ghost && super.selectElement(el);
+  selectElementInDoc(el: HTMLElement, doc: Document, mode = HighlightMode.NOOP, ghost = false) {
+    !ghost && super.selectElementInDoc(el, doc);
     if (mode === HighlightMode.Pinned) {
       this.pinnedMode(el);
     }
-    // rest of the mode support is not yet required hence not added
   }
 
-  static getParents(el: any): HTMLElement[] {
-    let tagName = el.tagName;
+  selectElement(el: HTMLElement, mode = HighlightMode.NOOP, ghost = false): void {
+    this.selectElementInDoc(el, el.ownerDocument, mode, ghost);
+  }
+
+  static getParents(el: Node): Node[] {
     const res = [];
     let temp = el;
-    while (tagName !== 'BODY') {
-      const newEl = temp.parentElement;
+    while (true) {
+      if (temp.nodeName === '#document') {
+        const tEl = temp as Document;
+        if (tEl.defaultView
+            && tEl.defaultView.frameElement
+            && tEl.defaultView.frameElement.id === ROOT_EMBED_IFRAME_ID
+        ) {
+          break;
+        } else {
+          temp = tEl.defaultView!.frameElement!;
+        }
+      }
       res.push(temp);
-      temp = newEl;
-      tagName = newEl.tagName;
+      temp = temp.parentNode!;
     }
-    return res.reverse();
+    return res.filter(e => {
+      const box = (e as HTMLElement).getBoundingClientRect();
+      return box.height !== 0 && box.width !== 0;
+    }).reverse();
   }
 
   private pinnedMode(el: HTMLElement) {
     this.highlightMode = HighlightMode.Pinned;
     const parents = DomElementPicker.getParents(el);
-    this.onElSelect(el, this.doc, parents);
+    this.onElSelect(el, parents);
   }
 
   createFullScreenMask() {
@@ -267,7 +284,7 @@ export default class DomElementPicker extends HighlighterBase {
     }
   }
 
-  private handleClick = (e: MouseEvent) => {
+  private handleClick = (doc: Document) => (e: MouseEvent) => {
     if (this.highlightMode === HighlightMode.Selection) {
       const el = this.prevElHovered;
       if (!el) {
@@ -277,7 +294,7 @@ export default class DomElementPicker extends HighlighterBase {
       e.preventDefault();
       this.pinnedMode(el as HTMLElement);
     } else {
-      (this.evts.click || []).map(f => f(e));
+      (this.evts.click || []).map(f => f(doc)(e));
     }
   };
 }

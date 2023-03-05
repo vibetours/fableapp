@@ -96,7 +96,7 @@ interface IOwnStateProps {
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
   selectedElAnnFwd: string;
-  selectedElsParents: HTMLElement [];
+  selectedElsParents: Node[];
   selectedAnnotationId: string;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
@@ -704,8 +704,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  onBeforeFrameBodyDisplay = () => {
-    this.initDomPicker();
+  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }) => {
+    this.initDomPicker(params.nestedFrames);
   };
 
   // eslint-disable-next-line class-methods-use-this
@@ -1028,7 +1028,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.state.isInElSelectionMode && this.domElPicker?.enable();
   };
 
-  private onKeyDown = (e: KeyboardEvent) => {
+  private onKeyDown = () => (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       // TODO handle pin mode and annotation selection
       if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
@@ -1045,7 +1045,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   };
 
-  private goToSelectionMode = () => {
+  private goToSelectionMode = () => () => {
     // todo[now] repeated code with onKeyDown method
     if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
       this.domElPicker.getOutOfPinMode();
@@ -1069,7 +1069,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  private onElSelect = (el: HTMLElement, _doc: Document, parents: HTMLElement[]) => {
+  private onElSelect = (el: HTMLElement, parents: Node[]) => {
     this.domElPicker!.elPath(el);
     this.setState({ selectedEl: el, selectedElsParents: parents });
   };
@@ -1079,12 +1079,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: null });
   };
 
-  private initDomPicker() {
+  private initDomPicker(nestedFrames: HTMLIFrameElement[]) {
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
       if (!this.domElPicker) {
-        this.domElPicker = new DomElPicker(doc, {
+        this.domElPicker = new DomElPicker(doc, nestedFrames, {
           onElSelect: this.onElSelect,
           onElDeSelect: this.onElDeSelect,
         });

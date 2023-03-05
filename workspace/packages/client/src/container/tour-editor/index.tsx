@@ -326,7 +326,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             showPreview={`/p/tour/${this.props.tour?.rid}`}
           />
         </GTags.HeaderCon>
-        )
         <GTags.BodyCon style={{
           height: 'calc(100% - 72px)',
           background: '#fff',

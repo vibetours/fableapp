@@ -22,7 +22,7 @@ export interface IOwnProps {
   screenData: ScreenData;
   divPadding: number;
   navigate: NavFn;
-  onBeforeFrameBodyDisplay: () => void;
+  onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
   innerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
   playMode: boolean;
   allAnnotationsForScreen: IAnnotationConfig[];
@@ -49,10 +49,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.embedFrameRef = React.createRef();
   }
 
-  onBeforeFrameBodyDisplay = () => {
-    this.initAnnotationLCM();
+  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }) => {
+    this.initAnnotationLCM(params.nestedFrames);
     this.applyEdits(this.props.allEdits);
-    this.props.onBeforeFrameBodyDisplay();
+    this.props.onBeforeFrameBodyDisplay(params);
   };
 
   private applyEdits(allEdits: EditItem[]) {
@@ -117,12 +117,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.props.onFrameAssetLoad({ foundAnnotation });
   };
 
-  private initAnnotationLCM() {
+  private initAnnotationLCM(nestedFrames: HTMLIFrameElement[]) {
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
       if (!this.annotationLCM) {
-        this.annotationLCM = new AnnotationLifecycleManager(doc, {
+        this.annotationLCM = new AnnotationLifecycleManager(doc, nestedFrames, {
           navigate: this.props.navigate,
           isPlayMode: this.props.playMode,
         });

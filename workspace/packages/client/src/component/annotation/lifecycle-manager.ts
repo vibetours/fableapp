@@ -2,7 +2,7 @@ import ReactDOM, { Root } from 'react-dom/client';
 import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
-import HighlighterBase from '../base/hightligher-base';
+import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
 import { getDefaultTourOpts } from './annotation-config-utils';
 import { NavFn } from '../../types';
@@ -34,8 +34,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private isPlayMode: boolean;
 
   // Take the initial annotation config from here
-  constructor(doc: Document, opts: { navigate: NavFn, isPlayMode: boolean }) {
-    super(doc);
+  constructor(doc: Document, nestedFrames: HTMLIFrameElement[], opts: { navigate: NavFn, isPlayMode: boolean }) {
+    super(doc, nestedFrames);
     this.nav = opts.navigate;
     this.vp = {
       w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
@@ -62,6 +62,23 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.hideAllAnnotations();
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getBoundingRectWrtRootFrame(el: HTMLElement): Rect {
+    const doc = el.ownerDocument;
+    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(v => +v);
+    const box = el.getBoundingClientRect();
+    return {
+      x: box.x + dx,
+      y: box.y + dy,
+      top: box.top + dy,
+      bottom: box.bottom + dy,
+      left: box.left + dx,
+      right: box.right + dx,
+      height: box.height,
+      width: box.width,
+    };
+  }
+
   show() {
     if (this.mode === AnnotationViewMode.Show) {
       return;
@@ -81,11 +98,19 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return '#ffffff00';
   }
 
-  private onScroll = () => {
+  private onScroll = (doc: Document) => () => {
     if (this.mode === AnnotationViewMode.Hide) {
       return;
     }
-    this.render();
+    this.con!.style.visibility = 'hidden';
+    this.maskEl!.style.visibility = 'hidden';
+    this.frameIds.forEach(id => clearTimeout(id));
+    this.frameIds.length = 0;
+    this.frameIds.push(setTimeout(() => {
+      this.render();
+      this.maskEl!.style.visibility = 'visible';
+      this.con!.style.visibility = 'visible';
+    }, 500) as unknown as number);
   };
 
   private createContainerRoot(): [HTMLDivElement, Root] {
@@ -97,7 +122,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     con.style.top = '0';
     con.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     this.attachElToUmbrellaDiv(con);
-    this.doc.body.addEventListener('scroll', this.onScroll, true);
+    this.subscribeListenerToAllDoc('scroll', this.onScroll);
     const rRoot = ReactDOM.createRoot(con);
     return [con, rRoot];
   }
@@ -127,19 +152,19 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       return;
     }
     const props: ({
-      box: DOMRect,
+      box: Rect,
       conf: IAnnoationDisplayConfig,
     })[] = [];
     for (const [, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       props.push({
-        box: el.getBoundingClientRect(),
+        box: this.getBoundingRectWrtRootFrame(el),
         conf: annotationDisplayConfig,
       });
       if (annotationDisplayConfig.isMaximized) {
         if (annotationDisplayConfig.config.type === 'cover') {
           this.createFullScreenMask();
         } else {
-          this.selectElement(el);
+          this.selectElementInDoc(el, el.ownerDocument);
         }
         this.showTransparentMask(!this.opts.showOverlay);
       }
@@ -265,7 +290,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
     if (this.con) {
       this.con.remove();
-      this.doc.body.removeEventListener('scroll', this.onScroll, true);
+      // this.doc.body.removeEventListener('scroll', this.onScroll, true);
     }
     super.dispose();
   }

@@ -1,12 +1,12 @@
 import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { NavFn } from '../../types';
-import HighlighterBase from '../base/hightligher-base';
+import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
-  box: DOMRect,
+  box: Rect,
   nav: NavFn,
   win: Window,
 }
@@ -224,7 +224,7 @@ export interface IAnnoationDisplayConfig {
 }
 
 interface IConProps {
-  data: Array<{conf: IAnnoationDisplayConfig, box: DOMRect}>,
+  data: Array<{conf: IAnnoationDisplayConfig, box: Rect}>,
   nav: NavFn,
   win: Window
 }

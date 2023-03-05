@@ -1,3 +1,16 @@
+import { ROOT_EMBED_IFRAME_ID } from '../screen-editor/preview';
+
+export interface Rect {
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
 export default abstract class HighlighterBase {
   protected readonly doc: Document;
 
@@ -7,21 +20,27 @@ export default abstract class HighlighterBase {
 
   static ANNOTATION_PADDING_ONE_SIDE = 8;
 
-  constructor(doc: Document) {
+  nestedFrames: HTMLIFrameElement[];
+
+  nestedDocs: Document[];
+
+  private listnrSubs: Partial<Record<keyof HTMLElementEventMap, Array<[(e: Event) => void, Document]>>>;
+
+  constructor(doc: Document, nestedFrames: HTMLIFrameElement[]) {
     this.doc = doc;
+    this.nestedFrames = nestedFrames;
+    this.nestedDocs = this.nestedFrames.map(f => f.contentDocument).filter(d => !!d) as Document[];
     this.win = doc.defaultView as Window;
     this.maskEl = null;
-  }
-
-  private getMaxZIndex() {
-    return Array.from(this.doc.querySelectorAll('body *'))
-      .map(a => parseFloat(this.win.getComputedStyle(a).zIndex))
-      .filter(a => !Number.isNaN(a))
-      .sort((m, n) => n - m)
-      .pop() || 1;
+    this.listnrSubs = {};
   }
 
   protected dispose() {
+    for (const [key, unsubs] of Object.entries(this.listnrSubs)) {
+      const tKey = key as keyof HTMLElementEventMap;
+      unsubs.forEach(([fn, doc]) => doc.removeEventListener(tKey, fn, key === 'scroll'));
+    }
+    this.listnrSubs = {};
     this.removeMaskIfPresent();
   }
 
@@ -38,21 +57,25 @@ export default abstract class HighlighterBase {
     );
   }
 
-  protected selectElement(el: HTMLElement) {
+  protected selectElementInDoc(el: HTMLElement, doc: Document) {
+    const win = doc.defaultView!;
+    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
     const elSize: DOMRect = el.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
 
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
 
-    const top = elSize.top + this.win.scrollY;
-    const left = elSize.left + this.win.scrollX;
+    const top = elSize.top + this.win.scrollY + dy;
+    const left = elSize.left + this.win.scrollX + dx;
+
+    // console.log(el.innerText, 'dx', dx, 'dy', dy, 'sx', 'elx', elSize.left, 'ely', elSize.top);
 
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
-    const width = rightEndpoint >= this.win.scrollX + this.win.innerWidth
+    const width = rightEndpoint >= win.scrollX + win.innerWidth
       ? elSize.width : elSize.width + (left <= 0 ? 0 : padding * 2);
 
     const bottomEndpoint = Math.ceil(top + elSize.height + (top <= 0 ? 0 : padding * 2));
-    const height = bottomEndpoint >= this.win.scrollY + this.win.innerHeight
+    const height = bottomEndpoint >= win.scrollY + win.innerHeight
       ? elSize.height : elSize.height + (top <= 0 ? 0 : padding * 2);
 
     maskBox.style.top = `${top - (top <= 0 ? -2 : padding)}px`;
@@ -96,6 +119,20 @@ export default abstract class HighlighterBase {
     return mask;
   }
 
+  protected subscribeListenerToAllDoc<K extends keyof DocumentEventMap>(
+    evt: K,
+    fn: (doc: Document) => (e: DocumentEventMap[K]) => void
+  ) {
+    (this.listnrSubs as any)[evt] = [
+      ...((this.listnrSubs as any)[evt] || []),
+      ...[this.doc, ...this.nestedDocs].map(doc => {
+        const evtFn = fn(doc);
+        doc.addEventListener(evt, evtFn, evt === 'scroll');
+        return [evtFn, doc];
+      })
+    ];
+  }
+
   showTransparentMask(show: boolean) {
     if (!this.maskEl) {
       return;
@@ -127,6 +164,9 @@ export default abstract class HighlighterBase {
     const elIdxs = path.split('.').map((id) => +id);
     let node = this.doc as Node;
     for (const id of elIdxs) {
+      if ((node as HTMLElement).tagName && (node as HTMLElement).tagName.toLowerCase() === 'iframe') {
+        node = (node as HTMLIFrameElement).contentDocument!;
+      }
       node = node.childNodes[id];
     }
     if (node === this.doc) {
@@ -135,25 +175,30 @@ export default abstract class HighlighterBase {
     return node as HTMLElement;
   }
 
+  // eslint-disable-next-line class-methods-use-this
   elPath(el: HTMLElement) {
     let elPath = el.getAttribute('fab-el-path');
     if (elPath === null) {
-      const path = HighlighterBase.calculatePathFromEl(el, this.doc, []);
+      const path = HighlighterBase.calculatePathFromEl(el, []);
       elPath = path.join('.');
       el.setAttribute('fab-el-path', elPath);
     }
     return elPath;
   }
 
-  private static calculatePathFromEl(el: Node, doc: Document, loc: number[]): number[] {
-    if (!el.parentNode) {
+  private static calculatePathFromEl(el: Node, loc: number[]): number[] {
+    if (el.nodeName === '#document') {
+      const tEl = el as Document;
+      if (tEl.defaultView && tEl.defaultView.frameElement && tEl.defaultView.frameElement.id !== ROOT_EMBED_IFRAME_ID) {
+        return this.calculatePathFromEl(tEl.defaultView.frameElement, loc);
+      }
       return loc.reverse();
     }
-    const siblings = el.parentNode.childNodes;
+    const siblings = el.parentNode!.childNodes;
     for (let i = 0, l = siblings.length; i < l; i++) {
       if (el === siblings[i]) {
         loc.push(i);
-        return this.calculatePathFromEl(el.parentNode, doc, loc);
+        return this.calculatePathFromEl(el.parentNode!, loc);
       }
     }
     return loc;
