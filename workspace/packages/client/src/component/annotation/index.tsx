@@ -272,7 +272,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
       const hideAnnotation = p.conf.config.hideAnnotation;
       const isHotspot = p.conf.config.isHotspot;
       return (
-        <>
+        <div key={p.conf.config.id}>
           {
             isHotspot && <AnnotationHotspot
               data={[{
@@ -285,13 +285,12 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             />
           }
           { !hideAnnotation && <AnnotationCard
-            key={p.conf.config.id}
             annotationDisplayConfig={p.conf}
             box={p.box}
             nav={this.props.nav}
             win={this.props.win}
           />}
-        </>
+        </div>
       );
     });
   }
