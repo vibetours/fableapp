@@ -209,7 +209,9 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     updatedAt: lc.updatedAt,
     positioning: lc.positioning,
     type: lc.type,
-    size: lc.size
+    size: lc.size,
+    isHotspot: lc.isHotspot,
+    hideAnnotation: lc.hideAnnotation,
   };
 }
 
@@ -225,9 +227,21 @@ export function remoteToLocalAnnotationConfigMap(
 ): Record<string, IAnnotationConfig[]> {
   const config2: Record<string, IAnnotationConfig[]> = {};
   for (const [screenId, anns] of Object.entries(config)) {
-    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(an));
+    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(normalizeBackwardCompatibility(an)));
   }
   return config2;
+}
+
+export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAnnotationOriginConfig {
+  if (an.isHotspot === undefined || an.isHotspot === null) {
+    an.isHotspot = false;
+  }
+
+  if (an.hideAnnotation === undefined || an.hideAnnotation === null) {
+    an.hideAnnotation = false;
+  }
+
+  return an;
 }
 
 // the atomicity of merge is not granular (property level changes), rather logical entity level.

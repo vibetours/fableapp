@@ -29,6 +29,18 @@ export function updateAnnotationBoxSize(config: IAnnotationConfig, size: EAnnota
   return newConfig;
 }
 
+export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.isHotspot = isHotspot;
+  return newConfig;
+}
+
+export function updateAnnotationHideAnnotation(config: IAnnotationConfig, hideAnnotation: boolean): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.hideAnnotation = hideAnnotation;
+  return newConfig;
+}
+
 export function updateTourDataOpts(
   opts: ITourDataOpts,
   key: keyof ITourDataOpts,
@@ -157,6 +169,8 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     syncPending: true,
     type: isCoverAnn ? 'cover' : 'default',
     size: isCoverAnn ? 'medium' : 'small',
+    isHotspot: false,
+    hideAnnotation: false,
     buttons: [{
       id: getRandomId(),
       type: 'next',

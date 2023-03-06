@@ -164,6 +164,8 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',
   size: EAnnotationBoxSize,
+  isHotspot: boolean,
+  hideAnnotation: boolean,
 }
 
 // TODO perform this conversion, client side

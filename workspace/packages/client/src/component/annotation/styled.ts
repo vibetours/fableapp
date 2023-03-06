@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { AnnotationButtonSize, AnnotationButtonStyle } from '@fable/common/dist/types';
 import { Link } from 'react-router-dom';
+import { Rect } from '../base/hightligher-base';
 
 export const BubbleCon = styled.div`
   position: absolute;
@@ -80,3 +81,20 @@ function getColorContrast(hex: string): 'dark' | 'light' {
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
   return (yiq >= 128) ? 'light' : 'dark';
 }
+
+interface AnHotspotProps {
+  box: Rect;
+  scrollX: number;
+  scrollY: number;
+}
+
+export const AnHotspot = styled.div`
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  position: absolute;
+  top: ${(p: AnHotspotProps) => `${p.box.top + p.scrollY}px`};
+  left: ${(p: AnHotspotProps) => `${p.box.left + p.scrollX}px`};
+  width: ${(p: AnHotspotProps) => `${p.box.width}px`};
+  height: ${(p: AnHotspotProps) => `${p.box.height}px`};
+`;

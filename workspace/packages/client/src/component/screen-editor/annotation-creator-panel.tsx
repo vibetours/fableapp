@@ -41,11 +41,12 @@ import {
   updateTourDataOpts,
   deleteAnnotation,
   updateAnnotationBoxSize,
+  updateAnnotationIsHotspot,
+  updateAnnotationHideAnnotation,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
 import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
-
 
 const { confirm } = Modal;
 
@@ -202,6 +203,42 @@ export default function AnnotationCreatorPanel(props: IProps) {
           onChange={(e: EAnnotationBoxSize) => setConfig(c => updateAnnotationBoxSize(c, e))}
         />
       </Tags.AnotCrtPanelSec>
+      {
+        config.type !== 'cover' && (
+          <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Hotspot</GTags.Txt>
+              <Tooltip
+                placement="right"
+                title={
+                  <GTags.Txt className="subsubhead" style={{ color: 'white' }}>
+                    If the element is made hotspot, user can click on the element to go to the next annotation.
+                  </GTags.Txt>
+                }
+              >
+                <QuestionCircleOutlined />
+              </Tooltip>
+            </div>
+            <Switch
+              style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
+              defaultChecked={config.isHotspot}
+              onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
+            />
+          </Tags.AnotCrtPanelSec>
+        )
+      }
+      {
+        config.isHotspot && config.type !== 'cover' && (
+          <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+            <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Hide Annotation</GTags.Txt>
+            <Switch
+              style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
+              defaultChecked={config.hideAnnotation}
+              onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
+            />
+          </Tags.AnotCrtPanelSec>
+        )
+      }
       <Tags.AnotCrtPanelSec>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Theme </GTags.Txt>

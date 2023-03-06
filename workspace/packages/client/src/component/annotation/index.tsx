@@ -228,6 +228,34 @@ interface IConProps {
   nav: NavFn,
   win: Window
 }
+interface HotspotProps {
+  data: Array<{conf: IAnnotationConfig, box: Rect, scrollX: number, scrollY: number}>,
+  nav: NavFn,
+}
+
+export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
+  render() {
+    return this.props.data.map((p, idx) => {
+      const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
+
+      return (
+        <Tags.AnHotspot
+          key={p.conf.id}
+          box={p.box}
+          scrollX={p.scrollX}
+          scrollY={p.scrollY}
+          className="fable-hotspot"
+          onClick={() => {
+            btnConf.hotspot && this.props.nav(
+              btnConf.hotspot.actionValue,
+              btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+            );
+          }}
+        />
+      );
+    });
+  }
+}
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
@@ -241,13 +269,30 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         // />;
         return <div key={p.conf.config.id} />;
       }
-      return (<AnnotationCard
-        key={p.conf.config.id}
-        annotationDisplayConfig={p.conf}
-        box={p.box}
-        nav={this.props.nav}
-        win={this.props.win}
-      />);
+      const hideAnnotation = p.conf.config.hideAnnotation;
+      const isHotspot = p.conf.config.isHotspot;
+      return (
+        <>
+          {
+            isHotspot && <AnnotationHotspot
+              data={[{
+                conf: p.conf.config,
+                box: p.box,
+                scrollX: this.props.win.scrollX,
+                scrollY: this.props.win.scrollY
+              }]}
+              nav={this.props.nav}
+            />
+          }
+          { !hideAnnotation && <AnnotationCard
+            key={p.conf.config.id}
+            annotationDisplayConfig={p.conf}
+            box={p.box}
+            nav={this.props.nav}
+            win={this.props.win}
+          />}
+        </>
+      );
     });
   }
 }
