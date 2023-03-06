@@ -40,7 +40,7 @@ export function getEdges(data: AnnotationPerScreen[]) {
     for (const ann of el.annotations) {
       const fromId = `${el.screen.id}/${ann.refId}`;
       for (const btn of ann.buttons) {
-        if (btn.type === 'next' && btn.hotspot) {
+        if (btn.type === 'next' && btn.hotspot && btn.hotspot.actionType === 'navigate') {
           const toId = btn.hotspot.actionValue;
           edges.push([fromId, toId]);
         }
