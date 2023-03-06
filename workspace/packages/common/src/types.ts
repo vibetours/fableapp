@@ -5,6 +5,11 @@ export interface SerNode {
   name: string;
   attrs: Record<string, string | null>;
   props: {
+    nodeProps?: {
+        type?: string;
+        value?: string | boolean | number;
+        checked?: boolean;
+    };
     cssRules?: string;
     proxyUrl?: string;
     proxyAttr?: 'href' | 'src';

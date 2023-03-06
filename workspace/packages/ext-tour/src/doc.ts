@@ -204,6 +204,30 @@ export function getSearializedDom(
       return { serNode: sNode };
     }
 
+    if (sNode.name === "input") {
+      const tNode = node as HTMLInputElement;
+      const type = tNode.type;
+
+      if (type === "checkbox" || type === "radio") {
+        sNode.props.nodeProps = {
+          type,
+          checked: tNode.checked,
+        };
+      } else {
+        sNode.props.nodeProps = {
+          type,
+          value: tNode.value,
+        };
+      }
+    }
+
+    if (sNode.name === "select") {
+      const tNode = node as HTMLSelectElement;
+      sNode.props.nodeProps = {
+        value: tNode.value,
+      };
+    }
+
     if (sNode.name === "canvas") {
       const tNode = node as HTMLCanvasElement;
       const { width, height } = tNode.getBoundingClientRect();

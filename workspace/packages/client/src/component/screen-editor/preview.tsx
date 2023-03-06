@@ -65,6 +65,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       return element;
     }
 
+    for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
+      (el as any)[nodePropKey] = nodePropValue;
+    }
+
     let attrKey;
     let attrValue;
     for ([attrKey, attrValue] of Object.entries(node.attrs)) {
@@ -182,6 +186,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               );
             } else {
               console.warn('Iframe nodes are more than it could ingest', child.chldrn);
+            }
+          } else if (serNode.name === 'select') {
+            // For select node the value property need to be set after the child is attached
+            for (const [nodePropKey, nodePropValue] of Object.entries(serNode.props.nodeProps || {})) {
+              (node as any)[nodePropKey] = nodePropValue;
             }
           }
         }
