@@ -85,15 +85,12 @@ export default abstract class HighlighterBase {
   }
 
   createFullScreenMask() {
-    const el = this.doc.querySelector('body');
-    if (el) {
-      const elSize: DOMRect = el.getBoundingClientRect();
-      const maskBox = this.getOrCreateMask();
-      maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
-      maskBox.style.left = `${elSize.left + this.win.scrollX}px`;
-      maskBox.style.width = '0px';
-      maskBox.style.height = '0px';
-    }
+    const elSize: DOMRect = this.doc.body.getBoundingClientRect();
+    const maskBox = this.getOrCreateMask();
+    maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
+    maskBox.style.left = `${elSize.left + this.win.scrollX}px`;
+    maskBox.style.width = '0px';
+    maskBox.style.height = '0px';
   }
 
   abstract maskHasDarkBg(): boolean;

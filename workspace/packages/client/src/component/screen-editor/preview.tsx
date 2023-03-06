@@ -254,15 +254,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
-        // frame.style.visibility = 'hidden';
         this.deserFrame(this.props.screenData.docTree, doc, this.props.screenData.version);
+        frame.contentDocument.body.style.visibility = 'hidden';
         while (this.frameLoadingPromises.length) {
           await this.frameLoadingPromises.shift();
         }
-        if (frame && frame.contentDocument && frame.contentDocument.body) {
-          frame.contentDocument.body.style.visibility = 'hidden';
-          frame.contentDocument.body.setAttribute('dxdy', '0,0');
-        }
+        frame.contentDocument.body.setAttribute('dxdy', '0,0');
       } else {
         throw new Error("Can't find body of embed iframe");
       }
@@ -278,7 +275,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     frame.onload = () => {
-      requestAnimationFrame(async () => {
+      setTimeout(async () => {
         await this.deserDomIntoFrame(frame);
         /* requestAnimationFrame */setTimeout(() => {
           const doc = frame.contentDocument;
@@ -299,19 +296,20 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,
               });
-              // if (!this.props.hidden) {
-              //   frame.style.visibility = 'visible';
-              // }
               frameBody.style.visibility = 'visible';
-              this.props.onFrameAssetLoad();
               this.assetLoadingPromises.length = 0;
               if (this.props.isScreenPreview) {
                 scrollIframeEls(this.props.screenData.version, doc);
               }
+              this.props.onFrameAssetLoad();
             }
           });
         }, 100);
-      });
+      // If the screen is prerendered (hence hidden) we wait for 2seconds before we start rendering as
+      // the rendered screen might do scrolling to the element and this is a arbritary time to wait so that
+      // the scroll animation is closer to 60fps.
+      // TODO A better way to detect scroll is to update a global variable about scrolling status.
+      }, this.props.hidden ? 2000 : 16);
     };
   }
 

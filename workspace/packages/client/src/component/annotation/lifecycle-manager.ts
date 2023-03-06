@@ -31,6 +31,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private nav: NavFn;
 
+  private isAnnotationDrawingInProgress = false;
+
   private isPlayMode: boolean;
 
   // Take the initial annotation config from here
@@ -103,14 +105,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       return;
     }
     this.con!.style.visibility = 'hidden';
-    this.maskEl!.style.visibility = 'hidden';
+    this.createFullScreenMask();
     this.frameIds.forEach(id => clearTimeout(id));
     this.frameIds.length = 0;
     this.frameIds.push(setTimeout(() => {
       this.render();
-      this.maskEl!.style.visibility = 'visible';
       this.con!.style.visibility = 'visible';
-    }, 500) as unknown as number);
+    }, 15 * 16) as unknown as number);
   };
 
   private createContainerRoot(): [HTMLDivElement, Root] {
@@ -139,12 +140,21 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         annotationDisplayConfig.isInViewPort = false;
       }
     }
+
     el.scrollIntoView({
       behavior: 'smooth',
       block: 'center',
       inline: 'center'
     });
-    this.render();
+    this.createFullScreenMask();
+    // The first render is put inside timeout to avoid paint flashing of annotation when there is scroll present.
+    // scrollIntoView triggers scroll animation but there is no way to detect if the scroll is needed or not. If the
+    // scroll is needed then onScroll function discards the following render (as it discards render call when animation
+    // is ongoing)
+    this.frameIds.push(setTimeout(() => {
+      this.render();
+      this.con!.style.visibility = 'visible';
+    }, 6 * 16) as unknown as number);
   }
 
   private render() {
@@ -184,6 +194,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     opts: ITourDataOpts,
     showImmediate = false
   ) {
+    if (this.isAnnotationDrawingInProgress) {
+      return this;
+    }
+    this.isAnnotationDrawingInProgress = true;
     const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
     this.opts = opts;
@@ -202,6 +216,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (showImmediate) {
       this.showAnnotationFor(el);
     }
+    this.isAnnotationDrawingInProgress = false;
     return this;
   }
 
@@ -290,7 +305,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
     if (this.con) {
       this.con.remove();
-      // this.doc.body.removeEventListener('scroll', this.onScroll, true);
     }
     super.dispose();
   }
