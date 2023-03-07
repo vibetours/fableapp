@@ -6,6 +6,7 @@ import { getSearializedDom } from "./doc";
 import { Msg, MsgPayload } from "./msg";
 import { IExtStoredState, IUser } from "./types";
 import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
+import { version } from "../package.json";
 
 const APP_STATE_IDENTITY = "app_state_identity";
 
@@ -85,6 +86,8 @@ async function serializeDoc() {
     throw new Error("Active tab not found. Are you focused on the browser?");
   }
   showLoadingIcon(tab.id);
+
+  console.log(`Version: ${version}`);
 
   // Cross origin frames document are not accessible because of CORS hence we inject separate scripts to all
   // cross origin frames. The same origin frames are read from inside the the parent frame itself

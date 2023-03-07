@@ -7,6 +7,7 @@ import AntDesignThemeConfigProvider from 'antd/lib/config-provider';
 import App from './container/app';
 import reportWebVitals from './reportWebVitals';
 import config from './store-config';
+import packageJSON from '../package.json';
 
 const theme = {
   colors: {
@@ -41,6 +42,9 @@ const theme = {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
+
+console.log(`Version: ${packageJSON.version}`);
+
 root.render(
   <Provider store={config}>
     <ThemeProvider theme={theme}>

@@ -5,6 +5,7 @@ import "./index.less";
 import { IExtStoredState, IUser } from "../types";
 import { RootContext } from "./ctx";
 import Loader from "./components/loader";
+import { version } from "../../package.json";
 
 type Props = {};
 
@@ -60,6 +61,9 @@ class Root extends Component<Props, State> {
   render() {
     return (
       <div className="p-con">
+        <div style={{ position: "absolute", top: "5px", right: "5px", color: "gray", fontSize: "0.75rem" }}>
+          v{version}
+        </div>
         {!this.state.inited && (
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center" }}>

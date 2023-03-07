@@ -6,6 +6,7 @@ import allScreensIcon from '../../assets/all-screens-icon.svg';
 import allToursIcon from '../../assets/all-tours-icon.svg';
 import userManageIcon from '../../assets/user-manage-icon.svg';
 import analyticsIcon from '../../assets/analytics-icon.svg';
+import packageJSON from '../../../package.json';
 
 interface Props {
   selected: 'screens' | 'tours' | 'user-management' | 'analytics' | 'settings';
@@ -39,6 +40,7 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>
           <Tags.FooterItemProfileIcon src={iconSettings} alt="illustration setting" />
           <p>Settings</p>
+          <p style={{ fontSize: '0.85rem', color: 'gray' }}>v{packageJSON.version}</p>
         </Tags.FooterItem>
       </Tags.Footer>
     </Tags.Con>
