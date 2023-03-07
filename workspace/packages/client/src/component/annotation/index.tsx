@@ -75,6 +75,7 @@ export class AnnotationContent extends React.PureComponent<{
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
           <Tags.AnTextContent
+            bodyTextSize={this.props.config.bodyTextSize}
             ref={this.contentRef}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
           />

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  AnnotationBodyTextSize,
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
@@ -41,6 +42,7 @@ import {
   updateTourDataOpts,
   deleteAnnotation,
   updateAnnotationBoxSize,
+  updateAnnotationBodyTextSize,
   updateAnnotationIsHotspot,
   updateAnnotationHideAnnotation,
 } from '../annotation/annotation-config-utils';
@@ -201,6 +203,20 @@ export default function AnnotationCreatorPanel(props: IProps) {
             label: `${v}`
           }))}
           onChange={(e: EAnnotationBoxSize) => setConfig(c => updateAnnotationBoxSize(c, e))}
+        />
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Body text sizing</GTags.Txt>
+        <Select
+          defaultValue={config.bodyTextSize}
+          size="small"
+          bordered={false}
+          style={{ ...commonInputStyles, minWidth: '120px', }}
+          options={Object.entries(AnnotationBodyTextSize).map(([key, value]) => ({
+            value,
+            label: key
+          }))}
+          onChange={(e: AnnotationBodyTextSize) => setConfig(c => updateAnnotationBodyTextSize(c, e))}
         />
       </Tags.AnotCrtPanelSec>
       {

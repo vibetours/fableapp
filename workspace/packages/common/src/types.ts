@@ -6,9 +6,9 @@ export interface SerNode {
   attrs: Record<string, string | null>;
   props: {
     nodeProps?: {
-        type?: string;
-        value?: string | boolean | number;
-        checked?: boolean;
+      type?: string;
+      value?: string | boolean | number;
+      checked?: boolean;
     };
     cssRules?: string;
     proxyUrl?: string;
@@ -133,6 +133,12 @@ export enum AnnotationButtonSize {
   Small = 'small'
 }
 
+export enum AnnotationBodyTextSize {
+  small = '13',
+  medium = '16',
+  large = '20'
+}
+
 export interface IAnnotationButton {
   id: string;
   type: 'next' | 'prev' | 'custom';
@@ -171,6 +177,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   size: EAnnotationBoxSize,
   isHotspot: boolean,
   hideAnnotation: boolean,
+  bodyTextSize: AnnotationBodyTextSize;
 }
 
 // TODO perform this conversion, client side

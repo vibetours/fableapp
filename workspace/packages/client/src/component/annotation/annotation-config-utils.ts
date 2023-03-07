@@ -7,7 +7,8 @@ import {
   ITourEntityHotspot,
   IChronoUpdatable,
   ITourDataOpts,
-  EAnnotationBoxSize
+  EAnnotationBoxSize,
+  AnnotationBodyTextSize
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -26,6 +27,15 @@ export function updateAnnotationText(config: IAnnotationConfig, txt: string, dis
 export function updateAnnotationBoxSize(config: IAnnotationConfig, size: EAnnotationBoxSize): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.size = size;
+  return newConfig;
+}
+
+export function updateAnnotationBodyTextSize(
+  config: IAnnotationConfig,
+  bodyTextSize: AnnotationBodyTextSize
+): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.bodyTextSize = bodyTextSize;
   return newConfig;
 }
 
@@ -171,6 +181,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     size: isCoverAnn ? 'medium' : 'small',
     isHotspot: false,
     hideAnnotation: false,
+    bodyTextSize: AnnotationBodyTextSize.medium,
     buttons: [{
       id: getRandomId(),
       type: 'next',

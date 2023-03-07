@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { AnnotationButtonSize, AnnotationButtonStyle } from '@fable/common/dist/types';
+import { AnnotationButtonSize, AnnotationButtonStyle, AnnotationBodyTextSize } from '@fable/common/dist/types';
 import { Link } from 'react-router-dom';
 import { Rect } from '../base/hightligher-base';
 
@@ -26,12 +26,21 @@ export const AnContent = styled.div`
   align-items: center;
 `;
 
+interface AnTextContentProps {
+  bodyTextSize: AnnotationBodyTextSize
+}
+
 export const AnTextContent = styled.div`
   p {
     margin: 0;
   }
   p img {
     margin-top: 0.2em;
+  }
+
+  p {
+    font-size: ${(props: AnTextContentProps) => `${props.bodyTextSize}px`};
+    line-height: ${(props: AnTextContentProps) => `${parseFloat(props.bodyTextSize) * 1.4}px`};
   }
 `;
 

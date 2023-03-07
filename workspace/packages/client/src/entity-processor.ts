@@ -1,6 +1,7 @@
 import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
+  AnnotationBodyTextSize,
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
@@ -43,9 +44,9 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-    }/${state.default.commonConfig?.dataFileName}`),
+      }/${state.default.commonConfig?.dataFileName}`),
     editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-    }/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
+      }/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
     related: [],
     numUsedInTours: 0,
   };
@@ -212,6 +213,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     size: lc.size,
     isHotspot: lc.isHotspot,
     hideAnnotation: lc.hideAnnotation,
+    bodyTextSize: lc.bodyTextSize
   };
 }
 
@@ -239,6 +241,10 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAn
 
   if (an.hideAnnotation === undefined || an.hideAnnotation === null) {
     an.hideAnnotation = false;
+  }
+
+  if (an.bodyTextSize === undefined || an.bodyTextSize === null) {
+    an.bodyTextSize = AnnotationBodyTextSize.medium;
   }
 
   return an;
