@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "workspace",
+			"path": "workspace"
+		},
+		{
+			"name": "client",
+			"path": "workspace/packages/client"
+		},
+		{
+			"name": "common",
+			"path": "workspace/packages/common"
+		},
+		{
+			"name": "ext-tour",
+			"path": "workspace/packages/ext-tour"
+		}
+	],
+	"settings": {
+		"jest.disabledWorkspaceFolders": [
+			"app",
+			"client"
+		]
+	}
+}

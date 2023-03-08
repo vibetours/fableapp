@@ -6,6 +6,9 @@ import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
 import { getDefaultTourOpts } from './annotation-config-utils';
 import { NavFn } from '../../types';
+import { isBodyEl } from '../../utils';
+
+const scrollIntoView = require('scroll-into-view');
 
 export enum AnnotationViewMode {
   Show,
@@ -13,6 +16,8 @@ export enum AnnotationViewMode {
 }
 
 export default class AnnotationLifecycleManager extends HighlighterBase {
+  static SCROLL_TO_EL_TIME_MS = 350;
+
   private annotationElMap: Record<string, [HTMLElement, IAnnoationDisplayConfig]>;
 
   // TODO since theme is global across the annotations, we keep only once instance of this.
@@ -100,18 +105,17 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return '#ffffff00';
   }
 
-  private onScroll = (doc: Document) => () => {
-    if (this.mode === AnnotationViewMode.Hide) {
+  private beforeScrollStart = () => {
+    if (!this.isPlayMode) {
       return;
     }
     this.con!.style.visibility = 'hidden';
     this.createFullScreenMask();
-    this.frameIds.forEach(id => clearTimeout(id));
-    this.frameIds.length = 0;
-    this.frameIds.push(setTimeout(() => {
-      this.render();
-      this.con!.style.visibility = 'visible';
-    }, 15 * 16) as unknown as number);
+  };
+
+  private onScrollComplete = () => {
+    this.render();
+    this.con!.style.visibility = 'visible';
   };
 
   private createContainerRoot(): [HTMLDivElement, Root] {
@@ -123,7 +127,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     con.style.top = '0';
     con.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     this.attachElToUmbrellaDiv(con);
-    this.subscribeListenerToAllDoc('scroll', this.onScroll);
     const rRoot = ReactDOM.createRoot(con);
     return [con, rRoot];
   }
@@ -141,20 +144,26 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       }
     }
 
-    el.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center',
-      inline: 'center'
-    });
-    this.createFullScreenMask();
-    // The first render is put inside timeout to avoid paint flashing of annotation when there is scroll present.
-    // scrollIntoView triggers scroll animation but there is no way to detect if the scroll is needed or not. If the
-    // scroll is needed then onScroll function discards the following render (as it discards render call when animation
-    // is ongoing)
-    this.frameIds.push(setTimeout(() => {
-      this.render();
-      this.con!.style.visibility = 'visible';
-    }, 6 * 16) as unknown as number);
+    this.beforeScrollStart();
+    // we don't use el.scrollIntoView directly as it moves whole page layout if we want to keep the target el in center.
+    // Fable's tour is embedded in iframe of customer's page, we can't let the document scroll outside fable's iframe.
+    // el.scrollIntoView does not allow us to provide any boundary.
+    //
+    // We detect body element and then don't apply scroll as the library we use sometime scrolls the page all the way to
+    // the bottom of the page when body is selected.
+    //
+    // WARN Determining the nested scroll level through multiple container is a tricky problem across brower and across
+    // different dom elments (iframe / showdow root). For the interest of the time we did not solve ourself and used the
+    // scroll-into-view library. This library is not audited. TODO Later on, fix this ourself
+    if (!isBodyEl(el)) {
+      scrollIntoView(el, {
+        time: AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS,
+      }, (type: 'complete' | 'cancel') => {
+        if (type === 'complete') this.onScrollComplete();
+      });
+    } else {
+      setTimeout(this.onScrollComplete, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
+    }
   }
 
   private render() {

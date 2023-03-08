@@ -2,6 +2,7 @@ import { ScreenData, SerNode } from '@fable/common/dist/types';
 import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { P_RespScreen } from '../../entity-processor';
+import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
 
@@ -79,6 +80,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           attrValue = 'about:blank';
           el.setAttribute(attrKey, attrValue);
           el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
+          el.setAttribute('scrolling', 'yes');
         } else {
           if (node.name === 'a' && attrKey === 'href') {
             // eslint-disable-next-line no-script-url
@@ -318,7 +320,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       // the rendered screen might do scrolling to the element and this is a arbritary time to wait so that
       // the scroll animation is closer to 60fps.
       // TODO A better way to detect scroll is to update a global variable about scrolling status.
-      }, this.props.hidden ? 2000 : 16);
+      }, this.props.hidden ? 1000 : 16);
     };
   }
 
