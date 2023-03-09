@@ -158,9 +158,9 @@ export function loadScreenAndData(screenRid: string, shouldUseCache = false, pre
     } else {
       [data, edits] = await Promise.all([
         api<null, ScreenData>(screen!.dataFileUri.href),
-      screen!.parentScreenId
-        ? api<null, EditFile<AllEdits<ElEditType>>>(screen!.editFileUri.href)
-        : Promise.resolve(null),
+        screen!.parentScreenId
+          ? api<null, EditFile<AllEdits<ElEditType>>>(screen!.editFileUri.href)
+          : Promise.resolve(null),
       ]);
       if (edits !== null) {
         remoteEdits = convertEditsToLineItems(edits.edits, false);
@@ -321,7 +321,7 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
     const data = await api<null, TourData>(tour!.dataFileUri.href);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
