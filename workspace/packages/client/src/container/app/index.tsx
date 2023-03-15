@@ -8,6 +8,7 @@ import Tours from '../tours';
 import TourEditor from '../tour-editor';
 import Screen from '../screen';
 import Player from '../player';
+import Form from '../form';
 
 interface IDispatchProps {
   init: () => void;
@@ -57,6 +58,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="/tour/:tourId/:screenId/:annotationId" element={<TourEditor />} />
             <Route path="p/tour/:tourId" element={<Player />} />
             <Route path="p/tour/:tourId/:screenRid/:annotationId" element={<Player />} />
+            <Route path="/form/:formId" element={<Form />} />
           </Routes>
         </div>
       </Router>
