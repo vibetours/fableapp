@@ -39,6 +39,12 @@ export function updateAnnotationBodyTextSize(
   return newConfig;
 }
 
+export function updateAnnotationVideoURL(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.videoUrl = videoUrl;
+  return newConfig;
+}
+
 export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.isHotspot = isHotspot;
@@ -182,6 +188,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     isHotspot: false,
     hideAnnotation: false,
     bodyTextSize: AnnotationBodyTextSize.medium,
+    videoUrl: '',
     buttons: [{
       id: getRandomId(),
       type: 'next',

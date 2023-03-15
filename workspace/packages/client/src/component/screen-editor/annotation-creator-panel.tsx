@@ -45,6 +45,7 @@ import {
   updateAnnotationBodyTextSize,
   updateAnnotationIsHotspot,
   updateAnnotationHideAnnotation,
+  updateAnnotationVideoURL,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
@@ -217,6 +218,15 @@ export default function AnnotationCreatorPanel(props: IProps) {
             label: key
           }))}
           onChange={(e: AnnotationBodyTextSize) => setConfig(c => updateAnnotationBodyTextSize(c, e))}
+        />
+      </Tags.AnotCrtPanelSec>
+      <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Video Url</GTags.Txt>
+        <Input
+          defaultValue={config.videoUrl}
+          bordered={false}
+          style={{ ...commonInputStyles, maxWidth: '120px', }}
+          onChange={(e) => setConfig(c => updateAnnotationVideoURL(c, e.target.value))}
         />
       </Tags.AnotCrtPanelSec>
       {

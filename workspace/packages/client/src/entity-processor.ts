@@ -44,9 +44,9 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     urlStructured: new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-      }/${state.default.commonConfig?.dataFileName}`),
+    }/${state.default.commonConfig?.dataFileName}`),
     editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-      }/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
+    }/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
     related: [],
     numUsedInTours: 0,
   };
@@ -213,7 +213,8 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     size: lc.size,
     isHotspot: lc.isHotspot,
     hideAnnotation: lc.hideAnnotation,
-    bodyTextSize: lc.bodyTextSize
+    bodyTextSize: lc.bodyTextSize,
+    videoUrl: lc.videoUrl,
   };
 }
 
@@ -245,6 +246,10 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAn
 
   if (an.bodyTextSize === undefined || an.bodyTextSize === null) {
     an.bodyTextSize = AnnotationBodyTextSize.medium;
+  }
+
+  if (an.videoUrl === undefined || an.videoUrl === null) {
+    an.videoUrl = '';
   }
 
   return an;

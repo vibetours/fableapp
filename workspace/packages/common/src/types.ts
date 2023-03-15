@@ -178,6 +178,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   isHotspot: boolean,
   hideAnnotation: boolean,
   bodyTextSize: AnnotationBodyTextSize;
+  videoUrl: string;
 }
 
 // TODO perform this conversion, client side

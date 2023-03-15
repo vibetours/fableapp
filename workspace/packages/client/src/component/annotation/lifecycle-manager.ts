@@ -192,7 +192,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       React.createElement(
         StyleSheetManager,
         { target: this.doc.head },
-        React.createElement(AnnotationCon, { data: props, nav: this.nav, win: this.win })
+        React.createElement(AnnotationCon, { data: props, nav: this.nav, win: this.win, playMode: this.isPlayMode })
       )
     );
   }

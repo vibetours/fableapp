@@ -227,7 +227,8 @@ export interface IAnnoationDisplayConfig {
 interface IConProps {
   data: Array<{conf: IAnnoationDisplayConfig, box: Rect}>,
   nav: NavFn,
-  win: Window
+  win: Window,
+  playMode: boolean
 }
 interface HotspotProps {
   data: Array<{conf: IAnnotationConfig, box: Rect, scrollX: number, scrollY: number}>,
@@ -258,6 +259,46 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
   }
 }
 
+interface VideoProps {
+  annotationDisplayConfig: IAnnoationDisplayConfig;
+  nav: NavFn,
+  playMode: boolean,
+}
+
+export class AnnotationVideo extends React.PureComponent<VideoProps> {
+  getAnnotationBorder() {
+    const borderColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
+    const defaultBorderColor = '#BDBDBD';
+
+    const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
+    const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
+
+    return `0 0 ${blur} ${spread} ${borderColor}`;
+  }
+
+  render() {
+    const btnConf = this.props.annotationDisplayConfig.config.buttons.filter(button => button.type === 'next')[0];
+    return (
+      <Tags.AnVideo
+        autoPlay
+        border={this.getAnnotationBorder()}
+        className="fable-video"
+        onEnded={() => {
+          if (!this.props.playMode) {
+            return;
+          }
+          btnConf.hotspot && this.props.nav(
+            btnConf.hotspot.actionValue,
+            btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+          );
+        }}
+      >
+        <source src={this.props.annotationDisplayConfig.config.videoUrl} />
+      </Tags.AnVideo>
+    );
+  }
+}
+
 export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
     return this.props.data.map((p) => {
@@ -270,7 +311,9 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         // />;
         return <div key={p.conf.config.id} />;
       }
-      const hideAnnotation = p.conf.config.hideAnnotation;
+
+      const isVideoAnnotation = p.conf.config.videoUrl.length !== 0;
+      const hideAnnotation = p.conf.config.hideAnnotation || isVideoAnnotation;
       const isHotspot = p.conf.config.isHotspot;
       return (
         <div key={p.conf.config.id}>
@@ -291,6 +334,13 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             nav={this.props.nav}
             win={this.props.win}
           />}
+          {
+            isVideoAnnotation && <AnnotationVideo
+              nav={this.props.nav}
+              annotationDisplayConfig={p.conf}
+              playMode={this.props.playMode}
+            />
+          }
         </div>
       );
     });

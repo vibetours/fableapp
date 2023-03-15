@@ -107,3 +107,16 @@ export const AnHotspot = styled.div`
   width: ${(p: AnHotspotProps) => `${p.box.width}px`};
   height: ${(p: AnHotspotProps) => `${p.box.height}px`};
 `;
+
+interface AnVideoProps {
+  border: string
+}
+
+export const AnVideo = styled.video`
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  height: 150px;
+  border-radius: 8px;
+  box-shadow: ${(p: AnVideoProps) => `${p.border}`};
+`;
