@@ -6,6 +6,7 @@ import AnswerBtn from './answer-btn';
 
 export interface IFormData {
   id: string,
+  title?: string,
   question: string,
   answers: {id: string, value:string}[]
 }
@@ -15,18 +16,24 @@ export interface QualificationDecision {
   options: Record<string, string>
 }
 
+export interface Contact {
+  email: string;
+  text: string;
+}
+
 interface IProps {
   descision: QualificationDecision;
   form: IFormData[];
   formHeader: string;
+  contact?: Contact;
 }
 
-function QualificationQuestion({ form, descision, formHeader }: IProps): JSX.Element {
+function QualificationQuestion({ form, descision, formHeader, contact }: IProps): JSX.Element {
   const [currStep, setCurrStep] = useState<number>(0);
   const [selectedOptions, setSelectedOptions] = useState<string>('');
 
   useEffect(() => {
-    if (selectedOptions.split(':').length === form.length) {
+    if (selectedOptions !== '' && selectedOptions.split(':').length === form.length) {
       const demoUrl: string = descision.options[selectedOptions]
         ? descision.options[selectedOptions]
         : descision.default;
@@ -40,9 +47,11 @@ function QualificationQuestion({ form, descision, formHeader }: IProps): JSX.Ele
         <img src={FableCircularLogo} alt="Fable circular logo" />
         <div>
           <p>{formHeader}</p>
-          <p>
-            <a href="mailto:vikas@sharefable.com" target="_blank" rel="noreferrer">Contact</a>
-          </p>
+          { contact && (
+            <p>
+              <a href={`mailto:${contact.email}`} target="_blank" rel="noreferrer">{contact.text}</a>
+            </p>
+          )}
         </div>
       </Tags.SectionTop>
       <Tags.FormContainer
@@ -55,8 +64,8 @@ function QualificationQuestion({ form, descision, formHeader }: IProps): JSX.Ele
           <p
             style={{ position: 'relative' }}
           >
-            Welcome!
-            <img src={StarImg} alt="Star" />
+            {form[currStep].title || ''}
+            {form[currStep].title && <img src={StarImg} alt="Star" />}
           </p>
           <p>
             {form[currStep].question}

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as Tags from './styled';
-import QualificationQuestion, { IFormData, QualificationDecision } from '../../component/form/qualification-question';
+import QualificationQuestion, { Contact, IFormData, QualificationDecision } from '../../component/form/qualification-question';
 
 type FullFormData = Record<string, {
   formHeader: string;
+  contact?: Contact;
   qualificationCriteria: Array<IFormData>;
   qualificationDecision: QualificationDecision;
 }>
@@ -30,7 +31,8 @@ function Form() {
   const {
     qualificationDecision,
     qualificationCriteria,
-    formHeader
+    formHeader,
+    contact
   } = formData![params.formId!];
 
   return (
@@ -39,6 +41,7 @@ function Form() {
         formHeader={formHeader}
         form={qualificationCriteria}
         descision={qualificationDecision}
+        contact={contact}
       />
     </Tags.FormContainer>
   );
