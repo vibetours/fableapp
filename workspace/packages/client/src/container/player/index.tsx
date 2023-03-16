@@ -173,7 +173,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <GTags.BodyCon style={{
         height: '100%',
-        background: '#fff',
         padding: 0,
         overflowY: 'hidden',
       }}

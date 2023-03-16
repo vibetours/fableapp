@@ -32,7 +32,12 @@ export default function create(
 
     const btns = an.buttons;
     for (const btn of btns) {
-      if (btn.exclude) continue;
+    // If annotation is hotspot then the next button's action is used to create the interactive element
+    // TODO this creates confusion and requires multiple if else checking. Ideally create a special type of button
+    // called hotspot
+      if (an.isHotspot) {
+        if (btn.type !== 'next' && btn.exclude) continue;
+      } else if (btn.exclude) continue;
       if (!(btn.hotspot && btn.hotspot.actionType === 'navigate')) continue;
       const idx = btn.type === 'prev' ? 2 : 1;
       const adjScreen = adjacentList[idx];
