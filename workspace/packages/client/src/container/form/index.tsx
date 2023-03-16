@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import * as Tags from './styled';
-import QualificationQuestion, { Contact, IFormData, QualificationDecision } from '../../component/form/qualification-question';
+import QualificationQuestion, {
+  Contact,
+  IFormData,
+  QualificationDecision
+} from '../../component/form/qualification-question';
+import HeartLoader from '../../component/loader/heart';
 
 type FullFormData = Record<string, {
   formHeader: string;
@@ -25,7 +30,7 @@ function Form() {
   }, []);
 
   if (!isDataLoaded) {
-    return (<div>TODO show loader'</div>);
+    return (<HeartLoader />);
   }
 
   const {

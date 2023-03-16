@@ -9,7 +9,7 @@ import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { EditItem, NavFn } from '../../types';
-import Loader from '../../component/loader';
+import HeartLoader from '../../component/loader/heart';
 
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
@@ -165,11 +165,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     if (!this.isLoadingComplete()) {
       return (
-        <Loader
-          width="240px"
-        />
+        <HeartLoader />
       );
     }
+
     return (
       <GTags.BodyCon style={{
         height: '100%',

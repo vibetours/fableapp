@@ -9,6 +9,7 @@ import TourEditor from '../tour-editor';
 import Screen from '../screen';
 import Player from '../player';
 import Form from '../form';
+import HeartLoader from '../../component/loader/heart';
 
 interface IDispatchProps {
   init: () => void;
@@ -38,11 +39,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
 
   render() {
     if (!this.props.isInitied) {
-      return (
-        <div>
-          <em>TODO</em> show loading bar here
-        </div>
-      );
+      return <HeartLoader />;
     }
     return (
       <Router>
