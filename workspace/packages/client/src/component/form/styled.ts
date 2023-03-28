@@ -1,9 +1,20 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
+const size = {
+  mobileM: '375px',
+  mobileL: '425px',
+  tablet: '768px',
+  laptop: '1024px',
+};
+
 export const QBuilderContainer = styled.div`
   position: relative;
-  width: 28rem;
+  width: 22rem;
+
+  @media (min-width: ${size.tablet}) {
+    width: 28rem;
+  }
   
   p {
     margin: 0;
@@ -46,9 +57,17 @@ export const SectionTop = styled.div`
 
 export const FormContainer = styled(motion.div)`
   background-color: #FBF6FF;
-  padding: 2.8rem 2.5rem;
+  padding: 2rem 1.2rem;
   margin-top: 1.2rem;
   border-radius: 0 1.4rem 1.4rem 1.4rem;
+
+  @media (min-width: ${size.mobileM}) {
+    padding: 2.8rem 2.2rem;
+  }
+  
+  @media (min-width: ${size.tablet}) {
+    padding: 2.8rem 2.5rem;
+  }
 `;
 
 export const FormHeaderCon = styled.div`

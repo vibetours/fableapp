@@ -11,4 +11,5 @@ export const FormContainer = styled.div`
   background-size: cover;
   box-shadow: inset 0px 0px 0px 4px #7567FF;
   border-radius: 10px;
+  padding: 0 1rem;
 `;
