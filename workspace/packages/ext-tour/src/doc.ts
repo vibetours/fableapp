@@ -171,7 +171,7 @@ export function getSearializedDom(
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
       if (tNode.sheet) {
-        sNode.props.proxyUrl = sNode.attrs.href || undefined;
+        sNode.props.proxyUrl = tNode.sheet.href || undefined;
         sNode.props.proxyAttr = "href";
         sNode.props.isStylesheet = true;
         return { serNode: sNode, postProcess: true };
@@ -185,7 +185,7 @@ export function getSearializedDom(
 
     if (sNode.name === "img") {
       const tNode = node as HTMLImageElement;
-      const src = sNode.attrs.src;
+      const src = tNode.src;
       sNode.props.proxyUrl = src || undefined;
       sNode.props.proxyAttr = "src";
       if (src) {
