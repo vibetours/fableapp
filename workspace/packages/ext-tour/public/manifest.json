@@ -28,7 +28,6 @@
   },
   "permissions": [
     "tabs",
-    "activeTab",
     "scripting",
     "storage",
     "webNavigation",
@@ -40,6 +39,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "host_permissions": [
+    "<all_urls>",
     "*://*/*",
     "http://localhost:8080/api/*",
     "https://api-staging1.sharefable.com/*"

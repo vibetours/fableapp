@@ -12,6 +12,8 @@ const config = {
   entry: {
     background: "./src/background.ts",
     popup: "./src/popup/index.tsx",
+    content: "./src/content.ts",
+    client_content: "./src/client_content.ts"
   },
   module: {
     rules: [

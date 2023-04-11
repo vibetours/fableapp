@@ -2,7 +2,6 @@ import { ScreenData, SerNode } from '@fable/common/dist/types';
 import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
 import { P_RespScreen } from '../../entity-processor';
-import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
 
@@ -30,10 +29,6 @@ export const ROOT_EMBED_IFRAME_ID = `fab-reifi-${Math.random() * (10 ** 4) | 0}`
 export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
-  private assetLoadingPromises: Promise<unknown>[] = [];
-
-  private frameLoadingPromises: Promise<unknown>[] = [];
-
   // eslint-disable-next-line react/no-unused-class-component-methods
   scaleFactor: number = 1;
 
@@ -41,84 +36,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
   nestedFrames: Array<HTMLIFrameElement> = [];
 
-  private createHtmlElement = (node: SerNode, doc: Document, version: string, props: DeSerProps) => {
-    const el = props.partOfSvgEl
-      ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
-      : doc.createElement(node.name);
+  private assetLoadingPromises: Promise<unknown>[] = [];
 
-    if (node.name === 'canvas') {
-      const element = el as HTMLCanvasElement;
-      element.width = +(node.attrs.width ?? 0);
-      element.height = +(node.attrs.height ?? 0);
-      const ctx = element.getContext('2d');
-
-      if (ctx) {
-        ctx.clearRect(0, 0, +node.attrs.width!, +node.attrs.height!);
-
-        const img = document.createElement('img');
-        img.src = node.attrs.src!;
-
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, +node.attrs.width!, +node.attrs.height!);
-        };
-      }
-
-      return element;
-    }
-
-    for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
-      (el as any)[nodePropKey] = nodePropValue;
-    }
-
-    let attrKey;
-    let attrValue;
-    for ([attrKey, attrValue] of Object.entries(node.attrs)) {
-      try {
-        if (props.partOfSvgEl) {
-          el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
-        } else if (node.name === 'iframe' && attrKey === 'src') {
-          attrValue = 'about:blank';
-          el.setAttribute(attrKey, attrValue);
-          el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
-          el.setAttribute('scrolling', 'yes');
-        } else {
-          if (node.name === 'a' && attrKey === 'href') {
-            // eslint-disable-next-line no-script-url
-            attrValue = 'javascript:void(0);';
-          }
-          el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
-        }
-      } catch (e) {
-        console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
-      }
-    }
-
-    switch (version) {
-      case '2023-01-10':
-        if (node.name === 'style' && node.props.cssRules) el.textContent = node.props.cssRules;
-        break;
-      default:
-        if (node.name === 'style') {
-          el.textContent = node.attrs.cssRules;
-        }
-    }
-
-    if (node.props.isStylesheet) {
-      const p = new Promise((resolve) => {
-        // on either cases we resolve the promises so that the rendering happens
-        el.onload = resolve;
-        el.onerror = resolve;
-        el.onabort = resolve;
-      });
-      this.assetLoadingPromises.push(p);
-    }
-
-    if (node.props.isShadowHost) {
-      el.attachShadow({ mode: 'open' });
-    }
-
-    return el;
-  };
+  private frameLoadingPromises: Promise<unknown>[] = [];
 
   deser = (
     serNode: SerNode,
@@ -138,8 +58,16 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         node = doc.createTextNode(trimSpaceAndNewLine(serNode.props.textContent!));
         break;
       case Node.ELEMENT_NODE:
-        node = this.createHtmlElement(serNode, doc, version, newProps);
-        newProps.shadowParent = (node as HTMLElement).shadowRoot;
+        if (serNode.name === 'meta') {
+          node = doc.createComment('meta');
+        } else {
+          node = this.createHtmlElement(serNode, doc, version, newProps);
+          newProps.shadowParent = (node as HTMLElement).shadowRoot;
+        }
+        break;
+
+      case Node.COMMENT_NODE:
+        node = doc.createComment('');
         break;
 
       case Node.DOCUMENT_FRAGMENT_NODE:
@@ -152,12 +80,6 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
     if (serNode.name !== 'iframe') {
       for (const child of serNode.chldrn) {
-        // Meta tags are not used in rendering and can be harmful if cors + base properties are altered
-        // hence we altogether ignore those tags
-        if (child.name === 'meta') {
-          continue;
-        }
-
         const childNode = this.deser(child, doc, version, newProps);
         if (childNode && node && !child.props.isShadowRoot) {
           node.appendChild(childNode);
@@ -343,4 +265,83 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       />
     );
   }
+
+  private createHtmlElement = (node: SerNode, doc: Document, version: string, props: DeSerProps) => {
+    const el = props.partOfSvgEl
+      ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
+      : doc.createElement(node.name);
+
+    if (node.name === 'canvas') {
+      const element = el as HTMLCanvasElement;
+      element.width = +(node.attrs.width ?? 0);
+      element.height = +(node.attrs.height ?? 0);
+      const ctx = element.getContext('2d');
+
+      if (ctx) {
+        ctx.clearRect(0, 0, +node.attrs.width!, +node.attrs.height!);
+
+        const img = document.createElement('img');
+        img.src = node.attrs.src!;
+
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, +node.attrs.width!, +node.attrs.height!);
+        };
+      }
+
+      return element;
+    }
+
+    for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
+      (el as any)[nodePropKey] = nodePropValue;
+    }
+
+    let attrKey;
+    let attrValue;
+    for ([attrKey, attrValue] of Object.entries(node.attrs)) {
+      try {
+        if (props.partOfSvgEl) {
+          el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
+        } else if (node.name === 'iframe' && attrKey === 'src') {
+          attrValue = 'about:blank';
+          el.setAttribute(attrKey, attrValue);
+          el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
+          el.setAttribute('scrolling', 'yes');
+        } else {
+          if (node.name === 'a' && attrKey === 'href') {
+            // eslint-disable-next-line no-script-url
+            attrValue = 'javascript:void(0);';
+          }
+          el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
+        }
+      } catch (e) {
+        console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
+      }
+    }
+
+    switch (version) {
+      case '2023-01-10':
+        if (node.name === 'style' && node.props.cssRules) el.textContent = node.props.cssRules;
+        break;
+      default:
+        if (node.name === 'style') {
+          el.textContent = node.attrs.cssRules;
+        }
+    }
+
+    if (node.props.isStylesheet) {
+      const p = new Promise((resolve) => {
+        // on either cases we resolve the promises so that the rendering happens
+        el.onload = resolve;
+        el.onerror = resolve;
+        el.onabort = resolve;
+      });
+      this.assetLoadingPromises.push(p);
+    }
+
+    if (node.props.isShadowHost) {
+      el.attachShadow({ mode: 'open' });
+    }
+
+    return el;
+  };
 }

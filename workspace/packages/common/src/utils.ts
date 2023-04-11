@@ -1,3 +1,14 @@
+import {
+  AnnotationBodyTextSize,
+  AnnotationButtonSize,
+  AnnotationButtonStyle,
+  AnnotationPositions,
+  IAnnotationConfig,
+  ITourDataOpts,
+  TourData
+} from './types';
+import { SchemaVersion } from './api-contract';
+
 export function isSameOrigin(origin1: string, origin2: string): boolean {
   const url1 = new URL(origin1);
   const url2 = new URL(origin2);
@@ -58,3 +69,86 @@ export function trimSpaceAndNewLine(txt: string): string {
 export function getRandomId(): string {
   return `${+new Date() / 1000 | 0}${Math.random().toString(16).substring(2, 15)}`;
 }
+
+export function snowflake(): number {
+  return parseInt(`${+new Date()}${(Math.random() * 1000) | 0}`, 10);
+}
+
+export const getDefaultTourOpts = (): ITourDataOpts => ({
+  main: '',
+  primaryColor: '#7567FF',
+  annotationBodyBackgroundColor: '#FFFFFF',
+  annotationBodyBorderColor: '#BDBDBD',
+  showOverlay: true,
+  monoIncKey: 0,
+  createdAt: getCurrentUtcUnixTime(),
+  updatedAt: getCurrentUtcUnixTime(),
+});
+
+export function createEmptyTourDataFile(): TourData {
+  return {
+    v: SchemaVersion.V1,
+    lastUpdatedAtUtc: -1,
+    opts: getDefaultTourOpts(),
+    entities: {},
+  };
+}
+
+export const getSampleConfig = (elPath: string): IAnnotationConfig => {
+  const isCoverAnn = elPath === '$';
+  const id = getRandomId();
+
+  return {
+    id: isCoverAnn ? `$#${id}` : elPath,
+    refId: id,
+    createdAt: getCurrentUtcUnixTime(),
+    updatedAt: getCurrentUtcUnixTime(),
+    bodyContent: 'Write a description about what this feature of your product does to your user.',
+    displayText: 'Write a description about what this feature of your product does to your user.',
+    positioning: AnnotationPositions.Auto,
+    monoIncKey: 0,
+    syncPending: true,
+    type: isCoverAnn ? 'cover' : 'default',
+    size: isCoverAnn ? 'medium' : 'small',
+    isHotspot: false,
+    hideAnnotation: false,
+    bodyTextSize: AnnotationBodyTextSize.medium,
+    videoUrl: '',
+    buttons: [{
+      id: getRandomId(),
+      type: 'next',
+      style: AnnotationButtonStyle.Primary,
+      size: AnnotationButtonSize.Large,
+      text: 'Next',
+      order: 9999,
+      hotspot: null,
+    }, {
+      id: getRandomId(),
+      type: 'prev',
+      style: AnnotationButtonStyle.Outline,
+      size: AnnotationButtonSize.Large,
+      text: 'Back',
+      order: 0,
+      hotspot: null
+    }],
+  };
+};
+
+const ROOT_EMBED_IFRAME_ID = `fab-reifi-${Math.random() * (10 ** 4) | 0}`;
+export const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
+  if (el.nodeName === '#document') {
+    const tEl = el as Document;
+    if (tEl.defaultView && tEl.defaultView.frameElement && tEl.defaultView.frameElement.id !== ROOT_EMBED_IFRAME_ID) {
+      return calculatePathFromEl(tEl.defaultView.frameElement, loc);
+    }
+    return loc.reverse();
+  }
+  const siblings = el.parentNode!.childNodes;
+  for (let i = 0, l = siblings.length; i < l; i++) {
+    if (el === siblings[i]) {
+      loc.push(i);
+      return calculatePathFromEl(el.parentNode!, loc);
+    }
+  }
+  return loc;
+};

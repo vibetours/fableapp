@@ -14,6 +14,7 @@ interface State {
   // In this case logged in user, org etc
   inited: boolean;
   identity: IUser | null;
+  isRecordingStarted: boolean;
 }
 
 class Root extends Component<Props, State> {
@@ -22,6 +23,7 @@ class Root extends Component<Props, State> {
     this.state = {
       inited: false,
       identity: null,
+      isRecordingStarted: false
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
@@ -35,6 +37,7 @@ class Root extends Component<Props, State> {
         this.setState({
           inited: true,
           identity: tMsg.data.identity,
+          isRecordingStarted: tMsg.data.isRecordingStarted
         });
         break;
 
@@ -49,6 +52,16 @@ class Root extends Component<Props, State> {
 
   saveScreen = () => {
     chrome.runtime.sendMessage({ type: Msg.SAVE_SCREEN });
+  };
+
+  startRecording = () => {
+    this.setState({ isRecordingStarted: true });
+    chrome.runtime.sendMessage({ type: Msg.START_RECORDING });
+  };
+
+  stopRecording = async () => {
+    this.setState({ isRecordingStarted: false });
+    chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
   };
 
   openLinkInNewTab = (path: string) => () => {
@@ -91,6 +104,14 @@ class Root extends Component<Props, State> {
                 lets you edit, annotate & connect multiple screens to create a tour of your product.
               </div>
             </div>
+
+            {this.state.isRecordingStarted
+              ? <button type="button" className="btn-primary" onClick={this.stopRecording}>
+                Stop Recording
+              </button>
+              : <button type="button" className="btn-primary" onClick={this.startRecording}>
+                Start Recording
+              </button>}
 
             <button type="button" className="btn-primary" onClick={this.saveScreen}>
               Save screen or press <span className="em">⌘ + E</span>

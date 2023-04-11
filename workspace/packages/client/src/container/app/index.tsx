@@ -10,6 +10,35 @@ import Screen from '../screen';
 import Player from '../player';
 import Form from '../form';
 import HeartLoader from '../../component/loader/heart';
+import CreateTour from '../create-tour';
+
+function TestFrame() {
+  return (
+    <div>
+      <p>
+        This is a test page for cross origin iframe and same origin iframe
+      </p>
+      {/* <iframe */}
+      {/*   height="300" */}
+      {/*   style={{ */}
+      {/*     width: '100%', */}
+      {/*   }} */}
+      {/*   title="Skewed title text" */}
+      {/*   src="https://codepen.io/paulnoble/embed/OPXBzB?default-tab=html%2Cresult" */}
+      {/*   loading="lazy" */}
+      {/* /> */}
+      <iframe
+        height="300"
+        style={{
+          width: '100%',
+        }}
+        title="Skewed title text"
+        src="http://localhost:3000/tours"
+        loading="lazy"
+      />
+    </div>
+  );
+}
 
 interface IDispatchProps {
   init: () => void;
@@ -56,6 +85,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="p/tour/:tourId" element={<Player />} />
             <Route path="p/tour/:tourId/:screenRid/:annotationId" element={<Player />} />
             <Route path="/form/:formId" element={<Form />} />
+            <Route path="/test/frame1" element={<TestFrame />} />
+            <Route path="/createtour" element={<CreateTour />} />
           </Routes>
         </div>
       </Router>

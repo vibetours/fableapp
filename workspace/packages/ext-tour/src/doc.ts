@@ -62,10 +62,16 @@ export function getSearializedDom(
         return false;
       }
 
+      if (url1.startsWith("/") || url2.startsWith("/")) {
+        // both are relative url
+        return false;
+      }
+
       if (url1.trim().toLowerCase() === "about:blank" || url2.trim().toLowerCase() === "about:blank") {
         return false;
       }
 
+      console.log(">>> url", url1, url2);
       const u1 = new URL(url1);
       const u2 = new URL(url2);
 
@@ -242,6 +248,9 @@ export function getSearializedDom(
     if (sNode.name === "iframe" || sNode.name === "frame") {
       const tNode = node as HTMLIFrameElement;
       const url = sNode.attrs.src || "";
+      // Fix: some time iframe won't have src in that case, path calculation during deserialization would not work
+      // as iframe.contentDocument.childNodes would not have html5 tag type
+      sNode.attrs.src = sNode.attrs.src || url;
       const rect = tNode.getBoundingClientRect();
       sNode.props.rect = {
         height: rect.height,
@@ -268,7 +277,7 @@ export function getSearializedDom(
           traversalPath.pop();
           return { serNode: sNode, postProcess: false };
         } catch {
-          // Sometime a frame would have "about:blank" set but then would have a cross origin
+          // Sometimes a frame would have "about:blank" set but then would have a cross-origin
           // <base> set. For those we would find exception on accessing document.
           return { serNode: sNode, postProcess: true };
         }
@@ -292,7 +301,8 @@ export function getSearializedDom(
         const traversalPathStr = traversalPath.join(".");
         traversalPath.pop();
         if (rep.shouldSkip) {
-          continue;
+          rep.serNode.type = 8;
+          // continue;
         }
         ii++;
         if (rep.postProcess) {
