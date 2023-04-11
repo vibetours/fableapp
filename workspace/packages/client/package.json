@@ -6,6 +6,7 @@
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^4.8.0",
+    "@auth0/auth0-react": "^2.0.1",
     "@lexical/react": "^0.8.0",
     "antd": "^5.1.2",
     "d3-drag": "^3.0.0",

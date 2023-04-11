@@ -5,12 +5,17 @@ import api from '@fable/common/dist/api';
 import {
   ApiResp,
   ReqCopyScreen,
+  ReqNewOrg,
   ReqNewTour,
   ReqRecordEdit,
   ReqRenameGeneric,
   RespCommonConfig,
+  RespOrg,
   RespScreen,
-  RespTour
+  RespTour,
+  RespUser,
+  ResponseStatus,
+  ReqUpdateUser
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -38,7 +43,11 @@ import { AllEdits, EditItem, ElEditType } from '../types';
 import ActionType from './type';
 
 export interface TGenericLoading {
-  type: ActionType.ALL_SCREENS_LOADING | ActionType.SCREEN_LOADING | ActionType.ALL_TOURS_LOADING;
+  type: ActionType.ALL_SCREENS_LOADING
+      | ActionType.SCREEN_LOADING
+      | ActionType.ALL_TOURS_LOADING
+      | ActionType.USER_LOADING
+      | ActionType.ORG_LOADING ;
   shouldCache?: boolean;
 }
 
@@ -56,6 +65,103 @@ export function init() {
       type: ActionType.INIT,
       config: data.data,
     });
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TIAm {
+  type: ActionType.IAM;
+  user: RespUser;
+}
+
+export function iam() {
+  return async (dispatch: Dispatch<TIAm | TGenericLoading>) => {
+    dispatch({
+      type: ActionType.USER_LOADING,
+    });
+    const data = await api<null, ApiResp<RespUser>>('/iam', { auth: true });
+    const user = data.data;
+    dispatch({
+      type: ActionType.IAM,
+      user
+    });
+  };
+}
+
+export interface TUpdateUser {
+  type: ActionType.UPDATE_USER_PROP;
+  user: RespUser;
+}
+
+export function updateUser(firstName: string, lastName: string) {
+  return async () => {
+    const data = await api<ReqUpdateUser, ApiResp<RespUser>>('/userprop', {
+      auth: true,
+      body: {
+        firstName,
+        lastName
+      }
+    });
+    if (data.status === ResponseStatus.Success) {
+      window.location.replace('/tours');
+    } else {
+      // TODO handle error
+    }
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TCreateNewOrg {
+  type: ActionType.CREATE_NEW_ORG;
+  org: RespOrg;
+}
+
+export function createOrg(displayName: string) {
+  return async () => {
+    const data = await api<ReqNewOrg, ApiResp<RespOrg>>('/neworg', {
+      auth: true,
+      body: {
+        displayName,
+        thumbnail: ''
+      },
+    });
+    if (data.status === ResponseStatus.Success) {
+      window.location.replace('/tours');
+    } else {
+      // TODO handle error
+    }
+  };
+}
+
+export interface TGetOrg {
+  type: ActionType.GET_ORGS;
+  orgs: RespOrg[];
+}
+
+export function fetchOrgs() {
+  return async (dispatch: Dispatch<TGetOrg | TGenericLoading>) => {
+    dispatch({
+      type: ActionType.ORG_LOADING,
+    });
+    const data = await api<null, ApiResp<RespOrg[]>>('/orgforiam', { auth: true });
+    const orgs = data.data;
+    dispatch({
+      type: ActionType.GET_ORGS,
+      orgs,
+    });
+  };
+}
+
+export function assignImplicitOrgToUser() {
+  return async () => {
+    const data = await api<null, ApiResp<RespOrg>>('/assgnimplorg', { auth: true, method: 'POST' });
+    if (data.status === ResponseStatus.Success) {
+      window.location.replace('/tours');
+    } else {
+      // TODO handle error
+    }
   };
 }
 

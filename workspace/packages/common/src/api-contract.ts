@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-02-02 06:34:19.
+// Generated using typescript-generator version 2.35.1025 on 2023-04-10 05:22:57.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -32,14 +32,6 @@ export interface ReqNewTour {
     description?: string;
 }
 
-export interface ReqNewUser {
-    firstName: string;
-    lastName: string;
-    email: string;
-    avatar: string;
-    belongsToOrg: number;
-}
-
 export interface ReqProxyAsset {
     origin: string;
     clientInfo: string;
@@ -53,6 +45,11 @@ export interface ReqRecordEdit {
 export interface ReqRenameGeneric {
     newName: string;
     rid: string;
+}
+
+export interface ReqUpdateUser {
+    firstName: string;
+    lastName: string;
 }
 
 export interface RespCommonConfig extends ResponseBase {
@@ -115,6 +112,9 @@ export interface RespUser extends ResponseBase {
     lastName: string;
     email: string;
     avatar: string;
+    personalEmail: boolean;
+    belongsToOrg: number;
+    orgAssociation: UserOrgAssociation;
 }
 
 export interface ResponseBase {
@@ -134,4 +134,10 @@ export const enum ResponseStatus {
 export const enum ErrorCode {
     IllegalArgs = 100,
     NotFound = 101,
+}
+
+export const enum UserOrgAssociation {
+    Implicit = "Implicit",
+    Explicit = "Explicit",
+    NA = "NA",
 }

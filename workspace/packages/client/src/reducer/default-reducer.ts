@@ -1,5 +1,5 @@
 import { Action } from 'redux';
-import { RespCommonConfig } from '@fable/common/dist/api-contract';
+import { RespCommonConfig, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import {
   EditFile,
   IAnnotationConfig,
@@ -20,16 +20,21 @@ import {
   TScreenWithData,
   TTour,
   TTourWithData,
+  TIAm,
+  TGetOrg
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType } from '../types';
 
 export const initialState: {
   inited: boolean;
-  principalFetched: boolean;
   commonConfig: RespCommonConfig | null;
   rootScreens: Array<P_RespScreen>;
   allScreens: Array<P_RespScreen>;
+  principal: RespUser | null;
+  principalLoadingStatus: LoadingStatus;
+  orgs: RespOrg[];
+  orgsLoadingStatus: LoadingStatus;
   allScreensLoadingStatus: LoadingStatus;
   tours: Array<P_RespTour>;
   allToursLoadingStatus: LoadingStatus;
@@ -51,15 +56,19 @@ export const initialState: {
   // TODO remote + local opts changes in one state for one time consumption
   remoteTourOpts: ITourDataOpts | null;
   localTourOpts: ITourDataOpts | null;
+  token : string;
 } = {
   inited: false,
   commonConfig: null,
-  principalFetched: false,
   rootScreens: [],
   allScreens: [],
   allScreensLoadingStatus: LoadingStatus.NotStarted,
   tours: [],
   allToursLoadingStatus: LoadingStatus.NotStarted,
+  principalLoadingStatus: LoadingStatus.NotStarted,
+  orgsLoadingStatus: LoadingStatus.NotStarted,
+  principal: null,
+  orgs: [],
   currentScreen: null,
   screenData: {},
   screenEdits: {},
@@ -75,6 +84,7 @@ export const initialState: {
   remoteAnnotations: {},
   localTourOpts: null,
   remoteTourOpts: null,
+  token: '',
 };
 
 // eslint-disable-next-line default-param-last
@@ -101,6 +111,34 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.allScreens = tAction.allScreens;
       newState.rootScreens = tAction.rootScreens;
       newState.allScreensLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.USER_LOADING: {
+      const newState = { ...state };
+      newState.principalLoadingStatus = LoadingStatus.InProgress;
+      return newState;
+    }
+
+    case ActionType.IAM: {
+      const tAction = action as TIAm;
+      const newState = { ...state };
+      newState.principalLoadingStatus = LoadingStatus.Done;
+      newState.principal = tAction.user;
+      return newState;
+    }
+
+    case ActionType.ORG_LOADING: {
+      const newState = { ...state };
+      newState.orgsLoadingStatus = LoadingStatus.InProgress;
+      return newState;
+    }
+
+    case ActionType.GET_ORGS: {
+      const tAction = action as TGetOrg;
+      const newState = { ...state };
+      newState.orgs = tAction.orgs;
+      newState.orgsLoadingStatus = LoadingStatus.Done;
       return newState;
     }
 

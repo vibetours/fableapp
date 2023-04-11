@@ -1,5 +1,6 @@
+import { fsec } from './fsec';
+
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
-const AUTH_TOKEN = process.env.REACT_APP_AUTH_TOKEN as string;
 const API_VERSION = '/v1';
 const BEHIND_AUTH = '/f';
 
@@ -27,9 +28,15 @@ export default async function api<T, M>(
     ...(payload?.headers || {}),
   };
 
-  // TODO temporary until auth is implemented
   if (auth) {
-    (headers as any).Authorization = AUTH_TOKEN;
+    // TODO error handling in case the user is not logged in or there is a token invalidation exception
+    try {
+      const token = await fsec.getAccessToken();
+      (headers as any).Authorization = `Bearer ${token}`;
+    } catch (e) {
+      // TODO
+      console.log('>> login again. msg', (e as Error).message);
+    }
   }
 
   let path = '';

@@ -26,7 +26,7 @@ import {
 } from "./types";
 import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
 
-const APP_CLIENT_ENDPOINT = process.env.REACT_APP_APP_CLIENT_ENDPOINT as string;
+const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 const APP_STATE_IDENTITY = "app_state_identity";
 const APP_RECORDING_STATE = "app_state_recording";
@@ -131,10 +131,13 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
             url: `${APP_CLIENT_ENDPOINT}/createTour`
           });
 
-          await chrome.scripting.executeScript({
-            target: { tabId: newTab.id! },
-            files: ["client_content.js"],
-          });
+          setTimeout(async () => {
+            await chrome.scripting.executeScript({
+              target: { tabId: newTab.id! },
+              files: ["client_content.js"],
+            });
+            console.log(">>> now injecting");
+          }, 5000);
         } catch (e) {
           const debugData = await chrome.storage.local.get(null);
           console.warn(">>> DEBUG DATA <<<", debugData);
