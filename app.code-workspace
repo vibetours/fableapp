@@ -1,13 +1,6 @@
 {
 	"folders": [
 		{
-			"path": "."
-		},
-		{
-			"name": "workspace",
-			"path": "workspace"
-		},
-		{
 			"name": "client",
 			"path": "workspace/packages/client"
 		},
@@ -21,9 +14,5 @@
 		}
 	],
 	"settings": {
-		"jest.disabledWorkspaceFolders": [
-			"app",
-			"client"
-		]
 	}
 }

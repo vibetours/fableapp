@@ -18,3 +18,8 @@ export interface DBData {
     screensData: string;
     cookies: string;
 }
+
+export enum ModalTab {
+    INIT,
+    CREATE_TOUR,
+}

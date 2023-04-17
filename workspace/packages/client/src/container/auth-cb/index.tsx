@@ -24,6 +24,10 @@ interface IOwnStateProps {
 
 class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount() {
+    console.log('Redirecting to /tours');
+    setTimeout(() => {
+      window.location.replace('/tours');
+    }, 2000);
   }
 
   render(): React.ReactNode {

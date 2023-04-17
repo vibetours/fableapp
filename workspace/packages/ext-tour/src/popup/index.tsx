@@ -7,13 +7,14 @@ import { RootContext } from "./ctx";
 import Loader from "./components/loader";
 import { version } from "../../package.json";
 
+const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+
 type Props = {};
 
 interface State {
   // This state is true when all the data is retrieved for the extension to work.
   // In this case logged in user, org etc
   inited: boolean;
-  identity: IUser | null;
   isRecordingStarted: boolean;
 }
 
@@ -22,7 +23,6 @@ class Root extends Component<Props, State> {
     super(props);
     this.state = {
       inited: false,
-      identity: null,
       isRecordingStarted: false
     };
 
@@ -36,7 +36,6 @@ class Root extends Component<Props, State> {
         const tMsg = msg as MsgPayload<IExtStoredState>;
         this.setState({
           inited: true,
-          identity: tMsg.data.identity,
           isRecordingStarted: tMsg.data.isRecordingStarted
         });
         break;
@@ -44,14 +43,6 @@ class Root extends Component<Props, State> {
       default:
         break;
     }
-  };
-
-  addSampleUser = () => {
-    chrome.runtime.sendMessage({ type: Msg.ADD_SAMPLE_USER });
-  };
-
-  saveScreen = () => {
-    chrome.runtime.sendMessage({ type: Msg.SAVE_SCREEN });
   };
 
   startRecording = () => {
@@ -64,11 +55,9 @@ class Root extends Component<Props, State> {
     chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
   };
 
+  // eslint-disable-next-line class-methods-use-this
   openLinkInNewTab = (path: string) => () => {
-    chrome.runtime.sendMessage({
-      type: Msg.OPEN_LINK_IN_NEW_TAB,
-      data: { path },
-    });
+    chrome.tabs.create({ active: true, url: `${APP_CLIENT_ENDPOINT}/${path}` });
   };
 
   render() {
@@ -86,38 +75,34 @@ class Root extends Component<Props, State> {
             <Loader />
           </div>
         )}
-        {this.state.inited && !this.state.identity && (
-          <div className="login-con">
-            <b>TODO</b> Show login screen
-            <div>
-              <a onClick={this.addSampleUser}>Click here to add a sample user</a>
-            </div>
-          </div>
-        )}
-        {this.state.inited && this.state.identity && (
+        {this.state.inited && (
           <div className="action-con">
             <img alt="illustration" src="./illustration-extension.svg" />
-            <div style={{ margin: "0.65rem 0rem" }}>
-              <div className="as-p">Fable helps you create tour of your product in matter of minutes.</div>
-              <div className="as-p">
-                Once you click on <em>Save Screen</em>, Fable copies an interactive version of the current webpage and
-                lets you edit, annotate & connect multiple screens to create a tour of your product.
+            <div style={{ margin: "1.5rem 0rem 1rem 0rem" }}>
+              <div className="as-p title">Fable helps you create tour of your product in matter of minutes.</div>
+              <div className="as-p description">
+                <ol>
+                  <li>Click on “Start Recording”</li>
+                  <li>Fable copies an interactive version of the current webpage</li>
+                  <li>You can edit, annotate & connect multiple screens to create a tour of your product.</li>
+                </ol>
               </div>
             </div>
 
             {this.state.isRecordingStarted
-              ? <button type="button" className="btn-primary" onClick={this.stopRecording}>
-                Stop Recording
-              </button>
-              : <button type="button" className="btn-primary" onClick={this.startRecording}>
-                Start Recording
-              </button>}
+              ? (
+                <button type="button" className="btn-primary" onClick={this.stopRecording}>
+                  Stop Recording
+                </button>
+              )
+              : (
+                <button type="button" className="btn-primary" onClick={this.startRecording}>
+                  Start Recording
+                </button>
+              )}
 
-            <button type="button" className="btn-primary" onClick={this.saveScreen}>
-              Save screen or press <span className="em">⌘ + E</span>
-            </button>
-            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("/screens")}>
-              See all saved screen
+            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("tours")}>
+              See all Tours
             </button>
           </div>
         )}

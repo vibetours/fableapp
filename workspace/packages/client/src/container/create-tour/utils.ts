@@ -21,41 +21,51 @@ import {
 } from '@fable/common/dist/api-contract';
 import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
+import { P_RespTour } from '../../entity-processor';
 
-export async function saveAsTour(
+export async function saveScreens(
   data: FrameDataToBeProcessed[][],
-  cookies: chrome.cookies.Cookie[]
-): Promise<ApiResp<RespTour>> {
+  cookies: chrome.cookies.Cookie[],
+): Promise<ScreenInfo[]> {
   const screenFramesToBeProcessed: FrameDataToBeProcessed[][] = data || [];
   const screens: ScreenInfo[] = [];
   for (const frames of screenFramesToBeProcessed) {
     const screenInfo = await processScreen(frames, cookies);
     screens.push(screenInfo);
   }
-  const { tourDataFile, tourRid } = await addAnnotationConfigs(screens);
+
+  return screens;
+}
+
+export async function saveAsTour(
+  screens: ScreenInfo[],
+  existingTour: P_RespTour | null,
+  tourName: string = 'Untitled',
+): Promise<ApiResp<RespTour>> {
+  const { tourDataFile, tourRid } = await addAnnotationConfigs(screens, existingTour, tourName);
   const res = await saveTour(tourRid, tourDataFile);
   return res;
 }
 
 // --- tour creation util ---
 
-async function createNewTour(): Promise<RespTour> {
+async function createNewTour(tourName: string): Promise<RespTour> {
   const { data } = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
     auth: true,
     body: {
-      name: 'Untitled',
+      name: tourName,
       description: '',
     },
   });
   return data;
 }
 
-async function addScreenToTour(tourData: RespTour, screenId: number): Promise<RespScreen> {
+async function addScreenToTour(tourRid: string, screenId: number): Promise<RespScreen> {
   const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
     auth: true,
     body: {
       parentId: screenId,
-      tourRid: tourData.rid,
+      tourRid,
     },
   });
   return screenResp.data;
@@ -71,21 +81,37 @@ function createAnnotationHotspot(screenId: number, annotationRefId: string): ITo
   };
 }
 
-async function addAnnotationConfigs(screenInfo: Array<ScreenInfo>): Promise<{tourDataFile: TourData, tourRid: string}> {
-  const tourData = await createNewTour();
-  const tourDataFile = createEmptyTourDataFile();
+async function addAnnotationConfigs(
+  screenInfo: Array<ScreenInfo>,
+  existingTour: P_RespTour | null,
+  tourName: string
+): Promise<{tourDataFile: TourData, tourRid: string}> {
+  let tourDataFile: TourData;
+  let tourRid: string;
+
+  if (existingTour) {
+    tourRid = existingTour.rid;
+    tourDataFile = await api<null, TourData>(existingTour.dataFileUri.href);
+  } else {
+    const tourData = await createNewTour(tourName);
+    tourRid = tourData.rid;
+    tourDataFile = createEmptyTourDataFile();
+  }
+
   const annConfigs: Array<IAnnotationConfig> = [];
   const screensInTourPromises: Array<Promise<RespScreen>> = [];
 
   for (const screen of screenInfo) {
-    const newScreen = addScreenToTour(tourData, screen.id);
+    const newScreen = addScreenToTour(tourRid, screen.id);
     screensInTourPromises.push(newScreen);
     annConfigs.push(getSampleConfig(screen.elPath));
   }
 
   const screensInTour: Array<RespScreen> = await Promise.all(screensInTourPromises);
 
-  tourDataFile.opts.main = `${screensInTour[0].id}/${annConfigs[0].refId}`;
+  if (tourDataFile.opts.main === '') {
+    tourDataFile.opts.main = `${screensInTour[0].id}/${annConfigs[0].refId}`;
+  }
   tourDataFile.lastUpdatedAtUtc = getCurrentUtcUnixTime();
 
   for (let i = 0; i < screenInfo.length; i++) {
@@ -117,12 +143,12 @@ async function addAnnotationConfigs(screenInfo: Array<ScreenInfo>): Promise<{tou
       type: 'screen',
       ref: newScreen.id.toString(),
       annotations: {
-        [screen.elPath]: annConfigs[i]
+        [annConfigs[i].id]: annConfigs[i]
       }
     } as TourScreenEntity;
   }
 
-  return { tourDataFile, tourRid: tourData.rid };
+  return { tourDataFile, tourRid };
 }
 
 async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<RespTour>> {

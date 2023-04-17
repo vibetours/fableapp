@@ -184,6 +184,8 @@ export function getSearializedDom(
       }
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
       if (ICON_MATCHER.exec(rel) !== null) {
+        sNode.props.proxyUrl = sNode.attrs.href || undefined;
+        sNode.props.proxyAttr = "href";
         return { serNode: sNode, postProcess: true, isIcon: true };
       }
       return { serNode: sNode, shouldSkip: true };
@@ -201,12 +203,16 @@ export function getSearializedDom(
 
     if (sNode.name === "style") {
       const tNode = node as HTMLStyleElement;
-      const cssRules = tNode.sheet?.cssRules ?? [];
-      let cssText = "";
-      for (let i = 0; i < cssRules.length; i++) {
-        cssText += `${cssRules[i].cssText} `;
+      if (tNode.textContent === "") {
+        const cssRules = tNode.sheet?.cssRules ?? [];
+        let cssText = "";
+        for (let i = 0; i < cssRules.length; i++) {
+          cssText += `${cssRules[i].cssText} `;
+        }
+        sNode.props.cssRules = cssText;
+      } else {
+        sNode.props.cssRules = tNode.textContent ?? "";
       }
-      sNode.props.cssRules = cssText;
       return { serNode: sNode };
     }
 

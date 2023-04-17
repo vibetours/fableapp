@@ -23,6 +23,7 @@ import Login, { LoginErrorType } from '../../component/auth/login';
 import Logout from '../../component/auth/logout';
 import Auth0Config from '../../component/auth/auth0-config.json';
 import Loader from '../../component/loader';
+import PrepTour from '../create-tour/prep-tour';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -57,6 +58,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
   static doesRouteNeedAuth() {
     return !(
       document.location.pathname.startsWith('/p')
+     || document.location.pathname === '/preptour'
      || document.location.pathname === '/login'
       // Ideally logout path should have auth requirement. We kept logout out of the auth checking route because
       // sometime we need to just call logout incase there is a rule change from auth0 end and server is throwing error
@@ -82,7 +84,12 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
-    if (prevProps && prevProps.auth0.isLoading && !this.props.auth0.isLoading && this.props.auth0.isAuthenticated) {
+    if (App.doesRouteNeedAuth()
+      && prevProps
+      && prevProps.auth0.isLoading
+      && !this.props.auth0.isLoading
+      && this.props.auth0.isAuthenticated
+    ) {
       this.props.iam();
     }
   }
@@ -151,6 +158,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player />} />
             <Route path="/form/:formId" element={<Form />} />
             <Route path="/createtour" element={<CreateTour />} />
+            <Route path="/preptour" element={<PrepTour />} />
           </Routes>
         </div>
       </Router>

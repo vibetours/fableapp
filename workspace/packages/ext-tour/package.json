@@ -9,6 +9,9 @@
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
+    "prebuild-local": "yarn clean",
+    "build-local": "env-cmd --verbose -e local -r ../env.json webpack",
+    "prebuild-dev": "yarn clean",
     "build-dev": "env-cmd --verbose -e dev -r ../env.json webpack",
     "test-debug": "node --inspect-brk ./node_modules/.bin/jest",
     "test": "jest --verbose",

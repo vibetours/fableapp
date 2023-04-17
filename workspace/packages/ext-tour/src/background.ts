@@ -128,16 +128,13 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
         });
         try {
           const newTab = await chrome.tabs.create({
-            url: `${APP_CLIENT_ENDPOINT}/createTour`
+            url: `${APP_CLIENT_ENDPOINT}/preptour`
           });
 
-          setTimeout(async () => {
-            await chrome.scripting.executeScript({
-              target: { tabId: newTab.id! },
-              files: ["client_content.js"],
-            });
-            console.log(">>> now injecting");
-          }, 5000);
+          await chrome.scripting.executeScript({
+            target: { tabId: newTab.id! },
+            files: ["client_content.js"],
+          });
         } catch (e) {
           const debugData = await chrome.storage.local.get(null);
           console.warn(">>> DEBUG DATA <<<", debugData);
