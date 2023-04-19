@@ -203,16 +203,13 @@ export function getSearializedDom(
 
     if (sNode.name === "style") {
       const tNode = node as HTMLStyleElement;
-      if (tNode.textContent === "") {
-        const cssRules = tNode.sheet?.cssRules ?? [];
-        let cssText = "";
-        for (let i = 0; i < cssRules.length; i++) {
-          cssText += `${cssRules[i].cssText} `;
-        }
-        sNode.props.cssRules = cssText;
-      } else {
-        sNode.props.cssRules = tNode.textContent ?? "";
+      const cssRules = tNode.sheet?.cssRules ?? [];
+      let cssText = "";
+      for (let i = 0; i < cssRules.length; i++) {
+        cssText += `${cssRules[i].cssText} `;
       }
+      sNode.props.cssRules += cssText;
+
       return { serNode: sNode };
     }
 
