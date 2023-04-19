@@ -208,7 +208,7 @@ export function getSearializedDom(
       for (let i = 0; i < cssRules.length; i++) {
         cssText += `${cssRules[i].cssText} `;
       }
-      sNode.props.cssRules += cssText;
+      sNode.props.cssRules = cssText;
 
       return { serNode: sNode };
     }
