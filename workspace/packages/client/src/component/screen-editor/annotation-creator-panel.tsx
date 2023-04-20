@@ -17,6 +17,7 @@ import Tabs from 'antd/lib/tabs';
 import Checkbox from 'antd/lib/checkbox';
 import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
+import Collapse from 'antd/lib/collapse';
 import {
   ArrowRightOutlined,
   DeleteOutlined,
@@ -46,12 +47,16 @@ import {
   updateAnnotationIsHotspot,
   updateAnnotationHideAnnotation,
   updateAnnotationVideoURL,
+  updateAnnotationHotspotElPath,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
 import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
+import AdvanceElementPicker from './advance-element.picker';
 
 const { confirm } = Modal;
+const { Panel } = Collapse;
 
 interface IProps {
   screen: P_RespScreen,
@@ -64,6 +69,9 @@ interface IProps {
     actionType: 'upsert' | 'delete',
     opts: ITourDataOpts,
   ) => void;
+  selectedHotspotEl: HTMLElement | null;
+  setSelectionMode: (mode: 'annotation' | 'hotspot') => void;
+  domElPicker: DomElPicker | null
 }
 
 interface IState {
@@ -104,9 +112,14 @@ export default function AnnotationCreatorPanel(props: IProps) {
   const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
   const [btnEditing, setBtnEditing] = useState<string>('');
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
+  const [newHotspotSelected, setNewHotspotSelected] = useState<boolean>(false);
+  const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
+  const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
+
+  const domElPicker = props.domElPicker!;
 
   useEffect(() => {
     if (
@@ -117,6 +130,27 @@ export default function AnnotationCreatorPanel(props: IProps) {
       props.onConfigChange(config, 'upsert', opts);
     }
   }, [config, opts]);
+
+  useEffect(() => {
+    if (config.hotspotElPath) {
+      const hotspotEl = domElPicker.elFromPath(config.hotspotElPath)!;
+      if (hotspotEl) {
+        setSelectedHotspotEl(hotspotEl);
+        const boundedEl = domElPicker.elFromPath(props.config.id)!;
+        domElPicker.setSelectedBoundedEl(boundedEl);
+        const parents = domElPicker.getParents(hotspotEl);
+        setSelectedHotspotElsParents(parents!);
+        domElPicker.setSelectedBoundedEl(null);
+      }
+    }
+  }, [config, props.domElPicker]);
+
+  useEffect(() => {
+    if (props.selectedHotspotEl && domElPicker && newHotspotSelected) {
+      setConfig(c => updateAnnotationHotspotElPath(c, domElPicker.elPath(props.selectedHotspotEl!)));
+      domElPicker.setSelectedBoundedEl(null);
+    }
+  }, [props.selectedHotspotEl, newHotspotSelected]);
 
   const showDeleteConfirm = () => {
     confirm({
@@ -135,6 +169,14 @@ export default function AnnotationCreatorPanel(props: IProps) {
         }
       },
     });
+  };
+
+  const startSelectingHotspotEl = () => {
+    props.setSelectionMode('hotspot');
+    const boundedEl = domElPicker.elFromPath(props.config.id);
+    domElPicker.setSelectedBoundedEl(boundedEl!);
+    domElPicker.setSelectionMode();
+    setNewHotspotSelected(true);
   };
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
@@ -263,6 +305,100 @@ export default function AnnotationCreatorPanel(props: IProps) {
               onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
             />
           </Tags.AnotCrtPanelSec>
+        )
+      }
+      {
+        config.isHotspot && config.type !== 'cover' && (
+          <>
+            <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+              <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Hotspot element</GTags.Txt>
+              {
+                !config.hotspotElPath && (
+                  <Button
+                    type="text"
+                    style={{
+                      ...commonInputStyles,
+                      padding: 'none',
+                    }}
+                    onClick={startSelectingHotspotEl}
+                  >
+                    Select
+                  </Button>
+                )
+              }
+            </Tags.AnotCrtPanelSec>
+            {
+              config.hotspotElPath && (
+                <>
+                  <div style={{
+                    marginBottom: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                  >
+                    <div>{domElPicker.elFromPath(config.hotspotElPath)!.textContent}</div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <Button
+                        icon={<EditOutlined style={{ ...commonIconStyle }} />}
+                        type="text"
+                        size="small"
+                        style={{
+                          color: '#bdbdbd',
+                          ...buttonSecStyle,
+                        }}
+                        onClick={startSelectingHotspotEl}
+                      />
+                      <Button
+                        icon={<DeleteOutlined style={{ ...commonIconStyle }} />}
+                        type="text"
+                        size="small"
+                        style={{
+                          color: '#bdbdbd',
+                          ...buttonSecStyle,
+                        }}
+                        onClick={() => {
+                          setConfig(c => updateAnnotationHotspotElPath(c, null));
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <Collapse
+                    bordered={false}
+                    style={{
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    {
+                      selectedHotspotEl && (
+                        <Panel
+                          header="Advanced element picker"
+                          key="1"
+                          style={{
+                            fontSize: '14px',
+                            margin: 0,
+                            padding: 0
+                          }}
+                        >
+                          <AdvanceElementPicker
+                            elements={selectedHotspotElsParents}
+                            domElPicker={domElPicker}
+                            selectedEl={selectedHotspotEl}
+                            count={selectedHotspotElsParents.length}
+                            setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                              const newElPath = domElPicker.elPath(newSelEl)!;
+                              setConfig(c => updateAnnotationHotspotElPath(c, newElPath));
+                            }}
+                            mouseLeaveHighlightMode={HighlightMode.PinnedHotspot}
+                          />
+                        </Panel>
+                      )
+                    }
+                  </Collapse>
+                </>
+              )
+            }
+          </>
         )
       }
       <Tags.AnotCrtPanelSec>

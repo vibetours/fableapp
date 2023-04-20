@@ -215,6 +215,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     hideAnnotation: lc.hideAnnotation,
     bodyTextSize: lc.bodyTextSize,
     videoUrl: lc.videoUrl,
+    hotspotElPath: lc.hotspotElPath,
   };
 }
 

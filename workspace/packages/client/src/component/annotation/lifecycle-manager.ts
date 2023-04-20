@@ -173,11 +173,18 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const props: ({
       box: Rect,
       conf: IAnnoationDisplayConfig,
+      hotspotBox: Rect | null,
     })[] = [];
     for (const [, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+      let hotspotEl = null;
+      const hotspotElPath = annotationDisplayConfig.config.hotspotElPath;
+      if (hotspotElPath) {
+        hotspotEl = this.elFromPath(hotspotElPath);
+      }
       props.push({
         box: this.getBoundingRectWrtRootFrame(el),
         conf: annotationDisplayConfig,
+        hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
       });
       if (annotationDisplayConfig.isMaximized) {
         if (annotationDisplayConfig.config.type === 'cover') {

@@ -114,6 +114,10 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
     hideAnnotation: false,
     bodyTextSize: AnnotationBodyTextSize.medium,
     videoUrl: '',
+    // TODO : refactor it in such a way that only this 'hotspotElPath' property is enough
+    // to convey if the ann has an hotspot. For eg. this will be null when hotspot toggle is off
+    // it will be "." when hotspot toggle is on and will have a path like "1.1.2.2" when it is a granular hotspot
+    hotspotElPath: null,
     buttons: [{
       id: getRandomId(),
       type: 'next',

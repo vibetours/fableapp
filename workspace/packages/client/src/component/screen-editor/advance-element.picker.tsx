@@ -7,9 +7,17 @@ type PropsType = {
     selectedEl: HTMLElement;
     count: number;
     setSelectedEl: (newSelEl: HTMLElement, prevSelEl: HTMLElement) => void;
+    mouseLeaveHighlightMode: HighlightMode,
 }
 
-function AdvanceElementPicker({ elements, domElPicker, selectedEl, count, setSelectedEl }: PropsType) {
+function AdvanceElementPicker({
+  elements,
+  domElPicker,
+  selectedEl,
+  count,
+  setSelectedEl,
+  mouseLeaveHighlightMode
+}: PropsType) {
   if (elements.length <= 0) {
     return null;
   }
@@ -26,7 +34,7 @@ function AdvanceElementPicker({ elements, domElPicker, selectedEl, count, setSel
           textTransform: 'lowercase',
           background: `${el === selectedEl ? domElPicker?.highlightBgColor() : 'white'}` }}
         onMouseMove={(e) => { e.stopPropagation(); domElPicker?.selectElement(el as HTMLElement, HighlightMode.Selection); }}
-        onMouseLeave={(e) => { e.stopPropagation(); domElPicker?.selectElement(selectedEl, HighlightMode.Pinned); }}
+        onMouseLeave={(e) => { e.stopPropagation(); domElPicker?.selectElement(selectedEl, mouseLeaveHighlightMode); }}
         onClick={(e) => { e.stopPropagation(); setSelectedEl(el as HTMLElement, selectedEl); }}
       >
         {elements[0].nodeName}
@@ -36,6 +44,7 @@ function AdvanceElementPicker({ elements, domElPicker, selectedEl, count, setSel
           selectedEl={selectedEl}
           count={count - 1}
           setSelectedEl={setSelectedEl}
+          mouseLeaveHighlightMode={mouseLeaveHighlightMode}
         />
       </div>
     </div>

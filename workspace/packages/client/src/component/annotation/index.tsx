@@ -225,14 +225,15 @@ export interface IAnnoationDisplayConfig {
 }
 
 interface IConProps {
-  data: Array<{conf: IAnnoationDisplayConfig, box: Rect}>,
+  data: Array<{conf: IAnnoationDisplayConfig, box: Rect, hotspotBox: Rect | null}>,
   nav: NavFn,
   win: Window,
   playMode: boolean
 }
 interface HotspotProps {
-  data: Array<{conf: IAnnotationConfig, box: Rect, scrollX: number, scrollY: number}>,
+  data: Array<{conf: IAnnotationConfig, box: Rect, scrollX: number, scrollY: number, isGranularHotspot: boolean}>,
   nav: NavFn,
+  playMode: boolean,
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
@@ -240,21 +241,32 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
     return this.props.data.map((p, idx) => {
       const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
 
-      return (
-        <Tags.AnHotspot
-          key={p.conf.id}
-          box={p.box}
-          scrollX={p.scrollX}
-          scrollY={p.scrollY}
-          className="fable-hotspot"
-          onClick={() => {
-            btnConf.hotspot && this.props.nav(
-              btnConf.hotspot.actionValue,
-              btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-            );
-          }}
-        />
-      );
+      /**
+       * If we show the annotation in edit mode, the user won't be able to select any
+       * element inside the element.
+       * For that reason, we have this check where we show the hotspot only when the
+       * screen is in play mode or it is a granular hotspot.
+       */
+      if (this.props.playMode || p.isGranularHotspot) {
+        return (
+          <Tags.AnHotspot
+            key={p.conf.id}
+            box={p.box}
+            scrollX={p.scrollX}
+            scrollY={p.scrollY}
+            isGranularHotspot={p.isGranularHotspot}
+            className="fable-hotspot"
+            onClick={() => {
+              btnConf.hotspot && this.props.nav(
+                btnConf.hotspot.actionValue,
+                btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+              );
+            }}
+          />
+        );
+      }
+
+      return null;
     });
   }
 }
@@ -315,17 +327,20 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
       const isVideoAnnotation = p.conf.config.videoUrl.length !== 0;
       const hideAnnotation = p.conf.config.hideAnnotation || isVideoAnnotation;
       const isHotspot = p.conf.config.isHotspot;
+      const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
       return (
         <div key={p.conf.config.id}>
           {
             isHotspot && <AnnotationHotspot
               data={[{
                 conf: p.conf.config,
-                box: p.box,
+                box: isGranularHotspot ? p.hotspotBox! : p.box,
                 scrollX: this.props.win.scrollX,
-                scrollY: this.props.win.scrollY
+                scrollY: this.props.win.scrollY,
+                isGranularHotspot,
               }]}
               nav={this.props.nav}
+              playMode={this.props.playMode}
             />
           }
           { !hideAnnotation && <AnnotationCard

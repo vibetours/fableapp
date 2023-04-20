@@ -101,6 +101,8 @@ interface IOwnStateProps {
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
   editItemSelected: string;
+  selectedHotspotEl: HTMLElement | null;
+  selectionMode: 'hotspot' | 'annotation';
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -128,7 +130,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
-      selectedAnnotationId: ''
+      selectedAnnotationId: '',
+      selectedHotspotEl: null,
+      selectionMode: 'annotation',
     };
   }
 
@@ -830,6 +834,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       }
                       this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
                     }}
+                    mouseLeaveHighlightMode={HighlightMode.Pinned}
                   />
                 </Panel>
               </Collapse>
@@ -975,6 +980,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           opts={this.props.tourDataOpts}
                           allAnnotationsForTour={this.props.allAnnotationsForTour}
                           screen={this.props.screen}
+                          selectedHotspotEl={this.state.selectedHotspotEl}
+                          setSelectionMode={(mode: 'annotation' | 'hotspot') => {
+                            this.setState({ selectionMode: mode });
+                          }}
+                          domElPicker={this.domElPicker}
                           onSideEffectConfigChange={
                             (screenId: number, c: IAnnotationConfig, actionType: 'upsert' | 'delete') => {
                               this.props.onAnnotationCreateOrChange(screenId, c, actionType, null);
@@ -1071,6 +1081,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private onElSelect = (el: HTMLElement, parents: Node[]) => {
     this.domElPicker!.elPath(el);
+
+    if (this.state.selectionMode === 'hotspot') {
+      this.setState({ selectedHotspotEl: el, selectedElsParents: parents, selectionMode: 'annotation' });
+      return;
+    }
+
     this.setState({ selectedEl: el, selectedElsParents: parents });
   };
 

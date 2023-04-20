@@ -95,17 +95,18 @@ interface AnHotspotProps {
   box: Rect;
   scrollX: number;
   scrollY: number;
+  isGranularHotspot: boolean;
 }
 
 export const AnHotspot = styled.div`
   background: transparent;
-  color: white;
   cursor: pointer;
+  box-shadow: ${(p: AnHotspotProps) => (p.isGranularHotspot ? 'inset 0 0 0 2px orange' : 'none')};
   position: absolute;
-  top: ${(p: AnHotspotProps) => `${p.box.top + p.scrollY}px`};
-  left: ${(p: AnHotspotProps) => `${p.box.left + p.scrollX}px`};
-  width: ${(p: AnHotspotProps) => `${p.box.width}px`};
-  height: ${(p: AnHotspotProps) => `${p.box.height}px`};
+  top: ${(p: AnHotspotProps) => `${p.box.top - 4 + p.scrollY}px`};
+  left: ${(p: AnHotspotProps) => `${p.box.left - 4 + p.scrollX}px`};
+  width: ${(p: AnHotspotProps) => `${p.box.width + 8}px`};
+  height: ${(p: AnHotspotProps) => `${p.box.height + 8}px`};
 `;
 
 interface AnVideoProps {

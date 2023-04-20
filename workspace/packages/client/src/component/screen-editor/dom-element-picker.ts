@@ -6,6 +6,7 @@ export enum HighlightMode {
   Selection,
   Pinned,
   NOOP,
+  PinnedHotspot,
 }
 
 type ElSelectCallback = (
@@ -95,6 +96,8 @@ export default class DomElementPicker extends HighlighterBase {
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(doc: Document) => (e: Event) => void>>>;
 
+  private selectedBoundedEl: HTMLElement | null;
+
   constructor(
     doc: Document,
     nestedFrames: HTMLIFrameElement[],
@@ -107,6 +110,7 @@ export default class DomElementPicker extends HighlighterBase {
     this.onElSelect = cbs.onElSelect;
     this.onElDeSelect = cbs.onElDeSelect;
     this.evts = {};
+    this.selectedBoundedEl = null;
   }
 
   enable() {
@@ -138,6 +142,10 @@ export default class DomElementPicker extends HighlighterBase {
     this.highlightMode = HighlightMode.Selection;
     this.onElDeSelect(this.prevElHovered as HTMLElement, this.doc);
     return this;
+  }
+
+  setSelectionMode() {
+    this.highlightMode = HighlightMode.Selection;
   }
 
   addEventListener<K extends keyof DocumentEventMap>(
@@ -232,6 +240,12 @@ export default class DomElementPicker extends HighlighterBase {
     const anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
     if (this.prevElHovered && this.prevElHovered === anchorEl) return;
     this.prevElHovered = anchorEl;
+    if (this.selectedBoundedEl) {
+      if (this.selectedBoundedEl.contains(anchorEl)) {
+        this.selectElementInDoc(anchorEl, doc);
+      }
+      return;
+    }
     this.selectElementInDoc(anchorEl, doc);
   };
 
@@ -246,10 +260,13 @@ export default class DomElementPicker extends HighlighterBase {
     this.selectElementInDoc(el, el.ownerDocument, mode, ghost);
   }
 
-  static getParents(el: Node): Node[] {
+  getParents(el: Node): Node[] {
     const res = [];
     let temp = el;
     while (true) {
+      if (this.selectedBoundedEl && (temp === this.selectedBoundedEl)) {
+        break;
+      }
       if (temp.nodeName === '#document') {
         const tEl = temp as Document;
         if (tEl.defaultView
@@ -272,7 +289,7 @@ export default class DomElementPicker extends HighlighterBase {
 
   private pinnedMode(el: HTMLElement) {
     this.highlightMode = HighlightMode.Pinned;
-    const parents = DomElementPicker.getParents(el);
+    const parents = this.getParents(el);
     this.onElSelect(el, parents);
   }
 
@@ -297,4 +314,8 @@ export default class DomElementPicker extends HighlighterBase {
       (this.evts.click || []).map(f => f(doc)(e));
     }
   };
+
+  setSelectedBoundedEl(el: HTMLElement | null) {
+    this.selectedBoundedEl = el;
+  }
 }
