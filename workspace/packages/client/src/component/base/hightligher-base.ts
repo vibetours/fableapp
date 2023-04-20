@@ -158,8 +158,9 @@ export default abstract class HighlighterBase {
   }
 
   elFromPath(path: string): HTMLElement | null {
-    const elIdxs = path.split('.').map((id) => +id);
-    let node = this.doc as Node;
+    const elIdxs = path.split('.').map((id) => +id).slice(1);
+    const document = this.doc as Document;
+    let node = document.documentElement as Node;
     for (const id of elIdxs) {
       if ((node as HTMLElement).tagName && (node as HTMLElement).tagName.toLowerCase() === 'iframe') {
         node = (node as HTMLIFrameElement).contentDocument!;
