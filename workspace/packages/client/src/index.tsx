@@ -11,7 +11,7 @@ import config from './store-config';
 import packageJSON from '../package.json';
 import Auth0Config from './component/auth/auth0-config.json';
 
-const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 const theme = {
   colors: {

@@ -7,11 +7,13 @@ const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 export default function Logout() {
   const { logout } = useAuth0();
+
   useEffect(() => {
     setTimeout(() => {
       logout({ logoutParams: { returnTo: `${APP_CLIENT_ENDPOINT}/login` } });
     }, 1000);
   }, []);
+
   return (
     <div>
       <Loader width="80px" />

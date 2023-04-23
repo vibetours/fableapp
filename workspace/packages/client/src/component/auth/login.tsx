@@ -15,6 +15,10 @@ export default function LogIn() {
   const [loginErrorType, setLoginErrorType] = useState('');
   const [loginErrorMsg, setLoginErrorMsg] = useState('');
 
+  if (searchParams.get('redirect')) {
+    localStorage.setItem('redirect', searchParams.get('redirect')!);
+  }
+
   useEffect(() => {
     const errorType = searchParams.get('t');
     if (!errorType) {

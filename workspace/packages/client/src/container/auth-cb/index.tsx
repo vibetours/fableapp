@@ -5,6 +5,9 @@ import { iam } from '../../action/creator';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import Loader from '../../component/loader';
+import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from '../create-tour/constants';
+import { getDataFromDb, openDb } from '../create-tour/db-utils';
+import { DBData } from '../create-tour/types';
 
 interface IDispatchProps {
 }
@@ -23,9 +26,21 @@ interface IOwnStateProps {
 }
 
 class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
+  private db: IDBDatabase | null;
+
+  constructor(props: IProps) {
+    super(props);
+    this.db = null;
+  }
+
   componentDidMount() {
-    console.log('Redirecting to /tours');
-    setTimeout(() => {
+    setTimeout(async () => {
+      this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
+      const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
+      if (dbData) {
+        window.location.replace('/createtour');
+        return;
+      }
       window.location.replace('/tours');
     }, 2000);
   }

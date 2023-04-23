@@ -53,6 +53,10 @@ interface FrameDataToBeProcessed {
   data: SerDoc | string;
 }
 
+chrome.runtime.onInstalled.addListener((details) => {
+  chrome.tabs.create({ url: `${APP_CLIENT_ENDPOINT}/onboarding` });
+});
+
 const LOCKS: Record<string, number> = {};
 async function acquireLock(key: string) {
   return new Promise(resolve => {

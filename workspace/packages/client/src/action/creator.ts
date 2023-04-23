@@ -103,11 +103,6 @@ export function updateUser(firstName: string, lastName: string) {
         lastName
       }
     });
-    if (data.status === ResponseStatus.Success) {
-      window.location.replace('/tours');
-    } else {
-      // TODO handle error
-    }
   };
 }
 
@@ -127,11 +122,6 @@ export function createOrg(displayName: string) {
         thumbnail: ''
       },
     });
-    if (data.status === ResponseStatus.Success) {
-      window.location.replace('/tours');
-    } else {
-      // TODO handle error
-    }
   };
 }
 
@@ -157,11 +147,6 @@ export function fetchOrgs() {
 export function assignImplicitOrgToUser() {
   return async () => {
     const data = await api<null, ApiResp<RespOrg>>('/assgnimplorg', { auth: true, method: 'POST' });
-    if (data.status === ResponseStatus.Success) {
-      window.location.replace('/tours');
-    } else {
-      // TODO handle error
-    }
   };
 }
 
