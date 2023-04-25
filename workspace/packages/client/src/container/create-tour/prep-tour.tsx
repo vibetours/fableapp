@@ -71,6 +71,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
 
         if (this.db) {
           await putDataInDb(this.db, OBJECT_STORE, this.data);
+          this.db.close();
           setTimeout(() => {
             window.location.replace('/createtour');
           }, 500);
