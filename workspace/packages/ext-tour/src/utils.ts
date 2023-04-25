@@ -1,3 +1,5 @@
+import { CSSProperties } from "react";
+
 export function getRandomId(): string {
   return Math.random().toString(16).substring(2, 15) + Math.random().toString(16).substring(2, 15);
 }
@@ -51,4 +53,17 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string) {
     }
     return baseUrl + urlStr;
   }
+}
+
+export function createImgNode(src: string, alt: string, height: number, width: number, classList: Array<string>) {
+  const imgNode = document.createElement("img");
+  imgNode.setAttribute("src", src);
+  imgNode.setAttribute("alt", alt);
+  imgNode.style.height = `${height}px`;
+  imgNode.style.width = `${width}px`;
+  imgNode.setAttribute("height", `${height}`);
+  imgNode.setAttribute("width", `${width}`);
+  imgNode.classList.add(...classList);
+
+  return imgNode;
 }

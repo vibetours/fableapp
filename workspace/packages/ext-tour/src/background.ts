@@ -45,12 +45,15 @@ interface ScreenInfo {
   elPath: string;
 }
 
+type TourActions = "DELETE" | "SAVE"
+
 interface FrameDataToBeProcessed {
   oid: number;
   frameId: number;
   tabId: number;
   type: "serdom" | "thumbnail" | "sigstop";
   data: SerDoc | string;
+  action?: TourActions;
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -97,12 +100,16 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       let allFramesRecorded = false;
       let isThumbnailCaptured = false;
       let isSessionFinished = false;
+      let isScrapTour = false;
       const tabId = tVal[0].tabId;
       const frames = (framesInTab[tabId] as number[]).reduce((s, n) => {
         s[n] = 1;
         return s;
       }, {} as Record<number, number>);
       for (const item of tVal) {
+        if (item.action === "DELETE") {
+          isScrapTour = true;
+        }
         if (item.type === "thumbnail") {
           isThumbnailCaptured = true;
         } else if (item.type === "sigstop") {
@@ -131,20 +138,25 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
           [FRAMES_IN_TAB]: {},
         });
         try {
-          const newTab = await chrome.tabs.create({
-            url: `${APP_CLIENT_ENDPOINT}/preptour`
-          });
+          if (!isScrapTour) {
+            const newTab = await chrome.tabs.create({
+              url: `${APP_CLIENT_ENDPOINT}/preptour`
+            });
 
-          await chrome.scripting.executeScript({
-            target: { tabId: newTab.id! },
-            files: ["client_content.js"],
-          });
+            await chrome.scripting.executeScript({
+              target: { tabId: newTab.id! },
+              files: ["client_content.js"],
+            });
+          }
         } catch (e) {
           const debugData = await chrome.storage.local.get(null);
           console.warn(">>> DEBUG DATA <<<", debugData);
           throw e;
         } finally {
           await resetAppState();
+        }
+        if (isScrapTour) {
+          await chrome.storage.local.clear();
         }
       }
     }
@@ -237,6 +249,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
           tabId: sender.tab!.id!,
           type: "thumbnail",
           data: await chrome.tabs.captureVisibleTab(),
+          action: "SAVE"
         });
       }
       break;
@@ -269,7 +282,8 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         oid: tMsg.data.id,
         tabId: sender.tab!.id!,
         type: "serdom",
-        data: tMsg.data.serDoc
+        data: tMsg.data.serDoc,
+        action: "SAVE"
       });
       break;
     }
@@ -296,7 +310,8 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         oid: id,
         tabId: tab.id!,
         type: "sigstop",
-        data: ""
+        data: "",
+        action: msg.data.action
       });
       await chrome.tabs.sendMessage<MsgPayload<StopRecordingData>>(tab.id!, {
         type: Msg.STOP_RECORDING,

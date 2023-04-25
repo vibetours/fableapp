@@ -9,9 +9,13 @@ import {
   SerializeFrameData,
   StopRecordingData
 } from "./types";
+import { createStickyControlPill } from "./components/control-pill";
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
+
+const stickyControlPill = createStickyControlPill();
+document.body.appendChild(stickyControlPill);
 
 function serialize(elPath: string, isSource: boolean, id: number) {
   chrome.runtime.sendMessage<MsgPayload<ReqScreenshotData>>({
@@ -33,6 +37,7 @@ function serialize(elPath: string, isSource: boolean, id: number) {
 }
 
 const onClickHandler = async (e: MouseEvent) => {
+  if ((e.target as HTMLElement).classList.contains("fable-control-pill")) return;
   const elPath = calculatePathFromEl(e.target as Node, []).join(".");
   serialize(elPath, true, snowflake());
 };

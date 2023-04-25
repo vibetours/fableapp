@@ -52,7 +52,7 @@ class Root extends Component<Props, State> {
 
   stopRecording = async () => {
     this.setState({ isRecordingStarted: false });
-    chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
+    chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING, data: { action: "SAVE" } });
   };
 
   // eslint-disable-next-line class-methods-use-this

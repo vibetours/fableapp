@@ -174,6 +174,10 @@ export function getSearializedDom(
       return { serNode: sNode, shouldSkip: true };
     }
 
+    if (sNode.attrs?.class?.includes("fable-control-pill")) {
+      return { serNode: sNode, shouldSkip: true };
+    }
+
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
       if (tNode.sheet) {
