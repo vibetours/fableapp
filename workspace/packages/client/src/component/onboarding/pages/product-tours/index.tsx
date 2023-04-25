@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Tick from '../../../../assets/onboarding/tick.svg';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
@@ -6,7 +6,15 @@ import * as CTags from '../../styled';
 import * as Tags from './styled';
 import HeartEmoji from '../../../../assets/onboarding/heart.png';
 
-export default function ProductTours() {
+interface Props {
+  title: string,
+}
+
+export default function ProductTours(props: Props) {
+  useEffect(() => {
+    document.title = props.title;
+  }, []);
+
   return (
     <CTags.ContentWrapper>
       <CTags.FlexColContainer>

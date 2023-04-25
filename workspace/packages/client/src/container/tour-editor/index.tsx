@@ -171,7 +171,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   };
 };
 
-interface IOwnProps { }
+interface IOwnProps {
+  title: string;
+}
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -193,6 +195,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private chunkSyncManager: ChunkSyncManager | null = null;
 
   componentDidMount(): void {
+    document.title = this.props.title;
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
       onSyncNeeded: this.flushEdits,

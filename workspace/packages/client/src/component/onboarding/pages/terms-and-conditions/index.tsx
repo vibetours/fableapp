@@ -1,9 +1,17 @@
-import React from 'react-dom';
+import React, { useEffect } from 'react';
 import * as CTags from '../../styled';
 import * as Tags from './styled';
 import TechnologistEmoji from '../../../../assets/onboarding/technologist.png';
 
-export default function TermsAndConditions() {
+interface Props {
+  title: string,
+}
+
+export default function TermsAndConditions(props: Props) {
+  useEffect(() => {
+    document.title = props.title;
+  }, []);
+
   const handleClick = () => {
     window.location.replace('/screens');
   };

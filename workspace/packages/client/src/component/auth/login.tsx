@@ -5,11 +5,15 @@ import { useSearchParams } from 'react-router-dom';
 import Loader from '../loader';
 import Btn from '../btn';
 
+interface Props {
+  title: string,
+}
+
 export const enum LoginErrorType {
   UserUsedPersonalEmail = '1',
 }
 
-export default function LogIn() {
+export default function LogIn(props: Props) {
   const [searchParams] = useSearchParams();
   const { loginWithRedirect } = useAuth0();
   const [loginErrorType, setLoginErrorType] = useState('');
@@ -20,6 +24,8 @@ export default function LogIn() {
   }
 
   useEffect(() => {
+    document.title = props.title;
+
     const errorType = searchParams.get('t');
     if (!errorType) {
       loginWithRedirect();

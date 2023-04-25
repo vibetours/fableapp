@@ -5,7 +5,7 @@ import LogOut from './logout';
 
 function AuthActionBtn() {
   const { isAuthenticated } = useAuth0();
-  return isAuthenticated ? <LogOut /> : <LogIn />;
+  return isAuthenticated ? <LogOut title="Fable - Login" /> : <LogIn title="Fable - Logout" />;
 }
 
 export default AuthActionBtn;

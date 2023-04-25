@@ -61,7 +61,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   allScreensLoadingStatus: state.default.allScreensLoadingStatus,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  title: string;
+}
 type IProps = IOwnProps &
   IAppStateProps &
   IDispatchProps &
@@ -82,6 +84,7 @@ class Screen extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentDidMount(): void {
+    document.title = this.props.title;
     this.props.loadScreenAndData(this.props.match.params.screenId);
     this.props.getAllScreens();
     this.props.getAllTours();

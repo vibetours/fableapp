@@ -1,11 +1,19 @@
-import React from 'react-dom';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StepDot from '../../step-dot';
 import * as CTags from '../../styled';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
 import HeartEmoji from '../../../../assets/onboarding/heart.png';
 
-export default function Tours() {
+interface Props {
+  title: string,
+}
+
+export default function Tours(props: Props) {
+  useEffect(() => {
+    document.title = props.title;
+  }, []);
+
   return (
     <CTags.ContentWrapper>
       <CTags.FlexColContainer>

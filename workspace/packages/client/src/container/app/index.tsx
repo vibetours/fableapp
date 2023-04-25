@@ -68,30 +68,35 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
         <div className="app">
           <Routes>
             <Route path="/onboarding" element={<Onboarding />}>
-              <Route path="pin" element={<Pin />} />
-              <Route path="tours" element={<ToursPage />} />
-              <Route path="product-tours" element={<ProductTours />} />
-              <Route path="tnc" element={<TermsAndConditions />} />
+              <Route path="pin" element={<Pin title="Fable Onboarding" />} />
+              <Route path="tours" element={<ToursPage title="Fable - Onboarding" />} />
+              <Route path="product-tours" element={<ProductTours title="Fable - Onboarding" />} />
+              <Route path="tnc" element={<TermsAndConditions title="Fable - Terms and Conditions" />} />
             </Route>
             <Route path="/" element={<ProtectedRoutes />}>
               <Route path="/cb/auth" element={<AuthCB />} />
-              <Route path="/iamdetails" element={<IamDetails />} />
-              <Route path="/org/create" element={<NewOrgCreation />} />
-              <Route path="/org/assign" element={<DefaultOrgAssignment />} />
-              <Route path="/screens" element={<Screens />} />
-              <Route path="/tours" element={<Tours />} />
-              <Route path="/screen/:screenId" element={<Screen />} />
-              <Route path="/tour/:tourId" element={<TourEditor />} />
-              <Route path="/tour/:tourId/:screenId" element={<TourEditor />} />
-              <Route path="/tour/:tourId/:screenId/:annotationId" element={<TourEditor />} />
+              <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
+              <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
+              <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select organization" />} />
+              <Route path="/screens" element={<Screens title="Fable - Screens" />} />
+              <Route path="/tours" element={<Tours title="Fable - Tours" />} />
+              <Route path="/screen/:screenId" element={<Screen title="Fable - Screen" />} />
+              <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route
+                path="/tour/:tourId/:screenId/:annotationId"
+                element={<TourEditor
+                  title="Fable - Tour editor"
+                />}
+              />
               <Route path="/form/:formId" element={<Form />} />
-              <Route path="/createtour" element={<CreateTour />} />
+              <Route path="/createtour" element={<CreateTour title="Fable" />} />
             </Route>
-            <Route path="/login" element={<Login />} />
-            <Route path="/logout" element={<Logout />} />
-            <Route path="/p/tour/:tourId" element={<Player />} />
-            <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player />} />
-            <Route path="/preptour" element={<PrepTour />} />
+            <Route path="/login" element={<Login title="Fable - Login" />} />
+            <Route path="/logout" element={<Logout title="Fable - Logout" />} />
+            <Route path="/p/tour/:tourId" element={<Player title="Fable" />} />
+            <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player title="Fable" />} />
+            <Route path="/preptour" element={<PrepTour title="Fable" />} />
           </Routes>
         </div>
       </Router>

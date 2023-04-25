@@ -17,7 +17,9 @@ interface IAppStateProps {
 
 const mapStateToProps = () => ({});
 
-interface IOwnProps { }
+interface IOwnProps {
+  title: string;
+}
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -78,6 +80,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentDidMount() {
+    document.title = this.props.title;
     this.setState({ loading: true });
     this.initDbOperations();
   }

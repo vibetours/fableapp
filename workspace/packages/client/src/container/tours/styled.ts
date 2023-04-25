@@ -36,3 +36,9 @@ export const TourCardLane = styled.div`
   flex-direction: row;
   align-items: center;
 `;
+
+export const ToursHeading = styled.h1`
+  color: #16023E;
+  font-size: ${(props) => props.theme.typography.size.heading};
+  font-weight: bold;
+`;

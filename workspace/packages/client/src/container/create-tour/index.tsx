@@ -34,7 +34,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
 });
 
-interface IOwnProps { }
+interface IOwnProps {
+  title: string;
+}
 
 type IProps = IOwnProps &
   IAppStateProps &
@@ -177,6 +179,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   componentDidMount() {
+    document.title = this.props.title;
     this.setState({ loading: true });
     this.props.getAllTours();
     this.initDbOperations();

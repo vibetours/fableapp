@@ -48,7 +48,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   editsAcrossScreens: state.default.remoteEdits,
 });
 
- interface IOwnProps { }
+ interface IOwnProps {
+  title: string;
+ }
 
  type IProps = IOwnProps &
    IAppStateProps &
@@ -69,6 +71,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
 
   componentDidMount() {
+    document.title = this.props.title;
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
   }
 

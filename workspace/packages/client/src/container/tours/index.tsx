@@ -15,6 +15,7 @@ import Btn from '../../component/btn';
 import tourIcon from '../../assets/tours-icon-dark.svg';
 import Loader from '../../component/loader';
 import { withRouter, WithRouterProps } from '../../router-hoc';
+import SkipLink from '../../component/skip-link';
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -38,7 +39,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   allToursLoadingStatus: state.default.allToursLoadingStatus,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  title: string;
+}
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 interface IOwnStateProps {
   showModal: boolean;
@@ -54,6 +57,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     this.props.getAllTours();
+    document.title = this.props.title;
   }
 
   handleShowModal = (e: React.MouseEvent<HTMLDivElement>, tour: P_RespTour) => {
@@ -85,6 +89,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
     return (
       <GTags.RowCon className="tour-con">
+        <SkipLink />
         <GTags.SidePanelCon>
           <SidePanel selected="tours" />
         </GTags.SidePanelCon>
@@ -92,11 +97,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.HeaderCon>
             <Header />
           </GTags.HeaderCon>
-          <GTags.BodyCon style={{ height: '100%' }}>
+          <GTags.BodyCon style={{ height: '100%' }} id="main">
             {toursLoaded ? (
               <>
                 <Tags.TopPanel>
-                  <Btn icon="plus" onClick={this.props.createNewTour}>
+                  <Tags.ToursHeading>Tours</Tags.ToursHeading>
+                  <Btn icon="plus" onClick={this.props.createNewTour} style={{ margin: '0' }}>
                     Create a new tour
                   </Btn>
                 </Tags.TopPanel>
@@ -114,14 +120,17 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                               Rename Tour
                             </GTags.PopoverMenuItem>
                           }
-                          trigger="hover"
+                          trigger="focus"
                           placement="right"
                         >
+
                           <MenuOutlined
                             onClick={e => {
                               e.preventDefault();
                               e.stopPropagation();
                             }}
+                            role="button"
+                            tabIndex={0}
                             style={{ display: 'block', marginLeft: 'auto', padding: '0.4rem', color: '#bdbdbd' }}
                           />
                         </Popover>

@@ -23,7 +23,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   orgs: state.default.orgs,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  title: string;
+}
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps;
 
 interface IOwnStateProps { }
@@ -31,6 +33,7 @@ interface IOwnStateProps { }
 class DefaultOrgAssignment extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.fetchOrgs();
+    document.title = this.props.title;
   }
 
   render(): React.ReactNode {

@@ -107,7 +107,7 @@ export const BodyCon = styled.div`
   }
 `;
 
-export const SidePanelCon = styled.div`
+export const SidePanelCon = styled.aside`
   height: 100%;
   width: 230px;
   position: fixed;

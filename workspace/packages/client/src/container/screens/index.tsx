@@ -18,6 +18,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import * as Tags from './styled';
 import Loader from '../../component/loader';
 import EmptyScreenIllustration from '../../assets/empty-screens-illustration.svg';
+import SkipLink from '../../component/skip-link';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -41,7 +42,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   loadingStatus: state.default.allScreensLoadingStatus,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  title: string;
+}
 type IProps = IOwnProps &
   IAppStateProps &
   IDispatchProps &
@@ -71,6 +74,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     this.props.getAllScreens();
+    document.title = this.props.title;
   }
 
   handleRenameScreenFormSubmit = (e: React.FormEvent) => {
@@ -114,6 +118,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <GTags.RowCon className="screen-con">
+        <SkipLink />
         <GTags.SidePanelCon>
           <SidePanel selected="screens" />
         </GTags.SidePanelCon>
@@ -122,6 +127,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
             <Header rBtnTxt="Record a screen" />
           </GTags.HeaderCon>
           <GTags.BodyCon
+            id="main"
             style={{
               minHeight: hasScreen ? '' : 'calc(100vh - 72px)',
               alignItems: 'unset',

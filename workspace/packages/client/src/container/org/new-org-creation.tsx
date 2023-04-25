@@ -17,7 +17,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal as RespUser,
 });
 
-interface IOwnProps {}
+interface IOwnProps {
+  title: string;
+}
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps;
 
 interface IOwnStateProps {}
@@ -27,6 +29,10 @@ class NewOrgCreation extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
 
     this.state = {};
+  }
+
+  componentDidMount(): void {
+    document.title = this.props.title;
   }
 
   render(): React.ReactNode {

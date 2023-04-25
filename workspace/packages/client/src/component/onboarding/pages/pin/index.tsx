@@ -1,4 +1,5 @@
 import React from 'react-dom';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
 import StepDot from '../../step-dot';
@@ -6,7 +7,15 @@ import * as CTags from '../../styled';
 import LoveEyesEmoji from '../../../../assets/onboarding/love-eyes.png';
 import CurvedArrow from '../../../../assets/onboarding/curved-arrow.svg';
 
-export default function Pin() {
+interface Props {
+  title: string,
+}
+
+export default function Pin(props: Props) {
+  useEffect(() => {
+    document.title = props.title;
+  }, []);
+
   return (
     <CTags.ContentWrapper>
       <CTags.FlexColContainer>
