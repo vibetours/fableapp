@@ -292,6 +292,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
+      if (node.name === 'input' && node.attrs.type === 'file' && nodePropKey === 'value') {
+        (el as any)[nodePropKey] = '';
+        continue;
+      }
       (el as any)[nodePropKey] = nodePropValue;
     }
 

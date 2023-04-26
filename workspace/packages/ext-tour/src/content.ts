@@ -57,7 +57,7 @@ function createListenerMarkerDivIfNotPresent(doc: Document) {
 function installListener(doc: Document) {
   const isCreatedNew = createListenerMarkerDivIfNotPresent(doc);
   if (isCreatedNew) {
-    doc.addEventListener("click", onClickHandler, true);
+    doc.addEventListener("mousedown", onClickHandler, true);
     // Checks if an iframe is added dynamically, if yes then onload of all those frames we rerun the installListener
     // to add listeners to frames that are not listened to.
     const observer = new MutationObserver(async mutations => {
