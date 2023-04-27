@@ -46,9 +46,20 @@ export function putDataInDb(db: IDBDatabase, storeName: string, data: DBData) {
 
     const putRequest = objectStore.put(data);
 
-    putRequest.onsuccess = function (event) {
-      resolve(data);
-    };
+    Promise.all([
+      new Promise(res => {
+        transaction.addEventListener('complete', () => {
+          res(data);
+        });
+      }),
+      new Promise(res => {
+        putRequest.onsuccess = function (event) {
+          res(data);
+        };
+      })
+    ]).then(([d]) => {
+      resolve(d);
+    });
 
     putRequest.onerror = function (event) {
       reject(new Error('Error putting data in object store'));
@@ -63,9 +74,20 @@ export function deleteDataFromDb(db: IDBDatabase, storeName: string, key: string
 
     const deleteRequest = objectStore.delete(key);
 
-    deleteRequest.onsuccess = function (event) {
-      resolve(key);
-    };
+    Promise.all([
+      new Promise(res => {
+        transaction.addEventListener('complete', () => {
+          res(key);
+        });
+      }),
+      new Promise(res => {
+        deleteRequest.onsuccess = function (event) {
+          res(key);
+        };
+      })
+    ]).then(([d]) => {
+      resolve(d);
+    });
 
     deleteRequest.onerror = function (event) {
       reject(new Error('Error deleting data from object store'));

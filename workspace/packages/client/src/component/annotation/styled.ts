@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { AnnotationButtonSize, AnnotationButtonStyle, AnnotationBodyTextSize } from '@fable/common/dist/types';
 import { Link } from 'react-router-dom';
 import { Rect } from '../base/hightligher-base';
@@ -98,10 +98,19 @@ interface AnHotspotProps {
   isGranularHotspot: boolean;
 }
 
+export const BoxShadowKF = keyframes`
+  50% {box-shadow: 0 0 0 4px #1f96f3;}
+`;
+
+const BoxShadowKFRule = css`
+  ${BoxShadowKF} 2s infinite;
+`;
+
 export const AnHotspot = styled.div`
   background: transparent;
   cursor: pointer;
-  box-shadow: ${(p: AnHotspotProps) => (p.isGranularHotspot ? 'inset 0 0 0 2px orange' : 'none')};
+  animation: ${(p: AnHotspotProps) => (p.isGranularHotspot ? BoxShadowKFRule : 'none')};
+  border-radius: 4px;
   position: absolute;
   top: ${(p: AnHotspotProps) => `${p.box.top - 4 + p.scrollY}px`};
   left: ${(p: AnHotspotProps) => `${p.box.left - 4 + p.scrollX}px`};
