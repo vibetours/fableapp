@@ -1,8 +1,6 @@
-import { createImgNode } from "../../utils";
-import { GREEN_TICK, BIN } from "../../CDN_ASSETS";
+import { createImgNode, FABLE_CONTROL_PILL } from "../../utils";
+import { GREEN_TICK, BIN } from "../../img_data";
 import { Msg } from "../../msg";
-
-const FABLE_CONTROL_PILL = "fable-control-pill";
 
 function createPillContainer(): HTMLDivElement {
   const pillContainer = document.createElement("div");
@@ -33,12 +31,12 @@ function createParagraphNode(text: string): HTMLParagraphElement {
   paraTag.appendChild(textNode);
 
   const impStyles = `
-    border-right: 2px solid #403F42;
-    padding: 8px;
-    color: #FFF;
+    border-right: 1px solid #403F42;
+    padding: 2px 10px 2px 2px;
+    color: #DBDBDB;
     font-size: 14px;
     line-height: 20px;
-    margin: 0;
+    margin: 8px 2px 8px 0px;
   `;
 
   paraTag.setAttribute("style", impStyles);
@@ -62,12 +60,22 @@ export function createStickyControlPill() {
 
   greenTickImgNode.addEventListener(
     "click",
-    () => chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING, data: { action: "SAVE" } })
+    () => {
+      chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
+      paraTag.innerText = "Creating...";
+      greenTickImgNode.style.pointerEvents = "none";
+      binImgNode.style.pointerEvents = "none";
+    }
   );
 
   binImgNode.addEventListener(
     "click",
-    () => chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING, data: { action: "DELETE" } })
+    () => {
+      chrome.runtime.sendMessage({ type: Msg.DELETE_RECORDING });
+      paraTag.innerText = "Deleting...";
+      greenTickImgNode.style.pointerEvents = "none";
+      binImgNode.style.pointerEvents = "none";
+    }
   );
 
   pillContainer.appendChild(paraTag);

@@ -1,4 +1,5 @@
 import { PostProcess, SerDoc, SerNode, SerNodeWithPath } from "@fable/common/dist/types";
+import { FABLE_CONTROL_PILL, isCrossOrigin, isContentEmpty, isCaseInsensitiveEqual, isVisible } from "./utils";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -41,48 +42,6 @@ export function getSearializedDom(
     postProcess?: boolean;
     isHidden?: boolean;
   } {
-    // *************** utils starts *************** //
-
-    function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
-      return !!(str1 && str2 && str1.toLowerCase() === str2.toLowerCase());
-    }
-
-    function isContentEmpty(el: Text): boolean {
-      if (!el.textContent) {
-        return true;
-      }
-      let content = el.textContent;
-      content = content.replace(/[\s\n]+/g, "");
-      return content === "";
-    }
-
-    function isCrossOrigin(url1: string, url2: string): boolean {
-      if (!url1 || !url2) {
-        // If a frame has no src defined then also we say it's from the same origin
-        return false;
-      }
-
-      if (url1.startsWith("/") || url2.startsWith("/")) {
-        // both are relative url
-        return false;
-      }
-
-      if (url1.trim().toLowerCase() === "about:blank" || url2.trim().toLowerCase() === "about:blank") {
-        return false;
-      }
-
-      console.log(">>> url", url1, url2);
-      const u1 = new URL(url1);
-      const u2 = new URL(url2);
-
-      return u1.protocol !== u2.protocol || u1.host !== u2.host;
-    }
-
-    function isVisible(el: HTMLElement): boolean {
-      const style = getComputedStyle(el);
-      return !(style.visibility === "hidden" || style.display === "none");
-    }
-
     const HEAD_TAGS = {
       head: 1,
       title: 1,
@@ -117,8 +76,6 @@ export function getSearializedDom(
       const scrollLeftFactor = scrollLeft / (scrollWidth - elClientWidth);
       return Number.isNaN(scrollLeftFactor) ? 0 : scrollLeftFactor;
     }
-
-    // *************** utils ends *************** //
 
     const sNode: SerNode = {
       type: node.nodeType,
@@ -174,7 +131,7 @@ export function getSearializedDom(
       return { serNode: sNode, shouldSkip: true };
     }
 
-    if (sNode.attrs?.class?.includes("fable-control-pill")) {
+    if (sNode.attrs.class?.includes(FABLE_CONTROL_PILL)) {
       return { serNode: sNode, shouldSkip: true };
     }
 

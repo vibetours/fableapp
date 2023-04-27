@@ -31,6 +31,7 @@ const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 const APP_STATE_IDENTITY = "app_state_identity";
 const APP_RECORDING_STATE = "app_state_recording";
 const FRAMES_TO_PROCESS = "frames_to_process";
+const FRAMES_TO_PROCESS_ORDER = "order_of_frames_to_process";
 const TABS_TO_TRACK = "app_update_listnr_for_tab_ids";
 const FRAMES_IN_TAB = "frames_in_tab";
 const SCREEN_DATA_FINISHED = "screen_data_finished";
@@ -45,19 +46,20 @@ interface ScreenInfo {
   elPath: string;
 }
 
-type TourActions = "DELETE" | "SAVE"
-
 interface FrameDataToBeProcessed {
   oid: number;
   frameId: number;
   tabId: number;
-  type: "serdom" | "thumbnail" | "sigstop";
+  type: "serdom" | "thumbnail" | "sigstop" | "sigskip";
   data: SerDoc | string;
-  action?: TourActions;
 }
 
-chrome.runtime.onInstalled.addListener((details) => {
-  chrome.tabs.create({ url: `${APP_CLIENT_ENDPOINT}/onboarding` });
+chrome.runtime.onInstalled.addListener(async () => {
+  const isOnboardingFlowAlreadyTriggered = (await chrome.storage.local.get("ONBOARDING_STATE")).ONBOARDING_STATE || 0;
+  if (!isOnboardingFlowAlreadyTriggered) {
+    chrome.tabs.create({ url: `${APP_CLIENT_ENDPOINT}/onboarding` });
+    await chrome.storage.local.set({ ONBOARDING_STATE: 1 });
+  }
 });
 
 const LOCKS: Record<string, number> = {};
@@ -89,6 +91,14 @@ async function addFrameDataToProcessList(id: number, frameDataToProcess: FrameDa
     [key]: allFramesToProcess,
   });
   await releaseLock(key);
+
+  await acquireLock(FRAMES_TO_PROCESS_ORDER);
+  const framesToProcessOrder: string[] = (await chrome.storage.local.get(FRAMES_TO_PROCESS_ORDER))[FRAMES_TO_PROCESS_ORDER] || [];
+  if (framesToProcessOrder.indexOf(key) === -1) { framesToProcessOrder.push(key); }
+  await chrome.storage.local.set({
+    [FRAMES_TO_PROCESS_ORDER]: framesToProcessOrder
+  });
+  await releaseLock(FRAMES_TO_PROCESS_ORDER);
 }
 
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
@@ -99,65 +109,77 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       const tVal = val as FrameDataToBeProcessed[];
       let allFramesRecorded = false;
       let isThumbnailCaptured = false;
-      let isSessionFinished = false;
-      let isScrapTour = false;
+      let sessionFinishedType : "na" | "submit" | "skip" = "na";
       const tabId = tVal[0].tabId;
       const frames = (framesInTab[tabId] as number[]).reduce((s, n) => {
         s[n] = 1;
         return s;
       }, {} as Record<number, number>);
       for (const item of tVal) {
-        if (item.action === "DELETE") {
-          isScrapTour = true;
-        }
         if (item.type === "thumbnail") {
           isThumbnailCaptured = true;
-        } else if (item.type === "sigstop") {
-          isSessionFinished = true;
+        } else if (item.type === "sigstop" || item.type === "sigskip") {
+          sessionFinishedType = item.type === "sigstop" ? "submit" : "skip";
         } else {
           delete frames[item.frameId];
         }
       }
+
+      if (sessionFinishedType === "na") {
+        return;
+      }
+
       allFramesRecorded = Object.keys(frames).length === 0;
       if (!allFramesRecorded || !isThumbnailCaptured) {
         return;
       }
 
-      const key = SCREEN_DATA_FINISHED;
-      await acquireLock(key);
       const finishedScreens = (await chrome.storage.local.get(SCREEN_DATA_FINISHED))[SCREEN_DATA_FINISHED] || [];
+      const allRecordedScreenKeys: string[] = (await chrome.storage.local.get(FRAMES_TO_PROCESS_ORDER))[FRAMES_TO_PROCESS_ORDER] || [];
+      for (const key of allRecordedScreenKeys) {
+        if (key === storageKey) {
+          continue;
+        }
+        const screen = (await chrome.storage.local.get(key))[key];
+        if (!screen) {
+          continue;
+        }
+        finishedScreens.push(screen);
+      }
       finishedScreens.push(tVal);
+      await Promise.all([
+        chrome.storage.local.remove(allRecordedScreenKeys.concat(storageKey)),
+        chrome.storage.local.set({
+          [FRAMES_TO_PROCESS_ORDER]: []
+        })
+      ]);
+
       await chrome.storage.local.set({
         [SCREEN_DATA_FINISHED]: finishedScreens,
       });
-      await chrome.storage.local.remove(storageKey);
-      await releaseLock(key);
+      await chrome.storage.local.set({
+        [FRAMES_IN_TAB]: {},
+      });
 
-      if (isSessionFinished) {
-        await chrome.storage.local.set({
-          [FRAMES_IN_TAB]: {},
-        });
-        try {
-          if (!isScrapTour) {
-            const newTab = await chrome.tabs.create({
-              url: `${APP_CLIENT_ENDPOINT}/preptour`
-            });
+      try {
+        if (sessionFinishedType === "submit") {
+          const newTab = await chrome.tabs.create({
+            url: `${APP_CLIENT_ENDPOINT}/preptour`
+          });
 
-            await chrome.scripting.executeScript({
-              target: { tabId: newTab.id! },
-              files: ["client_content.js"],
-            });
-          }
-        } catch (e) {
-          const debugData = await chrome.storage.local.get(null);
-          console.warn(">>> DEBUG DATA <<<", debugData);
-          throw e;
-        } finally {
-          await resetAppState();
+          await chrome.scripting.executeScript({
+            target: { tabId: newTab.id! },
+            files: ["client_content.js"],
+          });
+        } else {
+          await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
         }
-        if (isScrapTour) {
-          await chrome.storage.local.clear();
-        }
+      } catch (e) {
+        const debugData = await chrome.storage.local.get(null);
+        console.warn(">>> DEBUG DATA <<<", debugData);
+        throw e;
+      } finally {
+        await resetAppState();
       }
     }
   }
@@ -167,7 +189,6 @@ async function resetAppState(): Promise<void> {
   const tabsThatWasBeingTracked = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};
   await Promise.all([
     ...Object.keys(tabsThatWasBeingTracked).map(tabId => chrome.tabs.reload(+tabId)),
-    // chrome.storage.local.clear(),
     chrome.storage.local.set({
       [APP_RECORDING_STATE]: RecordingStatus.Idle,
       [TABS_TO_TRACK]: {},
@@ -228,7 +249,9 @@ async function addSampleUser() {
  * monotonically increasing ids that can be out of order if they were generated inside 1ms. This id is passed back
  * and forth via messaging.
  */
+let lastTabCaptureImageData = "";
 chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
+  let endMsg : "sigstop" | "sigskip" = "sigstop";
   switch (msg.type) {
     case Msg.INIT: {
       const state = await getPersistentExtState();
@@ -243,14 +266,22 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       const tMsg = msg as MsgPayload<ReqScreenshotData>;
       // Only take screenshot of the tab once
       if (sender.frameId === 0) {
-        await addFrameDataToProcessList(tMsg.data.id, {
-          oid: tMsg.data.id,
-          frameId: 0,
-          tabId: sender.tab!.id!,
-          type: "thumbnail",
-          data: await chrome.tabs.captureVisibleTab(),
-          action: "SAVE"
-        });
+        try {
+          // Sometime when the user is clicking on the page rapidly captureVisibleTab throws an error saying
+          // the quota is exceeded. In this case we pickup images from last capture. This image is stored in
+          // a local variable because the service worker won't get killed at that time
+          lastTabCaptureImageData = await chrome.tabs.captureVisibleTab();
+        } catch (e) {
+          console.warn("Error while capturing tab. Error", (e as Error).message);
+        } finally {
+          await addFrameDataToProcessList(tMsg.data.id, {
+            oid: tMsg.data.id,
+            frameId: 0,
+            tabId: sender.tab!.id!,
+            type: "thumbnail",
+            data: lastTabCaptureImageData,
+          });
+        }
       }
       break;
     }
@@ -283,7 +314,6 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         tabId: sender.tab!.id!,
         type: "serdom",
         data: tMsg.data.serDoc,
-        action: "SAVE"
       });
       break;
     }
@@ -296,6 +326,10 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       break;
     }
 
+    case Msg.DELETE_RECORDING: {
+      endMsg = "sigskip";
+    }
+    // eslint-disable-next-line no-fallthrough
     case Msg.STOP_RECORDING: {
       await chrome.storage.local.set({
         [APP_RECORDING_STATE]: RecordingStatus.Idle,
@@ -309,22 +343,14 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         frameId: 0,
         oid: id,
         tabId: tab.id!,
-        type: "sigstop",
+        type: endMsg,
         data: "",
-        action: msg.data.action
       });
       await chrome.tabs.sendMessage<MsgPayload<StopRecordingData>>(tab.id!, {
         type: Msg.STOP_RECORDING,
         data: { id }
       });
       clearLoadingIcon(tab.id!);
-      break;
-    }
-
-    case Msg.ADD_SAMPLE_USER: {
-      await addSampleUser();
-      const state = await getPersistentExtState();
-      await chrome.runtime.sendMessage({ type: Msg.INITED, data: state });
       break;
     }
 
@@ -385,7 +411,8 @@ async function injectContentScriptInCrossOriginFrames(tab: { id: number, url: st
   })) || [];
   const crossOriginFrameIds: Array<number> = [];
   for (const frame of framesInPage) {
-    if (frame.frameId === 0 || isCrossOrigin(tab.url || "", frame.url)) {
+    const crossOrigin = isCrossOrigin(tab.url || "", frame.url);
+    if (frame.frameId === 0 || crossOrigin) {
       // Will inject content script to main frame (frameId==0) as well as all cross-origin frames
       crossOriginFrameIds.push(frame.frameId);
     }

@@ -10,12 +10,10 @@ import {
   StopRecordingData
 } from "./types";
 import { createStickyControlPill } from "./components/control-pill";
+import { FABLE_CONTROL_PILL } from "./utils";
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
-
-const stickyControlPill = createStickyControlPill();
-document.body.appendChild(stickyControlPill);
 
 function serialize(elPath: string, isSource: boolean, id: number) {
   chrome.runtime.sendMessage<MsgPayload<ReqScreenshotData>>({
@@ -37,7 +35,7 @@ function serialize(elPath: string, isSource: boolean, id: number) {
 }
 
 const onClickHandler = async (e: MouseEvent) => {
-  if ((e.target as HTMLElement).classList.contains("fable-control-pill")) return;
+  if ((e.target as HTMLElement).classList.contains(FABLE_CONTROL_PILL)) return;
   const elPath = calculatePathFromEl(e.target as Node, []).join(".");
   serialize(elPath, true, snowflake());
 };
@@ -122,6 +120,11 @@ function init() {
         // a frame reaches the specific frame, not all the other frames
         if (tMsg.data.scriptId === initData.scriptId) {
           initData.frameId = tMsg.data.frameId;
+
+          if (tMsg.data.frameId === 0) {
+            const stickyControlPill = createStickyControlPill();
+            document.body.appendChild(stickyControlPill);
+          }
         }
         break;
       }

@@ -1,12 +1,19 @@
 import { CSSProperties } from "react";
 
+export const FABLE_CONTROL_PILL = "fable-dont-ser";
+
 export function getRandomId(): string {
   return Math.random().toString(16).substring(2, 15) + Math.random().toString(16).substring(2, 15);
 }
 
 export function isCrossOrigin(url1: string, url2: string): boolean {
   if (!url1 || !url2) {
-    // If a frame has no src defined then also we say it's from the same domain
+    // If a frame has no src defined then also we say it's from the same origin
+    return false;
+  }
+
+  if (url1.startsWith("/") || url2.startsWith("/")) {
+    // both are relative url
     return false;
   }
 
@@ -66,4 +73,22 @@ export function createImgNode(src: string, alt: string, height: number, width: n
   imgNode.classList.add(...classList);
 
   return imgNode;
+}
+
+export function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
+  return !!(str1 && str2 && str1.toLowerCase() === str2.toLowerCase());
+}
+
+export function isContentEmpty(el: Text): boolean {
+  if (!el.textContent) {
+    return true;
+  }
+  let content = el.textContent;
+  content = content.replace(/[\s\n]+/g, "");
+  return content === "";
+}
+
+export function isVisible(el: HTMLElement): boolean {
+  const style = getComputedStyle(el);
+  return !(style.visibility === "hidden" || style.display === "none");
 }
