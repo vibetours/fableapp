@@ -334,10 +334,20 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       }
       const data = await chrome.storage.local.get(SCREEN_DATA_FINISHED);
       const cookies = await chrome.cookies.getAll({});
+
+      for (let i = 0; i < data[SCREEN_DATA_FINISHED].length; i += 5) {
+        await chrome.tabs.sendMessage(sender.tab.id!, {
+          type: Msg.SAVE_SCREENS_DATA_IN_EXCHANGE_DIV,
+          data: { screensData: data[SCREEN_DATA_FINISHED].slice(i, i + 5) || [] }
+        });
+      }
+
       await chrome.tabs.sendMessage(sender.tab.id!, {
-        type: Msg.SAVE_TOUR_DATA,
-        data: { screensData: data[SCREEN_DATA_FINISHED] || [], cookies }
+        type: Msg.SAVE_COOKIES_DATA_IN_EXCHANGE_DIV,
+        data: { cookiesData: cookies }
       });
+
+      await chrome.tabs.sendMessage(sender.tab.id!, { type: Msg.SAVE_TOUR_DATA });
       await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
       break;
     }
