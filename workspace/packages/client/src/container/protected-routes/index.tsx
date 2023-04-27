@@ -10,12 +10,17 @@ import HeartLoader from '../../component/loader/heart';
 import { LoginErrorType } from '../../component/auth/login';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import Auth0Config from '../../component/auth/auth0-config.json';
+import { iam } from '../../action/creator';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-interface IDispatchProps { }
+interface IDispatchProps {
+  iam: () => void;
+}
 
-const mapDispatchToProps = (dispatch: any) => ({});
+const mapDispatchToProps = (dispatch: any) => ({
+  iam: () => dispatch(iam()),
+});
 
 interface IAppStateProps {
   isPrincipalLoaded: boolean;
@@ -45,6 +50,18 @@ class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
       });
       return accessToken;
     });
+  }
+
+  componentDidMount(): void {
+    if (this.props.auth0.isAuthenticated) {
+      this.props.iam();
+    }
+  }
+
+  componentDidUpdate(prevProps: Readonly<IProps>): void {
+    if (prevProps.auth0.isAuthenticated !== this.props.auth0.isAuthenticated && this.props.auth0.isAuthenticated) {
+      this.props.iam();
+    }
   }
 
   render() {

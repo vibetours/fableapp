@@ -28,7 +28,6 @@ import ProtectedRoutes from '../protected-routes';
 
 interface IDispatchProps {
   init: () => void;
-  iam: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -52,10 +51,6 @@ interface IOwnStateProps { }
 class App extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.init();
-  }
-
-  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
-    this.props.iam();
   }
 
   render() {
