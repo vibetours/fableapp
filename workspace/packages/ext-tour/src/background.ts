@@ -24,7 +24,7 @@ import {
   SerializeFrameData,
   StopRecordingData
 } from "./types";
-import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin } from "./utils";
+import { isCrossOrigin } from "./utils";
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -101,6 +101,8 @@ async function addFrameDataToProcessList(id: number, frameDataToProcess: FrameDa
   await releaseLock(FRAMES_TO_PROCESS_ORDER);
 }
 
+type TSessionFinish = "na" | "submit" | "skip";
+let timer: number = 0;
 chrome.storage.onChanged.addListener(async (changes, areaName) => {
   if (areaName !== "local") return;
   for (const [storageKey, { newValue: val }] of Object.entries(changes)) {
@@ -109,7 +111,7 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       const tVal = val as FrameDataToBeProcessed[];
       let allFramesRecorded = false;
       let isThumbnailCaptured = false;
-      let sessionFinishedType : "na" | "submit" | "skip" = "na";
+      let sessionFinishedType : TSessionFinish = "na";
       const tabId = tVal[0].tabId;
       const frames = (framesInTab[tabId] as number[]).reduce((s, n) => {
         s[n] = 1;
@@ -129,61 +131,82 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
         return;
       }
 
+      // This is a failsafe mechanism to end the recording once the sigstop signal is received and the system waits for
+      // 3 seconds from the last msg received but message from some frames are not yet received (apparently)
+      // This might happen if a frame gets deleted without reloading the page, hence FRAMES_IN_TAB never gets to know
+      // that a frame gets deleted from body. This is observed in ga sometimes
+      clearFinishTimer();
+      timer = setTimeout(finishAppRecording(storageKey, tVal, sessionFinishedType), 3000) as unknown as number;
+
       allFramesRecorded = Object.keys(frames).length === 0;
       if (!allFramesRecorded || !isThumbnailCaptured) {
         return;
       }
 
-      const finishedScreens = (await chrome.storage.local.get(SCREEN_DATA_FINISHED))[SCREEN_DATA_FINISHED] || [];
-      const allRecordedScreenKeys: string[] = (await chrome.storage.local.get(FRAMES_TO_PROCESS_ORDER))[FRAMES_TO_PROCESS_ORDER] || [];
-      for (const key of allRecordedScreenKeys) {
-        if (key === storageKey) {
-          continue;
-        }
-        const screen = (await chrome.storage.local.get(key))[key];
-        if (!screen) {
-          continue;
-        }
-        finishedScreens.push(screen);
-      }
-      finishedScreens.push(tVal);
-      await Promise.all([
-        chrome.storage.local.remove(allRecordedScreenKeys.concat(storageKey)),
-        chrome.storage.local.set({
-          [FRAMES_TO_PROCESS_ORDER]: []
-        })
-      ]);
-
-      await chrome.storage.local.set({
-        [SCREEN_DATA_FINISHED]: finishedScreens,
-      });
-      await chrome.storage.local.set({
-        [FRAMES_IN_TAB]: {},
-      });
-
-      try {
-        if (sessionFinishedType === "submit") {
-          const newTab = await chrome.tabs.create({
-            url: `${APP_CLIENT_ENDPOINT}/preptour`
-          });
-
-          await chrome.scripting.executeScript({
-            target: { tabId: newTab.id! },
-            files: ["client_content.js"],
-          });
-        } else {
-          await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
-        }
-      } catch (e) {
-        const debugData = await chrome.storage.local.get(null);
-        console.warn(">>> DEBUG DATA <<<", debugData);
-        throw e;
-      } finally {
-        await resetAppState();
-      }
+      clearFinishTimer();
+      finishAppRecording(storageKey, tVal, sessionFinishedType)();
     }
   }
 });
+
+function clearFinishTimer() {
+  if (timer) {
+    clearTimeout(timer);
+    timer = 0;
+  }
+}
+
+function finishAppRecording(storageKey: string, tVal: Object, sessionFinishedType: TSessionFinish): () => Promise<void> {
+  return async (): Promise<void> => {
+    const finishedScreens = (await chrome.storage.local.get(SCREEN_DATA_FINISHED))[SCREEN_DATA_FINISHED] || [];
+    const allRecordedScreenKeys: string[] = (await chrome.storage.local.get(FRAMES_TO_PROCESS_ORDER))[FRAMES_TO_PROCESS_ORDER] || [];
+    for (const key of allRecordedScreenKeys) {
+      if (key === storageKey) {
+        continue;
+      }
+      const screen = (await chrome.storage.local.get(key))[key];
+      if (!screen) {
+        continue;
+      }
+      finishedScreens.push(screen);
+    }
+    finishedScreens.push(tVal);
+    await Promise.all([
+      chrome.storage.local.remove(allRecordedScreenKeys.concat(storageKey)),
+      chrome.storage.local.set({
+        [FRAMES_TO_PROCESS_ORDER]: []
+      })
+    ]);
+
+    await chrome.storage.local.set({
+      [SCREEN_DATA_FINISHED]: finishedScreens,
+    });
+    await chrome.storage.local.set({
+      [FRAMES_IN_TAB]: {},
+    });
+
+    try {
+      if (sessionFinishedType === "submit") {
+        const newTab = await chrome.tabs.create({
+          url: `${APP_CLIENT_ENDPOINT}/preptour`
+        });
+
+        await chrome.scripting.executeScript({
+          target: { tabId: newTab.id! },
+          files: ["client_content.js"],
+        });
+      } else {
+        await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
+      }
+    } catch (e) {
+      const debugData = await chrome.storage.local.get(null);
+      console.warn(">>> DEBUG DATA <<<", debugData);
+      throw e;
+    } finally {
+      await resetAppState();
+    }
+  };
+}
 
 async function resetAppState(): Promise<void> {
   const tabsThatWasBeingTracked = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};
