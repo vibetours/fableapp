@@ -215,7 +215,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           const frameBody = doc?.body;
           // Make the iframe visible after all the assets are loaded
           Promise.all(this.assetLoadingPromises).then(() => {
-          // create a elative container that would contain all the falbe related els
+            // create a elative container that would contain all the falbe related els
             if (frameBody) {
               let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
               if (!umbrellaDiv) {
@@ -333,13 +333,17 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     if (node.props.isStylesheet) {
-      const p = new Promise((resolve) => {
+      if (node.attrs.href) {
+        const p = new Promise((resolve) => {
         // on either cases we resolve the promises so that the rendering happens
-        el.onload = resolve;
-        el.onerror = resolve;
-        el.onabort = resolve;
-      });
-      this.assetLoadingPromises.push(p);
+          el.onload = resolve;
+          el.onerror = resolve;
+          el.onabort = resolve;
+        });
+        this.assetLoadingPromises.push(p);
+      } else {
+        console.warn('No href present for style node', node);
+      }
     }
 
     if (node.props.isShadowHost) {
