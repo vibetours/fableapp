@@ -65,6 +65,9 @@ class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   render() {
+    if (this.props.auth0.isLoading) {
+      return <HeartLoader />;
+    }
     if (!this.props.auth0.isAuthenticated) {
       window.location.replace('/login');
       return <HeartLoader />;

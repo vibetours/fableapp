@@ -1,7 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
 import Screens from '../screens';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
@@ -44,7 +43,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
 });
 
 interface IOwnProps { }
-type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithAuth0Props;
+type IProps = IOwnProps & IAppStateProps & IDispatchProps;
 
 interface IOwnStateProps { }
 
@@ -54,7 +53,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   render() {
-    if (!this.props.isInitied || this.props.auth0.isLoading) {
+    if (!this.props.isInitied) {
       return <HeartLoader />;
     }
 
@@ -68,6 +67,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="product-tours" element={<ProductTours title="Fable - Onboarding" />} />
               <Route path="tnc" element={<TermsAndConditions title="Fable - Terms and Conditions" />} />
             </Route>
+
             <Route path="/" element={<ProtectedRoutes />}>
               <Route path="/cb/auth" element={<AuthCB />} />
               <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
@@ -102,4 +102,4 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(withAuth0(App));
+)(App);
