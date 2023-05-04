@@ -1,114 +1,59 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Outlet } from 'react-router-dom';
-import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
-import { LoadingStatus } from '@fable/common/dist/types';
-import { RespUser, UserOrgAssociation } from '@fable/common/dist/api-contract';
-import { setSec } from '@fable/common/dist/fsec';
+import { Auth0Provider } from '@auth0/auth0-react';
 import { TState } from '../../reducer';
-import HeartLoader from '../../component/loader/heart';
-import { LoginErrorType } from '../../component/auth/login';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import Auth0Config from '../../component/auth/auth0-config.json';
-import { iam } from '../../action/creator';
+import WithPrincipalCheck from './with-principal-check';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-interface IDispatchProps {
-  iam: () => void;
-}
+interface IDispatchProps { }
 
-const mapDispatchToProps = (dispatch: any) => ({
-  iam: () => dispatch(iam()),
-});
+const mapDispatchToProps = (dispatch: any) => ({ });
 
-interface IAppStateProps {
-  isPrincipalLoaded: boolean;
-  principal: RespUser | null;
-}
+interface IAppStateProps { }
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  isPrincipalLoaded: state.default.principalLoadingStatus === LoadingStatus.Done,
-  principal: state.default.principal,
-});
+const mapStateToProps = (state: TState): IAppStateProps => ({ });
 
 interface IOwnProps { }
-type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithAuth0Props & WithRouterProps;
+
+type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps;
 
 interface IOwnStateProps { }
 
+// Auth0Provider needs to be installed in this component not any component upstream
+// Auth0 in it's free version use cross domain cookie that is blocked by some browser
+// If we add the provider on the upstream component the Auth0Provider executes code that throws error.
+// Since during the /p or /form route does not need any auth we don't even initialize the auth0 for those
+
 class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
-  constructor(props: IProps) {
-    super(props);
-    const { getAccessTokenSilently } = this.props.auth0;
-    setSec('getAccessToken', async () => {
-      const accessToken = await getAccessTokenSilently({
-        authorizationParams: {
-          audience: Auth0Config.audience,
-          scope: Auth0Config.scope,
-        }
-      });
-      return accessToken;
-    });
-  }
-
-  componentDidMount(): void {
-    if (this.props.auth0.isAuthenticated) {
-      this.props.iam();
-    }
-  }
-
-  componentDidUpdate(prevProps: Readonly<IProps>): void {
-    if (prevProps.auth0.isAuthenticated !== this.props.auth0.isAuthenticated && this.props.auth0.isAuthenticated) {
-      this.props.iam();
-    }
-  }
-
   render() {
-    if (this.props.auth0.isLoading) {
-      return <HeartLoader />;
-    }
-    if (!this.props.auth0.isAuthenticated) {
-      window.location.replace('/login');
-      return <HeartLoader />;
-    }
-    if (!this.props.isPrincipalLoaded) {
-      return <HeartLoader />;
-    }
-    if (!this.props.principal) {
-      window.location.replace('/login');
-      return <div />;
-    }
-    if (this.props.principal.personalEmail) {
-      this.props.auth0.logout({
-        logoutParams: {
-          returnTo: `${APP_CLIENT_ENDPOINT
-          }/login?t=${LoginErrorType.UserUsedPersonalEmail}&e=${this.props.principal.email}`,
+    const pathname = this.props.location.pathname.toLowerCase();
+    const shouldResolvePrincipal = !(pathname === '/login' || pathname === '/logout');
+
+    return (
+      <Auth0Provider
+        domain={Auth0Config.domain}
+        clientId={Auth0Config.clientId}
+        useRefreshTokens
+        cacheLocation="localstorage"
+        authorizationParams={{
+          audience: Auth0Config.audience,
+          redirect_uri: `${APP_CLIENT_ENDPOINT}/cb/auth`,
+          scope: Auth0Config.scope,
+        }}
+      >
+        {
+          shouldResolvePrincipal ? (<WithPrincipalCheck />) : (<Outlet />)
         }
-      });
-      return <HeartLoader />;
-    }
-
-    if (!this.props.principal.firstName) {
-      // If user details are not yet completed
-      if (!document.location.pathname.startsWith('/iamdetails')) {
-        window.location.replace('/iamdetails');
-        return <HeartLoader />;
-      }
-    } else if (this.props.principal.orgAssociation !== UserOrgAssociation.Explicit) {
-      // If org creation is not yet done then create org first
-      if (!document.location.pathname.startsWith('/org/')) {
-        window.location.replace(
-          this.props.principal.orgAssociation === UserOrgAssociation.Implicit ? '/org/assign' : '/org/create'
-        );
-      }
-    }
-
-    return <Outlet />;
+      </Auth0Provider>
+    );
   }
 }
 
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(withRouter(withAuth0(ProtectedRoutes)));
+)(withRouter(ProtectedRoutes));

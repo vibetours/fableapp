@@ -85,10 +85,10 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
                 />}
               />
               <Route path="/createtour" element={<CreateTour title="Fable" />} />
+              <Route path="/login" element={<Login title="Fable - Login" />} />
+              <Route path="/logout" element={<Logout title="Fable - Logout" />} />
             </Route>
             <Route path="/form/:formId" element={<Form />} />
-            <Route path="/login" element={<Login title="Fable - Login" />} />
-            <Route path="/logout" element={<Logout title="Fable - Logout" />} />
             <Route path="/p/tour/:tourId" element={<Player title="Fable" />} />
             <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player title="Fable" />} />
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
