@@ -16,7 +16,7 @@ function createPillContainer(): HTMLDivElement {
     align-items: center !important;
     padding: 8px 24px !important;
     gap: 8px !important;
-    z-index: 9999999;
+    z-index: 9999999 !important;
   `;
 
   pillContainer.setAttribute("style", impStyles);
@@ -43,6 +43,40 @@ function createParagraphNode(text: string): HTMLParagraphElement {
   paraTag.classList.add(FABLE_CONTROL_PILL);
 
   return paraTag;
+}
+
+function makeElementDraggable(element: HTMLElement, host: HTMLElement) {
+  element.style.cursor = "move";
+
+  const absPos = { x: 0, y: 0 };
+  const relPos = { x: 0, y: 0 };
+  const windowInnerHeight = window.innerHeight;
+  const windowInnerWidth = window.innerWidth;
+
+  function mouseMoveEventListener(e: MouseEvent) {
+    relPos.x = absPos.x - e.clientX;
+    relPos.y = absPos.y - e.clientY;
+    absPos.x = e.clientX;
+    absPos.y = e.clientY;
+    host.style.bottom = `${windowInnerHeight
+      - (host.offsetTop + host.offsetHeight)
+      + relPos.y
+    }px`;
+    host.style.right = `${windowInnerWidth
+      - (host.offsetLeft + host.offsetWidth)
+      + relPos.x
+    }px`;
+  }
+
+  element.addEventListener("mousedown", (e) => {
+    document.addEventListener("mousemove", mouseMoveEventListener);
+    absPos.x = e.x;
+    absPos.y = e.y;
+  });
+
+  document.addEventListener("mouseup", (e) => {
+    document.removeEventListener("mousemove", mouseMoveEventListener);
+  });
 }
 
 export function createStickyControlPill() {
@@ -77,6 +111,8 @@ export function createStickyControlPill() {
       binImgNode.style.pointerEvents = "none";
     }
   );
+
+  makeElementDraggable(paraTag, pillContainer);
 
   pillContainer.appendChild(paraTag);
   pillContainer.appendChild(greenTickImgNode);
