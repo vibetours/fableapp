@@ -11,7 +11,7 @@ import {
   SerDoc,
   SerNode,
 } from "@fable/common/dist/types";
-import { snowflake } from "@fable/common/dist/utils";
+import { sleep, snowflake } from "@fable/common/dist/utils";
 import { getActiveTab } from "./common";
 import { Msg, MsgPayload } from "./msg";
 import {
@@ -144,6 +144,11 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       }
 
       clearFinishTimer();
+      // TODO this timeout was added for the case where the last  screen (with sigstop) got
+      // finished before all the other screens. We wait for a while to get all the other data
+      // that are still getting populated. The proper way to fix this wold be to wait for all the
+      // frames data to be gathered.
+      await sleep(750);
       finishAppRecording(storageKey, tVal, sessionFinishedType)();
     }
   }
