@@ -156,3 +156,8 @@ export const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
   }
   return loc;
 };
+
+export const isProdEnv = () => {
+  const isProd = (process.env.REACT_APP_ENVIRONMENT === 'prod') || (process.env.REACT_APP_ENVIRONMENT === 'stage');
+  return isProd;
+};

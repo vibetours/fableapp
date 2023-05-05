@@ -4,12 +4,15 @@ import './index.css';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
 import AntDesignThemeConfigProvider from 'antd/lib/config-provider';
+import { init as sentryInit } from '@fable/common/dist/sentry';
 import App from './container/app';
 import reportWebVitals from './reportWebVitals';
 import config from './store-config';
 import packageJSON from '../package.json';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+
+sentryInit('client');
 
 const theme = {
   colors: {

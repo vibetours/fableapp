@@ -27,6 +27,7 @@ import {
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
+import { setUser } from '@sentry/react';
 import {
   convertEditsToLineItems,
   getThemeAndAnnotationFromDataFile,
@@ -82,6 +83,13 @@ export function iam() {
     });
     const data = await api<null, ApiResp<RespUser>>('/iam', { auth: true });
     const user = data.data;
+    setUser({
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      org: user.belongsToOrg,
+    });
     dispatch({
       type: ActionType.IAM,
       user

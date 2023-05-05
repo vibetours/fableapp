@@ -1,5 +1,9 @@
+import { startTransaction } from "@sentry/browser";
+import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg } from "./msg";
 import { FrameDataToBeProcessed } from "./types";
+
+sentryInit("extension");
 
 function createExchangeDataDiv(data: FrameDataToBeProcessed[][]) {
   const div = document.createElement("div");
@@ -17,6 +21,7 @@ function createCookiesDiv(data: FrameDataToBeProcessed[][]) {
 
 function init() {
   const screensData: FrameDataToBeProcessed[][] = [];
+  const transaction = startTransaction({ name: "dataTransferToClientContent" });
 
   chrome.runtime.sendMessage({ type: Msg.CLIENT_CONTENT_INIT });
 
@@ -25,6 +30,8 @@ function init() {
       case Msg.SAVE_TOUR_DATA: {
         const dataDiv = createExchangeDataDiv(screensData);
         document.body.appendChild(dataDiv);
+        transaction.setMeasurement("screensCount", screensData.length, "byte");
+        transaction.finish();
         break;
       }
 

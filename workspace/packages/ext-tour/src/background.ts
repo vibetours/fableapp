@@ -11,6 +11,7 @@ import {
   SerDoc,
   SerNode,
 } from "@fable/common/dist/types";
+import { init as sentryInit } from "@fable/common/dist/sentry";
 import { sleep, snowflake } from "@fable/common/dist/utils";
 import { getActiveTab } from "./common";
 import { Msg, MsgPayload } from "./msg";
@@ -25,6 +26,8 @@ import {
   StopRecordingData
 } from "./types";
 import { isCrossOrigin } from "./utils";
+
+sentryInit("background");
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 

@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { createRoot } from "react-dom/client";
+import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "../msg";
 import "./index.less";
 import { IExtStoredState, IUser } from "../types";
@@ -8,6 +9,8 @@ import Loader from "./components/loader";
 import { version } from "../../package.json";
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+
+sentryInit("extension");
 
 type Props = {};
 

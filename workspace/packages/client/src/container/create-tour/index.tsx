@@ -4,6 +4,8 @@ import Modal from 'antd/lib/modal';
 import { PlusOutlined, EditFilled, DownOutlined, SearchOutlined } from '@ant-design/icons';
 import Input from 'antd/lib/input';
 import AutoComplete from 'antd/lib/auto-complete';
+import { startTransaction, captureMessage, captureException, Transaction } from '@sentry/react';
+import { sentryTxReport } from '@fable/common/dist/sentry';
 import HeartLoader from '../../component/loader/heart';
 import { saveAsTour, saveScreens } from './utils';
 import { withRouter, WithRouterProps } from '../../router-hoc';
@@ -74,6 +76,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   private nameTourRef = React.createRef<HTMLInputElement>();
 
+  private sentryTransaction : Transaction | null;
+
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -93,6 +97,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.data = null;
     this.db = null;
     this.screens = [];
+    this.sentryTransaction = null;
   }
 
   async initDbOperations() {
@@ -104,6 +109,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.processScreens();
       return;
     }
+    captureException('No data found in indexedDB in createTour');
     this.setState({ loading: false, notDataFound: true });
   }
 
@@ -112,6 +118,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       return;
     }
 
+    this.sentryTransaction = startTransaction({ name: 'saveCreateTour' });
     this.screens = await saveScreens(
       JSON.parse(this.data.screensData),
       JSON.parse(this.data.cookies),
@@ -133,6 +140,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       null,
       this.state.tourName
     );
+    sentryTxReport(this.sentryTransaction!, 'screensCount', this.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
@@ -147,6 +155,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.screens,
       existingTour
     );
+    sentryTxReport(this.sentryTransaction!, 'screensCount', this.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
   };

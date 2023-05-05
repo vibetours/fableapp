@@ -1,10 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { startTransaction, captureException } from '@sentry/react';
+import { sentryTxReport } from '@fable/common/dist/sentry';
 import HeartLoader from '../../component/loader/heart';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import { DBData } from './types';
-import { openDb, putDataInDb } from './db-utils';
+import { getDataFromDb, openDb, putDataInDb } from './db-utils';
 import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
 
 interface IDispatchProps {
@@ -70,7 +72,13 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
         };
 
         if (this.db) {
+          const transaction = startTransaction({ name: 'saveTourDataToIndexedDB' });
           await putDataInDb(this.db, OBJECT_STORE, this.data);
+          sentryTxReport(transaction, 'screenscount', JSON.parse(screensData).length, 'byte');
+          const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
+          if (!dbData) {
+            captureException('Data not stored in indexedDB');
+          }
           this.db.close();
           setTimeout(() => {
             window.location.replace('/createtour');

@@ -1,4 +1,5 @@
 import { calculatePathFromEl, getRandomId, snowflake } from "@fable/common/dist/utils";
+import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "./msg";
 import { getSearializedDom } from "./doc";
 import {
@@ -11,6 +12,8 @@ import {
 } from "./types";
 import { createStickyControlPill } from "./components/control-pill";
 import { FABLE_CONTROL_PILL } from "./utils";
+
+sentryInit("extension");
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
