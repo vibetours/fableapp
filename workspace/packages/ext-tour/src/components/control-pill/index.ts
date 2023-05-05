@@ -8,9 +8,9 @@ function createPillContainer(): HTMLDivElement {
   const impStyles = `
     display: flex !important;
     background-color: #7567FF !important;
+    top:-10000px; 
+    left:-10000px;
     position: fixed !important;
-    bottom: 2rem !important;
-    right: 2rem !important;
     border-radius: 28px !important;
     justify-content: center !important;
     align-items: center !important;
@@ -48,30 +48,26 @@ function createParagraphNode(text: string): HTMLParagraphElement {
 function makeElementDraggable(element: HTMLElement, host: HTMLElement) {
   element.style.cursor = "move";
 
-  const absPos = { x: 0, y: 0 };
-  const relPos = { x: 0, y: 0 };
-  const windowInnerHeight = window.innerHeight;
-  const windowInnerWidth = window.innerWidth;
+  let relX = 0;
+  let relY = 0;
+  let absX = 0;
+  let absY = 0;
 
   function mouseMoveEventListener(e: MouseEvent) {
-    relPos.x = absPos.x - e.clientX;
-    relPos.y = absPos.y - e.clientY;
-    absPos.x = e.clientX;
-    absPos.y = e.clientY;
-    host.style.bottom = `${windowInnerHeight
-      - (host.offsetTop + host.offsetHeight)
-      + relPos.y
-    }px`;
-    host.style.right = `${windowInnerWidth
-      - (host.offsetLeft + host.offsetWidth)
-      + relPos.x
-    }px`;
+    e.preventDefault();
+
+    relX = absX - e.clientX;
+    relY = absY - e.clientY;
+    absX = e.clientX;
+    absY = e.clientY;
+    host.style.top = `${host.offsetTop - relY}px`;
+    host.style.left = `${host.offsetLeft - relX}px`;
   }
 
   element.addEventListener("mousedown", (e) => {
     document.addEventListener("mousemove", mouseMoveEventListener);
-    absPos.x = e.x;
-    absPos.y = e.y;
+    absX = e.clientX;
+    absY = e.clientY;
   });
 
   document.addEventListener("mouseup", (e) => {
@@ -118,5 +114,30 @@ export function createStickyControlPill() {
   pillContainer.appendChild(greenTickImgNode);
   pillContainer.appendChild(binImgNode);
 
+  positionPill(pillContainer);
+
   return pillContainer;
+}
+
+function positionPill(pill: HTMLDivElement) {
+  document.body.appendChild(pill);
+
+  const pillWidth = pill.clientWidth;
+  const pillHeight = pill.clientHeight;
+  const REM = 16;
+
+  pill.remove();
+
+  const pillTop = `${window.innerHeight - pillHeight - (2 * REM)}`;
+  const pillLeft = `${window.innerWidth - pillWidth - (3 * REM)}`;
+
+  const originalStyles = pill.getAttribute("style");
+
+  const impStyles = `
+    ${originalStyles}
+    top: ${pillTop}px !important;
+    left: ${pillLeft}px !important;
+  `;
+
+  pill.setAttribute("style", impStyles);
 }
