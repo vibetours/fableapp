@@ -37,6 +37,14 @@ export async function saveScreens(
   return screens;
 }
 
+export async function saveScreen(
+  frames: FrameDataToBeProcessed[],
+  cookies: chrome.cookies.Cookie[],
+): Promise<ScreenInfo> {
+  const screenInfo = await processScreen(frames, cookies);
+  return screenInfo;
+}
+
 export async function saveAsTour(
   screens: ScreenInfo[],
   existingTour: P_RespTour | null,
@@ -176,7 +184,8 @@ async function processScreen(
   const { data, elPath } = await postProcessSerDocs(frames, cookies);
   return {
     id: data.id,
-    elPath
+    elPath,
+    icon: data.icon
   };
 }
 

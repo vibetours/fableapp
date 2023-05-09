@@ -2,12 +2,14 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { startTransaction, captureException } from '@sentry/react';
 import { sentryTxReport } from '@fable/common/dist/sentry';
+import { Progress } from 'antd';
 import HeartLoader from '../../component/loader/heart';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import { DBData } from './types';
 import { getDataFromDb, openDb, putDataInDb } from './db-utils';
 import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
+import * as Tags from './styled';
 
 interface IDispatchProps {
 }
@@ -34,6 +36,7 @@ type IProps = IOwnProps &
 
 type IOwnStateProps = {
   loading: boolean;
+  progressPercent: number;
 }
 
 class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -43,7 +46,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   constructor(props: IProps) {
     super(props);
-    this.state = { loading: true };
+    this.state = { loading: true, progressPercent: 0 };
     this.data = null;
     this.db = null;
   }
@@ -57,6 +60,16 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
     const intervalId = setInterval(async () => {
       const el = document.querySelector('#exchange-data') as HTMLElement;
       const cookiesEl = document.querySelector('#cookies-data') as HTMLElement;
+      const totalScreenCountEl = document.querySelector('#total-screen-count') as HTMLElement;
+      const numberOfScreensReceivedCountEl = document.querySelector('#number-of-screens-received-count') as HTMLElement;
+
+      if (totalScreenCountEl && numberOfScreensReceivedCountEl) {
+        const totalScreenCount = +totalScreenCountEl.textContent! || 1;
+        const numberOfScreensReceivedCount = +numberOfScreensReceivedCountEl.textContent! || 0;
+        const progressPercent = Math.round((numberOfScreensReceivedCount / totalScreenCount) * 100);
+        this.setState({ progressPercent });
+      }
+
       if (el && cookiesEl) {
         clearInterval(intervalId);
         const screensData = el.textContent;
@@ -68,7 +81,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
         this.data = {
           id: OBJECT_KEY_VALUE,
           screensData,
-          cookies
+          cookies,
         };
 
         if (this.db) {
@@ -97,7 +110,10 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     if (this.state.loading) {
       return (
-        <HeartLoader />
+        <Tags.HeartLoaderCon>
+          <HeartLoader />
+          <Progress strokeColor="#7567ff" status="active" percent={this.state.progressPercent} />
+        </Tags.HeartLoaderCon>
       );
     }
 

@@ -11,6 +11,7 @@ export interface FrameDataToBeProcessed {
 export interface ScreenInfo {
     id: number;
     elPath: string;
+    icon: string;
 }
 
 export interface DBData {

@@ -2,23 +2,24 @@ import React from 'react';
 import { connect } from 'react-redux';
 import Modal from 'antd/lib/modal';
 import { PlusOutlined, EditFilled, DownOutlined, SearchOutlined } from '@ant-design/icons';
-import Input from 'antd/lib/input';
 import AutoComplete from 'antd/lib/auto-complete';
 import { startTransaction, captureMessage, captureException, Transaction } from '@sentry/react';
 import { sentryTxReport } from '@fable/common/dist/sentry';
+import { Progress } from 'antd';
 import HeartLoader from '../../component/loader/heart';
-import { saveAsTour, saveScreens } from './utils';
+import { saveAsTour, saveScreen } from './utils';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
-import { DBData, ModalTab, ScreenInfo } from './types';
+import { DBData, FrameDataToBeProcessed, ModalTab, ScreenInfo } from './types';
 import { deleteDataFromDb, getDataFromDb, openDb } from './db-utils';
 import * as Tags from './styled';
-import BackgroundImg from '../../assets/create-tour-bg.svg';
 import { getAllTours } from '../../action/creator';
 import { P_RespTour } from '../../entity-processor';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
+import ScreenCard from '../../component/create-tour/screen-card';
+import SkeletonCard from '../../component/create-tour/skeleton-card';
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -65,6 +66,7 @@ type IOwnStateProps = {
   isScreenProcessed: boolean,
   saveType: 'new_tour' | 'existing_tour' | null,
   existingTourId: string | null,
+  screens: ScreenInfo[];
 }
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -72,7 +74,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   private db: IDBDatabase | null;
 
-  private screens: ScreenInfo[];
+  private frameDataToBeProcessed: FrameDataToBeProcessed[][];
 
   private nameTourRef = React.createRef<HTMLInputElement>();
 
@@ -92,12 +94,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       isReadyToSave: false,
       isScreenProcessed: false,
       saveType: null,
-      existingTourId: null
+      existingTourId: null,
+      screens: []
     };
     this.data = null;
     this.db = null;
-    this.screens = [];
     this.sentryTransaction = null;
+    this.frameDataToBeProcessed = [];
   }
 
   async initDbOperations() {
@@ -119,10 +122,18 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     this.sentryTransaction = startTransaction({ name: 'saveCreateTour' });
-    this.screens = await saveScreens(
-      JSON.parse(this.data.screensData),
-      JSON.parse(this.data.cookies),
-    );
+    const frameDataToBeProcessed = JSON.parse(this.data.screensData) as FrameDataToBeProcessed[][];
+    this.frameDataToBeProcessed = frameDataToBeProcessed;
+    const cookieData = JSON.parse(this.data.cookies);
+
+    for (let i = 0; i < frameDataToBeProcessed.length; i++) {
+      const frames = frameDataToBeProcessed[i];
+      const screen = await saveScreen(frames, cookieData);
+      this.setState((prevState: Readonly<IOwnStateProps>) => (
+        { ...prevState, screens: [...prevState.screens, screen] }
+      ));
+    }
+
     this.setState({ isScreenProcessed: true });
   };
 
@@ -136,11 +147,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
     this.setState({ saving: true, showSaveModal: false });
     const tour = await saveAsTour(
-      this.screens,
+      this.state.screens,
       null,
       this.state.tourName
     );
-    sentryTxReport(this.sentryTransaction!, 'screensCount', this.screens.length, 'byte');
+    sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
@@ -152,10 +163,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     const existingTour = this.props.tours.filter(el => el.rid === value)[0];
     this.setState({ saving: true, showSaveModal: false, tourName: existingTour.displayName });
     const tour = await saveAsTour(
-      this.screens,
+      this.state.screens,
       existingTour
     );
-    sentryTxReport(this.sentryTransaction!, 'screensCount', this.screens.length, 'byte');
+    sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
@@ -240,17 +251,30 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           this.state.saving && <Tags.TourHeading>{this.state.tourName}</Tags.TourHeading>
         }
         <Tags.Container>
-          <Tags.Heading>
-            {this.state.notDataFound && 'No data found' }
-          </Tags.Heading>
-          <img src={BackgroundImg} alt="" />
           {
-          this.state.saving && (
-            <Tags.LoadingToast>
-              Loading... It might take a few seconds
-            </Tags.LoadingToast>
-          )
-        }
+            this.state.notDataFound && <Tags.Heading>No data found</Tags.Heading>
+          }
+
+          {
+            this.state.saving && (
+              <Tags.SkeletonCon>
+                <Tags.SkeletonGrid>
+                  {this.frameDataToBeProcessed.map((frameData, idx) => (
+                    this.state.screens.length > idx
+                      ? <ScreenCard
+                          key={idx}
+                          frameData={frameData}
+                          favicon={this.state.screens[idx].icon}
+                      />
+                      : <SkeletonCard key={idx} />
+                  ))}
+                </Tags.SkeletonGrid>
+                <Tags.LoadingToast>
+                  Loading... It might take a few seconds
+                </Tags.LoadingToast>
+              </Tags.SkeletonCon>
+            )
+          }
           <Modal
             open={this.state.showSaveModal}
             title=""
@@ -265,85 +289,85 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
             </Tags.ModalBorderTop>
             <Tags.ModalContainer>
               {
-            this.state.modalTab === ModalTab.INIT && (
-              <div>
-                <Tags.PrimaryModalButton
-                  onClick={() => this.setState({ modalTab: ModalTab.CREATE_TOUR })}
-                >
-                  <PlusOutlined /> <span>Create a new tour</span>
-                </Tags.PrimaryModalButton>
-                <Tags.SecondaryModalButton
-                  onClick={() => this.setState({ showExistingTours: true })}
-                >
-                  <span>Save in existing tour</span> <DownOutlined />
-                </Tags.SecondaryModalButton>
+                this.state.modalTab === ModalTab.INIT && (
+                  <div>
+                    <Tags.PrimaryModalButton
+                      onClick={() => this.setState({ modalTab: ModalTab.CREATE_TOUR })}
+                    >
+                      <PlusOutlined /> <span>Create a new tour</span>
+                    </Tags.PrimaryModalButton>
+                    <Tags.SecondaryModalButton
+                      onClick={() => this.setState({ showExistingTours: true })}
+                    >
+                      <span>Save in existing tour</span> <DownOutlined />
+                    </Tags.SecondaryModalButton>
 
-                {
-                  this.state.showExistingTours && (
-                    <Tags.SearchInputContainer>
-                      <Tags.SearchInputWrapper>
-                        <AutoComplete
-                          dropdownMatchSelectWidth={252}
-                          style={{ width: '100%' }}
-                          options={this.state.options}
-                          onSelect={(value: string) => this.setState({
-                            existingTourId: value,
-                            isReadyToSave: true,
-                            saveType: 'existing_tour',
-                            saving: true,
-                            showSaveModal: false
-                          })}
-                          onSearch={this.handleSearch}
-                          placeholder="Type to search"
-                        >
-                          <input type="text" />
-                        </AutoComplete>
-                        <SearchOutlined
-                          style={{ position: 'absolute', top: '10px', left: '15px' }}
-                        />
-                      </Tags.SearchInputWrapper>
-                    </Tags.SearchInputContainer>
-                  )
-                }
+                    {
+                      this.state.showExistingTours && (
+                        <Tags.SearchInputContainer>
+                          <Tags.SearchInputWrapper>
+                            <AutoComplete
+                              dropdownMatchSelectWidth={252}
+                              style={{ width: '100%' }}
+                              options={this.state.options}
+                              onSelect={(value: string) => this.setState({
+                                existingTourId: value,
+                                isReadyToSave: true,
+                                saveType: 'existing_tour',
+                                saving: true,
+                                showSaveModal: false
+                              })}
+                              onSearch={this.handleSearch}
+                              placeholder="Type to search"
+                            >
+                              <input type="text" />
+                            </AutoComplete>
+                            <SearchOutlined
+                              style={{ position: 'absolute', top: '10px', left: '15px' }}
+                            />
+                          </Tags.SearchInputWrapper>
+                        </Tags.SearchInputContainer>
+                      )
+                    }
 
-              </div>
-            )
-          }
+                  </div>
+                )
+              }
               {
-            this.state.modalTab === ModalTab.CREATE_TOUR && (
-              <div>
-                <Tags.InputLabel htmlFor="tour-name">Name your tour</Tags.InputLabel>
-                <Tags.NameTourInputContainer>
-                  <input
-                    id="tour-name"
-                    placeholder="Untitled"
-                    value={this.state.tourName}
-                    onChange={(e) => this.setState({ tourName: e.target.value })}
-                    ref={this.nameTourRef}
-                  />
-                  <EditFilled style={{ position: 'absolute', top: '0.875rem', left: '0.875rem' }} />
-                </Tags.NameTourInputContainer>
-                <Tags.ModalButtonsContainer>
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => this.setState({ showSaveModal: false })}
-                  >
-                    Cancel
-                  </button>
+                this.state.modalTab === ModalTab.CREATE_TOUR && (
+                  <div>
+                    <Tags.InputLabel htmlFor="tour-name">Name your tour</Tags.InputLabel>
+                    <Tags.NameTourInputContainer>
+                      <input
+                        id="tour-name"
+                        placeholder="Untitled"
+                        value={this.state.tourName}
+                        onChange={(e) => this.setState({ tourName: e.target.value })}
+                        ref={this.nameTourRef}
+                      />
+                      <EditFilled style={{ position: 'absolute', top: '0.875rem', left: '0.875rem' }} />
+                    </Tags.NameTourInputContainer>
+                    <Tags.ModalButtonsContainer>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => this.setState({ showSaveModal: false })}
+                      >
+                        Cancel
+                      </button>
 
-                  <button
-                    type="button"
-                    className="primary"
-                    onClick={this.createNewTour}
-                    disabled={this.state.saving}
-                  >
-                    Save
-                  </button>
-                </Tags.ModalButtonsContainer>
-              </div>
-            )
-          }
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={this.createNewTour}
+                        disabled={this.state.saving}
+                      >
+                        Save
+                      </button>
+                    </Tags.ModalButtonsContainer>
+                  </div>
+                )
+              }
             </Tags.ModalContainer>
           </Modal>
 

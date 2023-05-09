@@ -25,7 +25,7 @@ import {
   SerializeFrameData,
   StopRecordingData
 } from "./types";
-import { isCrossOrigin } from "./utils";
+import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin, BATCH_SIZE } from "./utils";
 
 sentryInit("background");
 
@@ -392,10 +392,15 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       const data = await chrome.storage.local.get(SCREEN_DATA_FINISHED);
       const cookies = await chrome.cookies.getAll({});
 
-      for (let i = 0; i < data[SCREEN_DATA_FINISHED].length; i += 5) {
+      await chrome.tabs.sendMessage(sender.tab.id!, {
+        type: Msg.SAVE_TOTAL_SCREEN_COUNT_IN_EXCHANGE_DIV,
+        data: { totalScreenCount: data[SCREEN_DATA_FINISHED].length ?? 0 }
+      });
+
+      for (let i = 0; i < data[SCREEN_DATA_FINISHED].length; i += BATCH_SIZE) {
         await chrome.tabs.sendMessage(sender.tab.id!, {
           type: Msg.SAVE_SCREENS_DATA_IN_EXCHANGE_DIV,
-          data: { screensData: data[SCREEN_DATA_FINISHED].slice(i, i + 5) || [] }
+          data: { screensData: data[SCREEN_DATA_FINISHED].slice(i, i + BATCH_SIZE) || [] }
         });
       }
 

@@ -1,14 +1,27 @@
 import styled from 'styled-components';
 
 export const Container = styled.div`
-  width: fit-content;
-  margin: 2rem auto;
-  text-align: center;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
   flex-direction: column;
-  height: 70vh;
+  padding: 2.4rem;
+  padding-top: 0;
+`;
+
+export const SkeletonCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  align-items: center;
+`;
+
+export const SkeletonGrid = styled.div`
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
 `;
 
 export const Heading = styled.h1`
@@ -28,6 +41,8 @@ export const LoadingToast = styled.div`
     padding: 0.75rem 2.5rem;
     box-shadow: 0px 3px 1px rgba(195, 147, 119, 0.3);
     border-radius: 1rem;
+    position: fixed;
+    bottom: 7.75rem;
 `;
 
 export const ModalContainer = styled.div`
@@ -185,4 +200,15 @@ export const SearchInputWrapper = styled.div`
     width: 90%;
     margin: auto;
     position: relative;
+`;
+
+export const HeartLoaderCon = styled.div`
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
 `;
