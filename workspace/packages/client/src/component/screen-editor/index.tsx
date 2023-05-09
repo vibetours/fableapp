@@ -4,7 +4,6 @@ import {
   EyeOutlined,
   FilterOutlined,
   FontSizeOutlined,
-  HighlightOutlined,
   LoadingOutlined,
   PictureOutlined,
   RightOutlined,
@@ -15,8 +14,6 @@ import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import Switch from 'antd/lib/switch';
 import React from 'react';
-import Button from 'antd/lib/button';
-import Tooltip from 'antd/lib/tooltip';
 import Modal from 'antd/lib/modal';
 import Collapse from 'antd/lib/collapse';
 import * as GTags from '../../common-styled';
@@ -50,8 +47,8 @@ import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readon
 import * as Tags from './styled';
 import emptyEditAnnIllustration from '../../assets/empty-edit-ann.svg';
 import AdvanceElementPicker from './advance-element.picker';
-
-const browser = detect();
+import TabBar from './components/tab-bar';
+import TabItem from './components/tab-bar/tab-item';
 
 const { confirm } = Modal;
 const { Panel } = Collapse;
@@ -63,6 +60,11 @@ const enum EditTargetType {
   None = 'n',
 }
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
+
+enum TabList {
+  Annotations,
+  Edits
+}
 
 interface IOwnProps {
   screen: P_RespScreen;
@@ -103,6 +105,7 @@ interface IOwnStateProps {
   editItemSelected: string;
   selectedHotspotEl: HTMLElement | null;
   selectionMode: 'hotspot' | 'annotation';
+  activeTab: TabList;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -122,8 +125,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.frameConRef = React.createRef();
     this.microEdits = {};
     this.state = {
-      isInElSelectionMode: false,
-      elSelRequestedBy: ElSelReqType.NA,
+      isInElSelectionMode: true,
+      elSelRequestedBy: ElSelReqType.AnnotateEl,
       selectedElAnnFwd: '',
       selectedEl: null,
       selectedElsParents: [],
@@ -133,6 +136,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       selectedAnnotationId: '',
       selectedHotspotEl: null,
       selectionMode: 'annotation',
+      activeTab: TabList.Annotations,
     };
   }
 
@@ -476,9 +480,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       // the element >> click on "Add an annotaiton" button
     ) || (
       elJustSelected
-      && this.state.selectedEl !== this.getIframeBody() // for default annotation (not full page annotatons)
-      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-    // this happens when user clicks on "Add an annotation" first
+        && this.state.selectedEl !== this.getIframeBody() // for default annotation (not full page annotatons)
+        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
+        // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
         let opts: ITourDataOpts = this.props.tourDataOpts;
@@ -718,7 +722,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       isInElSelectionMode: true,
       elSelRequestedBy: state.elSelRequestedBy === ElSelReqType.NA
         ? ElSelReqType.EditEl
-        : state.elSelRequestedBy }));
+        : state.elSelRequestedBy
+    }));
   };
 
   createCoverAnnotation = () => {
@@ -729,6 +734,27 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       opts
     );
     this.setState({ selectedAnnotationId: conf.refId });
+  };
+
+  handleTabOnClick = (tab: TabList): void => {
+    switch (tab) {
+      case TabList.Annotations:
+        this.setState((state) => ({
+          elSelRequestedBy: ElSelReqType.AnnotateEl,
+          isInElSelectionMode: true,
+          activeTab: tab,
+        }));
+        break;
+      case TabList.Edits:
+        this.setState((state) => ({
+          elSelRequestedBy: ElSelReqType.EditEl,
+          isInElSelectionMode: true,
+          activeTab: tab
+        }));
+        break;
+      default:
+        break;
+    }
   };
 
   render(): React.ReactNode {
@@ -750,259 +776,245 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onFrameAssetLoad={this.onFrameAssetLoad}
           />
         </GTags.EmbedCon>
+
+        {/* this is the annotation creator panel */}
         <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
-          <Tags.ActionMenuCon>
-            <Tags.ActionMenuConBar>
-              <Tooltip
-                placement="bottomRight"
-                title={
-                  <GTags.Txt className="subsubhead" color="#fff">
-                    Click here to toggle element selection on the screen
-                  </GTags.Txt>
-}
-              >
-                <Button
-                  icon={<HighlightOutlined />}
-                  size="small"
-                  type={this.state.isInElSelectionMode ? 'link' : 'text'}
-                  onClick={() => this.setState((state) => ({
-                    isInElSelectionMode: !state.isInElSelectionMode,
-                  }))}
-                />
-              </Tooltip>
-              <Tooltip
-                placement="bottomRight"
-                title={
-                  <GTags.Txt className="subsubhead" color="#fff">
-                    Click here to toggle annotation mode
-                  </GTags.Txt>
-}
-              >
-                <Button
-                  icon={<FontSizeOutlined />}
-                  size="small"
-                  type={this.state.elSelRequestedBy === ElSelReqType.AnnotateEl ? 'link' : 'text'}
-                  onClick={() => this.setState((state) => ({
-                    elSelRequestedBy: state.elSelRequestedBy === ElSelReqType.AnnotateEl
-                      ? ElSelReqType.EditEl
-                      : ElSelReqType.AnnotateEl,
-                  }))}
-                />
-              </Tooltip>
-            </Tags.ActionMenuConBar>
-          </Tags.ActionMenuCon>
-          <Tags.EditPanelSec>
-            {this.state.selectedEl && this.domElPicker?.getMode() === HighlightMode.Pinned && (
-              <Collapse
-                bordered={false}
-                style={{
-                  marginBottom: '1rem',
-                }}
-              >
-                <Panel
-                  header="Advanced element picker"
-                  key="1"
+          {/* this is top menu */}
+          <TabBar>
+            <TabItem
+              title="Annotations"
+              active={this.state.activeTab === TabList.Annotations}
+              onClick={() => this.handleTabOnClick(TabList.Annotations)}
+            />
+            <TabItem
+              title="Edit"
+              active={this.state.activeTab === TabList.Edits}
+              onClick={() => this.handleTabOnClick(TabList.Edits)}
+            />
+          </TabBar>
+
+          <div style={{ }}>
+            <Tags.EditPanelSec>
+              {/* this is advanced element picker */}
+              {this.state.selectedEl && this.domElPicker?.getMode() === HighlightMode.Pinned && (
+                <Collapse
+                  bordered={false}
                   style={{
-                    fontSize: '14px',
-                    margin: 0,
-                    padding: 0
+                    marginBottom: '1rem',
                   }}
                 >
-                  <AdvanceElementPicker
-                    elements={this.state.selectedElsParents}
-                    domElPicker={this.domElPicker}
-                    selectedEl={this.state.selectedEl}
-                    count={this.state.selectedElsParents.length}
-                    setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                      let fwdAnnotation = '';
-                      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-                      if (!annOnNewEl) {
-                        // If there is annotation on top of new element then don't do anything
-                        const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                        if (annOnOldEl) {
-                          this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
-                          const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
-                          const updates = replaceAnnotation(
-                            this.props.allAnnotationsForTour,
-                            annOnOldEl,
-                            replaceWithAnn,
-                            this.props.screen.id
-                          );
-                          fwdAnnotation = replaceWithAnn.refId;
-                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
-                        }
-                      }
-                      this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                  <Panel
+                    header="Advanced element picker"
+                    key="1"
+                    style={{
+                      fontSize: '14px',
+                      margin: 0,
+                      padding: 0
                     }}
-                    mouseLeaveHighlightMode={HighlightMode.Pinned}
-                  />
-                </Panel>
-              </Collapse>
-            )}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <GTags.Txt className="title">Edit Screen {this.state.selectedEl ? '' : 'or Add annotations'}</GTags.Txt>
-            </div>
-            <div
-              style={{
-                justifyContent: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                marginBottom: '1rem'
-              }}
-            >
-              {this.state.isInElSelectionMode && (
-                <>
-
-                  {(this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId) === 'cover'
-                  || this.state.selectedEl !== null) && (
-                    <div>
-                      <GTags.Txt className="subhead">
-                        You are now editing the selected element. Press <span className="kb-key">Esc</span> or {' '}
-                        click outside to complete editing.
-                      </GTags.Txt>
-                    </div>
-                  )}
-                  {
-                    (this.state.selectedEl === null && this.state.selectedAnnotationId === '') && (
-                      <>
-                        <img
-                          style={{ margin: '1rem' }}
-                          src={emptyEditAnnIllustration}
-                          alt="empty state edit annotations"
-                        />
-                        <GTags.Txt className="subhead">
-                          Click an element in the screen to see the edit options or to add annotations.
-                        </GTags.Txt>
-                        <Tags.CreateCoverAnnotationBtn
-                          onClick={() => { this.createCoverAnnotation(); }}
-                        >
-                          Create cover annotation
-                        </Tags.CreateCoverAnnotationBtn>
-                      </>
-                    )
-                  }
-
-                </>
-              )}
-              {this.getEditingCtrlForElType(this.state.editTargetType)}
-            </div>
-            {this.props.screen.parentScreenId !== 0
-              && this.props.allEdits
-                .map((editEncoding) => (
-                  <Tags.EditLIPCon
-                    key={editEncoding[IdxEditItem.KEY]}
-                    onClick={((edit) => (evt): void => {
-                      this.setState({
-                        editItemSelected: editEncoding[IdxEditItem.KEY],
-                        isInElSelectionMode: true,
-                        elSelRequestedBy: ElSelReqType.EditEl,
-                      });
-                      this.highlightElementForPath(edit[IdxEditItem.PATH]);
-                    })(editEncoding)}
                   >
-                    {ScreenEditor.getEditTypeComponent(editEncoding, editEncoding[IdxEditItem.EDIT_TYPE_LOCAL])}
-                    {editEncoding[IdxEditItem.KEY] === this.state.editItemSelected && (
-                      <div style={{ display: 'flex' }}>
-                        <ListActionBtn edit={editEncoding} element={this.state.selectedEl!} />
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <Tags.ListActionBtn onClick={() => this.showDeleteConfirm(editEncoding)}>
-                          Delete
-                        </Tags.ListActionBtn>
-                      </div>
-                    )}
-                  </Tags.EditLIPCon>
-                ))}
-          </Tags.EditPanelSec>
-          {this.state.selectedEl && this.state.elSelRequestedBy !== ElSelReqType.AnnotateEl && (
-            <Tags.EditPanelSec>
+                    <AdvanceElementPicker
+                      elements={this.state.selectedElsParents}
+                      domElPicker={this.domElPicker}
+                      selectedEl={this.state.selectedEl}
+                      count={this.state.selectedElsParents.length}
+                      setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                        let fwdAnnotation = '';
+                        const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+                        if (!annOnNewEl) {
+                          // If there is annotation on top of new element then don't do anything
+                          const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                          if (annOnOldEl) {
+                            this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
+                            const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
+                            const updates = replaceAnnotation(
+                              this.props.allAnnotationsForTour,
+                              annOnOldEl,
+                              replaceWithAnn,
+                              this.props.screen.id
+                            );
+                            fwdAnnotation = replaceWithAnn.refId;
+                            updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
+                          }
+                        }
+                        this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                      }}
+                      mouseLeaveHighlightMode={HighlightMode.Pinned}
+                    />
+                  </Panel>
+                </Collapse>
+              )}
+              {/* this is info and create cover annotation button */}
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  marginBottom: '1.25rem',
                 }}
               >
-                <GTags.Txt className="title">Add an annotation</GTags.Txt>
-                <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
-                  Annotations are guide to your product mean to get your user acquiented with your product.
-                </GTags.Txt>
-                <Btn
-                  icon="plus"
-                  onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}
-                  type="primary"
-                >
-                  Add an annotation
-                </Btn>
+                <GTags.Txt className="title">Edit Screen {this.state.selectedEl ? '' : 'or Add annotations'}</GTags.Txt>
               </div>
-            </Tags.EditPanelSec>
-          )}
-          {this.props.allAnnotationsForScreen.length > 0 && (
-            <Tags.EditPanelSec>
-              <GTags.Txt className="title2">Annotations applied on page</GTags.Txt>
-              {this.props.screen.parentScreenId !== 0
-                && this.props.allAnnotationsForScreen.map(config => (
-                  <Tags.AnnotationLI
-                    key={config.refId}
-                  >
-                    <Tags.AnotCrtPanelSecLabel
-                      style={{ display: 'flex' }}
-                      onClick={() => {
-                        if (this.state.selectedAnnotationId === config.refId) {
-                          this.setState({ selectedAnnotationId: '', selectedEl: null });
-                          this.goToSelectionMode();
-                        } else {
-                          this.setState({ selectedAnnotationId: config.refId });
-                        }
-                      }}
-                    >
-
-                      <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
-                        {config.displayText}
-                      </GTags.Txt>
-                      {
-                        config.syncPending && (<LoadingOutlined />)
-                      }
-                      {
-                        this.state.selectedAnnotationId === config.refId
-                          ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
-                          : <RightOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
-                      }
-                    </Tags.AnotCrtPanelSecLabel>
-                    {this.state.selectedAnnotationId === config.refId && (
-                      <div style={{ color: 'black' }}>
-                        <AnnotationCreatorPanel
-                          config={config}
-                          opts={this.props.tourDataOpts}
-                          allAnnotationsForTour={this.props.allAnnotationsForTour}
-                          screen={this.props.screen}
-                          selectedHotspotEl={this.state.selectedHotspotEl}
-                          setSelectionMode={(mode: 'annotation' | 'hotspot') => {
-                            this.setState({ selectionMode: mode });
-                          }}
-                          domElPicker={this.domElPicker}
-                          onSideEffectConfigChange={
-                            (screenId: number, c: IAnnotationConfig, actionType: 'upsert' | 'delete') => {
-                              this.props.onAnnotationCreateOrChange(screenId, c, actionType, null);
-                            }
-                          }
-                          onConfigChange={async (conf, actionType, opts) => {
-                            if (actionType === 'upsert') {
-                              this.setState({ selectedAnnotationId: conf.refId });
-                            }
-                            this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                          }}
-                        />
-                      </div>
+              <div
+                style={{
+                  justifyContent: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  marginBottom: '1rem'
+                }}
+              >
+                {this.state.isInElSelectionMode && (
+                  <>
+                    {(this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId) === 'cover'
+                      || this.state.selectedEl !== null) && (
+                        <div>
+                          <GTags.Txt className="subhead">
+                            You are now editing the selected element. Press <span className="kb-key">Esc</span> or {' '}
+                            click outside to complete editing.
+                          </GTags.Txt>
+                        </div>
                     )}
-                  </Tags.AnnotationLI>
-                ))}
+                    {
+                      (this.state.selectedEl === null && this.state.selectedAnnotationId === '') && (
+                        <>
+                          <img
+                            style={{ margin: '1rem' }}
+                            src={emptyEditAnnIllustration}
+                            alt="empty state edit annotations"
+                          />
+                          <GTags.Txt className="subhead">
+                            Click an element in the screen to see the edit options or to add annotations.
+                          </GTags.Txt>
+                          <Tags.CreateCoverAnnotationBtn
+                            onClick={() => { this.createCoverAnnotation(); }}
+                          >
+                            Create cover annotation
+                          </Tags.CreateCoverAnnotationBtn>
+                        </>
+                      )
+                    }
+
+                  </>
+                )}
+                {this.getEditingCtrlForElType(this.state.editTargetType)}
+              </div>
+
+              {/* this is edits list */}
+              {this.props.screen.parentScreenId !== 0
+                && this.props.allEdits
+                  .map((editEncoding) => (
+                    <Tags.EditLIPCon
+                      key={editEncoding[IdxEditItem.KEY]}
+                      onClick={((edit) => (evt): void => {
+                        this.setState({
+                          editItemSelected: editEncoding[IdxEditItem.KEY],
+                          isInElSelectionMode: true,
+                          elSelRequestedBy: ElSelReqType.EditEl,
+                        });
+                        this.highlightElementForPath(edit[IdxEditItem.PATH]);
+                      })(editEncoding)}
+                    >
+                      {ScreenEditor.getEditTypeComponent(editEncoding, editEncoding[IdxEditItem.EDIT_TYPE_LOCAL])}
+                      {editEncoding[IdxEditItem.KEY] === this.state.editItemSelected && (
+                        <div style={{ display: 'flex' }}>
+                          <ListActionBtn edit={editEncoding} element={this.state.selectedEl!} />
+                          &nbsp;&nbsp;|&nbsp;&nbsp;
+                          <Tags.ListActionBtn onClick={() => this.showDeleteConfirm(editEncoding)}>
+                            Delete
+                          </Tags.ListActionBtn>
+                        </div>
+                      )}
+                    </Tags.EditLIPCon>
+                  ))}
             </Tags.EditPanelSec>
-          )}
+
+            {/* this is add an annotation section */}
+            {this.state.selectedEl && this.state.elSelRequestedBy !== ElSelReqType.AnnotateEl && (
+              <Tags.EditPanelSec>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <GTags.Txt className="title">Add an annotation</GTags.Txt>
+                  <GTags.Txt className="subhead" style={{ marginBottom: '1rem' }}>
+                    Annotations are guide to your product mean to get your user acquiented with your product.
+                  </GTags.Txt>
+                  <Btn
+                    icon="plus"
+                    onClick={() => this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl })}
+                    type="primary"
+                  >
+                    Add an annotation
+                  </Btn>
+                </div>
+              </Tags.EditPanelSec>
+            )}
+
+            {/* this lists down all the annotation applied on page */}
+            {this.props.allAnnotationsForScreen.length > 0 && (
+              <Tags.EditPanelSec>
+                <GTags.Txt className="title2">Annotations applied on page</GTags.Txt>
+                {this.props.screen.parentScreenId !== 0
+                  && this.props.allAnnotationsForScreen.map(config => (
+                    <Tags.AnnotationLI
+                      key={config.refId}
+                    >
+                      <Tags.AnotCrtPanelSecLabel
+                        style={{ display: 'flex' }}
+                        onClick={() => {
+                          if (this.state.selectedAnnotationId === config.refId) {
+                            this.setState({ selectedAnnotationId: '', selectedEl: null });
+                            this.goToSelectionMode();
+                          } else {
+                            this.setState({ selectedAnnotationId: config.refId });
+                          }
+                        }}
+                      >
+
+                        <GTags.Txt className="title2 oneline" style={{ marginRight: '1rem' }}>
+                          {config.displayText}
+                        </GTags.Txt>
+                        {
+                          config.syncPending && (<LoadingOutlined />)
+                        }
+                        {
+                          this.state.selectedAnnotationId === config.refId
+                            ? <DownOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                            : <RightOutlined style={{ fontSize: '0.8rem', color: '#16023E' }} />
+                        }
+                      </Tags.AnotCrtPanelSecLabel>
+                      {this.state.selectedAnnotationId === config.refId && (
+                        <div style={{ color: 'black' }}>
+                          <AnnotationCreatorPanel
+                            config={config}
+                            opts={this.props.tourDataOpts}
+                            allAnnotationsForTour={this.props.allAnnotationsForTour}
+                            screen={this.props.screen}
+                            selectedHotspotEl={this.state.selectedHotspotEl}
+                            setSelectionMode={(mode: 'annotation' | 'hotspot') => {
+                              this.setState({ selectionMode: mode });
+                            }}
+                            domElPicker={this.domElPicker}
+                            onSideEffectConfigChange={
+                              (screenId: number, c: IAnnotationConfig, actionType: 'upsert' | 'delete') => {
+                                this.props.onAnnotationCreateOrChange(screenId, c, actionType, null);
+                              }
+                            }
+                            onConfigChange={async (conf, actionType, opts) => {
+                              if (actionType === 'upsert') {
+                                this.setState({ selectedAnnotationId: conf.refId });
+                              }
+                              this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                            }}
+                          />
+                        </div>
+                      )}
+                    </Tags.AnnotationLI>
+                  ))}
+              </Tags.EditPanelSec>
+            )}
+          </div>
+
         </GTags.EditPanelCon>
       </GTags.PreviewAndActionCon>
     );
