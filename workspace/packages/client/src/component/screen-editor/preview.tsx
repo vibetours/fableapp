@@ -291,6 +291,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       return element;
     }
 
+    if (node.name === 'form') {
+      el.addEventListener('submit', (e) => e.preventDefault());
+    }
+
     for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
       if (node.name === 'input' && node.attrs.type === 'file' && nodePropKey === 'value') {
         (el as any)[nodePropKey] = '';
