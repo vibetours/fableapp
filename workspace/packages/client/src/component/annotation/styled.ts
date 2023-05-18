@@ -119,14 +119,16 @@ export const AnHotspot = styled.div`
 `;
 
 interface AnVideoProps {
-  border: string
+  border: string;
+  isCover: boolean;
 }
 
 export const AnVideo = styled.video`
   position: fixed;
-  bottom: 10px;
-  right: 10px;
-  height: 150px;
+  bottom: ${(p: AnVideoProps) => (p.isCover ? '50%' : '10px')};
+  right: ${(p: AnVideoProps) => (p.isCover ? '50%' : '30px')};
+  transform: ${(p: AnVideoProps) => (p.isCover ? 'translate(50%, 50%)' : 'none')};
+  height: ${(p: AnVideoProps) => (p.isCover ? '480px' : '150px')};
   border-radius: 8px;
   box-shadow: ${(p: AnVideoProps) => `${p.border}`};
 `;

@@ -1,29 +1,16 @@
-import api from '@fable/common/dist/api';
-import { ApiResp, RespUploadUrl, ResponseStatus } from '@fable/common/dist/api-contract';
+import { getS3UploadUrl } from './get-aws-signed-url';
 
 export async function uploadImgToAws(image: File): Promise<string> {
   if (!image) {
     return '';
   }
-  const awsSignedUrl = await getImageUploadUrl(image.type);
+  const awsSignedUrl = await getS3UploadUrl(image.type);
   if (!awsSignedUrl) {
     return '';
   }
-  try {
-    const imageUrl = await uploadImageAsBinary(image, awsSignedUrl);
-    return imageUrl;
-  } catch (e) {
-    console.error('image could not be uploaded');
-    return '';
-  }
+  const imageUrl = await uploadImageAsBinary(image, awsSignedUrl);
+  return imageUrl;
 }
-
-const getImageUploadUrl = async (type: string): Promise<string> => {
-  const res = await api<null, ApiResp<RespUploadUrl>>(`/getuploadlink?te=${btoa(type)}`, {
-    auth: true,
-  });
-  return res.status === ResponseStatus.Failure ? '' : res.data.url;
-};
 
 const uploadImageAsBinary = async (selectedImage: any, awsSignedUrl: string): Promise<string> => {
   const uploadedImageSrc = awsSignedUrl.split('?')[0];

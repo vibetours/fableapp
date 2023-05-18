@@ -54,6 +54,7 @@ import AnnotationRichTextEditor from './annotation-rich-text-editor';
 import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AdvanceElementPicker from './advance-element.picker';
+import VideoRecorder from './video-recorder';
 
 const { confirm } = Modal;
 const { Panel } = Collapse;
@@ -115,6 +116,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
   const [newHotspotSelected, setNewHotspotSelected] = useState<boolean>(false);
   const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
   const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false);
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -263,14 +265,21 @@ export default function AnnotationCreatorPanel(props: IProps) {
         />
       </Tags.AnotCrtPanelSec>
       <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
-        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Video Url</GTags.Txt>
-        <Input
+        <GTags.Txt className="title2" style={{ marginRight: '0.5rem' }}>Video Annotation</GTags.Txt>
+        <Button
           defaultValue={config.videoUrl}
-          bordered={false}
-          style={{ ...commonInputStyles, maxWidth: '120px', }}
-          onChange={(e) => setConfig(c => updateAnnotationVideoURL(c, e.target.value))}
-        />
+          style={{ ...commonInputStyles, maxWidth: '120px', padding: 'none' }}
+          onClick={() => setShowVideoRecorder(true)}
+        >
+          Record
+        </Button>
       </Tags.AnotCrtPanelSec>
+      {showVideoRecorder && (
+        <VideoRecorder
+          closeRecorder={() => setShowVideoRecorder(false)}
+          setConfig={setConfig}
+        />
+      )}
       {
         config.type !== 'cover' && (
           <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>

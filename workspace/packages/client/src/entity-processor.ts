@@ -216,6 +216,8 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     bodyTextSize: lc.bodyTextSize,
     videoUrl: lc.videoUrl,
     hotspotElPath: lc.hotspotElPath,
+    videoUrlMp4: lc.videoUrlMp4,
+    videoUrlWebm: lc.videoUrlWebm,
   };
 }
 
@@ -251,6 +253,14 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAn
 
   if (an.videoUrl === undefined || an.videoUrl === null) {
     an.videoUrl = '';
+  }
+
+  if (an.videoUrlMp4 === undefined || an.videoUrlMp4 === null) {
+    an.videoUrlMp4 = '';
+  }
+
+  if (an.videoUrlWebm === undefined || an.videoUrlWebm === null) {
+    an.videoUrlWebm = '';
   }
 
   return an;

@@ -3,6 +3,7 @@ import React from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
+import { isBlankString, isCoverAnnotation } from './annotation-config-utils';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -290,10 +291,39 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
 
   render() {
     const btnConf = this.props.annotationDisplayConfig.config.buttons.filter(button => button.type === 'next')[0];
+
+    const config = this.props.annotationDisplayConfig.config;
+
+    const isCover = isCoverAnnotation(config.id);
+
+    if (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm)) {
+      return (
+        <Tags.AnVideo
+          autoPlay
+          border={this.getAnnotationBorder()}
+          isCover={isCover}
+          className="fable-video"
+          onEnded={() => {
+            if (!this.props.playMode) {
+              return;
+            }
+            btnConf.hotspot && this.props.nav(
+              btnConf.hotspot.actionValue,
+              btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+            );
+          }}
+        >
+          <source src={config.videoUrlMp4} type="video/mp4" />
+          <source src={config.videoUrlWebm} type="video/webm" />
+        </Tags.AnVideo>
+      );
+    }
+
     return (
       <Tags.AnVideo
         autoPlay
         border={this.getAnnotationBorder()}
+        isCover={isCover}
         className="fable-video"
         onEnded={() => {
           if (!this.props.playMode) {
@@ -324,7 +354,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         return <div key={p.conf.config.id} />;
       }
 
-      const isVideoAnnotation = p.conf.config.videoUrl.length !== 0;
+      const isVideoAnnotation = !isBlankString(p.conf.config.videoUrl)
+      || (!isBlankString(p.conf.config.videoUrlMp4) && !isBlankString(p.conf.config.videoUrlWebm));
       const hideAnnotation = p.conf.config.hideAnnotation || isVideoAnnotation;
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);

@@ -45,6 +45,18 @@ export function updateAnnotationVideoURL(config: IAnnotationConfig, videoUrl: st
   return newConfig;
 }
 
+export function updateAnnotationVideoURLMp4(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.videoUrlMp4 = videoUrl;
+  return newConfig;
+}
+
+export function updateAnnotationVideoURLWebm(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.videoUrlWebm = videoUrl;
+  return newConfig;
+}
+
 export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.isHotspot = isHotspot;
@@ -199,6 +211,8 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     bodyTextSize: AnnotationBodyTextSize.medium,
     videoUrl: '',
     hotspotElPath: null,
+    videoUrlMp4: '',
+    videoUrlWebm: '',
     buttons: [{
       id: getRandomId(),
       type: 'next',
@@ -325,4 +339,12 @@ export function deleteAnnotation(
 
   updates.push([currentScreenId, ann, 'delete']);
   return updates;
+}
+
+export function isCoverAnnotation(annId: string) {
+  return annId.split('#')[0] === '$';
+}
+
+export function isBlankString(str: string) {
+  return str.trim() === '';
 }
