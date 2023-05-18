@@ -335,7 +335,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               }
               {
                 this.state.modalTab === ModalTab.CREATE_TOUR && (
-                  <div>
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    this.createNewTour();
+                  }}
+                  >
                     <Tags.InputLabel htmlFor="tour-name">Name your tour</Tags.InputLabel>
                     <Tags.NameTourInputContainer>
                       <input
@@ -357,15 +361,15 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       </button>
 
                       <button
-                        type="button"
+                        type="submit"
                         className="primary"
-                        onClick={this.createNewTour}
+                        // onClick={this.createNewTour}
                         disabled={this.state.saving}
                       >
                         Save
                       </button>
                     </Tags.ModalButtonsContainer>
-                  </div>
+                  </form>
                 )
               }
             </Tags.ModalContainer>
