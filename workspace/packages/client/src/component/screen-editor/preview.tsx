@@ -137,6 +137,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
   };
 
+  // eslint-disable-next-line class-methods-use-this
+  stopEventBehaviour = (e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   deserDomIntoFrame = async (frame: HTMLIFrameElement) => {
     /*
      * FIXME By default assume all pages are responsive via css
@@ -292,7 +298,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     if (node.name === 'form') {
-      el.addEventListener('submit', (e) => e.preventDefault());
+      el.addEventListener('submit', this.stopEventBehaviour);
+    } else if (node.name === 'input') {
+      el.addEventListener('click', this.stopEventBehaviour);
     }
 
     for (const [nodePropKey, nodePropValue] of Object.entries(node.props.nodeProps || {})) {
