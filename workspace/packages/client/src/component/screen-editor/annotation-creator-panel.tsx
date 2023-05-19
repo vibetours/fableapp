@@ -117,6 +117,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
   const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
   const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
+  const [hotspotElText, setHotspotElText] = useState<string>('');
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -134,7 +135,19 @@ export default function AnnotationCreatorPanel(props: IProps) {
   }, [config, opts]);
 
   useEffect(() => {
-    if (config.hotspotElPath) {
+    // In the parent component:
+    // The prop 'domElPicker' is initially null and then a value gets assigned.
+    // Changes in the 'domElPicker' value won't trigger a re-render of the child component directly,
+    // but due to some other factor, the child component is being re-rendered,
+    // and coincidentally, the changes in the 'domElPicker' value are also getting captured.
+
+    // In the child component:
+    // The 'domElPicker' prop is being received, and it's important to note that changes in the 'domElPicker' prop
+    // alone won't trigger a re-render of this component. The re-render is caused by some other factor.
+    // However, since the child component is being re-rendered, any changes in the 'domElPicker' prop will
+    // be reflected inside this component as well.
+
+    if (config.hotspotElPath && domElPicker) {
       const hotspotEl = domElPicker.elFromPath(config.hotspotElPath)!;
       if (hotspotEl) {
         setSelectedHotspotEl(hotspotEl);
@@ -143,6 +156,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
         const parents = domElPicker.getParents(hotspotEl);
         setSelectedHotspotElsParents(parents!);
         domElPicker.setSelectedBoundedEl(null);
+        setHotspotElText(hotspotEl.textContent || 'Hotspot element');
       }
     }
   }, [config, props.domElPicker]);
@@ -346,7 +360,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
                     alignItems: 'center'
                   }}
                   >
-                    <div>{domElPicker.elFromPath(config.hotspotElPath)!.textContent}</div>
+                    <div style={{ maxWidth: '70%' }}>{hotspotElText}</div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <Button
                         icon={<EditOutlined style={{ ...commonIconStyle }} />}
