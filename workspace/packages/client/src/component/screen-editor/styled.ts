@@ -84,7 +84,7 @@ export const ListActionBtn = styled.span`
 
 export const AnotCrtPanelCon = styled.div`
   display: flex;
-  padding: 0.75rem;
+  padding: 0;
   border-radius: 8px;
   flex-direction: column;
 `;
@@ -99,7 +99,6 @@ export const AnotCrtPanelSec = styled.div`
 `;
 
 export const AnotCrtPanelSecLabel = styled.div`
-  padding: 0.8rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -165,13 +164,13 @@ export const ActionMenuConBar = styled.div`
 `;
 
 export const AnnotationLI = styled.div`
-  margin: 0.25rem;
-  background: #F9F9F9;
-  border-radius: 10px;
-  color: white;
+  position: relative;
+  background: #F7F7F7;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #DDDDDD;
   display: flex;
   flex-direction: column;
-  color: #16023E;
 
   &:hover {
     cursor: pointer;
@@ -200,7 +199,7 @@ export const ButtonSecCon = styled.div`
 `;
 
 export const CreateCoverAnnotationBtn = styled.div`
-    margin: 0.5rem 0.25rem;
+    margin: 0.5rem 0;
     background: #F9F9F9;
     border-radius: 10px;
     color: #16023E;
@@ -235,6 +234,50 @@ export const InputColorCircle = styled.div`
   width: 18px;
   border-radius: 18rem;
   background-color: ${(p: ColorCircleProps) => p.color};
+`;
+
+export const InfoText = styled.p`
+  padding: 0;
+  margin: 0;
+  line-height: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #333333;
+`;
+
+export const AnnTimelineCon = styled.div`
+  padding-top: 1rem;
+  border-top: 1px solid #D9D9D9;
+  margin-top: 1rem;
+`;
+
+export const AnnDisplayText = styled.div`
+  font-size: 1rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: #212121;
+  display: inline-block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+`;
+
+export const VerticalBar = styled.div`
+  height: 1.1rem;
+  border-left: 1px solid #DDDDDD;
+  position: absolute;
+  left: 0.91rem;
+  bottom: 0;
+  transform: translateY(1.1rem);
+`;
+
+export const EditTabCon = styled.div`
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
 `;
 
 interface AnotPanelSecOri {
