@@ -7,15 +7,16 @@ interface Props {
   screen: P_RespScreen;
   isLastScreen: boolean;
   navigate: (uri: string) => void;
+  annotationId: string | null;
 }
 
-export default function TimelineScreen({ screen, isLastScreen, navigate }: Props) {
+export default function TimelineScreen({ screen, isLastScreen, navigate, annotationId }: Props) {
   const { user } = useAuth0();
 
   return (
     <Tags.Con isLastScreen={isLastScreen}>
       <Tags.ScreenThumbnail
-        onClick={() => navigate(`${screen.id}`)}
+        onClick={() => (annotationId ? navigate(`${screen.id}/${annotationId}`) : navigate(`${screen.id}`))}
         src={screen.thumbnailUri.href}
         alt={screen.displayName}
         tabIndex={0}

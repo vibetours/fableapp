@@ -424,6 +424,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const currentScreenId = this.props.screen!.id;
 
     const lastEntity = this.props.tourData!.entities[this.props.screen!.id!];
+
+    if (!lastEntity) {
+      this.onTourDataChange('annotation-and-theme', this.props.screen!.id, {
+        config,
+        opts,
+        actionType: 'upsert'
+      });
+      this.props.navigate(`${config.refId}`);
+      return;
+    }
+
     const lastEntityAnnotations = Object.values((lastEntity as TourScreenEntity).annotations)
       .sort((m, n) => m.createdAt - n.createdAt);
     const lastAnnotation = lastEntityAnnotations.at(-1) as IAnnotationConfig;
