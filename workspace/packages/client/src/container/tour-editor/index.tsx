@@ -31,7 +31,7 @@ import {
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
-import ScreenEditor from '../../component/screen-editor';
+import ScreenEditor, { ITimelineConfig } from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -231,7 +231,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
-    if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK) || key.endsWith(this.props.screen!.rid)) {
+    if (!this.props.screen) {
+      // [todo] this check should not be there as screen should alaways be present, but turning it off causes error
+      // sometime.Investigate
+      return;
+    }
+    if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK) || key.endsWith(this.props.screen.rid)) {
       this.props.saveEditChunks(this.props.screen!, edits);
     }
 
@@ -307,6 +312,117 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     );
   };
 
+  getBoundaryAnnotations = () => {
+    const anns = this.props.allAnnotationsForScreen;
+
+    let first: IAnnotationConfig | null = null;
+    let last: IAnnotationConfig | null = null;
+
+    for (let i = 0; i < anns.length; i++) {
+      const config = anns[i];
+      const prevBtn = config.buttons.filter((btn) => btn.type === 'prev')[0];
+
+      if (!prevBtn.hotspot) {
+        first = config;
+      } else {
+        const prevScreenId = +prevBtn.hotspot.actionValue.split('/')[0];
+        if (prevScreenId !== this.props.screen!.id) {
+          first = config;
+        }
+      }
+
+      const nextBtn = config.buttons.filter((btn) => btn.type === 'next')[0];
+
+      if (!nextBtn.hotspot) {
+        last = config;
+      } else if (nextBtn.hotspot.actionType === 'open') {
+        last = config;
+      } else {
+        last = config;
+      }
+    }
+
+    return [first, last];
+  };
+
+  getCurrentScreenAnnotations = () => {
+    const [firstAnn, lastAnn] = this.getBoundaryAnnotations();
+
+    if (!firstAnn || !lastAnn) {
+      return [];
+    }
+
+    const firstAnnPtr = `${this.props.screen!.id}/${firstAnn.refId}`;
+    const nextScreenAnnQId = this.getNextScreenAnnQId(lastAnn);
+
+    let curr: string | null = firstAnnPtr || null;
+
+    const annotations = [];
+    while (curr !== null && curr !== nextScreenAnnQId) {
+      const [screenId, refId] = curr!.split('/');
+      const annConfig = this.getAnnotationsByScreenId(+screenId).find(val => val.refId === refId)!;
+      annotations.push({ ...annConfig, screenId });
+      const configHotspot = annConfig.buttons.find(btn => btn.type === 'next')!.hotspot;
+      if (!configHotspot) {
+        curr = null;
+      } else if (configHotspot.actionType === 'open') {
+        curr = null;
+      } else {
+        curr = configHotspot.actionValue;
+      }
+    }
+
+    return annotations;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  getNextScreenAnnQId = (lastAnnOfCurrScreen: IAnnotationConfig) => {
+    const nextBtn = lastAnnOfCurrScreen.buttons.filter((btn) => btn.type === 'next')[0];
+
+    if (!nextBtn.hotspot) {
+      return null;
+    }
+
+    if (nextBtn.hotspot.actionType === 'open') {
+      return null;
+    }
+
+    return nextBtn.hotspot.actionValue;
+  };
+
+  getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    const prevScreenId = currentScreenAnnotations[0].buttons
+      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[0] || '';
+
+    return this.props.tour!.screens!.find(screen => screen.id === +prevScreenId);
+  };
+
+  getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    const nextScreenId = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
+      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[0] || '';
+
+    return this.props.tour!.screens!.find(screen => screen.id === +nextScreenId);
+  };
+
+  getAnnotationsByScreenId(screenId: number) {
+    const anns = this.props.allAnnotationsForTour.find(c => c.screen.id === screenId);
+    return anns?.annotations || [];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getPrevAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    const ann = currentScreenAnnotations[0].buttons
+      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[1] || null;
+    return ann;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  getNextAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    const ann = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
+      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[1] || null;
+    return ann;
+  };
+
   componentWillUnmount() {
     this.chunkSyncManager?.end();
     this.props.clearCurrentScreenSelection();
@@ -320,6 +436,18 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       window.open(uri, '_blank')?.focus();
     }
   };
+
+  getTimeLineProps(): ITimelineConfig {
+    // [todo] this gets called multiple time, but this is needed only once. Fix this
+    const currentScreenAnnotations = this.getCurrentScreenAnnotations();
+    return {
+      currentScreenAnnotations,
+      nextScreen: this.getNextScreen(currentScreenAnnotations),
+      prevScreen: this.getPrevScreen(currentScreenAnnotations),
+      nextAnnotation: this.getNextAnn(currentScreenAnnotations),
+      prevAnnotation: this.getPrevAnn(currentScreenAnnotations),
+    };
+  }
 
   render() {
     if (!this.isLoadingComplete()) {
@@ -344,14 +472,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         >
           {this.shouldShowScreen() ? (
             <ScreenEditor
-              key={this.props.screen?.rid}
-              tourData={this.props.tourData!}
-              currentTour={this.props.tour}
+              key={this.props.screen!.rid}
               screen={this.props.screen!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId || ''}
               navigate={this.navFn}
+              timelineConfig={this.getTimeLineProps()}
               createDefaultAnnotation={this.createDefaultAnnotation}
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
               allAnnotationsForTour={this.props.allAnnotationsForTour}

@@ -255,6 +255,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   render() {
     return (
       <Tags.EmbedFrame
+        key={this.props.screen.rid}
         src="about:blank"
         title={this.props.screen.displayName}
         id={ROOT_EMBED_IFRAME_ID}

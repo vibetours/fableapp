@@ -139,11 +139,17 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   }
 
+  timer: number = 0;
+
   reachAnnotation(id: string): boolean {
     if (id) {
       const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === id);
       if (an) {
-        this.showAnnotation(an, this.props.tourDataOpts);
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => {
+          this.showAnnotation(an, this.props.tourDataOpts);
+          this.timer = 0;
+        }) as unknown as number;
         return true;
       }
       return false;
@@ -185,6 +191,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   }
 
   componentWillUnmount(): void {
+    clearTimeout(this.timer);
+    this.timer = 0;
     this.disposeAndAnnotationLCM();
   }
 
@@ -194,6 +202,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       refs.push(this.props.innerRef);
     }
     return <Preview
+      key={this.props.screen.rid}
       hidden={this.props.hidden}
       screen={this.props.screen}
       screenData={this.props.screenData}

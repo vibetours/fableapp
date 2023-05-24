@@ -68,8 +68,6 @@ export default abstract class HighlighterBase {
     const top = elSize.top + this.win.scrollY + dy;
     const left = elSize.left + this.win.scrollX + dx;
 
-    // console.log(el.innerText, 'dx', dx, 'dy', dy, 'sx', 'elx', elSize.left, 'ely', elSize.top);
-
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
     const width = rightEndpoint >= win.scrollX + win.innerWidth
       ? elSize.width : elSize.width + (left <= 0 ? 0 : padding * 2);

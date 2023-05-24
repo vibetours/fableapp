@@ -36,6 +36,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private nav: NavFn;
 
+  private componentDisposed = false;
+
   private isAnnotationDrawingInProgress = false;
 
   private isPlayMode: boolean;
@@ -170,6 +172,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (this.mode === AnnotationViewMode.Hide) {
       return;
     }
+    if (this.componentDisposed) {
+      return;
+    }
     const props: ({
       box: Rect,
       conf: IAnnoationDisplayConfig,
@@ -216,21 +221,23 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.isAnnotationDrawingInProgress = true;
     const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
-    this.opts = opts;
-    this.annotationElMap[path] = [el, {
-      config,
-      opts,
-      isMaximized: false,
-      isInViewPort: false,
-      dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
-      dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
-      dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
-      windowHeight: this.vp.h,
-      windowWidth: this.vp.w,
-    }];
+    if (!this.componentDisposed) {
+      this.opts = opts;
+      this.annotationElMap[path] = [el, {
+        config,
+        opts,
+        isMaximized: false,
+        isInViewPort: false,
+        dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
+        dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
+        dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
+        windowHeight: this.vp.h,
+        windowWidth: this.vp.w,
+      }];
 
-    if (showImmediate) {
-      this.showAnnotationFor(el);
+      if (showImmediate) {
+        this.showAnnotationFor(el);
+      }
     }
     this.isAnnotationDrawingInProgress = false;
     return this;
@@ -245,83 +252,100 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0);
     const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 2.5 | 0);
 
-    const elSmall = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-      this.rRoot.render(
-        React.createElement(
-          StyleSheetManager,
-          { target: this.doc.head },
-          React.createElement(AnnotationContent, {
-            onRender: resolve,
-            isInDisplay: true,
-            config,
-            opts: this.opts,
-            width: smallWidth,
-            top: -9999,
-            left: -9999,
-            key: 777,
-            nav: this.nav,
-          })
-        )
-      );
-    });
-    const smallDim = elSmall.getBoundingClientRect();
+    try {
+      const elSmall = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+        this.rRoot.render(
+          React.createElement(
+            StyleSheetManager,
+            { target: this.doc.head },
+            React.createElement(AnnotationContent, {
+              onRender: resolve,
+              isInDisplay: true,
+              config,
+              opts: this.opts,
+              width: smallWidth,
+              top: -9999,
+              left: -9999,
+              key: 777,
+              nav: this.nav,
+            })
+          )
+        );
+      });
+      const smallDim = elSmall.getBoundingClientRect();
 
-    const elMedium = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-      this.rRoot.render(
-        React.createElement(
-          StyleSheetManager,
-          { target: this.doc.head },
-          React.createElement(AnnotationContent, {
-            onRender: resolve,
-            isInDisplay: true,
-            config,
-            opts: this.opts,
-            width: mediumWidth,
-            top: -9999,
-            left: -9999,
-            key: 666,
-            nav: this.nav,
-          })
-        )
-      );
-    });
-    const mediumDim = elMedium.getBoundingClientRect();
+      const elMedium = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+        this.rRoot.render(
+          React.createElement(
+            StyleSheetManager,
+            { target: this.doc.head },
+            React.createElement(AnnotationContent, {
+              onRender: resolve,
+              isInDisplay: true,
+              config,
+              opts: this.opts,
+              width: mediumWidth,
+              top: -9999,
+              left: -9999,
+              key: 666,
+              nav: this.nav,
+            })
+          )
+        );
+      });
+      const mediumDim = elMedium.getBoundingClientRect();
 
-    const elLarge = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-      this.rRoot.render(
-        React.createElement(
-          StyleSheetManager,
-          { target: this.doc.head },
-          React.createElement(AnnotationContent, {
-            onRender: resolve,
-            isInDisplay: true,
-            config,
-            opts: this.opts,
-            width: largeWidth,
-            top: -9999,
-            left: -9999,
-            key: 888,
-            nav: this.nav,
-          })
-        )
-      );
-    });
-    const largeDim = elLarge.getBoundingClientRect();
+      const elLarge = await new Promise((resolve: (e: HTMLDivElement) => void) => {
+        this.rRoot.render(
+          React.createElement(
+            StyleSheetManager,
+            { target: this.doc.head },
+            React.createElement(AnnotationContent, {
+              onRender: resolve,
+              isInDisplay: true,
+              config,
+              opts: this.opts,
+              width: largeWidth,
+              top: -9999,
+              left: -9999,
+              key: 888,
+              nav: this.nav,
+            })
+          )
+        );
+      });
+      const largeDim = elLarge.getBoundingClientRect();
+
+      return {
+        dimForSmallAnnotation: { w: smallDim.width, h: smallDim.height },
+        dimForMediumAnnotation: { w: mediumDim.width, h: mediumDim.height },
+        dimForLargeAnnotation: { w: largeDim.width, h: largeDim.height },
+      };
+    } catch (e) {
+      if (!this.componentDisposed) {
+        // Sometime there might be errors because component will get unmounted but rendering won't finish
+        // we would ignore this. Not ideal, but here we are
+        throw e;
+      }
+    }
 
     return {
-      dimForSmallAnnotation: { w: smallDim.width, h: smallDim.height },
-      dimForMediumAnnotation: { w: mediumDim.width, h: mediumDim.height },
-      dimForLargeAnnotation: { w: largeDim.width, h: largeDim.height },
+      dimForSmallAnnotation: { w: 0, h: 0 },
+      dimForMediumAnnotation: { w: 0, h: 0 },
+      dimForLargeAnnotation: { w: 0, h: 0 },
     };
   }
 
   public dispose(): void {
-    if (this.rRoot) {
-      this.rRoot.unmount();
-    }
-    if (this.con) {
-      this.con.remove();
-    }
-    super.dispose();
+    this.componentDisposed = true;
+    setTimeout(() => {
+      if (this.rRoot) {
+        this.rRoot.unmount();
+      }
+      if (this.con) {
+        this.con.remove();
+      }
+      super.dispose();
+    });
   }
 }

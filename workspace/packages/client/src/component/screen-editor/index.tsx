@@ -59,6 +59,14 @@ const enum EditTargetType {
 }
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
+export interface ITimelineConfig {
+  currentScreenAnnotations: IAnnotationConfig[];
+  nextScreen: P_RespScreen | undefined;
+  prevScreen: P_RespScreen | undefined;
+  nextAnnotation: string | null;
+  prevAnnotation: string | null;
+}
+
 enum TabList {
   Annotations,
   Edits
@@ -72,6 +80,7 @@ interface IOwnProps {
   allAnnotationsForScreen: IAnnotationConfig[];
   tourDataOpts: ITourDataOpts;
   createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
+  timelineConfig: ITimelineConfig;
   onAnnotationCreateOrChange: (
     screenId: number | null,
     config: IAnnotationConfig,
@@ -83,8 +92,6 @@ interface IOwnProps {
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
-  tourData: TourData;
-  currentTour: P_RespTour | null;
 }
 
 const enum ElSelReqType {
@@ -106,11 +113,6 @@ interface IOwnStateProps {
   selectedHotspotEl: HTMLElement | null;
   selectionMode: 'hotspot' | 'annotation';
   activeTab: TabList;
-  currentScreenAnnotations: IAnnotationConfig[];
-  prevScreen: P_RespScreen | null;
-  nextScreen: P_RespScreen | null;
-  prevAnn: string | null;
-  nextAnn: string | null;
 }
 
 interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
@@ -151,120 +153,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       selectedHotspotEl: null,
       selectionMode: 'annotation',
       activeTab: TabList.Annotations,
-      currentScreenAnnotations: [],
-      prevScreen: null,
-      nextScreen: null,
-      prevAnn: null,
-      nextAnn: null,
     };
   }
-
-  getBoundaryAnnotations = () => {
-    const anns = this.props.allAnnotationsForScreen;
-
-    let first: IAnnotationConfig | null = null;
-    let last: IAnnotationConfig | null = null;
-
-    for (let i = 0; i < anns.length; i++) {
-      const config = anns[i];
-      const prevBtn = config.buttons.filter((btn) => btn.type === 'prev')[0];
-
-      if (!prevBtn.hotspot) {
-        first = config;
-      } else {
-        const prevScreenId = +prevBtn.hotspot.actionValue.split('/')[0];
-        if (prevScreenId !== this.props.screen.id) {
-          first = config;
-        }
-      }
-
-      const nextBtn = config.buttons.filter((btn) => btn.type === 'next')[0];
-
-      if (!nextBtn.hotspot) {
-        last = config;
-      } else if (nextBtn.hotspot.actionType === 'open') {
-        last = config;
-      } else {
-        last = config;
-      }
-    }
-
-    return [first, last];
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getNextScreenAnnQId = (lastAnnOfCurrScreen: IAnnotationConfig) => {
-    const nextBtn = lastAnnOfCurrScreen.buttons.filter((btn) => btn.type === 'next')[0];
-
-    if (!nextBtn.hotspot) {
-      return null;
-    }
-
-    if (nextBtn.hotspot.actionType === 'open') {
-      return null;
-    }
-
-    return nextBtn.hotspot.actionValue;
-  };
-
-  getCurrentScreenAnnotations = () => {
-    const [firstAnn, lastAnn] = this.getBoundaryAnnotations();
-
-    if (!firstAnn || !lastAnn) {
-      return [];
-    }
-
-    const firstAnnPtr = `${this.props.screen.id}/${firstAnn.refId}`;
-    const nextScreenAnnQId = this.getNextScreenAnnQId(lastAnn);
-
-    let curr: string | null = firstAnnPtr || null;
-
-    const annotations = [];
-    while (curr !== null && curr !== nextScreenAnnQId) {
-      const [screenId, refId] = curr!.split('/');
-      const annConfig = Object.values((this.props.tourData.entities[screenId] as TourScreenEntity).annotations)
-        .find(val => val.refId === refId)!;
-      annotations.push({ ...remoteToLocalAnnotationConfig(annConfig), screenId });
-      const configHotspot = annConfig.buttons.find(btn => btn.type === 'next')!.hotspot;
-      if (!configHotspot) {
-        curr = null;
-      } else if (configHotspot.actionType === 'open') {
-        curr = null;
-      } else {
-        curr = configHotspot.actionValue;
-      }
-    }
-
-    return annotations;
-  };
-
-  getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
-    const prevScreenId = currentScreenAnnotations[0].buttons
-      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[0] || '';
-
-    return this.props.currentTour?.screens?.find(screen => screen.id === +prevScreenId);
-  };
-
-  getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
-    const nextScreenId = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
-      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[0] || '';
-
-    return this.props.currentTour?.screens?.find(screen => screen.id === +nextScreenId);
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getPrevAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
-    const ann = currentScreenAnnotations[0].buttons
-      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[1] || null;
-    return ann;
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getNextAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
-    const ann = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
-      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[1] || null;
-    return ann;
-  };
 
   showDeleteConfirm = (e: EditItem) => {
     const path = e[IdxEditItem.PATH];
@@ -556,52 +446,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.frameConRef.current.addEventListener('click', this.goToSelectionMode);
     }
     document.addEventListener('keydown', this.onKeyDown);
-
-    // if we go to a screen, create a new tour from there
-    if (!this.props.toAnnotationId && !this.props.tourData.entities[this.props.screen.id]) {
-      return;
-    }
-
-    const currentScreenAnnotations = this.getCurrentScreenAnnotations() as IAnnotationConfig[];
-    if (currentScreenAnnotations.length === 0) {
-      this.setState({
-        selectedAnnotationId: this.props.toAnnotationId,
-      });
-      return;
-    }
-    const prevScreen = this.getPrevScreen(currentScreenAnnotations) || null;
-    const nextScreen = this.getNextScreen(currentScreenAnnotations) || null;
-
-    const prevAnn = this.getPrevAnn(currentScreenAnnotations) || null;
-    const nextAnn = this.getNextAnn(currentScreenAnnotations) || null;
-
-    this.setState({
-      selectedAnnotationId: this.props.toAnnotationId,
-      currentScreenAnnotations,
-      prevScreen,
-      nextScreen,
-      prevAnn,
-      nextAnn,
-    });
+    this.setState({ selectedAnnotationId: this.props.toAnnotationId });
   }
 
   async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
-    if (prevProps.screen.id !== this.props.screen.id || prevProps.tourData !== this.props.tourData) {
-      const currentScreenAnnotations = this.getCurrentScreenAnnotations() as IAnnotationConfig[];
-
-      if (this.props.toAnnotationId && this.props.tourData.entities[this.props.screen.id]) {
-        if (currentScreenAnnotations.length === 0) {
-          this.setState({
-            selectedAnnotationId: this.props.toAnnotationId,
-          });
-        } else {
-          const prevScreen = this.getPrevScreen(currentScreenAnnotations) || null;
-          const nextScreen = this.getNextScreen(currentScreenAnnotations) || null;
-          this.setState({ currentScreenAnnotations, prevScreen, nextScreen });
-        }
-      }
-    }
-
     if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
       this.setState({ selectedAnnotationId: this.props.toAnnotationId });
     }
@@ -872,7 +720,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  downArrow = () => <img src={ExpandIcon} width={12} height={6} />;
+  static downArrow = () => <img src={ExpandIcon} width={12} height={6} alt="expand icon" />;
 
   flushMicroEdits() {
     const hasEdits = Object.keys(this.microEdits).length !== 0;
@@ -936,6 +784,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       <GTags.PreviewAndActionCon>
         <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
           <PreviewWithEditsAndAnRO
+            key={this.props.screen.rid}
             screen={this.props.screen}
             screenData={this.props.screenData}
             divPadding={18}
@@ -962,7 +811,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               border: '1px solid #E8E8E8',
             }}
             expandIconPosition="end"
-            expandIcon={() => this.downArrow()}
+            expandIcon={() => ScreenEditor.downArrow()}
           >
 
             <Panel
@@ -1036,16 +885,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     Create cover annotation
                   </Tags.CreateCoverAnnotationBtn>
                   <Tags.AnnTimelineCon>
-                    {this.state.prevScreen
+                    {this.props.timelineConfig.prevScreen
                       && <TimelineScreen
                         navigate={this.navigateToAnnotation}
                         isLastScreen={false}
-                        screen={this.state.prevScreen}
-                        annotationId={this.state.prevAnn}
+                        screen={this.props.timelineConfig.prevScreen}
+                        annotationId={this.props.timelineConfig.prevAnnotation}
                       />}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {this.state.currentScreenAnnotations.map((config, idx) => (
+                      {this.props.timelineConfig.currentScreenAnnotations.map((config, idx) => (
                         <Tags.AnnotationLI
                           key={config.refId}
                         >
@@ -1092,17 +941,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                               />
                             </div>
                           )}
-                          {idx < this.state.currentScreenAnnotations.length - 1 && <Tags.VerticalBar />}
+                          {idx < this.props.timelineConfig.currentScreenAnnotations.length - 1 && <Tags.VerticalBar />}
                         </Tags.AnnotationLI>
                       ))}
                     </div>
 
-                    {this.state.nextScreen
+                    {this.props.timelineConfig.nextScreen
                       && <TimelineScreen
                         navigate={this.navigateToAnnotation}
                         isLastScreen
-                        screen={this.state.nextScreen}
-                        annotationId={this.state.nextAnn}
+                        screen={this.props.timelineConfig.nextScreen}
+                        annotationId={this.props.timelineConfig.nextAnnotation}
                       />}
                   </Tags.AnnTimelineCon>
                 </div>
