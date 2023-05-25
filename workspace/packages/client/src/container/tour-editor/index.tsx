@@ -338,7 +338,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       } else if (nextBtn.hotspot.actionType === 'open') {
         last = config;
       } else {
-        last = config;
+        const nextScreenId = +nextBtn.hotspot.actionValue.split('/')[0];
+        if (nextScreenId !== this.props.screen!.id) {
+          last = config;
+        }
       }
     }
 
@@ -391,6 +394,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    if (currentScreenAnnotations.length === 0) {
+      return undefined;
+    }
     const prevScreenId = currentScreenAnnotations[0].buttons
       .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[0] || '';
 
@@ -398,6 +404,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    if (currentScreenAnnotations.length === 0) {
+      return undefined;
+    }
     const nextScreenId = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
       .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[0] || '';
 
@@ -411,6 +420,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   // eslint-disable-next-line class-methods-use-this
   getPrevAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    if (currentScreenAnnotations.length === 0) {
+      return null;
+    }
     const ann = currentScreenAnnotations[0].buttons
       .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[1] || null;
     return ann;
@@ -418,6 +430,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   // eslint-disable-next-line class-methods-use-this
   getNextAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+    if (currentScreenAnnotations.length === 0) {
+      return null;
+    }
     const ann = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
       .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[1] || null;
     return ann;
