@@ -70,6 +70,7 @@
     "jsx-a11y/click-events-have-key-events": "off",
     "react/no-unescaped-entities": "off",
     "react/sort-comp": "off",
+    "prefer-regex-literals": "off",
     "arrow-parens": "off",
     "object-curly-newline": "off",
     "no-nested-ternary": "off",

@@ -78,7 +78,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         break;
     }
 
-    if (serNode.name !== 'iframe') {
+    if (!serNode.props.isHidden && serNode.name !== 'iframe') {
       for (const child of serNode.chldrn) {
         const childNode = this.deser(child, doc, version, newProps);
         if (childNode && node && !child.props.isShadowRoot) {

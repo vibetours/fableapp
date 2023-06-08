@@ -95,6 +95,11 @@ export function getSearializedDom(
         }
         if (!(sNode.name in HEAD_TAGS) && isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")) {
           sNode.props.isHidden = true;
+          // TODO for some product there are huge number of dom elements that are not visible (like for hubilo thousands
+          // of smileys). If we detect an html element that is not visible in viewport we skip this even for
+          // serialization to reduce the file size.
+          // This should be okay apart from the usecase where if css is loading from inside a display: none div
+          return { serNode: sNode, shouldSkip: true };
         }
         // ADD SCROLL FACTOR HERE:
         const scrollTopFactor = calculateScrollTopFactor(tNode).toString();
