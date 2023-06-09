@@ -66,7 +66,7 @@ function installListener(doc: Document) {
       for (const mutation of mutations) {
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
           for (const node of Array.from(mutation.addedNodes)) {
-            if (node.nodeName && node.nodeName.toLowerCase() === "iframe") {
+            if (node.nodeName && (node.nodeName.toLowerCase() === "iframe" || node.nodeName.toLowerCase() === "object")) {
               frames.push(node as HTMLIFrameElement);
             }
           }
@@ -86,7 +86,7 @@ function installListener(doc: Document) {
       childList: true
     });
   }
-  const docs = Array.from(doc.getElementsByTagName("iframe"))
+  const docs = [...Array.from(doc.getElementsByTagName("iframe")), ...Array.from(doc.getElementsByTagName("object"))]
     .map(frame => {
       // Sometime this code can run when a frame is still loading, we run the installListener once more once the frame
       // loading is completed. Practically during dev/testing we did not see this code getting executed, but logically,

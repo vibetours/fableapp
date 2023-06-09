@@ -245,15 +245,15 @@ async function postProcessSerDocs(
       }
       const traversalPath = postProcess.path.split('.').map((_) => +_);
       const node = resolveElementFromPath(frame.docTree!, traversalPath);
-
-      if (postProcess.type === 'iframe') {
+      if (postProcess.type === 'iframe' || postProcess.type === 'object') {
+        const urlLookupProp = postProcess.type === 'object' ? 'data' : 'src';
         let subFrame;
         let subFrames = [];
         if ((subFrames = lookupWithProp.find('name', node.attrs.name)).length === 1) {
           // If we find a unique frame record with name then we take it
           // Sometimes the <iframe name="" /> is blank, in that case we do following lookup
           subFrame = subFrames[0];
-        } else if ((subFrames = lookupWithProp.find('url', node.attrs.src)).length === 1) {
+        } else if ((subFrames = lookupWithProp.find('url', node.attrs[urlLookupProp])).length === 1) {
           // If we find a unique frame record with url then we take the entry
           // Sometimes the <iframe src="" /> from inside iframe
           subFrame = subFrames[0];
@@ -294,7 +294,7 @@ async function postProcessSerDocs(
             },
           });
           node.props.origHref = node.props.proxyUrl;
-          node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri;
+          node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
         }
 
         if (frameId === 0 && postProcess.path === frame.icon?.path) {

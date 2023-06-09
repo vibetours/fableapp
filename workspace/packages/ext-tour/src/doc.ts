@@ -214,12 +214,17 @@ export function getSearializedDom(
       return { serNode: sNode };
     }
 
-    if (sNode.name === "iframe" || sNode.name === "frame") {
+    if (sNode.name === "iframe" || sNode.name === "frame" || sNode.name === "object") {
       const tNode = node as HTMLIFrameElement;
-      const url = sNode.attrs.src || "";
+      let url = "";
       // Fix: some time iframe won't have src in that case, path calculation during deserialization would not work
       // as iframe.contentDocument.childNodes would not have html5 tag type
-      sNode.attrs.src = sNode.attrs.src || url;
+      if (sNode.name !== "object") {
+        url = sNode.attrs.src || "";
+        sNode.attrs.src = sNode.attrs.src || url;
+      } else {
+        url = sNode.attrs.data || "";
+      }
       const rect = tNode.getBoundingClientRect();
       sNode.props.rect = {
         height: rect.height,
@@ -276,7 +281,7 @@ export function getSearializedDom(
         ii++;
         if (rep.postProcess) {
           const postProcess = {} as PostProcess;
-          postProcess.type = rep.serNode.name === "iframe" ? "iframe" : "asset";
+          postProcess.type = rep.serNode.name === "iframe" ? "iframe" : (rep.serNode.name === "object" ? "object" : "asset");
           postProcess.path = traversalPathStr;
           postProcesses.push(postProcess);
         }

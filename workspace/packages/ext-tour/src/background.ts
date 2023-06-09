@@ -1,17 +1,5 @@
-import {
-  ApiResp,
-  ReqNewScreen,
-  ReqProxyAsset,
-  RespProxyAsset,
-  RespScreen,
-} from "@fable/common/dist/api-contract";
-import api from "@fable/common/dist/api";
-import {
-  ScreenData,
-  SerDoc,
-  SerNode,
-} from "@fable/common/dist/types";
 import { init as sentryInit } from "@fable/common/dist/sentry";
+import { SerDoc } from "@fable/common/dist/types";
 import { sleep, snowflake } from "@fable/common/dist/utils";
 import { getActiveTab } from "./common";
 import { Msg, MsgPayload } from "./msg";
@@ -25,7 +13,7 @@ import {
   SerializeFrameData,
   StopRecordingData
 } from "./types";
-import { getAbsoluteUrl, getCookieHeaderForUrl, isCrossOrigin, BATCH_SIZE } from "./utils";
+import { BATCH_SIZE, isCrossOrigin } from "./utils";
 
 sentryInit("background");
 
@@ -538,57 +526,4 @@ async function startRecording(): Promise<void> {
 async function stopRecording() {
   chrome.tabs.onUpdated.removeListener(onTabStateUpdate);
   chrome.tabs.onActivated.removeListener(onTabActive);
-}
-
-function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
-  const idx = path.shift();
-  if (idx !== undefined) {
-    return resolveElementFromPath(node.chldrn[idx], path);
-  }
-  return node;
-}
-
-type LookupWithPropType = "name" | "url" | "dim" | "frameId";
-class CreateLookupWithProp<T> {
-  private rec: Record<LookupWithPropType, Record<string, T[]>> = {
-    name: {},
-    url: {},
-    dim: {},
-    frameId: {},
-  };
-
-  static getNormalizedUrlStr(urlStr: string): string {
-    try {
-      const url = new URL(urlStr);
-      urlStr = `${url.origin}${url.pathname}`;
-    } catch (e) {
-      /* noop */
-    }
-    return urlStr;
-  }
-
-  push = (prop: LookupWithPropType, key: string, val: T) => {
-    if (prop === "url") {
-      key = CreateLookupWithProp.getNormalizedUrlStr(key);
-    }
-    if (key in this.rec) {
-      this.rec[prop][key].push(val);
-    } else {
-      this.rec[prop][key] = [val];
-    }
-  };
-
-  find = (prop: LookupWithPropType, key: string | null | undefined): T[] => {
-    if (key === null || key === undefined) {
-      key = "";
-    }
-    if (prop === "url") {
-      key = CreateLookupWithProp.getNormalizedUrlStr(key);
-    }
-    if (!(key in this.rec[prop])) {
-      return [];
-    }
-
-    return this.rec[prop][key];
-  };
 }

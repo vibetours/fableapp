@@ -160,7 +160,8 @@ export default abstract class HighlighterBase {
     const document = this.doc as Document;
     let node = document.documentElement as Node;
     for (const id of elIdxs) {
-      if ((node as HTMLElement).tagName && (node as HTMLElement).tagName.toLowerCase() === 'iframe') {
+      if ((node as HTMLElement).tagName && ((node as HTMLElement).tagName.toLowerCase() === 'iframe'
+      || (node as HTMLElement).tagName.toLowerCase() === 'object')) {
         node = (node as HTMLIFrameElement).contentDocument!;
       }
       node = node.childNodes[id];

@@ -78,12 +78,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         break;
     }
 
-    if (!serNode.props.isHidden && serNode.name !== 'iframe') {
+    if (!serNode.props.isHidden && !(serNode.name === 'iframe' || serNode.name === 'object')) {
       for (const child of serNode.chldrn) {
         const childNode = this.deser(child, doc, version, newProps);
         if (childNode && node && !child.props.isShadowRoot) {
           node.appendChild(childNode);
-          if (child.name === 'iframe') {
+          if (child.name === 'iframe' || child.name === 'object') {
             const tNode = childNode as HTMLIFrameElement;
             if (child.chldrn.length === 1) {
               this.frameLoadingPromises.push(
@@ -323,6 +323,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           el.setAttribute(attrKey, attrValue);
           el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
           el.setAttribute('scrolling', 'yes');
+        } else if (node.name === 'object' && attrKey === 'data') {
+          el.setAttribute(attrKey, IFRAME_DEFAULT_DOC);
         } else {
           if (node.name === 'a' && attrKey === 'href') {
             // eslint-disable-next-line no-script-url

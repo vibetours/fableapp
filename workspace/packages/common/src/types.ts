@@ -32,7 +32,7 @@ export interface SerNodeWithPath extends SerNode {
 }
 
 export interface PostProcess {
-  type: 'asset' | 'iframe' | 'elpath';
+  type: 'asset' | 'iframe' | 'elpath' | 'object';
   path: string;
 }
 
