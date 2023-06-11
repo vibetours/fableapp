@@ -12,7 +12,7 @@ export const BottomPanel = styled.div`
 
 export const TourCardCon = styled(Link)`
   border: 1px solid #dddddd;
-  border-radius: 4px;
+  border-radius: 2px;
   width: 55%;
   margin-bottom: 1rem;
   display: flex;
@@ -41,4 +41,15 @@ export const ToursHeading = styled.h1`
   color: #16023E;
   font-size: ${(props) => props.theme.typography.size.heading};
   font-weight: bold;
+`;
+
+export const LaneGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+export const Icon = styled.img`
+  height: 1rem;
+  width: 1rem
 `;

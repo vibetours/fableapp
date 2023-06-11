@@ -1,6 +1,6 @@
 import React, { CSSProperties, MouseEventHandler } from 'react';
 import Button, { ButtonType } from 'antd/lib/button';
-import { EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { EditOutlined, PlusOutlined, PlusSquareFilled } from '@ant-design/icons';
 import { SizeType } from 'antd/lib/config-provider/SizeContext';
 import newScreenDark from '../../assets/new-screen-dark.svg';
 
@@ -16,7 +16,7 @@ interface IProps {
 
 export default function Btn(props: IProps) {
   let iconEl;
-  if (props.icon === 'plus') iconEl = <PlusOutlined />;
+  if (props.icon === 'plus') iconEl = <PlusSquareFilled />;
   else if (props.icon === 'edit') iconEl = <EditOutlined />;
   else if (props.icon === 'new-screen') iconEl = <img src={newScreenDark} alt="new screen" />;
 

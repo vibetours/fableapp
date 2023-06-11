@@ -70,7 +70,7 @@ export default function TourCanvas(props: CanvasProps) {
     if (!svgEl) {
       return;
     }
-    const svg = select('svg');
+    const svg = select('svg#fab-tour-canvas');
     svg
       .selectAll('pattern')
       .data([1])

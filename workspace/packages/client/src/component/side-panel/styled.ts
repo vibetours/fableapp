@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 
 export const Con = styled.div`
   height: 100%;
-  background-color: ${(props) => props.theme.colors.dark.idle.background};
-  color: ${(props) => props.theme.colors.dark.idle.color};
-  border-radius: 0 24px 24px 0;
+  background-color: #f5f5f5;
+  color: #000;
   display: flex;
   flex-direction: column;
   overflow-y: hidden;
@@ -13,10 +12,6 @@ export const Con = styled.div`
 
 export const ConLogo = styled.div`
   padding-left: 2rem;
-`;
-
-export const ConLogoImg = styled.img`
-  height: 2.5rem;
 `;
 
 export const ConNav = styled.div`
@@ -30,13 +25,13 @@ export const ConNav = styled.div`
 
 export const ConNavBtn = styled(Link)`
   padding: 0.6rem 2rem;
-  border-radius: 0 18px 18px 0;
   display: flex;
   align-items: center;
   cursor: pointer;
   transition: all 0.3s ease-out;
   position: relative;
-  color: #fff;
+  color: #000;
+  font-weight: 500;
   text-decoration: none;
 
   &:hover,
@@ -56,7 +51,7 @@ export const ConNavBtn = styled(Link)`
 `;
 
 export const Footer = styled.div`
-  border-top: 0.2px solid rgba(255, 255, 255, 0.4);
+  border-top: 0.2px solid #dddddd;
   padding: 1.6rem 0 0 2rem;
   color: white;
 

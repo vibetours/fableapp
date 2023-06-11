@@ -1,12 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Screens from '../screens';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
 import Tours from '../tours';
 import TourEditor from '../tour-editor';
-import Screen from '../screen';
 import Player from '../player';
 import Form from '../form';
 import HeartLoader from '../../component/loader/heart';
@@ -59,7 +57,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <Router>
-        <div className="app">
+        <div className="app" style={{ overflow: 'hidden' }}>
           <Routes>
             <Route path="/onboarding" element={<Onboarding />}>
               <Route path="pin" element={<Pin title="Fable Onboarding" />} />
@@ -73,9 +71,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
               <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
               <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select organization" />} />
-              <Route path="/screens" element={<Screens title="Fable - Screens" />} />
               <Route path="/tours" element={<Tours title="Fable - Tours" />} />
-              <Route path="/screen/:screenId" element={<Screen title="Fable - Screen" />} />
               <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route

@@ -1,21 +1,23 @@
+import { BarChartOutlined, BranchesOutlined, CaretRightOutlined, DeleteOutlined, EditOutlined, MoreOutlined, NodeIndexOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { RespUser } from '@fable/common/dist/api-contract';
+import { LoadingStatus } from '@fable/common/dist/types';
+import Button from 'antd/lib/button';
+import Modal from 'antd/lib/modal';
+import Popover from 'antd/lib/popover';
+import Tooltip from 'antd/lib/tooltip';
 import React from 'react';
 import { connect } from 'react-redux';
-import { LoadingStatus } from '@fable/common/dist/types';
-import { MenuOutlined } from '@ant-design/icons';
-import Popover from 'antd/lib/popover';
-import Modal from 'antd/lib/modal';
-import { TState } from '../../reducer';
-import SidePanel from '../../component/side-panel';
-import Header from '../../component/header';
-import * as Tags from './styled';
-import * as GTags from '../../common-styled';
 import { createNewTour, getAllTours, renameTour } from '../../action/creator';
-import { P_RespTour } from '../../entity-processor';
+import * as GTags from '../../common-styled';
 import Btn from '../../component/btn';
-import tourIcon from '../../assets/tours-icon-dark.svg';
+import Header from '../../component/header';
 import Loader from '../../component/loader';
-import { withRouter, WithRouterProps } from '../../router-hoc';
+import SidePanel from '../../component/side-panel';
 import SkipLink from '../../component/skip-link';
+import { P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import * as Tags from './styled';
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -32,10 +34,12 @@ const mapDispatchToProps = (dispatch: any) => ({
 interface IAppStateProps {
   tours: P_RespTour[];
   allToursLoadingStatus: LoadingStatus;
+  principal: RespUser | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
+  principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
 });
 
@@ -61,8 +65,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   handleShowModal = (e: React.MouseEvent<HTMLDivElement>, tour: P_RespTour) => {
-    e.stopPropagation();
-    e.preventDefault();
     this.setState({ selectedTour: tour, selectedTourName: tour.displayName, showModal: true });
   };
 
@@ -88,79 +90,148 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   render() {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
     return (
-      <GTags.RowCon className="tour-con">
+      <GTags.ColCon className="tour-con">
         <SkipLink />
-        <GTags.SidePanelCon>
-          <SidePanel selected="tours" />
-        </GTags.SidePanelCon>
-        <GTags.MainCon>
-          <GTags.HeaderCon>
-            <Header />
-          </GTags.HeaderCon>
-          <GTags.BodyCon style={{ height: '100%' }} id="main">
-            {toursLoaded ? (
-              <>
-                <Tags.TopPanel>
-                  <Tags.ToursHeading>Tours</Tags.ToursHeading>
-                  <Btn icon="plus" onClick={this.props.createNewTour} style={{ margin: '0' }}>
-                    Create a new tour
-                  </Btn>
-                </Tags.TopPanel>
-                <Tags.BottomPanel>
-                  {this.props.tours.map((tour) => (
-                    <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
-                      <Tags.TourCardLane>
-                        <img src={tourIcon} alt="" style={{ height: '16px', width: '16px', marginRight: '0.25rem' }} />
-                        <GTags.Txt className="title">
-                          {tour.displayName}
-                        </GTags.Txt>
-                        <Popover
-                          content={
-                            <GTags.PopoverMenuItem onClick={e => this.handleShowModal(e, tour)}>
-                              Rename Tour
-                            </GTags.PopoverMenuItem>
-                          }
-                          trigger="focus"
-                          placement="right"
-                        >
-
-                          <MenuOutlined
-                            onClick={e => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            role="button"
-                            tabIndex={0}
-                            style={{ display: 'block', marginLeft: 'auto', padding: '0.4rem', color: '#bdbdbd' }}
-                          />
-                        </Popover>
-                      </Tags.TourCardLane>
-                      <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
-                        <GTags.Txt
-                          className="faded"
-                          style={{
-                            marginLeft: '20px',
-                          }}
-                        >
-                          Edited {tour.displayableUpdatedAt}
-                        </GTags.Txt>
-                        <img
-                          src="https://avatars.dicebear.com/api/adventurer/tris.svg"
-                          alt=""
-                          style={{ height: '24px', width: '24px' }}
-                        />
-                      </Tags.TourCardLane>
-                    </Tags.TourCardCon>
-                  ))}
-                </Tags.BottomPanel>
-              </>
-            ) : (
-              <div>
-                <Loader width="80px" txtBefore="Loading tours for you" />
-              </div>
-            )}
-          </GTags.BodyCon>
-        </GTags.MainCon>
+        <div style={{ height: '48px' }}>
+          <Header shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
+        </div>
+        <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
+          <GTags.SidePanelCon>
+            <SidePanel selected="tours" />
+          </GTags.SidePanelCon>
+          <GTags.MainCon>
+            <GTags.BodyCon style={{ height: '100%' }} id="main">
+              {toursLoaded ? (
+                <>
+                  <Tags.TopPanel style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginRight: '44%'
+                  }}
+                  >
+                    <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
+                    <Btn
+                      icon="plus"
+                      onClick={this.props.createNewTour}
+                      style={{
+                        margin: '0',
+                        border: '1px solid #150345',
+                        color: '#150345',
+                        borderRadius: '2px'
+                      }}
+                    >
+                      Create a new tour
+                    </Btn>
+                  </Tags.TopPanel>
+                  <Tags.BottomPanel style={{ overflow: 'auto' }}>
+                    {this.props.tours.map((tour) => (
+                      <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
+                        <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
+                          <Tags.LaneGroup>
+                            <NodeIndexOutlined />
+                            <GTags.Txt className="title">
+                              {tour.displayName}
+                            </GTags.Txt>
+                          </Tags.LaneGroup>
+                          <Tags.LaneGroup>
+                            <GTags.Txt className="faded">
+                              Edited {tour.displayableUpdatedAt}
+                            </GTags.Txt>
+                            <GTags.Avatar src={this.props.principal?.avatar} />
+                          </Tags.LaneGroup>
+                        </Tags.TourCardLane>
+                        <Tags.TourCardLane style={{ justifyContent: 'space-between', marginTop: '0.75rem' }}>
+                          <Tags.LaneGroup style={{ gap: '0' }}>
+                            <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
+                              <Button
+                                size="small"
+                                shape="circle"
+                                type="text"
+                                icon={<CaretRightOutlined />}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  window.open(`/p/tour/${tour.rid}`)?.focus();
+                                }}
+                              />
+                            </Tooltip>
+                            <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
+                              <Button
+                                size="small"
+                                shape="circle"
+                                type="text"
+                                icon={<BarChartOutlined />}
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  window.alert('ANALYTICS :: Coming soon...');
+                                }}
+                              />
+                            </Tooltip>
+                          </Tags.LaneGroup>
+                          <Tags.LaneGroup style={{ gap: '0' }}>
+                            <Popover
+                              content={
+                                <>
+                                  <GTags.PopoverMenuItem onClick={e => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  >
+                                    <ShareAltOutlined />&nbsp;&nbsp;&nbsp; Share / Embed Tour
+                                  </GTags.PopoverMenuItem>
+                                  <GTags.PopoverMenuItem onClick={e => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    this.handleShowModal(e, tour);
+                                  }}
+                                  >
+                                    <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Tour
+                                  </GTags.PopoverMenuItem>
+                                  <GTags.PopoverMenuItemDivider color="#ff735050" />
+                                  <GTags.PopoverMenuItem
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      window.alert('Delete :: Coming soon...');
+                                    }}
+                                    style={{
+                                      color: '#ff7350'
+                                    }}
+                                  >
+                                    <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Tour
+                                  </GTags.PopoverMenuItem>
+                                </>
+                            }
+                              trigger="focus"
+                              placement="right"
+                            >
+                              <Button
+                                size="small"
+                                shape="circle"
+                                type="text"
+                                icon={<MoreOutlined />}
+                                onClick={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                              />
+                            </Popover>
+                          </Tags.LaneGroup>
+                        </Tags.TourCardLane>
+                      </Tags.TourCardCon>
+                    ))}
+                  </Tags.BottomPanel>
+                </>
+              ) : (
+                <div>
+                  <Loader width="80px" txtBefore="Loading tours for you" />
+                </div>
+              )}
+            </GTags.BodyCon>
+          </GTags.MainCon>
+        </GTags.RowCon>
         <Modal
           title="Rename Tour"
           open={this.state.showModal}
@@ -172,10 +243,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               What would you like to rename the selected tour?
               <input
                 id="renameTour"
-                style={{ padding: '0.5rem 1rem',
+                style={{
                   marginTop: '0.75rem',
                   fontSize: '1rem',
-                  borderRadius: '8px',
+                  padding: '0.75rem',
+                  borderRadius: '2px',
                   width: 'calc(100% - 2rem)'
                 }}
                 value={this.state.selectedTourName}
@@ -184,7 +256,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </label>
           </form>
         </Modal>
-      </GTags.RowCon>
+      </GTags.ColCon>
     );
   }
 }

@@ -14,7 +14,7 @@ export default function TimelineScreen({ screen, isLastScreen, navigate, annotat
   const { user } = useAuth0();
 
   return (
-    <Tags.Con isLastScreen={isLastScreen}>
+    <Tags.Con isLastScreen={isLastScreen} style={{ opacity: 0.6 }}>
       <Tags.ScreenThumbnail
         onClick={() => (annotationId ? navigate(`${screen.id}/${annotationId}`) : navigate(`${screen.id}`))}
         src={screen.thumbnailUri.href}

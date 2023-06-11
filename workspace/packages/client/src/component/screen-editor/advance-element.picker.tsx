@@ -25,7 +25,7 @@ function AdvanceElementPicker({
   const el = elements[0];
 
   return (
-    <div>
+    <div style={{ width: '100%' }}>
       <div
         style={{
           border: '1px solid lightgray',

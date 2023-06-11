@@ -1,3 +1,5 @@
+import Button from 'antd/lib/button';
+import Select from 'antd/lib/select';
 import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
@@ -95,13 +97,14 @@ export const AnotCrtPanelSec = styled.div`
   align-items: ${(p: AnotPanelSecOri) => (p.row ? 'center' : 'unset')};
   justify-content: ${(p: AnotPanelSecOri) => (p.row ? 'space-between' : 'unset')};
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
 `;
 
 export const AnotCrtPanelSecLabel = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 1rem;
 
   & > div:first-child {
     display: flex;
@@ -166,8 +169,8 @@ export const ActionMenuConBar = styled.div`
 export const AnnotationLI = styled.div`
   position: relative;
   background: #F7F7F7;
-  padding: 1rem;
-  border-radius: 8px;
+  padding: 0.65rem 0 0.25rem;
+  border-radius: 2px;
   border: 1px solid #DDDDDD;
   display: flex;
   flex-direction: column;
@@ -199,14 +202,18 @@ export const ButtonSecCon = styled.div`
 `;
 
 export const CreateCoverAnnotationBtn = styled.div`
-    margin: 0.5rem 0;
-    background: #F9F9F9;
-    border-radius: 10px;
-    color: #16023E;
-    padding: 0.8rem 1rem;
-    text-align: center;
-    font-weight: 600;
-    cursor: pointer;
+  margin: 0.5rem 1rem;
+  background: #f7f7f7;
+  border-radius: 2px;
+  color: #16023E;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+    transition: none !important;
+  }
 `;
 
 export const InputContainer = styled.div`
@@ -221,8 +228,12 @@ export const ColorInputWrapper = styled.div`
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  width: 120px;
-  padding: 0.4rem 0.6rem;
+  width: 100px;
+  padding: 0.2rem 0.4rem;
+
+  &:hover {
+    box-shadow: 0 0 0 1px #d0d0ff !important;
+  }
 `;
 
 type ColorCircleProps = {
@@ -252,9 +263,8 @@ export const AnnTimelineCon = styled.div`
 `;
 
 export const AnnDisplayText = styled.div`
-  font-size: 1rem;
   line-height: 1.25rem;
-  font-weight: 500;
+  font-weight: 600;
   color: #212121;
   display: inline-block;
   width: 100%;
@@ -283,3 +293,52 @@ export const EditTabCon = styled.div`
 interface AnotPanelSecOri {
   row?: boolean;
 }
+
+export const ActionPanel = styled.div<{gutter: boolean}>`
+  padding: ${props => (props.gutter ? '0.75rem 1.5rem 0.75rem' : '0.75rem 1rem 0.75rem')};
+  border-bottom: 1px solid #dddddd;
+  cursor: default;
+`;
+
+export const ActionPanelTitleCon = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  opacity: 0.65;
+  cursor: pointer;
+
+  .ht-icn {
+    font-size: 0.75rem;
+    display: none;
+  }
+
+  &.selected {
+    opacity: 1;
+  }
+
+  &:hover {
+    opacity: 1;
+
+    .ht-icn {
+      display: unset;
+    }
+  }
+
+  .title {
+    font-weight: 500;
+  }
+`;
+
+export const ActionPaneBtn = styled(Button)`
+  &:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+    background: transparent !important;
+    transition: none !important;
+  } 
+`;
+
+export const ActionPaneSelect = styled(Select)`
+  &:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+  } 
+`;

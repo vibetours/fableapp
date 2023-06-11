@@ -69,7 +69,7 @@ interface AnnotationContent {
   annotationDisplayText: string;
 }
 
-export default function AnnotationRichTextEditor({ defaultValue, onBlurHandler }: Props) {
+export default function AnnotationRichTextEditor({ defaultValue, onBlurHandler, children }: React.PropsWithChildren<Props>) {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
 

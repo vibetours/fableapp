@@ -108,7 +108,7 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.ALL_SCREENS_LOADED: {
       const tAction = action as TGetAllScreens;
       const newState = { ...state };
-      newState.allScreens = tAction.allScreens;
+      // newState.allScreens = tAction.allScreens;
       newState.rootScreens = tAction.rootScreens;
       newState.allScreensLoadingStatus = LoadingStatus.Done;
       return newState;

@@ -277,7 +277,9 @@ function VideoRecorder(props: Props) {
       open={state.isVideoModalOpen}
       onOk={closeRecorder}
       onCancel={closeRecorder}
+      footer={null}
     >
+      <p>Record a video explaining the feature you selected on the screen.</p>
       {
         !state.doneRecording && (
           <>
@@ -292,8 +294,8 @@ function VideoRecorder(props: Props) {
               <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center' }}>
                 {
                   state.isRecording
-                    ? <Button onClick={stopRecording}>Stop Recording</Button>
-                    : <Button onClick={startRecording}>Start Recording</Button>
+                    ? <Button type="primary" onClick={stopRecording}>Stop Recording</Button>
+                    : <Button type="primary" onClick={startRecording}>Start Recording</Button>
                 }
               </div>
             )
@@ -320,8 +322,8 @@ function VideoRecorder(props: Props) {
           {
             !state.saving && (
               <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                <Button onClick={saveRecording}>Save</Button>
-                <Button onClick={restartRecording}>Restart</Button>
+                <Button type="link" onClick={restartRecording}>Discard</Button>
+                <Button type="primary" onClick={saveRecording}>Save</Button>
               </div>
             )
           }

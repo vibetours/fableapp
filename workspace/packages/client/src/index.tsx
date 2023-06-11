@@ -59,7 +59,8 @@ root.render(
           colorBorder: theme.colors.component.primary,
           colorLink: theme.colors.component.primary,
           colorLinkHover: theme.colors.dark.idle.background,
-          fontSize: 16,
+          fontSize: 14,
+          borderRadius: 2
         }
       }}
       >

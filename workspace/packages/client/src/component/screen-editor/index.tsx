@@ -6,6 +6,8 @@ import {
   LoadingOutlined,
   PictureOutlined,
   ExclamationCircleOutlined,
+  PlusOutlined,
+  SelectOutlined,
 } from '@ant-design/icons';
 import { IAnnotationConfig, ITourDataOpts, ScreenData, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
@@ -13,6 +15,7 @@ import Switch from 'antd/lib/switch';
 import React from 'react';
 import Modal from 'antd/lib/modal';
 import Collapse from 'antd/lib/collapse';
+import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as GTags from '../../common-styled';
 import { P_RespScreen, P_RespTour, remoteToLocalAnnotationConfig } from '../../entity-processor';
@@ -32,6 +35,7 @@ import {
   IdxEncodingTypeImage,
   NavFn
 } from '../../types';
+import ActionPanel from './action-panel';
 import ListActionBtn from './list-action-btn';
 import {
   cloneAnnotation,
@@ -802,72 +806,56 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
         {/* this is the annotation creator panel */}
         <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
-
           {/* this is advanced element picker */}
-          <Collapse
-            style={{
-              margin: '1.5rem',
-              background: 'none',
-              border: '1px solid #E8E8E8',
-            }}
-            expandIconPosition="end"
-            expandIcon={() => ScreenEditor.downArrow()}
+          <ActionPanel
+            icon={<SelectOutlined />}
+            title="Advanced Element Picker"
+            helpText={advancedElPickerHelpText}
+            withGutter
           >
-
-            <Panel
-              header="Advanced element picker"
-              key="1"
-              style={{
-                fontSize: '14px',
-                lineHeight: '20px',
-                fontWeight: 400,
-                borderWidth: 0
-              }}
-            >
-              {this.state.selectedEl ? (
-                <AdvanceElementPicker
-                  elements={this.state.selectedElsParents}
-                  domElPicker={this.domElPicker}
-                  selectedEl={this.state.selectedEl!}
-                  count={this.state.selectedElsParents.length}
-                  setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                    let fwdAnnotation = '';
-                    const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-                    if (!annOnNewEl) {
-                      // If there is annotation on top of new element then don't do anything
-                      const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                      if (annOnOldEl) {
-                        this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
-                        const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
-                        const updates = replaceAnnotation(
-                          this.props.allAnnotationsForTour,
-                          annOnOldEl,
-                          replaceWithAnn,
-                          this.props.screen.id
-                        );
-                        fwdAnnotation = replaceWithAnn.refId;
-                        updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
-                      }
+            {this.state.selectedEl ? (
+              <AdvanceElementPicker
+                elements={this.state.selectedElsParents}
+                domElPicker={this.domElPicker}
+                selectedEl={this.state.selectedEl!}
+                count={this.state.selectedElsParents.length}
+                setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                  let fwdAnnotation = '';
+                  const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+                  if (!annOnNewEl) {
+                    // If there is annotation on top of new element then don't do anything
+                    const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                    if (annOnOldEl) {
+                      this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
+                      const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
+                      const updates = replaceAnnotation(
+                        this.props.allAnnotationsForTour,
+                        annOnOldEl,
+                        replaceWithAnn,
+                        this.props.screen.id
+                      );
+                      fwdAnnotation = replaceWithAnn.refId;
+                      updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
                     }
-                    this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
-                  }}
-                  mouseLeaveHighlightMode={HighlightMode.Pinned}
-                />
-              )
-                : <p>Please select an element</p>}
-            </Panel>
-
-          </Collapse>
-
+                  }
+                  this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                }}
+                mouseLeaveHighlightMode={HighlightMode.Pinned}
+              />
+            )
+              : <p style={{ margin: 0 }}>Please select an element</p>}
+          </ActionPanel>
           {/* this is top menu */}
           <TabBar>
             <TabItem
               title="Annotations"
+              helpText={annotationTabHelpText}
               active={this.state.activeTab === TabList.Annotations}
               onClick={() => this.handleTabOnClick(TabList.Annotations)}
             />
             <TabItem
               title="Edit"
+              helpText={editTabHelpText}
               active={this.state.activeTab === TabList.Edits}
               onClick={() => this.handleTabOnClick(TabList.Edits)}
             />
@@ -878,10 +866,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               {/* this is annotations timeline */}
               {this.state.activeTab === TabList.Annotations && (
                 <div>
-                  <Tags.InfoText>
-                    Annotations are guide to your product mean to get your user acquiented with your product.
+                  <Tags.InfoText style={{ textAlign: 'center' }}>
+                    Select an element on the screen on the left <em>or</em>
                   </Tags.InfoText>
                   <Tags.CreateCoverAnnotationBtn onClick={() => { this.createCoverAnnotation(); }}>
+                    <PlusOutlined />
+                    &nbsp;
                     Create cover annotation
                   </Tags.CreateCoverAnnotationBtn>
                   <Tags.AnnTimelineCon>
@@ -897,6 +887,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       {this.props.timelineConfig.currentScreenAnnotations.map((config, idx) => (
                         <Tags.AnnotationLI
                           key={config.refId}
+                          style={{
+                            paddingBottom: this.state.selectedAnnotationId === config.refId ? '0.25rem' : '0.65rem',
+                            opacity: this.state.selectedAnnotationId === config.refId ? 1 : 0.65
+                          }}
                         >
                           <Tags.AnotCrtPanelSecLabel
                             style={{ display: 'flex' }}
@@ -916,7 +910,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             <img src={ExpandArrowFilled} height={20} width={20} alt="" />
                           </Tags.AnotCrtPanelSecLabel>
                           {this.state.selectedAnnotationId === config.refId && (
-                            <div style={{ color: 'black', marginTop: '1rem' }}>
+                            <div style={{ color: 'black' }}>
                               <AnnotationCreatorPanel
                                 config={config}
                                 opts={this.props.tourDataOpts}

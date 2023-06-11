@@ -1,12 +1,8 @@
+import { BarChartOutlined, BranchesOutlined, NodeIndexOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import React from 'react';
-import * as Tags from './styled';
-import FableLogo from '../../assets/side_panel/fableLogo.svg';
-import iconSettings from '../../assets/side_panel/IconSettings.svg';
-import allScreensIcon from '../../assets/all-screens-icon.svg';
-import allToursIcon from '../../assets/all-tours-icon.svg';
-import userManageIcon from '../../assets/user-manage-icon.svg';
-import analyticsIcon from '../../assets/analytics-icon.svg';
+import Tag from 'antd/lib/tag';
 import packageJSON from '../../../package.json';
+import * as Tags from './styled';
 
 interface Props {
   selected: 'screens' | 'tours' | 'user-management' | 'analytics' | 'settings';
@@ -15,34 +11,32 @@ interface Props {
 export default function SidePanel(props: Props): JSX.Element {
   return (
     <Tags.Con>
-      <Tags.ConLogo style={{ marginTop: '1.8rem' }}>
-        <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
-      </Tags.ConLogo>
       <Tags.ConNav>
-        <Tags.ConNavBtn className={props.selected === 'screens' ? 'selected' : ''} to="/screens">
-          <img src={allScreensIcon} alt="All screens icon" />
-          <p>Screens</p>
-        </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'tours' ? 'selected' : ''} to="/tours">
-          <img src={allToursIcon} alt="All tours icon" />
+          <NodeIndexOutlined />
           <p>Tours</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/404">
-          <img src={userManageIcon} alt="User management icon" />
-          <p>User management</p>
+        <Tags.ConNavBtn className={props.selected === 'analytics' ? 'selected' : ''} to="#">
+          <BarChartOutlined />
+          <p>
+            Analytics &nbsp;
+            <Tag style={{ fontSize: '0.6rem' }}>Coming Soon</Tag>
+          </p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'analytics' ? 'selected' : ''} to="/404">
-          <img src={analyticsIcon} alt="Analytics icon" />
-          <p>Analytics</p>
+        <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="#">
+          <UsergroupAddOutlined />
+          <p>User management</p>
         </Tags.ConNavBtn>
       </Tags.ConNav>
       <Tags.Footer style={{ marginBottom: '1.8rem' }}>
         <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>
-          <Tags.FooterItemProfileIcon src={iconSettings} alt="illustration setting" />
-          <p>Settings</p>
           <p style={{ fontSize: '0.85rem', color: 'gray' }}>v{packageJSON.version}</p>
         </Tags.FooterItem>
       </Tags.Footer>
     </Tags.Con>
   );
 }
+
+// <Tags.ConLogo style={{ marginTop: '1.8rem' }}>
+// <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
+// </Tags.ConLogo>

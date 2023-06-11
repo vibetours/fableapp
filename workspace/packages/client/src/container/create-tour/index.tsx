@@ -245,7 +245,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <>
         <GTags.HeaderCon>
-          <Header rBtnTxt="Record a screen" />
+          <Header rBtnTxt="Record a screen" leftElGroups={[]} />
         </GTags.HeaderCon>
         {
           this.state.saving && <Tags.TourHeading>{this.state.tourName}</Tags.TourHeading>

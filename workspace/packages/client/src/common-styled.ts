@@ -19,7 +19,7 @@ export interface TxtProp {
 }
 
 export const Txt = styled.div`
-  color: ${(props: TxtProp) => (props.color ? props.color : '#16023E')};
+  color: ${(props: TxtProp) => (props.color ? props.color : 'unset')};
   &.head {
     font-size: ${(props) => props.theme.typography.size.heading};
     font-weight: bold;
@@ -109,10 +109,7 @@ export const BodyCon = styled.div`
 
 export const SidePanelCon = styled.aside`
   height: 100%;
-  width: 230px;
-  position: fixed;
-  left: 0;
-  top: 0;
+  max-width: 260px;
 `;
 
 export const MainCon = styled.div`
@@ -120,7 +117,6 @@ export const MainCon = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 230px;
 `;
 
 export const HeaderCon = styled.div`
@@ -157,11 +153,25 @@ export const EditPanelCon = styled.div`
   border-bottom-right-radius: 20px;
 `;
 
-export const PopoverMenuItem = styled.div`
-  cursor: pointer;
+export const PopoverMenuItemDivider = styled.div<{ color?: string}>`
+  padding: 0.5rem 0rem 0;
+  margin: 0.5rem 0.5rem 0;
+  border-top: ${props => `1px solid ${props.color || '#eaeaea'}`};
+`;
+
+export const PopoverMenuItem = styled.div<{ nonit?: boolean }>`
+  cursor: ${props => (props.nonit ? 'default' : 'pointer')};
   padding: 0.25rem 0.75rem;
-  border-radius: 8px;
+  border-radius: 2px;
+  font-size: 0.9rem;
   &:hover {
-    background: #eaeaea;
+    background: ${props => (props.nonit ? 'initial' : '#eaeaea')};
   }
+`;
+
+export const Avatar = styled.img<{ sl?: boolean, glow?: boolean }>`
+  width: ${props => (props.sl ? 1.75 : 1)}rem;
+  height: ${props => (props.sl ? 1.75 : 1)}rem;
+  border-radius: 50%;
+  box-shadow: ${props => (props.glow ? '0 0 1px 1px white' : 'none')}
 `;

@@ -10,8 +10,13 @@ import {
   TourEntity,
   TourScreenEntity
 } from '@fable/common/dist/types';
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
+import Tooltip from 'antd/lib/tooltip';
+import Button from 'antd/lib/button';
+import { RespUser } from '@fable/common/dist/api-contract';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import err from '../../deffered-error';
 import {
   clearCurrentScreenSelection,
   clearCurrentTourSelection,
@@ -87,6 +92,7 @@ interface IAppStateProps {
   tourOpts: ITourDataOpts;
   allAnnotationsForTour: AnnotationPerScreen[];
   tourData: TourData | null;
+  principal: RespUser | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -115,6 +121,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
       const screen = state.default.allScreens.find(s => s.id === +screenId);
       if (screen) {
         anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
+      } else {
+        err(`screenId ${screenId} is part of tour config, but is not present as part of entity association`);
       }
     }
   }
@@ -173,7 +181,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allEdits,
     allAnnotationsForScreen,
     allAnnotationsForTour: anPerScreen,
-    tourOpts: state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts()
+    tourOpts: state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts(),
+    principal: state.default.principal,
   };
 };
 
@@ -305,7 +314,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <GTags.Txt className="subsubhead">{firstLine}</GTags.Txt>
-        <GTags.Txt className="head" style={{ lineHeight: '1.5rem' }}>
+        <GTags.Txt style={{ fontWeight: 500 }}>
           {secondLine}
         </GTags.Txt>
       </div>
@@ -464,6 +473,30 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     };
   }
 
+  getHeaderLeftGroup = (): ReactElement[] => {
+    if (this.props.match.params.screenId) {
+      return [(
+        <div style={{ marginLeft: '0.25rem' }}>
+          <Tooltip title="Go to Canvas" overlayStyle={{ fontSize: '0.75rem' }}>
+            <Button
+              size="small"
+              shape="circle"
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              style={{ color: '#fff' }}
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+                this.props.navigate(`/tour/${this.props.tour?.rid}`);
+              }}
+            />
+          </Tooltip>
+        </div>
+      )];
+    }
+    return [];
+  };
+
   render() {
     if (!this.isLoadingComplete()) {
       return <div>TODO show loader</div>;
@@ -472,9 +505,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
-            shouldShowLogoOnLeft
-            navigateToWhenLogoIsClicked={!this.props.match.params.tourId ? '/screens' : '/tours'}
+            navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={this.getHeaderTxtEl()}
+            leftElGroups={this.getHeaderLeftGroup()}
+            principal={this.props.principal}
             showPreview={`/p/tour/${this.props.tour?.rid}`}
           />
         </GTags.HeaderCon>

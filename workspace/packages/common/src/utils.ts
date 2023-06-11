@@ -124,7 +124,7 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
       id: getRandomId(),
       type: 'next',
       style: AnnotationButtonStyle.Primary,
-      size: AnnotationButtonSize.Large,
+      size: AnnotationButtonSize.Medium,
       text: 'Next',
       order: 9999,
       hotspot: null,
@@ -132,7 +132,7 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
       id: getRandomId(),
       type: 'prev',
       style: AnnotationButtonStyle.Outline,
-      size: AnnotationButtonSize.Large,
+      size: AnnotationButtonSize.Medium,
       text: 'Back',
       order: 0,
       hotspot: null

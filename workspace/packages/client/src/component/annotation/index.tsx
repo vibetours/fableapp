@@ -72,7 +72,7 @@ export class AnnotationContent extends React.PureComponent<{
           backgroundColor: `${this.props.opts.annotationBodyBackgroundColor}`
         }}
       >
-        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', width: '100%' }}>
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
           <Tags.AnTextContent
@@ -84,7 +84,9 @@ export class AnnotationContent extends React.PureComponent<{
             display: 'flex',
             justifyContent: btns.length > 1 ? 'space-between' : 'center',
             alignItems: 'center',
-            marginTop: '1rem'
+            marginTop: '0.75rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid #dddddd'
           }}
           >
             {btns.sort((m, n) => m.order - n.order).map(btnConf => (

@@ -107,7 +107,7 @@ export default abstract class HighlighterBase {
     mask.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     mask.style.background = this.highlightBgColor();
     mask.style.borderRadius = '2px';
-    mask.style.boxShadow = `#2196f3 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.45' : '0.0'
+    mask.style.boxShadow = `#2196f3 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.25' : '0.0'
     }) 0px 0px 0px 1000vw`;
     this.maskEl = mask;
     this.attachElToUmbrellaDiv(mask);
@@ -133,7 +133,7 @@ export default abstract class HighlighterBase {
       return;
     }
 
-    this.maskEl.style.boxShadow = `#2196f3 0px 0px 0px 2px, ${show ? 'transparent' : 'rgba(0, 0, 0, 0.45)'}
+    this.maskEl.style.boxShadow = `#2196f3 0px 0px 0px 2px, ${show ? 'transparent' : 'rgba(0, 0, 0, 0.25)'}
     0px 0px 0px 1000vw`;
   }
 

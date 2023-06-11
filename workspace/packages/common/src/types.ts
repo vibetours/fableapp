@@ -134,9 +134,9 @@ export enum AnnotationButtonSize {
 }
 
 export enum AnnotationBodyTextSize {
-  small = '13',
-  medium = '16',
-  large = '20'
+  small = '15',
+  medium = '18',
+  large = '21'
 }
 
 export interface IAnnotationButton {

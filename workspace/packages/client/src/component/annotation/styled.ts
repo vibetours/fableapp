@@ -19,7 +19,7 @@ export const AnContent = styled.div`
   font-size: 1.1rem;
   position: absolute;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 4px;
   padding: 0;
   margin: 0;
   justify-items: center;
@@ -31,8 +31,11 @@ interface AnTextContentProps {
 }
 
 export const AnTextContent = styled.div`
+  font-weight: normal !important;
+
   p {
     margin: 0;
+    font-weight: normal !important;
   }
   p img {
     margin-top: 0.2em;
@@ -45,9 +48,10 @@ export const AnTextContent = styled.div`
 `;
 
 export const ABtn = styled.button`
-  border-radius: 8px;
+  border-radius: 2px;
   align-self: flex-start;
   font-size: 18px;
+  font-weight: bold;
 
   border: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Outline) return `1px solid ${p.color}`;
@@ -66,9 +70,9 @@ export const ABtn = styled.button`
     if (p.size === AnnotationButtonSize.Large) {
       return '0.65rem 1rem';
     } if (p.size === AnnotationButtonSize.Medium) {
-      return '0.4rem 0.7rem';
+      return '0.3rem 0.6rem';
     }
-    return '0.25rem 0.5rem';
+    return '0.2rem 0.45rem';
   }};
 
   &:hover {
