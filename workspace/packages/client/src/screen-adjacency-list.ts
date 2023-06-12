@@ -1,5 +1,6 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import { P_RespScreen } from './entity-processor';
+import err from './deffered-error';
 
 // INFO Ideally we should just get the connected component of the graph for which the main (entry point)
 // is defined.
@@ -29,6 +30,10 @@ export default function create(
   for (const [annId, an] of Object.entries(flatAnnMap)) {
     const [screenId] = annId.split('/');
     const adjacentList = adjList[screenId];
+
+    // TODO this is a hotfix, since sometime an annotation gets added to a wrong tour (as a bug)
+    // this is to guard against that
+    if (!adjacentList) continue;
 
     const btns = an.buttons;
     for (const btn of btns) {
