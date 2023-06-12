@@ -1,13 +1,15 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useState } from 'react';
 import { Avatar, Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CaretDownOutlined, DownOutlined, LogoutOutlined } from '@ant-design/icons';
+import { CaretDownOutlined, CaretRightOutlined, LogoutOutlined, ShareAltOutlined } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
+import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import FableQuill from '../../assets/fable-quill.svg';
 import * as GTags from '../../common-styled';
 import FableLogo from '../../assets/fableLogo.svg';
+import { copyToClipboard, createIframe } from './utils';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -32,6 +34,22 @@ const CMN_HEADER_GRP_DIVISION = {
 };
 
 function Header(props: IOwnProps) {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setIsModalVisible(false);
+  };
+
+  const copyHandeler = () => {
+    const text = createIframe(props.showPreview);
+    copyToClipboard(text);
+    closeModal();
+  };
+
   return (
     <Tags.Con style={{ color: '#fff' }}>
       <Tags.LMenuCon style={CMN_HEADER_GRP_STYLE}>
@@ -58,21 +76,38 @@ function Header(props: IOwnProps) {
       </Tags.LMenuCon>
       <Tags.RMenuCon>
         {props.showPreview && (
-        <Tags.MenuItem>
-          <Button
-            shape="round"
-            size="middle"
-            type="primary"
-            style={{
-              background: '#16023E',
-            }}
-            onClick={e => {
-              window.open(props.showPreview)?.focus();
-            }}
-          >
-            Get embed URL
-          </Button>
-        </Tags.MenuItem>
+        <div style={{ display: 'flex', marginRight: '1rem', paddingRight: '1rem', borderRight: '1px solid #ffffff42' }}>
+          <Tags.MenuItem>
+            <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
+              <Button
+                size="small"
+                shape="circle"
+                type="text"
+                icon={<CaretRightOutlined
+                  style={{ color: 'white' }}
+                />}
+                onClick={(e) => {
+                  window.open(props.showPreview)?.focus();
+                }}
+              />
+            </Tooltip>
+          </Tags.MenuItem>
+          <Tags.MenuItem>
+            <Tooltip title="Embed" overlayStyle={{ fontSize: '0.75rem' }}>
+              <Button
+                size="small"
+                shape="circle"
+                type="text"
+                icon={<ShareAltOutlined
+                  style={{ color: 'white' }}
+                />}
+                onClick={(e) => {
+                  showModal();
+                }}
+              />
+            </Tooltip>
+          </Tags.MenuItem>
+        </div>
         )}
         {props.rBtnTxt && (
         <Tags.MenuItem>
@@ -121,6 +156,53 @@ function Header(props: IOwnProps) {
           </Tags.MenuItem>
         )}
       </Tags.RMenuCon>
+      {props.showPreview && (
+        <Tags.ShareModal
+          className="share-modal"
+          title="Get embed code"
+          open={isModalVisible}
+          onCancel={closeModal}
+          centered
+          width={486}
+          footer={[
+            <div style={{ display: 'flex' }} key="footer-buttons">
+              <Tags.SMButton
+                key="cancel"
+                shape="round"
+                size="middle"
+                type="primary"
+                style={{
+                  background: 'white',
+                  color: '#16023E',
+                  border: '1px solid #16023E',
+                }}
+                onClick={closeModal}
+              >
+                Cancel
+              </Tags.SMButton>
+              <Tags.SMButton
+                key="copy"
+                shape="round"
+                size="middle"
+                type="primary"
+                style={{
+                  background: '#7567FF',
+                  color: 'white',
+                  border: 'none',
+                }}
+                onClick={() => copyHandeler()}
+              >
+                Copy
+              </Tags.SMButton>
+            </div>,
+          ]}
+          closable={false}
+        >
+          <Tags.SMText>
+            {createIframe(props.showPreview)}
+          </Tags.SMText>
+        </Tags.ShareModal>
+      )}
     </Tags.Con>
   );
 }

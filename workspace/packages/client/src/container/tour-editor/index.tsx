@@ -15,7 +15,7 @@ import { connect } from 'react-redux';
 import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CaretRightOutlined, ShareAltOutlined } from '@ant-design/icons';
 import err from '../../deffered-error';
 import {
   clearCurrentScreenSelection,
