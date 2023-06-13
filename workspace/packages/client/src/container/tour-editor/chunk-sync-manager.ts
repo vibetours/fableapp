@@ -57,7 +57,12 @@ export default class ChunkSyncManager {
           localStorage.removeItem(key);
         } else {
           this.lookupKeys[key] = 1;
-          onLocalEditsLeft(key, JSON.parse(val) as K);
+          const parsedVal = JSON.parse(val) as K;
+          // TODO report this data to sentry
+          console.info('Trying to flush cached edit', key, JSON.parse(val));
+          onLocalEditsLeft(key, parsedVal);
+          localStorage.removeItem(key);
+          delete this.lookupKeys[key];
         }
       }
     }

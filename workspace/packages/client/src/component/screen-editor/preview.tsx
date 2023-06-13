@@ -324,7 +324,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
           el.setAttribute('scrolling', 'yes');
         } else if (node.name === 'object' && attrKey === 'data') {
-          el.setAttribute(attrKey, IFRAME_DEFAULT_DOC);
+          el.setAttribute(attrKey, '/aboutblank');
         } else {
           if (node.name === 'a' && attrKey === 'href') {
             // eslint-disable-next-line no-script-url

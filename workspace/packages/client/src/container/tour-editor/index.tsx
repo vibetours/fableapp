@@ -241,7 +241,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
     if (!this.props.screen) {
-      // [todo] this check should not be there as screen should alaways be present, but turning it off causes error
+      // TODO this check should not be there as screen should alaways be present, but turning it off causes error
       // sometime.Investigate
       return;
     }

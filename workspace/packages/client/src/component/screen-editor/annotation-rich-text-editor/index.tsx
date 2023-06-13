@@ -17,6 +17,7 @@ import Theme from './themes';
 import AutoLinkPlugin from './plugins/auto-link-plugin';
 import './styles.css';
 import { ImageNode } from './nodes/image-node';
+import { SaveOutlined } from '@ant-design/icons';
 
 function Placeholder() {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -37,7 +38,7 @@ const editorConfig = {
 
 interface Props {
   defaultValue: string;
-  onBlurHandler: (bodyContent: string, displayText: string) => void;
+  throttledChangeHandler: (bodyContent: string, displayText: string) => void;
 }
 
 interface PluginProps {
@@ -69,9 +70,11 @@ interface AnnotationContent {
   annotationDisplayText: string;
 }
 
-export default function AnnotationRichTextEditor({ defaultValue, onBlurHandler, children }: React.PropsWithChildren<Props>) {
+export default function AnnotationRichTextEditor({ defaultValue, throttledChangeHandler }: React.PropsWithChildren<Props>) {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savingInProgress, setSavingInProgress] = useState(false);
+  const timer = useRef(0);
 
   const modalControls = {
     showModal: () => {
@@ -91,20 +94,21 @@ export default function AnnotationRichTextEditor({ defaultValue, onBlurHandler, 
     editorState.read(() => {
       const htmlFromNode = $generateHtmlFromNodes(editor);
       const annotationDisplayText = $rootTextContent();
+      setSavingInProgress(true);
       annotationContentRef.current = { htmlFromNode, annotationDisplayText };
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => {
+        throttledChangeHandler(htmlFromNode, annotationDisplayText);
+        clearTimeout(timer.current);
+        timer.current = 0;
+        setSavingInProgress(false);
+      }, 750) as unknown as number;
     });
   };
 
   return (
     <LexicalComposer initialConfig={editorConfig}>
-      <div
-        className="editor-container"
-        onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget)) {
-            onBlurHandler(annotationContentRef.current!.htmlFromNode || '', annotationContentRef.current!.annotationDisplayText || '');
-          }
-        }}
-      >
+      <div className="editor-container">
         <ToolbarPlugin modalControls={modalControls} />
         <div className="editor-inner">
           <RichTextPlugin
@@ -118,6 +122,16 @@ export default function AnnotationRichTextEditor({ defaultValue, onBlurHandler, 
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={defaultValue} />
+          <div style={{
+            display: 'flex',
+            justifyContent: 'end',
+            padding: '0 0.5rem 0.25rem 0',
+            animation: savingInProgress ? 'blink 2s linear infinite' : 'none',
+            visibility: savingInProgress ? 'visible' : 'hidden'
+          }}
+          >
+            <SaveOutlined style={{ fontSize: '0.75rem' }} />
+          </div>
         </div>
       </div>
     </LexicalComposer>

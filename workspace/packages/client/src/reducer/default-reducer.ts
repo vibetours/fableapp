@@ -189,6 +189,10 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.CLEAR_CURRENT_TOUR: {
       const newState = { ...state };
       newState.currentTour = null;
+      newState.tourData = null;
+      newState.remoteTourOpts = null;
+      newState.remoteAnnotations = {};
+      newState.allScreens = [];
       newState.newTourLoadingStatus = LoadingStatus.NotStarted;
       return newState;
     }

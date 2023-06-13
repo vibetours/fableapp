@@ -59,6 +59,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
       <Router>
         <div className="app" style={{ overflow: 'hidden' }}>
           <Routes>
+            <Route path="/aboutblank" element={<div />} />
             <Route path="/onboarding" element={<Onboarding />}>
               <Route path="pin" element={<Pin title="Fable Onboarding" />} />
               <Route path="tours" element={<ToursPage title="Fable - Onboarding" />} />

@@ -213,8 +213,15 @@ export default function AnnotationCreatorPanel(props: IProps) {
     <Tags.AnotCrtPanelCon className="e-ignr">
       <ActionPanel alwaysOpen>
         <AnnotationRichTextEditor
-          onBlurHandler={(htmlString, displayText) => {
-            setConfig(c => updateAnnotationText(c, htmlString, displayText));
+          throttledChangeHandler={(htmlString, displayText) => {
+            setConfig(c => {
+              if (c.bodyContent === htmlString) {
+                // This gets fired on focus or if the user makes some change and then deletes the change.
+                // In all those case we don't do quitely skip the update.
+                return c;
+              }
+              return updateAnnotationText(c, htmlString, displayText);
+            });
           }}
           defaultValue={config.bodyContent}
         />
