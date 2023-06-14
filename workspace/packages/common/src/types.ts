@@ -117,6 +117,13 @@ export enum AnnotationPositions {
   LeftOrRight = 'left-or-right',
 }
 
+export enum VideoAnnotationPositions {
+  BottomRight = 'bottom-right',
+  BottomLeft = 'bottom-left',
+  Center = 'center',
+  Follow = 'follow',
+}
+
 export interface IAnnotationHotSpot {
   type: 'button',
 }
@@ -171,7 +178,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   refId: string;
   bodyContent: string;
   displayText: string;
-  positioning: AnnotationPositions,
+  positioning: AnnotationPositions | VideoAnnotationPositions,
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',
   size: EAnnotationBoxSize,

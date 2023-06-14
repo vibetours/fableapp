@@ -8,7 +8,8 @@ import {
   IChronoUpdatable,
   ITourDataOpts,
   EAnnotationBoxSize,
-  AnnotationBodyTextSize
+  AnnotationBodyTextSize,
+  VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -27,6 +28,15 @@ export function updateAnnotationText(config: IAnnotationConfig, txt: string, dis
 export function updateAnnotationBoxSize(config: IAnnotationConfig, size: EAnnotationBoxSize): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.size = size;
+  return newConfig;
+}
+
+export function updateAnnotationPositioning(
+  config: IAnnotationConfig,
+  positioning: AnnotationPositions | VideoAnnotationPositions
+): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.positioning = positioning;
   return newConfig;
 }
 

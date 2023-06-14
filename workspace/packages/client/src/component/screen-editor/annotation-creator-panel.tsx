@@ -7,7 +7,8 @@ import {
   EAnnotationBoxSize,
   IAnnotationConfig,
   ITourDataOpts,
-  ITourEntityHotspot
+  ITourEntityHotspot,
+  VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import Select from 'antd/lib/select';
 import Button from 'antd/lib/button';
@@ -52,6 +53,8 @@ import {
   updateAnnotationHideAnnotation,
   updateAnnotationVideoURL,
   updateAnnotationHotspotElPath,
+  isBlankString,
+  updateAnnotationPositioning,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
@@ -128,6 +131,11 @@ export default function AnnotationCreatorPanel(props: IProps) {
   const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [hotspotElText, setHotspotElText] = useState<string>('');
+
+  function isVideoAnnotation() {
+    return !isBlankString(config.videoUrl)
+    || (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm));
+  }
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -252,11 +260,17 @@ export default function AnnotationCreatorPanel(props: IProps) {
             defaultValue={config.positioning}
             size="small"
             bordered={false}
-            options={Object.values(AnnotationPositions).map(v => ({
+            options={isVideoAnnotation() ? Object.values(VideoAnnotationPositions).map(v => ({
+              value: v,
+              label: v,
+            })) : Object.values(AnnotationPositions).map(v => ({
               value: v,
               label: `${v} ${v === AnnotationPositions.Auto ? '' : '(not yet supported)'}`,
               disabled: v !== AnnotationPositions.Auto
             }))}
+            onChange={(e) => (
+              setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)))
+            )}
           />
         </div>
         <div style={commonActionPanelItemStyle}>
@@ -265,7 +279,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
             defaultValue={config.size ?? 'small'}
             size="small"
             bordered={false}
-            options={Object.values(['small', 'medium', 'large']).map(v => ({
+            options={Object.values(isVideoAnnotation() ? ['medium', 'large'] : ['small', 'medium', 'large']).map(v => ({
               value: v,
               label: `${v}`
             }))}
@@ -282,6 +296,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
               value,
               label: key
             }))}
+            disabled={isVideoAnnotation()}
             onChange={(e) => setConfig(c => updateAnnotationBodyTextSize(c, e as AnnotationBodyTextSize))}
           />
         </div>
@@ -300,6 +315,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
               onBlur={e => {
                 setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
               }}
+              disabled={isVideoAnnotation()}
             />
           </Tags.ColorInputWrapper>
         </div>
@@ -316,6 +332,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
               onBlur={e => {
                 setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
               }}
+              disabled={isVideoAnnotation()}
             />
           </Tags.ColorInputWrapper>
         </div>

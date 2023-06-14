@@ -1,11 +1,11 @@
 import React, { SetStateAction, useEffect, useRef, useState } from 'react';
 import Modal from 'antd/lib/modal';
 import Button from 'antd/lib/button';
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
 import { uploadVideoToAws } from './utils/upload-video-to-aws';
-import { updateAnnotationVideoURLMp4, updateAnnotationVideoURLWebm } from '../annotation/annotation-config-utils';
+import { updateAnnotationBoxSize, updateAnnotationPositioning, updateAnnotationVideoURLMp4, updateAnnotationVideoURLWebm } from '../annotation/annotation-config-utils';
 import { blobToUint8Array } from './utils/blob-to-uint8array';
 
 type Props = {
@@ -236,6 +236,13 @@ function VideoRecorder(props: Props) {
     const mp4Url = await uploadVideoToAws(mp4, 'video/mp4');
     props.setConfig(c => updateAnnotationVideoURLMp4(c, mp4Url));
     props.setConfig(c => updateAnnotationVideoURLWebm(c, webmUrl));
+    props.setConfig(c => {
+      if (c.type === 'cover') {
+        return updateAnnotationPositioning(c, VideoAnnotationPositions.Center);
+      }
+      return updateAnnotationPositioning(c, VideoAnnotationPositions.BottomRight);
+    });
+    props.setConfig(c => updateAnnotationBoxSize(c, 'medium'));
     dispatch({
       type: 'FINISH_SAVING'
     });

@@ -129,10 +129,6 @@ interface AnVideoProps {
 
 export const AnVideo = styled.video`
   position: fixed;
-  bottom: ${(p: AnVideoProps) => (p.isCover ? '50%' : '10px')};
-  right: ${(p: AnVideoProps) => (p.isCover ? '50%' : '30px')};
-  transform: ${(p: AnVideoProps) => (p.isCover ? 'translate(50%, 50%)' : 'none')};
-  height: ${(p: AnVideoProps) => (p.isCover ? '480px' : '150px')};
   border-radius: 8px;
   box-shadow: ${(p: AnVideoProps) => `${p.border}`};
 `;

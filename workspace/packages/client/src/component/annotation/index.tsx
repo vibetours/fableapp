@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, VideoAnnotationPositions } from '@fable/common/dist/types';
 import React from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
@@ -10,6 +10,7 @@ interface IProps {
   box: Rect,
   nav: NavFn,
   win: Window,
+  playMode: boolean,
 }
 
 export class AnnotationContent extends React.PureComponent<{
@@ -117,6 +118,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
   render() {
+    const config = this.props.annotationDisplayConfig.config;
+    const isVideoAnnotation = !isBlankString(config.videoUrl)
+    || (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm));
+    const isCoverAnn = config.type === 'cover';
+    const VIDEO_HEIGHT_RATIO = 1.33;
+
     let l = -9999;
     let t = -9999;
     let w = 0;
@@ -134,24 +141,44 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       }
 
       if (boxSize === 'medium') {
-        w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
-        h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
+        if (isVideoAnnotation) {
+          w = isCoverAnn ? 480 : 240;
+          h = isCoverAnn ? 480 / VIDEO_HEIGHT_RATIO : 240 / VIDEO_HEIGHT_RATIO;
+        } else {
+          w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
+          h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
+        }
       }
 
       if (boxSize === 'large') {
-        w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
-        h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
+        if (isVideoAnnotation) {
+          w = isCoverAnn ? 600 : 360;
+          h = isCoverAnn ? 600 / VIDEO_HEIGHT_RATIO : 360 / VIDEO_HEIGHT_RATIO;
+        } else {
+          w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
+          h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
+        }
       }
 
       if (this.props.annotationDisplayConfig.config.type === 'cover') {
+        const top = winH / 2 - h / 2;
+        const left = winW / 2 - w / 2;
+        if (isVideoAnnotation) {
+          return <AnnotationVideo
+            nav={this.props.nav}
+            annotationDisplayConfig={this.props.annotationDisplayConfig}
+            playMode={this.props.playMode}
+            annFollowPositions={{ top, left }}
+          />;
+        }
         return <AnnotationContent
           config={this.props.annotationDisplayConfig.config}
           opts={this.props.annotationDisplayConfig.opts}
           isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
           nav={this.props.nav}
           width={w}
-          top={winH / 2 - h / 2}
-          left={winW / 2 - w / 2}
+          top={top}
+          left={left}
         />;
       }
 
@@ -202,6 +229,19 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
       }
     }
+
+    if (isVideoAnnotation) {
+      return <AnnotationVideo
+        nav={this.props.nav}
+        annotationDisplayConfig={this.props.annotationDisplayConfig}
+        playMode={this.props.playMode}
+        annFollowPositions={{
+          top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
+          left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
+        }}
+      />;
+    }
+
     // This container should never have padding ever
     return <AnnotationContent
       config={this.props.annotationDisplayConfig.config}
@@ -278,6 +318,7 @@ interface VideoProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
   nav: NavFn,
   playMode: boolean,
+  annFollowPositions: {top: number, left: number},
 }
 
 export class AnnotationVideo extends React.PureComponent<VideoProps> {
@@ -289,6 +330,68 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
     const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
 
     return `0 0 ${blur} ${spread} ${borderColor}`;
+  }
+
+  getPositioningAndSizingStyles() {
+    const position = this.props.annotationDisplayConfig.config.positioning;
+    const isCover = isCoverAnnotation(this.props.annotationDisplayConfig.config.id);
+    const size = this.props.annotationDisplayConfig.config.size;
+
+    let styles = {};
+    switch (position) {
+      case VideoAnnotationPositions.BottomRight:
+        styles = { ...styles, bottom: '20px', right: '20px' };
+        break;
+      case VideoAnnotationPositions.BottomLeft:
+        styles = { ...styles, bottom: '20px', left: '20px' };
+        break;
+      case VideoAnnotationPositions.Center:
+        styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
+        break;
+      case VideoAnnotationPositions.Follow: {
+        if (isCover) {
+          styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
+        } else {
+          styles = {
+            ...styles,
+            top: `${this.props.annFollowPositions.top}px`,
+            left: `${this.props.annFollowPositions.left}px`
+          };
+        }
+        break;
+      }
+      default:
+        styles = { ...styles, bottom: '10px', right: '40px' };
+        break;
+    }
+
+    if (isCover) {
+      switch (size) {
+        case 'medium':
+          styles = { ...styles, width: '480px' };
+          break;
+        case 'large':
+          styles = { ...styles, width: '600px' };
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (!isCover) {
+      switch (size) {
+        case 'medium':
+          styles = { ...styles, width: '240px' };
+          break;
+        case 'large':
+          styles = { ...styles, width: '360px' };
+          break;
+        default:
+          break;
+      }
+    }
+
+    return { ...styles };
   }
 
   render() {
@@ -305,6 +408,7 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
           border={this.getAnnotationBorder()}
           isCover={isCover}
           className="fable-video"
+          style={{ ...this.getPositioningAndSizingStyles() }}
           onEnded={() => {
             if (!this.props.playMode) {
               return;
@@ -327,6 +431,7 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
         border={this.getAnnotationBorder()}
         isCover={isCover}
         className="fable-video"
+        style={{ ...this.getPositioningAndSizingStyles() }}
         onEnded={() => {
           if (!this.props.playMode) {
             return;
@@ -356,9 +461,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         return <div key={p.conf.config.id} />;
       }
 
-      const isVideoAnnotation = !isBlankString(p.conf.config.videoUrl)
-      || (!isBlankString(p.conf.config.videoUrlMp4) && !isBlankString(p.conf.config.videoUrlWebm));
-      const hideAnnotation = p.conf.config.hideAnnotation || isVideoAnnotation;
+      const hideAnnotation = p.conf.config.hideAnnotation;
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
       return (
@@ -381,14 +484,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             box={p.box}
             nav={this.props.nav}
             win={this.props.win}
+            playMode={this.props.playMode}
           />}
-          {
-            isVideoAnnotation && <AnnotationVideo
-              nav={this.props.nav}
-              annotationDisplayConfig={p.conf}
-              playMode={this.props.playMode}
-            />
-          }
         </div>
       );
     });

@@ -2,12 +2,14 @@ import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion, Scr
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   AnnotationBodyTextSize,
+  AnnotationPositions,
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
   TourData,
   TourDataWoScheme,
-  TourScreenEntity
+  TourScreenEntity,
+  VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import { TState } from './reducer';
 import {
@@ -21,7 +23,7 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask
 } from './types';
-import { getDefaultTourOpts } from './component/annotation/annotation-config-utils';
+import { getDefaultTourOpts, isBlankString } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -267,6 +269,13 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAn
 
   if (an.videoUrlWebm === undefined || an.videoUrlWebm === null) {
     an.videoUrlWebm = '';
+  }
+
+  const isVideoAnnotation = !isBlankString(an.videoUrl)
+  || (!isBlankString(an.videoUrlMp4) && !isBlankString(an.videoUrlWebm));
+
+  if (isVideoAnnotation && an.positioning === AnnotationPositions.Auto) {
+    an.positioning = VideoAnnotationPositions.BottomRight;
   }
 
   return an;
