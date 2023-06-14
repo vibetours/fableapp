@@ -7,9 +7,11 @@ import {
   IdxEncodingTypeImage,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
-  EditValueEncoding
+  EditValueEncoding,
+  IdxEncodingTypeMask
 } from '../../types';
 import * as Tags from './styled';
+import { hideChildren, unhideChildren } from './utils/creator-actions';
 
 interface IProps {
   edit: EditItem;
@@ -84,6 +86,28 @@ export default function ListActionBtn({ edit, element }: IProps) {
         el.style.display = isShowOriginal
           ? tEncoding[IdxEncodingTypeDisplay.NEW_VALUE]!
           : tEncoding[IdxEncodingTypeDisplay.OLD_VALUE]!;
+        break;
+      }
+
+      case ElEditType.Mask: {
+        const tEncoding = encoding as EditValueEncoding[ElEditType.Mask];
+
+        if (isShowOriginal) {
+          el.setAttribute(
+            'style',
+            `${tEncoding[IdxEncodingTypeMask.NEW_STYLE]}`
+          );
+
+          hideChildren(el);
+        } else {
+          el.setAttribute(
+            'style',
+            `${tEncoding[IdxEncodingTypeMask.OLD_STYLE]}`
+          );
+
+          unhideChildren(el);
+        }
+
         break;
       }
 

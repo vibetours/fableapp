@@ -18,7 +18,8 @@ import {
   IdxEncodingTypeText,
   IdxEncodingTypeImage,
   IdxEncodingTypeBlur,
-  IdxEncodingTypeDisplay
+  IdxEncodingTypeDisplay,
+  IdxEncodingTypeMask
 } from './types';
 import { getDefaultTourOpts } from './component/annotation/annotation-config-utils';
 
@@ -175,6 +176,9 @@ const isEditToBeRemoved = (
 
     case ElEditType.Display:
       return editArray[IdxEncodingTypeDisplay.OLD_VALUE] === null;
+
+    case ElEditType.Mask:
+      return editArray[IdxEncodingTypeMask.NEW_STYLE] === null;
 
     default:
       return false;

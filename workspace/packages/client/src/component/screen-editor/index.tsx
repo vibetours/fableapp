@@ -8,6 +8,7 @@ import {
   ExclamationCircleOutlined,
   PlusOutlined,
   SelectOutlined,
+  CloudUploadOutlined
 } from '@ant-design/icons';
 import { IAnnotationConfig, ITourDataOpts, ScreenData, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
@@ -16,6 +17,7 @@ import React from 'react';
 import Modal from 'antd/lib/modal';
 import Collapse from 'antd/lib/collapse';
 import { ScreenType } from '@fable/common/dist/api-contract';
+import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as GTags from '../../common-styled';
@@ -34,6 +36,7 @@ import {
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
+  IdxEncodingTypeMask,
   NavFn
 } from '../../types';
 import ActionPanel from './action-panel';
@@ -52,10 +55,11 @@ import AdvanceElementPicker from './advance-element.picker';
 import TabBar from './components/tab-bar';
 import TabItem from './components/tab-bar/tab-item';
 import TimelineScreen from './components/timeline/screen';
+import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
+import UploadButton from './components/upload-button';
 import ScreenImageBrusher from './screen-image-brushing';
 
 const { confirm } = Modal;
-const { Panel } = Collapse;
 
 const enum EditTargetType {
   Text = 't',
@@ -119,15 +123,6 @@ interface IOwnStateProps {
   selectedHotspotEl: HTMLElement | null;
   selectionMode: 'hotspot' | 'annotation';
   activeTab: TabList;
-}
-
-interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
-  screenId?: string;
-}
-
-interface AnnotationGroup {
-  screenId: number;
-  annotations: IAnnotationConfigWithScreenId[]
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -228,6 +223,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             ]);
             this.flushMicroEdits();
             el!.style.display = tEncoding[IdxEncodingTypeDisplay.OLD_VALUE]!;
+            break;
+          }
+
+          case ElEditType.Mask: {
+            const tEncoding = encoding as EditValueEncoding[ElEditType.Mask];
+            this.addToMicroEdit(path, ElEditType.Mask, [
+              getCurrentUtcUnixTime(),
+              null,
+              tEncoding[IdxEncodingTypeMask.OLD_STYLE]!
+            ]);
+            this.flushMicroEdits();
+
+            el?.setAttribute('style', tEncoding[IdxEncodingTypeMask.OLD_STYLE]);
+            unhideChildren(el!);
             break;
           }
 
@@ -359,6 +368,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           </Tags.EditLICon>
         );
 
+      case ElEditType.Mask:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <img src={MaskIcon} alt="" width={16} />
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Mask added</div>
+            </div>
+            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+
       default:
         return <></>;
     }
@@ -437,6 +457,31 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imgEl.setAttribute(attrName, origVal);
     }
     this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+  };
+
+  handleUploadMaskImgChange = (el: HTMLElement) => async (e: any): Promise<void> => {
+    const selectedImage = e.target.files[0];
+    if (!selectedImage) {
+      return;
+    }
+
+    const newImageUrl = await uploadImgToAws(selectedImage);
+
+    hideChildren(el);
+
+    const oldElInlineStyles = el.getAttribute('style') || '';
+    const newElInlineStyles = addImgMask(el, newImageUrl);
+
+    const path = this.iframeElManager!.elPath(el);
+
+    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Mask}`;
+    let origVal = el.getAttribute(attrName);
+    if (origVal === null) {
+      origVal = oldElInlineStyles;
+      el.setAttribute(attrName, origVal);
+    }
+
+    this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
   };
 
   componentWillUnmount(): void {
@@ -599,6 +644,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   getEditingCtrlForElType(type: EditTargetType) {
+    if (!this.state.selectedEl) {
+      return <></>;
+    }
+
     const CommonOptions = (
       <>
         <Tags.EditCtrlLI>
@@ -629,6 +678,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             })(this.state.selectedEl!)}
           />
         </Tags.EditCtrlLI>
+
         <Tags.EditCtrlLI>
           <Tags.EditCtrlLabel>Blur Element</Tags.EditCtrlLabel>
           <Switch
@@ -680,23 +730,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             size="small"
           />
         </Tags.EditCtrlLI>
+
+        {restrictCrtlType(this.state.selectedEl!, ['img'])
+          && (
+            <Tags.EditCtrlLI>
+              <Tags.EditCtrlLabel>Mask Element</Tags.EditCtrlLabel>
+              <UploadButton
+                accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                onChange={this.handleUploadMaskImgChange(this.state.selectedEl!)}
+              />
+            </Tags.EditCtrlLI>
+          )}
       </>
     );
     switch (type) {
       case EditTargetType.Img:
         return (
           <Tags.EditCtrlCon>
-            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
-              <Tags.EditCtrlLabel>Replace selected image</Tags.EditCtrlLabel>
-              <Tags.ImgUploadLabel>
-                Click to upload
-                <input
-                  style={{ display: 'none' }}
-                  onChange={this.handleSelectedImageChange(this.state.selectedEl!)}
-                  type="file"
-                  accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                />
-              </Tags.ImgUploadLabel>
+            <Tags.EditCtrlLI>
+              <Tags.EditCtrlLabel>Replace image</Tags.EditCtrlLabel>
+              <UploadButton
+                accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                onChange={this.handleSelectedImageChange(this.state.selectedEl!)}
+              />
             </Tags.EditCtrlLI>
             {CommonOptions}
           </Tags.EditCtrlCon>
@@ -973,6 +1029,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 </div>
               )}
 
+              {/* this is edits panel */}
               {this.state.activeTab === TabList.Edits && (
                 <>
                   <Tags.InfoText>
@@ -1111,7 +1168,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   private onBoxSelect = (coordsStr: string) => {
-    console.log(coordsStr);
     const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
     const conf = getSampleConfig(coordsStr);
 

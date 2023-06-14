@@ -7,16 +7,19 @@ import {
   EncodingTypeBlur,
   EncodingTypeDisplay,
   EncodingTypeImage,
+  EncodingTypeMask,
   EncodingTypeText, FrameAssetLoadFn, IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
+  IdxEncodingTypeMask,
   IdxEncodingTypeText,
   NavFn
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview from './preview';
 import { scrollIframeEls } from './scroll-util';
+import { hideChildren } from './utils/creator-actions';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -108,6 +111,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         const tEl = el as HTMLElement;
         tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
         tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE]!;
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Mask) {
+        const maskEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeMask;
+        const tEl = el as HTMLElement;
+        const maskStyled = maskEncodingVal[IdxEncodingTypeMask.NEW_STYLE]!;
+
+        hideChildren(tEl);
+        tEl.setAttribute('style', maskStyled);
       }
     }
   }
