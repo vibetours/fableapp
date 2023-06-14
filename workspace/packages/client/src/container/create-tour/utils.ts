@@ -17,7 +17,8 @@ import {
   ReqRecordEdit,
   RespProxyAsset,
   RespScreen,
-  RespTour
+  RespTour,
+  ScreenType
 } from '@fable/common/dist/api-contract';
 import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
@@ -323,6 +324,7 @@ async function postProcessSerDocs(
       thumbnail: imageData,
       body: JSON.stringify(screenBody),
       favIcon: iconPath,
+      type: ScreenType.SerDom,
     },
   });
 

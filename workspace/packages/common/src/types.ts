@@ -188,3 +188,10 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
 export interface IAnnotationConfig extends IAnnotationOriginConfig {
   syncPending: boolean;
 }
+
+export interface Coords {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}

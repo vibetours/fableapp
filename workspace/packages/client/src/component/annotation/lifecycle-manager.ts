@@ -1,12 +1,14 @@
 import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { Coords, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
 import { getDefaultTourOpts } from './annotation-config-utils';
 import { NavFn } from '../../types';
 import { isBodyEl } from '../../utils';
+import { scrollToAnn } from './utils';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -28,6 +30,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private rRoot: Root;
 
+  private conProbe: HTMLDivElement;
+
+  private rRootProbe: Root;
+
   private vp: { w: number, h: number };
 
   private mode: AnnotationViewMode;
@@ -42,8 +48,15 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private isPlayMode: boolean;
 
+  private screenType: ScreenType;
+
   // Take the initial annotation config from here
-  constructor(doc: Document, nestedFrames: HTMLIFrameElement[], opts: { navigate: NavFn, isPlayMode: boolean }) {
+  constructor(
+    doc: Document,
+    nestedFrames: HTMLIFrameElement[],
+    opts: { navigate: NavFn, isPlayMode: boolean },
+    screenType: ScreenType
+  ) {
     super(doc, nestedFrames);
     this.nav = opts.navigate;
     this.vp = {
@@ -51,11 +64,15 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
     };
     this.annotationElMap = {};
-    const [con, root] = this.createContainerRoot();
+    const [con, root] = this.createContainerRoot('ann-display');
+    const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
     this.con = con;
     this.rRoot = root;
+    this.conProbe = conProbe;
+    this.rRootProbe = rootProbe;
     this.mode = AnnotationViewMode.Hide;
     this.isPlayMode = opts.isPlayMode;
+    this.screenType = screenType;
   }
 
   private hideAllAnnotations() {
@@ -120,9 +137,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.con!.style.visibility = 'visible';
   };
 
-  private createContainerRoot(): [HTMLDivElement, Root] {
+  private createContainerRoot(type: 'ann-display' | 'ann-probe' = 'ann-display'): [HTMLDivElement, Root] {
     const con = this.doc.createElement('div');
-    con.setAttribute('class', 'fable-annotations-container');
+    con.setAttribute('class', `fable-annotations-${type === 'ann-probe' ? 'probe-' : ''}container`);
     con.setAttribute('fable-ignr-sel', 'true');
     con.style.position = 'absolute';
     con.style.left = '0';
@@ -133,17 +150,36 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return [con, rRoot];
   }
 
-  showAnnotationFor(el: HTMLElement) {
-    const path = this.elPath(el);
-    for (const [elPath, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+  showAnnotationFor(el: HTMLElement, config: IAnnotationConfig) {
+    let currId: string;
+    if (this.screenType === ScreenType.Img && config.type === 'default') {
+      currId = config.id;
+    } else {
+      // TODO: check if config.id has the elpath
+      currId = this.elPath(el);
+    }
+
+    for (const [id, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       annotationDisplayConfig.opts = this.opts;
-      if (elPath === path) {
+      if (id === currId) {
         annotationDisplayConfig.isMaximized = true;
         annotationDisplayConfig.isInViewPort = true;
       } else {
         annotationDisplayConfig.isMaximized = false;
         annotationDisplayConfig.isInViewPort = false;
       }
+    }
+
+    if (this.screenType === ScreenType.Img && config.type === 'default') {
+      const coordsStr = config.id;
+      this.beforeScrollStart();
+      const [x, y, width, height] = coordsStr.split('-');
+      const box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
+      scrollToAnn(this.win, box, this.annotationElMap[coordsStr][1]);
+      setTimeout(() => {
+        this.onScrollComplete();
+      }, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
+      return;
     }
 
     this.beforeScrollStart();
@@ -181,19 +217,30 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       hotspotBox: Rect | null,
     })[] = [];
     for (const [, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+      let box: Rect;
+      if (this.screenType === ScreenType.Img && annotationDisplayConfig.config.type === 'default') {
+        const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
+        box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
+      } else {
+        box = this.getBoundingRectWrtRootFrame(el);
+      }
+
       let hotspotEl = null;
       const hotspotElPath = annotationDisplayConfig.config.hotspotElPath;
       if (hotspotElPath) {
         hotspotEl = this.elFromPath(hotspotElPath);
       }
       props.push({
-        box: this.getBoundingRectWrtRootFrame(el),
+        box,
         conf: annotationDisplayConfig,
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
       });
       if (annotationDisplayConfig.isMaximized) {
         if (annotationDisplayConfig.config.type === 'cover') {
           this.createFullScreenMask();
+        } else if (this.screenType === ScreenType.Img) {
+          const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
+          this.selectBoxInDoc({ x: +x, y: +y, width: +width, height: +height });
         } else {
           this.selectElementInDoc(el, el.ownerDocument);
         }
@@ -213,17 +260,25 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     el: HTMLElement,
     config: IAnnotationConfig,
     opts: ITourDataOpts,
-    showImmediate = false
+    showImmediate = false,
   ) {
     if (this.isAnnotationDrawingInProgress) {
       return this;
     }
+
     this.isAnnotationDrawingInProgress = true;
-    const path = this.elPath(el);
     const dim = await this.probeForAnnotationSize(config);
+
+    let key : string;
+    if (this.screenType === ScreenType.Img && config.type === 'default') {
+      key = config.id;
+    } else {
+      key = this.elPath(el);
+    }
+
     if (!this.componentDisposed) {
       this.opts = opts;
-      this.annotationElMap[path] = [el, {
+      this.annotationElMap[key] = [el, {
         config,
         opts,
         isMaximized: false,
@@ -236,9 +291,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       }];
 
       if (showImmediate) {
-        this.showAnnotationFor(el);
+        this.showAnnotationFor(el, config);
       }
     }
+
     this.isAnnotationDrawingInProgress = false;
     return this;
   }
@@ -254,7 +310,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     try {
       const elSmall = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRoot.render(
+        this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
             { target: this.doc.head },
@@ -275,7 +331,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       const smallDim = elSmall.getBoundingClientRect();
 
       const elMedium = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRoot.render(
+        this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
             { target: this.doc.head },
@@ -296,7 +352,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       const mediumDim = elMedium.getBoundingClientRect();
 
       const elLarge = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRoot.render(
+        this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
             { target: this.doc.head },
@@ -341,9 +397,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     setTimeout(() => {
       if (this.rRoot) {
         this.rRoot.unmount();
+        this.rRootProbe.unmount();
       }
       if (this.con) {
         this.con.remove();
+        this.conProbe.remove();
       }
       super.dispose();
     });

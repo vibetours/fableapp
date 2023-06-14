@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-04-10 05:22:57.
+// Generated using typescript-generator version 2.35.1025 on 2023-06-13 11:25:59.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -21,9 +21,11 @@ export interface ReqNewOrg {
 
 export interface ReqNewScreen {
     name: string;
-    url: string;
-    thumbnail: string;
+    url?: string;
+    thumbnail?: string;
     favIcon?: string;
+    type: ScreenType;
+    contentType?: string;
     body: string;
 }
 
@@ -45,6 +47,21 @@ export interface ReqRecordEdit {
 export interface ReqRenameGeneric {
     newName: string;
     rid: string;
+}
+
+export interface ReqScreenTour {
+    screenRid: string;
+    tourRid: string;
+}
+
+export interface ReqThumbnailCreation {
+    screenRid: string;
+}
+
+export interface ReqUpdateScreenProperty {
+    rid: string;
+    propName: string;
+    propValue: any;
 }
 
 export interface ReqUpdateUser {
@@ -85,7 +102,10 @@ export interface RespScreen extends ResponseBase {
     thumbnail: string;
     url: string;
     icon: string;
+    responsive: boolean;
     tour?: RespTour;
+    type: ScreenType;
+    uploadUrl?: string;
 }
 
 export interface RespTour extends ResponseBase {
@@ -124,6 +144,11 @@ export interface ResponseBase {
 
 export const enum SchemaVersion {
     V1 = "2023-01-10",
+}
+
+export const enum ScreenType {
+    Img = 0,
+    SerDom = 1,
 }
 
 export const enum ResponseStatus {

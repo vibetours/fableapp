@@ -1,4 +1,4 @@
-import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion, ScreenType } from '@fable/common/dist/api-contract';
 import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   AnnotationBodyTextSize,
@@ -41,7 +41,9 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     updatedAt: d,
     isRootScreen: screen.parentScreenId === 0,
     displayableUpdatedAt: getDisplayableTime(d),
-    urlStructured: new URL(screen.url),
+    urlStructured: screen.url === ''
+      ? new URL(`https://${screen.displayName.replaceAll(' ', '-')}.img.flbk.sharefable.com`)
+      : new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
     }/${state.default.commonConfig?.dataFileName}`),

@@ -1,3 +1,4 @@
+import { Coords } from '@fable/common/dist/types';
 import { ROOT_EMBED_IFRAME_ID } from '../screen-editor/preview';
 
 export interface Rect {
@@ -57,10 +58,7 @@ export default abstract class HighlighterBase {
     );
   }
 
-  protected selectElementInDoc(el: HTMLElement, doc: Document) {
-    const win = doc.defaultView!;
-    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
-    const elSize: DOMRect = el.getBoundingClientRect();
+  private drawMask(elSize: Rect, win: Window, dx: number, dy: number) {
     const maskBox = this.getOrCreateMask();
 
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
@@ -82,6 +80,39 @@ export default abstract class HighlighterBase {
     maskBox.style.height = `${height}px`;
   }
 
+  protected selectElementInDoc(el: HTMLElement, doc: Document) {
+    const win = doc.defaultView!;
+    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
+    const elSize: DOMRect = el.getBoundingClientRect();
+    this.drawMask(elSize, win, dx, dy);
+  }
+
+  selectBoxInDoc(scaleCoords: Coords) {
+    const win = this.doc.defaultView!;
+    const [dx, dy] = this.doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
+    const elSize = this.getAbsFromRelCoords(scaleCoords);
+    this.drawMask(elSize, win, dx, dy);
+  }
+
+  getAbsFromRelCoords(coords: Coords): Rect {
+    const imageEl = this.doc.querySelector('img')!;
+    const imageRect = imageEl.getBoundingClientRect();
+
+    const x = Math.round(coords.x * imageRect.width);
+    const y = Math.round(coords.y * imageRect.height);
+    const width = Math.round(coords.width * imageRect.width);
+    const height = Math.round(coords.height * imageRect.height);
+
+    const top = imageRect.top + y;
+    const left = imageRect.left + x;
+    const right = left + width;
+    const bottom = top + height;
+
+    return {
+      x, y, width, height, top, left, right, bottom
+    };
+  }
+
   createFullScreenMask() {
     const elSize: DOMRect = this.doc.body.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
@@ -99,7 +130,9 @@ export default abstract class HighlighterBase {
     if (this.maskEl) {
       return this.maskEl;
     }
+
     const cls = `fable-el-mask-${(Math.random() * 10 ** 6) | 0}`;
+
     const mask = this.doc.createElement('div');
     mask.setAttribute('class', cls);
     mask.style.position = 'absolute';

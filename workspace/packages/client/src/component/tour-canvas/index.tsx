@@ -5,6 +5,8 @@ import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
 import { drag, D3DragEvent } from 'd3-drag';
+import { FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import * as GTags from '../../common-styled';
 import { AnnotationPerScreen, NavFn, TourDataChangeFn } from '../../types';
 import { updateButtonProp } from '../annotation/annotation-config-utils';
@@ -13,13 +15,15 @@ import * as Tags from './styled';
 import { AnnotationNode, Box, CanvasGrid, EdgeWithData } from './types';
 import { formPathUsingPoints, formScreens2, getEdges, getEndPointsUsingPath } from './utils';
 import { P_RespScreen } from '../../entity-processor';
+import AddImageScreen from './add-image-screen';
 
 type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: NavFn;
   onTourDataChange: TourDataChangeFn;
   rootScreens: P_RespScreen[];
-  addScreenToTour: (screen: P_RespScreen) => void;
+  addScreenToTour: (screenType: ScreenType, screenId: number, screenRid: string) => void;
+  tourRid: string | undefined;
 };
 
 interface ConnectionErrMsg {
@@ -62,6 +66,7 @@ export default function TourCanvas(props: CanvasProps) {
   const [showScreenSelector, setShowScreenSelector] = useState(false);
   const [screensNotPartOfTour, setScreensNotPartOfTour] = useState<P_RespScreen[]>([]);
   const [connectionErr, setConnectionErr] = useState<ConnectionErrMsg>(connectionErrInitData);
+  const [showUploadScreenImgModal, setShowUploadScreenImgModal] = useState<boolean>(false);
 
   const [init] = useState(1);
 
@@ -678,11 +683,21 @@ export default function TourCanvas(props: CanvasProps) {
               </GTags.Txt>
               <Tags.ScreenSlider style={{ flexDirection: 'column' }}>
                 <div style={{ display: 'flex', gap: '1.25rem' }}>
+                  <Tags.Screen onClick={() => {
+                    setShowScreenSelector(false);
+                    setShowUploadScreenImgModal(true);
+                  }}
+                  >
+                    <Tags.UploadImgCont>
+                      <UploadOutlined style={{ fontSize: '3rem' }} />
+                      <GTags.Txt className="title2">Upload screen image</GTags.Txt>
+                    </Tags.UploadImgCont>
+                  </Tags.Screen>
                   {screensNotPartOfTour.map(screen => (
                     <Tags.Screen
                       key={screen.id}
                       onClick={() => {
-                        props.addScreenToTour(screen);
+                        props.addScreenToTour(screen.type, screen.id, screen.rid);
                         // TODO this is just arbitrary timeout after which the popup would close
                         // normally wait for the request to finish, show a loader and then add the
                         // screen
@@ -692,7 +707,14 @@ export default function TourCanvas(props: CanvasProps) {
                       }}
                     >
                       <img src={screen.thumbnailUri.href} alt={screen.displayName} />
-                      <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
+                      <Tags.ScreenTitleIconCon>
+                        <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
+                        <div>
+                          {
+                            screen.type === ScreenType.SerDom ? <FileTextOutlined /> : <FileImageOutlined />
+                          }
+                        </div>
+                      </Tags.ScreenTitleIconCon>
                     </Tags.Screen>
                   ))}
                 </div>
@@ -700,11 +722,26 @@ export default function TourCanvas(props: CanvasProps) {
               </Tags.ScreenSlider>
             </>
           ) : (
-            <GTags.Txt>
-              All captured screens are already part of this tour.
-              <br />
-              Any new screen captured will be available here.
-            </GTags.Txt>
+            <>
+              <GTags.Txt>
+                All captured screens are already part of this tour.
+                <br />
+                Any new screen captured will be available here.
+              </GTags.Txt>
+              <Tags.Screen
+                onClick={() => {
+                  setShowScreenSelector(false);
+                  setShowUploadScreenImgModal(true);
+                }}
+                style={{ margin: '1rem auto' }}
+              >
+                <Tags.UploadImgCont>
+                  <UploadOutlined style={{ fontSize: '3rem' }} />
+                  <GTags.Txt className="title2">Upload screen image</GTags.Txt>
+                </Tags.UploadImgCont>
+              </Tags.Screen>
+            </>
+
           )}
         </Tags.ScreensContainer>
       </Tags.SelectScreenContainer>
@@ -727,6 +764,16 @@ export default function TourCanvas(props: CanvasProps) {
           <GTags.Txt color="#fff" className="subhead">Click outside to cancel this popup</GTags.Txt>
         </div>
       )}
+      {
+        showUploadScreenImgModal && (
+          <AddImageScreen
+            open={showUploadScreenImgModal}
+            closeModal={() => setShowUploadScreenImgModal(false)}
+            tourRid={props.tourRid}
+            addScreenToTour={props.addScreenToTour}
+          />
+        )
+      }
     </>
   );
 }

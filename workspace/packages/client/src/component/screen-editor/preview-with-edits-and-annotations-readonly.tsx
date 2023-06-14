@@ -1,5 +1,6 @@
 import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
 import React from 'react';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { P_RespScreen } from '../../entity-processor';
 import {
   EditItem, ElEditType,
@@ -122,10 +123,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     let doc;
     if (doc = el?.contentDocument) {
       if (!this.annotationLCM) {
-        this.annotationLCM = new AnnotationLifecycleManager(doc, nestedFrames, {
-          navigate: this.props.navigate,
-          isPlayMode: this.props.playMode,
-        });
+        this.annotationLCM = new AnnotationLifecycleManager(
+          doc,
+          nestedFrames,
+          {
+            navigate: this.props.navigate,
+            isPlayMode: this.props.playMode,
+          },
+          this.props.screen.type
+        );
       }
     } else {
       throw new Error('Annoation document not found while initing annotationlcm');
@@ -160,9 +166,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
     if (!this.annotationLCM) return;
-    let targetEl;
+    let targetEl = null;
     if (conf.type === 'cover') {
       targetEl = this.embedFrameRef?.current?.contentDocument?.body!;
+    } else if (this.props.screen.type === ScreenType.Img) {
+      targetEl = this.embedFrameRef?.current?.contentDocument?.body.querySelector('img')!;
     } else {
       targetEl = this.annotationLCM.elFromPath(conf.id);
     }
@@ -171,7 +179,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       targetEl as HTMLElement,
       conf,
       opts,
-      true
+      true,
+
     );
   }
 

@@ -15,7 +15,8 @@ import {
   RespTour,
   RespUser,
   ResponseStatus,
-  ReqUpdateUser
+  ReqUpdateUser,
+  ReqScreenTour
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -293,7 +294,7 @@ export function clearCurrentTourSelection() {
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_RespScreen, shouldNavigate = true) {
+export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreenId: number, shouldNavigate = true) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
     let tourAnyway: P_RespTour;
     if (!tour) {
@@ -312,7 +313,7 @@ export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_
     const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
       auth: true,
       body: {
-        parentId: withScreen.id,
+        parentId: withScreenId,
         tourRid: tourAnyway.rid,
       },
     });
@@ -324,6 +325,23 @@ export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreen: P_
     } else {
       loadTourAndData(tourAnyway.rid, true)(dispatch, getState);
     }
+  };
+}
+
+export function addImgScreenToCurrentTour(
+  tour: P_RespTour,
+  withScreenRid: string,
+) {
+  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
+    await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
+      method: 'POST',
+      body: {
+        screenRid: withScreenRid,
+        tourRid: tour.rid,
+      },
+    });
+
+    loadTourAndData(tour.rid, true)(dispatch, getState);
   };
 }
 

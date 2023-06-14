@@ -15,6 +15,7 @@ import Switch from 'antd/lib/switch';
 import React from 'react';
 import Modal from 'antd/lib/modal';
 import Collapse from 'antd/lib/collapse';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as GTags from '../../common-styled';
@@ -51,6 +52,7 @@ import AdvanceElementPicker from './advance-element.picker';
 import TabBar from './components/tab-bar';
 import TabItem from './components/tab-bar/tab-item';
 import TimelineScreen from './components/timeline/screen';
+import ScreenImageBrusher from './screen-image-brushing';
 
 const { confirm } = Modal;
 const { Panel } = Collapse;
@@ -135,7 +137,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private readonly frameConRef: React.MutableRefObject<HTMLDivElement | null>;
 
-  private domElPicker: DomElPicker | null = null;
+  private iframeElManager: DomElPicker | null = null;
 
   private microEdits: AllEdits<ElEditType>;
 
@@ -427,7 +429,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const newImageUrl = await uploadImgToAws(selectedImage);
     const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
 
-    const path = this.domElPicker!.elPath(imgEl);
+    const path = this.iframeElManager!.elPath(imgEl);
     const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
     let origVal = imgEl.getAttribute(attrName);
     if (origVal === null) {
@@ -439,7 +441,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   componentWillUnmount(): void {
     this.disposeDomPicker();
-    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keydown', this.onKeyDownHandler);
     if (this.frameConRef.current) {
       this.frameConRef.current.removeEventListener('click', this.goToSelectionMode);
     }
@@ -449,7 +451,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (this.frameConRef.current) {
       this.frameConRef.current.addEventListener('click', this.goToSelectionMode);
     }
-    document.addEventListener('keydown', this.onKeyDown);
+    document.addEventListener('keydown', this.onKeyDownHandler);
     this.setState({ selectedAnnotationId: this.props.toAnnotationId });
   }
 
@@ -461,9 +463,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
       if (this.state.isInElSelectionMode) {
         this.props.onScreenEditStart();
-        this.domElPicker?.enable();
+        this.iframeElManager?.enable();
       } else {
-        this.domElPicker?.disable();
+        this.iframeElManager?.disable();
         this.props.onScreenEditFinish();
       }
     }
@@ -513,7 +515,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             // Annotation is being replaced, this happens from advanced anntoation selector
             selectedAnnotationId = state.selectedElAnnFwd;
           } else {
-            conf = getSampleConfig(this.domElPicker!.elPath(state.selectedEl!));
+            conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!));
             opts = this.props.tourDataOpts || getDefaultTourOpts();
             this.props.createDefaultAnnotation(
               conf,
@@ -535,7 +537,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
-    const path = this.domElPicker?.elPath(el);
+    const path = this.iframeElManager?.elPath(el);
     const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
     let conf: IAnnotationConfig | null = null;
     if (existingAnnotaiton.length) {
@@ -572,14 +574,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const type = this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId);
 
     if (type === 'cover') {
-      this.domElPicker?.selectElement(this.getIframeBody(), HighlightMode.Pinned, true);
-    } else {
-      const path = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
-      if (path) {
-        const el = this.domElPicker?.elFromPath(path) as HTMLElement | null;
-        if (el) {
-          this.domElPicker?.selectElement(el, HighlightMode.Pinned, true);
-        }
+      this.iframeElManager?.selectElement(this.getIframeBody(), HighlightMode.Pinned, true);
+      return;
+    }
+
+    const annId = this.getAnnotationPathFromRefId(this.state.selectedAnnotationId);
+
+    if (!annId) {
+      return;
+    }
+
+    if (this.props.screen.type === ScreenType.Img && type === 'default') {
+      const [x, y, width, height] = annId.split('-');
+      this.iframeElManager?.selectBoxInDoc({ x: +x, y: +y, width: +width, height: +height });
+      return;
+    }
+
+    if (this.props.screen.type === ScreenType.SerDom && type === 'default') {
+      const el = this.iframeElManager?.elFromPath(annId) as HTMLElement | null;
+      if (el) {
+        this.iframeElManager?.selectElement(el, HighlightMode.Pinned, true);
       }
     }
   }
@@ -596,7 +610,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             size="small"
             onChange={((t) => (checked) => {
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = this.domElPicker!.elPath(refEl);
+              const path = this.iframeElManager!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
 
               const savedOrigVal = t.getAttribute(attrName);
@@ -627,7 +641,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onChange={((t) => (checked) => {
               const filterStyle = getComputedStyle(t).filter;
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = this.domElPicker!.elPath(refEl);
+              const path = this.iframeElManager!.elPath(refEl);
               const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
               const origStrVal = refEl.getAttribute(attrName);
 
@@ -699,7 +713,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
                   const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-                  const path = this.domElPicker!.elPath(refEl);
+                  const path = this.iframeElManager!.elPath(refEl);
                   const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
                   let origVal = refEl.getAttribute(attrName);
                   if (origVal === null) {
@@ -807,44 +821,48 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         {/* this is the annotation creator panel */}
         <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
           {/* this is advanced element picker */}
-          <ActionPanel
-            icon={<SelectOutlined />}
-            title="Advanced Element Picker"
-            helpText={advancedElPickerHelpText}
-            withGutter
-          >
-            {this.state.selectedEl ? (
-              <AdvanceElementPicker
-                elements={this.state.selectedElsParents}
-                domElPicker={this.domElPicker}
-                selectedEl={this.state.selectedEl!}
-                count={this.state.selectedElsParents.length}
-                setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                  let fwdAnnotation = '';
-                  const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-                  if (!annOnNewEl) {
-                    // If there is annotation on top of new element then don't do anything
-                    const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                    if (annOnOldEl) {
-                      this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
-                      const replaceWithAnn = cloneAnnotation(this.domElPicker?.elPath(newSelEl)!, annOnOldEl);
-                      const updates = replaceAnnotation(
-                        this.props.allAnnotationsForTour,
-                        annOnOldEl,
-                        replaceWithAnn,
-                        this.props.screen.id
-                      );
-                      fwdAnnotation = replaceWithAnn.refId;
-                      updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
-                    }
-                  }
-                  this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
-                }}
-                mouseLeaveHighlightMode={HighlightMode.Pinned}
-              />
+          {
+            this.props.screen.type === ScreenType.SerDom && (
+              <ActionPanel
+                icon={<SelectOutlined />}
+                title="Advanced Element Picker"
+                helpText={advancedElPickerHelpText}
+                withGutter
+              >
+                {this.state.selectedEl ? (
+                  <AdvanceElementPicker
+                    elements={this.state.selectedElsParents}
+                    domElPicker={this.iframeElManager}
+                    selectedEl={this.state.selectedEl!}
+                    count={this.state.selectedElsParents.length}
+                    setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                      let fwdAnnotation = '';
+                      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+                      if (!annOnNewEl) {
+                        // If there is annotation on top of new element then don't do anything
+                        const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                        if (annOnOldEl) {
+                          this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
+                          const replaceWithAnn = cloneAnnotation(this.iframeElManager?.elPath(newSelEl)!, annOnOldEl);
+                          const updates = replaceAnnotation(
+                            this.props.allAnnotationsForTour,
+                            annOnOldEl,
+                            replaceWithAnn,
+                            this.props.screen.id
+                          );
+                          fwdAnnotation = replaceWithAnn.refId;
+                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
+                        }
+                      }
+                      this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                    }}
+                    mouseLeaveHighlightMode={HighlightMode.Pinned}
+                  />
+                )
+                  : <p style={{ margin: 0 }}>Please select an element</p>}
+              </ActionPanel>
             )
-              : <p style={{ margin: 0 }}>Please select an element</p>}
-          </ActionPanel>
+          }
           {/* this is top menu */}
           <TabBar>
             <TabItem
@@ -853,12 +871,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               active={this.state.activeTab === TabList.Annotations}
               onClick={() => this.handleTabOnClick(TabList.Annotations)}
             />
-            <TabItem
-              title="Edit"
-              helpText={editTabHelpText}
-              active={this.state.activeTab === TabList.Edits}
-              onClick={() => this.handleTabOnClick(TabList.Edits)}
-            />
+            {
+              this.props.screen.type === ScreenType.SerDom && (
+                <TabItem
+                  title="Edit"
+                  helpText={editTabHelpText}
+                  active={this.state.activeTab === TabList.Edits}
+                  onClick={() => this.handleTabOnClick(TabList.Edits)}
+                />
+              )
+            }
           </TabBar>
 
           <div style={{}}>
@@ -897,7 +919,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             onClick={() => {
                               if (this.state.selectedAnnotationId === config.refId) {
                                 this.setState({ selectedAnnotationId: '', selectedEl: null });
-                                this.goToSelectionMode();
+                                this.goToSelectionMode()();
                               } else {
                                 this.setState({ selectedAnnotationId: config.refId });
                               }
@@ -920,7 +942,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                 setSelectionMode={(mode: 'annotation' | 'hotspot') => {
                                   this.setState({ selectionMode: mode });
                                 }}
-                                domElPicker={this.domElPicker}
+                                domElPicker={this.iframeElManager}
                                 onSideEffectConfigChange={
                                   (screenId: number, c: IAnnotationConfig, actionType: 'upsert' | 'delete') => {
                                     this.props.onAnnotationCreateOrChange(screenId, c, actionType, null);
@@ -1002,7 +1024,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!doc) {
       throw new Error('Iframe doc is not found while resolving element from path');
     }
-    const el = this.domElPicker!.elFromPath(path) as HTMLElement;
+    const el = this.iframeElManager!.elFromPath(path) as HTMLElement;
     if (!el) {
       throw new Error(`Could not resolve element from path ${path}`);
     }
@@ -1015,23 +1037,23 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // that we don't want. So be careful with this values.
     el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     setTimeout(() => {
-      this.domElPicker?.selectElement(el, HighlightMode.Pinned);
+      this.iframeElManager?.selectElement(el, HighlightMode.Pinned);
     }, 3 * 16);
   }
 
   private onMouseOutOfIframe = (_: MouseEvent) => {
-    this.domElPicker?.disable();
+    this.iframeElManager?.disable();
   };
 
   private onMouseEnterOnIframe = (_: MouseEvent) => {
-    this.state.isInElSelectionMode && this.domElPicker?.enable();
+    this.state.isInElSelectionMode && this.iframeElManager?.enable();
   };
 
   private onKeyDown = () => (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       // TODO handle pin mode and annotation selection
-      if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
-        this.domElPicker.getOutOfPinMode();
+      if (this.iframeElManager && this.iframeElManager.getMode() === HighlightMode.Pinned) {
+        this.iframeElManager.getOutOfPinMode();
         this.setState({ elSelRequestedBy: ElSelReqType.NA });
       } else {
         // this.setState({ isInElSelectionMode: false, elSelRequestedBy: ElSelReqType.NA });
@@ -1044,10 +1066,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   };
 
+  private onKeyDownHandler = (e: KeyboardEvent) => {
+    this.onKeyDown()(e);
+  };
+
   private goToSelectionMode = () => () => {
     // todo[now] repeated code with onKeyDown method
-    if (this.domElPicker && this.domElPicker.getMode() === HighlightMode.Pinned) {
-      this.domElPicker.getOutOfPinMode();
+    if (this.iframeElManager && this.iframeElManager.getMode() === HighlightMode.Pinned) {
+      this.iframeElManager.getOutOfPinMode();
     }
   };
 
@@ -1062,14 +1088,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   private disposeDomPicker() {
     this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
     this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
-    if (this.domElPicker) {
-      this.domElPicker.dispose();
-      this.domElPicker = null;
+    if (this.iframeElManager) {
+      this.iframeElManager.dispose();
+      this.iframeElManager = null;
     }
   }
 
   private onElSelect = (el: HTMLElement, parents: Node[]) => {
-    this.domElPicker!.elPath(el);
+    this.iframeElManager!.elPath(el);
 
     if (this.state.selectionMode === 'hotspot') {
       this.setState({ selectedHotspotEl: el, selectedElsParents: parents, selectionMode: 'annotation' });
@@ -1084,18 +1110,51 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: null });
   };
 
+  private onBoxSelect = (coordsStr: string) => {
+    console.log(coordsStr);
+    const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
+    const conf = getSampleConfig(coordsStr);
+
+    this.props.createDefaultAnnotation(
+      conf,
+      opts
+    );
+
+    this.setState({ selectedAnnotationId: conf.refId, selectedElAnnFwd: '' });
+  };
+
+  private onBoxDeSelect = () => {
+    this.setState({ selectedAnnotationId: '' });
+  };
+
   private initDomPicker(nestedFrames: HTMLIFrameElement[]) {
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
-      if (!this.domElPicker) {
-        this.domElPicker = new DomElPicker(doc, nestedFrames, {
-          onElSelect: this.onElSelect,
-          onElDeSelect: this.onElDeSelect,
-        });
-        this.domElPicker.addEventListener('keydown', this.onKeyDown);
-        this.domElPicker.addEventListener('click', this.goToSelectionMode);
-        this.domElPicker.setupHighlighting();
+      if (!this.iframeElManager) {
+        if (this.props.screen.type === ScreenType.SerDom) {
+          this.iframeElManager = new DomElPicker(doc, nestedFrames, {
+            onElSelect: this.onElSelect,
+            onElDeSelect: this.onElDeSelect,
+          }, this.props.screen.type);
+          this.iframeElManager!.addEventListener('click', this.goToSelectionMode);
+        }
+
+        if (this.props.screen.type === ScreenType.Img) {
+          this.iframeElManager = new ScreenImageBrusher(doc, nestedFrames, {
+            onElSelect: this.onElSelect,
+            onElDeSelect: this.onElDeSelect,
+            onBoxSelect: this.onBoxSelect,
+            onBoxDeSelect: this.onBoxDeSelect,
+          }, this.props.screen.type);
+        }
+
+        if (!this.props.toAnnotationId) {
+          this.iframeElManager!.getOutOfPinMode();
+        }
+
+        this.iframeElManager!.addEventListener('keydown', this.onKeyDown);
+        this.iframeElManager!.setupHighlighting();
 
         el.addEventListener('mouseout', this.onMouseOutOfIframe);
         el.addEventListener('mouseenter', this.onMouseEnterOnIframe);

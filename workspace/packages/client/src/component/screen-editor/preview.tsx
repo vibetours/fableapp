@@ -167,9 +167,19 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // 3. Apply scale to the element (wrt origin 0, 0 ; default scaling is centered)
     // 4. Now the container is visually smaller (for scale < 1) than the original one before it was scaled
     // 5. Figure out what's the new height and width with the scale applied
+
     const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
-    const scaleX = origFrameViewPort.width / this.props.screenData.vpd.w;
-    const scaleY = origFrameViewPort.height / this.props.screenData.vpd.h;
+
+    let vpdW = this.props.screenData.vpd.w;
+    let vpdH = this.props.screenData.vpd.h;
+
+    if (vpdW === -1 && vpdH === -1) {
+      vpdW = origFrameViewPort.width;
+      vpdH = origFrameViewPort.height;
+    }
+
+    const scaleX = origFrameViewPort.width / vpdW;
+    const scaleY = origFrameViewPort.height / vpdH;
     const scale = Math.min(scaleX, scaleY);
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = scale;
@@ -177,8 +187,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     frame.style.transform = `scale(${scale})`;
     frame.style.transformOrigin = '0 0';
     frame.style.position = 'absolute';
-    frame.style.width = `${this.props.screenData.vpd.w}px`;
-    frame.style.height = `${this.props.screenData.vpd.h}px`;
+    frame.style.width = `${vpdW}px`;
+    frame.style.height = `${vpdH}px`;
     const viewPortAfterScaling = frame.getBoundingClientRect();
     // Bring the iframe in center
     if (origFrameViewPort.width > viewPortAfterScaling.width) {

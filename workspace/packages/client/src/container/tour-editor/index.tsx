@@ -14,10 +14,11 @@ import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { RespUser, ScreenType } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined, CaretRightOutlined, ShareAltOutlined } from '@ant-design/icons';
 import err from '../../deffered-error';
 import {
+  addImgScreenToCurrentTour,
   clearCurrentScreenSelection,
   clearCurrentTourSelection,
   copyScreenForCurrentTour,
@@ -55,7 +56,8 @@ interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   clearCurrentScreenSelection: () => void,
   clearCurrentTourSelection: () => void,
-  copyScreenForCurrentTour: (tour: P_RespTour, screen: P_RespScreen) => void;
+  copyScreenForCurrentTour: (tour: P_RespTour, screenId: number) => void;
+  addImgScreenToCurrentTour: (tour:P_RespTour, screenRid: string) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -63,7 +65,11 @@ const mapDispatchToProps = (dispatch: any) => ({
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   copyScreenForCurrentTour:
-    (tour: P_RespTour, screen: P_RespScreen) => dispatch(copyScreenForCurrentTour(tour, screen, false)),
+    (tour: P_RespTour, screenId: number) => dispatch(copyScreenForCurrentTour(tour, screenId, false)),
+  addImgScreenToCurrentTour:
+    (tour: P_RespTour, screenRid: string) => dispatch(
+      addImgScreenToCurrentTour(tour, screenRid)
+    ),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
@@ -548,12 +554,19 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               <Canvas
                 key={this.props.tour?.rid}
                 addScreenToTour={
-                  (screen: P_RespScreen) => this.props.copyScreenForCurrentTour(this.props.tour!, screen)
+                  (screenType: ScreenType, screenId: number, screenRid: string) => {
+                    if (screenType === ScreenType.Img) {
+                      this.props.addImgScreenToCurrentTour(this.props.tour!, screenRid);
+                    } else {
+                      this.props.copyScreenForCurrentTour(this.props.tour!, screenId);
+                    }
+                  }
                 }
                 rootScreens={this.props.screens}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 navigate={this.navigateTo}
                 onTourDataChange={this.onTourDataChange}
+                tourRid={this.props.tour?.rid}
               />
             </div>
           )}

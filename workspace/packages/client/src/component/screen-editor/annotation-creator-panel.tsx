@@ -34,6 +34,7 @@ import {
   SelectOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
@@ -560,32 +561,34 @@ export default function AnnotationCreatorPanel(props: IProps) {
           </Tags.ActionPaneBtn>
         </div>
       </ActionPanel>
-      <ActionPanel title="Hotspot" helpText={hotspotHelpText}>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Interactive element</GTags.Txt>
-          <Switch
-            size="small"
-            style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
-            defaultChecked={config.isHotspot}
-            onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
-          />
-        </div>
-        {config.isHotspot && config.type !== 'cover' && (
-          <>
-            <div style={{ ...commonActionPanelItemStyle, marginTop: '0.25rem' }}>
-              <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
-                <GTags.Txt>Hide annotation</GTags.Txt>
-                <Switch
-                  size="small"
-                  style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
-                  defaultChecked={config.hideAnnotation}
-                  onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
-                />
-              </Tags.AnotCrtPanelSec>
-            </div>
+      {
+        props.screen.type === ScreenType.SerDom && (
+          <ActionPanel title="Hotspot" helpText={hotspotHelpText}>
             <div style={commonActionPanelItemStyle}>
-              <GTags.Txt>{!config.hotspotElPath ? 'Nested element' : 'Selected'}</GTags.Txt>
-              {
+              <GTags.Txt>Interactive element</GTags.Txt>
+              <Switch
+                size="small"
+                style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
+                defaultChecked={config.isHotspot}
+                onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
+              />
+            </div>
+            {config.isHotspot && config.type !== 'cover' && (
+            <>
+              <div style={{ ...commonActionPanelItemStyle, marginTop: '0.25rem' }}>
+                <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+                  <GTags.Txt>Hide annotation</GTags.Txt>
+                  <Switch
+                    size="small"
+                    style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
+                    defaultChecked={config.hideAnnotation}
+                    onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
+                  />
+                </Tags.AnotCrtPanelSec>
+              </div>
+              <div style={commonActionPanelItemStyle}>
+                <GTags.Txt>{!config.hotspotElPath ? 'Nested element' : 'Selected'}</GTags.Txt>
+                {
                 !config.hotspotElPath ? (
                   <Tags.ActionPaneBtn
                     type="text"
@@ -622,8 +625,8 @@ export default function AnnotationCreatorPanel(props: IProps) {
                   </div>
                 )
               }
-            </div>
-            {selectedHotspotEl && showHotspotAdvancedElPicker && (
+              </div>
+              {selectedHotspotEl && showHotspotAdvancedElPicker && (
               <div style={commonActionPanelItemStyle}>
                 <AdvanceElementPicker
                   elements={selectedHotspotElsParents}
@@ -637,10 +640,12 @@ export default function AnnotationCreatorPanel(props: IProps) {
                   mouseLeaveHighlightMode={HighlightMode.PinnedHotspot}
                 />
               </div>
+              )}
+            </>
             )}
-          </>
-        )}
-      </ActionPanel>
+          </ActionPanel>
+        )
+      }
       <ActionPanel title="Advanced">
         <div style={commonActionPanelItemStyle}>
           <GTags.Txt>Entry point</GTags.Txt>

@@ -1,3 +1,5 @@
+import { Coords } from '@fable/common/dist/types';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import HighlighterBase from '../base/hightligher-base';
 import { ROOT_EMBED_IFRAME_ID } from './preview';
 
@@ -86,13 +88,15 @@ const SVG_EL = {
 };
 
 export default class DomElementPicker extends HighlighterBase {
-  private highlightMode: HighlightMode;
+  protected highlightMode: HighlightMode;
 
   private prevElHovered: Element | Text | null;
 
   private onElSelect: ElSelectCallback;
 
   private onElDeSelect: ElDeSelectCallback;
+
+  protected screenType: ScreenType;
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(doc: Document) => (e: Event) => void>>>;
 
@@ -101,7 +105,8 @@ export default class DomElementPicker extends HighlighterBase {
   constructor(
     doc: Document,
     nestedFrames: HTMLIFrameElement[],
-    cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback }
+    cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback,},
+    screenType: ScreenType,
   ) {
     super(doc, nestedFrames);
     this.highlightMode = HighlightMode.Idle;
@@ -109,6 +114,7 @@ export default class DomElementPicker extends HighlighterBase {
     this.prevElHovered = null;
     this.onElSelect = cbs.onElSelect;
     this.onElDeSelect = cbs.onElDeSelect;
+    this.screenType = screenType;
     this.evts = {};
     this.selectedBoundedEl = null;
   }
@@ -172,6 +178,7 @@ export default class DomElementPicker extends HighlighterBase {
   setupHighlighting() {
     this.subscribeListenerToAllDoc('mousemove', this.handleMouseMove);
     this.subscribeListenerToAllDoc('click', this.handleClick);
+
     return this;
   }
 
@@ -291,6 +298,7 @@ export default class DomElementPicker extends HighlighterBase {
     this.highlightMode = HighlightMode.Pinned;
     const parents = this.getParents(el);
     this.onElSelect(el, parents);
+    this.setBodyCursor('auto');
   }
 
   createFullScreenMask() {
@@ -317,5 +325,9 @@ export default class DomElementPicker extends HighlighterBase {
 
   setSelectedBoundedEl(el: HTMLElement | null) {
     this.selectedBoundedEl = el;
+  }
+
+  setBodyCursor(cursor: 'crosshair' | 'auto') {
+    this.doc.body.style.cursor = cursor;
   }
 }

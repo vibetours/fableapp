@@ -12,7 +12,7 @@ export async function uploadImgToAws(image: File): Promise<string> {
   return imageUrl;
 }
 
-const uploadImageAsBinary = async (selectedImage: any, awsSignedUrl: string): Promise<string> => {
+export const uploadImageAsBinary = async (selectedImage: any, awsSignedUrl: string): Promise<string> => {
   const uploadedImageSrc = awsSignedUrl.split('?')[0];
 
   const reader = new FileReader();
