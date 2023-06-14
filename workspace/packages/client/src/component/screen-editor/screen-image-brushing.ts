@@ -157,8 +157,6 @@ export default class ScreenImageBrusher extends DomElementPicker {
     this.imageBoxDrawingData.coords.startY = e.pageY - (e.currentTarget as HTMLImageElement).offsetTop;
     this.imageBoxDrawingData.isDrawing = true;
 
-    console.log(this.imageBoxDrawingData.image.left, this.imageBoxDrawingData.image.top);
-
     this.updateDrawingBox(e);
 
     return this;
