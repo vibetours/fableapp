@@ -457,6 +457,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imgEl.setAttribute(attrName, origVal);
     }
     this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+    this.flushMicroEdits();
   };
 
   handleUploadMaskImgChange = (el: HTMLElement) => async (e: any): Promise<void> => {
@@ -482,6 +483,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
+    this.flushMicroEdits();
   };
 
   componentWillUnmount(): void {
