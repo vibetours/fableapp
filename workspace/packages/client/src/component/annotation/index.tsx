@@ -4,6 +4,7 @@ import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import { isBlankString, isCoverAnnotation } from './annotation-config-utils';
+import * as VIDEO_ANN from './video-ann-constants';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -122,7 +123,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const isVideoAnnotation = !isBlankString(config.videoUrl)
     || (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm));
     const isCoverAnn = config.type === 'cover';
-    const VIDEO_HEIGHT_RATIO = 1.33;
 
     let l = -9999;
     let t = -9999;
@@ -142,9 +142,29 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
       if (boxSize === 'medium') {
         if (isVideoAnnotation) {
-          w = isCoverAnn ? 480 : 240;
-          h = isCoverAnn ? 480 / VIDEO_HEIGHT_RATIO : 240 / VIDEO_HEIGHT_RATIO;
-        } else {
+          if (isCoverAnn) {
+            switch (this.props.annotationDisplayConfig.config.positioning) {
+              case VideoAnnotationPositions.BottomLeft:
+              case VideoAnnotationPositions.BottomRight:
+                w = VIDEO_ANN.COVER_MED_WIDTH;
+                h = VIDEO_ANN.COVER_MED_HEIGHT;
+                break;
+              case VideoAnnotationPositions.Center:
+              case VideoAnnotationPositions.Follow:
+              default:
+                w = VIDEO_ANN.COVER_MED_WIDTH_CENTER;
+                h = VIDEO_ANN.COVER_MED_HEIGHT_CENTER;
+                break;
+            }
+          }
+
+          if (!isCoverAnn) {
+            w = VIDEO_ANN.DEFAULT_MED_WIDTH;
+            h = VIDEO_ANN.DEFAULT_MED_HEIGHT;
+          }
+        }
+
+        if (!isVideoAnnotation) {
           w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
           h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
         }
@@ -152,9 +172,29 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
       if (boxSize === 'large') {
         if (isVideoAnnotation) {
-          w = isCoverAnn ? 600 : 360;
-          h = isCoverAnn ? 600 / VIDEO_HEIGHT_RATIO : 360 / VIDEO_HEIGHT_RATIO;
-        } else {
+          if (isCoverAnn) {
+            switch (this.props.annotationDisplayConfig.config.positioning) {
+              case VideoAnnotationPositions.BottomLeft:
+              case VideoAnnotationPositions.BottomRight:
+                w = VIDEO_ANN.COVER_LARGE_WIDTH;
+                h = VIDEO_ANN.COVER_LARGE_HEIGHT;
+                break;
+              case VideoAnnotationPositions.Center:
+              case VideoAnnotationPositions.Follow:
+              default:
+                w = VIDEO_ANN.COVER_LARGE_WIDTH_CENTER;
+                h = VIDEO_ANN.COVER_LARGE_HEIGHT_CENTER;
+                break;
+            }
+          }
+
+          if (!isCoverAnn) {
+            w = VIDEO_ANN.DEFAULT_LARGE_WIDTH;
+            h = VIDEO_ANN.DEFAULT_LARGE_HEIGHT;
+          }
+        }
+
+        if (!isVideoAnnotation) {
           w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
           h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
         }
@@ -169,6 +209,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             annotationDisplayConfig={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{ top, left }}
+            width={w}
+            height={h}
           />;
         }
         return <AnnotationContent
@@ -239,6 +281,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
           left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
         }}
+        width={w}
+        height={h}
       />;
     }
 
@@ -319,6 +363,8 @@ interface VideoProps {
   nav: NavFn,
   playMode: boolean,
   annFollowPositions: {top: number, left: number},
+  width: number;
+  height: number;
 }
 
 export class AnnotationVideo extends React.PureComponent<VideoProps> {
@@ -335,15 +381,15 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
   getPositioningAndSizingStyles() {
     const position = this.props.annotationDisplayConfig.config.positioning;
     const isCover = isCoverAnnotation(this.props.annotationDisplayConfig.config.id);
-    const size = this.props.annotationDisplayConfig.config.size;
+    const offsetPosition = '20px';
 
     let styles = {};
     switch (position) {
       case VideoAnnotationPositions.BottomRight:
-        styles = { ...styles, bottom: '20px', right: '20px' };
+        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
         break;
       case VideoAnnotationPositions.BottomLeft:
-        styles = { ...styles, bottom: '20px', left: '20px' };
+        styles = { ...styles, bottom: offsetPosition, left: offsetPosition };
         break;
       case VideoAnnotationPositions.Center:
         styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
@@ -361,37 +407,15 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
         break;
       }
       default:
-        styles = { ...styles, bottom: '10px', right: '40px' };
+        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
         break;
     }
 
-    if (isCover) {
-      switch (size) {
-        case 'medium':
-          styles = { ...styles, width: '480px' };
-          break;
-        case 'large':
-          styles = { ...styles, width: '600px' };
-          break;
-        default:
-          break;
-      }
-    }
-
-    if (!isCover) {
-      switch (size) {
-        case 'medium':
-          styles = { ...styles, width: '240px' };
-          break;
-        case 'large':
-          styles = { ...styles, width: '360px' };
-          break;
-        default:
-          break;
-      }
-    }
-
-    return { ...styles };
+    return {
+      ...styles,
+      width: `${this.props.width}px`,
+      height: `${this.props.height}px`,
+    };
   }
 
   render() {
