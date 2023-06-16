@@ -613,8 +613,20 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const currentScreenId = this.props.screen!.id;
 
     const lastEntity = this.props.tourData!.entities[this.props.screen!.id!];
-
+    // TODO[rr] this extra step is required because if an annotation is deleted and created again
+    // the annotation object in tour index.tsx remains. we have to delete it from tour file and then
+    let noAnnotationPresent = false;
+    let annotations: IAnnotationOriginConfig[] = [];
     if (!lastEntity) {
+      noAnnotationPresent = true;
+    } else {
+      annotations = Object.values((lastEntity as TourScreenEntity).annotations || {});
+      if (annotations.length === 0) {
+        noAnnotationPresent = true;
+      }
+    }
+
+    if (noAnnotationPresent) {
       this.onTourDataChange('annotation-and-theme', this.props.screen!.id, {
         config,
         opts,
@@ -624,8 +636,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       return;
     }
 
-    const lastEntityAnnotations = Object.values((lastEntity as TourScreenEntity).annotations)
-      .sort((m, n) => m.createdAt - n.createdAt);
+    const lastEntityAnnotations = annotations.sort((m, n) => m.createdAt - n.createdAt);
     const lastAnnotation = lastEntityAnnotations.at(-1) as IAnnotationConfig;
 
     let newOpts = opts;
