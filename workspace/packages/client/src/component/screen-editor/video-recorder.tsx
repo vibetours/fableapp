@@ -4,8 +4,13 @@ import Button from 'antd/lib/button';
 import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
-import { uploadVideoToAws } from './utils/upload-video-to-aws';
-import { updateAnnotationBoxSize, updateAnnotationPositioning, updateAnnotationVideoURLMp4, updateAnnotationVideoURLWebm } from '../annotation/annotation-config-utils';
+import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
+import {
+  updateAnnotationBoxSize,
+  updateAnnotationPositioning,
+  updateAnnotationVideoURLMp4,
+  updateAnnotationVideoURLWebm
+} from '../annotation/annotation-config-utils';
 import { blobToUint8Array } from './utils/blob-to-uint8array';
 
 type Props = {
@@ -39,6 +44,8 @@ const initialState: VideoState = {
   permissionGiven: true,
   isVideoReady: false,
 };
+
+const CODEC_OPTIONS = { mimeType: 'video/webm;codecs=h264' };
 
 // videoReducer is local to this video recorder component, that's why it's placed here
 const videoReducer = (state: VideoState, action: Action) => {
@@ -103,8 +110,8 @@ function VideoRecorder(props: Props) {
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ audio: true,
       video: {
-        width: { exact: 480 },
-        height: { exact: 360 },
+        width: { exact: 640 },
+        height: { exact: 480 },
         frameRate: { exact: 12 },
       } })
       .then(stream => {
@@ -157,7 +164,7 @@ function VideoRecorder(props: Props) {
     });
 
     if (streamRef.current) {
-      const mediaRecorder = mediaRecorderRef.current = new MediaRecorder(streamRef.current);
+      const mediaRecorder = mediaRecorderRef.current = new MediaRecorder(streamRef.current, CODEC_OPTIONS);
       mediaRecorder.start(1);
       mediaRecorder.ondataavailable = function (e) {
         recordedPartsRef.current.push(e.data);
@@ -182,7 +189,7 @@ function VideoRecorder(props: Props) {
 
     mediaRecorderRef.current!.stop();
     const blob = new Blob(recordedPartsRef.current, {
-      type: 'video/webm'
+      type: CODEC_OPTIONS.mimeType
     });
     const url = URL.createObjectURL(blob);
     dispatch({
@@ -223,18 +230,16 @@ function VideoRecorder(props: Props) {
     });
 
     const webmBlob = new Blob(recordedPartsRef.current, {
-      type: 'video/webm'
+      type: CODEC_OPTIONS.mimeType
     });
     const webm = await blobToUint8Array(webmBlob);
 
-    const mp4Blob = new Blob(recordedPartsRef.current, {
-      type: 'video/mp4'
-    });
-    const mp4 = await blobToUint8Array(mp4Blob);
-
     const webmUrl = await uploadVideoToAws(webm, 'video/webm');
-    const mp4Url = await uploadVideoToAws(mp4, 'video/mp4');
-    props.setConfig(c => updateAnnotationVideoURLMp4(c, mp4Url));
+    const [err, transcodedUrl] = await transcodeMedia(webmUrl);
+    if (err) {
+      throw new Error('Transcoding failed');
+    }
+    props.setConfig(c => updateAnnotationVideoURLMp4(c, transcodedUrl));
     props.setConfig(c => updateAnnotationVideoURLWebm(c, webmUrl));
     props.setConfig(c => {
       if (c.type === 'cover') {
