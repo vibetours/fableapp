@@ -304,8 +304,6 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           ctx.drawImage(img, 0, 0, +node.attrs.width!, +node.attrs.height!);
         };
       }
-
-      return element;
     }
 
     if (node.name === 'form') {
