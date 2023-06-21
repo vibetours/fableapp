@@ -30,6 +30,16 @@ export const LMenuCon = styled.div`
   margin: 0rem 1.5rem;
   display: flex;
   align-items: center;
+
+  &:hover {
+    .show-on-hover {
+      visibility: visible;
+    }
+  }
+
+  .show-on-hover {
+    visibility: hidden;
+  }
 `;
 
 export const MenuItem = styled.div`

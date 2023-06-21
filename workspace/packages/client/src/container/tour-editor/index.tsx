@@ -27,6 +27,7 @@ import {
   getAllScreens,
   loadScreenAndData,
   loadTourAndData,
+  renameScreen,
   saveEditChunks,
   saveTourData
 } from '../../action/creator';
@@ -58,6 +59,7 @@ interface IDispatchProps {
   clearCurrentTourSelection: () => void,
   copyScreenForCurrentTour: (tour: P_RespTour, screenId: number) => void;
   addImgScreenToCurrentTour: (tour:P_RespTour, screenRid: string) => void;
+  renameScreen: (screen: P_RespScreen, newVal: string) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -83,6 +85,7 @@ const mapDispatchToProps = (dispatch: any) => ({
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
   clearCurrentTourSelection: () => dispatch(clearCurrentTourSelection()),
+  renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
 });
 
 interface IAppStateProps {
@@ -294,6 +297,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
     return result;
   };
+
+  isInCanvas = () => !!(this.props.match.params.tourId && this.props.match.params.screenId);
 
   getHeaderTxtEl = (): React.ReactElement => {
     if (!this.isLoadingComplete()) {
@@ -515,6 +520,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             titleElOnLeft={this.getHeaderTxtEl()}
             leftElGroups={this.getHeaderLeftGroup()}
             principal={this.props.principal}
+            titleText={this.props.screen?.displayName}
+            renameScreen={(newVal: string) => this.props.renameScreen(this.props.screen!, newVal)}
+            showRenameIcon={this.isInCanvas()}
             showPreview={`/p/tour/${this.props.tour?.rid}`}
           />
         </GTags.HeaderCon>

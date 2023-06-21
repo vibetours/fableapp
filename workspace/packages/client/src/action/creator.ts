@@ -197,6 +197,7 @@ export interface TScreenWithData {
 export interface TScreen {
   type: ActionType.SCREEN;
   screen: P_RespScreen;
+  prevScreenRid?: string;
   performedAction: SupportedPerformedAction;
 }
 
@@ -213,8 +214,21 @@ export function renameScreen(screen: P_RespScreen, newVal: string) {
     dispatch({
       type: ActionType.SCREEN,
       screen: renamedScreen,
+      prevScreenRid: screen.rid,
       performedAction: 'rename',
     });
+
+    // After we rename the screen, the rid changes, hence we have to update the url so that
+    // the new url contains the renamed screen's rid
+    const href = window.location.href;
+    const hrefArr = href.split('/');
+    const newHref = hrefArr.map(frag => {
+      if (frag === screen.rid) {
+        return renamedScreen.rid;
+      }
+      return frag;
+    }).join('/');
+    window.history.replaceState({}, '', newHref);
   };
 }
 

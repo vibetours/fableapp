@@ -1,8 +1,8 @@
 import React, { ReactElement, useState } from 'react';
-import { Avatar, Button } from 'antd';
+import { Avatar, Button, Modal } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CaretDownOutlined, CaretRightOutlined, LogoutOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { CaretDownOutlined, CaretRightOutlined, EditOutlined, LogoutOutlined, ShareAltOutlined } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
@@ -19,6 +19,9 @@ interface IOwnProps {
   leftElGroups: ReactElement[];
   showPreview?: string;
   principal?: RespUser | null;
+  titleText?: string;
+  showRenameIcon?: boolean;
+  renameScreen?: (newVal: string) => void
 }
 
 type IProps = IOwnProps;
@@ -35,6 +38,28 @@ const CMN_HEADER_GRP_DIVISION = {
 
 function Header(props: IOwnProps) {
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const [showRenameScreenModal, setShowRenameScreenModal] = useState(false);
+  const [screenName, setScreenName] = useState(props.titleText || '');
+
+  const handleRenameScreenModalOk = () => {
+    const newVal = screenName.trim().replace(/\s+/, ' ');
+    if (newVal.toLowerCase() === props.titleText!.toLowerCase()) {
+      setShowRenameScreenModal(false);
+      return;
+    }
+    props.renameScreen!(newVal);
+    setShowRenameScreenModal(false);
+  };
+
+  const handleRenameScreenModalCancel = () => {
+    setShowRenameScreenModal(false);
+  };
+
+  const handleRenameScreenFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleRenameScreenModalOk();
+  };
 
   const showModal = () => {
     setIsModalVisible(true);
@@ -61,7 +86,15 @@ function Header(props: IOwnProps) {
               <Tags.ConLogoImg src={FableQuill} alt="Fable logo" style={{ height: '2rem', cursor: 'pointer' }} />
             </Link>
           )}
-          {props.titleElOnLeft && props.titleElOnLeft}
+          {
+            props.titleElOnLeft
+            && (
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                {props.titleElOnLeft}
+                { props.showRenameIcon && (<EditOutlined className="show-on-hover" onClick={() => setShowRenameScreenModal(true)} />)}
+              </div>
+            )
+          }
         </div>
         <>
           {props.leftElGroups.map((e, i) => (
@@ -76,45 +109,45 @@ function Header(props: IOwnProps) {
       </Tags.LMenuCon>
       <Tags.RMenuCon>
         {props.showPreview && (
-        <div style={{ display: 'flex', marginRight: '1rem', paddingRight: '1rem', borderRight: '1px solid #ffffff42' }}>
-          <Tags.MenuItem>
-            <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
-              <Button
-                size="small"
-                shape="circle"
-                type="text"
-                icon={<CaretRightOutlined
-                  style={{ color: 'white' }}
-                />}
-                onClick={(e) => {
-                  window.open(props.showPreview)?.focus();
-                }}
-              />
-            </Tooltip>
-          </Tags.MenuItem>
-          <Tags.MenuItem>
-            <Tooltip title="Embed" overlayStyle={{ fontSize: '0.75rem' }}>
-              <Button
-                size="small"
-                shape="circle"
-                type="text"
-                icon={<ShareAltOutlined
-                  style={{ color: 'white' }}
-                />}
-                onClick={(e) => {
-                  showModal();
-                }}
-              />
-            </Tooltip>
-          </Tags.MenuItem>
-        </div>
+          <div style={{ display: 'flex', marginRight: '1rem', paddingRight: '1rem', borderRight: '1px solid #ffffff42' }}>
+            <Tags.MenuItem>
+              <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
+                <Button
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<CaretRightOutlined
+                    style={{ color: 'white' }}
+                  />}
+                  onClick={(e) => {
+                    window.open(props.showPreview)?.focus();
+                  }}
+                />
+              </Tooltip>
+            </Tags.MenuItem>
+            <Tags.MenuItem>
+              <Tooltip title="Embed" overlayStyle={{ fontSize: '0.75rem' }}>
+                <Button
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<ShareAltOutlined
+                    style={{ color: 'white' }}
+                  />}
+                  onClick={(e) => {
+                    showModal();
+                  }}
+                />
+              </Tooltip>
+            </Tags.MenuItem>
+          </div>
         )}
         {props.rBtnTxt && (
-        <Tags.MenuItem>
-          <Button shape="round" size="middle">
-            {props.rBtnTxt}
-          </Button>
-        </Tags.MenuItem>
+          <Tags.MenuItem>
+            <Button shape="round" size="middle">
+              {props.rBtnTxt}
+            </Button>
+          </Tags.MenuItem>
         )}
         {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
@@ -141,7 +174,8 @@ function Header(props: IOwnProps) {
                 </div>
               }
             >
-              <div style={{ color: 'white',
+              <div style={{
+                color: 'white',
                 fontSize: '0.7rem',
                 display: 'flex',
                 alignItems: 'center',
@@ -203,6 +237,30 @@ function Header(props: IOwnProps) {
           </Tags.SMText>
         </Tags.ShareModal>
       )}
+      <Modal
+        title="Rename Screen"
+        open={showRenameScreenModal}
+        onOk={handleRenameScreenModalOk}
+        onCancel={handleRenameScreenModalCancel}
+      >
+        <form onSubmit={handleRenameScreenFormSubmit}>
+          <label htmlFor="renameTour">
+            What would you like to rename the screen?
+            <input
+              id="renameScreen"
+              style={{
+                marginTop: '0.75rem',
+                fontSize: '1rem',
+                padding: '0.75rem',
+                borderRadius: '2px',
+                width: 'calc(100% - 2rem)'
+              }}
+              value={screenName}
+              onChange={e => setScreenName(e.target.value)}
+            />
+          </label>
+        </form>
+      </Modal>
     </Tags.Con>
   );
 }
