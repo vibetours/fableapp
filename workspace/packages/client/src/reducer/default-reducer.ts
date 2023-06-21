@@ -87,6 +87,16 @@ export const initialState: {
   token: '',
 };
 
+function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
+  const newScreens = oldScreens.slice(0);
+  const idx = newScreens.findIndex(screen => screen.rid === replaceScreen);
+  if (idx > -1) {
+    newScreens[idx] = replaceScreenWith;
+    return newScreens;
+  }
+  return oldScreens;
+}
+
 // eslint-disable-next-line default-param-last
 export default function projectReducer(state = initialState, action: Action) {
   switch (action.type) {
@@ -171,11 +181,9 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.currentScreen = tAction.screen;
       if (tAction.performedAction === 'new') newState.newScreenLoadingStatus = LoadingStatus.Done;
       if (tAction.performedAction === 'rename' && tAction.prevScreenRid) {
-        const newScreens = newState.allScreens.slice(0);
-        const idx = newScreens.findIndex(screen => screen.rid === tAction.prevScreenRid);
-        if (idx > -1) {
-          newScreens[idx] = tAction.screen;
-          newState.allScreens = newScreens;
+        newState.allScreens = replaceScreens(newState.allScreens, tAction.prevScreenRid, tAction.screen);
+        if (newState.currentTour?.screens && newState.currentTour?.screens.length) {
+          newState.currentTour.screens = replaceScreens(newState.currentTour.screens, tAction.prevScreenRid, tAction.screen);
         }
       }
       return newState;
