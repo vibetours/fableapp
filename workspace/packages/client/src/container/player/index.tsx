@@ -10,6 +10,7 @@ import createAdjacencyList, { ScreenAdjacencyList } from '../../screen-adjacency
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { EditItem, NavFn } from '../../types';
 import HeartLoader from '../../component/loader/heart';
+import { openTourExternalLink } from '../../utils';
 
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
@@ -144,7 +145,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (type === 'annotation-hotspot') {
       this.navigateTo(uri);
     } else {
-      window.open(uri, '_blank')?.focus();
+      openTourExternalLink(uri);
     }
   };
 

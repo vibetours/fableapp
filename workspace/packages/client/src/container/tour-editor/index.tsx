@@ -46,6 +46,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourDataChangeFn, NavFn } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
+import { openTourExternalLink } from '../../utils';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -468,7 +469,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (type === 'annotation-hotspot') {
       this.navigateTo(uri);
     } else {
-      window.open(uri, '_blank')?.focus();
+      openTourExternalLink(uri);
     }
   };
 
