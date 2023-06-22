@@ -85,7 +85,18 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           node.appendChild(childNode);
           if (child.name === 'iframe' || child.name === 'object') {
             const tNode = childNode as HTMLIFrameElement;
-            if (child.chldrn.length === 1) {
+            // WARN[#doctypenode]
+            // Mostly new html5 document would have <!doctype html><html>...</html> tag
+            // older html document would not have <!doctype html> it might have transitional header or might not have
+            // anything at all.
+            // <!dotype html> is called DOCUMENT_TYPE_NODE
+            // While serializaiton we carefully parse the dom and see if DOCUMENT_TYPE_NODE node is present or not.
+            // If present, we add it in serializaiton logic.
+            // However during deserialization we don't check DOCUMENT_TYPE_NODE's existence.
+            // This might create issues for older document where DOCUMENT_TYPE_NODE is not present but deserialization
+            // assumes document type node is present. ElPath might not match as well.
+            const htmlNode = child.chldrn.find(n => n.type === Node.ELEMENT_NODE && n.name === 'html');
+            if (htmlNode) {
               this.frameLoadingPromises.push(
                 new Promise(resolve => {
                   tNode.onabort = () => {
@@ -96,20 +107,17 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
                     console.error('Iframe loading failed');
                     resolve(1);
                   };
+
                   tNode.onload = () => {
                     const newDoc = tNode.contentDocument!;
-                    this.deserFrame(child.chldrn[0], newDoc, version);
-                    if (newDoc.body) {
-                      const box = tNode.getBoundingClientRect();
-                      newDoc.body.setAttribute('dxdy', `${box.x},${box.y}`);
-                    }
+                    this.deserFrame(htmlNode, newDoc, version);
                     this.nestedFrames.push(tNode);
                     resolve(1);
                   };
                 })
               );
             } else {
-              console.warn('Iframe nodes are more than it could ingest', child.chldrn);
+              console.warn('Iframe nodes are not as expected', child.chldrn);
             }
           } else if (serNode.name === 'select') {
             // For select node the value property need to be set after the child is attached
@@ -327,10 +335,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         if (props.partOfSvgEl) {
           el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
         } else if (node.name === 'iframe' && attrKey === 'src') {
-          attrValue = 'about:blank';
+          // safari is a bitch. I'll write why if everything works
+          attrValue = `/aboutblank?ts=${+new Date()}`;
           el.setAttribute(attrKey, attrValue);
-          el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
-          el.setAttribute('scrolling', 'yes');
+          // el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
+        } else if (node.name === 'iframe' && (attrKey === 'sandbox' || attrKey === 'allow')) {
+          continue;
         } else if (node.name === 'object' && attrKey === 'data') {
           el.setAttribute(attrKey, '/aboutblank');
         } else {

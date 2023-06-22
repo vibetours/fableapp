@@ -243,7 +243,6 @@ export default class DomElementPicker extends HighlighterBase {
     const els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
     if (!els.length) return;
     const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY, doc);
-    // console.log(el);
     const anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
     if (this.prevElHovered && this.prevElHovered === anchorEl) return;
     this.prevElHovered = anchorEl;

@@ -67,11 +67,13 @@ export default abstract class HighlighterBase {
     const left = elSize.left + this.win.scrollX + dx;
 
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
-    const width = rightEndpoint >= win.scrollX + win.innerWidth
+    // the boundary is checked against the main window not iframe's window
+    // as iframe could occupy a small portion in screen.
+    const width = rightEndpoint >= win.scrollX + window.innerWidth
       ? elSize.width : elSize.width + (left <= 0 ? 0 : padding * 2);
 
     const bottomEndpoint = Math.ceil(top + elSize.height + (top <= 0 ? 0 : padding * 2));
-    const height = bottomEndpoint >= win.scrollY + win.innerHeight
+    const height = bottomEndpoint >= win.scrollY + window.innerHeight
       ? elSize.height : elSize.height + (top <= 0 ? 0 : padding * 2);
 
     maskBox.style.top = `${top - (top <= 0 ? -2 : padding)}px`;
@@ -80,9 +82,39 @@ export default abstract class HighlighterBase {
     maskBox.style.height = `${height}px`;
   }
 
+  // We used to calculate dxdy of frames after loading complete
+  // Sometime (google sheet extension) even ater the onload event iframe content's gets repostioned after that
+  // (probably css?) Hence we calculate dxdy on first interaction itself
+  private calculateCumulativeDxdy(doc: Document, cdxdy: [number, number] = [0, 0]): [number, number] {
+    let dxdy = doc.body.getAttribute('dxdy');
+    if (!dxdy) {
+      if (doc.defaultView && doc.defaultView.frameElement) {
+        const box = doc.defaultView.frameElement.getBoundingClientRect();
+        dxdy = `${box.x},${box.y}`;
+        doc.body.setAttribute('dxdy', dxdy);
+      }
+    }
+    const [dx, dy] = (dxdy || ',').split(',').map(d => +d);
+    if (doc.defaultView && doc.defaultView.frameElement && doc.defaultView.frameElement.id !== ROOT_EMBED_IFRAME_ID) {
+      return this.calculateCumulativeDxdy(doc.defaultView.frameElement.ownerDocument, [cdxdy[0] + dx, cdxdy[1] + dy]);
+    }
+    return cdxdy;
+  }
+
+  protected getCumulativeDxdy(doc: Document): [number, number] {
+    let val;
+    if (val = doc.body.getAttribute('cdxcy')) {
+      return val.split(',').map(d => +d) as [number, number];
+    }
+    const calculatedVal = this.calculateCumulativeDxdy(doc);
+    doc.body.setAttribute('cdxcy', calculatedVal.join(','));
+    return calculatedVal;
+  }
+
   protected selectElementInDoc(el: HTMLElement, doc: Document) {
     const win = doc.defaultView!;
-    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
+    // const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
+    const [dx, dy] = this.getCumulativeDxdy(doc);
     const elSize: DOMRect = el.getBoundingClientRect();
     this.drawMask(elSize, win, dx, dy);
   }
@@ -192,7 +224,9 @@ export default abstract class HighlighterBase {
     const elIdxs = path.split('.').map((id) => +id).slice(1);
     const document = this.doc as Document;
     let node = document.documentElement as Node;
+    let p = '';
     for (const id of elIdxs) {
+      p += `.${id}`;
       if ((node as HTMLElement).tagName && ((node as HTMLElement).tagName.toLowerCase() === 'iframe'
       || (node as HTMLElement).tagName.toLowerCase() === 'object')) {
         node = (node as HTMLIFrameElement).contentDocument!;

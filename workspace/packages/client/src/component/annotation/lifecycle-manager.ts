@@ -91,7 +91,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   // eslint-disable-next-line class-methods-use-this
   getBoundingRectWrtRootFrame(el: HTMLElement): Rect {
     const doc = el.ownerDocument;
-    const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(v => +v);
+    const [dx, dy] = this.getCumulativeDxdy(doc);
     const box = el.getBoundingClientRect();
     return {
       x: box.x + dx,

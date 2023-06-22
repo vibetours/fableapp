@@ -32,11 +32,6 @@ const enum RecordingStatus {
   Started,
 }
 
-interface ScreenInfo {
-  id: number;
-  elPath: string;
-}
-
 interface FrameDataToBeProcessed {
   oid: number;
   frameId: number;

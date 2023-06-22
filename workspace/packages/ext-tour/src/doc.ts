@@ -245,7 +245,24 @@ export function getSearializedDom(
           if (!frameDoc) {
             throw new Error(`Iframe with origin ${url} is same origin but document access is not possible`);
           }
-          traversalPath.push(0);
+
+          // WARN[#doctypenode] search with this
+          let idx = 0;
+          const chldrn = frameDoc.childNodes;
+          for (let i = 0; i < chldrn.length; i++) {
+            if (chldrn[i] === frameDoc.documentElement) {
+              idx = i;
+            } else {
+              sNode.chldrn.push({
+                type: chldrn[i].nodeType,
+                name: chldrn[i].nodeName,
+                attrs: {},
+                props: {},
+                chldrn: []
+              });
+            }
+          }
+          traversalPath.push(idx);
           const rep = getRep(frameDoc.documentElement, origin, traversalPath);
           sNode.chldrn.push(rep.serNode);
           traversalPath.pop();
