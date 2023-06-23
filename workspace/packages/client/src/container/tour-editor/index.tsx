@@ -33,6 +33,7 @@ import {
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
+  IAnnotationConfigWithScreenId,
   getDefaultTourOpts,
   updateButtonProp,
   updateTourDataOpts
@@ -333,85 +334,43 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     );
   };
 
-  getBoundaryAnnotations = () => {
-    const anns = this.props.allAnnotationsForScreen;
+  getCurrentScreenAnnotations = () => {
+    const currAnnRid = this.props.match.params.annotationId;
 
-    let first: IAnnotationConfig | null = null;
-    let last: IAnnotationConfig | null = null;
+    const annotations: IAnnotationConfigWithScreenId[] = [];
 
-    for (let i = 0; i < anns.length; i++) {
-      const config = anns[i];
-      const prevBtn = config.buttons.filter((btn) => btn.type === 'prev')[0];
-
-      if (!prevBtn.hotspot) {
-        first = config;
-      } else {
-        const prevScreenId = +prevBtn.hotspot.actionValue.split('/')[0];
-        if (prevScreenId !== this.props.screen!.id) {
-          first = config;
-        }
-      }
-
-      const nextBtn = config.buttons.filter((btn) => btn.type === 'next')[0];
-
-      if (!nextBtn.hotspot) {
-        last = config;
-      } else if (nextBtn.hotspot.actionType === 'open') {
-        last = config;
-      } else {
-        const nextScreenId = +nextBtn.hotspot.actionValue.split('/')[0];
-        if (nextScreenId !== this.props.screen!.id) {
-          last = config;
-        }
-      }
+    if (!currAnnRid) {
+      return annotations;
     }
 
-    return [first, last];
-  };
+    const currentAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === currAnnRid)!;
+    const currentScreenId = this.props.screen?.id;
 
-  getCurrentScreenAnnotations = () => {
-    const [firstAnn, lastAnn] = this.getBoundaryAnnotations();
-
-    if (!firstAnn || !lastAnn) {
+    if (!currentAnn) {
       return [];
     }
 
-    const firstAnnPtr = `${this.props.screen!.id}/${firstAnn.refId}`;
-    const nextScreenAnnQId = this.getNextScreenAnnQId(lastAnn);
+    annotations.push({ ...currentAnn, screenId: `${currentScreenId!}` });
 
-    let curr: string | null = firstAnnPtr || null;
+    // traverse back
+    let prev = currentAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+    while (prev && prev.actionType === 'navigate' && +prev.actionValue.split('/')[0] === currentScreenId) {
+      const prevAnnId = prev.actionValue.split('/')[1];
+      const prevAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === prevAnnId)!;
+      annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
+      prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+    }
 
-    const annotations = [];
-    while (curr !== null && curr !== nextScreenAnnQId) {
-      const [screenId, refId] = curr!.split('/');
-      const annConfig = this.getAnnotationsByScreenId(+screenId).find(val => val.refId === refId)!;
-      annotations.push({ ...annConfig, screenId });
-      const configHotspot = annConfig.buttons.find(btn => btn.type === 'next')!.hotspot;
-      if (!configHotspot) {
-        curr = null;
-      } else if (configHotspot.actionType === 'open') {
-        curr = null;
-      } else {
-        curr = configHotspot.actionValue;
-      }
+    // traverse front
+    let next = currentAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
+    while (next && next.actionType === 'navigate' && +next.actionValue.split('/')[0] === currentScreenId) {
+      const nextAnnId = next.actionValue.split('/')[1];
+      const nextAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === nextAnnId)!;
+      annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
+      next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
     }
 
     return annotations;
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getNextScreenAnnQId = (lastAnnOfCurrScreen: IAnnotationConfig) => {
-    const nextBtn = lastAnnOfCurrScreen.buttons.filter((btn) => btn.type === 'next')[0];
-
-    if (!nextBtn.hotspot) {
-      return null;
-    }
-
-    if (nextBtn.hotspot.actionType === 'open') {
-      return null;
-    }
-
-    return nextBtn.hotspot.actionValue;
   };
 
   getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
@@ -433,11 +392,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     return this.props.tour!.screens!.find(screen => screen.id === +nextScreenId);
   };
-
-  getAnnotationsByScreenId(screenId: number) {
-    const anns = this.props.allAnnotationsForTour.find(c => c.screen.id === screenId);
-    return anns?.annotations || [];
-  }
 
   // eslint-disable-next-line class-methods-use-this
   getPrevAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {

@@ -14,7 +14,7 @@ import {
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 
-interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
+export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
   screenId?: string;
 }
 
