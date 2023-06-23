@@ -244,7 +244,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         } else {
           this.selectElementInDoc(el, el.ownerDocument);
         }
-        this.showTransparentMask(!annotationDisplayConfig.config.showOverlay);
+        this.showTransparentMaskAndBorder(
+          !annotationDisplayConfig.config.showOverlay,
+          Boolean(hotspotElPath && annotationDisplayConfig.config.isHotspot)
+        );
       }
     }
     this.rRoot.render(

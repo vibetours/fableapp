@@ -193,13 +193,16 @@ export default abstract class HighlighterBase {
     ];
   }
 
-  showTransparentMask(show: boolean) {
+  showTransparentMaskAndBorder(showMask: boolean, showBorder: boolean) {
     if (!this.maskEl) {
       return;
     }
 
-    this.maskEl.style.boxShadow = `#2196f3 0px 0px 0px 2px, ${show ? 'transparent' : 'rgba(0, 0, 0, 0.25)'}
-    0px 0px 0px 1000vw`;
+    this.maskEl.style.boxShadow = `
+      ${showBorder ? 'transparent' : '#2196f3'} 0px 0px 0px 2px, 
+      ${showMask ? 'transparent' : 'rgba(0, 0, 0, 0.25)'}
+      0px 0px 0px 1000vw
+    `;
   }
 
   protected attachElToUmbrellaDiv(el: Element) {
@@ -228,7 +231,7 @@ export default abstract class HighlighterBase {
     for (const id of elIdxs) {
       p += `.${id}`;
       if ((node as HTMLElement).tagName && ((node as HTMLElement).tagName.toLowerCase() === 'iframe'
-      || (node as HTMLElement).tagName.toLowerCase() === 'object')) {
+        || (node as HTMLElement).tagName.toLowerCase() === 'object')) {
         node = (node as HTMLIFrameElement).contentDocument!;
       }
       node = node.childNodes[id];
