@@ -14,6 +14,10 @@ import {
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 
+interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
+  screenId?: string;
+}
+
 export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
 }
@@ -315,40 +319,80 @@ export function replaceAnnotation(
   return updates;
 }
 
-export function deleteAnnotation(
-  allAnnotationsForTour: AnnotationPerScreen[],
-  ann: IAnnotationConfig,
-  currentScreenId: number | null,
-): AnnotationMutation[] {
-  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
+function createFlatAnnotationMap(allAnnotationsForTour: AnnotationPerScreen[]) {
+  const flatAnnotationMap: Record<string, IAnnotationConfigWithScreenId> = {};
+
   for (const entry of allAnnotationsForTour) {
     for (const an of entry.annotations) {
       flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
     }
   }
+  return flatAnnotationMap;
+}
+
+export function deleteAnnotation(
+  allAnnotationsForTour: AnnotationPerScreen[],
+  ann: IAnnotationConfigWithScreenId,
+  currentScreenId: number | null,
+  opts: ITourDataOpts
+): [AnnotationMutation[], string] {
+  const flatAnnotationMap = createFlatAnnotationMap(allAnnotationsForTour);
   const btns = ann.buttons;
   const nextBtn = btns.find(btn => btn.type === 'next')!;
   const prevBtn = btns.find(btn => btn.type === 'prev')!;
   const updates: AnnotationMutation[] = [];
-  if (nextBtn.hotspot) {
+  let newMain:string = '';
+
+  if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
     const nextAnnId = nextBtn.hotspot.actionValue;
     const [screenId] = nextAnnId.split('/');
     const nextAnn = flatAnnotationMap[nextAnnId];
     const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
-    const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', null);
+
+    let newHostspotVal: ITourEntityHotspot | null = null;
+    if (prevBtn.hotspot) {
+      const hotspot = prevBtn.hotspot;
+      newHostspotVal = {
+        ...hotspot,
+        actionType: hotspot.actionType,
+        actionValue: hotspot.actionValue,
+      };
+    }
+
+    const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', newHostspotVal);
     updates.push([+screenId, update, 'upsert']);
+
+    if (`${ann.screenId}/${ann.refId}` === opts.main) {
+      newMain = nextAnnId;
+    }
   }
-  if (prevBtn.hotspot) {
+  if (prevBtn.hotspot && prevBtn.hotspot.actionType === 'navigate') {
     const prevAnnId = prevBtn.hotspot.actionValue;
     const [screenId] = prevAnnId.split('/');
     const prevAnn = flatAnnotationMap[prevAnnId];
     const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
-    const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', null);
+
+    let newHostspotVal: ITourEntityHotspot | null = null;
+    if (nextBtn.hotspot) {
+      const hotspot = nextBtn.hotspot;
+      newHostspotVal = {
+        ...hotspot,
+        actionType: hotspot.actionType,
+        actionValue: hotspot.actionValue,
+      };
+    }
+
+    if (nextBtn.hotspot?.actionType === 'open') {
+      newHostspotVal = null;
+    }
+
+    const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', newHostspotVal);
+
     updates.push([+screenId, update, 'upsert']);
   }
 
   updates.push([currentScreenId, ann, 'delete']);
-  return updates;
+  return [updates, newMain];
 }
 
 export function isCoverAnnotation(annId: string) {

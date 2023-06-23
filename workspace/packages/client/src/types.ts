@@ -115,3 +115,9 @@ export type AnnotationMutation = [
   updatedConfig: IAnnotationConfig,
   mutationType: AnnotationMutationType
 ];
+
+export const enum IdxAnnotationMutation {
+  ScreenId = 0,
+  Config,
+  MutationType,
+}

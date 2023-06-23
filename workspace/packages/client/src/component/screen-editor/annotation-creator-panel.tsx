@@ -58,7 +58,7 @@ import {
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
-import { AnnotationMutationType, AnnotationPerScreen } from '../../types';
+import { AnnotationMutationType, AnnotationPerScreen, IdxAnnotationMutation } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AdvanceElementPicker from './advance-element.picker';
 import VideoRecorder from './video-recorder';
@@ -193,15 +193,29 @@ export default function AnnotationCreatorPanel(props: IProps) {
       okText: 'Yes',
       okType: 'danger',
       onOk: () => {
-        const mutationUpdates = deleteAnnotation(props.allAnnotationsForTour, config, null);
+        const [mutationUpdates, newMain] = deleteAnnotation(props.allAnnotationsForTour, config, null, opts);
         for (const update of mutationUpdates) {
-          if (update[0] === null) {
-            props.onConfigChange(update[1], update[2], opts);
+          const screenId = update[IdxAnnotationMutation.ScreenId];
+          if (screenId === null) {
+            let newOpts = opts;
+            if (newMain.length !== 0) {
+              newOpts = updateTourDataOpts(opts, 'main', newMain);
+            }
+            props.onConfigChange(
+              update[IdxAnnotationMutation.Config],
+              update[IdxAnnotationMutation.MutationType],
+              newOpts
+            );
           } else {
-            props.onSideEffectConfigChange(update[0], update[1], update[2]);
+            props.onSideEffectConfigChange(
+              screenId,
+              update[IdxAnnotationMutation.Config],
+              update[IdxAnnotationMutation.MutationType]
+            );
           }
         }
       },
+
     });
   };
 
