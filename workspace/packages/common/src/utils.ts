@@ -79,7 +79,6 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   primaryColor: '#7567FF',
   annotationBodyBackgroundColor: '#FFFFFF',
   annotationBodyBorderColor: '#BDBDBD',
-  showOverlay: true,
   monoIncKey: 0,
   createdAt: getCurrentUtcUnixTime(),
   updatedAt: getCurrentUtcUnixTime(),
@@ -116,6 +115,7 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
     videoUrl: '',
     videoUrlMp4: '',
     videoUrlWebm: '',
+    showOverlay: true,
     // TODO : refactor it in such a way that only this 'hotspotElPath' property is enough
     // to convey if the ann has an hotspot. For eg. this will be null when hotspot toggle is off
     // it will be "." when hotspot toggle is on and will have a path like "1.1.2.2" when it is a granular hotspot

@@ -154,7 +154,8 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
 
   return {
     annotations: isLocal ? annotationsPerScreen : remoteToLocalAnnotationConfigMap(
-      annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>
+      annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>,
+      data.opts
     ),
     opts: data.opts,
   };
@@ -226,6 +227,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     hotspotElPath: lc.hotspotElPath,
     videoUrlMp4: lc.videoUrlMp4,
     videoUrlWebm: lc.videoUrlWebm,
+    showOverlay: lc.showOverlay,
   };
 }
 
@@ -237,16 +239,17 @@ export function remoteToLocalAnnotationConfig(rc: IAnnotationOriginConfig): IAnn
 }
 
 export function remoteToLocalAnnotationConfigMap(
-  config: Record<string, IAnnotationOriginConfig[]>
+  config: Record<string, IAnnotationOriginConfig[]>,
+  opts: ITourDataOpts
 ): Record<string, IAnnotationConfig[]> {
   const config2: Record<string, IAnnotationConfig[]> = {};
   for (const [screenId, anns] of Object.entries(config)) {
-    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(normalizeBackwardCompatibility(an)));
+    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(normalizeBackwardCompatibility(an, opts)));
   }
   return config2;
 }
 
-export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAnnotationOriginConfig {
+export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig, opts: ITourDataOpts): IAnnotationOriginConfig {
   if (an.isHotspot === undefined || an.isHotspot === null) {
     an.isHotspot = false;
   }
@@ -276,6 +279,16 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig): IAn
 
   if (isVideoAnnotation && an.positioning === AnnotationPositions.Auto) {
     an.positioning = VideoAnnotationPositions.BottomRight;
+  }
+
+  if (an.showOverlay === undefined || an.showOverlay === null) {
+    // showOverlay was present in tour opts previous versions and now this config is moved to annotation cofnig
+    const tOpts = opts as ITourDataOpts & { showOverlay? : boolean};
+    if (!(tOpts.showOverlay === undefined || tOpts.showOverlay === null)) {
+      an.showOverlay = !!tOpts.showOverlay;
+    } else {
+      an.showOverlay = true;
+    }
   }
 
   return an;

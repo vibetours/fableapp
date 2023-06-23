@@ -82,6 +82,7 @@ export class AnnotationContent extends React.PureComponent<{
             ref={this.contentRef}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
           />
+          {btns.length > 0 && (
           <div style={{
             display: 'flex',
             justifyContent: btns.length > 1 ? 'space-between' : 'center',
@@ -107,6 +108,7 @@ export class AnnotationContent extends React.PureComponent<{
               </Tags.ABtn>
             ))}
           </div>
+          )}
         </div>
       </Tags.AnContent>
     );

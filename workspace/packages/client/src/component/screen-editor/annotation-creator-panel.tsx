@@ -55,6 +55,7 @@ import {
   updateAnnotationHotspotElPath,
   isBlankString,
   updateAnnotationPositioning,
+  updateOverlay,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
@@ -698,9 +699,9 @@ export default function AnnotationCreatorPanel(props: IProps) {
           <GTags.Txt>Overlay</GTags.Txt>
           <Switch
             size="small"
-            style={{ backgroundColor: opts.showOverlay ? '#7567FF' : '#BDBDBD' }}
-            defaultChecked={opts.showOverlay}
-            onChange={(e) => setTourDataOpts(t => updateTourDataOpts(t, 'showOverlay', e))}
+            style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
+            defaultChecked={config.showOverlay}
+            onChange={(e) => setConfig(c => updateOverlay(c, e))}
           />
         </div>
       </ActionPanel>

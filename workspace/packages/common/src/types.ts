@@ -89,7 +89,7 @@ export interface ITourDataOpts extends IChronoUpdatable {
   primaryColor: string;
   annotationBodyBackgroundColor: string;
   annotationBodyBorderColor: string;
-  showOverlay: boolean;
+  showOverlay?: boolean;
   main: string;
 }
 
@@ -189,6 +189,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   hotspotElPath: string | null;
   videoUrlMp4: string;
   videoUrlWebm: string;
+  showOverlay: boolean;
 }
 
 // TODO perform this conversion, client side

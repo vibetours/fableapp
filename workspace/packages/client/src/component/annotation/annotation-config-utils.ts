@@ -92,6 +92,12 @@ export function updateAnnotationHideAnnotation(config: IAnnotationConfig, hideAn
   return newConfig;
 }
 
+export function updateOverlay(config: IAnnotationConfig, showOverlay: boolean) {
+  const newConfig = newConfigFrom(config);
+  newConfig.showOverlay = showOverlay;
+  return newConfig;
+}
+
 export function updateTourDataOpts(
   opts: ITourDataOpts,
   key: keyof ITourDataOpts,
@@ -197,7 +203,6 @@ export function getDefaultTourOpts(): ITourDataOpts {
     primaryColor: '#7567FF',
     annotationBodyBackgroundColor: '#FFFFFF',
     annotationBodyBorderColor: '#BDBDBD',
-    showOverlay: true,
     monoIncKey: 0,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
@@ -227,6 +232,7 @@ export function getSampleConfig(elPath: string): IAnnotationConfig {
     hotspotElPath: null,
     videoUrlMp4: '',
     videoUrlWebm: '',
+    showOverlay: true,
     buttons: [{
       id: getRandomId(),
       type: 'next',
