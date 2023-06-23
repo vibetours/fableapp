@@ -65,6 +65,7 @@ export default function TourCanvas(props: CanvasProps) {
   const rootGRef = useRef<SVGGElement | null>(null);
   const [showScreenSelector, setShowScreenSelector] = useState(false);
   const [screensNotPartOfTour, setScreensNotPartOfTour] = useState<P_RespScreen[]>([]);
+  const [screensPartOfTour, setScreensPartOfTour] = useState<P_RespScreen[]>([]);
   const [connectionErr, setConnectionErr] = useState<ConnectionErrMsg>(connectionErrInitData);
   const [showUploadScreenImgModal, setShowUploadScreenImgModal] = useState<boolean>(false);
 
@@ -398,7 +399,17 @@ export default function TourCanvas(props: CanvasProps) {
       .attr('class', 'connectors')
       .merge(gBoundData);
 
-    const nodeWithDim = formScreens2(props.allAnnotationsForTour, canvasGrid);
+    const {
+      annotationNodes: nodeWithDim,
+      screens: srnPartOfTour,
+    } = formScreens2(props.allAnnotationsForTour, canvasGrid);
+
+    setScreensPartOfTour(srnPartOfTour);
+
+    if (nodeWithDim.length === 0) {
+      setShowScreenSelector(true);
+    }
+
     const edges = getEdges(props.allAnnotationsForTour);
     const nodeLookup = nodeWithDim.reduce((hm, n) => {
       hm[n.id] = n;
@@ -494,28 +505,9 @@ export default function TourCanvas(props: CanvasProps) {
           return;
         }
 
-        if (toElData.type === 'screen' || fromElData.type === 'screen') {
-          const target = toElData.type === 'screen' ? toEl : fromEl;
-          const bbox = target.getBoundingClientRect();
-          const remainingSpaceOnRight = window.innerWidth - (bbox.x + bbox.width);
-          const remainingSpaceOnLeft = bbox.x;
-          const position = remainingSpaceOnLeft > remainingSpaceOnRight ? 'l' : 'r';
-          requestAnimationFrame(() => {
-            setConnectionErr({
-              msg: CONNECTION_ERR_MSG,
-              x: bbox.x,
-              y: bbox.y,
-              h: bbox.height,
-              w: bbox.width,
-              position,
-              renderingW: position === 'l' ? remainingSpaceOnLeft : remainingSpaceOnRight,
-            });
-          });
-        } else {
-          const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
-          const lookupMap = getAnnotationLookupMap(allAnns);
-          updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange);
-        }
+        const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
+        const lookupMap = getAnnotationLookupMap(allAnns);
+        updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange);
 
         hideGuideConnector(connectorG.selectAll('path.guide-arr'));
       })
@@ -538,8 +530,7 @@ export default function TourCanvas(props: CanvasProps) {
             fo.append('xhtml:p');
           });
 
-        p.filter(d => d.type === 'annotation')
-          .append('foreignObject')
+        p.append('foreignObject')
           .attr('class', 'ann-info')
           .call(fo => {
             fo.append('xhtml:p');
@@ -674,12 +665,46 @@ export default function TourCanvas(props: CanvasProps) {
       {showScreenSelector && (
       <Tags.SelectScreenContainer>
         <Tags.ScreensContainer>
+          {screensPartOfTour.length > 0 && (
+          <>
+            <GTags.Txt
+              className="title"
+              style={{ marginBottom: '0.5rem' }}
+            >
+              Screens part of tour
+            </GTags.Txt>
+            <Tags.ScreenSlider style={{ flexDirection: 'column', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1.25rem' }}>
+                {screensPartOfTour.map(screen => (
+                  <Tags.Screen
+                    key={screen.id}
+                    onClick={() => {
+                      props.navigate(`${screen.id}`, 'annotation-hotspot');
+                    }}
+                  >
+                    <img src={screen.thumbnailUri.href} alt={screen.displayName} />
+                    <Tags.ScreenTitleIconCon>
+                      <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
+                      <div>
+                        {
+                            screen.type === ScreenType.SerDom ? <FileTextOutlined /> : <FileImageOutlined />
+                          }
+                      </div>
+                    </Tags.ScreenTitleIconCon>
+                  </Tags.Screen>
+                ))}
+              </div>
+              <div />
+            </Tags.ScreenSlider>
+          </>
+          )}
           {screensNotPartOfTour.length > 0 ? (
             <>
               <GTags.Txt
                 className="title"
                 style={{ marginBottom: '0.5rem' }}
-              >Select a screen to add it in the tour
+              >
+                Original recorded screens
               </GTags.Txt>
               <Tags.ScreenSlider style={{ flexDirection: 'column' }}>
                 <div style={{ display: 'flex', gap: '1.25rem' }}>
@@ -698,12 +723,6 @@ export default function TourCanvas(props: CanvasProps) {
                       key={screen.id}
                       onClick={() => {
                         props.addScreenToTour(screen.type, screen.id, screen.rid);
-                        // TODO this is just arbitrary timeout after which the popup would close
-                        // normally wait for the request to finish, show a loader and then add the
-                        // screen
-                        setTimeout(() => {
-                          setShowScreenSelector(false);
-                        }, 500);
                       }}
                     >
                       <img src={screen.thumbnailUri.href} alt={screen.displayName} />

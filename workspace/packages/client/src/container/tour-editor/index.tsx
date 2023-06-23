@@ -68,10 +68,10 @@ const mapDispatchToProps = (dispatch: any) => ({
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   copyScreenForCurrentTour:
-    (tour: P_RespTour, screenId: number) => dispatch(copyScreenForCurrentTour(tour, screenId, false)),
+    (tour: P_RespTour, screenId: number) => dispatch(copyScreenForCurrentTour(tour, screenId, true)),
   addImgScreenToCurrentTour:
     (tour: P_RespTour, screenRid: string) => dispatch(
-      addImgScreenToCurrentTour(tour, screenRid)
+      addImgScreenToCurrentTour(tour, screenRid, true)
     ),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),

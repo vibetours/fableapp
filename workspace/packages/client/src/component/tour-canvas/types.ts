@@ -6,7 +6,6 @@ export interface AnnotationNode<T> extends CanvasNode {
   text?: string;
   id: string;
   storedData?: T;
-  type: 'screen' | 'annotation';
 }
 
 export interface Box extends CanvasNode {

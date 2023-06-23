@@ -345,9 +345,10 @@ export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreenId: 
 export function addImgScreenToCurrentTour(
   tour: P_RespTour,
   withScreenRid: string,
+  shouldNavigate: boolean = true,
 ) {
   return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
-    await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
+    const screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
       method: 'POST',
       body: {
         screenRid: withScreenRid,
@@ -355,7 +356,13 @@ export function addImgScreenToCurrentTour(
       },
     });
 
-    loadTourAndData(tour.rid, true)(dispatch, getState);
+    const screen = screenResp.data;
+
+    if (shouldNavigate) {
+      window.location.replace(`/tour/${tour.rid}/${screen.rid}`);
+    } else {
+      loadTourAndData(tour.rid, true)(dispatch, getState);
+    }
   };
 }
 

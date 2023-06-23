@@ -65,10 +65,7 @@ function AddImageScreen(props: Props) {
         },
       });
 
-      // [TODO] @Siddhi fix this
       props.addScreenToTour(data.type, data.id, data.rid);
-
-      setTimeout(() => props.closeModal(), 1000);
     } catch (err) {
       captureException(err);
       setError('Something went wrong! Please try again');
