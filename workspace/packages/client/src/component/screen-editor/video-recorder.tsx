@@ -1,11 +1,12 @@
-import React, { SetStateAction, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, SetStateAction, useEffect, useRef, Dispatch } from 'react';
 import Modal from 'antd/lib/modal';
 import Button from 'antd/lib/button';
-import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
+import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
 import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
 import {
+  IAnnotationConfigWithScreenId,
   updateAnnotationBoxSize,
   updateAnnotationPositioning,
   updateAnnotationVideoURLMp4,
@@ -15,7 +16,7 @@ import { blobToUint8Array } from './utils/blob-to-uint8array';
 
 type Props = {
     closeRecorder: () => void,
-    setConfig: (value: SetStateAction<IAnnotationConfig>) => void
+    setConfig: Dispatch<SetStateAction<IAnnotationConfigWithScreenId>>
 }
 
 type VideoState = {
@@ -100,7 +101,7 @@ const videoReducer = (state: VideoState, action: Action) => {
   }
 };
 
-function VideoRecorder(props: Props) {
+function VideoRecorder(props: Props): ReactElement {
   const recorderRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream>();
   const recordedPartsRef = useRef<Blob[]>([]);

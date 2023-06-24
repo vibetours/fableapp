@@ -4,7 +4,9 @@
     "es6": true,
     "jest/globals": true
   },
-  "extends": ["airbnb"],
+  "extends": [
+    "airbnb"
+  ],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly",
@@ -19,18 +21,32 @@
     "ecmaVersion": 2018,
     "sourceType": "module"
   },
-  "plugins": ["react", "@typescript-eslint", "jest"],
+  "plugins": [
+    "react",
+    "@typescript-eslint",
+    "jest"
+  ],
   "overrides": [
     {
-      "files": ["*.ts", "*.tsx"],
+      "files": [
+        "*.ts",
+        "*.tsx"
+      ],
       "rules": {
-        "no-undef": "off"
+        "no-undef": "off",
+        "@typescript-eslint/explicit-function-return-type": [
+          "warn",
+          {
+            "allowExpressions": true
+          }
+        ]
       }
     }
   ],
   "rules": {
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error",
+    "@typescript-eslint/explicit-function-return-type": "off",
     "import/no-extraneous-dependencies": "off",
     "import/prefer-default-export": "off",
     "no-sequences": "off",
@@ -38,7 +54,14 @@
     "import/no-unresolved": "off",
     "prefer-spread": "off",
     "import/extensions": "off",
-    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [
+          ".tsx"
+        ]
+      }
+    ],
     "react/jsx-wrap-multilines": "off",
     "prefer-destructuring": "off",
     "react/destructuring-assignment": "off",
@@ -65,7 +88,12 @@
     "no-cond-assign": "off",
     "no-plusplus": "off",
     "no-return-assign": "off",
-    "max-len": ["warn", { "code": 120 }],
+    "max-len": [
+      "warn",
+      {
+        "code": 120
+      }
+    ],
     "no-restricted-syntax": 0,
     "func-names": 0,
     "no-continue": 0,
@@ -78,7 +106,11 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [".js", ".ts", ".tsx"]
+        "extensions": [
+          ".js",
+          ".ts",
+          ".tsx"
+        ]
       }
     }
   }

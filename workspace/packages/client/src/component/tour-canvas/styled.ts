@@ -1,4 +1,8 @@
 import styled from 'styled-components';
+import { LRPostion } from './types';
+
+export const TILE_STROKE_COLOR_ON_HOVER = '#7566ff';
+export const TILE_STROKE_COLOR_DEFAULT = '#E0E0E0';
 
 export const SVGCanvas = styled.svg`
   position: absolute;
@@ -21,6 +25,28 @@ export const SVGCanvas = styled.svg`
 
   .canvasElArea {
     fill: transparent
+  }
+
+  .poh {
+    fill: ${TILE_STROKE_COLOR_DEFAULT} !important;
+  }
+
+  .node {
+    &:hover {
+      .poh {
+        background: #7566ff !important;
+        fill: #7566ff !important;
+      }
+
+      .menuicnovrly {
+        cursor: pointer;
+      }
+
+      .poh {
+        color: white !important;
+        font-weight: 500 !important;
+      }
+    }
   }
 `;
 
@@ -328,4 +354,43 @@ export const ErrorMsg = styled.div`
   color: red;
   margin-top: 0.5rem;
   text-align: center;
+`;
+
+export const MenuModal = styled.div<{xy: [number, number, LRPostion]}>`
+  left: ${props => (props.xy[2] === 'l' ? props.xy[0] : 'auto')}px;
+  right: ${props => (props.xy[2] === 'r' ? props.xy[0] : 'auto')}px;
+  top: ${props => props.xy[1]}px;
+  position: absolute;
+  background: #FAFAFA;
+  padding: 0.5rem 0.55rem;
+  border-radius: 2px;
+  box-shadow: 0 0 3px -1px black;
+  font-size: 0.9rem;
+
+  div.menu-item {
+    padding: 0.25rem 0.45rem;
+    border-radius: 2px;
+
+    .subtext {
+      font-size: 0.75rem;
+      color: gray;
+    }
+
+    &:hover {
+      background: #EEEEEE;
+      cursor: pointer;
+    }
+  }
+
+  div.danger {
+    color: red;
+  }
+}
+`;
+
+export const MenuModalMask = styled.div`
+  position: relative;
+  height: 100%;
+  width: 100%;
+  background: transparent;
 `;

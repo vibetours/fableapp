@@ -45,6 +45,7 @@ import {
   cloneAnnotation,
   getDefaultTourOpts,
   getSampleConfig,
+  IAnnotationConfigWithScreenId,
   replaceAnnotation
 } from '../annotation/annotation-config-utils';
 import AnnotationCreatorPanel from './annotation-creator-panel';
@@ -70,7 +71,7 @@ const enum EditTargetType {
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
 
 export interface ITimelineConfig {
-  currentScreenAnnotations: IAnnotationConfig[];
+  currentScreenAnnotations: IAnnotationConfigWithScreenId[];
   nextScreen: P_RespScreen | undefined;
   prevScreen: P_RespScreen | undefined;
   nextAnnotation: string | null;

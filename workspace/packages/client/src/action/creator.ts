@@ -49,6 +49,7 @@ export interface TGenericLoading {
       | ActionType.SCREEN_LOADING
       | ActionType.ALL_TOURS_LOADING
       | ActionType.USER_LOADING
+      | ActionType.TOUR_LOADING
       | ActionType.ORG_LOADING ;
   shouldCache?: boolean;
 }
@@ -337,7 +338,7 @@ export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreenId: 
     if (shouldNavigate) {
       window.location.replace(`/tour/${tourAnyway.rid}/${screen.rid}`);
     } else {
-      loadTourAndData(tourAnyway.rid, true)(dispatch, getState);
+      loadTourAndData(tourAnyway.rid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
     }
   };
 }
@@ -361,7 +362,7 @@ export function addImgScreenToCurrentTour(
     if (shouldNavigate) {
       window.location.replace(`/tour/${tour.rid}/${screen.rid}`);
     } else {
-      loadTourAndData(tour.rid, true)(dispatch, getState);
+      loadTourAndData(tour.rid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
     }
   };
 }
@@ -448,9 +449,15 @@ export interface TTourWithData {
   allCorrespondingScreens: boolean,
 }
 
-export function loadTourAndData(tourRid: string, shouldGetScreens = false) {
-  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
+export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFreshLoading = true) {
+  return async (dispatch: Dispatch<TTourWithData | TGenericLoading>, getState: () => TState) => {
     const state = getState();
+    if (isFreshLoading) {
+      dispatch({
+        type: ActionType.TOUR_LOADING,
+      });
+    }
+
     let tour: P_RespTour;
     try {
       const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);

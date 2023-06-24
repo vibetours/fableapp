@@ -5,17 +5,18 @@ import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
 import { drag, D3DragEvent } from 'd3-drag';
-import { FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DisconnectOutlined, FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import * as GTags from '../../common-styled';
 import { AnnotationPerScreen, NavFn, TourDataChangeFn } from '../../types';
-import { updateButtonProp } from '../annotation/annotation-config-utils';
+import { updateButtonProp, deleteAnnotation, IAnnotationConfigWithScreenId } from '../annotation/annotation-config-utils';
 import Btn from '../btn';
 import * as Tags from './styled';
-import { AnnotationNode, Box, CanvasGrid, EdgeWithData } from './types';
+import { AnnotationNode, Box, CanvasGrid, EdgeWithData, LRPostion } from './types';
 import { formPathUsingPoints, formScreens2, getEdges, getEndPointsUsingPath } from './utils';
-import { P_RespScreen } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import AddImageScreen from './add-image-screen';
+import { dSaveZoomPanState } from './deferred-tasks';
 
 type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
@@ -23,7 +24,7 @@ type CanvasProps = {
   onTourDataChange: TourDataChangeFn;
   rootScreens: P_RespScreen[];
   addScreenToTour: (screenType: ScreenType, screenId: number, screenRid: string) => void;
-  tourRid: string | undefined;
+  tour: P_RespTour;
 };
 
 interface ConnectionErrMsg {
@@ -59,6 +60,29 @@ const connectionErrInitData: ConnectionErrMsg = {
   renderingW: 0
 };
 
+const CONNECTOR_COLOR_NON_HOVERED = '#9e9e9e';
+const CONNECTOR_COLOR_HOVERED = '#000000';
+const CONNECTOR_HOTSPOT_COLOR_NON_HOVERED = 'transparent';
+const CONNECTOR_HOTSPOT_COLOR_HOVERED = '#1503450a';
+const TILE_STROKE_WIDTH_ON_HOVER = '6px';
+const TILE_STROKE_WIDTH_DEFAULT = '4px';
+
+function isMenuModalVisible(xy: [number | null, number | null, LRPostion]) {
+  return !(xy[0] === null || xy[1] === null);
+}
+
+function getLRPosition(xy: [number, number], wrt: HTMLElement): [number, number, LRPostion] {
+  const box = wrt.getBoundingClientRect();
+  if (xy[0] > ((box.width / 2) | 0)) {
+    return [box.width - xy[0], xy[1], 'r'];
+  }
+  return [...xy, 'l' as LRPostion];
+}
+
+interface CtxSelectionData {
+  annotation: IAnnotationConfigWithScreenId;
+}
+
 export default function TourCanvas(props: CanvasProps) {
   const isGuideArrowDrawing = useRef(0);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -66,10 +90,14 @@ export default function TourCanvas(props: CanvasProps) {
   const [showScreenSelector, setShowScreenSelector] = useState(false);
   const [screensNotPartOfTour, setScreensNotPartOfTour] = useState<P_RespScreen[]>([]);
   const [screensPartOfTour, setScreensPartOfTour] = useState<P_RespScreen[]>([]);
+  // const ctxData = useRef<CtxSelectionData | null>(null);
+  // const [connectorMenuModalXY, setConnectorMenuModalXY] = useState<[number| null, number | null, LRPostion]>([null, null, 'r']);
+  // const [nodeMenuModalXY, setNodeMenuModalXY] = useState<[number| null, number | null, LRPostion]>([null, null, 'r']);
   const [connectionErr, setConnectionErr] = useState<ConnectionErrMsg>(connectionErrInitData);
   const [showUploadScreenImgModal, setShowUploadScreenImgModal] = useState<boolean>(false);
 
   const [init] = useState(1);
+  const zoomPanState = dSaveZoomPanState(props.tour.rid);
 
   const drawGrid = () => {
     const svgEl = svgRef.current;
@@ -153,26 +181,32 @@ export default function TourCanvas(props: CanvasProps) {
         const el = select<SVGGElement, AnnotationNode<dagre.Node>>(this.parentNode as SVGGElement);
         el.attr('transform', `translate(${newX}, ${newY})`);
 
-        const fromEl = selectAll<SVGPathElement, EdgeWithData>('path.edge').filter((data) => data.srcId === d.id);
-        const toEl = selectAll<SVGPathElement, EdgeWithData>('path.edge').filter((data) => data.destId === d.id);
+        const fromEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp').filter((data) => data.srcId === d.id);
+        const toEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp').filter((data) => data.destId === d.id);
 
         const data = el.datum();
 
-        if (fromEl.node()) {
-          const fromElNode = fromEl.node() as SVGPathElement;
-          const pathD = fromElNode.getAttribute('d') ?? '';
+        const fromElNodes = [fromEl.select('path.edgeconn'), fromEl.select('path.edgehotspot')] as
+            D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
+        fromElNodes.forEach(sel => {
+          const n = sel.node();
+          if (!n) return;
+          const pathD = n.getAttribute('d') ?? '';
           const endPoints = getEndPointsUsingPath(pathD);
           const newPoints = { x: newX + data.width, y: newY + data.height / 2 };
-          fromEl.attr('d', formPathUsingPoints([newPoints, endPoints[1]]));
-        }
+          sel.attr('d', formPathUsingPoints([newPoints, endPoints[1]]));
+        });
 
-        if (toEl.node()) {
-          const toElNode = toEl.node() as SVGPathElement;
-          const pathD = toElNode.getAttribute('d') ?? '';
+        const toElNodes = [toEl.select('path.edgeconn'), toEl.select('path.edgehotspot')] as
+            D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
+        toElNodes.forEach(sel => {
+          const n = sel.node()!;
+          if (!n) return;
+          const pathD = n.getAttribute('d') ?? '';
           const endPoints = getEndPointsUsingPath(pathD);
           const newPoints = { x: newX, y: newY + data.height / 2 };
-          toEl.attr('d', formPathUsingPoints([endPoints[0], newPoints]));
-        }
+          sel.attr('d', formPathUsingPoints([endPoints[0], newPoints]));
+        });
       })
       .on('end', () => {
         const nodeG = select<SVGGElement, AnnotationNode<dagre.Node>>(rootGRef.current!)
@@ -316,23 +350,26 @@ export default function TourCanvas(props: CanvasProps) {
     if (svg && rootG) {
       drawGrid();
 
+      const [sk, sx, sy] = zoomPanState.get();
+      const initialZoom = sk !== null ? sk : canvasGrid.initial.scale;
+      const initialPan = sx !== null && sy !== null ? [sx, sy] : [canvasGrid.initial.tx, canvasGrid.initial.ty];
+
       const z = zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.5, 2])
         .on('zoom', null)
         .on('zoom', (e: D3ZoomEvent<SVGGElement, unknown>) => {
+          zoomPanState.set(e.transform.k, e.transform.x, e.transform.y);
           updateGrid(e);
           select(rootG).attr('transform', e.transform.toString());
         });
 
+      const initialTransform = zoomIdentity.translate(initialPan[0], initialPan[1]).scale(initialZoom);
       select(svg)
         .call(z)
-        .call(z.translateBy, canvasGrid.initial.tx, canvasGrid.initial.ty)
-        .call(z.scaleBy, canvasGrid.initial.scale);
+        .call(z.transform, initialTransform);
       select(rootG).attr(
         'transform',
-        zoomIdentity
-          .translate(canvasGrid.initial.tx, canvasGrid.initial.ty)
-          .scale(canvasGrid.initial.scale)
+        initialTransform
           .toString()
       );
 
@@ -443,19 +480,64 @@ export default function TourCanvas(props: CanvasProps) {
       .x(d => d.x)
       .y(d => d.y);
 
+    // Connectors or edges are drawn like this
+    // <g>
+    //   <path> <- transparent thick path that detects interaction
+    //   <path> <- original edge drawing
+    //   <circle> <- when interaction is detected and shows menu
+    // </g>
     const connectorGDataBound = connectorG
-      .selectAll<SVGPathElement, EdgeWithData>('path.edge')
-      .data(newEdgesWithPositions);
+      .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+      .data(newEdgesWithPositions, d => `${d.srcId}:${d.destId}`);
     connectorGDataBound
       .enter()
-      .append('path')
-      .attr('class', 'edge')
-      .style('marker-end', 'url(#triangle-arrowhead)')
-      .attr('fill', 'none')
-      .attr('stroke-width', 1)
-      .attr('stroke', 'black')
+      .append('g')
+      .attr('class', 'edgegrp')
+      .call(grp => {
+        grp
+          .append('path')
+          .style('marker-end', 'url(#triangle-arrowhead)')
+          .attr('fill', 'none')
+          .attr('class', 'edgeconn')
+          .attr('stroke-width', 1)
+          .attr('stroke', CONNECTOR_COLOR_NON_HOVERED)
+          .attr('d', attr => lines(attr.points as any));
+
+        grp
+          .append('path')
+          .attr('fill', 'none')
+          .attr('stroke-width', 20)
+          .attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED)
+          .attr('fill', 'transparent')
+          .attr('class', 'edgehotspot')
+          .attr('cursor', 'pointer')
+          .attr('d', attr => lines(attr.points as any))
+          .on('mouseover', function () {
+            // eslint-disable-next-line react/no-this-in-sfc
+            const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
+            gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_HOVERED);
+            gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_HOVERED);
+          })
+          .on('mouseout', function () {
+            // eslint-disable-next-line react/no-this-in-sfc
+            const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
+            gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_NON_HOVERED);
+            gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED);
+          })
+          .on('click', (e: MouseEvent) => {
+            const con = svgRef.current!.parentNode as HTMLDivElement;
+            const relCoord = fromPointer(e, con);
+            // setConnectorMenuModalXY(getLRPosition(relCoord, con));
+          });
+      })
       .merge(connectorGDataBound)
-      .attr('d', ({ points }) => lines(points as any));
+      .call(p => {
+        ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
+          p.selectAll<SVGPathElement, EdgeWithData>(sel)
+            .data(p.data(), d => `${d.srcId}:${d.destId}`)
+            .attr('d', attr => lines(attr.points as any));
+        });
+      });
 
     connectorGDataBound.exit().remove();
 
@@ -470,8 +552,8 @@ export default function TourCanvas(props: CanvasProps) {
       .on('mouseover', function () {
         const gEl = select(this);
         gEl.select('rect.interaction-marker')
-          .style('stroke-width', '4px')
-          .style('cursor', 'ew-resize');
+          .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
+          .style('stroke', Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
       .on('mousedown', function (e: MouseEvent, d) {
@@ -515,13 +597,22 @@ export default function TourCanvas(props: CanvasProps) {
       .on('mouseout', function () {
         const gEl = select(this);
         gEl.select('rect.interaction-marker')
-          .style('stroke-width', '1px');
+          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+          .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
       })
       .call(p => {
+        p.append('rect')
+          .attr('x', '0')
+          .attr('y', '0')
+          .attr('class', 'poh')
+          .attr('width', '20')
+          .attr('height', '20');
+
         p
           .append('image')
           .attr('x', 0)
           .attr('preserveAspectRatio', 'xMidYMid meet')
+          .attr('clip-path', 'url(#fit-rect)')
           .attr('y', 20);
 
         p.append('foreignObject')
@@ -538,10 +629,41 @@ export default function TourCanvas(props: CanvasProps) {
         p.append('rect')
           .attr('x', 0)
           .attr('y', 0)
+          .attr('rx', 4)
+          .attr('ry', 4)
           .attr('class', 'interaction-marker')
           .style('fill', 'none')
-          .style('stroke', '#16023E')
-          .style('stroke-width', '1px');
+          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+          .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
+
+        const menug = p
+          .append('g')
+          .attr('transform', 'translate(4, 4) scale(0.04)')
+          .on('mousedown', prevent)
+          .on('mouseup', prevent)
+          .on('click', (e) => {
+            prevent(e);
+            const con = svgRef.current!.parentNode as HTMLDivElement;
+            const relCoord = fromPointer(e, con);
+            // setNodeMenuModalXY(getLRPosition(relCoord, con));
+            // const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
+            // console.log('datum', sel);
+          });
+        menug
+          .append('path')
+          .attr('class', 'menuicn')
+          .attr('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+          .attr('fill', Tags.TILE_STROKE_COLOR_DEFAULT)
+          .attr('d', 'M165,0C74.019,0,0,74.019,0,165s74.019,165,165,165s165-74.019,165-165S255.981,0,165,0z M85,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S98.785,190,85,190z M165,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S178.785,190,165,190z M245,190c-13.785,0-25-11.215-25-25s11.215-25,25-25c13.785,0,25,11.215,25,25S258.785,190,245,190z');
+
+        menug
+          .append('rect')
+          .attr('x', -50)
+          .attr('y', -50)
+          .attr('height', 400)
+          .attr('width', 550)
+          .attr('class', 'menuicnovrly')
+          .attr('fill', 'transparent');
       })
       .merge(nodeG)
       .call(updateNodePos)
@@ -554,20 +676,21 @@ export default function TourCanvas(props: CanvasProps) {
         p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
           .data(p.data(), d => d.id)
-          .attr('width', d => d.width)
+          .attr('width', d => d.width - 20)
           .attr('height', 20)
-          .attr('x', 0)
+          .attr('x', 20)
           .attr('y', 0)
           .call(nodeDraggable())
           .call(fo => {
             fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
               .style('width', d => d.width)
-              .style('height', '15px')
+              .style('height', '16px')
               .style('display', 'block')
               .style('margin', 0)
               .style('font-size', '12px')
-              .style('background', '#16023E')
-              .style('color', 'white')
+              .attr('class', 'poh')
+              .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
+              .style('color', 'black')
               .style('padding', '2px')
               .style('display', 'flex')
               .style('align-items', 'center')
@@ -589,16 +712,17 @@ export default function TourCanvas(props: CanvasProps) {
               .style('display', 'block')
               .style('margin', 0)
               .style('font-size', '12px')
-              .style('background', '#16023E')
-              .style('color', 'white')
+              .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
+              .style('color', 'black')
               .style('padding', '2px')
               .style('display', 'flex')
               .style('align-items', 'center')
               .style('justify-content', 'center')
+              .style('cursor', 'pointer')
               .text(d => `${d.text!.substring(0, 65)}${d.text!.length > 65 ? '...' : ''}`);
           });
 
-        p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect')
+        p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect.interaction-marker')
           .data(p.data(), d => d.id)
           .attr('width', d => d.width)
           .attr('height', d => d.height);
@@ -618,6 +742,9 @@ export default function TourCanvas(props: CanvasProps) {
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
+          <clipPath id="fit-rect">
+            <rect x="0" y="0" width={canvasGrid.gridSize * 6} height={canvasGrid.gridSize * 4} />
+          </clipPath>
           <marker
             id="triangle-arrowhead"
             markerWidth="5"
@@ -788,11 +915,45 @@ export default function TourCanvas(props: CanvasProps) {
           <AddImageScreen
             open={showUploadScreenImgModal}
             closeModal={() => setShowUploadScreenImgModal(false)}
-            tourRid={props.tourRid}
+            tourRid={props.tour.rid}
             addScreenToTour={props.addScreenToTour}
           />
         )
       }
+      {/* isMenuModalVisible(connectorMenuModalXY) && (
+        <Tags.MenuModalMask onClick={() => {
+          ctxData.current = null;
+          setConnectorMenuModalXY([null, null, 'l']);
+        }}
+        >
+          <Tags.MenuModal xy={connectorMenuModalXY as [number, number, LRPostion]} onClick={prevent}>
+            <div className="menu-item danger">
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <DisconnectOutlined style={{ marginTop: '2px' }} />
+                <div>
+                  Delete this connector
+                  <div className="subtext">This action will break the flow in two parts</div>
+                </div>
+              </div>
+            </div>
+          </Tags.MenuModal>
+        </Tags.MenuModalMask>
+      ) */}
+      {/* isMenuModalVisible(nodeMenuModalXY) && (
+        <Tags.MenuModalMask onClick={() => setNodeMenuModalXY([null, null, 'l'])}>
+          <Tags.MenuModal xy={nodeMenuModalXY as [number, number, LRPostion]} onClick={prevent}>
+            <div className="menu-item danger">
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <DeleteOutlined style={{ marginTop: '2px' }} />
+                <div>
+                  Delete this annotation
+                  <div className="subtext">Prev and next annotation will be connected</div>
+                </div>
+              </div>
+            </div>
+          </Tags.MenuModal>
+        </Tags.MenuModalMask>
+      ) */}
     </>
   );
 }

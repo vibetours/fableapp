@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import {
   AnnotationBodyTextSize,
   AnnotationButtonSize,
@@ -56,6 +56,7 @@ import {
   isBlankString,
   updateAnnotationPositioning,
   updateOverlay,
+  IAnnotationConfigWithScreenId,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
@@ -67,11 +68,10 @@ import ActionPanel from './action-panel';
 import { hotspotHelpText } from './helptexts';
 
 const { confirm } = Modal;
-const { Panel } = Collapse;
 
 interface IProps {
   screen: P_RespScreen,
-  config: IAnnotationConfig,
+  config: IAnnotationConfigWithScreenId,
   opts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[],
   onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig, actionType: AnnotationMutationType) => void;
@@ -121,8 +121,8 @@ const usePrevious = <T extends unknown>(value: T): T | undefined => {
   return ref.current;
 };
 
-export default function AnnotationCreatorPanel(props: IProps) {
-  const [config, setConfig] = useState<IAnnotationConfig>(props.config);
+export default function AnnotationCreatorPanel(props: IProps): ReactElement {
+  const [config, setConfig] = useState<IAnnotationConfigWithScreenId>(props.config);
   const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
   const [btnEditing, setBtnEditing] = useState<string>('');
   const [showHotspotAdvancedElPicker, setShowHotspotAdvancedElPicker] = useState(false);
@@ -194,7 +194,7 @@ export default function AnnotationCreatorPanel(props: IProps) {
       okText: 'Yes',
       okType: 'danger',
       onOk: () => {
-        const [mutationUpdates, newMain] = deleteAnnotation(props.allAnnotationsForTour, config, null, opts);
+        const [mutationUpdates, newMain] = deleteAnnotation(props.allAnnotationsForTour, config, opts);
         for (const update of mutationUpdates) {
           const screenId = update[IdxAnnotationMutation.ScreenId];
           if (screenId === null) {

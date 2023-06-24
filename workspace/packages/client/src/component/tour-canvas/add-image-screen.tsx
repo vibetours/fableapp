@@ -6,7 +6,6 @@ import { captureException } from '@sentry/react';
 import * as Tags from './styled';
 import { uploadImageAsBinary, uploadImgToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { getImgScreenData } from './utils';
-import { P_RespScreen } from '../../entity-processor';
 
 type Props = {
     open: boolean;

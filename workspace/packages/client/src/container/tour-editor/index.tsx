@@ -46,8 +46,8 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourDataChangeFn, NavFn } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
-import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 import { openTourExternalLink } from '../../utils';
+import HeartLoader from '../../component/loader/heart';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -64,7 +64,7 @@ interface IDispatchProps {
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
 }
 
-const mapDispatchToProps = (dispatch: any) => ({
+const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   getAllScreens: () => dispatch(getAllScreens()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
@@ -239,7 +239,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  navigateTo = (qualifiedAnnotaionUri: string) => {
+  navigateTo = (qualifiedAnnotaionUri: string): void => {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
     if (screen) {
@@ -250,7 +250,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>) => {
+  onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>): void => {
     if (!this.props.screen) {
       // TODO this check should not be there as screen should alaways be present, but turning it off causes error
       // sometime.Investigate
@@ -278,7 +278,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  isLoadingComplete = () => {
+  isLoadingComplete = (): boolean => {
     let result = true;
     if (this.props.match.params.tourId) {
       result = result && this.props.isTourLoaded;
@@ -289,7 +289,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return result;
   };
 
-  shouldShowScreen = () => {
+  shouldShowScreen = (): boolean => {
     let result = false;
     if (this.props.match.params.screenId) {
       result = this.props.isScreenLoaded;
@@ -300,7 +300,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return result;
   };
 
-  isInCanvas = () => !!(this.props.match.params.tourId && this.props.match.params.screenId);
+  isInCanvas = (): boolean => !!(this.props.match.params.tourId && this.props.match.params.screenId);
 
   getHeaderTxtEl = (): React.ReactElement => {
     if (!this.isLoadingComplete()) {
@@ -334,46 +334,46 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     );
   };
 
-  getCurrentScreenAnnotations = () => {
+  getCurrentScreenAnnotations = (): IAnnotationConfigWithScreenId[] => {
     const currAnnRid = this.props.match.params.annotationId;
+    if (currAnnRid) {
+      // If user is coming to an annotation directly show the timeline wrt that annoation
+      const annotations: IAnnotationConfigWithScreenId[] = [];
+      const currentAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === currAnnRid)!;
+      const currentScreenId = this.props.screen?.id;
+      if (!currentAnn) {
+        return annotations;
+      }
 
-    const annotations: IAnnotationConfigWithScreenId[] = [];
+      annotations.push({ ...currentAnn, screenId: `${currentScreenId!}` });
 
-    if (!currAnnRid) {
+      // traverse back
+      let prev = currentAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+      while (prev && prev.actionType === 'navigate' && +prev.actionValue.split('/')[0] === currentScreenId) {
+        const prevAnnId = prev.actionValue.split('/')[1];
+        const prevAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === prevAnnId)!;
+        annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
+        prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+      }
+
+      // traverse front
+      let next = currentAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
+      while (next && next.actionType === 'navigate' && +next.actionValue.split('/')[0] === currentScreenId) {
+        const nextAnnId = next.actionValue.split('/')[1];
+        const nextAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === nextAnnId)!;
+        annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
+        next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
+      }
+
       return annotations;
     }
 
-    const currentAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === currAnnRid)!;
-    const currentScreenId = this.props.screen?.id;
-
-    if (!currentAnn) {
-      return [];
-    }
-
-    annotations.push({ ...currentAnn, screenId: `${currentScreenId!}` });
-
-    // traverse back
-    let prev = currentAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
-    while (prev && prev.actionType === 'navigate' && +prev.actionValue.split('/')[0] === currentScreenId) {
-      const prevAnnId = prev.actionValue.split('/')[1];
-      const prevAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === prevAnnId)!;
-      annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
-      prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
-    }
-
-    // traverse front
-    let next = currentAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
-    while (next && next.actionType === 'navigate' && +next.actionValue.split('/')[0] === currentScreenId) {
-      const nextAnnId = next.actionValue.split('/')[1];
-      const nextAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === nextAnnId)!;
-      annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
-      next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
-    }
-
-    return annotations;
+    // If user opening the page directly, show all annotations
+    const anns = this.props.allAnnotationsForScreen;
+    return anns.map(an => ({ ...an, screenId: this.props.screen!.id.toString() }));
   };
 
-  getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+  getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]): P_RespScreen | undefined => {
     if (currentScreenAnnotations.length === 0) {
       return undefined;
     }
@@ -383,7 +383,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return this.props.tour!.screens!.find(screen => screen.id === +prevScreenId);
   };
 
-  getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]) => {
+  getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]): P_RespScreen | undefined => {
     if (currentScreenAnnotations.length === 0) {
       return undefined;
     }
@@ -394,7 +394,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   // eslint-disable-next-line class-methods-use-this
-  getPrevAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+  getPrevAnnId = (currentScreenAnnotations: IAnnotationConfig[]): string | null => {
     if (currentScreenAnnotations.length === 0) {
       return null;
     }
@@ -404,7 +404,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   // eslint-disable-next-line class-methods-use-this
-  getNextAnn = (currentScreenAnnotations: IAnnotationConfig[]) => {
+  getNextAnnId = (currentScreenAnnotations: IAnnotationConfig[]): string | null => {
     if (currentScreenAnnotations.length === 0) {
       return null;
     }
@@ -413,7 +413,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return ann;
   };
 
-  componentWillUnmount() {
+  componentWillUnmount(): void {
     this.chunkSyncManager?.end();
     this.props.clearCurrentScreenSelection();
     this.props.clearCurrentTourSelection();
@@ -434,8 +434,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       currentScreenAnnotations,
       nextScreen: this.getNextScreen(currentScreenAnnotations),
       prevScreen: this.getPrevScreen(currentScreenAnnotations),
-      nextAnnotation: this.getNextAnn(currentScreenAnnotations),
-      prevAnnotation: this.getPrevAnn(currentScreenAnnotations),
+      nextAnnotation: this.getNextAnnId(currentScreenAnnotations),
+      prevAnnotation: this.getPrevAnnId(currentScreenAnnotations),
     };
   }
 
@@ -463,7 +463,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return [];
   };
 
-  render() {
+  render(): ReactElement {
     if (!this.isLoadingComplete()) {
       return <div>TODO show loader</div>;
     }
@@ -512,7 +512,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 )
               }
             />
-          ) : (
+          ) : (this.isLoadingComplete() ? (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas
                 key={this.props.tour?.rid}
@@ -529,9 +529,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 navigate={this.navigateTo}
                 onTourDataChange={this.onTourDataChange}
-                tourRid={this.props.tour?.rid}
+                tour={this.props.tour!}
               />
             </div>
+          ) : (<HeartLoader />)
           )}
         </GTags.BodyCon>
       </GTags.ColCon>
@@ -544,8 +545,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     screenId: number,
     actionValue: string,
     opts: ITourDataOpts | null | undefined
-  ) => {
-    const btnUpdate = updateButtonProp(config, btnId, 'hotspot', {
+  ): IAnnotationConfig => {
+    const updatedConfig = updateButtonProp(config, btnId, 'hotspot', {
       type: 'an-btn',
       on: 'click',
       target: '$this',
@@ -554,15 +555,15 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     });
 
     this.onTourDataChange('annotation-and-theme', screenId, {
-      config: btnUpdate,
+      config: updatedConfig,
       opts,
       actionType: 'upsert'
     });
 
-    return btnUpdate;
+    return updatedConfig;
   };
 
-  private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts) => {
+  private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts): void => {
     const flatAnnsForTour: [number, IAnnotationConfig][] = [];
     for (const annPerScreen of this.props.allAnnotationsForTour) {
       for (const ann of annPerScreen.annotations) {
@@ -639,14 +640,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         );
       }
     }
-    // this.onTourDataChange('annotation-and-theme', null, {
-    //   config: newConfig,
-    //   opts: newOpts,
-    //   actionType: 'upsert'
-    // }, flatAnnsForTour.length !== 0 /* for the first default annotation respect the value set for opts */);
   };
 
-  private flushEdits = (key: string, value: AllEdits<ElEditType> | TourDataWoScheme) => {
+  private flushEdits = (key: string, value: AllEdits<ElEditType> | TourDataWoScheme): void => {
     if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK)) {
       const tValue = value as AllEdits<ElEditType>;
       this.props.flushEditChunksToMasterFile(this.props.screen!, tValue);
@@ -657,10 +653,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   // eslint-disable-next-line class-methods-use-this
-  private onScreenEditStart = () => { /* noop */ };
+  private onScreenEditStart = (): void => { /* noop */ };
 
   // eslint-disable-next-line class-methods-use-this
-  private onScreenEditFinish = () => { /* noop */ };
+  private onScreenEditFinish = (): void => { /* noop */ };
 
   private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, isDefault = false) => {
     if (changeType === 'annotation-and-theme') {
@@ -694,7 +690,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  private onScreenEditChange = (editChunks: AllEdits<ElEditType>) => {
+  private onScreenEditChange = (editChunks: AllEdits<ElEditType>): void => {
     const mergedEditChunks = this.chunkSyncManager!.add(
       this.getStorageKeyForType('edit-chunk'),
       editChunks,

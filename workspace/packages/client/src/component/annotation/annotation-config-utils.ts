@@ -15,84 +15,84 @@ import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 
 export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
-  screenId?: string;
+  screenId: string
 }
 
 export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
 }
 
-export function updateAnnotationText(config: IAnnotationConfig, txt: string, displayText: string): IAnnotationConfig {
+export function updateAnnotationText<T extends IAnnotationConfig>(config: T, txt: string, displayText: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.bodyContent = txt;
   newConfig.displayText = displayText;
   return newConfig;
 }
 
-export function updateAnnotationBoxSize(config: IAnnotationConfig, size: EAnnotationBoxSize): IAnnotationConfig {
+export function updateAnnotationBoxSize<T extends IAnnotationConfig>(config: T, size: EAnnotationBoxSize): T {
   const newConfig = newConfigFrom(config);
   newConfig.size = size;
   return newConfig;
 }
 
-export function updateAnnotationPositioning(
-  config: IAnnotationConfig,
+export function updateAnnotationPositioning<T extends IAnnotationConfig>(
+  config: T,
   positioning: AnnotationPositions | VideoAnnotationPositions
-): IAnnotationConfig {
+): T {
   const newConfig = newConfigFrom(config);
   newConfig.positioning = positioning;
   return newConfig;
 }
 
-export function updateAnnotationBodyTextSize(
-  config: IAnnotationConfig,
+export function updateAnnotationBodyTextSize<T extends IAnnotationConfig>(
+  config: T,
   bodyTextSize: AnnotationBodyTextSize
-): IAnnotationConfig {
+): T {
   const newConfig = newConfigFrom(config);
   newConfig.bodyTextSize = bodyTextSize;
   return newConfig;
 }
 
-export function updateAnnotationVideoURL(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+export function updateAnnotationVideoURL<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.videoUrl = videoUrl;
   return newConfig;
 }
 
-export function updateAnnotationVideoURLMp4(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+export function updateAnnotationVideoURLMp4<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.videoUrlMp4 = videoUrl;
   return newConfig;
 }
 
-export function updateAnnotationVideoURLWebm(config: IAnnotationConfig, videoUrl: string): IAnnotationConfig {
+export function updateAnnotationVideoURLWebm<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.videoUrlWebm = videoUrl;
   return newConfig;
 }
 
-export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
+export function updateAnnotationIsHotspot<T extends IAnnotationConfig>(config: T, isHotspot: boolean): T {
   const newConfig = newConfigFrom(config);
   newConfig.isHotspot = isHotspot;
   return newConfig;
 }
 
-export function updateAnnotationHotspotElPath(
-  config: IAnnotationConfig,
+export function updateAnnotationHotspotElPath<T extends IAnnotationConfig>(
+  config: T,
   hotspotElPath: string | null
-): IAnnotationConfig {
+): T {
   const newConfig = newConfigFrom(config);
   newConfig.hotspotElPath = hotspotElPath;
   return newConfig;
 }
 
-export function updateAnnotationHideAnnotation(config: IAnnotationConfig, hideAnnotation: boolean): IAnnotationConfig {
+export function updateAnnotationHideAnnotation<T extends IAnnotationConfig>(config: T, hideAnnotation: boolean): T {
   const newConfig = newConfigFrom(config);
   newConfig.hideAnnotation = hideAnnotation;
   return newConfig;
 }
 
-export function updateOverlay(config: IAnnotationConfig, showOverlay: boolean) {
+export function updateOverlay<T extends IAnnotationConfig>(config: T, showOverlay: boolean): T {
   const newConfig = newConfigFrom(config);
   newConfig.showOverlay = showOverlay;
   return newConfig;
@@ -115,25 +115,25 @@ function newConfigFrom<T extends IChronoUpdatable>(c: T): T {
   return newConfig;
 }
 
-export function removeButtonWithId(config: IAnnotationConfig, id: string) {
+export function removeButtonWithId<T extends IAnnotationConfig>(config: T, id: string): T {
   const newConf = newConfigFrom(config);
   const buttons = newConf.buttons.slice(0).filter(b => b.id !== id);
   newConf.buttons = buttons;
   return newConf;
 }
 
-function findBtnById(config: IAnnotationConfig, id: string) {
+function findBtnById(config: IAnnotationConfig, id: string): [IAnnotationButton, number][] {
   const thisButton = config.buttons.map((b, i) => ([b, i] as [IAnnotationButton, number]))
     .filter(([b]) => b.id === id);
   return thisButton;
 }
 
-export function updateButtonProp(
-  config: IAnnotationConfig,
+export function updateButtonProp<T extends IAnnotationConfig>(
+  config: T,
   id: string,
   prop: keyof IAnnotationButton,
   value: IAnnotationButton[keyof IAnnotationButton]
-) {
+): T {
   const newConfig = newConfigFrom(config);
   const buttons = newConfig.buttons.slice(0);
   const thisButton = findBtnById(newConfig, id);
@@ -145,11 +145,11 @@ export function updateButtonProp(
   return newConfig;
 }
 
-export function toggleBooleanButtonProp(
-  config: IAnnotationConfig,
+export function toggleBooleanButtonProp<T extends IAnnotationConfig>(
+  config: T,
   id: string,
   prop: keyof IAnnotationButton
-): IAnnotationConfig {
+): T {
   const newConfig = newConfigFrom(config);
   const buttons = newConfig.buttons.slice(0);
   const thisButton = findBtnById(config, id);
@@ -185,7 +185,7 @@ export function getLatestBtnOrder(config: IAnnotationConfig): number {
   return order;
 }
 
-export function addCustomBtn(config: IAnnotationConfig): IAnnotationConfig {
+export function addCustomBtn<T extends IAnnotationConfig>(config: T): T {
   const order = getLatestBtnOrder(config);
   const nextBtn = config.buttons.filter(btn => btn.type === 'next')[0];
   const size = nextBtn.size;
@@ -325,8 +325,8 @@ export function replaceAnnotation(
   return updates;
 }
 
-function createFlatAnnotationMap(allAnnotationsForTour: AnnotationPerScreen[]) {
-  const flatAnnotationMap: Record<string, IAnnotationConfigWithScreenId> = {};
+function createFlatAnnotationMap(allAnnotationsForTour: AnnotationPerScreen[]): Record<string, IAnnotationConfig> {
+  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
 
   for (const entry of allAnnotationsForTour) {
     for (const an of entry.annotations) {
@@ -339,7 +339,6 @@ function createFlatAnnotationMap(allAnnotationsForTour: AnnotationPerScreen[]) {
 export function deleteAnnotation(
   allAnnotationsForTour: AnnotationPerScreen[],
   ann: IAnnotationConfigWithScreenId,
-  currentScreenId: number | null,
   opts: ITourDataOpts
 ): [AnnotationMutation[], string] {
   const flatAnnotationMap = createFlatAnnotationMap(allAnnotationsForTour);
@@ -397,14 +396,14 @@ export function deleteAnnotation(
     updates.push([+screenId, update, 'upsert']);
   }
 
-  updates.push([currentScreenId, ann, 'delete']);
+  updates.push([null, ann, 'delete']);
   return [updates, newMain];
 }
 
-export function isCoverAnnotation(annId: string) {
+export function isCoverAnnotation(annId: string): boolean {
   return annId.split('#')[0] === '$';
 }
 
-export function isBlankString(str: string) {
+export function isBlankString(str: string): boolean {
   return str.trim() === '';
 }

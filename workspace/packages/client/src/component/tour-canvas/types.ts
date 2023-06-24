@@ -39,3 +39,5 @@ export interface CanvasGrid {
     scale: number;
   }
 }
+
+export type LRPostion = 'l' | 'r';
