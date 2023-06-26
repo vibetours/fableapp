@@ -48,6 +48,7 @@ import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourD
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 import { openTourExternalLink } from '../../utils';
 import HeartLoader from '../../component/loader/heart';
+import deferredErr from '../../deffered-error';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -352,8 +353,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       while (prev && prev.actionType === 'navigate' && +prev.actionValue.split('/')[0] === currentScreenId) {
         const prevAnnId = prev.actionValue.split('/')[1];
         const prevAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === prevAnnId)!;
-        annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
-        prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+        if (prevAnn) {
+          annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
+          prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
+        } else {
+          prev = null;
+          deferredErr(`Hotspot is present but prev annotation is not present for ann ${currentAnn.refId}`);
+        }
       }
 
       // traverse front
@@ -361,8 +367,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       while (next && next.actionType === 'navigate' && +next.actionValue.split('/')[0] === currentScreenId) {
         const nextAnnId = next.actionValue.split('/')[1];
         const nextAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === nextAnnId)!;
-        annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
-        next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
+        if (nextAnn) {
+          annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
+          next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
+        } else {
+          next = null;
+          deferredErr(`Hotspot is present but next annotation is not present for ann ${currentAnn.refId}`);
+        }
       }
 
       return annotations;

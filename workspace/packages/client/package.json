@@ -55,6 +55,8 @@
   "scripts": {
     "start-local": "env-cmd --verbose -e local -r ../env.json react-scripts start",
     "start-dev": "env-cmd --verbose -e dev -r ../env.json react-scripts start",
+    "dupdetect": "jscpd src/",
+    "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
     "start-stage": "env-cmd --verbose -e stage -r ../env.json  react-scripts start",
     "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
     "clean-staging": "aws s3 rm s3://app.staging.sharefable.com --recursive --profile fable",
