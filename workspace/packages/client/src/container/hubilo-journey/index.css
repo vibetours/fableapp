@@ -1,0 +1,9 @@
+  .ant-select-item-option-content {
+    color: #eaeaea !important;
+    font-size: 0.8rem;
+  }
+
+.ant-select-dropdown .ant-select-item-option-selected {
+  background: #424242 !important;
+  color: #d1dd2b !important;
+}

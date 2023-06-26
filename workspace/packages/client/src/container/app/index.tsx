@@ -22,6 +22,7 @@ import ToursPage from '../../component/onboarding/pages/tours';
 import ProductTours from '../../component/onboarding/pages/product-tours';
 import TermsAndConditions from '../../component/onboarding/pages/terms-and-conditions';
 import ProtectedRoutes from '../protected-routes';
+import HubiloJourney from '../hubilo-journey';
 
 interface IDispatchProps {
   init: () => void;
@@ -50,7 +51,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.init();
   }
 
-  render() {
+  render():JSX.Element {
     if (!this.props.isInitied) {
       return <HeartLoader />;
     }
@@ -89,6 +90,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="/p/tour/:tourId" element={<Player title="Fable" />} />
             <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player title="Fable" />} />
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
+            <Route path="/hubilojourney" element={<HubiloJourney title="Fable | Hubilo Journey" />} />
           </Routes>
         </div>
       </Router>
