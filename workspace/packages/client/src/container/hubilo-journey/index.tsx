@@ -77,7 +77,7 @@ export default function HubiloJourney(props: IOwnProps):JSX.Element {
           }}
           dropdownStyle={{
             background: '#424242',
-            borderRadius: '2px',
+            borderRadius: '4px',
           }}
           bordered={false}
           dropdownMatchSelectWidth={false}
@@ -94,7 +94,7 @@ export default function HubiloJourney(props: IOwnProps):JSX.Element {
           style={{
             textDecoration: 'none',
             margin: '0 0.5rem',
-            borderRadius: '2px',
+            borderRadius: '4px',
             background: '#424242',
             color: '#d1dd2b',
             padding: '0.45rem 0.65rem'
@@ -103,7 +103,7 @@ export default function HubiloJourney(props: IOwnProps):JSX.Element {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <CalendarFilled />
+          <span style={{ fontWeight: 500 }}>Get a demo!</span>
         </a>
       </Con>
     </div>
@@ -111,7 +111,7 @@ export default function HubiloJourney(props: IOwnProps):JSX.Element {
 }
 
 const Con = styled.div`
-  border-radius: 2px;
+  border-radius: 4px;
   position: fixed;
   top: 670px;
   left: 46px ;
@@ -119,7 +119,7 @@ const Con = styled.div`
 
   .ant-select {
     background: #424242;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   .ant-select-selection-item {
