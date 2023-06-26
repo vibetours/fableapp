@@ -236,11 +236,11 @@ function VideoRecorder(props: Props): ReactElement {
     const webm = await blobToUint8Array(webmBlob);
 
     const webmUrl = await uploadVideoToAws(webm, 'video/webm');
-    const [err, transcodedUrl] = await transcodeMedia(webmUrl);
-    if (err) {
-      throw new Error('Transcoding failed');
-    }
-    props.setConfig(c => updateAnnotationVideoURLMp4(c, transcodedUrl));
+    // const [err, transcodedUrl] = await transcodeMedia(webmUrl);
+    // if (err) {
+    //   throw new Error('Transcoding failed');
+    // }
+    props.setConfig(c => updateAnnotationVideoURLMp4(c, webmUrl));
     props.setConfig(c => updateAnnotationVideoURLWebm(c, webmUrl));
     props.setConfig(c => {
       if (c.type === 'cover') {

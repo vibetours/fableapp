@@ -445,7 +445,7 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
             );
           }}
         >
-          <source src={config.videoUrlMp4} type="video/mp4" />
+          {/* <source src={config.videoUrlMp4} type="video/mp4" /> */}
           <source src={config.videoUrlWebm} type="video/webm" />
         </Tags.AnVideo>
       );
