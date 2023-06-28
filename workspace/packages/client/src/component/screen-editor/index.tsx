@@ -158,7 +158,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
-  showDeleteConfirm = (e: EditItem) => {
+  showDeleteConfirm = (e: EditItem): void => {
     const path = e[IdxEditItem.PATH];
     const elType = e[IdxEditItem.TYPE];
     const encoding = e[IdxEditItem.ENCODING];
@@ -302,7 +302,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return +match[2];
   }
 
-  static updateBlurValueToFilter(filterStr: string, value: number) {
+  static updateBlurValueToFilter(filterStr: string, value: number): string {
     const match = filterStr.match(/(^|\s+)blur\((\d+)(px|rem)\)(\s+|$)/);
     let newFilter;
     if (match) {
@@ -317,7 +317,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return newFilter;
   }
 
-  static getEditTypeComponent(edit: EditItem, shouldShowLoading = false) {
+  static getEditTypeComponent(edit: EditItem, shouldShowLoading = false): JSX.Element {
     const encoding = edit[IdxEditItem.ENCODING];
     switch (edit[IdxEditItem.TYPE]) {
       case ElEditType.Text:
@@ -503,7 +503,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedAnnotationId: this.props.toAnnotationId });
   }
 
-  async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>) {
+  async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>): Promise<void> {
     if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
       this.setState({ selectedAnnotationId: this.props.toAnnotationId });
     }
@@ -609,15 +609,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return ann ? ann.refId : '';
   }
 
-  getIframeBody() {
+  getIframeBody(): HTMLElement {
     return this.embedFrameRef.current?.contentDocument?.body!;
   }
 
-  isFullPageAnnotation(el: HTMLElement) {
+  isFullPageAnnotation(el: HTMLElement):boolean {
     return this.getIframeBody() === el;
   }
 
-  selectElementIfAnnoted() {
+  selectElementIfAnnoted():void {
     if (!this.state.selectedAnnotationId) return;
     const type = this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId);
 
@@ -646,7 +646,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  getEditingCtrlForElType(type: EditTargetType) {
+  getEditingCtrlForElType(type: EditTargetType): JSX.Element {
     if (!this.state.selectedEl) {
       return <></>;
     }
@@ -797,9 +797,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  static downArrow = () => <img src={ExpandIcon} width={12} height={6} alt="expand icon" />;
+  static downArrow = (): JSX.Element => <img src={ExpandIcon} width={12} height={6} alt="expand icon" />;
 
-  flushMicroEdits() {
+  flushMicroEdits():void {
     const hasEdits = Object.keys(this.microEdits).length !== 0;
     if (hasEdits) {
       this.props.onScreenEditChange(this.microEdits);
@@ -807,7 +807,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }) => {
+  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
     this.initDomPicker(params.nestedFrames);
   };
 
@@ -821,7 +821,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }));
   };
 
-  createCoverAnnotation = () => {
+  createCoverAnnotation = (): void => {
     const conf = getSampleConfig('$');
     const opts = this.props.tourDataOpts || getDefaultTourOpts();
     this.props.createDefaultAnnotation(
@@ -852,7 +852,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   };
 
-  navigateToAnnotation = (uri: string) => {
+  navigateToAnnotation = (uri: string): void => {
     this.props.navigate(uri, 'annotation-hotspot');
   };
 
@@ -911,6 +911,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           );
                           fwdAnnotation = replaceWithAnn.refId;
                           updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
+                          this.props.navigate(`${this.props.screen.id}/${fwdAnnotation}`, 'annotation-hotspot');
                         }
                       }
                       this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
@@ -1079,7 +1080,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     );
   }
 
-  highlightElementForPath(path: string) {
+  highlightElementForPath(path: string): void {
     const doc = this.embedFrameRef.current?.contentDocument;
     if (!doc) {
       throw new Error('Iframe doc is not found while resolving element from path');
@@ -1101,11 +1102,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }, 3 * 16);
   }
 
-  private onMouseOutOfIframe = (_: MouseEvent) => {
+  private onMouseOutOfIframe = (_: MouseEvent): void => {
     this.iframeElManager?.disable();
   };
 
-  private onMouseEnterOnIframe = (_: MouseEvent) => {
+  private onMouseEnterOnIframe = (_: MouseEvent): void => {
     this.state.isInElSelectionMode && this.iframeElManager?.enable();
   };
 
@@ -1126,7 +1127,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   };
 
-  private onKeyDownHandler = (e: KeyboardEvent) => {
+  private onKeyDownHandler = (e: KeyboardEvent): void => {
     this.onKeyDown()(e);
   };
 
@@ -1137,7 +1138,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   };
 
-  private addToMicroEdit<K extends keyof EditValueEncoding>(path: string, editType: K, edit: EditValueEncoding[K]) {
+  private addToMicroEdit<K extends keyof EditValueEncoding>(
+    path: string,
+    editType: K,
+    edit: EditValueEncoding[K]
+  ): void {
     if (!(path in this.microEdits)) {
       this.microEdits[path] = {};
     }
@@ -1145,7 +1150,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     edits[editType] = edit;
   }
 
-  private disposeDomPicker() {
+  private disposeDomPicker(): void {
     this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
     this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
     if (this.iframeElManager) {
@@ -1154,7 +1159,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  private onElSelect = (el: HTMLElement, parents: Node[]) => {
+  private onElSelect = (el: HTMLElement, parents: Node[]): void => {
     this.iframeElManager!.elPath(el);
 
     if (this.state.selectionMode === 'hotspot') {
@@ -1165,12 +1170,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedEl: el, selectedElsParents: parents });
   };
 
-  private onElDeSelect = (_: HTMLElement) => {
+  private onElDeSelect = (_: HTMLElement): void => {
     this.flushMicroEdits();
     this.setState({ selectedEl: null });
   };
 
-  private onBoxSelect = (coordsStr: string) => {
+  private onBoxSelect = (coordsStr: string): void => {
     const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
     const conf = getSampleConfig(coordsStr);
 
@@ -1182,11 +1187,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedAnnotationId: conf.refId, selectedElAnnFwd: '' });
   };
 
-  private onBoxDeSelect = () => {
+  private onBoxDeSelect = (): void => {
     this.setState({ selectedAnnotationId: '' });
   };
 
-  private initDomPicker(nestedFrames: HTMLIFrameElement[]) {
+  private initDomPicker(nestedFrames: HTMLIFrameElement[]): void {
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
