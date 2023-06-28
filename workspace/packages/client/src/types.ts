@@ -121,3 +121,8 @@ export const enum IdxAnnotationMutation {
   Config,
   MutationType,
 }
+
+export const enum Ops {
+  None = 0,
+  DuplicateTour
+}

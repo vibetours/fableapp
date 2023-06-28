@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-06-19 19:01:50.
+// Generated using typescript-generator version 2.35.1025 on 2023-06-27 21:30:38.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -14,9 +14,9 @@ export interface ReqCopyScreen {
     tourRid: string;
 }
 
-export interface ReqMediaProcess {
-    qualifiedPath?: string;
-    path: string;
+export interface ReqDuplicateTour {
+    duplicateTourName: string;
+    fromTourRid: string;
 }
 
 export interface ReqNewOrg {
@@ -87,14 +87,6 @@ export interface RespHealth extends ResponseBase {
     status: string;
 }
 
-export interface RespMediaProcessingInfo extends ResponseBase {
-    id: number;
-    fullFilePath: string;
-    transcodedFilePath: string;
-    processingState: MediaProcessingState;
-    failureReason: string;
-}
-
 export interface RespOrg extends ResponseBase {
     rid: string;
     displayName: string;
@@ -131,6 +123,7 @@ export interface RespTour extends ResponseBase {
 
 export interface RespTourWithScreens extends RespTour {
     screens: RespScreen[];
+    idxm?: { [index: string]: string };
 }
 
 export interface RespUploadUrl {
@@ -153,13 +146,6 @@ export interface RespUser extends ResponseBase {
 export interface ResponseBase {
     createdAt: Date;
     updatedAt: Date;
-}
-
-export const enum MediaProcessingState {
-    Failed = 0,
-    Touched = 1,
-    InProcess = 2,
-    Processed = 3,
 }
 
 export const enum SchemaVersion {

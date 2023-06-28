@@ -21,10 +21,11 @@ import {
   TTour,
   TTourWithData,
   TIAm,
-  TGetOrg
+  TGetOrg,
+  TOpsInProgress
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
-import { AllEdits, EditItem, ElEditType } from '../types';
+import { AllEdits, EditItem, ElEditType, Ops } from '../types';
 
 export const initialState: {
   inited: boolean;
@@ -47,6 +48,7 @@ export const initialState: {
   newScreenLoadingStatus: LoadingStatus;
   tourData: TourData | null;
   tourLoaded: boolean;
+  opsInProgress: Ops;
   // TODO remote + local edits in one state for one time consumption
   localEdits: Record<string, EditItem[]>;
   remoteEdits: Record<string, EditItem[]>;
@@ -78,6 +80,7 @@ export const initialState: {
   newScreenLoadingStatus: LoadingStatus.NotStarted,
   tourData: null,
   tourLoaded: false,
+  opsInProgress: Ops.None,
   localEdits: {},
   remoteEdits: {},
   localAnnotations: {},
@@ -167,11 +170,24 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
+    case ActionType.OPS_IN_PROGRESS: {
+      const tAction = action as TOpsInProgress;
+      const newState = { ...state };
+      newState.opsInProgress = tAction.ops;
+      return newState;
+    }
+
     case ActionType.TOUR: {
       const tAction = action as TTour;
       const newState = { ...state };
       newState.currentTour = tAction.tour;
-      if (tAction.performedAction === 'new') newState.newTourLoadingStatus = LoadingStatus.Done;
+      if (tAction.performedAction === 'new') {
+        newState.newTourLoadingStatus = LoadingStatus.Done;
+        const tours = newState.tours.slice(0);
+        tours.unshift(tAction.tour);
+        newState.tours = tours;
+      }
+      newState.opsInProgress = Ops.None;
       return newState;
     }
 

@@ -1,13 +1,23 @@
-import { BarChartOutlined, BranchesOutlined, CaretRightOutlined, DeleteOutlined, EditOutlined, MoreOutlined, NodeIndexOutlined, ShareAltOutlined } from '@ant-design/icons';
+import {
+  BarChartOutlined,
+  CaretRightOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+  NodeIndexOutlined,
+  ShareAltOutlined
+} from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { LoadingStatus } from '@fable/common/dist/types';
 import Button from 'antd/lib/button';
 import Modal from 'antd/lib/modal';
 import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import { createNewTour, getAllTours, renameTour } from '../../action/creator';
+import message from 'antd/lib/message';
+import { createNewTour, getAllTours, renameTour, duplicateTour } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Btn from '../../component/btn';
 import Header from '../../component/header';
@@ -17,30 +27,41 @@ import SkipLink from '../../component/skip-link';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
+import { Ops } from '../../types';
 import * as Tags from './styled';
 
 interface IDispatchProps {
   getAllTours: () => void;
   createNewTour: () => void;
   renameTour: (tour: P_RespTour, newVal: string) => void;
+  duplicateTour: (tour: P_RespTour, displayName: string) => void;
+}
+
+enum CtxAction {
+  NA = 'na',
+  Rename = 'rename',
+  Duplicate = 'duplicate'
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours()),
   createNewTour: () => dispatch(createNewTour(true)),
-  renameTour: (tour: P_RespTour, newVal: string) => dispatch(renameTour(tour, newVal)),
+  renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
+  duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
 });
 
 interface IAppStateProps {
   tours: P_RespTour[];
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
+  opsInProgress: Ops
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
+  opsInProgress: state.default.opsInProgress,
 });
 
 interface IOwnProps {
@@ -50,13 +71,15 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 interface IOwnStateProps {
   showModal: boolean;
   selectedTour: P_RespTour | null;
-  selectedTourName: string;
+  ctxAction: CtxAction;
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
+  renameOrDuplicateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
+
   constructor(props: IProps) {
     super(props);
-    this.state = { showModal: false, selectedTour: null, selectedTourName: '' };
+    this.state = { showModal: false, selectedTour: null, ctxAction: CtxAction.NA };
   }
 
   componentDidMount(): void {
@@ -64,30 +87,50 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
   }
 
-  handleShowModal = (e: React.MouseEvent<HTMLDivElement>, tour: P_RespTour) => {
-    this.setState({ selectedTour: tour, selectedTourName: tour.displayName, showModal: true });
-  };
-
-  handleModalOk = () => {
-    const newVal = this.state.selectedTourName.trim().replace(/\s+/, ' ');
-    if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
-      return;
+  componentDidUpdate(prevProps: Readonly<IProps>): void {
+    if (prevProps.opsInProgress !== this.props.opsInProgress) {
+      if (this.props.opsInProgress === Ops.DuplicateTour) {
+        message.warning({
+          content: 'Tour duplication is in progress! Please don\'t close this tab',
+        });
+      } else if (this.props.opsInProgress === Ops.None) {
+        message.info({
+          content: 'Duplication successful!',
+          duration: 2
+        });
+      }
     }
-    this.props.renameTour(this.state.selectedTour!, newVal);
-    this.state.selectedTour!.displayName = newVal;
-    this.setState({ selectedTour: null, selectedTourName: '', showModal: false });
+  }
+
+  handleShowModal = (tour: P_RespTour, ctxAction: CtxAction): void => {
+    this.setState({ selectedTour: tour, showModal: true, ctxAction });
   };
 
-  handleRenameTourFormSubmit = (e: React.FormEvent) => {
+  handleModalOk = (): void => {
+    const newVal = this.renameOrDuplicateIpRef.current!.value.trim().replace(/\s+/, ' ');
+    if (!newVal) return;
+    if (this.state.ctxAction === CtxAction.Rename) {
+      if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
+        return;
+      }
+      this.props.renameTour(this.state.selectedTour!, newVal);
+      this.state.selectedTour!.displayName = newVal;
+    } else if (this.state.ctxAction === CtxAction.Duplicate) {
+      this.props.duplicateTour(this.state.selectedTour!, newVal);
+    }
+    this.setState({ selectedTour: null, showModal: false, ctxAction: CtxAction.NA });
+  };
+
+  handleRenameOrDuplicateTourFormSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     this.handleModalOk();
   };
 
-  handleModalCancel = () => {
-    this.setState({ selectedTour: null, selectedTourName: '', showModal: false });
+  handleModalCancel = (): void => {
+    this.setState({ selectedTour: null, showModal: false, ctxAction: CtxAction.NA });
   };
 
-  render() {
+  render(): ReactElement {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
     return (
       <GTags.ColCon className="tour-con">
@@ -173,36 +216,30 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           <Tags.LaneGroup style={{ gap: '0' }}>
                             <Popover
                               content={
-                                <>
-                                  <GTags.PopoverMenuItem onClick={e => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                  }}
-                                  >
-                                    <ShareAltOutlined />&nbsp;&nbsp;&nbsp; Share / Embed Tour
+                                <div onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                }}
+                                >
+                                  <GTags.PopoverMenuItem onClick={e => { }}>
+                                    <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Tour
                                   </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItem onClick={e => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    this.handleShowModal(e, tour);
-                                  }}
-                                  >
+                                  <GTags.PopoverMenuItem onClick={e => this.handleShowModal(tour, CtxAction.Rename)}>
                                     <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Tour
+                                  </GTags.PopoverMenuItem>
+                                  <GTags.PopoverMenuItem onClick={e => this.handleShowModal(tour, CtxAction.Duplicate)}>
+                                    <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Tour
                                   </GTags.PopoverMenuItem>
                                   <GTags.PopoverMenuItemDivider color="#ff735050" />
                                   <GTags.PopoverMenuItem
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      window.alert('Delete :: Coming soon...');
-                                    }}
+                                    onClick={e => window.alert('Delete :: Coming soon...')}
                                     style={{
                                       color: '#ff7350'
                                     }}
                                   >
                                     <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Tour
                                   </GTags.PopoverMenuItem>
-                                </>
+                                </div>
                             }
                               trigger="focus"
                               placement="right"
@@ -232,30 +269,34 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </GTags.BodyCon>
           </GTags.MainCon>
         </GTags.RowCon>
-        <Modal
-          title="Rename Tour"
-          open={this.state.showModal}
-          onOk={this.handleModalOk}
-          onCancel={this.handleModalCancel}
-        >
-          <form onSubmit={this.handleRenameTourFormSubmit}>
-            <label htmlFor="renameTour">
-              What would you like to rename the selected tour?
-              <input
-                id="renameTour"
-                style={{
-                  marginTop: '0.75rem',
-                  fontSize: '1rem',
-                  padding: '0.75rem',
-                  borderRadius: '2px',
-                  width: 'calc(100% - 2rem)'
-                }}
-                value={this.state.selectedTourName}
-                onChange={e => this.setState({ selectedTourName: e.target.value })}
-              />
-            </label>
-          </form>
-        </Modal>
+        {this.state.ctxAction !== CtxAction.NA && (
+          <Modal
+            title={this.state.ctxAction === CtxAction.Rename ? 'Rename Tour' : 'Duplicate Tour'}
+            open={this.state.showModal}
+            onOk={this.handleModalOk}
+            onCancel={this.handleModalCancel}
+          >
+            <form onSubmit={this.handleRenameOrDuplicateTourFormSubmit}>
+              <label htmlFor="renameOrDuplicateTour">
+                {this.state.ctxAction === CtxAction.Rename
+                  ? 'Give a new name for this tour'
+                  : 'Choose a name for duplicated tour. A new tour would be created with this name'}
+                <input
+                  id="renameOrDuplicateTour"
+                  ref={this.renameOrDuplicateIpRef}
+                  style={{
+                    marginTop: '0.75rem',
+                    fontSize: '1rem',
+                    padding: '0.75rem',
+                    borderRadius: '2px',
+                    width: 'calc(100% - 2rem)'
+                  }}
+                  defaultValue={`${this.state.ctxAction === CtxAction.Rename ? '' : 'Copy of '}${this.state.selectedTour!.displayName}`}
+                />
+              </label>
+            </form>
+          </Modal>
+        )}
       </GTags.ColCon>
     );
   }

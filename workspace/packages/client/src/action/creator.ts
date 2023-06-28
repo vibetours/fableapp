@@ -16,7 +16,9 @@ import {
   RespUser,
   ResponseStatus,
   ReqUpdateUser,
-  ReqScreenTour
+  ReqScreenTour,
+  ReqDuplicateTour,
+  RespTourWithScreens
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -24,9 +26,10 @@ import {
   ITourDataOpts,
   ScreenData,
   TourData,
-  TourDataWoScheme
+  TourDataWoScheme,
+  TourScreenEntity,
 } from '@fable/common/dist/types';
-import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { deepcopy, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import {
@@ -41,7 +44,7 @@ import {
   P_RespTour
 } from '../entity-processor';
 import { TState } from '../reducer';
-import { AllEdits, EditItem, ElEditType } from '../types';
+import { AllEdits, EditItem, ElEditType, Ops } from '../types';
 import ActionType from './type';
 
 export interface TGenericLoading {
@@ -436,6 +439,83 @@ export function renameTour(tour: P_RespTour, newVal: string) {
       type: ActionType.TOUR,
       tour: renamedTour,
       performedAction: 'rename',
+    });
+  };
+}
+
+export interface TOpsInProgress {
+  type: ActionType.OPS_IN_PROGRESS;
+  ops: Ops
+}
+
+export function duplicateTour(tour: P_RespTour, newVal: string) {
+  return async (dispatch: Dispatch<TTour | TOpsInProgress>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.OPS_IN_PROGRESS,
+      ops: Ops.DuplicateTour,
+    });
+
+    const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens>>('/duptour', {
+      auth: true,
+      body: {
+        duplicateTourName: newVal,
+        fromTourRid: tour.rid,
+      },
+    });
+    const duplicatedTour = processRawTourData(data.data, getState());
+    const idxm = data.data.idxm;
+    if (idxm) {
+      const tourDataFile = await api<null, TourData>(duplicatedTour.dataFileUri.href);
+      // update the old screen index with new one
+      const newEntities: typeof tourDataFile.entities = {};
+      for (const [screenId, entity] of Object.entries(tourDataFile.entities)) {
+        if (screenId in idxm) {
+          const newEntity = deepcopy(entity);
+          const newScreenId = idxm[screenId];
+
+          if (newEntity.type === 'screen') {
+            const tNewEntity = newEntity as TourScreenEntity;
+            for (const ann of Object.values(tNewEntity.annotations)) {
+              for (const btn of ann.buttons) {
+                if (btn.hotspot && btn.hotspot.actionType === 'navigate') {
+                  const actionValueSplit = btn.hotspot.actionValue.split('/');
+                  if (actionValueSplit[0] in idxm) {
+                    actionValueSplit[0] = idxm[actionValueSplit[0]];
+                    btn.hotspot.actionValue = actionValueSplit.join('/');
+                  }
+                }
+              }
+            }
+          }
+
+          newEntity.ref = newScreenId;
+          newEntities[newScreenId] = newEntity;
+        } else {
+          newEntities[screenId] = entity;
+        }
+      }
+      tourDataFile.entities = newEntities;
+
+      if (tourDataFile.opts.main) {
+        const mainSplit = tourDataFile.opts.main.split('/');
+        if (mainSplit[0] in idxm) {
+          mainSplit[0] = idxm[mainSplit[0]];
+          tourDataFile.opts.main = mainSplit.join('/');
+        }
+      }
+
+      await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+        auth: true,
+        body: {
+          rid: duplicatedTour.rid,
+          editData: JSON.stringify(tourDataFile),
+        },
+      });
+    }
+    dispatch({
+      type: ActionType.TOUR,
+      tour: duplicatedTour,
+      performedAction: 'new',
     });
   };
 }

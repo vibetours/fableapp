@@ -4,7 +4,7 @@ import Button from 'antd/lib/button';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
-import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
+import { uploadVideoToAws /* , transcodeMedia */ } from './utils/upload-video-to-aws';
 import {
   IAnnotationConfigWithScreenId,
   updateAnnotationBoxSize,
