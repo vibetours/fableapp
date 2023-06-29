@@ -147,6 +147,7 @@ export default class DomElementPicker extends HighlighterBase {
   getOutOfPinMode() {
     this.highlightMode = HighlightMode.Selection;
     this.onElDeSelect(this.prevElHovered as HTMLElement, this.doc);
+    this.removeMaskIfPresent();
     return this;
   }
 

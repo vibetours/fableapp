@@ -832,18 +832,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           elSelRequestedBy: ElSelReqType.AnnotateEl,
           isInElSelectionMode: true,
           activeTab: tab,
+          selectedEl: null
         }));
         break;
       case TabList.Edits:
         this.setState((state) => ({
           elSelRequestedBy: ElSelReqType.EditEl,
           isInElSelectionMode: true,
-          activeTab: tab
+          activeTab: tab,
+          selectedAnnotationId: ''
         }));
         break;
       default:
         break;
     }
+    this.goToSelectionMode()();
   };
 
   navigateToAnnotation = (uri: string): void => {
@@ -1127,8 +1130,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private goToSelectionMode = () => () => {
     // todo[now] repeated code with onKeyDown method
-    if (this.iframeElManager && this.iframeElManager.getMode() === HighlightMode.Pinned) {
-      this.iframeElManager.getOutOfPinMode();
+    if (this.iframeElManager) {
+      if (this.iframeElManager.getMode() === HighlightMode.Pinned) {
+        this.iframeElManager.getOutOfPinMode();
+      } else {
+        this.iframeElManager.setSelectionMode();
+      }
     }
   };
 

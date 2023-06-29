@@ -178,7 +178,7 @@ const isEditToBeRemoved = (
       return editArray[IdxEncodingTypeBlur.NEW_BLUR_VALUE] === null;
 
     case ElEditType.Display:
-      return editArray[IdxEncodingTypeDisplay.OLD_VALUE] === null;
+      return editArray[IdxEncodingTypeDisplay.NEW_VALUE] === null;
 
     case ElEditType.Mask:
       return editArray[IdxEncodingTypeMask.NEW_STYLE] === null;

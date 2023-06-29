@@ -104,6 +104,7 @@ export default class ScreenImageBrusher extends DomElementPicker {
     this.highlightMode = HighlightMode.Selection;
     this.setBodyCursor('crosshair');
     this.onBoxDeSelect();
+    this.removeMaskIfPresent();
     return this;
   }
 
