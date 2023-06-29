@@ -35,7 +35,8 @@ import {
   SelectOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { ApiResp, ScreenType } from '@fable/common/dist/api-contract';
+import api from '@fable/common/dist/api';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
@@ -66,6 +67,7 @@ import AdvanceElementPicker from './advance-element.picker';
 import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { hotspotHelpText } from './helptexts';
+import { getWebFonts } from './utils/get-web-fonts';
 
 const { confirm } = Modal;
 
@@ -132,6 +134,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [hotspotElText, setHotspotElText] = useState<string>('');
+  const [webFonts, setWebFonts] = useState<string[]>([]);
 
   function isVideoAnnotation() {
     return !isBlankString(config.videoUrl)
@@ -142,6 +145,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const prevOpts = usePrevious(opts);
 
   const domElPicker = props.domElPicker!;
+
+  const loadWebFonts = async () => {
+    const data = await getWebFonts();
+    setWebFonts(data.items);
+  };
 
   useEffect(() => {
     if (
@@ -367,6 +375,49 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             />
           </Tags.ColorInputWrapper>
         </div>
+        <div style={commonActionPanelItemStyle}>
+          <GTags.Txt>Font color</GTags.Txt>
+          <Tags.ColorInputWrapper>
+            <div>
+              <Tags.InputColorCircle color={opts.annotationFontColor} />
+            </div>
+            <Input
+              defaultValue={opts.annotationFontColor}
+              size="small"
+              bordered={false}
+              onBlur={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.target.value));
+              }}
+            />
+          </Tags.ColorInputWrapper>
+        </div>
+        <div style={commonActionPanelItemStyle}>
+          <GTags.Txt>Font family</GTags.Txt>
+          <Tags.ActionPaneSelect
+            defaultValue={opts.annotationFontFamily}
+            placeholder="select font"
+            size="small"
+            bordered={false}
+            options={webFonts.map(v => ({
+              value: v,
+              label: v,
+            }))}
+            onChange={(e) => {
+              if (e) {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
+              } else {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
+              }
+            }}
+            style={{
+              minWidth: '100px',
+            }}
+            onClick={loadWebFonts}
+            notFoundContent="loading"
+            showSearch
+            allowClear
+          />
+        </div>
       </ActionPanel>
       <ActionPanel title="Buttons">
         {config.buttons.map(btnConf => {
@@ -380,6 +431,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     btnStyle={btnConf.style}
                     color={primaryColor}
                     size={btnConf.size}
+                    fontFamily={opts.annotationFontFamily}
                   >
                     {btnConf.text}
                   </ATags.ABtn>

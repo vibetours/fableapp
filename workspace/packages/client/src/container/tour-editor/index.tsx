@@ -16,7 +16,7 @@ import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
 import { RespUser, ScreenType } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined, CaretRightOutlined, ShareAltOutlined } from '@ant-design/icons';
-import err from '../../deffered-error';
+import { getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
 import {
   addImgScreenToCurrentTour,
   clearCurrentScreenSelection,
@@ -34,7 +34,6 @@ import {
 import * as GTags from '../../common-styled';
 import {
   IAnnotationConfigWithScreenId,
-  getDefaultTourOpts,
   updateButtonProp,
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
@@ -134,7 +133,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
       if (screen) {
         anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
       } else {
-        err(`screenId ${screenId} is part of tour config, but is not present as part of entity association`);
+        deferredErr(`screenId ${screenId} is part of tour config, but is not present as part of entity association`);
       }
     }
   }

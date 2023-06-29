@@ -5,6 +5,7 @@ import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import { isBlankString, isCoverAnnotation } from './annotation-config-utils';
 import * as VIDEO_ANN from './video-ann-constants';
+import { generateShadeColor } from './utils';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -79,6 +80,8 @@ export class AnnotationContent extends React.PureComponent<{
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
           <Tags.AnTextContent
             bodyTextSize={this.props.config.bodyTextSize}
+            fontFamily={this.props.opts.annotationFontFamily}
+            fontColor={this.props.opts.annotationFontColor}
             ref={this.contentRef}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
           />
@@ -89,7 +92,7 @@ export class AnnotationContent extends React.PureComponent<{
             alignItems: 'center',
             marginTop: '0.75rem',
             paddingTop: '1rem',
-            borderTop: '1px solid #dddddd'
+            borderTop: `1px solid ${generateShadeColor(this.props.opts.annotationBodyBackgroundColor)}`
           }}
           >
             {btns.sort((m, n) => m.order - n.order).map(btnConf => (
@@ -98,6 +101,7 @@ export class AnnotationContent extends React.PureComponent<{
                 btnStyle={btnConf.style}
                 color={this.props.opts.primaryColor}
                 size={btnConf.size}
+                fontFamily={this.props.opts.annotationFontFamily}
                 onClick={() => {
                   btnConf.hotspot && this.props.nav(
                     btnConf.hotspot.actionValue,
@@ -212,7 +216,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             playMode={this.props.playMode}
             annFollowPositions={{ top, left }}
             width={w}
-            height={h}
           />;
         }
         return <AnnotationContent
@@ -284,7 +287,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
         }}
         width={w}
-        height={h}
       />;
     }
 
@@ -366,7 +368,6 @@ interface VideoProps {
   playMode: boolean,
   annFollowPositions: {top: number, left: number},
   width: number;
-  height: number;
 }
 
 export class AnnotationVideo extends React.PureComponent<VideoProps> {
@@ -416,7 +417,6 @@ export class AnnotationVideo extends React.PureComponent<VideoProps> {
     return {
       ...styles,
       width: `${this.props.width}px`,
-      height: `${this.props.height}px`,
     };
   }
 

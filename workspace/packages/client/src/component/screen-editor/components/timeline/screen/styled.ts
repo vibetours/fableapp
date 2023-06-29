@@ -27,7 +27,7 @@ export const TextCon = styled.div`
 export const DisplayName = styled.h4`
   font-size: 1rem;
   line-height: 1.25rem;
-  font-weight: 500;
+  font-weight: 400;
   color: #16023E;
   margin: 0;
 `;

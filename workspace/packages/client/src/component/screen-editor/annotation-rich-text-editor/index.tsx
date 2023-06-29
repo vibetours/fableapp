@@ -11,13 +11,13 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { $rootTextContent } from '@lexical/text';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { EditorState, LexicalEditor, $getRoot, $insertNodes } from 'lexical';
+import { SaveOutlined } from '@ant-design/icons';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
 import Theme from './themes';
 import AutoLinkPlugin from './plugins/auto-link-plugin';
 import './styles.css';
 import { ImageNode } from './nodes/image-node';
-import { SaveOutlined } from '@ant-design/icons';
 
 function Placeholder() {
   return <div className="editor-placeholder">Enter annotation text</div>;

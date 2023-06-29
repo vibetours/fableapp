@@ -38,3 +38,64 @@ export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoa
 
   win.scrollTo(0, scrollStart);
 };
+
+const extractRGBValues = (color: string) : number[] => color.match(/\d+/g)!.map(Number);
+
+const expandHexValues = (hexValue: string) : string => {
+  const expandedHexValue = hexValue
+    .split('')
+    .map(char => char + char)
+    .join('');
+
+  return expandedHexValue;
+};
+const extractHexValuesToRGB = (color: string) : number[] => {
+  let hexValue = color.replace(/#/g, '');
+
+  if (hexValue.length === 3) {
+    hexValue = expandHexValues(hexValue);
+  }
+
+  let r = parseInt(hexValue.substring(0, 2), 16);
+  let g = parseInt(hexValue.substring(2, 4), 16);
+  let b = parseInt(hexValue.substring(4, 6), 16);
+
+  if (r === 0) r = 32;
+  if (g === 0) g = 32;
+  if (b === 0) b = 32;
+  return [r, g, b];
+};
+
+const extractColorValuesInRgb = (color: string): number[] => {
+  if (color.startsWith('rgb')) {
+    return extractRGBValues(color);
+  } if (color.startsWith('#')) {
+    return extractHexValuesToRGB(color);
+  }
+
+  return [];
+};
+
+const getShadedRGBColor = (color: string, percent: number): string => {
+  const rgbValues = extractColorValuesInRgb(color);
+  const shadedRgb = rgbValues.map(value => {
+    let newValue = value + percent;
+    newValue = Math.max(0, Math.min(255, newValue));
+    return newValue;
+  });
+  return `rgb(${shadedRgb.join(', ')})`;
+};
+
+const calculateLuminance = (color: string): number => {
+  const rgbValues = extractColorValuesInRgb(color);
+
+  const [r, g, b] = rgbValues;
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance;
+};
+
+export const generateShadeColor = (color: string): string => {
+  const luminance = calculateLuminance(color);
+  const percent = luminance > 0.5 ? -50 : 50;
+  return getShadedRGBColor(color, percent);
+};

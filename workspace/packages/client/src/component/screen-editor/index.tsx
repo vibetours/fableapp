@@ -11,7 +11,7 @@ import {
   CloudUploadOutlined
 } from '@ant-design/icons';
 import { IAnnotationConfig, ITourDataOpts, ScreenData, TourData, TourScreenEntity } from '@fable/common/dist/types';
-import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
 import Switch from 'antd/lib/switch';
 import React from 'react';
 import Modal from 'antd/lib/modal';
@@ -41,13 +41,7 @@ import {
 } from '../../types';
 import ActionPanel from './action-panel';
 import ListActionBtn from './list-action-btn';
-import {
-  cloneAnnotation,
-  getDefaultTourOpts,
-  getSampleConfig,
-  IAnnotationConfigWithScreenId,
-  replaceAnnotation
-} from '../annotation/annotation-config-utils';
+import { cloneAnnotation, IAnnotationConfigWithScreenId, replaceAnnotation } from '../annotation/annotation-config-utils';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';

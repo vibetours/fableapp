@@ -1,6 +1,7 @@
 import { ScreenData, SerNode } from '@fable/common/dist/types';
 import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import React from 'react';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
@@ -255,6 +256,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               });
               frameBody.style.visibility = 'visible';
               this.assetLoadingPromises.length = 0;
+              if (this.props.screen.type === ScreenType.Img) {
+                const screenImage = doc.getElementById('img');
+                if (screenImage && !screenImage.style.boxShadow) {
+                  screenImage.style.boxShadow = '0 0 5px 2px rgba(0, 0, 0, 0.3)';
+                }
+              }
               if (this.props.isScreenPreview) {
                 scrollIframeEls(this.props.screenData.version, doc);
               }

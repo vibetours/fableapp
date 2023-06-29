@@ -44,6 +44,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   extends React.PureComponent<IOwnProps, IOwnStateProps> {
   private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
+  private static readonly GF_FONT_FAMILY_LINK_ATTR = 'fable-data-gfi';
+
+  private static readonly FONT_FAMILY_STYLE_EL_ID = 'fable-data-cfm';
+
   private annotationLCM: AnnotationLifecycleManager | null = null;
 
   private readonly embedFrameRef: React.RefObject<HTMLIFrameElement | null>;
@@ -53,9 +57,55 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.embedFrameRef = React.createRef();
   }
 
+  addFont = (): void => {
+    const opts = this.props.tourDataOpts;
+    const el = this.embedFrameRef?.current;
+
+    const doc = el?.contentDocument;
+
+    if (doc !== undefined && doc !== null) {
+      if (opts.annotationFontFamily === null && this.props.screen.type === ScreenType.Img) {
+        // apply default font for img type screen
+        this.addFontLinkToHead(doc, 'IBM Plex Sans');
+        if (!doc.getElementById(ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID)) {
+          const style = doc.createElement('style');
+          style.setAttribute('id', ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID);
+          style.innerHTML = "body { font-family: 'IBM Plex Sans'; }";
+          doc.head.appendChild(style);
+        }
+      }
+
+      if (opts.annotationFontFamily !== null) {
+        this.addFontLinkToHead(doc, opts.annotationFontFamily);
+      }
+    }
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  private addFontLinkToHead = (doc: Document, annotationFontFamily: string): void => {
+    const linkHref = `https://fonts.googleapis.com/css?family=${annotationFontFamily.replace(/\s+/g, '+')}`;
+
+    const existingLinks = Array.from(doc.querySelectorAll(`link[${ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR}]`)) as HTMLLinkElement[];
+    const hasExistingLink = existingLinks.some((link) => link.href === linkHref);
+    if (hasExistingLink) return;
+
+    existingLinks.forEach((link) => {
+      link.remove();
+    });
+
+    const link = doc.createElement('link');
+    link.href = linkHref;
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.setAttribute(ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR, '');
+
+    doc.head.appendChild(link);
+  };
+
   onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }) => {
     this.initAnnotationLCM(params.nestedFrames);
     this.applyEdits(this.props.allEdits);
+    this.addFont();
     this.props.onBeforeFrameBodyDisplay(params);
   };
 
@@ -208,6 +258,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel
       this.reachAnnotation(this.props.toAnnotationId);
+    }
+
+    const opts = this.props.tourDataOpts;
+    const prevOpts = prevProps.tourDataOpts;
+    if (prevOpts.annotationFontFamily !== opts.annotationFontFamily) {
+      this.addFont();
     }
   }
 

@@ -197,62 +197,6 @@ export function addCustomBtn<T extends IAnnotationConfig>(config: T): T {
   return newConfig;
 }
 
-export function getDefaultTourOpts(): ITourDataOpts {
-  return {
-    main: '',
-    primaryColor: '#7567FF',
-    annotationBodyBackgroundColor: '#FFFFFF',
-    annotationBodyBorderColor: '#BDBDBD',
-    monoIncKey: 0,
-    createdAt: getCurrentUtcUnixTime(),
-    updatedAt: getCurrentUtcUnixTime(),
-  };
-}
-
-export function getSampleConfig(elPath: string): IAnnotationConfig {
-  const isCoverAnn = elPath === '$';
-  const id = getRandomId();
-
-  return {
-    id: isCoverAnn ? `$#${id}` : elPath,
-    refId: id,
-    createdAt: getCurrentUtcUnixTime(),
-    updatedAt: getCurrentUtcUnixTime(),
-    bodyContent: 'Write a description about what this feature of your product does to your user.',
-    displayText: 'Write a description about what this feature of your product does to your user.',
-    positioning: AnnotationPositions.Auto,
-    monoIncKey: 0,
-    syncPending: true,
-    type: isCoverAnn ? 'cover' : 'default',
-    size: isCoverAnn ? 'medium' : 'small',
-    isHotspot: false,
-    hideAnnotation: false,
-    bodyTextSize: AnnotationBodyTextSize.medium,
-    videoUrl: '',
-    hotspotElPath: null,
-    videoUrlMp4: '',
-    videoUrlWebm: '',
-    showOverlay: true,
-    buttons: [{
-      id: getRandomId(),
-      type: 'next',
-      style: AnnotationButtonStyle.Primary,
-      size: AnnotationButtonSize.Medium,
-      text: 'Next',
-      order: 9999,
-      hotspot: null,
-    }, {
-      id: getRandomId(),
-      type: 'prev',
-      style: AnnotationButtonStyle.Outline,
-      size: AnnotationButtonSize.Medium,
-      text: 'Back',
-      order: 0,
-      hotspot: null
-    }],
-  };
-}
-
 export function cloneAnnotation(elPath: string, from: IAnnotationConfig): IAnnotationConfig {
   const newConf: IAnnotationConfig = {
     ...from,

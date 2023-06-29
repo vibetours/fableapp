@@ -3,9 +3,9 @@ import Modal from 'antd/lib/modal';
 import api from '@fable/common/dist/api';
 import { ApiResp, ReqNewScreen, ReqThumbnailCreation, RespScreen, ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
+import { getImgScreenData } from '@fable/common/dist/utils';
 import * as Tags from './styled';
-import { uploadImageAsBinary, uploadImgToAws } from '../screen-editor/utils/upload-img-to-aws';
-import { getImgScreenData } from './utils';
+import { uploadImageAsBinary } from '../screen-editor/utils/upload-img-to-aws';
 
 type Props = {
     open: boolean;

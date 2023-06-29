@@ -1,5 +1,5 @@
 import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion, ScreenType } from '@fable/common/dist/api-contract';
-import { deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
+import { deepcopy, getDefaultTourOpts, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   AnnotationBodyTextSize,
   AnnotationPositions,
@@ -23,7 +23,7 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask
 } from './types';
-import { getDefaultTourOpts, isBlankString } from './component/annotation/annotation-config-utils';
+import { isBlankString } from './component/annotation/annotation-config-utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -157,7 +157,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
       annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>,
       data.opts
     ),
-    opts: data.opts,
+    opts: isLocal ? data.opts : normalizeBackwardCompatibilityForOpts(data.opts),
   };
 }
 
@@ -353,4 +353,20 @@ export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTy
     }
   }
   return editList;
+}
+
+export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITourDataOpts {
+  if (opts === null || opts === undefined) {
+    return opts;
+  }
+  const newOpts = { ...opts };
+  if (newOpts.annotationFontColor === undefined || newOpts.annotationFontColor === null) {
+    newOpts.annotationFontColor = '#424242';
+  }
+
+  if (newOpts.annotationFontFamily === undefined) {
+    newOpts.annotationFontFamily = null;
+  }
+
+  return newOpts;
 }

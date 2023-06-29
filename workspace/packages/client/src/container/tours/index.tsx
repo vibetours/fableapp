@@ -181,7 +181,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             <GTags.Txt className="faded">
                               Edited {tour.displayableUpdatedAt}
                             </GTags.Txt>
-                            <GTags.Avatar src={this.props.principal?.avatar} />
+                            <GTags.Avatar src={tour.createdBy.avatar} referrerPolicy="no-referrer" />
                           </Tags.LaneGroup>
                         </Tags.TourCardLane>
                         <Tags.TourCardLane style={{ justifyContent: 'space-between', marginTop: '0.75rem' }}>

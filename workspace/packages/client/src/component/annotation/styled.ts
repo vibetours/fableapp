@@ -27,7 +27,9 @@ export const AnContent = styled.div`
 `;
 
 interface AnTextContentProps {
-  bodyTextSize: AnnotationBodyTextSize
+  bodyTextSize: AnnotationBodyTextSize;
+  fontFamily: string | null;
+  fontColor: string | null;
 }
 
 export const AnTextContent = styled.div`
@@ -44,6 +46,8 @@ export const AnTextContent = styled.div`
   p {
     font-size: ${(props: AnTextContentProps) => `${props.bodyTextSize}px`};
     line-height: ${(props: AnTextContentProps) => `${parseFloat(props.bodyTextSize) * 1.4}px`};
+    font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'};
+  color: ${(p: AnTextContentProps) => `${p.fontColor}`};
   }
 `;
 
@@ -74,7 +78,7 @@ export const ABtn = styled.button`
     }
     return '0.2rem 0.45rem';
   }};
-
+  font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
     cursor: pointer;
     text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')};
@@ -85,6 +89,7 @@ export interface BtnConf {
   btnStyle: AnnotationButtonStyle;
   size: AnnotationButtonSize;
   color: string;
+  fontFamily: string | null;
 }
 
 function getColorContrast(hex: string): 'dark' | 'light' {

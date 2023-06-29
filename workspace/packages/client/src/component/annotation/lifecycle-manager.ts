@@ -1,11 +1,11 @@
 import ReactDOM, { Root } from 'react-dom/client';
-import { Coords, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
+import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import { getDefaultTourOpts } from './annotation-config-utils';
 import { NavFn } from '../../types';
 import { isBodyEl } from '../../utils';
 import { scrollToAnn } from './utils';
