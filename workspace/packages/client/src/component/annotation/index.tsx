@@ -3,9 +3,10 @@ import React from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
-import { isBlankString, isCoverAnnotation } from './annotation-config-utils';
+import AnnotationVideo from './video-player';
 import * as VIDEO_ANN from './video-ann-constants';
-import { generateShadeColor } from './utils';
+import { playVideoAnn, generateShadeColor } from './utils';
+import { isVideoAnnotation as isVideoAnn, isBlankString } from '../../utils';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -13,6 +14,8 @@ interface IProps {
   nav: NavFn,
   win: Window,
   playMode: boolean,
+  isNextAnnVideo: boolean,
+  isPrevAnnVideo: boolean,
 }
 
 export class AnnotationContent extends React.PureComponent<{
@@ -24,6 +27,8 @@ export class AnnotationContent extends React.PureComponent<{
   left: number,
   onRender?: (el: HTMLDivElement) => void,
   nav: NavFn,
+  isNextAnnVideo?: boolean,
+  isPrevAnnVideo?: boolean,
 }> {
   static readonly MIN_WIDTH = 320;
 
@@ -107,6 +112,16 @@ export class AnnotationContent extends React.PureComponent<{
                     btnConf.hotspot.actionValue,
                     btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
                   );
+
+                  if (this.props.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
+                    const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+                    playVideoAnn(screenId, annId);
+                  }
+
+                  if (this.props.isPrevAnnVideo && btnConf.type === 'prev' && btnConf.hotspot) {
+                    const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+                    playVideoAnn(screenId, annId);
+                  }
                 }}
               > {btnConf.text}
               </Tags.ABtn>
@@ -125,22 +140,23 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
   render() {
-    const config = this.props.annotationDisplayConfig.config;
-    const isVideoAnnotation = !isBlankString(config.videoUrl)
-    || (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm));
+    const displayConfig = this.props.annotationDisplayConfig;
+    const config = displayConfig.config;
+    const isVideoAnnotation = isVideoAnn(config);
     const isCoverAnn = config.type === 'cover';
 
     let l = -9999;
     let t = -9999;
-    let w = 0;
-    let h = 0;
-    if (this.props.annotationDisplayConfig.isInViewPort) {
+    let w = displayConfig.prerender ? this.props.box.width : 0;
+    let h = displayConfig.prerender ? this.props.box.height : 0;
+    if (displayConfig.isInViewPort) {
       const elBox = this.props.box;
       const winW = this.props.annotationDisplayConfig.windowWidth;
       const winH = this.props.annotationDisplayConfig.windowHeight;
 
       const boxSize = this.props.annotationDisplayConfig.config.size;
 
+      // TODO this is very complex. measurement calculation and rendering is intertwined. Fix this.
       if (boxSize === 'small') {
         w = this.props.annotationDisplayConfig.dimForSmallAnnotation.w;
         h = this.props.annotationDisplayConfig.dimForSmallAnnotation.h;
@@ -212,10 +228,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         if (isVideoAnnotation) {
           return <AnnotationVideo
             nav={this.props.nav}
-            annotationDisplayConfig={this.props.annotationDisplayConfig}
+            conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{ top, left }}
             width={w}
+            isNextAnnVideo={this.props.isNextAnnVideo}
           />;
         }
         return <AnnotationContent
@@ -226,6 +243,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           width={w}
           top={top}
           left={left}
+          isNextAnnVideo={this.props.isNextAnnVideo}
+          isPrevAnnVideo={this.props.isPrevAnnVideo}
         />;
       }
 
@@ -280,13 +299,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (isVideoAnnotation) {
       return <AnnotationVideo
         nav={this.props.nav}
-        annotationDisplayConfig={this.props.annotationDisplayConfig}
+        conf={this.props.annotationDisplayConfig}
         playMode={this.props.playMode}
         annFollowPositions={{
           top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
           left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
         }}
         width={w}
+        isNextAnnVideo={this.props.isNextAnnVideo}
       />;
     }
 
@@ -299,6 +319,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       width={w}
       top={t + this.props.win.scrollY}
       left={l + this.props.win.scrollX}
+      isNextAnnVideo={this.props.isNextAnnVideo}
+      isPrevAnnVideo={this.props.isPrevAnnVideo}
     />;
   }
 }
@@ -308,6 +330,8 @@ export interface IAnnoationDisplayConfig {
   opts: ITourDataOpts,
   isMaximized: boolean;
   isInViewPort: boolean;
+  prerender: boolean;
+  isVideoAnnotation: boolean;
   dimForSmallAnnotation: {w: number, h: number};
   dimForMediumAnnotation: {w: number, h: number};
   dimForLargeAnnotation: {w: number, h: number};
@@ -315,14 +339,30 @@ export interface IAnnoationDisplayConfig {
   windowWidth: number;
 }
 
+export interface IAnnProps {
+  box: Rect,
+  conf: IAnnoationDisplayConfig,
+  isNextAnnVideo: boolean,
+  isPrevAnnVideo: boolean,
+  hotspotBox?: Rect | null
+}
+
 interface IConProps {
-  data: Array<{conf: IAnnoationDisplayConfig, box: Rect, hotspotBox: Rect | null}>,
+  data: Array<IAnnProps>,
   nav: NavFn,
   win: Window,
   playMode: boolean
 }
+
 interface HotspotProps {
-  data: Array<{conf: IAnnotationConfig, box: Rect, scrollX: number, scrollY: number, isGranularHotspot: boolean}>,
+  data: Array<{
+    conf: IAnnotationConfig,
+    box: Rect,
+    scrollX: number,
+    scrollY: number,
+    isGranularHotspot: boolean,
+    isNextAnnVideo: boolean
+  }>,
   nav: NavFn,
   playMode: boolean,
 }
@@ -352,6 +392,10 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
                 btnConf.hotspot.actionValue,
                 btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
               );
+              if (p.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
+                const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+                playVideoAnn(screenId, annId);
+              }
             }}
           />
         );
@@ -362,122 +406,10 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
   }
 }
 
-interface VideoProps {
-  annotationDisplayConfig: IAnnoationDisplayConfig;
-  nav: NavFn,
-  playMode: boolean,
-  annFollowPositions: {top: number, left: number},
-  width: number;
-}
-
-export class AnnotationVideo extends React.PureComponent<VideoProps> {
-  getAnnotationBorder() {
-    const borderColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
-    const defaultBorderColor = '#BDBDBD';
-
-    const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
-    const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
-
-    return `0 0 ${blur} ${spread} ${borderColor}`;
-  }
-
-  getPositioningAndSizingStyles() {
-    const position = this.props.annotationDisplayConfig.config.positioning;
-    const isCover = isCoverAnnotation(this.props.annotationDisplayConfig.config.id);
-    const offsetPosition = '20px';
-
-    let styles = {};
-    switch (position) {
-      case VideoAnnotationPositions.BottomRight:
-        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
-        break;
-      case VideoAnnotationPositions.BottomLeft:
-        styles = { ...styles, bottom: offsetPosition, left: offsetPosition };
-        break;
-      case VideoAnnotationPositions.Center:
-        styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
-        break;
-      case VideoAnnotationPositions.Follow: {
-        if (isCover) {
-          styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
-        } else {
-          styles = {
-            ...styles,
-            top: `${this.props.annFollowPositions.top}px`,
-            left: `${this.props.annFollowPositions.left}px`
-          };
-        }
-        break;
-      }
-      default:
-        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
-        break;
-    }
-
-    return {
-      ...styles,
-      width: `${this.props.width}px`,
-    };
-  }
-
-  render() {
-    const btnConf = this.props.annotationDisplayConfig.config.buttons.filter(button => button.type === 'next')[0];
-
-    const config = this.props.annotationDisplayConfig.config;
-
-    const isCover = isCoverAnnotation(config.id);
-
-    if (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm)) {
-      return (
-        <Tags.AnVideo
-          autoPlay
-          border={this.getAnnotationBorder()}
-          isCover={isCover}
-          className="fable-video"
-          style={{ ...this.getPositioningAndSizingStyles() }}
-          onEnded={() => {
-            if (!this.props.playMode) {
-              return;
-            }
-            btnConf.hotspot && this.props.nav(
-              btnConf.hotspot.actionValue,
-              btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-            );
-          }}
-        >
-          {/* <source src={config.videoUrlMp4} type="video/mp4" /> */}
-          <source src={config.videoUrlWebm} type="video/webm" />
-        </Tags.AnVideo>
-      );
-    }
-
-    return (
-      <Tags.AnVideo
-        autoPlay
-        border={this.getAnnotationBorder()}
-        isCover={isCover}
-        className="fable-video"
-        style={{ ...this.getPositioningAndSizingStyles() }}
-        onEnded={() => {
-          if (!this.props.playMode) {
-            return;
-          }
-          btnConf.hotspot && this.props.nav(
-            btnConf.hotspot.actionValue,
-            btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-          );
-        }}
-      >
-        <source src={this.props.annotationDisplayConfig.config.videoUrl} />
-      </Tags.AnVideo>
-    );
-  }
-}
-
 export class AnnotationCon extends React.PureComponent<IConProps> {
   render() {
     return this.props.data.map((p) => {
-      if (!p.conf.isMaximized) {
+      if (!p.conf.isMaximized && !p.conf.prerender) {
         // return <AnnotationBubble
         //   key={p.conf.config.id}
         //   annotationDisplayConfig={p.conf}
@@ -487,7 +419,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         return <div key={p.conf.config.id} />;
       }
 
-      const hideAnnotation = p.conf.config.hideAnnotation;
+      const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
       return (
@@ -500,6 +432,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 scrollX: this.props.win.scrollX,
                 scrollY: this.props.win.scrollY,
                 isGranularHotspot,
+                isNextAnnVideo: p.isNextAnnVideo,
               }]}
               nav={this.props.nav}
               playMode={this.props.playMode}
@@ -511,6 +444,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             nav={this.props.nav}
             win={this.props.win}
             playMode={this.props.playMode}
+            isNextAnnVideo={p.isNextAnnVideo}
+            isPrevAnnVideo={p.isPrevAnnVideo}
           />}
         </div>
       );

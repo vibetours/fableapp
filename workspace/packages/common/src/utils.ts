@@ -114,7 +114,8 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
     isHotspot: false,
     hideAnnotation: false,
     bodyTextSize: AnnotationBodyTextSize.medium,
-    videoUrl: '',
+    videoUrl: '', // legacy
+    videoUrlHls: '',
     videoUrlMp4: '',
     videoUrlWebm: '',
     showOverlay: true,

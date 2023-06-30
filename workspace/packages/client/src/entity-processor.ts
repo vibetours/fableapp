@@ -23,7 +23,7 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask
 } from './types';
-import { isBlankString } from './component/annotation/annotation-config-utils';
+import { isBlankString, isVideoAnnotation as isVideoAnn } from './utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -225,6 +225,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     bodyTextSize: lc.bodyTextSize,
     videoUrl: lc.videoUrl,
     hotspotElPath: lc.hotspotElPath,
+    videoUrlHls: lc.videoUrlHls,
     videoUrlMp4: lc.videoUrlMp4,
     videoUrlWebm: lc.videoUrlWebm,
     showOverlay: lc.showOverlay,
@@ -270,13 +271,15 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig, opts
     an.videoUrlMp4 = '';
   }
 
+  if (an.videoUrlHls === undefined || an.videoUrlHls === null) {
+    an.videoUrlHls = '';
+  }
+
   if (an.videoUrlWebm === undefined || an.videoUrlWebm === null) {
     an.videoUrlWebm = '';
   }
 
-  const isVideoAnnotation = !isBlankString(an.videoUrl)
-  || (!isBlankString(an.videoUrlMp4) && !isBlankString(an.videoUrlWebm));
-
+  const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);
   if (isVideoAnnotation && an.positioning === AnnotationPositions.Auto) {
     an.positioning = VideoAnnotationPositions.BottomRight;
   }

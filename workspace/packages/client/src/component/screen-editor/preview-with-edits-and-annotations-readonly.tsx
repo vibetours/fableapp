@@ -3,6 +3,7 @@ import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { P_RespScreen } from '../../entity-processor';
 import {
+  AnnotationPerScreen,
   EditItem, ElEditType,
   EncodingTypeBlur,
   EncodingTypeDisplay,
@@ -20,6 +21,7 @@ import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
+import { isVideoAnnotation } from '../../utils';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -35,6 +37,7 @@ export interface IOwnProps {
   toAnnotationId: string;
   hidden?: boolean;
   onFrameAssetLoad: FrameAssetLoadFn;
+  allAnnotationsForTour: AnnotationPerScreen[];
 }
 
 interface IOwnStateProps {
@@ -192,7 +195,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
             navigate: this.props.navigate,
             isPlayMode: this.props.playMode,
           },
-          this.props.screen.type
+          this.props.screen.type,
+          this.props.allAnnotationsForTour,
+          this.props.allAnnotationsForScreen,
+          this.props.tourDataOpts,
         );
       }
     } else {

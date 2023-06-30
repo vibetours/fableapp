@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-06-27 21:30:38.
+// Generated using typescript-generator version 2.35.1025 on 2023-06-29 21:29:12.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -9,14 +9,54 @@ export interface ApiResp<T> {
     errCode: ErrorCode;
 }
 
-export interface ReqCopyScreen {
-    parentId: number;
-    tourRid: string;
+export interface EntityHoldingInfoBase extends Serializable {
+    __id: number;
+    type: string;
+}
+
+export interface ImgResizingJobInfo extends JobProcessingInfo {
+    sourceFilePath: string;
+    processedFilePath: string;
+    resolution: string;
+}
+
+export interface JobProcessingInfo extends MapSerializable {
+    __id: number;
+    duration: string;
+    key: string;
+    type: string;
+}
+
+export interface MediaTypeEntityHolding extends EntityHoldingInfoBase {
+    fullFilePaths: string[];
+    deletable: boolean;
 }
 
 export interface ReqDuplicateTour {
     duplicateTourName: string;
     fromTourRid: string;
+}
+
+export interface VideoTranscodingJobInfo extends JobProcessingInfo {
+    sourceFilePath: string;
+    processedFilePath: string;
+    sub: VideoProcessingSub;
+    meta: string;
+}
+
+export interface ReqCopyScreen {
+    parentId: number;
+    tourRid: string;
+}
+
+export interface ReqEntityAssetAssn {
+    entityRid: string;
+    entityType: EntityType;
+}
+
+export interface ReqMediaProcessing {
+    path: string;
+    assn: ReqEntityAssetAssn;
 }
 
 export interface ReqNewOrg {
@@ -87,6 +127,15 @@ export interface RespHealth extends ResponseBase {
     status: string;
 }
 
+export interface RespMediaProcessingInfo extends ResponseBase {
+    jobId: number;
+    originalFilePath: string;
+    mediaType: MediaType;
+    processedFilePath: string;
+    processingState: JobProcessingStatus;
+    failureReason: string;
+}
+
 export interface RespOrg extends ResponseBase {
     rid: string;
     displayName: string;
@@ -143,9 +192,32 @@ export interface RespUser extends ResponseBase {
     orgAssociation: UserOrgAssociation;
 }
 
+export interface Serializable {
+}
+
+export interface MapSerializable extends Serializable {
+}
+
 export interface ResponseBase {
     createdAt: Date;
     updatedAt: Date;
+}
+
+export const enum EntityType {
+    Screen = 0,
+    Tour = 1,
+}
+
+export const enum JobProcessingStatus {
+    Failed = 0,
+    Touched = 1,
+    InProcess = 2,
+    Processed = 3,
+}
+
+export const enum JobType {
+    TRANSCODE_VIDEO = "TRANSCODE_VIDEO",
+    RESIZE_IMG = "RESIZE_IMG",
 }
 
 export const enum SchemaVersion {
@@ -155,6 +227,17 @@ export const enum SchemaVersion {
 export const enum ScreenType {
     Img = 0,
     SerDom = 1,
+}
+
+export const enum VideoProcessingSub {
+    CONVERT_TO_MP4 = "CONVERT_TO_MP4",
+    CONVERT_TO_HLS = "CONVERT_TO_HLS",
+}
+
+export const enum MediaType {
+    VIDEO_HLS = "VIDEO_HLS",
+    VIDEO_MP4 = "VIDEO_MP4",
+    IMG_MULTI = "IMG_MULTI",
 }
 
 export const enum ResponseStatus {

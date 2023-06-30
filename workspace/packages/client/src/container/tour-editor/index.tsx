@@ -45,7 +45,7 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourDataChangeFn, NavFn } from '../../types';
 import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
-import { openTourExternalLink } from '../../utils';
+import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import HeartLoader from '../../component/loader/heart';
 import deferredErr from '../../deffered-error';
 
@@ -107,45 +107,6 @@ interface IAppStateProps {
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
-  const anPerScreen: AnnotationPerScreen[] = [];
-  const combinedAnnotations: Record<string, IAnnotationConfig> = {};
-  for (const [screenId, anns] of Object.entries(state.default.localAnnotations)) {
-    for (const an of anns) {
-      combinedAnnotations[`${screenId}/${an.refId}`] = an;
-    }
-  }
-  for (const [screenId, anns] of Object.entries(state.default.remoteAnnotations)) {
-    for (const an of anns) {
-      const key = `${screenId}/${an.refId}`;
-      if (!(key in combinedAnnotations)) {
-        combinedAnnotations[key] = an;
-      }
-    }
-  }
-  const screenAnMap: Record<string, IAnnotationConfig[]> = {};
-  for (const [qId, an] of Object.entries(combinedAnnotations)) {
-    const [screenId] = qId.split('/');
-    if (screenId in screenAnMap) {
-      screenAnMap[screenId].push(an);
-    } else {
-      screenAnMap[screenId] = [an];
-      const screen = state.default.allScreens.find(s => s.id === +screenId);
-      if (screen) {
-        anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
-      } else {
-        deferredErr(`screenId ${screenId} is part of tour config, but is not present as part of entity association`);
-      }
-    }
-  }
-  // If there are screen present as part of a tour but no annotation is yet made then also we
-  // show this
-  const screensForTours = state.default.currentTour?.screens || [];
-  for (const screen of screensForTours) {
-    if (!(screen.id in screenAnMap)) {
-      anPerScreen.push({ screen, annotations: [] });
-    }
-  }
-
   let allAnnotationsForScreen = [
     ...(state.default.currentScreen?.id ? state.default.localAnnotations[state.default.currentScreen.id] || [] : []),
     ...(state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : []),
@@ -191,7 +152,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     tourData: state.default.tourData,
     allEdits,
     allAnnotationsForScreen,
-    allAnnotationsForTour: anPerScreen,
+    allAnnotationsForTour: getAnnotationsPerScreen(state),
     tourOpts: state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts(),
     principal: state.default.principal,
   };
@@ -502,6 +463,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             <ScreenEditor
               key={this.props.screen!.rid}
               screen={this.props.screen!}
+              tour={this.props.tour!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId || ''}

@@ -5,10 +5,10 @@ import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
-import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent } from '.';
-import { NavFn } from '../../types';
-import { isBodyEl } from '../../utils';
-import { scrollToAnn } from './utils';
+import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
+import { AnnotationPerScreen, NavFn } from '../../types';
+import { isBodyEl, isVideoAnnotation } from '../../utils';
+import { isPrevNextBtnLinksToVideoAnn, scrollToAnn } from './utils';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -50,12 +50,21 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private screenType: ScreenType;
 
+  private allAnnotationsForTour: AnnotationPerScreen[];
+
+  private allAnnotationsForScreen: IAnnotationConfig[];
+
+  private tourDataOpts: ITourDataOpts;
+
   // Take the initial annotation config from here
   constructor(
     doc: Document,
     nestedFrames: HTMLIFrameElement[],
     opts: { navigate: NavFn, isPlayMode: boolean },
-    screenType: ScreenType
+    screenType: ScreenType,
+    allAnnotationsForTour: AnnotationPerScreen[],
+    allAnnotationsForScreen: IAnnotationConfig[],
+    tourDataOpts: ITourDataOpts,
   ) {
     super(doc, nestedFrames);
     this.nav = opts.navigate;
@@ -64,7 +73,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
     };
     this.annotationElMap = {};
-    const [con, root] = this.createContainerRoot('ann-display');
+    const [con, root] = this.createContainerRoot('');
     const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
     this.con = con;
     this.rRoot = root;
@@ -73,6 +82,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.mode = AnnotationViewMode.Hide;
     this.isPlayMode = opts.isPlayMode;
     this.screenType = screenType;
+    this.allAnnotationsForTour = allAnnotationsForTour;
+    this.allAnnotationsForScreen = allAnnotationsForScreen;
+    this.tourDataOpts = tourDataOpts;
+    this.prerenderVideoAnnotations();
   }
 
   private hideAllAnnotations() {
@@ -105,7 +118,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     };
   }
 
-  show() {
+  show(): void {
     if (this.mode === AnnotationViewMode.Show) {
       return;
     }
@@ -137,9 +150,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.con!.style.visibility = 'visible';
   };
 
-  private createContainerRoot(type: 'ann-display' | 'ann-probe' = 'ann-display'): [HTMLDivElement, Root] {
+  private createContainerRoot(type: '' | 'ann-probe' | 'ann-video' = ''): [HTMLDivElement, Root] {
     const con = this.doc.createElement('div');
-    con.setAttribute('class', `fable-annotations-${type === 'ann-probe' ? 'probe-' : ''}container`);
+    con.setAttribute('class', `fable-annotations-${type}-container`);
     con.setAttribute('fable-ignr-sel', 'true');
     con.style.position = 'absolute';
     con.style.left = '0';
@@ -151,22 +164,18 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   showAnnotationFor(el: HTMLElement, config: IAnnotationConfig) {
-    let currId: string;
-    if (this.screenType === ScreenType.Img && config.type === 'default') {
-      currId = config.id;
-    } else {
-      // TODO: check if config.id has the elpath
-      currId = this.elPath(el);
-    }
+    const currId = config.id;
 
     for (const [id, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       annotationDisplayConfig.opts = this.opts;
       if (id === currId) {
         annotationDisplayConfig.isMaximized = true;
         annotationDisplayConfig.isInViewPort = true;
+        annotationDisplayConfig.prerender = false;
       } else {
         annotationDisplayConfig.isMaximized = false;
         annotationDisplayConfig.isInViewPort = false;
+        annotationDisplayConfig.prerender = annotationDisplayConfig.isVideoAnnotation;
       }
     }
 
@@ -211,12 +220,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (this.componentDisposed) {
       return;
     }
-    const props: ({
-      box: Rect,
-      conf: IAnnoationDisplayConfig,
-      hotspotBox: Rect | null,
-    })[] = [];
-    for (const [, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
+    const props: IAnnProps[] = [];
+
+    for (const [_, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       let box: Rect;
       if (this.screenType === ScreenType.Img && annotationDisplayConfig.config.type === 'default') {
         const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
@@ -230,10 +236,18 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (hotspotElPath) {
         hotspotEl = this.elFromPath(hotspotElPath);
       }
+
+      const {
+        isNextAnnVideo,
+        isPrevAnnVideo,
+      } = isPrevNextBtnLinksToVideoAnn(annotationDisplayConfig.config, this.allAnnotationsForTour);
+
       props.push({
         box,
         conf: annotationDisplayConfig,
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
+        isNextAnnVideo,
+        isPrevAnnVideo,
       });
       if (annotationDisplayConfig.isMaximized) {
         if (annotationDisplayConfig.config.type === 'cover') {
@@ -272,13 +286,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.isAnnotationDrawingInProgress = true;
     const dim = await this.probeForAnnotationSize(config);
 
-    let key : string;
-    if (this.screenType === ScreenType.Img && config.type === 'default') {
-      key = config.id;
-    } else {
-      key = this.elPath(el);
-    }
-
+    const key = config.id;
     if (!this.componentDisposed) {
       this.opts = opts;
       this.annotationElMap[key] = [el, {
@@ -286,6 +294,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         opts,
         isMaximized: false,
         isInViewPort: false,
+        prerender: false,
+        isVideoAnnotation: isVideoAnnotation(config),
         dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
         dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
         dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
@@ -300,6 +310,67 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     this.isAnnotationDrawingInProgress = false;
     return this;
+  }
+
+  private prerenderVideoAnnotations() {
+    const videoAnnotations = this.allAnnotationsForScreen.filter((config) => isVideoAnnotation(config));
+
+    const videoAnnsProps: IAnnProps[] = videoAnnotations.map(config => {
+      const displayConf = {
+        config,
+        opts: this.tourDataOpts,
+        isMaximized: false,
+        isInViewPort: false,
+        prerender: true,
+        isVideoAnnotation: true,
+        dimForSmallAnnotation: { w: 10, h: 10 },
+        dimForMediumAnnotation: { w: 10, h: 10 },
+        dimForLargeAnnotation: { w: 10, h: 10 },
+        windowHeight: this.vp.h,
+        windowWidth: this.vp.w,
+      };
+
+      let el: HTMLElement;
+      const key = config.id;
+      if (this.screenType === ScreenType.Img && config.type === 'default') {
+        el = document.querySelector('img')!;
+      } else if (config.type === 'cover') {
+        el = this.doc.querySelector('body')!;
+      } else {
+        el = this.elFromPath(config.id)!;
+      }
+
+      this.annotationElMap[key] = [el, displayConf];
+
+      return {
+        box: {
+          x: 10,
+          y: 10,
+          height: 10,
+          width: 10,
+          top: 10,
+          bottom: 10,
+          left: 10,
+          right: 10,
+        },
+        conf: displayConf,
+        isNextAnnVideo: false,
+        isPrevAnnVideo: false,
+      };
+    });
+
+    this.rRoot.render(
+      React.createElement(
+        StyleSheetManager,
+        { target: this.doc.head },
+        React.createElement(AnnotationCon, {
+          data: videoAnnsProps,
+          nav: this.nav,
+          win: this.win,
+          playMode: this.isPlayMode
+        })
+      )
+    );
   }
 
   private async probeForAnnotationSize(config: IAnnotationConfig): Promise<{

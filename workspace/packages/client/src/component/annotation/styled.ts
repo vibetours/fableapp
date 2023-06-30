@@ -129,11 +129,35 @@ export const AnHotspot = styled.div`
 
 interface AnVideoProps {
   border: string;
-  isCover: boolean;
 }
 
-export const AnVideo = styled.video`
+const slideIn = keyframes`
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0%);
+    opacity: 1;
+  }
+`;
+
+const slideOut = keyframes`
+  from {
+    transform: translateX(0%);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+`;
+
+export const AnVideo = styled.video<{ out: 'slidein' | 'slideout', border: string}>`
   position: fixed;
   border-radius: 8px;
-  box-shadow: ${(p: AnVideoProps) => `${p.border}`};
+  box-shadow: ${p => `${p.border}`};
+  animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.1s linear;
 `;

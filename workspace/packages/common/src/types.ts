@@ -188,6 +188,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   bodyTextSize: AnnotationBodyTextSize;
   videoUrl: string;
   hotspotElPath: string | null;
+  videoUrlHls: string;
   videoUrlMp4: string;
   videoUrlWebm: string;
   showOverlay: boolean;

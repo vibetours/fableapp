@@ -83,6 +83,7 @@ interface IOwnProps {
   screenData: ScreenData;
   allEdits: EditItem[];
   allAnnotationsForScreen: IAnnotationConfig[];
+  tour: P_RespTour;
   tourDataOpts: ITourDataOpts;
   createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
   timelineConfig: ITimelineConfig;
@@ -871,6 +872,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             allEdits={this.props.allEdits}
             toAnnotationId={this.state.selectedAnnotationId}
             onFrameAssetLoad={this.onFrameAssetLoad}
+            allAnnotationsForTour={this.props.allAnnotationsForTour}
           />
         </GTags.EmbedCon>
 
@@ -991,6 +993,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           {this.state.selectedAnnotationId === config.refId && (
                             <div style={{ color: 'black' }}>
                               <AnnotationCreatorPanel
+                                tour={this.props.tour}
                                 config={config}
                                 opts={this.props.tourDataOpts}
                                 allAnnotationsForTour={this.props.allAnnotationsForTour}

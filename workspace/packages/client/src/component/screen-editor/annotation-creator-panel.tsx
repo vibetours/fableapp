@@ -54,12 +54,11 @@ import {
   updateAnnotationHideAnnotation,
   updateAnnotationVideoURL,
   updateAnnotationHotspotElPath,
-  isBlankString,
   updateAnnotationPositioning,
   updateOverlay,
   IAnnotationConfigWithScreenId,
 } from '../annotation/annotation-config-utils';
-import { P_RespScreen } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import AnnotationRichTextEditor from './annotation-rich-text-editor';
 import { AnnotationMutationType, AnnotationPerScreen, IdxAnnotationMutation } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
@@ -68,6 +67,7 @@ import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { hotspotHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
+import { isVideoAnnotation } from '../../utils';
 
 const { confirm } = Modal;
 
@@ -75,6 +75,7 @@ interface IProps {
   screen: P_RespScreen,
   config: IAnnotationConfigWithScreenId,
   opts: ITourDataOpts,
+  tour: P_RespTour,
   allAnnotationsForTour: AnnotationPerScreen[],
   onSideEffectConfigChange: (screenId: number, config: IAnnotationConfig, actionType: AnnotationMutationType) => void;
   onConfigChange: (
@@ -135,11 +136,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [hotspotElText, setHotspotElText] = useState<string>('');
   const [webFonts, setWebFonts] = useState<string[]>([]);
-
-  function isVideoAnnotation() {
-    return !isBlankString(config.videoUrl)
-    || (!isBlankString(config.videoUrlMp4) && !isBlankString(config.videoUrlWebm));
-  }
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -236,9 +232,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     setNewHotspotSelected(true);
   };
 
-  // TODO[siddhi] sometime videourl is blank and videoUrlMp4 and videoUrlMp4 is present.
-  // video url should always be present
-  const videoUrl = () => config.videoUrl || config.videoUrlMp4 || config.videoUrlWebm;
+  const videoAnn = isVideoAnnotation(config);
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
   return (
@@ -264,13 +258,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             defaultValue={config.videoUrl}
             style={{ ...commonInputStyles, border: 'none', padding: 'none', flexGrow: 1 }}
             onClick={() => setShowVideoRecorder(true)}
-            icon={videoUrl() ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
+            icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
           >
-            {videoUrl() ? 'Record Again' : 'Record Video'}
+            {videoAnn ? 'Record Again' : 'Record Video'}
           </Tags.ActionPaneBtn>
         </div>
         {showVideoRecorder && (
         <VideoRecorder
+          tour={props.tour}
           closeRecorder={() => setShowVideoRecorder(false)}
           setConfig={setConfig}
         />
@@ -283,7 +278,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             defaultValue={config.positioning}
             size="small"
             bordered={false}
-            options={isVideoAnnotation() ? Object.values(VideoAnnotationPositions).map(v => ({
+            options={isVideoAnnotation(config) ? Object.values(VideoAnnotationPositions).map(v => ({
               value: v,
               label: v,
             })) : Object.values(AnnotationPositions).map(v => ({
@@ -302,10 +297,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             defaultValue={config.size ?? 'small'}
             size="small"
             bordered={false}
-            options={Object.values(isVideoAnnotation() ? ['medium', 'large'] : ['small', 'medium', 'large']).map(v => ({
-              value: v,
-              label: `${v}`
-            }))}
+            options={Object.values(isVideoAnnotation(config)
+              ? ['medium', 'large']
+              : ['small', 'medium', 'large'])
+              .map(v => ({
+                value: v,
+                label: `${v}`
+              }))}
             onChange={(e) => setConfig(c => updateAnnotationBoxSize(c, e as EAnnotationBoxSize))}
           />
         </div>
@@ -319,7 +317,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               value,
               label: key
             }))}
-            disabled={isVideoAnnotation()}
+            disabled={isVideoAnnotation(config)}
             onChange={(e) => setConfig(c => updateAnnotationBodyTextSize(c, e as AnnotationBodyTextSize))}
           />
         </div>
@@ -338,7 +336,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               onBlur={e => {
                 setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
               }}
-              disabled={isVideoAnnotation()}
+              disabled={isVideoAnnotation(config)}
             />
           </Tags.ColorInputWrapper>
         </div>
@@ -355,7 +353,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               onBlur={e => {
                 setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
               }}
-              disabled={isVideoAnnotation()}
+              disabled={isVideoAnnotation(config)}
             />
           </Tags.ColorInputWrapper>
         </div>

@@ -65,6 +65,12 @@ export function updateAnnotationVideoURLMp4<T extends IAnnotationConfig>(config:
   return newConfig;
 }
 
+export function updateAnnotationVideoURLHLS<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.videoUrlHls = videoUrl;
+  return newConfig;
+}
+
 export function updateAnnotationVideoURLWebm<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.videoUrlWebm = videoUrl;
@@ -346,8 +352,4 @@ export function deleteAnnotation(
 
 export function isCoverAnnotation(annId: string): boolean {
   return annId.split('#')[0] === '$';
-}
-
-export function isBlankString(str: string): boolean {
-  return str.trim() === '';
 }

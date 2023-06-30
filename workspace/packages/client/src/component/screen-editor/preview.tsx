@@ -284,6 +284,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         src="about:blank"
         title={this.props.screen.displayName}
         id={ROOT_EMBED_IFRAME_ID}
+        className={`fable-iframe-${this.props.screen.id}`}
         style={{
           visibility: this.props.hidden ? 'hidden' : 'visible',
         }}

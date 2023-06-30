@@ -4,19 +4,23 @@ import Button from 'antd/lib/button';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
-import { uploadVideoToAws /* , transcodeMedia */ } from './utils/upload-video-to-aws';
+import { MediaType } from '@fable/common/dist/api-contract';
+import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
 import {
   IAnnotationConfigWithScreenId,
   updateAnnotationBoxSize,
   updateAnnotationPositioning,
+  updateAnnotationVideoURLHLS,
   updateAnnotationVideoURLMp4,
   updateAnnotationVideoURLWebm
 } from '../annotation/annotation-config-utils';
 import { blobToUint8Array } from './utils/blob-to-uint8array';
+import { P_RespTour } from '../../entity-processor';
 
 type Props = {
-    closeRecorder: () => void,
-    setConfig: Dispatch<SetStateAction<IAnnotationConfigWithScreenId>>
+  tour: P_RespTour,
+  closeRecorder: () => void,
+  setConfig: Dispatch<SetStateAction<IAnnotationConfigWithScreenId>>
 }
 
 type VideoState = {
@@ -113,7 +117,7 @@ function VideoRecorder(props: Props): ReactElement {
       video: {
         width: { exact: 640 },
         height: { exact: 480 },
-        frameRate: { exact: 12 },
+        frameRate: { ideal: 12 },
       } })
       .then(stream => {
         streamRef.current = stream;
@@ -236,11 +240,14 @@ function VideoRecorder(props: Props): ReactElement {
     const webm = await blobToUint8Array(webmBlob);
 
     const webmUrl = await uploadVideoToAws(webm, 'video/webm');
-    // const [err, transcodedUrl] = await transcodeMedia(webmUrl);
-    // if (err) {
-    //   throw new Error('Transcoding failed');
-    // }
-    props.setConfig(c => updateAnnotationVideoURLMp4(c, webmUrl));
+    const [err, stream1, stream2] = await transcodeMedia(webmUrl, props.tour.rid);
+    if (err || stream1.failureReason || stream2.failureReason) {
+      throw new Error('Transcoding failed');
+    }
+    [stream1, stream2].forEach(stream => {
+      if (stream1.mediaType === MediaType.VIDEO_HLS) { props.setConfig(c => updateAnnotationVideoURLHLS(c, stream1.processedFilePath)); }
+      if (stream1.mediaType === MediaType.VIDEO_MP4) { props.setConfig(c => updateAnnotationVideoURLMp4(c, stream1.processedFilePath)); }
+    });
     props.setConfig(c => updateAnnotationVideoURLWebm(c, webmUrl));
     props.setConfig(c => {
       if (c.type === 'cover') {

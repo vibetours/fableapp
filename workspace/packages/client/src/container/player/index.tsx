@@ -8,9 +8,9 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { EditItem, NavFn } from '../../types';
+import { AnnotationPerScreen, EditItem, NavFn } from '../../types';
 import HeartLoader from '../../component/loader/heart';
-import { openTourExternalLink } from '../../utils';
+import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
@@ -30,9 +30,10 @@ interface IAppStateProps {
   isTourLoaded: boolean;
   allAnnotations: Record<string, IAnnotationConfig[]>;
   tourOpts: ITourDataOpts | null;
-  allAnnotationsForScreen: IAnnotationConfig[];
+  allAnnotationAcrossScreens: Record<string, IAnnotationConfig[]>;
   editsAcrossScreens: Record<string, EditItem[]>;
   isScreenLoaded: boolean;
+  allAnnotationsForTour: AnnotationPerScreen[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -44,9 +45,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   allAnnotations: state.default.remoteAnnotations,
   tourOpts: state.default.remoteTourOpts,
   isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
-  allAnnotationsForScreen:
-    state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : [],
+  allAnnotationAcrossScreens: state.default.remoteAnnotations,
   editsAcrossScreens: state.default.remoteEdits,
+  allAnnotationsForTour: getAnnotationsPerScreen(state),
 });
 
  interface IOwnProps {
@@ -193,13 +194,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
               navigate={this.navFn}
               playMode
               onBeforeFrameBodyDisplay={() => {}}
-              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+              allAnnotationsForScreen={this.props.allAnnotationAcrossScreens[config.screen.id]}
               tourDataOpts={this.props.tourOpts!}
               allEdits={config.screenEdits}
               toAnnotationId={
                 config.screen.id === this.props.screen!.id ? this.props.match.params.annotationId || '' : ''
               }
               onFrameAssetLoad={() => {}}
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
             />
           ))
       }
