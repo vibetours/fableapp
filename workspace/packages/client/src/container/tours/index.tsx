@@ -221,18 +221,24 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                   e.preventDefault();
                                 }}
                                 >
-                                  <GTags.PopoverMenuItem onClick={e => { }}>
+                                  <GTags.PopoverMenuItem
+                                    onMouseDown={e => { }}
+                                  >
                                     <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Tour
                                   </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItem onClick={e => this.handleShowModal(tour, CtxAction.Rename)}>
+                                  <GTags.PopoverMenuItem
+                                    onMouseDown={e => this.handleShowModal(tour, CtxAction.Rename)}
+                                  >
                                     <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Tour
                                   </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItem onClick={e => this.handleShowModal(tour, CtxAction.Duplicate)}>
+                                  <GTags.PopoverMenuItem
+                                    onMouseDown={e => this.handleShowModal(tour, CtxAction.Duplicate)}
+                                  >
                                     <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Tour
                                   </GTags.PopoverMenuItem>
                                   <GTags.PopoverMenuItemDivider color="#ff735050" />
                                   <GTags.PopoverMenuItem
-                                    onClick={e => window.alert('Delete :: Coming soon...')}
+                                    onMouseDown={e => window.alert('Delete :: Coming soon...')}
                                     style={{
                                       color: '#ff7350'
                                     }}
