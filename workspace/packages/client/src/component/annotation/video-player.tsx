@@ -138,6 +138,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps> {
         ref={this.videoRef}
         id={`fable-ann-video-${config.refId}`}
         className="fable-video"
+        playsInline
         style={{
           ...this.getPositioningAndSizingStyles(),
           visibility: this.props.conf.isMaximized ? 'visible' : 'hidden'
