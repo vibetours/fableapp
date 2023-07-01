@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    # environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
+    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
 
     permissions:
       id-token: write
@@ -32,13 +32,13 @@ jobs:
 
       - name: printing_vars
         id: dbg
-        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ secrets.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }} -- ${{ github.ref_name }}"
+        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }} -- ${{ github.ref_name }}"
 
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-region: us-east-1
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME }}
           role-session-name: app-deployment
 
