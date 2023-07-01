@@ -64,10 +64,9 @@ jobs:
 
       - name: 'Upload extension to github'
         uses: actions/upload-artifact@v3
-        working-directory: workspace/packages/ext-tour
         with:
           name: extension-${{ steps.version.outputs.version }}-${DEPLOY_ENV}
-          path: extension-${{ steps.version.outputs.version }}.zip
+          path: workspace/packages/ext-tour/extension-${{ steps.version.outputs.version }}.zip
           retention-days: 7
 
       - name: Configure AWS credentials
