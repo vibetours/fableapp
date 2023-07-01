@@ -11,7 +11,7 @@ env:
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    environment: ${DEPLOY_ENV}
+    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
 
     permissions:
       id-token: write
