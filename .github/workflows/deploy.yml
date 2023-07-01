@@ -30,7 +30,7 @@ jobs:
 
       - name: printing_vars
         id: dbg
-        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }}"
+        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }}"
 
 
       - name: Configure AWS credentials
