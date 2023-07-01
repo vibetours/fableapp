@@ -1,16 +1,17 @@
 name: Build and Deploy Ext and Client
+
 on:
   push:
     branches: [develop]
-
   workflow_dispatch:
+
 env:
   DEPLOY_ENV: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
 
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    environment: ${{ env.DEPLOY_ENV }}
+    environment: ${DEPLOY_ENV }
 
     permissions:
       id-token: write
@@ -68,7 +69,7 @@ jobs:
 
       - name: printing_vars
         id: dbg
-        run: echo "${{ env.DEPLOY_ENV }} -- ${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }} -- ${{ github.ref_name }}"
+        run: echo "${DEPLOY_ENV} -- ${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }} -- ${{ github.ref_name }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
