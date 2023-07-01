@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    environment: staging
+    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
 
     permissions:
       id-token: write
@@ -32,7 +32,7 @@ jobs:
 
       - name: printing_vars
         id: dbg
-        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }}"
+        run: echo "${{ vars.EXT_BUCKET_NAME }} -- ${{ vars.AWS_ROLE_TO_ASSUME }} -- ${{ vars.A_NEW_TEST_VAR }} -- ${{ github.ref_name }}"
 
 
       - name: Configure AWS credentials
