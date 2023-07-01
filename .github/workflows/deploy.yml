@@ -88,10 +88,10 @@ jobs:
         run: aws s3 cp extension-${{ steps.version.outputs.version }}.zip s3://${{ vars.EXT_BUCKET_NAME }}/ext-build/extension-${{ steps.version.outputs.version }}-${{env.DEPLOY_ENV}}.zip
         working-directory: workspace/packages/ext-tour
 
-      # - name: Upload the client to S3
-      #   run: aws s3 sync ./build s3://${{ vars.CLIENT_BUCKET_NAME }}
-      #   working-directory: workspace/packages/client
+      - name: Upload the client to S3
+        run: aws s3 sync ./build s3://${{ vars.CLIENT_BUCKET_NAME }}
+        working-directory: workspace/packages/client
 
-      # - name: Invalidation of cloudfront cache
-      #   run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DIST_ID }} --paths '/*';
+      - name: Invalidation of cloudfront cache
+        run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DIST_ID }} --paths '/*';
 
