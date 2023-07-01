@@ -22,16 +22,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Manual approval
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ github.TOKEN }}
-          approvers: ${{vars.APPROVERS}} 
-          minimum-approvals: 1
-          timeout-minutes: 3
-          issue-title: "deploy APP to ${{ env.DEPLOY_ENV }}"
-          issue-body: "Please approve or deny deployment of app with in 3 mins"
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -39,8 +29,18 @@ jobs:
 
       - name: Get Version Number
         id: version
-        run: echo "::set-output name=version::$(node -p -e "require('./package.json').version")"
+        run: echo "version=$(node -p -e "require('./package.json').version")" >> $GITHUB_OUTPUT
         working-directory: workspace/packages/ext-tour
+
+      - name: Manual approval
+        uses: trstringer/manual-approval@v1
+        timeout-minutes: 3
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: ${{vars.APPROVERS}} 
+          minimum-approvals: 1
+          issue-title: "deploy APP v${{ steps.version.outputs.version }} to ${{ env.DEPLOY_ENV }}"
+          issue-body: "Please approve or deny deployment of app with in 3 mins"
 
       - name: Install Dependencies
         run: yarn
@@ -65,7 +65,7 @@ jobs:
       - name: 'Upload extension to github'
         uses: actions/upload-artifact@v3
         with:
-          name: extension-${{ steps.version.outputs.version }}-${DEPLOY_ENV}
+          name: extension-${{ steps.version.outputs.version }}-${{env.DEPLOY_ENV}}
           path: workspace/packages/ext-tour/extension-${{ steps.version.outputs.version }}.zip
           retention-days: 7
 
@@ -77,7 +77,7 @@ jobs:
           role-session-name: app-deployment
 
       - name: Upload the extension to S3
-        run: aws s3 cp extension-${{ steps.version.outputs.version }}.zip s3://${{ vars.EXT_BUCKET_NAME }}/ext-build/extension-${{ steps.version.outputs.version }}-${DEPLOY_ENV}.zip
+        run: aws s3 cp extension-${{ steps.version.outputs.version }}.zip s3://${{ vars.EXT_BUCKET_NAME }}/ext-build/extension-${{ steps.version.outputs.version }}-${{env.DEPLOY_ENV}}.zip
         working-directory: workspace/packages/ext-tour
 
       # - name: Upload the client to S3
