@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
+    # environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
 
     permissions:
       id-token: write
