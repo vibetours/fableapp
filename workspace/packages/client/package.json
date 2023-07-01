@@ -40,6 +40,7 @@
     "env-cmd": "^10.1.0",
     "eslint": "8.31.0",
     "eslint-config-airbnb": "19.0.4",
+    "jscpd": "^3.5.9",
     "less": "^4.1.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -58,10 +59,9 @@
     "start-dev": "env-cmd --verbose -e dev -r ../env.json react-scripts start",
     "dupdetect": "jscpd src/",
     "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
-    "start-stage": "env-cmd --verbose -e stage -r ../env.json  react-scripts start",
-    "build-staging": "env-cmd --verbose -e stage -r ../env.json react-scripts build",
-    "clean-staging": "aws s3 rm s3://app.staging.sharefable.com --recursive --profile fable",
-    "install-staging": "yarn build-staging && yarn clean-staging && aws s3 cp ./build/ s3://app.staging.sharefable.com --recursive --profile fable",
+    "start-staging": "env-cmd --verbose -e staging -r ../env.json  react-scripts start",
+    "build-staging": "env-cmd --verbose -e staging -r ../env.json react-scripts build",
+    "build-prod": "env-cmd --verbose -e prod -r ../env.json react-scripts build",
     "test": "react-scripts test"
   },
   "eslintConfig": {

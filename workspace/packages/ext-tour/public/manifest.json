@@ -34,14 +34,14 @@
     "cookies",
     "unlimitedStorage"
   ],
-  "optional_host_permissions": ["*://*/*"],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "host_permissions": [
     "<all_urls>",
-    "*://*/*",
-    "http://localhost:8080/api/*",
-    "https://api-staging1.sharefable.com/*"
+    "*://*/*"
   ]
 }

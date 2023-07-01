@@ -2,7 +2,7 @@ name: Build and Deploy Ext and Client
 
 on:
   push:
-    branches: [develop]
+    branches: [master, develop]
   workflow_dispatch:
 
 env:
@@ -44,6 +44,14 @@ jobs:
 
       - name: Install Dependencies
         run: yarn
+        working-directory: workspace
+
+      - name: Lint checks
+        run: yarn workspaces run lint
+        working-directory: workspace
+
+      - name: Static analysis -- Code duplication
+        run: yarn workspaces run dupdetect
         working-directory: workspace
 
       - name: Build Common

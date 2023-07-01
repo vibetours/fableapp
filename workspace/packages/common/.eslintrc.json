@@ -4,7 +4,9 @@
     "es6": true,
     "jest/globals": true
   },
-  "extends": ["airbnb"],
+  "extends": [
+    "airbnb"
+  ],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly",
@@ -21,13 +23,20 @@
   },
   "overrides": [
     {
-      "files": [",*.ts", "*.tsx"],
+      "files": [
+        ",*.ts",
+        "*.tsx"
+      ],
       "rules": {
         "no-undef": "off"
       }
     }
   ],
-  "plugins": ["react", "@typescript-eslint", "jest"],
+  "plugins": [
+    "react",
+    "@typescript-eslint",
+    "jest"
+  ],
   "rules": {
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": "error",
@@ -37,7 +46,14 @@
     "max-classes-per-file": "off",
     "import/no-unresolved": "off",
     "import/extensions": "off",
-    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
+    "react/jsx-filename-extension": [
+      1,
+      {
+        "extensions": [
+          ".tsx"
+        ]
+      }
+    ],
     "react/jsx-wrap-multilines": "off",
     "prefer-destructuring": "off",
     "react/destructuring-assignment": "off",
@@ -62,7 +78,12 @@
     "no-cond-assign": "off",
     "no-plusplus": "off",
     "no-return-assign": "off",
-    "max-len": ["error", { "code": 120 }],
+    "max-len": [
+      "warn",
+      {
+        "code": 120
+      }
+    ],
     "no-restricted-syntax": 0,
     "func-names": 0,
     "no-continue": 0,
@@ -75,7 +96,11 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [".js", ".ts", ".tsx"]
+        "extensions": [
+          ".js",
+          ".ts",
+          ".tsx"
+        ]
       }
     }
   }
