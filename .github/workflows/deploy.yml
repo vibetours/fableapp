@@ -29,7 +29,7 @@ jobs:
           approvers: ${{vars.APPROVERS}} 
           minimum-approvals: 1
           timeout-minutes: 3
-          issue-title: "deploy APP to ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}"
+          issue-title: "deploy APP to ${DEPLOY_ENV}"
           issue-body: "Please approve or deny deployment of app with in 3 mins"
 
       - name: Set up Node.js
@@ -58,11 +58,6 @@ jobs:
         run: yarn build-staging
         working-directory: workspace/packages/client
 
-      - name: Get Version Number
-        id: version
-        run: echo "::set-output name=version::$(node -p -e "require('./package.json').version")"
-        working-directory: workspace/packages/ext-tour
-
       - name: Zip Build Directory
         run: zip -r extension-${{ steps.version.outputs.version }}.zip build
         working-directory: workspace/packages/ext-tour
@@ -78,10 +73,10 @@ jobs:
         run: aws s3 cp extension-${{ steps.version.outputs.version }}.zip s3://${{ vars.EXT_BUCKET_NAME }}/ext-build/extension-${{ steps.version.outputs.version }}-${DEPLOY_ENV}.zip
         working-directory: workspace/packages/ext-tour
 
-      - name: Upload the client to S3
-        run: aws s3 sync ./build s3://${{ vars.CLIENT_BUCKET_NAME }}
-        working-directory: workspace/packages/client
+      # - name: Upload the client to S3
+      #   run: aws s3 sync ./build s3://${{ vars.CLIENT_BUCKET_NAME }}
+      #   working-directory: workspace/packages/client
 
-      - name: Invalidation of cloudfront cache
-        run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DIST_ID }} --paths '/*';
+      # - name: Invalidation of cloudfront cache
+      #   run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DIST_ID }} --paths '/*';
 
