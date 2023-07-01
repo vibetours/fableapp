@@ -1,10 +1,14 @@
 name: Build and Deploy Ext and Client
 on:
+  push:
+    branches: [develop]
+
   workflow_dispatch:
 
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
+    environment: staging
 
     permissions:
       id-token: write
