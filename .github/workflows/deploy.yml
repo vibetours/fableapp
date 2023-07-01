@@ -29,7 +29,7 @@ jobs:
           approvers: ${{vars.APPROVERS}} 
           minimum-approvals: 1
           timeout-minutes: 3
-          issue-title: "deploy APP to ${DEPLOY_ENV}"
+          issue-title: "deploy APP to ${{ env.DEPLOY_ENV }}"
           issue-body: "Please approve or deny deployment of app with in 3 mins"
 
       - name: Set up Node.js
@@ -51,16 +51,24 @@ jobs:
         working-directory: workspace/packages/common
 
       - name: Build Extension
-        run: yarn build-staging
+        run: yarn build-${{env.DEPLOY_ENV}}
         working-directory: workspace/packages/ext-tour
 
       - name: Build Client
-        run: yarn build-staging
+        run: yarn build-${{env.DEPLOY_ENV}}
         working-directory: workspace/packages/client
 
       - name: Zip Build Directory
         run: zip -r extension-${{ steps.version.outputs.version }}.zip build
         working-directory: workspace/packages/ext-tour
+
+      - name: 'Upload extension to github'
+        uses: actions/upload-artifact@v3
+        working-directory: workspace/packages/ext-tour
+        with:
+          name: extension-${{ steps.version.outputs.version }}-${DEPLOY_ENV}
+          path: extension-${{ steps.version.outputs.version }}.zip
+          retention-days: 7
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
