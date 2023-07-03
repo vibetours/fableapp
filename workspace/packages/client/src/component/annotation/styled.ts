@@ -1,7 +1,7 @@
 import styled, { keyframes, css } from 'styled-components';
 import { AnnotationButtonSize, AnnotationButtonStyle, AnnotationBodyTextSize } from '@fable/common/dist/types';
-import { Link } from 'react-router-dom';
 import { Rect } from '../base/hightligher-base';
+import { generateShadeColor } from './utils';
 
 export const BubbleCon = styled.div`
   position: absolute;
@@ -176,16 +176,16 @@ export const AnVideoControls = styled.div`
   justify-content: space-evenly;
 `;
 
-export const AnVideoCtrlBtn = styled.button`
-  background-color: pink;
+export const AnVideoCtrlBtn = styled.button<{pcolor: string}>`
   height: 42px;
   width: 48px;
   border-radius: 6px;
-  color: white;
-  background: #7567ffbf;
+  color: ${p => generateShadeColor(p.pcolor, 200)};
+  background: ${p => `${p.pcolor}bf`};
   font-size: 1.2rem;
   border: none;
   display: flex;
+  cursor: pointer;
   align-items: center;
   justify-content: center;
   padding: 0.2rem 0.45rem;

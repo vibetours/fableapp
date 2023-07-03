@@ -80,7 +80,7 @@ const extractColorValuesInRgb = (color: string): number[] => {
   return [];
 };
 
-const getShadedRGBColor = (color: string, percent: number): string => {
+export const getShadedRGBColor = (color: string, percent: number): string => {
   const rgbValues = extractColorValuesInRgb(color);
   const shadedRgb = rgbValues.map(value => {
     let newValue = value + percent;
@@ -98,9 +98,9 @@ const calculateLuminance = (color: string): number => {
   return luminance;
 };
 
-export const generateShadeColor = (color: string): string => {
+export const generateShadeColor = (color: string, d = 50): string => {
   const luminance = calculateLuminance(color);
-  const percent = luminance > 0.5 ? -50 : 50;
+  const percent = luminance > 0.5 ? d * -1 : d;
   return getShadedRGBColor(color, percent);
 };
 

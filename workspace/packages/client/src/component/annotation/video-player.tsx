@@ -213,6 +213,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           this.state.showControls && (
             <Tags.AnVideoControls>
               <Tags.AnVideoCtrlBtn
+                pcolor={this.props.conf.opts.primaryColor}
                 type="button"
                 onClick={() => this.navigateAnns('prev')}
               >
@@ -221,6 +222,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               {
                 this.state.videoState === 'playing' && (
                   <Tags.AnVideoCtrlBtn
+                    pcolor={this.props.conf.opts.primaryColor}
                     type="button"
                     onClick={() => this.videoRef.current!.pause()}
                   >
@@ -231,6 +233,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               {
                 this.state.videoState === 'paused' && (
                   <Tags.AnVideoCtrlBtn
+                    pcolor={this.props.conf.opts.primaryColor}
                     type="button"
                     onClick={() => this.videoRef.current!.play()}
                   >
@@ -241,6 +244,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               {
                 this.state.videoState === 'ended' && (
                   <Tags.AnVideoCtrlBtn
+                    pcolor={this.props.conf.opts.primaryColor}
                     type="button"
                     onClick={() => this.videoRef.current!.play()}
                   >
@@ -249,6 +253,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                 )
               }
               <Tags.AnVideoCtrlBtn
+                pcolor={this.props.conf.opts.primaryColor}
                 type="button"
                 onClick={() => this.navigateAnns('next')}
               >
