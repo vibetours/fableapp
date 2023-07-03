@@ -155,9 +155,44 @@ const slideOut = keyframes`
   }
 `;
 
-export const AnVideo = styled.video<{ out: 'slidein' | 'slideout', border: string}>`
+export const AnVideoContainer = styled.div<{ out: 'slidein' | 'slideout'}>`
   position: fixed;
   border-radius: 8px;
-  box-shadow: ${p => `${p.border}`};
   animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.1s linear;
+`;
+
+export const AnVideo = styled.video<{border: string}>`
+  width: 100%;
+  border-radius: 8px; 
+  box-shadow: ${p => `${p.border}`};
+`;
+
+export const AnVideoControls = styled.div`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+  display: flex;
+  justify-content: space-evenly;
+`;
+
+export const AnVideoCtrlBtn = styled.button`
+  background-color: pink;
+  height: 42px;
+  width: 48px;
+  border-radius: 6px;
+  color: white;
+  background: #7567ffbf;
+  font-size: 1.2rem;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.45rem;
+
+  > span.anticon {
+    display: block;
+    height: 1em;
+  }
+
 `;

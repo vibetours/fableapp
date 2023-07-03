@@ -1,6 +1,13 @@
 import React, { RefObject, ReactElement } from 'react';
 import Hls, { HlsConfig } from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
+import {
+  CaretRightOutlined,
+  PauseOutlined,
+  ReloadOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined
+} from '@ant-design/icons';
 import * as Tags from './styled';
 import { IAnnoationDisplayConfig } from '.';
 import { NavFn } from '../../types';
@@ -14,15 +21,22 @@ interface IProps {
   annFollowPositions: {top: number, left: number},
   width: number;
   isNextAnnVideo: boolean;
+  isPrevAnnVideo: boolean;
 }
 
-export default class AnnotationVideo extends React.PureComponent<IProps> {
+interface IOwnStateProps {
+  showControls: boolean;
+  videoState: 'paused' | 'playing' | 'ended';
+}
+
+export default class AnnotationVideo extends React.PureComponent<IProps, IOwnStateProps> {
   private videoRef: RefObject<HTMLVideoElement> = React.createRef();
 
   private hls: Hls | null = null;
 
   constructor(props: IProps) {
     super(props);
+    this.state = { showControls: false, videoState: 'paused' };
     if (Hls.isSupported() && this.props.playMode && this.props.conf.config.videoUrlHls) {
       this.initPlayer();
     }
@@ -77,6 +91,16 @@ export default class AnnotationVideo extends React.PureComponent<IProps> {
     this.hls = null;
   }
 
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
+    if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
+      if (this.videoRef.current?.paused) {
+        this.setState({ showControls: true, videoState: 'paused' });
+      } else {
+        this.setState({ showControls: false, videoState: 'playing' });
+      }
+    }
+  }
+
   getAnnotationBorder(): string {
     const borderColor = this.props.conf.opts.annotationBodyBorderColor;
     const defaultBorderColor = '#BDBDBD';
@@ -126,48 +150,111 @@ export default class AnnotationVideo extends React.PureComponent<IProps> {
     };
   }
 
+  navigateAnns = (direction: 'prev' | 'next'):void => {
+    const config = this.props.conf.config;
+    const btnConf = config.buttons.filter(button => button.type === direction)[0];
+    const isNavToVideoAnn = direction === 'prev' ? this.props.isPrevAnnVideo : this.props.isNextAnnVideo;
+
+    if (!btnConf.hotspot) {
+      return;
+    }
+
+    this.props.nav(
+      btnConf.hotspot.actionValue,
+      btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+    );
+
+    if (isNavToVideoAnn) {
+      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+      playVideoAnn(screenId, annId);
+    }
+  };
+
   render(): ReactElement {
     const config = this.props.conf.config;
-    const btnConf = config.buttons.filter(button => button.type === 'next')[0];
     const isHlsSupported = this.hls && config.videoUrlHls && this.props.playMode;
-    console.log('>>> hls', isHlsSupported);
 
     return (
-      <Tags.AnVideo
-        border={this.getAnnotationBorder()}
-        ref={this.videoRef}
-        id={`fable-ann-video-${config.refId}`}
-        className="fable-video"
-        playsInline
+      <Tags.AnVideoContainer
+        out={this.props.conf.isMaximized ? 'slidein' : 'slideout'}
         style={{
           ...this.getPositioningAndSizingStyles(),
           visibility: this.props.conf.isMaximized ? 'visible' : 'hidden'
         }}
-        out={this.props.conf.isMaximized ? 'slidein' : 'slideout'}
-        onEnded={() => {
-          if (!this.props.playMode) {
-            return;
-          }
-
-          btnConf.hotspot && this.props.nav(
-            btnConf.hotspot.actionValue,
-            btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-          );
-
-          if (this.props.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
-            const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-            playVideoAnn(screenId, annId);
+        onMouseMove={() => this.setState({ showControls: true })}
+        onMouseOut={() => {
+          if (this.state.videoState === 'playing') {
+            this.setState({ showControls: false });
           }
         }}
       >
-        {!isHlsSupported && (
+        <Tags.AnVideo
+          ref={this.videoRef}
+          border={this.getAnnotationBorder()}
+          id={`fable-ann-video-${config.refId}`}
+          className="fable-video"
+          playsInline
+          onPause={() => this.setState({ videoState: 'paused' })}
+          onPlay={() => this.setState({ videoState: 'playing' })}
+          onEnded={() => this.setState({ showControls: true, videoState: 'ended' })}
+        >
+          {!isHlsSupported && (
           <>
             <source src={config.videoUrlMp4} type="video/mp4" />
             <source src={config.videoUrlWebm} type="video/webm" />
             {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
           </>
-        )}
-      </Tags.AnVideo>
+          )}
+        </Tags.AnVideo>
+        {
+          this.state.showControls && (
+            <Tags.AnVideoControls>
+              <Tags.AnVideoCtrlBtn
+                type="button"
+                onClick={() => this.navigateAnns('prev')}
+              >
+                <StepBackwardOutlined />
+              </Tags.AnVideoCtrlBtn>
+              {
+                this.state.videoState === 'playing' && (
+                  <Tags.AnVideoCtrlBtn
+                    type="button"
+                    onClick={() => this.videoRef.current!.pause()}
+                  >
+                    <PauseOutlined />
+                  </Tags.AnVideoCtrlBtn>
+                )
+              }
+              {
+                this.state.videoState === 'paused' && (
+                  <Tags.AnVideoCtrlBtn
+                    type="button"
+                    onClick={() => this.videoRef.current!.play()}
+                  >
+                    <CaretRightOutlined />
+                  </Tags.AnVideoCtrlBtn>
+                )
+              }
+              {
+                this.state.videoState === 'ended' && (
+                  <Tags.AnVideoCtrlBtn
+                    type="button"
+                    onClick={() => this.videoRef.current!.play()}
+                  >
+                    <ReloadOutlined />
+                  </Tags.AnVideoCtrlBtn>
+                )
+              }
+              <Tags.AnVideoCtrlBtn
+                type="button"
+                onClick={() => this.navigateAnns('next')}
+              >
+                <StepForwardOutlined />
+              </Tags.AnVideoCtrlBtn>
+            </Tags.AnVideoControls>
+          )
+        }
+      </Tags.AnVideoContainer>
     );
   }
 }

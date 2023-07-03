@@ -233,6 +233,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             annFollowPositions={{ top, left }}
             width={w}
             isNextAnnVideo={this.props.isNextAnnVideo}
+            isPrevAnnVideo={this.props.isPrevAnnVideo}
           />;
         }
         return <AnnotationContent
@@ -307,6 +308,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         }}
         width={w}
         isNextAnnVideo={this.props.isNextAnnVideo}
+        isPrevAnnVideo={this.props.isPrevAnnVideo}
       />;
     }
 
