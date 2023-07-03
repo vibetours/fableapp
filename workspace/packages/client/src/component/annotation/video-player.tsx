@@ -151,6 +151,9 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
   }
 
   navigateAnns = (direction: 'prev' | 'next'):void => {
+    this.videoRef.current!.pause();
+    this.videoRef.current!.currentTime = 0;
+
     const config = this.props.conf.config;
     const btnConf = config.buttons.filter(button => button.type === direction)[0];
     const isNavToVideoAnn = direction === 'prev' ? this.props.isPrevAnnVideo : this.props.isNextAnnVideo;
