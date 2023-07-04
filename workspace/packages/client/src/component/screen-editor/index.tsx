@@ -8,20 +8,18 @@ import {
   ExclamationCircleOutlined,
   PlusOutlined,
   SelectOutlined,
-  CloudUploadOutlined
 } from '@ant-design/icons';
 import { IAnnotationConfig, ITourDataOpts, ScreenData, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
 import Switch from 'antd/lib/switch';
 import React from 'react';
-import Modal from 'antd/lib/modal';
-import Collapse from 'antd/lib/collapse';
+import { Modal } from 'antd';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as GTags from '../../common-styled';
-import { P_RespScreen, P_RespTour, remoteToLocalAnnotationConfig } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import {
@@ -41,7 +39,11 @@ import {
 } from '../../types';
 import ActionPanel from './action-panel';
 import ListActionBtn from './list-action-btn';
-import { cloneAnnotation, IAnnotationConfigWithScreenId, replaceAnnotation } from '../annotation/annotation-config-utils';
+import {
+  cloneAnnotation,
+  IAnnotationConfigWithScreenId,
+  replaceAnnotation
+} from '../annotation/annotation-config-utils';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
@@ -53,6 +55,8 @@ import TimelineScreen from './components/timeline/screen';
 import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import UploadButton from './components/upload-button';
 import ScreenImageBrusher from './screen-image-brushing';
+import ImageMaskUploadModal from './components/image-mask-modal';
+import { ImgResolution, resizeImg } from './utils/resize-img';
 
 const { confirm } = Modal;
 
@@ -119,6 +123,9 @@ interface IOwnStateProps {
   selectedHotspotEl: HTMLElement | null;
   selectionMode: 'hotspot' | 'annotation';
   activeTab: TabList;
+  showImageMaskUploadModal: boolean;
+  imageMaskUploadModalError: string;
+  imageMaskUploadModalIsUploading: boolean;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -150,6 +157,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       selectedHotspotEl: null,
       selectionMode: 'annotation',
       activeTab: TabList.Annotations,
+      showImageMaskUploadModal: false,
+      imageMaskUploadModalError: '',
+      imageMaskUploadModalIsUploading: false
     };
   }
 
@@ -456,30 +466,41 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.flushMicroEdits();
   };
 
-  handleUploadMaskImgChange = (el: HTMLElement) => async (e: any): Promise<void> => {
-    const selectedImage = e.target.files[0];
-    if (!selectedImage) {
-      return;
+  handleImageMaskUploadModalOnSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    const el = this.state.selectedEl!;
+
+    this.setState({ imageMaskUploadModalIsUploading: true, imageMaskUploadModalError: '' });
+
+    const formData = new FormData(event.currentTarget);
+    const maskImgFile = formData.get('maskImg') as File;
+    const resolution = formData.get('resolution') as ImgResolution;
+
+    try {
+      const newImageUrl = await uploadImgToAws(maskImgFile);
+      const resizedImgUrl = await resizeImg(newImageUrl, this.props.screen.rid, resolution);
+
+      hideChildren(el);
+
+      const oldElInlineStyles = el.getAttribute('style') || '';
+      const newElInlineStyles = addImgMask(el, resizedImgUrl, newImageUrl);
+
+      const path = this.iframeElManager!.elPath(el);
+
+      const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Mask}`;
+      let origVal = el.getAttribute(attrName);
+      if (origVal === null) {
+        origVal = oldElInlineStyles;
+        el.setAttribute(attrName, origVal);
+      }
+
+      this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
+      this.flushMicroEdits();
+    } catch (err) {
+      this.setState({ imageMaskUploadModalError: 'Something went wrong' });
+    } finally {
+      this.setState({ imageMaskUploadModalIsUploading: false, showImageMaskUploadModal: false });
     }
-
-    const newImageUrl = await uploadImgToAws(selectedImage);
-
-    hideChildren(el);
-
-    const oldElInlineStyles = el.getAttribute('style') || '';
-    const newElInlineStyles = addImgMask(el, newImageUrl);
-
-    const path = this.iframeElManager!.elPath(el);
-
-    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Mask}`;
-    let origVal = el.getAttribute(attrName);
-    if (origVal === null) {
-      origVal = oldElInlineStyles;
-      el.setAttribute(attrName, origVal);
-    }
-
-    this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
-    this.flushMicroEdits();
   };
 
   componentWillUnmount(): void {
@@ -608,11 +629,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return this.embedFrameRef.current?.contentDocument?.body!;
   }
 
-  isFullPageAnnotation(el: HTMLElement):boolean {
+  isFullPageAnnotation(el: HTMLElement): boolean {
     return this.getIframeBody() === el;
   }
 
-  selectElementIfAnnoted():void {
+  selectElementIfAnnoted(): void {
     if (!this.state.selectedAnnotationId) return;
     const type = this.getAnnotationTypeFromRefId(this.state.selectedAnnotationId);
 
@@ -733,10 +754,27 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           && (
             <Tags.EditCtrlLI>
               <Tags.EditCtrlLabel>Mask Element</Tags.EditCtrlLabel>
-              <UploadButton
+              <button
+                onClick={() => this.setState({ showImageMaskUploadModal: true })}
+                type="button"
+                style={{
+                  backgroundColor: '#DDD',
+                  border: '1px solid transparent',
+                  boxShadow: '0 2px #00000004',
+                  padding: '4px 15px',
+                  borderRadius: '2px',
+                  color: '#000000d9',
+                  borderColor: '#DDDDDD',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                }}
+              >
+                Upload Mask
+              </button>
+              {/* <UploadButton
                 accept="image/png, image/jpeg, image/webp, image/svg+xml"
                 onChange={this.handleUploadMaskImgChange(this.state.selectedEl!)}
-              />
+              /> */}
             </Tags.EditCtrlLI>
           )}
       </>
@@ -794,7 +832,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   static downArrow = (): JSX.Element => <img src={ExpandIcon} width={12} height={6} alt="expand icon" />;
 
-  flushMicroEdits():void {
+  flushMicroEdits(): void {
     const hasEdits = Object.keys(this.microEdits).length !== 0;
     if (hasEdits) {
       this.props.onScreenEditChange(this.microEdits);
@@ -852,6 +890,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   navigateToAnnotation = (uri: string): void => {
     this.props.navigate(uri, 'annotation-hotspot');
+  };
+
+  handleImageMaskUploadModalOnCancel = (): void => {
+    this.setState({ showImageMaskUploadModal: false });
   };
 
   render(): React.ReactNode {
@@ -1076,6 +1118,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             </Tags.EditPanelSec>
           </div>
         </GTags.EditPanelCon>
+
+        <ImageMaskUploadModal
+          open={this.state.showImageMaskUploadModal}
+          onCancel={this.handleImageMaskUploadModalOnCancel}
+          onSubmit={this.handleImageMaskUploadModalOnSubmit}
+          error={this.state.imageMaskUploadModalError}
+          isUploading={this.state.imageMaskUploadModalIsUploading}
+        />
       </GTags.PreviewAndActionCon>
     );
   }

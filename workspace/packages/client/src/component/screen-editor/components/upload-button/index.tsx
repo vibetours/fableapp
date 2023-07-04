@@ -7,7 +7,7 @@ interface Props {
   onChange: (...args: any[]) => void;
 }
 
-export default function UploadButton({ accept, onChange }: Props) {
+export default function UploadButton({ accept, onChange }: Props): JSX.Element {
   return (
     <Tags.ImgUploadLabel>
       <CloudUploadOutlined />

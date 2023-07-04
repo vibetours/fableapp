@@ -1,4 +1,4 @@
-export const hideChildren = (el: HTMLElement) => {
+export const hideChildren = (el: HTMLElement): void => {
   Array.from(el.children).forEach(child => {
     const originalStyleAttrs = child.getAttribute('style');
     child.setAttribute(
@@ -9,17 +9,17 @@ export const hideChildren = (el: HTMLElement) => {
   });
 };
 
-export const unhideChildren = (el: HTMLElement) => {
+export const unhideChildren = (el: HTMLElement): void => {
   Array.from(el.children).forEach(child => {
     const newStyleAttrs = child.getAttribute('style')?.replace('visibility: hidden !important;', '') || '';
     child.setAttribute('style', newStyleAttrs);
   });
 };
 
-export const addImgMask = (el: HTMLElement, imgSrc: string): string => {
+export const addImgMask = (el: HTMLElement, resizedImgSrc: string, originalImgSrc: string): string => {
   const originalStyleAttrs = el.getAttribute('style');
   const maskStyles = `${originalStyleAttrs || ''};
-  background-image: url(${imgSrc}) !important;
+  background-image: url(${resizedImgSrc}), url(${originalImgSrc}) !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
   background-size: cover !important;

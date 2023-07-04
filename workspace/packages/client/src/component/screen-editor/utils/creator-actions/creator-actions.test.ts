@@ -120,10 +120,11 @@ describe('addImgMask', () => {
   });
 
   test('adds image mask styles to the element', () => {
-    const imgSrc = 'https://www.dofactory.com/img/html/vangogh.jpg';
+    const originalimgSrc = 'https://www.dofactory.com/img/html/vangogh.jpg';
+    const resizedImgSrc = 'https://www.dofactory.com/img/html/vangogh.jpg';
 
     // Call the addImgMask function
-    const result = addImgMask(element, imgSrc);
+    const result = addImgMask(element, resizedImgSrc, originalimgSrc);
 
     // Check that the element has the correct background image and styles
     const style = window.getComputedStyle(element);
@@ -132,7 +133,7 @@ describe('addImgMask', () => {
     expect(style.getPropertyValue('background-size')).toBe('cover');
 
     // Check that the returned maskStyles value matches the applied styles
-    expect(result).toContain(`background-image: url(${imgSrc}) !important`);
+    expect(result).toContain(`background-image: url(${resizedImgSrc}), url(${originalimgSrc}) !important`);
     expect(result).toContain('background-position: center !important');
     expect(result).toContain('background-repeat: no-repeat !important');
     expect(result).toContain('background-size: cover !important');
