@@ -13,7 +13,7 @@ export default function TermsAndConditions(props: Props) {
   }, []);
 
   const handleClick = () => {
-    window.location.replace('/screens');
+    window.location.replace('/');
   };
 
   return (

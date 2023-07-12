@@ -19,7 +19,7 @@ export default function OrgCreate() {
         if (redirect) {
           window.location.replace(`/${redirect}`);
         } else {
-          window.location.replace('/screens');
+          window.location.replace('/');
         }
       }
       localStorage.removeItem('redirect');

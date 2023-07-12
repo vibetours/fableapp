@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
 import Tours from '../tours';
@@ -60,6 +60,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
       <Router>
         <div className="app" style={{ overflow: 'hidden' }}>
           <Routes>
+            <Route path="/" element={<Navigate to="/tours" />} />
             <Route path="/aboutblank" element={<div />} />
             <Route path="/onboarding" element={<Onboarding />}>
               <Route path="pin" element={<Pin title="Fable Onboarding" />} />

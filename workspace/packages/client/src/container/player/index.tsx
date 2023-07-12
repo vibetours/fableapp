@@ -135,7 +135,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.allScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `/p/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
+      const url = `/p/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
       this.props.navigate(url);
     } else {
       throw new Error(`Can't navigate because screenId ${screenId} is not found`);

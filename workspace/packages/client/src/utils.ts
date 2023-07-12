@@ -8,9 +8,15 @@ export function isBodyEl(el: HTMLElement): boolean {
 }
 
 export function openTourExternalLink(uri: string) {
+  const qParamsStr = window.location.search;
+  const qParams = new URLSearchParams(qParamsStr);
+  qParams.forEach((val, key) => {
+    const pattern = `{{${key}}}`;
+    uri = uri.replaceAll(pattern, val);
+  });
+
   const url = new URL(uri);
   const sharefableUrl = new URL(process.env.REACT_APP_CLIENT_ENDPOINT as string);
-
   if (url.host === sharefableUrl.host) {
     window.open(uri, '_self');
   } else {

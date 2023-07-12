@@ -23,7 +23,7 @@ export default function OrgAssign({ orgs }: Props) {
         localStorage.removeItem('redirect');
         window.location.replace(`/${redirect!}`);
       } else {
-        window.location.replace('/screens');
+        window.location.replace('/');
       }
     }
   };
