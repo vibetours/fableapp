@@ -48,6 +48,7 @@ import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import HeartLoader from '../../component/loader/heart';
 import deferredErr from '../../deffered-error';
+import Loader from '../../component/loader';
 
 interface IDispatchProps {
   getAllScreens: () => void;
@@ -265,7 +266,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   getHeaderTxtEl = (): React.ReactElement => {
     if (!this.isLoadingComplete()) {
-      return <>TODO show loading bar</>;
+      return (
+        <div>
+          <Loader width="80px" />
+        </div>
+      );
     }
 
     let firstLine;
@@ -436,7 +441,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): ReactElement {
     if (!this.isLoadingComplete()) {
-      return <div>TODO show loader</div>;
+      return (
+        <div>
+          <Loader width="80px" txtBefore="Loading screen" />
+        </div>
+      );
     }
     return (
       <GTags.ColCon>
