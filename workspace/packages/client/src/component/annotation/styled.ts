@@ -1,4 +1,4 @@
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes, css, SimpleInterpolation } from 'styled-components';
 import { AnnotationButtonSize, AnnotationButtonStyle, AnnotationBodyTextSize } from '@fable/common/dist/types';
 import { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
@@ -101,18 +101,21 @@ function getColorContrast(hex: string): 'dark' | 'light' {
 }
 
 interface AnHotspotProps {
+  selColor: string;
   box: Rect;
   scrollX: number;
   scrollY: number;
   isGranularHotspot: boolean;
 }
 
-export const BoxShadowKF = keyframes`
-  50% {box-shadow: 0 0 0 4px #1f96f3;}
+const createBoxShadowKF = (selColor: string) : SimpleInterpolation => keyframes`
+  50% {box-shadow: 0 0 0 4px ${selColor};}
 `;
 
 const BoxShadowKFRule = css`
-  ${BoxShadowKF} 2s infinite;
+  ${({ selColor }: AnHotspotProps) => css`
+    ${createBoxShadowKF(selColor)} 2s infinite;
+  `}
 `;
 
 export const AnHotspot = styled.div`

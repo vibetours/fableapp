@@ -1,6 +1,6 @@
-import { Coords } from '@fable/common/dist/types';
+import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import HighlighterBase from '../base/hightligher-base';
+import HighlighterBase, { HighlighterBaseConfig } from '../base/hightligher-base';
 import { ROOT_EMBED_IFRAME_ID } from './preview';
 import DomElementPicker from './dom-element-picker';
 
@@ -81,8 +81,9 @@ export default class ScreenImageBrusher extends DomElementPicker {
         onBoxDeSelect: BoxDeSelectCallback
     },
     screenType: ScreenType,
+    config: HighlighterBaseConfig
   ) {
-    super(doc, nestedFrames, cbs, screenType);
+    super(doc, nestedFrames, cbs, screenType, config);
     this.maskEl = null;
     this.onBoxSelect = cbs.onBoxSelect;
     this.onBoxDeSelect = cbs.onBoxDeSelect;

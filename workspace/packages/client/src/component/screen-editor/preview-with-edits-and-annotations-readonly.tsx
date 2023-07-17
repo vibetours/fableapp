@@ -184,6 +184,13 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   };
 
   private initAnnotationLCM(nestedFrames: HTMLIFrameElement[]) {
+    const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
+
+    const highlighterBaseConfig = {
+      selectionColor: this.props.tourDataOpts.annotationSelectionColor,
+      showOverlay: an?.showOverlay || true
+    };
+
     const el = this.embedFrameRef?.current;
     let doc;
     if (doc = el?.contentDocument) {
@@ -199,6 +206,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.allAnnotationsForTour,
           this.props.allAnnotationsForScreen,
           this.props.tourDataOpts,
+          highlighterBaseConfig
         );
       }
     } else {

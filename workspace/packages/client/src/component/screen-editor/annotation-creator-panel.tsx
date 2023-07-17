@@ -390,6 +390,22 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </Tags.ColorInputWrapper>
         </div>
         <div style={commonActionPanelItemStyle}>
+          <GTags.Txt>Selection color</GTags.Txt>
+          <Tags.ColorInputWrapper>
+            <div>
+              <Tags.InputColorCircle color={opts.annotationSelectionColor} />
+            </div>
+            <Input
+              defaultValue={opts.annotationSelectionColor}
+              size="small"
+              bordered={false}
+              onBlur={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.target.value));
+              }}
+            />
+          </Tags.ColorInputWrapper>
+        </div>
+        <div style={commonActionPanelItemStyle}>
           <GTags.Txt>Font family</GTags.Txt>
           <Tags.ActionPaneSelect
             defaultValue={opts.annotationFontFamily}

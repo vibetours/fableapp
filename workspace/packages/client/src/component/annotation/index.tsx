@@ -1,5 +1,5 @@
 import { IAnnotationConfig, ITourDataOpts, VideoAnnotationPositions } from '@fable/common/dist/types';
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
@@ -358,12 +358,13 @@ interface IConProps {
 
 interface HotspotProps {
   data: Array<{
+    opts: ITourDataOpts,
     conf: IAnnotationConfig,
     box: Rect,
     scrollX: number,
     scrollY: number,
     isGranularHotspot: boolean,
-    isNextAnnVideo: boolean
+    isNextAnnVideo: boolean,
   }>,
   nav: NavFn,
   playMode: boolean,
@@ -385,6 +386,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
           <Tags.AnHotspot
             key={p.conf.id}
             box={p.box}
+            selColor={p.opts.annotationSelectionColor}
             scrollX={p.scrollX}
             scrollY={p.scrollY}
             isGranularHotspot={p.isGranularHotspot}
@@ -429,6 +431,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           {
             isHotspot && <AnnotationHotspot
               data={[{
+                opts: p.conf.opts,
                 conf: p.conf.config,
                 box: isGranularHotspot ? p.hotspotBox! : p.box,
                 scrollX: this.props.win.scrollX,

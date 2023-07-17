@@ -371,5 +371,9 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     newOpts.annotationFontFamily = null;
   }
 
+  if (newOpts.annotationSelectionColor === undefined || newOpts.annotationSelectionColor === null) {
+    newOpts.annotationSelectionColor = '#2196f3';
+  }
+
   return newOpts;
 }

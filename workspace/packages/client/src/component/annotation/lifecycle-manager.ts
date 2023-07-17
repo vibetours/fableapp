@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
-import HighlighterBase, { Rect } from '../base/hightligher-base';
+import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
 import { AnnotationPerScreen, NavFn } from '../../types';
 import { isBodyEl, isVideoAnnotation } from '../../utils';
@@ -65,8 +65,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     allAnnotationsForTour: AnnotationPerScreen[],
     allAnnotationsForScreen: IAnnotationConfig[],
     tourDataOpts: ITourDataOpts,
+    config: HighlighterBaseConfig
   ) {
-    super(doc, nestedFrames);
+    super(doc, nestedFrames, config);
     this.nav = opts.navigate;
     this.vp = {
       w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
@@ -250,6 +251,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         isPrevAnnVideo,
       });
       if (annotationDisplayConfig.isMaximized) {
+        this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
+        if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
+          this.updateConfig('selectionColor', '#ffffff00');
+        } else {
+          this.updateConfig('selectionColor', this.opts.annotationSelectionColor);
+        }
         if (annotationDisplayConfig.config.type === 'cover') {
           this.createFullScreenMask();
         } else if (this.screenType === ScreenType.Img) {
@@ -258,10 +265,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         } else {
           this.selectElementInDoc(el, el.ownerDocument);
         }
-        this.showTransparentMaskAndBorder(
-          !annotationDisplayConfig.config.showOverlay,
-          Boolean(hotspotElPath && annotationDisplayConfig.config.isHotspot)
-        );
       }
     }
     this.rRoot.render(

@@ -598,6 +598,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.selectElementIfAnnoted();
       this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
     }
+
+    if (prevProps.tourDataOpts.annotationSelectionColor !== this.props.tourDataOpts.annotationSelectionColor) {
+      this.iframeElManager?.updateConfig('selectionColor', this.props.tourDataOpts.annotationSelectionColor);
+    }
   }
 
   getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
@@ -1247,6 +1251,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private initDomPicker(nestedFrames: HTMLIFrameElement[]): void {
     const el = this.embedFrameRef?.current;
+
+    const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
+    const highlighterBaseConfig = {
+      selectionColor: this.props.tourDataOpts.annotationSelectionColor,
+      showOverlay: an?.showOverlay || true
+    };
+
     let doc;
     if (doc = el?.contentDocument) {
       if (!this.iframeElManager) {
@@ -1254,7 +1265,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           this.iframeElManager = new DomElPicker(doc, nestedFrames, {
             onElSelect: this.onElSelect,
             onElDeSelect: this.onElDeSelect,
-          }, this.props.screen.type);
+          }, this.props.screen.type, highlighterBaseConfig);
           this.iframeElManager!.addEventListener('click', this.goToSelectionMode);
         }
 
@@ -1264,7 +1275,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onElDeSelect: this.onElDeSelect,
             onBoxSelect: this.onBoxSelect,
             onBoxDeSelect: this.onBoxDeSelect,
-          }, this.props.screen.type);
+          }, this.props.screen.type, highlighterBaseConfig);
         }
 
         if (!this.props.toAnnotationId) {

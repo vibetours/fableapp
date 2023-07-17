@@ -1,6 +1,6 @@
-import { Coords } from '@fable/common/dist/types';
+import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import HighlighterBase from '../base/hightligher-base';
+import HighlighterBase, { HighlighterBaseConfig } from '../base/hightligher-base';
 import { ROOT_EMBED_IFRAME_ID } from './preview';
 
 export enum HighlightMode {
@@ -107,8 +107,9 @@ export default class DomElementPicker extends HighlighterBase {
     nestedFrames: HTMLIFrameElement[],
     cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback,},
     screenType: ScreenType,
+    config: HighlighterBaseConfig
   ) {
-    super(doc, nestedFrames);
+    super(doc, nestedFrames, config);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;

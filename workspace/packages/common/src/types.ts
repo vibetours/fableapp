@@ -91,6 +91,7 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationBodyBorderColor: string;
   annotationFontFamily: string | null;
   annotationFontColor: string;
+  annotationSelectionColor: string;
   main: string;
 }
 

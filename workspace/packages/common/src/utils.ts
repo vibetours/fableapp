@@ -83,7 +83,8 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   monoIncKey: 0,
   createdAt: getCurrentUtcUnixTime(),
   updatedAt: getCurrentUtcUnixTime(),
-  annotationFontFamily: null
+  annotationFontFamily: null,
+  annotationSelectionColor: '#2196f3',
 });
 
 export function createEmptyTourDataFile(): TourData {

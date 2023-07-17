@@ -1,4 +1,4 @@
-import { Coords } from '@fable/common/dist/types';
+import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ROOT_EMBED_IFRAME_ID } from '../screen-editor/preview';
 
 export interface Rect {
@@ -10,6 +10,11 @@ export interface Rect {
   bottom: number;
   left: number;
   right: number;
+}
+
+export interface HighlighterBaseConfig {
+  selectionColor: string;
+  showOverlay: boolean;
 }
 
 export default abstract class HighlighterBase {
@@ -27,13 +32,16 @@ export default abstract class HighlighterBase {
 
   private listnrSubs: Partial<Record<keyof HTMLElementEventMap, Array<[(e: Event) => void, Document]>>>;
 
-  constructor(doc: Document, nestedFrames: HTMLIFrameElement[]) {
+  private config: HighlighterBaseConfig;
+
+  constructor(doc: Document, nestedFrames: HTMLIFrameElement[], config: HighlighterBaseConfig) {
     this.doc = doc;
     this.nestedFrames = nestedFrames;
     this.nestedDocs = this.nestedFrames.map(f => f.contentDocument).filter(d => !!d) as Document[];
     this.win = doc.defaultView as Window;
     this.maskEl = null;
     this.listnrSubs = {};
+    this.config = config;
   }
 
   protected dispose() {
@@ -145,7 +153,7 @@ export default abstract class HighlighterBase {
     };
   }
 
-  createFullScreenMask() {
+  createFullScreenMask(): void {
     const elSize: DOMRect = this.doc.body.getBoundingClientRect();
     const maskBox = this.getOrCreateMask();
     maskBox.style.top = `${elSize.top + this.win.scrollY}px`;
@@ -158,7 +166,7 @@ export default abstract class HighlighterBase {
 
   abstract highlightBgColor(): string;
 
-  protected getOrCreateMask() {
+  protected getOrCreateMask(): HTMLDivElement {
     if (this.maskEl) {
       return this.maskEl;
     }
@@ -172,7 +180,7 @@ export default abstract class HighlighterBase {
     mask.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     mask.style.background = this.highlightBgColor();
     mask.style.borderRadius = '2px';
-    mask.style.boxShadow = `#2196f3 0px 0px 0px 2px, rgba(0, 0, 0, ${this.maskHasDarkBg() ? '0.25' : '0.0'
+    mask.style.boxShadow = `${this.config.selectionColor} 0px 0px 0px 2px, rgba(0, 0, 0, ${(this.maskHasDarkBg() && this.config.showOverlay) ? '0.25' : '0.0'
     }) 0px 0px 0px 1000vw`;
     this.maskEl = mask;
     this.attachElToUmbrellaDiv(mask);
@@ -193,16 +201,11 @@ export default abstract class HighlighterBase {
     ];
   }
 
-  showTransparentMaskAndBorder(showMask: boolean, showBorder: boolean) {
-    if (!this.maskEl) {
-      return;
+  updateConfig<K extends keyof HighlighterBaseConfig>(key: K, value: HighlighterBaseConfig[K]): void {
+    if (value !== this.config[key]) {
+      this.removeMaskIfPresent();
+      this.config[key] = value;
     }
-
-    this.maskEl.style.boxShadow = `
-      ${showBorder ? 'transparent' : '#2196f3'} 0px 0px 0px 2px, 
-      ${showMask ? 'transparent' : 'rgba(0, 0, 0, 0.25)'}
-      0px 0px 0px 1000vw
-    `;
   }
 
   protected attachElToUmbrellaDiv(el: Element) {
