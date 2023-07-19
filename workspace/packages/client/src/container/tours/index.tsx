@@ -208,7 +208,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 onClick={e => {
                                   e.stopPropagation();
                                   e.preventDefault();
-                                  window.alert('ANALYTICS :: Coming soon...');
+                                  window.open(`/a/tour/${tour.rid}`, '_blank')?.focus();
                                 }}
                               />
                             </Tooltip>

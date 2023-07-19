@@ -16,13 +16,6 @@ export default function SidePanel(props: Props): JSX.Element {
           <NodeIndexOutlined />
           <p>Tours</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'analytics' ? 'selected' : ''} to="#">
-          <BarChartOutlined />
-          <p>
-            Analytics &nbsp;
-            <Tag style={{ fontSize: '0.6rem' }}>Coming Soon</Tag>
-          </p>
-        </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="#">
           <UsergroupAddOutlined />
           <p>User management</p>

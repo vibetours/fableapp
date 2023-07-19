@@ -23,6 +23,7 @@ import ProductTours from '../../component/onboarding/pages/product-tours';
 import TermsAndConditions from '../../component/onboarding/pages/terms-and-conditions';
 import ProtectedRoutes from '../protected-routes';
 import HubiloJourney from '../hubilo-journey';
+import Analytics from '../analytics';
 
 interface IDispatchProps {
   init: () => void;
@@ -77,6 +78,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/tours" element={<Tours title="Fable - Tours" />} />
               <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route path="/a/tour/:tourId" element={<Analytics />} />
               <Route
                 path="/tour/:tourId/:screenId/:annotationId"
                 element={<TourEditor

@@ -73,3 +73,11 @@ export const isVideoAnnotation = (config: IAnnotationConfig): boolean => !isBlan
     || (!isBlankString(config.videoUrlMp4)
       || !isBlankString(config.videoUrlWebm)
       || !isBlankString(config.videoUrlHls));
+
+export function flatten<T>(arr: Array<T[]>): T[] {
+  const flatArr: T[] = [];
+  for (const item of arr) {
+    flatArr.push(...item);
+  }
+  return flatArr;
+}
