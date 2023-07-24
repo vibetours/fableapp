@@ -23,6 +23,7 @@ import {
 import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
+import raiseDeferredError from '../../deffered-error';
 
 export async function saveScreens(
   data: FrameDataToBeProcessed[][],
@@ -287,15 +288,21 @@ async function postProcessSerDocs(
         const assetUrlStr = getAbsoluteUrl(node.props.proxyUrl || '', frame.baseURI);
         const assetUrl = new URL(assetUrlStr);
         if (assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:') {
-          const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
-            method: 'POST',
-            body: {
-              origin: assetUrlStr,
-              clientInfo,
-            },
-          });
-          node.props.origHref = node.props.proxyUrl;
-          node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
+          try {
+            const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
+              method: 'POST',
+              body: {
+                origin: assetUrlStr,
+                clientInfo,
+              },
+            });
+            node.props.origHref = node.props.proxyUrl;
+            node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
+          } catch (e) {
+            raiseDeferredError((e as Error).message);
+            node.props.origHref = node.props.proxyUrl;
+            node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+          }
         }
 
         if (frameId === 0 && postProcess.path === frame.icon?.path) {
