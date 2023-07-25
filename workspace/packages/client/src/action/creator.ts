@@ -399,6 +399,7 @@ type SupportedPerformedAction = 'new' | 'get' | 'rename' | 'replace';
 export interface TTour {
   type: ActionType.TOUR;
   tour: P_RespTour;
+  oldTourRid: string;
   performedAction: SupportedPerformedAction;
 }
 
@@ -418,6 +419,7 @@ export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mod
     dispatch({
       type: ActionType.TOUR,
       tour,
+      oldTourRid: '',
       performedAction: mode,
     });
   };
@@ -438,6 +440,7 @@ export function renameTour(tour: P_RespTour, newVal: string) {
     dispatch({
       type: ActionType.TOUR,
       tour: renamedTour,
+      oldTourRid: tour.rid,
       performedAction: 'rename',
     });
   };
@@ -515,6 +518,7 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
     dispatch({
       type: ActionType.TOUR,
       tour: duplicatedTour,
+      oldTourRid: '',
       performedAction: 'new',
     });
   };

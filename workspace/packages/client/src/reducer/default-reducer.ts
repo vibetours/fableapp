@@ -180,10 +180,19 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.TOUR: {
       const tAction = action as TTour;
       const newState = { ...state };
+
       newState.currentTour = tAction.tour;
       if (tAction.performedAction === 'new') {
         newState.newTourLoadingStatus = LoadingStatus.Done;
         const tours = newState.tours.slice(0);
+        tours.unshift(tAction.tour);
+        newState.tours = tours;
+      } else if (tAction.performedAction === 'rename') {
+        const tours = newState.tours.slice(0);
+        const index = tours.findIndex(tour => tour.rid === tAction.oldTourRid);
+        if (index !== -1) {
+          tours.splice(index, 1);
+        }
         tours.unshift(tAction.tour);
         newState.tours = tours;
       }
