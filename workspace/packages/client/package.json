@@ -1,6 +1,6 @@
 {
   "name": "@fable/client",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Fable app UI",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "private": true,
