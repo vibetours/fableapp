@@ -299,7 +299,7 @@ async function postProcessSerDocs(
             node.props.origHref = node.props.proxyUrl;
             node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
           } catch (e) {
-            raiseDeferredError((e as Error).message);
+            raiseDeferredError(e as Error);
             node.props.origHref = node.props.proxyUrl;
             node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
           }

@@ -10,8 +10,8 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import Modal from 'antd/lib/modal';
-import { $createImageNode, ImageNode, ImagePayload } from '../nodes/image-node';
-import { uploadImgToAws } from '../../utils/upload-img-to-aws';
+import { $createImageNode, ImagePayload } from '../nodes/image-node';
+import { uploadImgToAws } from '../../screen-editor/utils/upload-img-to-aws';
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 

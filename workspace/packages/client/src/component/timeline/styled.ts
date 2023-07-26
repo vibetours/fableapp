@@ -1,8 +1,9 @@
+import styled from 'styled-components';
 import Button from 'antd/lib/button';
 import Select from 'antd/lib/select';
-import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
+import { HoveredSection } from './item';
 
 export const EmbedFrame = styled.iframe`
   height: 100%;
@@ -283,4 +284,194 @@ export const ActionPaneSelect = styled(Select)`
   &:hover {
     box-shadow: 0 0 0 1px #747474 !important;
   } 
+`;
+
+interface HorizontalBarProps {
+  isAnnotationDragged: boolean;
+  hoveredSection: HoveredSection;
+}
+
+export const AnnotationItemCon = styled.div<{ isItemExpanded: boolean }>`
+  display: flex; 
+  align-items: ${props => (props.isItemExpanded ? 'baseline' : 'center')}; 
+  gap: 0.25rem;
+`;
+
+export const PopoverMenuItemsCon = styled.div`
+  border-top: 1px solid #ddd;
+  padding: 0.5rem 0rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+export const AnnotationLI = styled.div`
+  position: relative;
+  background: #F7F7F7;
+  padding: 0.65rem 0 0.25rem;
+  border-radius: 2px;
+  border: 1px solid #DDDDDD;
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  flex-grow: 1;
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+export const AnotCrtPanelSecLabel = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+
+  & > div:first-child {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    span {
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      background: #FF7450;
+      margin-right: 0.6rem;
+    }
+  }
+`;
+
+export const AnnDisplayText = styled.div`
+  line-height: 1.25rem;
+  font-weight: 600;
+  color: #212121;
+  display: inline-block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+`;
+
+export const BottomInvisibleDiv = styled.div`
+  position: absolute;
+  bottom: 0px;
+  left: -10px;
+  width: 100%;
+  height: 50%;
+  opacity: 0.3;
+`;
+
+export const TopInvisibleDiv = styled.div`
+  position: absolute;
+  top: 0px;
+  left: -10px;
+  width: 100%;
+  height: 50%;
+  opacity: 0.3;
+`;
+
+export const BottomHorizontalBar = styled.div`
+  width: 100%;
+  height: 1px;
+  background-color: #7567FF;
+  position: absolute;
+  bottom: 0px;
+  border: 2px solid #7567FF;
+  border-radius: 4px;
+  width: 105%;
+  transform: translate(-2%, 0.55rem);
+  display: ${
+  ({
+    isAnnotationDragged,
+    hoveredSection
+  }: HorizontalBarProps) => (isAnnotationDragged && hoveredSection === HoveredSection.Bottom ? 'block' : 'none')
+};
+`;
+
+export const TopHorizontalBar = styled.div`
+  height: 1px;
+  background-color: #7567FF;
+  position: absolute;
+  top: 0px;
+  border: 2px solid #7567FF;
+  border-radius: 4px;
+  width: 106%;
+  transform: translate(-2%, -0.55rem);
+  display: ${
+  ({
+    isAnnotationDragged,
+    hoveredSection
+  }: HorizontalBarProps) => (isAnnotationDragged && hoveredSection === HoveredSection.Top ? 'block' : 'none')
+};
+`;
+
+interface ScreenThumbnailProps {
+  isLastScreen: boolean;
+}
+
+export const Con = styled.div`
+  display: flex;
+  gap: 0.8rem;
+  position: relative;
+  padding-bottom: 1.1rem;
+  padding-top: 1.1rem;
+`;
+
+export const ScreenThumbnail = styled.img`
+  border:  1px solid #747474;
+  border-radius: 2px;
+  cursor: pointer;
+  height: 48px;
+  width: 85px;
+  object-fit: contain;
+`;
+
+export const TextCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  gap: 0.5rem;
+  justify-content: space-between;
+  flex-grow: 1;
+  overflow: hidden;
+`;
+
+export const DisplayName = styled.div`
+  font-size: 1rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: #16023E;
+  margin: 0;
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+`;
+
+export const DisplayableTime = styled.h5`
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: #16023E;
+  margin: 0;
+`;
+
+export const ScreenVerticalBar = styled.div`
+  height: 1.1rem;  
+  border-left: 1px solid #747474;
+  position: absolute;
+  left: 1rem;
+  ${(props: ScreenThumbnailProps) => (props.isLastScreen ? 'top: 0;' : 'bottom: 0;')};
+`;
+
+export const FlexColCon = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-grow: 1;
+  flex-shrink: 0;
+  justify-content: end;
+`;
+
+export const DisplayPicture = styled.img`
+  border-radius: 50%;
 `;

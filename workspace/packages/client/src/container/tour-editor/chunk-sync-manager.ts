@@ -1,9 +1,66 @@
+import { getRandomId } from '@fable/common/dist/utils';
+import raiseDeferredError from '../../deffered-error';
+
 export enum SyncTarget {
   LocalStorage,
 }
 
 interface CB {
   onSyncNeeded: <T extends Record<string, any>>(key: string, value: T) => void;
+}
+
+const enum TxState {
+  Created = 1,
+  InProgress,
+  Completed
+}
+
+type TxFn = (Function & { __fid__?: string});
+export class Tx {
+  private txState = TxState.Created;
+
+  readonly uuid = getRandomId();
+
+  private ls: Array<[TxFn, any[]]> = [];
+
+  private data: unknown | null = null;
+
+  onFinish(f: TxFn, args: any[]): () => void {
+    if (!f.__fid__) {
+      f.__fid__ = getRandomId();
+    }
+    const ii = this.ls.findIndex(lfn => lfn[0].__fid__ === f.__fid__);
+    if (ii === -1) {
+      const i = this.ls.push([f, args]);
+      return () => this.ls.splice(i - 1, 1);
+    }
+    return () => this.ls.splice(ii, 1);
+  }
+
+  start(): Tx {
+    if (this.txState === TxState.Completed) {
+      raiseDeferredError(new Error('Attempting to restart a completed transaction'));
+      return this;
+    }
+    this.txState = TxState.InProgress;
+    return this;
+  }
+
+  setData(d: unknown): Tx {
+    this.data = d;
+    return this;
+  }
+
+  getData(): unknown {
+    return this.data;
+  }
+
+  end(): Tx {
+    this.txState = TxState.Completed;
+    this.ls.forEach(f => f[0](this, ...f[1]));
+    this.ls.length = 0;
+    return this;
+  }
 }
 
 export default class ChunkSyncManager {
@@ -28,18 +85,37 @@ export default class ChunkSyncManager {
     this.lookupKeyLike = lookupKeyLike;
   }
 
-  add<K, T>(key: string, value: T, updateFn: (storedVal: K | null, v: T) => K): K {
-    if (!(key in this.lookupKeys)) {
+  add<K, T>(key: string, value: T, updateFn: (storedVal: K | null, v: T) => K, tx?: Tx): K | null {
+    const origKey = key;
+    if (tx) {
+      key = `tx/${key}`;
+    } else if (!(key in this.lookupKeys)) {
       this.lookupKeys[key] = 1;
     }
 
     const storedVal = localStorage.getItem(key);
     const newVal = updateFn(storedVal === null ? null : JSON.parse(storedVal), value);
     localStorage.setItem(key, JSON.stringify(newVal));
+    if (tx) {
+      tx.onFinish(this.onTxFinish, [key, origKey]);
+      return null;
+    }
     return newVal;
   }
 
-  startIfNotAlreadyStarted<K>(onLocalEditsLeft: (key: string, v: K) => void) {
+  // eslint-disable-next-line class-methods-use-this
+  onTxFinish = (tx: Tx, key: string, origKey: string): void => {
+    const storedVal = JSON.parse(localStorage.getItem(key)!);
+    localStorage.removeItem(key);
+
+    if (!(origKey in this.lookupKeys)) {
+      this.lookupKeys[origKey] = 1;
+    }
+    localStorage.setItem(origKey, JSON.stringify(storedVal));
+    tx.setData(storedVal);
+  };
+
+  startIfNotAlreadyStarted<K>(onLocalEditsLeft: (key: string, v: K) => void): void {
     if (this.isStarted) {
       return;
     }
@@ -70,7 +146,7 @@ export default class ChunkSyncManager {
 
   // TODO this function does not wait to check if the server has failed to receive the data
   //      Edits could be lost when there if the server is not available
-  poll = () => {
+  poll = (): void => {
     for (const key of Object.keys(this.lookupKeys)) {
       const val = localStorage.getItem(key);
       if (val) {
@@ -81,7 +157,7 @@ export default class ChunkSyncManager {
     }
   };
 
-  end() {
+  end(): void {
     clearInterval(this.timer);
     this.timer = 0;
     this.poll();

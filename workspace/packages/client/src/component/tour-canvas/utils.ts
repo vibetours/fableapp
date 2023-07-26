@@ -1,50 +1,50 @@
-import { AnnotationNode, Box, CanvasGrid, Point } from './types';
-import { AnnotationPerScreen } from '../../types';
-import { P_RespScreen } from '../../entity-processor';
+import { AnnotationNode, Box, CanvasGrid, Edge, Point } from './types';
+import { ConnectedOrderedAnnGroupedByScreen } from '../../types';
+import { getAnnotationBtn } from '../annotation/ops';
+import { getRandomId } from '@fable/common/dist/utils';
 
-export function formScreens2(data: AnnotationPerScreen[], grid: CanvasGrid): {
-  annotationNodes: AnnotationNode<Box>[],
-  screens: P_RespScreen[],
-} {
+export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, grid: CanvasGrid)
+: [AnnotationNode<Box>[], Edge[]] {
   const annotationNodes: AnnotationNode<Box>[] = [];
-  const screens: P_RespScreen[] = [];
-  for (const el of data) {
-    screens.push(el.screen);
-    if (el.annotations.length !== 0) {
-      for (const annotation of el.annotations) {
+  const edges: [srcId: string, destId: string][] = [];
+
+  data.forEach((connectedTimelines) => {
+    let i = 0;
+    const groupId = getRandomId();
+    connectedTimelines.forEach((timeline => {
+      const screen = timeline[0].screen;
+
+      timeline.forEach((annotation) => {
+        const annId = `${screen.id}/${annotation.refId}`;
+
+        const nextBtn = getAnnotationBtn(annotation, 'next');
+
+        if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
+          const toId = nextBtn.hotspot.actionValue;
+          edges.push([annId, toId]);
+        }
+
         annotationNodes.push({
-          id: `${el.screen.id}/${annotation.refId}`,
+          id: annId,
+          localIdx: i++,
+          grp: groupId,
           width: grid.gridSize * 6,
           height: grid.gridSize * 4,
           x: 0,
           y: 0,
-          imageUrl: el.screen.thumbnailUri.href,
+          imageUrl: screen.thumbnailUri.href,
           text: annotation.displayText,
-          screenTitle: el.screen.displayName,
+          screenTitle: screen.displayName,
+          annotation
         });
-      }
-    }
-  }
-  return { annotationNodes, screens };
+      });
+    }));
+  });
+
+  return [annotationNodes, edges];
 }
 
-export function getEdges(data: AnnotationPerScreen[]) {
-  const edges: [srcId: string, destId: string][] = [];
-  for (const el of data) {
-    for (const ann of el.annotations) {
-      const fromId = `${el.screen.id}/${ann.refId}`;
-      for (const btn of ann.buttons) {
-        if (btn.type === 'next' && btn.hotspot && btn.hotspot.actionType === 'navigate') {
-          const toId = btn.hotspot.actionValue;
-          edges.push([fromId, toId]);
-        }
-      }
-    }
-  }
-  return edges;
-}
-
-export function formPathUsingPoints(points: Point[]) {
+export function formPathUsingPoints(points: Point[]): string {
   let d = 'M ';
   points.forEach((point, index) => {
     if (index === 0) {
@@ -55,7 +55,7 @@ export function formPathUsingPoints(points: Point[]) {
   return d;
 }
 
-export function getEndPointsUsingPath(d: string) {
+export function getEndPointsUsingPath(d: string): [Point, Point] {
   const commands = d.split(/(?=[LMC])/);
   const pointArrays = commands.map((dStr: string) => {
     const pointsArray = dStr.slice(1, dStr.length).split(',');

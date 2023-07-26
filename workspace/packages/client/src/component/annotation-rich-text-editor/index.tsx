@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, ReactElement } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
@@ -10,16 +10,17 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $rootTextContent } from '@lexical/text';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { EditorState, LexicalEditor, $getRoot, $insertNodes } from 'lexical';
-import { SaveOutlined } from '@ant-design/icons';
+import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode } from 'lexical';
+import { SaveOutlined, } from '@ant-design/icons';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
 import Theme from './themes';
 import AutoLinkPlugin from './plugins/auto-link-plugin';
 import './styles.css';
 import { ImageNode } from './nodes/image-node';
+import { ExtendedTextNode } from './plugins/extended-text-node';
 
-function Placeholder() {
+function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
 }
 
@@ -32,7 +33,9 @@ const editorConfig = {
   nodes: [
     AutoLinkNode,
     LinkNode,
-    ImageNode
+    ImageNode,
+    ExtendedTextNode,
+    { replace: TextNode, with: (node: TextNode) => new ExtendedTextNode(node.__text, node.__key) },
   ]
 };
 
@@ -45,7 +48,7 @@ interface PluginProps {
   defaultAnnotationValue: string
 }
 
-function PopulateEditorWithAnnotationBodyPlugin({ defaultAnnotationValue }: PluginProps) {
+function PopulateEditorWithAnnotationBodyPlugin({ defaultAnnotationValue }: PluginProps) : null {
   const [editor] = useLexicalComposerContext();
 
   const convertHTMLtoLexicalNodes = useCallback(() => {
@@ -70,7 +73,7 @@ interface AnnotationContent {
   annotationDisplayText: string;
 }
 
-export default function AnnotationRichTextEditor({ defaultValue, throttledChangeHandler }: React.PropsWithChildren<Props>) {
+export default function AnnotationRichTextEditor({ defaultValue, throttledChangeHandler }: React.PropsWithChildren<Props>) : ReactElement {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savingInProgress, setSavingInProgress] = useState(false);
@@ -90,7 +93,7 @@ export default function AnnotationRichTextEditor({ defaultValue, throttledChange
     },
   };
 
-  const onChangePluginHandler = (editorState: EditorState, editor: LexicalEditor) => {
+  const onChangePluginHandler = (editorState: EditorState, editor: LexicalEditor) : void => {
     editorState.read(() => {
       const htmlFromNode = $generateHtmlFromNodes(editor);
       const annotationDisplayText = $rootTextContent();

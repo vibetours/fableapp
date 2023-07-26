@@ -1,35 +1,30 @@
 import {
+  ExclamationCircleOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
   FilterOutlined,
   FontSizeOutlined,
   LoadingOutlined,
-  PictureOutlined,
-  ExclamationCircleOutlined,
-  PlusOutlined,
-  SelectOutlined,
+  PictureOutlined, PlusOutlined,
+  SelectOutlined
 } from '@ant-design/icons';
-import { IAnnotationConfig, ITourDataOpts, ScreenData, TourData, TourScreenEntity } from '@fable/common/dist/types';
+import { ScreenType } from '@fable/common/dist/api-contract';
+import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
+import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
 import React from 'react';
-import { Modal } from 'antd';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
-import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
-import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as GTags from '../../common-styled';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { uploadImgToAws } from './utils/upload-img-to-aws';
-import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import {
   AllEdits,
   AnnotationPerScreen,
-  EditItem,
+  ConnectedOrderedAnnGroupedByScreen, EditItem,
   EditValueEncoding,
   ElEditType,
-  FrameAssetLoadFn,
-  IdxEditEncodingText,
+  FrameAssetLoadFn, IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
@@ -37,26 +32,29 @@ import {
   IdxEncodingTypeMask,
   NavFn
 } from '../../types';
-import ActionPanel from './action-panel';
-import ListActionBtn from './list-action-btn';
 import {
-  cloneAnnotation,
-  IAnnotationConfigWithScreenId,
-  replaceAnnotation
+  cloneAnnotation, IAnnotationConfigWithScreenId, replaceAnnotation
 } from '../annotation/annotation-config-utils';
-import AnnotationCreatorPanel from './annotation-creator-panel';
-import DomElPicker, { HighlightMode } from './dom-element-picker';
-import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
-import * as Tags from './styled';
+import { AnnotationSerialIdMap } from '../annotation/ops';
+import { getAnnotationByRefId } from '../annotation/utils';
+import Timeline from '../timeline';
+import { AnnUpdateType } from '../timeline/types';
+import ActionPanel from './action-panel';
 import AdvanceElementPicker from './advance-element.picker';
+import AnnotationCreatorPanel from './annotation-creator-panel';
+import ImageMaskUploadModal from './components/image-mask-modal';
 import TabBar from './components/tab-bar';
 import TabItem from './components/tab-bar/tab-item';
-import TimelineScreen from './components/timeline/screen';
-import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import UploadButton from './components/upload-button';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
+import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
+import ListActionBtn from './list-action-btn';
+import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
 import ScreenImageBrusher from './screen-image-brushing';
-import ImageMaskUploadModal from './components/image-mask-modal';
+import * as Tags from './styled';
+import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import { ImgResolution, resizeImg } from './utils/resize-img';
+import { uploadImgToAws } from './utils/upload-img-to-aws';
 
 const { confirm } = Modal;
 
@@ -82,6 +80,7 @@ enum TabList {
 }
 
 interface IOwnProps {
+  annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   navigate: NavFn;
   screenData: ScreenData;
@@ -90,7 +89,7 @@ interface IOwnProps {
   tour: P_RespTour;
   tourDataOpts: ITourDataOpts;
   createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
-  timelineConfig: ITimelineConfig;
+  timeline: ConnectedOrderedAnnGroupedByScreen,
   onAnnotationCreateOrChange: (
     screenId: number | null,
     config: IAnnotationConfig,
@@ -102,6 +101,7 @@ interface IOwnProps {
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
+  applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
 }
 
 const enum ElSelReqType {
@@ -121,11 +121,13 @@ interface IOwnStateProps {
   editTargetType: EditTargetType;
   editItemSelected: string;
   selectedHotspotEl: HTMLElement | null;
-  selectionMode: 'hotspot' | 'annotation';
+  selectedAnnReplaceEl: HTMLElement | null;
+  selectionMode: 'hotspot' | 'annotation' | 'replace';
   activeTab: TabList;
   showImageMaskUploadModal: boolean;
   imageMaskUploadModalError: string;
   imageMaskUploadModalIsUploading: boolean;
+  selectedAnnotationCoords: string | null;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -144,6 +146,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.embedFrameRef = React.createRef();
     this.frameConRef = React.createRef();
     this.microEdits = {};
+
     this.state = {
       isInElSelectionMode: true,
       elSelRequestedBy: ElSelReqType.AnnotateEl,
@@ -155,6 +158,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       editItemSelected: '',
       selectedAnnotationId: '',
       selectedHotspotEl: null,
+      selectedAnnReplaceEl: null,
+      selectedAnnotationCoords: null,
       selectionMode: 'annotation',
       activeTab: TabList.Annotations,
       showImageMaskUploadModal: false,
@@ -478,7 +483,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     try {
       const newImageUrl = await uploadImgToAws(maskImgFile);
-      const resizedImgUrl = await resizeImg(newImageUrl, this.props.screen.rid, resolution);
+      const resizedImgUrl = maskImgFile.type === 'image/gif'
+        ? ''
+        : await resizeImg(newImageUrl, this.props.screen.rid, resolution);
 
       hideChildren(el);
 
@@ -901,10 +908,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   render(): React.ReactNode {
+    let startAnnotaitonId = '';
+    if (this.props.tourDataOpts && this.props.tourDataOpts.main) {
+      startAnnotaitonId = this.props.tourDataOpts.main.split('/')[1] || startAnnotaitonId;
+    }
+
     return (
       <GTags.PreviewAndActionCon>
         <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
           <PreviewWithEditsAndAnRO
+            annotationSerialIdMap={this.props.annotationSerialIdMap}
             key={this.props.screen.rid}
             screen={this.props.screen}
             screenData={this.props.screenData}
@@ -1001,81 +1014,47 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     &nbsp;
                     Create cover annotation
                   </Tags.CreateCoverAnnotationBtn>
-                  <Tags.AnnTimelineCon>
-                    {this.props.timelineConfig.prevScreen
-                      && <TimelineScreen
-                        navigate={this.navigateToAnnotation}
-                        isLastScreen={false}
-                        screen={this.props.timelineConfig.prevScreen}
-                        annotationId={this.props.timelineConfig.prevAnnotation}
-                      />}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      {this.props.timelineConfig.currentScreenAnnotations.map((config, idx) => (
-                        <Tags.AnnotationLI
-                          key={config.refId}
-                          style={{
-                            paddingBottom: this.state.selectedAnnotationId === config.refId ? '0.25rem' : '0.65rem',
-                            opacity: this.state.selectedAnnotationId === config.refId ? 1 : 0.65
-                          }}
-                        >
-                          <Tags.AnotCrtPanelSecLabel
-                            style={{ display: 'flex' }}
-                            onClick={() => {
-                              if (this.state.selectedAnnotationId === config.refId) {
-                                this.setState({ selectedAnnotationId: '', selectedEl: null });
-                                this.goToSelectionMode()();
-                              } else {
-                                this.setState({ selectedAnnotationId: config.refId });
-                              }
-                            }}
-                          >
-                            <Tags.AnnDisplayText>{config.displayText}</Tags.AnnDisplayText>
-                            {
-                              config.syncPending && (<LoadingOutlined />)
-                            }
-                            <img src={ExpandArrowFilled} height={20} width={20} alt="" />
-                          </Tags.AnotCrtPanelSecLabel>
-                          {this.state.selectedAnnotationId === config.refId && (
-                            <div style={{ color: 'black' }}>
-                              <AnnotationCreatorPanel
-                                tour={this.props.tour}
-                                config={config}
-                                opts={this.props.tourDataOpts}
-                                allAnnotationsForTour={this.props.allAnnotationsForTour}
-                                screen={this.props.screen}
-                                selectedHotspotEl={this.state.selectedHotspotEl}
-                                setSelectionMode={(mode: 'annotation' | 'hotspot') => {
-                                  this.setState({ selectionMode: mode });
-                                }}
-                                domElPicker={this.iframeElManager}
-                                onSideEffectConfigChange={
-                                  (screenId: number, c: IAnnotationConfig, actionType: 'upsert' | 'delete') => {
-                                    this.props.onAnnotationCreateOrChange(screenId, c, actionType, null);
-                                  }
-                                }
-                                onConfigChange={async (conf, actionType, opts) => {
-                                  if (actionType === 'upsert') {
-                                    this.setState({ selectedAnnotationId: conf.refId });
-                                  }
-                                  this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                                }}
-                              />
-                            </div>
-                          )}
-                          {idx < this.props.timelineConfig.currentScreenAnnotations.length - 1 && <Tags.VerticalBar />}
-                        </Tags.AnnotationLI>
-                      ))}
-                    </div>
-
-                    {this.props.timelineConfig.nextScreen
-                      && <TimelineScreen
-                        navigate={this.navigateToAnnotation}
-                        isLastScreen
-                        screen={this.props.timelineConfig.nextScreen}
-                        annotationId={this.props.timelineConfig.nextAnnotation}
-                      />}
-                  </Tags.AnnTimelineCon>
+                  <Timeline
+                    timeline={this.props.timeline}
+                    navigate={this.navigateToAnnotation}
+                    screen={this.props.screen}
+                    applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                    allAnnotationsForTour={this.props.allAnnotationsForTour}
+                    tourDataOpts={this.props.tourDataOpts}
+                    setSelectedAnnotationId={(annId: string) => this.setState({ selectedAnnotationId: annId })}
+                    resetSelectedAnnotationId={() => this.setState({ selectedAnnotationId: '', selectedEl: null })}
+                    selectedAnnotationId={this.state.selectedAnnotationId}
+                    goToSelectionMode={this.goToSelectionMode}
+                  >
+                    <AnnotationCreatorPanel
+                      opts={this.props.tourDataOpts}
+                      allAnnotationsForTour={this.props.allAnnotationsForTour}
+                      screen={this.props.screen}
+                      onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
+                      config={getAnnotationByRefId(this.state.selectedAnnotationId!, this.props.allAnnotationsForTour)!}
+                      tour={this.props.tour}
+                      applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                      selectedHotspotEl={this.state.selectedHotspotEl}
+                      selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
+                      selectedAnnotationCoords={this.state.selectedAnnotationCoords}
+                      setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
+                        this.setState({ selectionMode: mode });
+                      }}
+                      domElPicker={this.iframeElManager}
+                      onConfigChange={async (conf, actionType, opts) => {
+                        if (actionType === 'upsert') {
+                          this.setState({ selectedAnnotationId: conf.refId });
+                        }
+                        this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                      }}
+                      resetSelectedAnnotationId={() => {
+                        this.setState({ selectedAnnotationId: '', selectedEl: null });
+                      }}
+                      resetSelectedAnnotationElements={() => {
+                        this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
+                      }}
+                    />
+                  </Timeline>
                 </div>
               )}
 
@@ -1225,6 +1204,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       return;
     }
 
+    if (this.state.selectionMode === 'replace') {
+      this.setState({ selectedAnnReplaceEl: el, selectedElsParents: parents, selectionMode: 'annotation' });
+      return;
+    }
+
     this.setState({ selectedEl: el, selectedElsParents: parents });
   };
 
@@ -1234,6 +1218,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   private onBoxSelect = (coordsStr: string): void => {
+    if (this.state.selectionMode === 'replace') {
+      this.setState({ selectedAnnotationCoords: coordsStr, selectionMode: 'annotation' });
+      return;
+    }
     const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
     const conf = getSampleConfig(coordsStr);
 

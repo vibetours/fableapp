@@ -38,7 +38,7 @@ export default function ImageMaskUploadModal({
           <Tags.InputContainer
             id="screen-img"
             type="file"
-            accept="image/png, image/jpeg, image/webp, image/svg+xml"
+            accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
             name="maskImg"
             required
           />

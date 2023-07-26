@@ -5,23 +5,24 @@ import { ApiResp, ReqNewScreen, ReqThumbnailCreation, RespScreen, ScreenType } f
 import { captureException } from '@sentry/react';
 import { getImgScreenData } from '@fable/common/dist/utils';
 import * as Tags from './styled';
-import { uploadImageAsBinary } from '../screen-editor/utils/upload-img-to-aws';
+import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
+import { P_RespScreen } from '../../entity-processor';
 
 type Props = {
     open: boolean;
     closeModal: () => void;
     tourRid: string | undefined;
-    addScreenToTour: (screenType: ScreenType, screenId: number, screenRid: string) => void;
+    handleAddScreen: (screen: P_RespScreen) => void;
+    hidePopup: () => void,
 };
 
 const GEN_ERR_MSG = 'Something went wrong! Please try again';
 
-// TODO function name and casing
-function AddImageScreen(props: Props) {
+export default function UploadImageScreen(props: Props): JSX.Element {
   const [uploading, setUploading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
 
     setUploading(true);
@@ -37,7 +38,7 @@ function AddImageScreen(props: Props) {
     }
 
     try {
-      const { data } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+      const { data: screen } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
         method: 'POST',
         body: {
           name: screenName,
@@ -47,29 +48,35 @@ function AddImageScreen(props: Props) {
         },
       });
 
-      if (!data.uploadUrl) {
+      if (!screen.uploadUrl) {
         captureException('Data url is not returned by server for image screen');
         setError(GEN_ERR_MSG);
         return;
       }
 
-      // upload image to presigned url
-      await uploadImageAsBinary(screenImgFile, data.uploadUrl);
+      await uploadImageAsBinary(screenImgFile, screen.uploadUrl);
 
-      // create thumbnail API
       await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
         method: 'POST',
         body: {
-          screenRid: data.rid
+          screenRid: screen.rid
         },
       });
 
-      props.addScreenToTour(data.type, data.id, data.rid);
+      // TODO screen is of type Screen not P_RespScreen, actions should always be called via action creator
+      //      this is antipattern
+      props.handleAddScreen(screen as P_RespScreen);
+
+      // TODO[rrl] do this once api endpoint is completed
+      setTimeout(() => {
+        setUploading(false);
+        props.closeModal();
+        props.hidePopup();
+      }, 1000);
     } catch (err) {
       captureException(err);
-      setError('Something went wrong! Please try again');
-    } finally {
       setUploading(false);
+      setError('Something went wrong! Please try again');
     }
   };
 
@@ -81,6 +88,7 @@ function AddImageScreen(props: Props) {
       onOk={() => {}}
       style={{ position: 'relative' }}
       footer={null}
+      zIndex={9999}
     >
       <Tags.ModalBorderTop>
         <div />
@@ -122,5 +130,3 @@ function AddImageScreen(props: Props) {
     </Modal>
   );
 }
-
-export default AddImageScreen;

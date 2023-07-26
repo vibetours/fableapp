@@ -25,3 +25,24 @@ html, body {
   50%{opacity: 1;}
   100%{opacity: .35;}
 }
+
+.ant-modal .ant-modal-content { 
+  border-radius: 4px;
+}
+
+.ant-modal .ant-modal-content .ant-btn {
+  border-radius: 4px;
+}
+
+
+.ant-modal .ant-modal-content .ant-btn:focus-visible {
+  outline: none;
+}
+
+.ant-modal .ant-modal-content .ant-btn-primary {
+  background: #16023e;
+}
+
+.ant-modal .ant-modal-content .anticon {
+  color: #ff7350;
+}

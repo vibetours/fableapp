@@ -1,18 +1,17 @@
 import React, { ReactElement, SetStateAction, useEffect, useRef, Dispatch } from 'react';
 import Modal from 'antd/lib/modal';
 import Button from 'antd/lib/button';
-import { VideoAnnotationPositions } from '@fable/common/dist/types';
+import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
 import { MediaType } from '@fable/common/dist/api-contract';
 import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
 import {
-  IAnnotationConfigWithScreenId,
   updateAnnotationBoxSize,
   updateAnnotationPositioning,
   updateAnnotationVideoURLHLS,
   updateAnnotationVideoURLMp4,
-  updateAnnotationVideoURLWebm
+  updateAnnotationVideoURLWebm,
 } from '../annotation/annotation-config-utils';
 import { blobToUint8Array } from './utils/blob-to-uint8array';
 import { P_RespTour } from '../../entity-processor';
@@ -20,7 +19,7 @@ import { P_RespTour } from '../../entity-processor';
 type Props = {
   tour: P_RespTour,
   closeRecorder: () => void,
-  setConfig: Dispatch<SetStateAction<IAnnotationConfigWithScreenId>>
+  setConfig: Dispatch<SetStateAction<IAnnotationConfig>>
 }
 
 type VideoState = {
@@ -53,7 +52,7 @@ const initialState: VideoState = {
 const CODEC_OPTIONS = { mimeType: 'video/webm;codecs=h264' };
 
 // videoReducer is local to this video recorder component, that's why it's placed here
-const videoReducer = (state: VideoState, action: Action) => {
+const videoReducer = (state: VideoState, action: Action) : VideoState => {
   switch (action.type) {
     case 'OPEN_VIDEO_MODAL':
       return {
@@ -113,12 +112,14 @@ function VideoRecorder(props: Props): ReactElement {
   const [state, dispatch] = React.useReducer(videoReducer, initialState);
 
   useEffect(() => {
-    navigator.mediaDevices.getUserMedia({ audio: true,
+    navigator.mediaDevices.getUserMedia({
+      audio: true,
       video: {
         width: { exact: 640 },
         height: { exact: 480 },
         frameRate: { ideal: 12 },
-      } })
+      }
+    })
       .then(stream => {
         streamRef.current = stream;
         recorderRef.current!.srcObject = stream;
@@ -153,7 +154,7 @@ function VideoRecorder(props: Props): ReactElement {
       });
   }, []);
 
-  const startRecording = () => {
+  const startRecording = () : void => {
     dispatch({
       type: 'SET_DONE_RECORDING',
       payload: {
@@ -177,7 +178,7 @@ function VideoRecorder(props: Props): ReactElement {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = () : void => {
     dispatch({
       type: 'SET_DONE_RECORDING',
       payload: {
@@ -205,7 +206,7 @@ function VideoRecorder(props: Props): ReactElement {
     });
   };
 
-  const restartRecording = () => {
+  const restartRecording = () : void => {
     recordedPartsRef.current = [];
     dispatch({
       type: 'SET_IS_RECORDING',
@@ -264,7 +265,7 @@ function VideoRecorder(props: Props): ReactElement {
 
   useEffect(() => {
     if (!state.doneRecording) {
-        recorderRef.current!.srcObject = streamRef.current!;
+      recorderRef.current!.srcObject = streamRef.current!;
     }
   }, [state.doneRecording]);
 
@@ -310,46 +311,46 @@ function VideoRecorder(props: Props): ReactElement {
               style={{ height: '225px', margin: 'auto', display: 'block' }}
             />
             {
-            state.isVideoReady && (
-              <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center' }}>
-                {
-                  state.isRecording
-                    ? <Button type="primary" onClick={stopRecording}>Stop Recording</Button>
-                    : <Button type="primary" onClick={startRecording}>Start Recording</Button>
-                }
-              </div>
-            )
-          }
+              state.isVideoReady && (
+                <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center' }}>
+                  {
+                    state.isRecording
+                      ? <Button type="primary" onClick={stopRecording}>Stop Recording</Button>
+                      : <Button type="primary" onClick={startRecording}>Start Recording</Button>
+                  }
+                </div>
+              )
+            }
           </>
         )
-        }
+      }
       {
         state.doneRecording && (
-        <>
-          <video
-            autoPlay
-            controls
-            src={state.recordedVideoURL}
-            style={{ height: '225px', margin: 'auto', display: 'block' }}
-          />
-          {
-            state.saving && (
-              <div style={{ margin: '1rem auto' }}>
-                <div style={{ textAlign: 'center' }}>Saving</div>
-              </div>
-            )
-          }
-          {
-            !state.saving && (
-              <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                <Button type="link" onClick={restartRecording}>Discard</Button>
-                <Button type="primary" onClick={saveRecording}>Save</Button>
-              </div>
-            )
-          }
-        </>
+          <>
+            <video
+              autoPlay
+              controls
+              src={state.recordedVideoURL}
+              style={{ height: '225px', margin: 'auto', display: 'block' }}
+            />
+            {
+              state.saving && (
+                <div style={{ margin: '1rem auto' }}>
+                  <div style={{ textAlign: 'center' }}>Saving</div>
+                </div>
+              )
+            }
+            {
+              !state.saving && (
+                <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                  <Button type="link" onClick={restartRecording}>Discard</Button>
+                  <Button type="primary" onClick={saveRecording}>Save</Button>
+                </div>
+              )
+            }
+          </>
         )
-}
+      }
     </Modal>
   );
 }

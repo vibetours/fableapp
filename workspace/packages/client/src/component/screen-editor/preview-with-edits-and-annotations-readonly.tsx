@@ -21,9 +21,10 @@ import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
-import { isVideoAnnotation } from '../../utils';
+import { AnnotationSerialIdMap } from '../annotation/ops';
 
 export interface IOwnProps {
+  annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
   divPadding: number;
@@ -206,6 +207,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.allAnnotationsForTour,
           this.props.allAnnotationsForScreen,
           this.props.tourDataOpts,
+          this.props.annotationSerialIdMap,
           highlighterBaseConfig
         );
       }
@@ -214,7 +216,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   }
 
-  private disposeAndAnnotationLCM() {
+  private disposeAndAnnotationLCM(): void {
     if (this.annotationLCM) {
       this.annotationLCM.dispose();
       this.annotationLCM = null;
@@ -287,7 +289,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.disposeAndAnnotationLCM();
   }
 
-  render() {
+  render(): JSX.Element {
     const refs = [this.embedFrameRef];
     if (this.props.innerRef) {
       refs.push(this.props.innerRef);

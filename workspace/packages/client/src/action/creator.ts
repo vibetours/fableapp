@@ -17,6 +17,7 @@ import {
   ResponseStatus,
   ReqUpdateUser,
   ReqScreenTour,
+  ScreenType,
   ReqDuplicateTour,
   RespTourWithScreens
 } from '@fable/common/dist/api-contract';
@@ -27,7 +28,7 @@ import {
   ScreenData,
   TourData,
   TourDataWoScheme,
-  TourScreenEntity,
+  TourScreenEntity
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
@@ -304,6 +305,14 @@ export function clearCurrentScreenSelection() {
   };
 }
 
+export function clearRelayScreenAndAnnAdd() {
+  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_RELAY_SCREEN_ANN_ADD}>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.CLEAR_RELAY_SCREEN_ANN_ADD,
+    });
+  };
+}
+
 export function clearCurrentTourSelection() {
   return async (dispatch: Dispatch<{ type: ActionType.CLEAR_CURRENT_TOUR }>, getState: () => TState) => {
     dispatch({
@@ -312,60 +321,74 @@ export function clearCurrentTourSelection() {
   };
 }
 
-export function copyScreenForCurrentTour(tour: P_RespTour | null, withScreenId: number, shouldNavigate = true) {
-  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
-    let tourAnyway: P_RespTour;
-    if (!tour) {
-      const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
-        auth: true,
-        body: {
-          name: 'Untitled', // default name if no name is given
-          description: '',
-        },
-      });
-      tourAnyway = processRawTourData(data.data, getState());
-    } else {
-      tourAnyway = tour;
-    }
-
-    const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
-      auth: true,
-      body: {
-        parentId: withScreenId,
-        tourRid: tourAnyway.rid,
-      },
-    });
-    const screen = screenResp.data;
-
-    // it does nto change the reducer data because the screen would be refreshed anyway
-    if (shouldNavigate) {
-      window.location.replace(`/tour/${tourAnyway.rid}/${screen.rid}`);
-    } else {
-      loadTourAndData(tourAnyway.rid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
-    }
-  };
+export interface TAddScreenEntities {
+  type: ActionType.SAVE_TOUR_RELAY_ENTITIES;
+  tour: P_RespTour;
+  screenId: number;
+  annAdd: AnnAdd;
 }
 
-export function addImgScreenToCurrentTour(
-  tour: P_RespTour,
-  withScreenRid: string,
-  shouldNavigate: boolean = true,
-) {
-  return async (dispatch: Dispatch<TTourWithData>, getState: () => TState) => {
-    const screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
-      method: 'POST',
-      body: {
-        screenRid: withScreenRid,
-        tourRid: tour.rid,
-      },
-    });
+export type AnnAdd = {
+  pos: 'prev' | 'next',
+  refId: string,
+  screenId: number,
+}
 
-    const screen = screenResp.data;
+export type AddScreenToTour = (
+  screen: P_RespScreen,
+  tourRid: string,
+  shouldNavigate: boolean,
+  annAdd?: AnnAdd
+) => void;
+
+export function addScreenToTour(
+  screen: P_RespScreen,
+  tourRid: string,
+  shouldNavigate: boolean,
+  annAdd?: AnnAdd,
+) {
+  return async (dispatch: Dispatch<TAddScreenEntities | TTourWithData | TGenericLoading>, getState: () => TState) => {
+    let screenResp: ApiResp<RespScreen>;
+    if (screen.type === ScreenType.SerDom) {
+      screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
+        auth: true,
+        body: {
+          parentId: screen.id,
+          tourRid,
+        },
+      });
+    } else {
+      screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
+        method: 'POST',
+        body: {
+          screenRid: screen.rid,
+          tourRid,
+        },
+      });
+    }
+
+    if (annAdd) {
+      try {
+        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}&s=1`);
+        const updatedTour = processRawTourData(data.data, getState());
+
+        dispatch({
+          type: ActionType.SAVE_TOUR_RELAY_ENTITIES,
+          tour: updatedTour,
+          screenId: screenResp.data.id,
+          annAdd,
+        });
+      } catch (e) {
+        throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
+      }
+
+      return;
+    }
 
     if (shouldNavigate) {
-      window.location.replace(`/tour/${tour.rid}/${screen.rid}`);
+      window.location.replace(`/tour/${tourRid}/${screenResp.data.rid}`);
     } else {
-      loadTourAndData(tour.rid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
+      loadTourAndData(tourRid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
     }
   };
 }

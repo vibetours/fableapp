@@ -1,5 +1,4 @@
 import {
-  AnnotationBodyTextSize,
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
@@ -84,6 +83,8 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   createdAt: getCurrentUtcUnixTime(),
   updatedAt: getCurrentUtcUnixTime(),
   annotationFontFamily: null,
+  borderRadius: 4,
+  annotationPadding: '14 14',
   annotationSelectionColor: '#2196f3',
 });
 
@@ -105,7 +106,7 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
     refId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
-    bodyContent: 'Write a description about what this feature of your product does to your user.',
+    bodyContent: '<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">Write a description about what this feature of your product does to your user.</span></p>',
     displayText: 'Write a description about what this feature of your product does to your user.',
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
@@ -114,7 +115,6 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
     size: isCoverAnn ? 'medium' : 'small',
     isHotspot: false,
     hideAnnotation: false,
-    bodyTextSize: AnnotationBodyTextSize.medium,
     videoUrl: '', // legacy
     videoUrlHls: '',
     videoUrlMp4: '',
@@ -141,6 +141,7 @@ export const getSampleConfig = (elPath: string): IAnnotationConfig => {
       order: 0,
       hotspot: null
     }],
+    buttonLayout: 'default',
   };
 };
 

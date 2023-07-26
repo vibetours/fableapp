@@ -89,7 +89,8 @@
 .editor-input {
   min-height: 150px;
   resize: none;
-  font-size: 15px;
+  /* Take this property is from AnnotationFontSize.medium */
+  font-size: var(--AnnotationFontSizeMedium);
   caret-color: rgb(5, 5, 5);
   position: relative;
   tab-size: 1;
@@ -105,7 +106,8 @@
   text-overflow: ellipsis;
   top: 15px;
   left: 10px;
-  font-size: 15px;
+  /* Take this property is from AnnotationFontSize.medium */
+  font-size: var(--AnnotationFontSizeMedium);
   user-select: none;
   display: inline-block;
   pointer-events: none;
@@ -159,10 +161,11 @@ pre::-webkit-scrollbar-thumb {
   display: flex;
   background: none;
   border-radius: 2px;
-  padding: 10px;
+  padding: 8px;
   cursor: pointer;
   vertical-align: middle;
   opacity: 0.6;
+  align-items: center;
 }
 
 .toolbar button.toolbar-item:disabled {
@@ -246,7 +249,8 @@ pre::-webkit-scrollbar-thumb {
   padding: 8px 12px;
   border-radius: 2px;
   background-color: #eee;
-  font-size: 15px;
+  /* Take this property is from AnnotationFontSize.medium */
+  font-size: var(--AnnotationFontSizeMedium);
   color: rgb(5, 5, 5);
   border: 0;
   outline: 0;
@@ -305,4 +309,13 @@ pre::-webkit-scrollbar-thumb {
   height: 20px;
   width: 20px;
   vertical-align: -0.25em;
+}
+
+.down-outline{
+  font-size: 8px;
+  margin-left: 5px;
+}
+
+.dropdown-menu-item-active .ant-dropdown-menu-title-content{
+  font-weight: bold;
 }

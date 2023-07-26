@@ -1,7 +1,6 @@
-import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion, ScreenType } from '@fable/common/dist/api-contract';
+import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
 import { deepcopy, getDefaultTourOpts, getDisplayableTime } from '@fable/common/dist/utils';
 import {
-  AnnotationBodyTextSize,
   AnnotationPositions,
   IAnnotationConfig,
   IAnnotationOriginConfig,
@@ -23,7 +22,7 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask
 } from './types';
-import { isBlankString, isVideoAnnotation as isVideoAnn } from './utils';
+import { isVideoAnnotation as isVideoAnn } from './utils';
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;
@@ -222,13 +221,13 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     size: lc.size,
     isHotspot: lc.isHotspot,
     hideAnnotation: lc.hideAnnotation,
-    bodyTextSize: lc.bodyTextSize,
     videoUrl: lc.videoUrl,
     hotspotElPath: lc.hotspotElPath,
     videoUrlHls: lc.videoUrlHls,
     videoUrlMp4: lc.videoUrlMp4,
     videoUrlWebm: lc.videoUrlWebm,
     showOverlay: lc.showOverlay,
+    buttonLayout: lc.buttonLayout,
   };
 }
 
@@ -259,10 +258,6 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig, opts
     an.hideAnnotation = false;
   }
 
-  if (an.bodyTextSize === undefined || an.bodyTextSize === null) {
-    an.bodyTextSize = AnnotationBodyTextSize.medium;
-  }
-
   if (an.videoUrl === undefined || an.videoUrl === null) {
     an.videoUrl = '';
   }
@@ -277,6 +272,10 @@ export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig, opts
 
   if (an.videoUrlWebm === undefined || an.videoUrlWebm === null) {
     an.videoUrlWebm = '';
+  }
+
+  if (an.buttonLayout === undefined || an.buttonLayout === null) {
+    an.buttonLayout = 'default';
   }
 
   const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);
@@ -304,7 +303,7 @@ export function mergeTourData(
   master: TourDataWoScheme,
   incoming: Partial<TourDataWoScheme>,
   convertLocalToRemote = false
-) {
+) : TourDataWoScheme {
   const newMaster = deepcopy(master);
   if (incoming.opts) {
     newMaster.opts = incoming.opts;
@@ -369,6 +368,14 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
 
   if (newOpts.annotationFontFamily === undefined) {
     newOpts.annotationFontFamily = null;
+  }
+
+  if (newOpts.borderRadius === undefined || newOpts.borderRadius === null) {
+    newOpts.borderRadius = 4;
+  }
+
+  if (newOpts.annotationPadding === undefined || newOpts.annotationPadding === null) {
+    newOpts.annotationPadding = '14 14';
   }
 
   if (newOpts.annotationSelectionColor === undefined || newOpts.annotationSelectionColor === null) {

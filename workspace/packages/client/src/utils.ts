@@ -1,7 +1,7 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AnnotationPerScreen } from './types';
-import err from './deffered-error';
+import defferedErr from './deffered-error';
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -51,7 +51,7 @@ export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
       if (screen) {
         anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
       } else {
-        err(`screenId ${screenId} is part of tour config, but is not present as part of entity association`);
+        defferedErr(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
       }
     }
   }

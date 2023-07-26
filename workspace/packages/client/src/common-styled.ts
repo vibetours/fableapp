@@ -97,7 +97,6 @@ export const Txt = styled.div`
 `;
 
 export const BodyCon = styled.div`
-  padding: 0.25rem 2rem;
   display: flex;
   flex-direction: column;
 
@@ -130,27 +129,22 @@ export const PreviewAndActionCon = styled.div`
   width: 100%;
   display: flex;
   box-shadow: 0 0 3px 1px #ddd;
-  background: #fff;
-  border-radius: 20px;
+  background: #F5F5F5;
 `;
 
 export const EmbedCon = styled.div`
-  width: 77%;
-  background: #fcfcfc;
-  border-radius: 20px;
-  padding: 1rem;
+  width: 75%;
+  background: #F5F5F5;
+  margin: 1rem;
 `;
 
 export const EditPanelCon = styled.div`
   height: 100%;
-  width: 23%;
-  min-width: 320px;
+  width: 25%;
   display: flex;
   flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
 `;
 
 export const PopoverMenuItemDivider = styled.div<{ color?: string}>`

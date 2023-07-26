@@ -11,6 +11,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AnnotationPerScreen, EditItem, NavFn } from '../../types';
 import HeartLoader from '../../component/loader/heart';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
+import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
 
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
@@ -34,36 +35,44 @@ interface IAppStateProps {
   editsAcrossScreens: Record<string, EditItem[]>;
   isScreenLoaded: boolean;
   allAnnotationsForTour: AnnotationPerScreen[];
+  annotationSerialIdMap: Record<string, number>
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  screen: state.default.currentScreen,
-  screenDataAcrossScreens: state.default.screenData,
-  isTourLoaded: state.default.tourLoaded,
-  allScreens: state.default.currentTour?.screens || [],
-  allAnnotations: state.default.remoteAnnotations,
-  tourOpts: state.default.remoteTourOpts,
-  isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
-  allAnnotationAcrossScreens: state.default.remoteAnnotations,
-  editsAcrossScreens: state.default.remoteEdits,
-  allAnnotationsForTour: getAnnotationsPerScreen(state),
-});
+const mapStateToProps = (state: TState): IAppStateProps => {
+  const tourOpts = state.default.remoteTourOpts;
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+  const annotationSerialIdMap = tourOpts ? getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour) : {};
 
- interface IOwnProps {
+  return {
+    tour: state.default.currentTour,
+    screen: state.default.currentScreen,
+    screenDataAcrossScreens: state.default.screenData,
+    isTourLoaded: state.default.tourLoaded,
+    allScreens: state.default.currentTour?.screens || [],
+    allAnnotations: state.default.remoteAnnotations,
+    tourOpts,
+    isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
+    allAnnotationAcrossScreens: state.default.remoteAnnotations,
+    editsAcrossScreens: state.default.remoteEdits,
+    allAnnotationsForTour,
+    annotationSerialIdMap,
+  };
+};
+
+interface IOwnProps {
   title: string;
- }
+}
 
- type IProps = IOwnProps &
-   IAppStateProps &
-   IDispatchProps &
-   WithRouterProps<{
-     tourId: string;
-     screenRid?: string;
-     annotationId?: string;
-   }>;
+type IProps = IOwnProps &
+  IAppStateProps &
+  IDispatchProps &
+  WithRouterProps<{
+    tourId: string;
+    screenRid?: string;
+    annotationId?: string;
+  }>;
 
- interface IOwnStateProps { }
+interface IOwnStateProps { }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private adjList: ScreenAdjacencyList | null = null;
@@ -181,30 +190,31 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         overflowY: 'hidden',
       }}
       > {
-        this.getScreenWithRenderSlot()
-          .filter(c => c.isRenderReady)
-          .map(config => (
-            <PreviewWithEditsAndAnRO
-              key={config.screen.id}
-              innerRef={this.frameRefs[config.screen.id]}
-              screen={config.screen}
-              hidden={config.screen.id !== this.props.screen!.id}
-              screenData={config.screenData}
-              divPadding={0}
-              navigate={this.navFn}
-              playMode
-              onBeforeFrameBodyDisplay={() => {}}
-              allAnnotationsForScreen={this.props.allAnnotationAcrossScreens[config.screen.id]}
-              tourDataOpts={this.props.tourOpts!}
-              allEdits={config.screenEdits}
-              toAnnotationId={
-                config.screen.id === this.props.screen!.id ? this.props.match.params.annotationId || '' : ''
-              }
-              onFrameAssetLoad={() => {}}
-              allAnnotationsForTour={this.props.allAnnotationsForTour}
-            />
-          ))
-      }
+          this.getScreenWithRenderSlot()
+            .filter(c => c.isRenderReady)
+            .map(config => (
+              <PreviewWithEditsAndAnRO
+                annotationSerialIdMap={this.props.annotationSerialIdMap}
+                key={config.screen.id}
+                innerRef={this.frameRefs[config.screen.id]}
+                screen={config.screen}
+                hidden={config.screen.id !== this.props.screen!.id}
+                screenData={config.screenData}
+                divPadding={0}
+                navigate={this.navFn}
+                playMode
+                onBeforeFrameBodyDisplay={() => {}}
+                allAnnotationsForScreen={this.props.allAnnotationAcrossScreens[config.screen.id]}
+                tourDataOpts={this.props.tourOpts!}
+                allEdits={config.screenEdits}
+                toAnnotationId={
+                  config.screen.id === this.props.screen!.id ? this.props.match.params.annotationId || '' : ''
+                }
+                onFrameAssetLoad={() => {}}
+                allAnnotationsForTour={this.props.allAnnotationsForTour}
+              />
+            ))
+        }
       </GTags.BodyCon>
     );
   }

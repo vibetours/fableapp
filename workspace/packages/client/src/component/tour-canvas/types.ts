@@ -1,11 +1,15 @@
 import { GraphEdge } from 'dagre';
+import { IAnnotationConfigWithScreen } from '../../types';
 
 export interface AnnotationNode<T> extends CanvasNode {
   imageUrl: string;
   screenTitle: string;
+  grp: string;
+  localIdx: number;
   text?: string;
   id: string;
   storedData?: T;
+  annotation: IAnnotationConfigWithScreen;
 }
 
 export interface Box extends CanvasNode {
@@ -41,3 +45,16 @@ export interface CanvasGrid {
 }
 
 export type LRPostion = 'l' | 'r';
+
+export type ModalPosition = [number| null, number | null, LRPostion];
+
+export type AnnAddScreenModal = {
+  position: ModalPosition,
+  annId: string,
+  annotationPosition: AnnotationPosition,
+  screenAnnotation: IAnnotationConfigWithScreen | null
+}
+
+export type AnnotationPosition = 'prev' | 'next';
+
+export type Edge = [srcId: string, destId: string];

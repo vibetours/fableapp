@@ -1,5 +1,4 @@
 import {
-  IAnnotationButton,
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
@@ -7,21 +6,20 @@ import {
   ScreenData,
   TourData,
   TourDataWoScheme,
-  TourEntity,
   TourScreenEntity
 } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
-import { RespUser, ScreenType } from '@fable/common/dist/api-contract';
-import { ArrowLeftOutlined, CaretRightOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { RespUser } from '@fable/common/dist/api-contract';
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
 import {
-  addImgScreenToCurrentTour,
+  AnnAdd,
   clearCurrentScreenSelection,
   clearCurrentTourSelection,
-  copyScreenForCurrentTour,
+  clearRelayScreenAndAnnAdd,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
   getAllScreens,
@@ -33,7 +31,6 @@ import {
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
-  IAnnotationConfigWithScreenId,
   updateButtonProp,
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
@@ -43,15 +40,29 @@ import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AllEdits, AnnotationPerScreen, EditItem, ElEditType, IdxEditItem, TourDataChangeFn, NavFn } from '../../types';
-import ChunkSyncManager, { SyncTarget } from './chunk-sync-manager';
+import {
+  AllEdits,
+  AnnotationPerScreen,
+  EditItem,
+  ElEditType,
+  IdxEditItem,
+  TourDataChangeFn,
+  NavFn,
+  IAnnotationConfigWithScreen,
+  ConnectedOrderedAnnGroupedByScreen
+} from '../../types';
+import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import HeartLoader from '../../component/loader/heart';
-import deferredErr from '../../deffered-error';
+import {
+  addPrevAnnotation,
+  addNextAnnotation,
+  getAnnotationSerialIdMap
+} from '../../component/annotation/ops';
+import { AnnUpdateType } from '../../component/timeline/types';
 import Loader from '../../component/loader';
 
 interface IDispatchProps {
-  getAllScreens: () => void;
   loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => void;
@@ -60,21 +71,13 @@ interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   clearCurrentScreenSelection: () => void,
   clearCurrentTourSelection: () => void,
-  copyScreenForCurrentTour: (tour: P_RespTour, screenId: number) => void;
-  addImgScreenToCurrentTour: (tour:P_RespTour, screenRid: string) => void;
+  clearRelayScreenAndAnnAdd: () => void;
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  getAllScreens: () => dispatch(getAllScreens()),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
-  copyScreenForCurrentTour:
-    (tour: P_RespTour, screenId: number) => dispatch(copyScreenForCurrentTour(tour, screenId, true)),
-  addImgScreenToCurrentTour:
-    (tour: P_RespTour, screenRid: string) => dispatch(
-      addImgScreenToCurrentTour(tour, screenRid, true)
-    ),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
@@ -89,7 +92,72 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
   clearCurrentTourSelection: () => dispatch(clearCurrentTourSelection()),
   renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
+  clearRelayScreenAndAnnAdd: () => dispatch(clearRelayScreenAndAnnAdd()),
 });
+
+const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGroupedByScreen => {
+  const screenHash: Record<number, P_RespScreen> = {};
+  const flatAnns: Record<string, IAnnotationConfigWithScreen> = {};
+  for (const annPerScreen of allAnns) {
+    screenHash[annPerScreen.screen.id] = annPerScreen.screen;
+    for (const ann of annPerScreen.annotations) {
+      flatAnns[ann.refId] = {
+        ...ann,
+        screen: annPerScreen.screen
+      };
+    }
+  }
+
+  // Every connected screen is one array
+  // inside each connected screen, each screen group is one array
+  const orderedAnns: ConnectedOrderedAnnGroupedByScreen = [];
+  while (true) {
+    const anns = Object.values(flatAnns);
+    if (!anns.length) {
+      break;
+    }
+    const connectedOrderedAnn: IAnnotationConfigWithScreen[] = [];
+
+    // traverse the list to go to the very first annotation
+    let ann = anns[0];
+    while (true) {
+      const prevBtn = ann.buttons.find(btn => btn.type === 'prev')!;
+      if (prevBtn.hotspot && prevBtn.hotspot.actionType === 'navigate') {
+        ann = flatAnns[prevBtn.hotspot.actionValue.split('/')[1]];
+      } else {
+        break;
+      }
+    }
+
+    while (true) {
+      connectedOrderedAnn.push(ann);
+      delete flatAnns[ann.refId];
+      const nextBtn = ann.buttons.find(btn => btn.type === 'next')!;
+      if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
+        ann = flatAnns[nextBtn.hotspot.actionValue.split('/')[1]];
+      } else {
+        break;
+      }
+    }
+
+    const connectedOrderAnnotationGroupByScreen: IAnnotationConfigWithScreen[][] = [];
+    let annotationGroupByScreen: IAnnotationConfigWithScreen[] = [];
+    let prevScreenId = -1;
+    for (let i = 0, l = connectedOrderedAnn.length; i < l; i++) {
+      const an = connectedOrderedAnn[i];
+      if (an.screen.id === prevScreenId) {
+        annotationGroupByScreen.push(an);
+      } else {
+        annotationGroupByScreen = [an];
+        prevScreenId = an.screen.id;
+        connectedOrderAnnotationGroupByScreen.push(annotationGroupByScreen);
+      }
+    }
+
+    orderedAnns.push(connectedOrderAnnotationGroupByScreen);
+  }
+  return orderedAnns;
+};
 
 interface IAppStateProps {
   tour: P_RespTour | null;
@@ -97,7 +165,6 @@ interface IAppStateProps {
   screenData: ScreenData | null;
   isScreenLoaded: boolean;
   isTourLoaded: boolean;
-  screens: P_RespScreen[];
   flattenedScreens: P_RespScreen[];
   allEdits: EditItem[];
   allAnnotationsForScreen: IAnnotationConfig[];
@@ -105,9 +172,14 @@ interface IAppStateProps {
   allAnnotationsForTour: AnnotationPerScreen[];
   tourData: TourData | null;
   principal: RespUser | null;
+  timeline: ConnectedOrderedAnnGroupedByScreen;
+  relayScreenId: number | null;
+  relayAnnAdd: AnnAdd | null;
+  annotationSerialIdMap: Record<string, number>;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
+  const anPerScreen = getAnnotationsPerScreen(state);
   let allAnnotationsForScreen = [
     ...(state.default.currentScreen?.id ? state.default.localAnnotations[state.default.currentScreen.id] || [] : []),
     ...(state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : []),
@@ -142,6 +214,12 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   }
   allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
 
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+
+  const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
+
+  const annotationSerialIdMap: Record<string, number> = getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour);
+
   return {
     tour: state.default.currentTour,
     isTourLoaded: state.default.tourLoaded,
@@ -149,13 +227,16 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     flattenedScreens: state.default.allScreens,
     screenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
-    screens: state.default.rootScreens,
     tourData: state.default.tourData,
     allEdits,
+    timeline: getTimeLine(anPerScreen),
     allAnnotationsForScreen,
-    allAnnotationsForTour: getAnnotationsPerScreen(state),
-    tourOpts: state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts(),
+    allAnnotationsForTour,
+    tourOpts,
     principal: state.default.principal,
+    relayScreenId: state.default.relayScreenId,
+    relayAnnAdd: state.default.relayAnnAdd,
+    annotationSerialIdMap
   };
 };
 
@@ -188,7 +269,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
       onSyncNeeded: this.flushEdits,
     });
-    this.props.getAllScreens();
     if (this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
@@ -198,6 +278,30 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.chunkSyncManager?.startIfNotAlreadyStarted(this.onLocalEditsLeft);
     if (prevProps.match.params.screenId !== this.props.match.params.screenId && this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
+    }
+    if ((prevProps.relayScreenId !== this.props.relayScreenId
+      || prevProps.relayAnnAdd !== this.props.relayAnnAdd)
+      && (this.props.relayScreenId && this.props.relayAnnAdd)) {
+      const newAnnConfig = getSampleConfig('$');
+      let result;
+      if (this.props.relayAnnAdd.pos === 'prev') {
+        result = addPrevAnnotation(
+          { ...newAnnConfig, screenId: this.props.relayScreenId },
+          this.props.relayAnnAdd.refId,
+          this.props.allAnnotationsForTour,
+          this.props.tourOpts.main,
+        );
+      } else {
+        result = addNextAnnotation(
+          { ...newAnnConfig, screenId: this.props.relayScreenId },
+          this.props.relayAnnAdd.refId,
+          this.props.allAnnotationsForTour,
+          null,
+        );
+      }
+
+      this.applyAnnButtonLinkMutations(result);
+      this.props.clearRelayScreenAndAnnAdd();
     }
   }
 
@@ -300,95 +404,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     );
   };
 
-  getCurrentScreenAnnotations = (): IAnnotationConfigWithScreenId[] => {
-    const currAnnRid = this.props.match.params.annotationId;
-    if (currAnnRid) {
-      // If user is coming to an annotation directly show the timeline wrt that annoation
-      const annotations: IAnnotationConfigWithScreenId[] = [];
-      const currentAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === currAnnRid)!;
-      const currentScreenId = this.props.screen?.id;
-      if (!currentAnn) {
-        return annotations;
-      }
-
-      annotations.push({ ...currentAnn, screenId: `${currentScreenId!}` });
-
-      // traverse back
-      let prev = currentAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
-      while (prev && prev.actionType === 'navigate' && +prev.actionValue.split('/')[0] === currentScreenId) {
-        const prevAnnId = prev.actionValue.split('/')[1];
-        const prevAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === prevAnnId)!;
-        if (prevAnn) {
-          annotations.unshift({ ...prevAnn, screenId: `${currentScreenId!}` });
-          prev = prevAnn.buttons.find(btn => btn.type === 'prev')!.hotspot;
-        } else {
-          prev = null;
-          deferredErr(`Hotspot is present but prev annotation is not present for ann ${currentAnn.refId}`);
-        }
-      }
-
-      // traverse front
-      let next = currentAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
-      while (next && next.actionType === 'navigate' && +next.actionValue.split('/')[0] === currentScreenId) {
-        const nextAnnId = next.actionValue.split('/')[1];
-        const nextAnn = this.props.allAnnotationsForScreen.find(ann => ann.refId === nextAnnId)!;
-        if (nextAnn) {
-          annotations.push({ ...nextAnn, screenId: `${currentScreenId!}` });
-          next = nextAnn.buttons.find(btn => btn.type === 'next')!.hotspot;
-        } else {
-          next = null;
-          deferredErr(`Hotspot is present but next annotation is not present for ann ${currentAnn.refId}`);
-        }
-      }
-
-      return annotations;
-    }
-
-    // If user opening the page directly, show all annotations
-    const anns = this.props.allAnnotationsForScreen;
-    return anns.map(an => ({ ...an, screenId: this.props.screen!.id.toString() }));
-  };
-
-  getPrevScreen = (currentScreenAnnotations: IAnnotationConfig[]): P_RespScreen | undefined => {
-    if (currentScreenAnnotations.length === 0) {
-      return undefined;
-    }
-    const prevScreenId = currentScreenAnnotations[0].buttons
-      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[0] || '';
-
-    return this.props.tour!.screens!.find(screen => screen.id === +prevScreenId);
-  };
-
-  getNextScreen = (currentScreenAnnotations: IAnnotationConfig[]): P_RespScreen | undefined => {
-    if (currentScreenAnnotations.length === 0) {
-      return undefined;
-    }
-    const nextScreenId = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
-      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[0] || '';
-
-    return this.props.tour!.screens!.find(screen => screen.id === +nextScreenId);
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getPrevAnnId = (currentScreenAnnotations: IAnnotationConfig[]): string | null => {
-    if (currentScreenAnnotations.length === 0) {
-      return null;
-    }
-    const ann = currentScreenAnnotations[0].buttons
-      .find(btn => btn.type === 'prev')?.hotspot?.actionValue.split('/')[1] || null;
-    return ann;
-  };
-
-  // eslint-disable-next-line class-methods-use-this
-  getNextAnnId = (currentScreenAnnotations: IAnnotationConfig[]): string | null => {
-    if (currentScreenAnnotations.length === 0) {
-      return null;
-    }
-    const ann = currentScreenAnnotations[currentScreenAnnotations.length - 1].buttons
-      .find(btn => btn.type === 'next')?.hotspot?.actionValue.split('/')[1] || null;
-    return ann;
-  };
-
   componentWillUnmount(): void {
     this.chunkSyncManager?.end();
     this.props.clearCurrentScreenSelection();
@@ -402,18 +417,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       openTourExternalLink(uri);
     }
   };
-
-  getTimeLineProps(): ITimelineConfig {
-    // [todo] this gets called multiple time, but this is needed only once. Fix this
-    const currentScreenAnnotations = this.getCurrentScreenAnnotations();
-    return {
-      currentScreenAnnotations,
-      nextScreen: this.getNextScreen(currentScreenAnnotations),
-      prevScreen: this.getPrevScreen(currentScreenAnnotations),
-      nextAnnotation: this.getNextAnnId(currentScreenAnnotations),
-      prevAnnotation: this.getPrevAnnId(currentScreenAnnotations),
-    };
-  }
 
   getHeaderLeftGroup = (): ReactElement[] => {
     if (this.props.match.params.screenId) {
@@ -443,10 +446,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.isLoadingComplete()) {
       return (
         <div>
-          <Loader width="80px" txtBefore="Loading screen" />
+          <Loader width="80px" txtBefore="Loading tour" />
         </div>
       );
     }
+
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
@@ -462,14 +466,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{
-          height: 'calc(100% - 72px)',
+          height: '100%',
           background: '#fff',
-          padding: !this.shouldShowScreen() ? '0' : '0.25rem 2rem',
           overflowY: 'hidden',
         }}
         >
           {this.shouldShowScreen() ? (
             <ScreenEditor
+              annotationSerialIdMap={this.props.annotationSerialIdMap}
               key={this.props.screen!.rid}
               screen={this.props.screen!}
               tour={this.props.tour!}
@@ -477,7 +481,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId || ''}
               navigate={this.navFn}
-              timelineConfig={this.getTimeLineProps()}
+              timeline={this.props.timeline}
               createDefaultAnnotation={this.createDefaultAnnotation}
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
               allAnnotationsForTour={this.props.allAnnotationsForTour}
@@ -492,25 +496,19 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   { config: c, actionType, opts: o }
                 )
               }
+              applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
             />
           ) : (this.isLoadingComplete() ? (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas
+                applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
+                tourOpts={this.props.tourOpts}
                 key={this.props.tour?.rid}
-                addScreenToTour={
-                  (screenType: ScreenType, screenId: number, screenRid: string) => {
-                    if (screenType === ScreenType.Img) {
-                      this.props.addImgScreenToCurrentTour(this.props.tour!, screenRid);
-                    } else {
-                      this.props.copyScreenForCurrentTour(this.props.tour!, screenId);
-                    }
-                  }
-                }
-                rootScreens={this.props.screens}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 navigate={this.navigateTo}
                 onTourDataChange={this.onTourDataChange}
                 tour={this.props.tour!}
+                timeline={this.props.timeline}
               />
             </div>
           ) : (<HeartLoader />)
@@ -524,24 +522,67 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     config: IAnnotationConfig,
     btnId: string,
     screenId: number,
-    actionValue: string,
-    opts: ITourDataOpts | null | undefined
+    actionValue: string | null,
+    opts: ITourDataOpts | null | undefined,
+    tx?: Tx
   ): IAnnotationConfig => {
-    const updatedConfig = updateButtonProp(config, btnId, 'hotspot', {
-      type: 'an-btn',
-      on: 'click',
-      target: '$this',
-      actionType: 'navigate',
-      actionValue
-    });
+    let btnUpdate: ReturnType<typeof updateButtonProp>;
+
+    if (actionValue) {
+      btnUpdate = updateButtonProp(config, btnId, 'hotspot', {
+        type: 'an-btn',
+        on: 'click',
+        target: '$this',
+        actionType: 'navigate',
+        actionValue
+      });
+    } else {
+      btnUpdate = updateButtonProp(config, btnId, 'hotspot', null);
+    }
 
     this.onTourDataChange('annotation-and-theme', screenId, {
-      config: updatedConfig,
+      config: btnUpdate,
       opts,
       actionType: 'upsert'
-    });
+    }, tx);
 
-    return updatedConfig;
+    return btnUpdate;
+  };
+
+  applyAnnButtonLinkMutations = (mutations: AnnUpdateType): void => {
+    const tx = new Tx();
+    tx.start();
+    let newOpts = this.props.tourOpts;
+    if (mutations.main) {
+      newOpts = updateTourDataOpts(newOpts, 'main', mutations.main);
+    }
+
+    if (mutations.deletionUpdate) {
+      this.onTourDataChange('annotation-and-theme', mutations.deletionUpdate.screenId, {
+        config: mutations.deletionUpdate.config,
+        opts: null,
+        actionType: 'delete'
+      }, tx);
+    }
+
+    for (const annUpdates of Object.values(mutations.groupedUpdates)) {
+      let newAnnUpdate = null;
+
+      for (const update of annUpdates) {
+        newAnnUpdate = this.updateButton(
+          newAnnUpdate || update.config,
+          update.btnId,
+          update.screenId,
+          update.actionValue,
+          newOpts,
+          tx
+        );
+      }
+    }
+
+    tx.end();
+    const mergedData = tx.getData() as TourDataWoScheme;
+    this.props.saveTourData(this.props.tour!, mergedData);
   };
 
   private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts): void => {
@@ -639,7 +680,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   // eslint-disable-next-line class-methods-use-this
   private onScreenEditFinish = (): void => { /* noop */ };
 
-  private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, isDefault = false) => {
+  private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, tx, isDefault = false) => {
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
         opts: isDefault
@@ -664,10 +705,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             return e as TourDataWoScheme;
           }
           return mergeTourData(storedEntities, e);
-        }
+        },
+        tx
       );
-
-      this.props.saveTourData(this.props.tour!, mergedData);
+      if (!tx) this.props.saveTourData(this.props.tour!, mergedData!);
     }
   };
 
@@ -682,7 +723,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         return mergeEdits(storedEdits, edits);
       }
     );
-    this.props.saveEditChunks(this.props.screen!, mergedEditChunks);
+    this.props.saveEditChunks(this.props.screen!, mergedEditChunks!);
   };
 }
 

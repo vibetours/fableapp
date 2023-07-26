@@ -1,45 +1,51 @@
-import { ITourEntityHotspot } from '@fable/common/dist/types';
-import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
+/* eslint-disable react/no-this-in-sfc */
+import { DeleteOutlined, DisconnectOutlined, SisternodeOutlined } from '@ant-design/icons';
+import { ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
+import Modal from 'antd/lib/modal';
+import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
+import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
-import { drag, D3DragEvent } from 'd3-drag';
-import { DeleteOutlined, DisconnectOutlined, FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
-import { ScreenType } from '@fable/common/dist/api-contract';
-import * as GTags from '../../common-styled';
-import { AnnotationPerScreen, NavFn, TourDataChangeFn } from '../../types';
-import { updateButtonProp, deleteAnnotation, IAnnotationConfigWithScreenId } from '../annotation/annotation-config-utils';
+import { P_RespTour } from '../../entity-processor';
+import {
+  AnnotationPerScreen,
+  ConnectedOrderedAnnGroupedByScreen,
+  DestinationAnnotationPosition,
+  NavFn,
+  TourDataChangeFn
+} from '../../types';
+import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
+import { deleteAnnotation, deleteConnection, getAnnotationByRefId, reorderAnnotation } from '../annotation/ops';
 import Btn from '../btn';
-import * as Tags from './styled';
-import { AnnotationNode, Box, CanvasGrid, EdgeWithData, LRPostion } from './types';
-import { formPathUsingPoints, formScreens2, getEdges, getEndPointsUsingPath } from './utils';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import AddImageScreen from './add-image-screen';
+import { AnnUpdateType } from '../timeline/types';
 import { dSaveZoomPanState } from './deferred-tasks';
+import * as Tags from './styled';
+import {
+  AnnotationNode,
+  AnnotationPosition, CanvasGrid,
+  EdgeWithData,
+  LRPostion,
+  ModalPosition
+} from './types';
+import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
 
+const { confirm } = Modal;
+
+// TODO[now] addScreenToTour + addNewScreenToTouris redundant
 type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: NavFn;
   onTourDataChange: TourDataChangeFn;
-  rootScreens: P_RespScreen[];
-  addScreenToTour: (screenType: ScreenType, screenId: number, screenRid: string) => void;
   tour: P_RespTour;
+  timeline: ConnectedOrderedAnnGroupedByScreen,
+  // addNewScreenToTour: AddScreenFn,
+  tourOpts: ITourDataOpts,
+  applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
 };
 
-interface ConnectionErrMsg {
-  msg: string;
-  position: 'l' | 'r';
-  x: number;
-  y: number;
-  h: number;
-  w: number;
-  renderingW: number;
-}
-
 type AnnoationLookupMap = Record<string, [number, number]>;
-
-const CONNECTION_ERR_MSG = 'You can\'t connect an annotation to a screen. Click on the screen to create an annotation first.';
 
 const canvasGrid: CanvasGrid = {
   gridSize: 36,
@@ -50,15 +56,8 @@ const canvasGrid: CanvasGrid = {
     scale: 1
   }
 };
-const connectionErrInitData: ConnectionErrMsg = {
-  msg: '',
-  position: 'l',
-  x: 0,
-  y: 0,
-  h: 0,
-  w: 0,
-  renderingW: 0
-};
+
+let dragTimer = 0;
 
 const CONNECTOR_COLOR_NON_HOVERED = '#9e9e9e';
 const CONNECTOR_COLOR_HOVERED = '#000000';
@@ -66,8 +65,10 @@ const CONNECTOR_HOTSPOT_COLOR_NON_HOVERED = 'transparent';
 const CONNECTOR_HOTSPOT_COLOR_HOVERED = '#1503450a';
 const TILE_STROKE_WIDTH_ON_HOVER = '6px';
 const TILE_STROKE_WIDTH_DEFAULT = '4px';
+const DROP_TARGET_PEEK_WIDTH = 40;
+const DROP_TARGET_PEEK_GUTTER = 30;
 
-function isMenuModalVisible(xy: [number | null, number | null, LRPostion]) {
+function isMenuModalVisible(xy: [number | null, number | null, LRPostion]): boolean {
   return !(xy[0] === null || xy[1] === null);
 }
 
@@ -83,23 +84,51 @@ interface CtxSelectionData {
   annotation: IAnnotationConfigWithScreenId;
 }
 
-export default function TourCanvas(props: CanvasProps) {
+const initialReorderPropsValue = {
+  destinationPosition: DestinationAnnotationPosition.next,
+  currentDraggedAnnotationId: '',
+  destinationDraggedAnnotationId: '',
+  isCursorOnDropTarget: false
+};
+
+function shouldShowRepositionMarker(
+  el: SVGRectElement,
+  markerData: AnnotationNode<dagre.Node>,
+  selectedNodeData: AnnotationNode<dagre.Node>,
+): boolean {
+  const isR = select(el).classed('r');
+  const isSameTimelineGrp = markerData.grp === selectedNodeData.grp;
+  const isPrev = markerData.localIdx === selectedNodeData.localIdx - 1;
+  return !(isSameTimelineGrp && isPrev && isR);
+}
+
+const initialModalPos: ModalPosition = [null, null, 'l'];
+
+const initialConnectorModalData = {
+  position: initialModalPos,
+  fromAnnId: '',
+  toAnnId: '',
+};
+
+const initialAnnNodeModalData = {
+  position: initialModalPos,
+  annId: '',
+};
+
+export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
+  const reorderPropsRef = useRef({ ...initialReorderPropsValue });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const rootGRef = useRef<SVGGElement | null>(null);
   const [showScreenSelector, setShowScreenSelector] = useState(false);
-  const [screensNotPartOfTour, setScreensNotPartOfTour] = useState<P_RespScreen[]>([]);
-  const [screensPartOfTour, setScreensPartOfTour] = useState<P_RespScreen[]>([]);
-  // const ctxData = useRef<CtxSelectionData | null>(null);
-  // const [connectorMenuModalXY, setConnectorMenuModalXY] = useState<[number| null, number | null, LRPostion]>([null, null, 'r']);
-  // const [nodeMenuModalXY, setNodeMenuModalXY] = useState<[number| null, number | null, LRPostion]>([null, null, 'r']);
-  const [connectionErr, setConnectionErr] = useState<ConnectionErrMsg>(connectionErrInitData);
-  const [showUploadScreenImgModal, setShowUploadScreenImgModal] = useState<boolean>(false);
+  const ctxData = useRef<CtxSelectionData | null>(null);
+  const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
+  const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
 
-  const drawGrid = () => {
+  const drawGrid = (): void => {
     const svgEl = svgRef.current;
     if (!svgEl) {
       return;
@@ -129,7 +158,7 @@ export default function TourCanvas(props: CanvasProps) {
       .attr('fill', 'url(#grid-pattern)');
   };
 
-  const updateGrid = (ze: D3ZoomEvent<SVGGElement, unknown>) => {
+  const updateGrid = (ze: D3ZoomEvent<SVGGElement, unknown>): void => {
     const svgEl = svgRef.current;
     if (!svgEl) {
       return;
@@ -146,7 +175,11 @@ export default function TourCanvas(props: CanvasProps) {
       .attr('opacity', Math.min(ze.transform.k, 1));
   };
 
-  const nodeDraggable = () => {
+  const nodeDraggable = () : DragBehavior<
+  SVGForeignObjectElement,
+  AnnotationNode<dagre.Node>,
+  AnnotationNode<dagre.Node> | SubjectPosition
+  > => {
     let relX = 0;
     let relY = 0;
     let newX = 0;
@@ -156,7 +189,6 @@ export default function TourCanvas(props: CanvasProps) {
     return drag<SVGForeignObjectElement, AnnotationNode<dagre.Node>>()
       .on('start', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
-        d
       ) {
         const [eventX, eventY] = fromPointer(event, rootGRef.current);
 
@@ -166,6 +198,23 @@ export default function TourCanvas(props: CanvasProps) {
         relX = eventX - (data.storedData!.x - data.storedData!.width / 2);
         relY = eventY - (data.storedData!.y - data.storedData!.height / 2);
         id = data.id;
+        reorderPropsRef.current.currentDraggedAnnotationId = id;
+
+        const nodeParent = selectedScreen.select(function () { return this.closest('g.node'); });
+        nodeParent.raise(); // moves the dragged element to the end simulating higher zindex
+        nodeParent.selectAll('rect.tg-hide')
+          .classed('rev', true);
+
+        const allNodesParentParent = select('g#fab-tour-canvas-main');
+        allNodesParentParent.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.tg-hide')
+          .classed('tg-show', function (datum) {
+            return shouldShowRepositionMarker(this, datum, data);
+          })
+          .classed('tg-hide', function (datum) {
+            return !shouldShowRepositionMarker(this, datum, data);
+          });
+
+        select('g.connectors').classed('fade', true);
       })
       .on('drag', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
@@ -207,8 +256,72 @@ export default function TourCanvas(props: CanvasProps) {
           const newPoints = { x: newX, y: newY + data.height / 2 };
           sel.attr('d', formPathUsingPoints([endPoints[0], newPoints]));
         });
+
+        const [ox, oy] = fromPointer(event, document.body);
+        if (dragTimer) {
+          clearTimeout(dragTimer);
+        }
+        dragTimer = setTimeout(() => {
+          dragTimer = 0;
+          clearTimeout(dragTimer);
+
+          const els = document.elementsFromPoint(ox, oy);
+          const [dropTg] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('droptg'));
+
+          selectAll('rect.tg-show.sel').classed('sel', false);
+          reorderPropsRef.current = {
+            ...initialReorderPropsValue,
+            currentDraggedAnnotationId: reorderPropsRef.current.currentDraggedAnnotationId
+          };
+
+          if (!dropTg) return;
+
+          const dropTarget = select<SVGRectElement, AnnotationNode<dagre.Node>>(dropTg as SVGRectElement);
+          const isLeft = dropTarget.classed('l');
+          const targetData = dropTarget.datum();
+          dropTarget.classed('sel', true);
+
+          reorderPropsRef.current.destinationPosition = isLeft
+            ? DestinationAnnotationPosition.prev
+            : DestinationAnnotationPosition.next;
+          reorderPropsRef.current.destinationDraggedAnnotationId = targetData.id;
+          reorderPropsRef.current.isCursorOnDropTarget = true;
+        }, 200) as unknown as number;
       })
       .on('end', () => {
+        const allNodesParentParent = select('g#fab-tour-canvas-main');
+        allNodesParentParent.selectAll('rect.tg-show')
+          .classed('tg-show', false)
+          .classed('tg-hide', true)
+          .classed('rev', false)
+          .classed('sel', false);
+
+        select('g.connectors').classed('fade', false);
+
+        if (reorderPropsRef.current.isCursorOnDropTarget) {
+          confirm({
+            title: 'Do you want to reorder annotaiton?',
+            icon: <SisternodeOutlined />,
+            onOk() {
+              const [currentScreenId, currentAnnRefId] = reorderPropsRef.current.currentDraggedAnnotationId.split('/');
+              const currentAnnConfig = getAnnotationByRefId(currentAnnRefId, props.allAnnotationsForTour)!;
+              const [, destinationAnnId] = reorderPropsRef.current.destinationDraggedAnnotationId.split('/');
+              const result = reorderAnnotation(
+                { ...currentAnnConfig, screenId: +currentScreenId },
+                destinationAnnId,
+                props.allAnnotationsForTour,
+                props.tourOpts.main,
+                reorderPropsRef.current.destinationPosition!
+              );
+              props.applyAnnButtonLinkMutations(result);
+              reorderPropsRef.current = { ...initialReorderPropsValue };
+            },
+            onCancel() { reorderPropsRef.current = { ...initialReorderPropsValue }; },
+          });
+        } else {
+          reorderPropsRef.current = { ...initialReorderPropsValue };
+        }
+
         const nodeG = select<SVGGElement, AnnotationNode<dagre.Node>>(rootGRef.current!)
           .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
         const existingData = nodeG.data();
@@ -230,7 +343,7 @@ export default function TourCanvas(props: CanvasProps) {
       });
   };
 
-  const getAnnotationLookupMap = (allAnns: AnnotationPerScreen[]) => {
+  const getAnnotationLookupMap = (allAnns: AnnotationPerScreen[]): AnnoationLookupMap => {
     const lookupMap: AnnoationLookupMap = {};
     for (let i = 0, l = allAnns.length; i < l; i++) {
       const sId = allAnns[i].screen.id;
@@ -248,7 +361,7 @@ export default function TourCanvas(props: CanvasProps) {
     from: string,
     to: string,
     updateFn: TourDataChangeFn
-  ) => {
+  ): void => {
     const [fromScreenIdx, fromAnIdx] = lookupMap[from];
     const [toScreenIdx, toAnIdx] = lookupMap[to];
     const fromAn = allAnns[fromScreenIdx].annotations[fromAnIdx];
@@ -318,21 +431,20 @@ export default function TourCanvas(props: CanvasProps) {
     });
   };
 
-  const hideGuideConnector = (sel: D3Selection<SVGPathElement, {}, SVGGElement, AnnotationPerScreen[]>) => {
+  const hideGuideConnector = (sel: D3Selection<SVGPathElement, {}, SVGGElement, AnnotationPerScreen[]>): void => {
     sel.remove();
   };
 
-  const prevent = (e: any) => {
+  const prevent = (e: any): void => {
     e.stopPropagation();
     e.preventDefault();
   };
 
-  const resetState = () => {
-    setShowScreenSelector(false);
-    setConnectionErr(connectionErrInitData);
+  // todo[now] delete if not needed
+  const resetState = (): void => {
   };
 
-  const updateNodePos = (node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, SVGGElement, {}>) => {
+  const updateNodePos = (node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, SVGGElement, {}>): void => {
     node.attr(
       'transform',
       d => {
@@ -408,23 +520,63 @@ export default function TourCanvas(props: CanvasProps) {
     }
   }, [init]);
 
-  useEffect(() => {
-    const rootScreensMap = props.rootScreens.reduce((store, srn) => {
-      store[srn.id] = srn;
-      return store;
-    }, {} as Record<string, P_RespScreen>);
-    for (const screenAnnPair of props.allAnnotationsForTour) {
-      delete rootScreensMap[screenAnnPair.screen.parentScreenId];
-    }
-    const srnNotPartOfTour = Object.values(rootScreensMap).sort((m, n) => +n.updatedAt - +m.updatedAt);
-    setScreensNotPartOfTour(srnNotPartOfTour);
+  function createPlusIconGroup(
+    parent: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>,
+    position: AnnotationPosition
+  ): void {
+    parent
+      .attr(
+        'transform',
+        (d: AnnotationNode<dagre.Node>) => `translate(${position === 'prev' ? 20 : d.width - 20}, ${d.height / 2})`
+      )
+      .on('mousedown', prevent)
+      .on('mouseup', prevent)
+      .on('click', function (e, d) {
+        prevent(e);
+        const con = svgRef.current!.parentNode as HTMLDivElement;
+        const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
 
+        // setAddScreenModalData(
+        //   {
+        //     position: getLRPosition(relCoord, con),
+        //     annId: sel.id,
+        //     screenAnnotation: d.annotation,
+        //     annotationPosition: position
+        //   }
+        // );
+      });
+
+    parent.append('circle')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', 10)
+      .attr('class', 'plusicnbase')
+      .attr('fill', 'transparent');
+
+    parent
+      .append('path')
+      .attr('class', 'plusicn')
+      .attr('stroke-width', 3)
+      .attr('d', 'M-6 0 H6 M0 -6 V6');
+
+    parent
+      .append('circle')
+      .attr('cx', -10)
+      .attr('cy', -10)
+      .attr('r', 20)
+      .attr('class', 'plusicnovrly')
+      .attr('fill', 'transparent');
+  }
+
+  useEffect(() => {
     const rootG = rootGRef.current;
     const svgEl = svgRef.current;
     if (!rootG || !svgEl) {
       return;
     }
     const g = select(rootG);
+
+    const [nodeWithDim, edges] = formAnnotationNodes(props.timeline, canvasGrid);
 
     const gBoundData = g
       .selectAll<SVGGElement, number>('g.connectors')
@@ -436,18 +588,10 @@ export default function TourCanvas(props: CanvasProps) {
       .attr('class', 'connectors')
       .merge(gBoundData);
 
-    const {
-      annotationNodes: nodeWithDim,
-      screens: srnPartOfTour,
-    } = formScreens2(props.allAnnotationsForTour, canvasGrid);
-
-    setScreensPartOfTour(srnPartOfTour);
-
     if (nodeWithDim.length === 0) {
       setShowScreenSelector(true);
     }
 
-    const edges = getEdges(props.allAnnotationsForTour);
     const nodeLookup = nodeWithDim.reduce((hm, n) => {
       hm[n.id] = n;
       return hm;
@@ -524,10 +668,15 @@ export default function TourCanvas(props: CanvasProps) {
             gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_NON_HOVERED);
             gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED);
           })
-          .on('click', (e: MouseEvent) => {
+          .on('click', function (e: MouseEvent) {
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
-            // setConnectorMenuModalXY(getLRPosition(relCoord, con));
+            const d = select<SVGGElement, EdgeWithData>(this).datum();
+            setConnectorMenuModalData({
+              position: getLRPosition(relCoord, con),
+              fromAnnId: d.srcId,
+              toAnnId: d.destId
+            });
           });
       })
       .merge(connectorGDataBound)
@@ -554,9 +703,15 @@ export default function TourCanvas(props: CanvasProps) {
         gEl.select('rect.interaction-marker')
           .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
           .style('stroke', Tags.TILE_STROKE_COLOR_ON_HOVER);
+
+        gEl.selectAll('circle.plusicnbase')
+          .style('fill', Tags.TILE_STROKE_COLOR_ON_HOVER);
+
+        gEl.selectAll('path.plusicn')
+          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
       })
       .on('mousedown', null)
-      .on('mousedown', function (e: MouseEvent, d) {
+      .on('mousedown', function (e: MouseEvent) {
         prevent(e);
         connectorG
           .selectAll('path.guide-arr')
@@ -599,6 +754,12 @@ export default function TourCanvas(props: CanvasProps) {
         gEl.select('rect.interaction-marker')
           .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
           .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
+
+        gEl.selectAll('circle.plusicnbase')
+          .style('fill', 'transparent');
+
+        gEl.selectAll('path.plusicn')
+          .style('stroke', 'transparent');
       })
       .call(p => {
         p.append('rect')
@@ -626,6 +787,21 @@ export default function TourCanvas(props: CanvasProps) {
           .call(fo => {
             fo.append('xhtml:p');
           });
+
+        ['l', 'r'].forEach(pos => {
+          p
+            .append('rect')
+            .attr('class', `tg-hide droptg ${pos}`)
+            .attr('y', 4)
+            .attr('x', d => (pos === 'l'
+              ? -(DROP_TARGET_PEEK_WIDTH + DROP_TARGET_PEEK_GUTTER)
+              : d.width + DROP_TARGET_PEEK_GUTTER))
+            .attr('rx', 4)
+            .attr('ry', 4)
+            .attr('height', d => d.height - 8)
+            .attr('width', DROP_TARGET_PEEK_WIDTH);
+        });
+
         p.append('rect')
           .attr('x', 0)
           .attr('y', 0)
@@ -636,18 +812,25 @@ export default function TourCanvas(props: CanvasProps) {
           .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
           .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
 
+        const leftPlusG = p.append<SVGGElement>('g');
+        createPlusIconGroup(leftPlusG, 'prev');
+        const rightPlusG = p.append<SVGGElement>('g');
+        createPlusIconGroup(rightPlusG, 'next');
+
         const menug = p
           .append('g')
           .attr('transform', 'translate(4, 4) scale(0.04)')
           .on('mousedown', prevent)
           .on('mouseup', prevent)
-          .on('click', (e) => {
+          .on('click', function (e) {
             prevent(e);
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
-            // setNodeMenuModalXY(getLRPosition(relCoord, con));
-            // const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
-            // console.log('datum', sel);
+            const d = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
+            setNodeMenuModalData({
+              position: getLRPosition(relCoord, con),
+              annId: d.id
+            });
           });
         menug
           .append('path')
@@ -672,6 +855,15 @@ export default function TourCanvas(props: CanvasProps) {
           .data(p.data(), d => d.id)
           .attr('href', d => d.imageUrl)
           .attr('width', d => d.width);
+
+        p.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.droptg.r')
+          .data(p.data(), d => d.id);
+
+        p.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.droptg.l')
+          .data(p.data(), d => d.id)
+          .style('visibility', 'visible')
+          .filter((d) => d.localIdx !== 0)
+          .style('visibility', 'hidden');
 
         p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
@@ -789,145 +981,34 @@ export default function TourCanvas(props: CanvasProps) {
           />
         </Tags.CanvasMenuItemCon>
       </Tags.CanvasMenuCon>
-      {showScreenSelector && (
-      <Tags.SelectScreenContainer>
-        <Tags.ScreensContainer>
-          {screensPartOfTour.length > 0 && (
-          <>
-            <GTags.Txt
-              className="title"
-              style={{ marginBottom: '0.5rem' }}
-            >
-              Screens part of tour
-            </GTags.Txt>
-            <Tags.ScreenSlider style={{ flexDirection: 'column', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', gap: '1.25rem' }}>
-                {screensPartOfTour.map(screen => (
-                  <Tags.Screen
-                    key={screen.id}
-                    onClick={() => {
-                      props.navigate(`${screen.id}`, 'annotation-hotspot');
-                    }}
-                  >
-                    <img src={screen.thumbnailUri.href} alt={screen.displayName} />
-                    <Tags.ScreenTitleIconCon>
-                      <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
-                      <div>
-                        {
-                            screen.type === ScreenType.SerDom ? <FileTextOutlined /> : <FileImageOutlined />
-                          }
-                      </div>
-                    </Tags.ScreenTitleIconCon>
-                  </Tags.Screen>
-                ))}
-              </div>
-              <div />
-            </Tags.ScreenSlider>
-          </>
-          )}
-          {screensNotPartOfTour.length > 0 ? (
-            <>
-              <GTags.Txt
-                className="title"
-                style={{ marginBottom: '0.5rem' }}
-              >
-                Original recorded screens
-              </GTags.Txt>
-              <Tags.ScreenSlider style={{ flexDirection: 'column' }}>
-                <div style={{ display: 'flex', gap: '1.25rem' }}>
-                  <Tags.Screen onClick={() => {
-                    setShowScreenSelector(false);
-                    setShowUploadScreenImgModal(true);
-                  }}
-                  >
-                    <Tags.UploadImgCont>
-                      <UploadOutlined style={{ fontSize: '3rem' }} />
-                      <GTags.Txt className="title2">Upload screen image</GTags.Txt>
-                    </Tags.UploadImgCont>
-                  </Tags.Screen>
-                  {screensNotPartOfTour.map(screen => (
-                    <Tags.Screen
-                      key={screen.id}
-                      onClick={() => {
-                        props.addScreenToTour(screen.type, screen.id, screen.rid);
-                      }}
-                    >
-                      <img src={screen.thumbnailUri.href} alt={screen.displayName} />
-                      <Tags.ScreenTitleIconCon>
-                        <GTags.Txt className="title2">{screen.displayName}</GTags.Txt>
-                        <div>
-                          {
-                            screen.type === ScreenType.SerDom ? <FileTextOutlined /> : <FileImageOutlined />
-                          }
-                        </div>
-                      </Tags.ScreenTitleIconCon>
-                    </Tags.Screen>
-                  ))}
-                </div>
-                <div />
-              </Tags.ScreenSlider>
-            </>
-          ) : (
-            <>
-              <GTags.Txt>
-                All captured screens are already part of this tour.
-                <br />
-                Any new screen captured will be available here.
-              </GTags.Txt>
-              <Tags.Screen
-                onClick={() => {
-                  setShowScreenSelector(false);
-                  setShowUploadScreenImgModal(true);
-                }}
-                style={{ margin: '1rem auto' }}
-              >
-                <Tags.UploadImgCont>
-                  <UploadOutlined style={{ fontSize: '3rem' }} />
-                  <GTags.Txt className="title2">Upload screen image</GTags.Txt>
-                </Tags.UploadImgCont>
-              </Tags.Screen>
-            </>
-
-          )}
-        </Tags.ScreensContainer>
-      </Tags.SelectScreenContainer>
-      )}
-      {!!connectionErr.msg && (
-        <div style={{
-          background: '#FF7450',
-          padding: '8px',
-          borderRadius: '8px',
-          width: '240px',
-          top: `${connectionErr.y - (connectionErr.h / 2)}px`,
-          position: 'absolute',
-          whiteSpace: 'pre-line',
-          left: `${connectionErr.position === 'l'
-            ? connectionErr.x - (10 + 16 /* both side padding */ + 360 /* width */)
-            : connectionErr.x + connectionErr.w + (10 + 8 /* padding one side */)}px`,
-        }}
-        >
-          <GTags.Txt color="#fff">{connectionErr.msg}</GTags.Txt>
-          <GTags.Txt color="#fff" className="subhead">Click outside to cancel this popup</GTags.Txt>
-        </div>
-      )}
-      {
-        showUploadScreenImgModal && (
-          <AddImageScreen
-            open={showUploadScreenImgModal}
-            closeModal={() => setShowUploadScreenImgModal(false)}
-            tourRid={props.tour.rid}
-            addScreenToTour={props.addScreenToTour}
-          />
-        )
-      }
-      {/* isMenuModalVisible(connectorMenuModalXY) && (
+      {isMenuModalVisible(connectorMenuModalData.position) && (
         <Tags.MenuModalMask onClick={() => {
           ctxData.current = null;
-          setConnectorMenuModalXY([null, null, 'l']);
+          setConnectorMenuModalData(initialConnectorModalData);
         }}
         >
-          <Tags.MenuModal xy={connectorMenuModalXY as [number, number, LRPostion]} onClick={prevent}>
-            <div className="menu-item danger">
+          <Tags.MenuModal xy={connectorMenuModalData.position} onClick={prevent}>
+            <div
+              className="menu-item danger"
+              onClick={() => {
+                confirm({
+                  title: 'Are you sure you want to delete the connector?',
+                  icon: <DisconnectOutlined />,
+                  onOk() {
+                    const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
+                    const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
+                    const result = deleteConnection(
+                      fromAnnId,
+                      toAnnId,
+                      props.allAnnotationsForTour
+                    );
+                    props.applyAnnButtonLinkMutations(result);
+                    setConnectorMenuModalData(initialConnectorModalData);
+                  },
+                  onCancel() { }
+                });
+              }}
+            >
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                 <DisconnectOutlined style={{ marginTop: '2px' }} />
                 <div>
@@ -938,11 +1019,39 @@ export default function TourCanvas(props: CanvasProps) {
             </div>
           </Tags.MenuModal>
         </Tags.MenuModalMask>
-      ) */}
-      {/* isMenuModalVisible(nodeMenuModalXY) && (
-        <Tags.MenuModalMask onClick={() => setNodeMenuModalXY([null, null, 'l'])}>
-          <Tags.MenuModal xy={nodeMenuModalXY as [number, number, LRPostion]} onClick={prevent}>
-            <div className="menu-item danger">
+      )}
+      {isMenuModalVisible(nodeMenuModalData.position) && (
+        <Tags.MenuModalMask onClick={() => {
+          ctxData.current = null;
+          setNodeMenuModalData(initialAnnNodeModalData);
+        }}
+        >
+          <Tags.MenuModal xy={nodeMenuModalData.position} onClick={prevent}>
+            <div
+              className="menu-item danger"
+              onClick={() => {
+                confirm({
+                  title: 'Are you sure you want to delete this annotation?',
+                  icon: <DeleteOutlined />,
+                  onOk() {
+                    const [screenId, annId] = nodeMenuModalData.annId.split('/');
+                    const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
+                    const main = props.tourOpts.main;
+                    const result = deleteAnnotation(
+                      { ...currentAnn, screenId: +screenId },
+                      props.allAnnotationsForTour,
+                      main,
+                      true
+                    );
+
+                    props.applyAnnButtonLinkMutations(result);
+                    // TODO[rrl] do this once api endpoint is completed
+                    setTimeout(() => setNodeMenuModalData(initialAnnNodeModalData), 500);
+                  },
+                  onCancel() {}
+                });
+              }}
+            >
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                 <DeleteOutlined style={{ marginTop: '2px' }} />
                 <div>
@@ -953,7 +1062,7 @@ export default function TourCanvas(props: CanvasProps) {
             </div>
           </Tags.MenuModal>
         </Tags.MenuModalMask>
-      ) */}
+      )}
     </>
   );
 }

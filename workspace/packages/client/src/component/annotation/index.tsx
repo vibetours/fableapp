@@ -4,9 +4,10 @@ import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
-import * as VIDEO_ANN from './video-ann-constants';
 import { playVideoAnn, generateShadeColor } from './utils';
 import { isVideoAnnotation as isVideoAnn, isBlankString } from '../../utils';
+import * as VIDEO_ANN from './video-ann-constants';
+import { AnnotationSerialIdMap } from './ops';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -16,6 +17,7 @@ interface IProps {
   playMode: boolean,
   isNextAnnVideo: boolean,
   isPrevAnnVideo: boolean,
+  annotationSerialIdMap: AnnotationSerialIdMap;
 }
 
 export class AnnotationContent extends React.PureComponent<{
@@ -29,6 +31,8 @@ export class AnnotationContent extends React.PureComponent<{
   nav: NavFn,
   isNextAnnVideo?: boolean,
   isPrevAnnVideo?: boolean,
+  annotationSerialIdMap: AnnotationSerialIdMap,
+  dir: AnimEntryDir
 }> {
   static readonly MIN_WIDTH = 320;
 
@@ -36,7 +40,7 @@ export class AnnotationContent extends React.PureComponent<{
 
   private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
-  componentDidMount() {
+  componentDidMount(): void {
     if (this.props.onRender) {
       if (this.contentRef.current) {
         const imgs = this.contentRef.current?.getElementsByTagName('img');
@@ -50,10 +54,14 @@ export class AnnotationContent extends React.PureComponent<{
       } else {
         this.props.onRender(this.conRef.current!);
       }
+    } else {
+      setTimeout(() => {
+        this.conRef.current!.style.transform = 'translate(0px, 0px)';
+      }, 50);
     }
   }
 
-  getAnnotationBorder() {
+  getAnnotationBorder(): string {
     const borderColor = this.props.opts.annotationBodyBorderColor;
     const defaultBorderColor = '#BDBDBD';
 
@@ -63,10 +71,25 @@ export class AnnotationContent extends React.PureComponent<{
     return `0 0 ${blur} ${spread} ${borderColor}`;
   }
 
-  render() {
+  render(): JSX.Element {
     const btns = this.props.config.buttons.filter(c => !c.exclude);
+    const serialId = this.props.annotationSerialIdMap[this.props.config.refId] + 1;
+    const totalAnnotations = Object.keys(this.props.annotationSerialIdMap).length;
+    const d = 30;
+    let tx = 0;
+    let ty = 0;
+    if (this.props.dir === 'l') {
+      tx -= d;
+    } else if (this.props.dir === 'r') {
+      tx += d;
+    } else if (this.props.dir === 't') {
+      ty -= d;
+    } else if (this.props.dir === 'b') {
+      ty += d;
+    }
     return (
       <Tags.AnContent
+        key={this.props.config.refId}
         className="fable-test-cl"
         ref={this.conRef}
         style={{
@@ -75,71 +98,80 @@ export class AnnotationContent extends React.PureComponent<{
           display: this.props.isInDisplay ? 'flex' : 'none',
           left: this.props.left,
           top: this.props.top,
+          transition: 'transform 0.3s ease-out',
           fontSize: '18px',
+          transform: `translate(${tx}px, ${ty}px)`,
           boxShadow: this.getAnnotationBorder(),
-          backgroundColor: `${this.props.opts.annotationBodyBackgroundColor}`
+          backgroundColor: this.props.opts.annotationBodyBackgroundColor,
+          borderRadius: this.props.opts.borderRadius
         }}
       >
-        <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', width: '100%' }}>
+        <Tags.AnInnerContainer
+          anPadding={this.props.opts.annotationPadding.trim()}
+        >
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
           <Tags.AnTextContent
-            bodyTextSize={this.props.config.bodyTextSize}
             fontFamily={this.props.opts.annotationFontFamily}
             fontColor={this.props.opts.annotationFontColor}
             ref={this.contentRef}
+            borderRadius={this.props.opts.borderRadius}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
           />
           {btns.length > 0 && (
-          <div style={{
-            display: 'flex',
-            justifyContent: btns.length > 1 ? 'space-between' : 'center',
-            alignItems: 'center',
-            marginTop: '0.75rem',
-            paddingTop: '1rem',
-            borderTop: `1px solid ${generateShadeColor(this.props.opts.annotationBodyBackgroundColor)}`
-          }}
-          >
-            {btns.sort((m, n) => m.order - n.order).map(btnConf => (
-              <Tags.ABtn
-                key={btnConf.id}
-                btnStyle={btnConf.style}
-                color={this.props.opts.primaryColor}
-                size={btnConf.size}
-                fontFamily={this.props.opts.annotationFontFamily}
-                onClick={() => {
-                  btnConf.hotspot && this.props.nav(
-                    btnConf.hotspot.actionValue,
-                    btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-                  );
+            <Tags.ButtonCon
+              bg={this.props.opts.annotationBodyBackgroundColor}
+              justifyContent={btns.length > 1 ? 'space-between' : 'center'}
+              borderTopColor={generateShadeColor(this.props.opts.annotationBodyBackgroundColor)}
+              btnLength={btns.length}
+              flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
+              anPadding={this.props.opts.annotationPadding.trim()}
+            >
+              {Boolean(serialId) && <Tags.Progress>{serialId} of {totalAnnotations}</Tags.Progress>}
+              {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
+                <Tags.ABtn
+                  idx={idx}
+                  key={btnConf.id}
+                  btnStyle={btnConf.style}
+                  color={this.props.opts.primaryColor}
+                  size={btnConf.size}
+                  fontFamily={this.props.opts.annotationFontFamily}
+                  btnLayout={this.props.config.buttonLayout}
+                  borderRadius={this.props.opts.borderRadius}
+                  onClick={() => {
+                    btnConf.hotspot && this.props.nav(
+                      btnConf.hotspot.actionValue,
+                      btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+                    );
 
-                  if (this.props.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
-                    const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-                    playVideoAnn(screenId, annId);
-                  }
+                    if (this.props.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
+                      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+                      playVideoAnn(screenId, annId);
+                    }
 
-                  if (this.props.isPrevAnnVideo && btnConf.type === 'prev' && btnConf.hotspot) {
-                    const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-                    playVideoAnn(screenId, annId);
-                  }
-                }}
-              > {btnConf.text}
-              </Tags.ABtn>
-            ))}
-          </div>
+                    if (this.props.isPrevAnnVideo && btnConf.type === 'prev' && btnConf.hotspot) {
+                      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
+                      playVideoAnn(screenId, annId);
+                    }
+                  }}
+                > {btnConf.text}
+                </Tags.ABtn>
+              ))}
+            </Tags.ButtonCon>
           )}
-        </div>
+        </Tags.AnInnerContainer>
       </Tags.AnContent>
     );
   }
 }
 
+type AnimEntryDir = 'l' | 't' | 'r' | 'b';
 export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly BREATHING_SPACE_RATIO = 30;
 
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
-  render() {
+  render(): JSX.Element {
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
     const isVideoAnnotation = isVideoAnn(config);
@@ -149,6 +181,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let t = -9999;
     let w = displayConfig.prerender ? this.props.box.width : 0;
     let h = displayConfig.prerender ? this.props.box.height : 0;
+    let dir: AnimEntryDir = 't';
     if (displayConfig.isInViewPort) {
       const elBox = this.props.box;
       const winW = this.props.annotationDisplayConfig.windowWidth;
@@ -237,6 +270,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           />;
         }
         return <AnnotationContent
+          annotationSerialIdMap={this.props.annotationSerialIdMap}
           config={this.props.annotationDisplayConfig.config}
           opts={this.props.annotationDisplayConfig.opts}
           isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
@@ -244,6 +278,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           width={w}
           top={top}
           left={left}
+          dir={dir}
           isNextAnnVideo={this.props.isNextAnnVideo}
           isPrevAnnVideo={this.props.isPrevAnnVideo}
         />;
@@ -294,6 +329,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       if (!p) {
         l = elBox.right - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
         t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+      } else {
+        dir = p || 't';
       }
     }
 
@@ -314,11 +351,13 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     // This container should never have padding ever
     return <AnnotationContent
+      annotationSerialIdMap={this.props.annotationSerialIdMap}
       config={this.props.annotationDisplayConfig.config}
       opts={this.props.annotationDisplayConfig.opts}
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
       nav={this.props.nav}
       width={w}
+      dir={dir}
       top={t + this.props.win.scrollY}
       left={l + this.props.win.scrollX}
       isNextAnnVideo={this.props.isNextAnnVideo}
@@ -334,19 +373,20 @@ export interface IAnnoationDisplayConfig {
   isInViewPort: boolean;
   prerender: boolean;
   isVideoAnnotation: boolean;
-  dimForSmallAnnotation: {w: number, h: number};
-  dimForMediumAnnotation: {w: number, h: number};
-  dimForLargeAnnotation: {w: number, h: number};
+  dimForSmallAnnotation: { w: number, h: number };
+  dimForMediumAnnotation: { w: number, h: number };
+  dimForLargeAnnotation: { w: number, h: number };
   windowHeight: number;
   windowWidth: number;
 }
 
 export interface IAnnProps {
-  box: Rect,
-  conf: IAnnoationDisplayConfig,
-  isNextAnnVideo: boolean,
-  isPrevAnnVideo: boolean,
-  hotspotBox?: Rect | null
+  box: Rect;
+  conf: IAnnoationDisplayConfig;
+  isNextAnnVideo: boolean;
+  isPrevAnnVideo: boolean;
+  hotspotBox?: Rect | null;
+  annotationSerialIdMap: AnnotationSerialIdMap;
 }
 
 interface IConProps {
@@ -411,7 +451,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
 }
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
-  render() {
+  render(): JSX.Element[] {
     return this.props.data.map((p) => {
       if (!p.conf.isMaximized && !p.conf.prerender) {
         // return <AnnotationBubble
@@ -420,14 +460,14 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         //   box={p.box}
         //   nav={this.props.nav}
         // />;
-        return <div key={p.conf.config.id} />;
+        return null;
       }
 
       const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
       return (
-        <div key={p.conf.config.id}>
+        <div key={p.conf.config.id} className="hello">
           {
             isHotspot && <AnnotationHotspot
               data={[{
@@ -443,7 +483,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
               playMode={this.props.playMode}
             />
           }
-          { !hideAnnotation && <AnnotationCard
+          {!hideAnnotation && <AnnotationCard
+            annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}
             nav={this.props.nav}
@@ -454,6 +495,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           />}
         </div>
       );
-    });
+    }).filter(el => el) as JSX.Element[];
   }
 }

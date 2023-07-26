@@ -8,14 +8,14 @@ import {
   IChronoUpdatable,
   ITourDataOpts,
   EAnnotationBoxSize,
-  AnnotationBodyTextSize,
-  VideoAnnotationPositions
+  VideoAnnotationPositions,
+  AnnotationButtonLayoutType
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 
 export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
-  screenId: string
+  screenId: number
 }
 
 export function getBigramId(config: IAnnotationConfig): string {
@@ -44,15 +44,6 @@ export function updateAnnotationPositioning<T extends IAnnotationConfig>(
   return newConfig;
 }
 
-export function updateAnnotationBodyTextSize<T extends IAnnotationConfig>(
-  config: T,
-  bodyTextSize: AnnotationBodyTextSize
-): T {
-  const newConfig = newConfigFrom(config);
-  newConfig.bodyTextSize = bodyTextSize;
-  return newConfig;
-}
-
 export function updateAnnotationVideoURL<T extends IAnnotationConfig>(config: T, videoUrl: string): T {
   const newConfig = newConfigFrom(config);
   newConfig.videoUrl = videoUrl;
@@ -77,9 +68,39 @@ export function updateAnnotationVideoURLWebm<T extends IAnnotationConfig>(config
   return newConfig;
 }
 
-export function updateAnnotationIsHotspot<T extends IAnnotationConfig>(config: T, isHotspot: boolean): T {
+export function updateAnnotationTypeToCover(config: IAnnotationConfig) : IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.type = 'cover';
+  newConfig.id = `$#${newConfig.refId}`;
+  newConfig.size = 'medium';
+
+  return newConfig;
+}
+
+export function updateAnnotationTypeToDefault(
+  config: IAnnotationConfig,
+  elPath: string
+) : IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.type = 'default';
+  newConfig.id = elPath;
+  newConfig.size = 'small';
+  newConfig.hideAnnotation = false;
+  return newConfig;
+}
+
+export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.isHotspot = isHotspot;
+  return newConfig;
+}
+
+export function clearAnnotationAllVideoURL(config: IAnnotationConfig): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.videoUrl = '';
+  newConfig.videoUrlMp4 = '';
+  newConfig.videoUrlWebm = '';
+  newConfig.videoUrlHls = '';
   return newConfig;
 }
 
@@ -95,6 +116,12 @@ export function updateAnnotationHotspotElPath<T extends IAnnotationConfig>(
 export function updateAnnotationHideAnnotation<T extends IAnnotationConfig>(config: T, hideAnnotation: boolean): T {
   const newConfig = newConfigFrom(config);
   newConfig.hideAnnotation = hideAnnotation;
+  return newConfig;
+}
+
+export function updateAnnotationButtonLayout<T extends IAnnotationConfig>(config: T, buttonLayout: AnnotationButtonLayoutType): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.buttonLayout = buttonLayout;
   return newConfig;
 }
 
@@ -273,81 +300,6 @@ export function replaceAnnotation(
   updates.push([+currentScreenId, replaceWithAnn, 'upsert']);
 
   return updates;
-}
-
-function createFlatAnnotationMap(allAnnotationsForTour: AnnotationPerScreen[]): Record<string, IAnnotationConfig> {
-  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
-
-  for (const entry of allAnnotationsForTour) {
-    for (const an of entry.annotations) {
-      flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
-    }
-  }
-  return flatAnnotationMap;
-}
-
-export function deleteAnnotation(
-  allAnnotationsForTour: AnnotationPerScreen[],
-  ann: IAnnotationConfigWithScreenId,
-  opts: ITourDataOpts
-): [AnnotationMutation[], string] {
-  const flatAnnotationMap = createFlatAnnotationMap(allAnnotationsForTour);
-  const btns = ann.buttons;
-  const nextBtn = btns.find(btn => btn.type === 'next')!;
-  const prevBtn = btns.find(btn => btn.type === 'prev')!;
-  const updates: AnnotationMutation[] = [];
-  let newMain:string = '';
-
-  if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
-    const nextAnnId = nextBtn.hotspot.actionValue;
-    const [screenId] = nextAnnId.split('/');
-    const nextAnn = flatAnnotationMap[nextAnnId];
-    const prevBtnOfNextAnn = nextAnn.buttons.find(btn => btn.type === 'prev')!;
-
-    let newHostspotVal: ITourEntityHotspot | null = null;
-    if (prevBtn.hotspot) {
-      const hotspot = prevBtn.hotspot;
-      newHostspotVal = {
-        ...hotspot,
-        actionType: hotspot.actionType,
-        actionValue: hotspot.actionValue,
-      };
-    }
-
-    const update = updateButtonProp(nextAnn, prevBtnOfNextAnn.id, 'hotspot', newHostspotVal);
-    updates.push([+screenId, update, 'upsert']);
-
-    if (`${ann.screenId}/${ann.refId}` === opts.main) {
-      newMain = nextAnnId;
-    }
-  }
-  if (prevBtn.hotspot && prevBtn.hotspot.actionType === 'navigate') {
-    const prevAnnId = prevBtn.hotspot.actionValue;
-    const [screenId] = prevAnnId.split('/');
-    const prevAnn = flatAnnotationMap[prevAnnId];
-    const nextBtnOfPrevAnn = prevAnn.buttons.find(btn => btn.type === 'next')!;
-
-    let newHostspotVal: ITourEntityHotspot | null = null;
-    if (nextBtn.hotspot) {
-      const hotspot = nextBtn.hotspot;
-      newHostspotVal = {
-        ...hotspot,
-        actionType: hotspot.actionType,
-        actionValue: hotspot.actionValue,
-      };
-    }
-
-    if (nextBtn.hotspot?.actionType === 'open') {
-      newHostspotVal = null;
-    }
-
-    const update = updateButtonProp(prevAnn, nextBtnOfPrevAnn.id, 'hotspot', newHostspotVal);
-
-    updates.push([+screenId, update, 'upsert']);
-  }
-
-  updates.push([null, ann, 'delete']);
-  return [updates, newMain];
 }
 
 export function isCoverAnnotation(annId: string): boolean {

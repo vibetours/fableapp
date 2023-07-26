@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
   SELECTION_CHANGE_COMMAND,
@@ -10,11 +10,14 @@ import {
   RangeSelection,
   NodeSelection,
   GridSelection,
+  ElementNode,
+  TextNode,
 } from 'lexical';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import {
-  $isParentElementRTL,
-  $isAtNodeEnd
+  $isAtNodeEnd,
+  $patchStyleText,
+  $getSelectionStyleValueForProperty,
 } from '@lexical/selection';
 import { mergeRegister } from '@lexical/utils';
 import { createPortal } from 'react-dom';
@@ -26,12 +29,16 @@ import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
-  EditOutlined
+  EditOutlined,
+  FontSizeOutlined,
+  DownOutlined
 } from '@ant-design/icons';
+import { Dropdown } from 'antd';
+import { AnnotationFontSize } from '@fable/common/dist/types';
 
 const LowPriority = 1;
 
-function positionEditorElement(editor: HTMLDivElement, rect: DOMRect | null) {
+function positionEditorElement(editor: HTMLDivElement, rect: DOMRect | null) : void {
   if (rect === null) {
     editor.style.opacity = '0';
     editor.style.top = '-1000px';
@@ -49,7 +56,7 @@ interface Props {
   editor: LexicalEditor
 }
 
-function FloatingLinkEditor({ editor }: Props) {
+function FloatingLinkEditor({ editor }: Props) : ReactElement {
   const editorRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mouseDownRef = useRef(false);
@@ -189,7 +196,7 @@ function FloatingLinkEditor({ editor }: Props) {
   );
 }
 
-function getSelectedNode(selection: RangeSelection) {
+function getSelectedNode(selection: RangeSelection) : ElementNode | TextNode {
   const anchor = selection.anchor;
   const focus = selection.focus;
   const anchorNode = selection.anchor.getNode();
@@ -212,12 +219,30 @@ interface ToolbarPluginProps {
   }
 }
 
-export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) {
+export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : ReactElement {
   const [editor] = useLexicalComposerContext();
   const toolbarRef = useRef(null);
   const [isLink, setIsLink] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
+  const [fontSize, setFontSize] = useState<string>(AnnotationFontSize.medium);
+  const fontSizeOptions = [
+    {
+      label: 'Medium',
+      key: AnnotationFontSize.medium,
+      className: fontSize === AnnotationFontSize.medium ? 'dropdown-menu-item-active' : '',
+    },
+    {
+      label: 'Large',
+      key: AnnotationFontSize.large,
+      className: fontSize === AnnotationFontSize.large ? 'dropdown-menu-item-active' : '',
+    },
+    {
+      label: 'Larger',
+      key: AnnotationFontSize.larger,
+      className: fontSize === AnnotationFontSize.larger ? 'dropdown-menu-item-active' : '',
+    },
+  ];
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -234,6 +259,10 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) {
       } else {
         setIsLink(false);
       }
+
+      setFontSize(
+        $getSelectionStyleValueForProperty(selection, 'font-size', AnnotationFontSize.medium),
+      );
     }
   }, [editor]);
 
@@ -261,6 +290,20 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) {
     }
   }, [editor, isLink]);
 
+  const handleDropdownItemClick = useCallback(
+    (option: string) => {
+      editor.update(() => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          $patchStyleText(selection, {
+            'font-size': option,
+          });
+        }
+      });
+    },
+    [editor],
+  );
+
   return (
     <div className="toolbar" ref={toolbarRef}>
       <button
@@ -273,6 +316,17 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) {
       >
         <BoldOutlined className="format" />
       </button>
+      <Dropdown
+        menu={{
+          onClick: (e) => handleDropdownItemClick(`${e.key}px`),
+          items: fontSizeOptions,
+        }}
+        trigger={['click']}
+      >
+        <button type="button" className="toolbar-item spaced " onClick={e => e.preventDefault()}>
+          <FontSizeOutlined /> <DownOutlined className="down-outline" />
+        </button>
+      </Dropdown>
       <button
         type="button"
         onClick={() => {

@@ -9,6 +9,7 @@ import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } 
 import { AnnotationPerScreen, NavFn } from '../../types';
 import { isBodyEl, isVideoAnnotation } from '../../utils';
 import { isPrevNextBtnLinksToVideoAnn, scrollToAnn } from './utils';
+import { AnnotationSerialIdMap } from './ops';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -56,6 +57,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private tourDataOpts: ITourDataOpts;
 
+  private annotationSerialIdMap: AnnotationSerialIdMap;
+
   // Take the initial annotation config from here
   constructor(
     doc: Document,
@@ -65,6 +68,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     allAnnotationsForTour: AnnotationPerScreen[],
     allAnnotationsForScreen: IAnnotationConfig[],
     tourDataOpts: ITourDataOpts,
+    annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig
   ) {
     super(doc, nestedFrames, config);
@@ -86,16 +90,17 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.allAnnotationsForTour = allAnnotationsForTour;
     this.allAnnotationsForScreen = allAnnotationsForScreen;
     this.tourDataOpts = tourDataOpts;
+    this.annotationSerialIdMap = annotationSerialIdMap;
     this.prerenderVideoAnnotations();
   }
 
-  private hideAllAnnotations() {
+  private hideAllAnnotations(): void {
     for (const [, [_, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       annotationDisplayConfig.isMaximized = false;
     }
   }
 
-  hide() {
+  hide(): void {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
     this.removeMaskIfPresent();
@@ -164,7 +169,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return [con, rRoot];
   }
 
-  showAnnotationFor(el: HTMLElement, config: IAnnotationConfig) {
+  showAnnotationFor(el: HTMLElement, config: IAnnotationConfig): void {
     const currId = config.id;
 
     for (const [id, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
@@ -214,7 +219,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
   }
 
-  private render() {
+  private render(): void {
     if (this.mode === AnnotationViewMode.Hide) {
       return;
     }
@@ -249,6 +254,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
         isNextAnnVideo,
         isPrevAnnVideo,
+        annotationSerialIdMap: this.annotationSerialIdMap,
       });
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
@@ -281,7 +287,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     config: IAnnotationConfig,
     opts: ITourDataOpts,
     showImmediate = false,
-  ) {
+  ): Promise<this> {
     if (this.isAnnotationDrawingInProgress) {
       return this;
     }
@@ -315,7 +321,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return this;
   }
 
-  private prerenderVideoAnnotations() {
+  private prerenderVideoAnnotations(): void {
     const videoAnnotations = this.allAnnotationsForScreen.filter((config) => isVideoAnnotation(config));
 
     const videoAnnsProps: IAnnProps[] = videoAnnotations.map(config => {
@@ -359,6 +365,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         conf: displayConf,
         isNextAnnVideo: false,
         isPrevAnnVideo: false,
+        annotationSerialIdMap: this.annotationSerialIdMap
       };
     });
 
@@ -395,12 +402,14 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               onRender: resolve,
               isInDisplay: true,
               config,
+              dir: 't',
               opts: this.opts,
               width: smallWidth,
               top: -9999,
               left: -9999,
               key: 777,
               nav: this.nav,
+              annotationSerialIdMap: this.annotationSerialIdMap
             })
           )
         );
@@ -416,12 +425,14 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               onRender: resolve,
               isInDisplay: true,
               config,
+              dir: 't',
               opts: this.opts,
               width: mediumWidth,
               top: -9999,
               left: -9999,
               key: 666,
               nav: this.nav,
+              annotationSerialIdMap: this.annotationSerialIdMap
             })
           )
         );
@@ -438,11 +449,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               isInDisplay: true,
               config,
               opts: this.opts,
+              dir: 't',
               width: largeWidth,
               top: -9999,
               left: -9999,
               key: 888,
               nav: this.nav,
+              annotationSerialIdMap: this.annotationSerialIdMap
             })
           )
         );

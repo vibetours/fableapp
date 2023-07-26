@@ -1,4 +1,5 @@
 import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen } from './entity-processor';
 
 export const enum ElEditType {
@@ -102,7 +103,8 @@ export type TourDataChangeFn = (
     changeType: 'annotation-and-theme' | 'screen',
     screenId: number | null,
     changeObj: {config: IAnnotationConfig, opts?: ITourDataOpts | null, actionType: 'upsert' | 'delete'},
-    isDefault?: boolean
+    tx?: Tx,
+    isDefault?: boolean,
 ) => void;
 
 export type FrameAssetLoadFn = (params: {
@@ -125,4 +127,15 @@ export const enum IdxAnnotationMutation {
 export const enum Ops {
   None = 0,
   DuplicateTour
+}
+
+export interface IAnnotationConfigWithScreen extends IAnnotationConfig {
+  screen: P_RespScreen;
+}
+
+export type ConnectedOrderedAnnGroupedByScreen = Array<Array<Array<IAnnotationConfigWithScreen>>>;
+
+export enum DestinationAnnotationPosition {
+  next,
+  prev
 }

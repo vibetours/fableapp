@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { LRPostion } from './types';
+import { LRPostion, ModalPosition } from './types';
 
 export const TILE_STROKE_COLOR_ON_HOVER = '#7566ff';
 export const TILE_STROKE_COLOR_DEFAULT = '#E0E0E0';
@@ -10,6 +10,10 @@ export const SVGCanvas = styled.svg`
   left: 0;
   bottom: 0;
   cursor: move;
+
+  .fade {
+    opacity: 0.2;
+  }
 
   image {
     cursor: pointer;
@@ -32,6 +36,29 @@ export const SVGCanvas = styled.svg`
   }
 
   .node {
+    .droptg {
+      fill: #15034517;
+      stroke: none;
+
+      &.sel {
+        fill: #d0d0ff;
+        stroke: #150345;
+        stroke-width: 2;
+      }
+    }
+
+    .tg-hide {
+      display: none;
+    }
+
+    .tg-show {
+      display: block;
+
+      &.rev {
+        display: none;
+      }
+    }
+
     &:hover {
       .poh {
         background: #7566ff !important;
@@ -39,6 +66,10 @@ export const SVGCanvas = styled.svg`
       }
 
       .menuicnovrly {
+        cursor: pointer;
+      }
+
+      .plusicnovrly{
         cursor: pointer;
       }
 
@@ -143,94 +174,6 @@ export const EmptyCanvasButtons = styled.div`
     color: #7567FF;
   }
 
-`;
-
-export const SelectScreenContainer = styled.div`
-
-  position: absolute;
-  top: 30px;
-  left: 120px;
-  z-index: 9999;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-`;
-
-export const ScreensContainer = styled.div`
-
-  background: #FFFFFF;
-  border: 1px solid #DDDDDD;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
-  border-radius: 20px;
-  max-width: 80vw;
-  margin: auto;
-  padding: 1rem 1rem;
-
-  h2 {
-    font-style: normal;
-    font-weight: 700;
-    font-size: 1.2rem;
-    line-height: 20px;
-    margin-bottom: 1rem;
-  }
-`;
-
-export const ScreenSlider = styled.div`
-  display: flex;
-  gap: 1rem;
-  padding: 0.25rem;
-  position: relative;
-  overflow-x: auto;
-  scrollbar-color: #7567FF #E5E7EB;
-
-  &::-webkit-scrollbar-track {
-    padding: 2px 0;
-    background-color: #e5e7eb;
-    border-radius: 10px;
-    border: 1px solid #F3F4F6;
-  }
-
-  &::-webkit-scrollbar {
-    margin: 4px 0;
-    height: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    border-radius: 4px;
-    background-color: #7567FF;
-  }
-`;
-
-export const Screen = styled.div`
-  background: #FFFFFF;
-  border: 1px solid #DDDDDD;
-  border-radius: 10px;
-  padding: 1rem;
-  width: 220px;
-  min-width: 220px;
-  max-width: 220px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-
-  img {
-    width: 100%;
-    height: 70%;
-    object-fit: cover;
-  }
-
-  &:hover {
-    box-shadow: 0 0 0 1px black;
-    cursor: pointer;
-  }
-
-`;
-
-export const ScreenTitleIconCon = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
 `;
 
 export const ModeOptions = styled.div`
@@ -356,7 +299,7 @@ export const ErrorMsg = styled.div`
   text-align: center;
 `;
 
-export const MenuModal = styled.div<{xy: [number, number, LRPostion]}>`
+export const MenuModal = styled.div<{xy: ModalPosition}>`
   left: ${props => (props.xy[2] === 'l' ? props.xy[0] : 'auto')}px;
   right: ${props => (props.xy[2] === 'r' ? props.xy[0] : 'auto')}px;
   top: ${props => props.xy[1]}px;

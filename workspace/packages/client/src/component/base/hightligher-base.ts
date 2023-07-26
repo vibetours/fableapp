@@ -84,8 +84,11 @@ export default abstract class HighlighterBase {
     const height = bottomEndpoint >= win.scrollY + window.innerHeight
       ? elSize.height : elSize.height + (top <= 0 ? 0 : padding * 2);
 
-    maskBox.style.top = `${top - (top <= 0 ? -2 : padding)}px`;
-    maskBox.style.left = `${left - (left <= 0 ? -2 : padding)}px`;
+    const maskBoxTop = bottomEndpoint >= win.scrollY + window.innerHeight ? top : top - (top <= 0 ? -2 : padding);
+    const maskBoxLeft = rightEndpoint >= win.scrollX + window.innerWidth ? left : left - (left <= 0 ? -2 : padding);
+
+    maskBox.style.top = `${maskBoxTop}px`;
+    maskBox.style.left = `${maskBoxLeft}px`;
     maskBox.style.width = `${width}px`;
     maskBox.style.height = `${height}px`;
   }

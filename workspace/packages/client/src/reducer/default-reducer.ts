@@ -22,7 +22,9 @@ import {
   TTourWithData,
   TIAm,
   TGetOrg,
-  TOpsInProgress
+  TOpsInProgress,
+  TAddScreenEntities,
+  AnnAdd
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -59,6 +61,8 @@ export const initialState: {
   remoteTourOpts: ITourDataOpts | null;
   localTourOpts: ITourDataOpts | null;
   token : string;
+  relayScreenId: number | null;
+  relayAnnAdd: AnnAdd | null;
 } = {
   inited: false,
   commonConfig: null,
@@ -88,6 +92,8 @@ export const initialState: {
   localTourOpts: null,
   remoteTourOpts: null,
   token: '',
+  relayScreenId: null,
+  relayAnnAdd: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -114,7 +120,6 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.ALL_SCREENS_LOADING: {
       const newState = { ...state };
       newState.allScreensLoadingStatus = LoadingStatus.InProgress;
-      newState.currentTour = null;
       return newState;
     }
 
@@ -314,6 +319,23 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.remoteTourOpts = tAction.opts;
         newState.tourData = tAction.data;
       }
+      return newState;
+    }
+
+    case ActionType.SAVE_TOUR_RELAY_ENTITIES: {
+      const tAction = action as TAddScreenEntities;
+      const newState = { ...state };
+      newState.currentTour = tAction.tour;
+      newState.allScreens = tAction.tour.screens || [];
+      newState.relayScreenId = tAction.screenId;
+      newState.relayAnnAdd = tAction.annAdd;
+      return newState;
+    }
+
+    case ActionType.CLEAR_RELAY_SCREEN_ANN_ADD: {
+      const newState = { ...state };
+      newState.relayScreenId = null;
+      newState.relayAnnAdd = null;
       return newState;
     }
 

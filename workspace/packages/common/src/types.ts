@@ -93,6 +93,8 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationFontColor: string;
   annotationSelectionColor: string;
   main: string;
+  borderRadius: number;
+  annotationPadding: string;
 }
 
 export interface TourDataWoScheme {
@@ -142,12 +144,6 @@ export enum AnnotationButtonSize {
   Small = 'small'
 }
 
-export enum AnnotationBodyTextSize {
-  small = '15',
-  medium = '18',
-  large = '21'
-}
-
 export interface IAnnotationButton {
   id: string;
   type: 'next' | 'prev' | 'custom';
@@ -175,6 +171,9 @@ export interface ITourEntityHotspot {
 
 export type EAnnotationBoxSize = 'small' | 'medium' | 'large';
 
+export const AnnotationButtonLayout = ['default', 'full-width'] as const;
+export declare type AnnotationButtonLayoutType = typeof AnnotationButtonLayout[number];
+
 export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
@@ -186,13 +185,13 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   size: EAnnotationBoxSize,
   isHotspot: boolean,
   hideAnnotation: boolean,
-  bodyTextSize: AnnotationBodyTextSize;
   videoUrl: string;
   hotspotElPath: string | null;
   videoUrlHls: string;
   videoUrlMp4: string;
   videoUrlWebm: string;
   showOverlay: boolean;
+  buttonLayout: AnnotationButtonLayoutType;
 }
 
 // TODO perform this conversion, client side
@@ -205,4 +204,10 @@ export interface Coords {
   y: number;
   width: number;
   height: number;
+}
+
+export enum AnnotationFontSize {
+  medium = '18',
+  large = '22',
+  larger = '26'
 }
