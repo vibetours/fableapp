@@ -1,7 +1,7 @@
+import { getRandomId } from '@fable/common/dist/utils';
 import { AnnotationNode, Box, CanvasGrid, Edge, Point } from './types';
 import { ConnectedOrderedAnnGroupedByScreen } from '../../types';
 import { getAnnotationBtn } from '../annotation/ops';
-import { getRandomId } from '@fable/common/dist/utils';
 
 export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, grid: CanvasGrid)
 : [AnnotationNode<Box>[], Edge[]] {
