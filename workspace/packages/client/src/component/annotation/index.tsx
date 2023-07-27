@@ -34,7 +34,7 @@ export class AnnotationContent extends React.PureComponent<{
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
 }> {
-  static readonly MIN_WIDTH = 320;
+  static readonly MIN_WIDTH = 360;
 
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -57,18 +57,22 @@ export class AnnotationContent extends React.PureComponent<{
     } else {
       setTimeout(() => {
         this.conRef.current!.style.transform = 'translate(0px, 0px)';
-      }, 50);
+      }, 48);
     }
   }
 
-  getAnnotationBorder(): string {
+  getAnnotationBorder(hasOverlay: boolean): string {
     const borderColor = this.props.opts.annotationBodyBorderColor;
     const defaultBorderColor = '#BDBDBD';
 
     const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
     const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
 
-    return `0 0 ${blur} ${spread} ${borderColor}`;
+    return `0 0 ${blur} ${spread} ${borderColor}, rgba(0, 0, 0) 0px 0px ${hasOverlay ? 0 : 8}px -1px`;
+  }
+
+  componentWillUnmount(): void {
+    this.conRef.current && (this.conRef.current.style.visibility = 'hidden');
   }
 
   render(): JSX.Element {
@@ -90,18 +94,18 @@ export class AnnotationContent extends React.PureComponent<{
     return (
       <Tags.AnContent
         key={this.props.config.refId}
-        className="fable-test-cl"
         ref={this.conRef}
         style={{
           minWidth: `${AnnotationContent.MIN_WIDTH}px`,
           width: `${this.props.width}px`,
           display: this.props.isInDisplay ? 'flex' : 'none',
+          visibility: 'visible',
           left: this.props.left,
           top: this.props.top,
           transition: 'transform 0.3s ease-out',
           fontSize: '18px',
           transform: `translate(${tx}px, ${ty}px)`,
-          boxShadow: this.getAnnotationBorder(),
+          boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
           backgroundColor: this.props.opts.annotationBodyBackgroundColor,
           borderRadius: this.props.opts.borderRadius
         }}
@@ -120,16 +124,23 @@ export class AnnotationContent extends React.PureComponent<{
           />
           {btns.length > 0 && (
             <Tags.ButtonCon
-              bg={this.props.opts.annotationBodyBackgroundColor}
               justifyContent={btns.length > 1 ? 'space-between' : 'center'}
               borderTopColor={generateShadeColor(this.props.opts.annotationBodyBackgroundColor)}
               btnLength={btns.length}
               flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
               anPadding={this.props.opts.annotationPadding.trim()}
             >
-              {Boolean(serialId) && <Tags.Progress>{serialId} of {totalAnnotations}</Tags.Progress>}
+              {Boolean(serialId) && (
+              <Tags.Progress
+                bg={this.props.opts.annotationBodyBackgroundColor}
+                fg={this.props.opts.annotationFontColor}
+              >
+                  {serialId} of {totalAnnotations}
+              </Tags.Progress>
+              )}
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
+                  bg={this.props.opts.annotationBodyBackgroundColor}
                   idx={idx}
                   key={btnConf.id}
                   btnStyle={btnConf.style}
@@ -467,7 +478,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
       return (
-        <div key={p.conf.config.id} className="hello">
+        <div key={p.conf.config.id}>
           {
             isHotspot && <AnnotationHotspot
               data={[{

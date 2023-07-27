@@ -585,6 +585,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <div className="a-head">
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <ATags.ABtn
+                    bg={opts.annotationBodyBackgroundColor}
                     type="button"
                     btnStyle={btnConf.style}
                     color={primaryColor}

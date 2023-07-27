@@ -99,7 +99,6 @@ interface ButtonConProps {
   btnLength: number;
   flexDirection: 'row' | 'column';
   anPadding: string;
-  bg: string;
 }
 
 export const ButtonCon = styled.div`
@@ -120,17 +119,17 @@ export const ButtonCon = styled.div`
         top: 0;
         left: 50%;
         transform: translateX(-50%) translateY(-50%); 
-        background-color: ${props.bg};
         padding: 0 10px;
       }`
       : ''
   )}
 `;
 
-export const Progress = styled.p`
-  color: gray;
+export const Progress = styled.p<{bg: string; fg: string}>`
   font-size: 1rem;
   margin: 0;
+  background-color: ${props => props.bg};
+  color: ${props => props.fg}a8;
 `;
 
 export const ABtn = styled.button`
@@ -154,7 +153,7 @@ export const ABtn = styled.button`
   
   color: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
-    return '#000';
+    return getColorContrast(p.bg) === 'dark' ? '#fff' : '#000';
   }};
 
   padding: ${(p: BtnConf) => {
@@ -181,6 +180,7 @@ export interface BtnConf {
   btnLayout: AnnotationButtonLayoutType;
   borderRadius: number;
   idx?: number;
+  bg: string;
 }
 
 function getColorContrast(hex: string): 'dark' | 'light' {

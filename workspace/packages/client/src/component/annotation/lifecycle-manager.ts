@@ -389,7 +389,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     dimForLargeAnnotation: {w: number, h: number},
   }> {
     const smallWidth = AnnotationContent.MIN_WIDTH;
-    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3 | 0);
+    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3.5 | 0);
     const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 2.5 | 0);
 
     try {
