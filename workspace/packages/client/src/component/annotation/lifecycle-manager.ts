@@ -57,6 +57,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private tourDataOpts: ITourDataOpts;
 
+  private tourId: string;
+
   private annotationSerialIdMap: AnnotationSerialIdMap;
 
   // Take the initial annotation config from here
@@ -68,6 +70,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     allAnnotationsForTour: AnnotationPerScreen[],
     allAnnotationsForScreen: IAnnotationConfig[],
     tourDataOpts: ITourDataOpts,
+    tourId: string,
     annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig
   ) {
@@ -90,6 +93,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.allAnnotationsForTour = allAnnotationsForTour;
     this.allAnnotationsForScreen = allAnnotationsForScreen;
     this.tourDataOpts = tourDataOpts;
+    this.tourId = tourId;
     this.annotationSerialIdMap = annotationSerialIdMap;
     this.prerenderVideoAnnotations();
   }
@@ -143,7 +147,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return '#ffffff00';
   }
 
-  private beforeScrollStart = () => {
+  private beforeScrollStart = (): void => {
     if (!this.isPlayMode) {
       return;
     }
@@ -151,7 +155,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.createFullScreenMask();
   };
 
-  private onScrollComplete = () => {
+  private onScrollComplete = (): void => {
     this.render();
     this.con!.style.visibility = 'visible';
   };
@@ -277,7 +281,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       React.createElement(
         StyleSheetManager,
         { target: this.doc.head },
-        React.createElement(AnnotationCon, { data: props, nav: this.nav, win: this.win, playMode: this.isPlayMode })
+        React.createElement(AnnotationCon, {
+          data: props,
+          nav: this.nav,
+          win: this.win,
+          playMode: this.isPlayMode,
+          tourId: this.tourId
+        })
       )
     );
   }
@@ -377,16 +387,17 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           data: videoAnnsProps,
           nav: this.nav,
           win: this.win,
-          playMode: this.isPlayMode
+          playMode: this.isPlayMode,
+          tourId: this.tourId
         })
       )
     );
   }
 
   private async probeForAnnotationSize(config: IAnnotationConfig): Promise<{
-    dimForSmallAnnotation: {w: number, h: number},
-    dimForMediumAnnotation: {w: number, h: number},
-    dimForLargeAnnotation: {w: number, h: number},
+    dimForSmallAnnotation: { w: number, h: number },
+    dimForMediumAnnotation: { w: number, h: number },
+    dimForLargeAnnotation: { w: number, h: number },
   }> {
     const smallWidth = AnnotationContent.MIN_WIDTH;
     const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3.5 | 0);
@@ -409,6 +420,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: 777,
               nav: this.nav,
+              tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap
             })
           )
@@ -432,6 +444,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: 666,
               nav: this.nav,
+              tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap
             })
           )
@@ -455,6 +468,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: 888,
               nav: this.nav,
+              tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap
             })
           )

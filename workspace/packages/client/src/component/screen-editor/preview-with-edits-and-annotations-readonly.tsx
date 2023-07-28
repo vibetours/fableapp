@@ -1,7 +1,7 @@
 import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { P_RespScreen } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
   EditItem, ElEditType,
@@ -39,6 +39,7 @@ export interface IOwnProps {
   hidden?: boolean;
   onFrameAssetLoad: FrameAssetLoadFn;
   allAnnotationsForTour: AnnotationPerScreen[];
+  tour: P_RespTour;
 }
 
 interface IOwnStateProps {
@@ -89,7 +90,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   private addFontLinkToHead = (doc: Document, annotationFontFamily: string): void => {
     const linkHref = `https://fonts.googleapis.com/css?family=${annotationFontFamily.replace(/\s+/g, '+')}`;
 
-    const existingLinks = Array.from(doc.querySelectorAll(`link[${ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR}]`)) as HTMLLinkElement[];
+    const existingLinks = Array.from(
+      doc.querySelectorAll(`link[${ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR}]`)
+    ) as HTMLLinkElement[];
     const hasExistingLink = existingLinks.some((link) => link.href === linkHref);
     if (hasExistingLink) return;
 
@@ -106,14 +109,14 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     doc.head.appendChild(link);
   };
 
-  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }) => {
+  onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
     this.initAnnotationLCM(params.nestedFrames);
     this.applyEdits(this.props.allEdits);
     this.addFont();
     this.props.onBeforeFrameBodyDisplay(params);
   };
 
-  private applyEdits(allEdits: EditItem[]) {
+  private applyEdits(allEdits: EditItem[]): void {
     const ATTR_NAME = ScreenPreviewWithEditsAndAnnotationsReadonly.ATTR_ORIG_VAL_SAVE_ATTR_NAME;
     const mem: Record<string, Node> = {};
     const txtOrigValAttr = `${ATTR_NAME}-${ElEditType.Text}`;
@@ -178,7 +181,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   }
 
-  onFrameAssetLoad = async () => {
+  onFrameAssetLoad = async (): Promise<void> => {
     await scrollIframeEls(this.props.screenData.version, this.embedFrameRef.current?.contentDocument!);
     const foundAnnotation = this.reachAnnotation(this.props.toAnnotationId);
     this.props.onFrameAssetLoad({ foundAnnotation });
@@ -207,6 +210,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.allAnnotationsForTour,
           this.props.allAnnotationsForScreen,
           this.props.tourDataOpts,
+          this.props.tour.id,
           this.props.annotationSerialIdMap,
           highlighterBaseConfig
         );
@@ -242,7 +246,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     return false;
   }
 
-  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts) {
+  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts): Promise<void> {
     if (!this.annotationLCM) return;
     let targetEl = null;
     if (conf.type === 'cover') {
@@ -262,7 +266,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     );
   }
 
-  async componentDidUpdate(prevProps: IOwnProps) {
+  async componentDidUpdate(prevProps: IOwnProps): Promise<void> {
     if (this.props.playMode) {
       // In player, stop useless rerender leading to flashing
       if (this.props.toAnnotationId && prevProps.toAnnotationId !== this.props.toAnnotationId) {

@@ -8,9 +8,10 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AnnotationPerScreen, EditItem, NavFn } from '../../types';
+import { AnnotationPerScreen, EditItem, FWin, NavFn } from '../../types';
 import HeartLoader from '../../component/loader/heart';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
+import { removeSessionId } from '../../analytics/utils';
 import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
 
 interface IDispatchProps {
@@ -18,7 +19,7 @@ interface IDispatchProps {
   loadScreenAndData: (rid: string, isPreloading: boolean) => void,
 }
 
-const mapDispatchToProps = (dispatch: any) => ({
+const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   loadScreenAndData: (rid: string, isPreloading: boolean) => dispatch(loadScreenAndData(rid, true, isPreloading)),
 });
@@ -81,9 +82,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
 
-  componentDidMount() {
+  componentDidMount(): void {
     document.title = this.props.title;
+    (window as FWin).__fable_global_settings__ = {
+      ...((window as FWin).__fable_global_settings__ || {}),
+      shouldLogEvent: true
+    };
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
+    window.addEventListener('beforeunload', removeSessionId);
   }
 
   createRenderSlotsBasedOnDomain(): Record<string, number> {
@@ -97,7 +103,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return slots;
   }
 
-  preRender() {
+  preRender(): void {
     this.renderSlots = this.createRenderSlotsBasedOnDomain();
     this.adjList = createAdjacencyList(this.props.allAnnotations, this.props.allScreens);
     for (const screen of this.props.allScreens) {
@@ -105,7 +111,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  getScreenDataPreloaded(rid: string) {
+  getScreenDataPreloaded(rid: string): void {
     const screen = this.props.allScreens.find(s => s.rid === rid);
     if (!screen) {
       throw new Error(`No screen found for rid=${rid}`);
@@ -115,7 +121,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     prerenderList.map(s => this.props.loadScreenAndData(s.rid, s.id !== screen.id));
   }
 
-  componentDidUpdate(prevProps: IProps) {
+  componentDidUpdate(prevProps: IProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
     const currTourLoaded = this.props.isTourLoaded;
     const prevScreenRId = prevProps.match.params.screenRid;
@@ -138,9 +144,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  isLoadingComplete = () => this.props.isTourLoaded && this.props.isScreenLoaded;
+  componentWillUnmount(): void {
+    window.removeEventListener('beforeunload', removeSessionId);
+  }
 
-  navigateTo = (qualifiedAnnotaionUri: string) => {
+  isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;
+
+  navigateTo = (qualifiedAnnotaionUri: string): void => {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.allScreens.find(s => s.id === +screenId);
     if (screen) {
@@ -159,7 +169,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  getScreenWithRenderSlot() {
+  getScreenWithRenderSlot(): {
+    slotIdx: number;
+    screen: P_RespScreen;
+    isRenderReady: boolean;
+    screenData: ScreenData;
+    screenEdits: EditItem[];
+  }[] {
     const v = this.props.allScreens.map(screen => {
       const slotIdx = this.renderSlots[screen.id];
       const screenData = this.props.screenDataAcrossScreens[screen.id];
@@ -176,7 +192,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return v;
   }
 
-  render() {
+  render(): JSX.Element {
     if (!this.isLoadingComplete()) {
       return (
         <HeartLoader />
@@ -212,6 +228,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 }
                 onFrameAssetLoad={() => {}}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
+                tour={this.props.tour!}
               />
             ))
         }

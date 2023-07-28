@@ -163,6 +163,7 @@ export interface RespScreen extends ResponseBase {
 }
 
 export interface RespTour extends ResponseBase {
+    id: string; // TODO: remove this later
     rid: string;
     assetPrefixHash: string;
     displayName: string;

@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts, VideoAnnotationPositions } from '@fable/common/dist/types';
+import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, VideoAnnotationPositions } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
@@ -6,6 +6,8 @@ import * as Tags from './styled';
 import AnnotationVideo from './video-player';
 import { playVideoAnn, generateShadeColor } from './utils';
 import { isVideoAnnotation as isVideoAnn, isBlankString } from '../../utils';
+import { logEvent } from '../../analytics/utils';
+import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 
@@ -17,6 +19,7 @@ interface IProps {
   playMode: boolean,
   isNextAnnVideo: boolean,
   isPrevAnnVideo: boolean,
+  tourId: string;
   annotationSerialIdMap: AnnotationSerialIdMap;
 }
 
@@ -31,6 +34,7 @@ export class AnnotationContent extends React.PureComponent<{
   nav: NavFn,
   isNextAnnVideo?: boolean,
   isPrevAnnVideo?: boolean,
+  tourId: string
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
 }> {
@@ -40,7 +44,10 @@ export class AnnotationContent extends React.PureComponent<{
 
   private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+  private annotationEntered: number = Date.now();
+
   componentDidMount(): void {
+    this.annotationEntered = Date.now();
     if (this.props.onRender) {
       if (this.contentRef.current) {
         const imgs = this.contentRef.current?.getElementsByTagName('img');
@@ -164,6 +171,8 @@ export class AnnotationContent extends React.PureComponent<{
                       const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
                       playVideoAnn(screenId, annId);
                     }
+
+                    handleEventLogging(btnConf.id, btnConf.type, this.props.config.refId, this.props.tourId, this.annotationEntered);
                   }}
                 > {btnConf.text}
                 </Tags.ABtn>
@@ -278,6 +287,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             width={w}
             isNextAnnVideo={this.props.isNextAnnVideo}
             isPrevAnnVideo={this.props.isPrevAnnVideo}
+            tourId={this.props.tourId}
           />;
         }
         return <AnnotationContent
@@ -292,6 +302,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           dir={dir}
           isNextAnnVideo={this.props.isNextAnnVideo}
           isPrevAnnVideo={this.props.isPrevAnnVideo}
+          tourId={this.props.tourId}
         />;
       }
 
@@ -357,6 +368,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         width={w}
         isNextAnnVideo={this.props.isNextAnnVideo}
         isPrevAnnVideo={this.props.isPrevAnnVideo}
+        tourId={this.props.tourId}
       />;
     }
 
@@ -373,6 +385,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       left={l + this.props.win.scrollX}
       isNextAnnVideo={this.props.isNextAnnVideo}
       isPrevAnnVideo={this.props.isPrevAnnVideo}
+      tourId={this.props.tourId}
     />;
   }
 }
@@ -404,7 +417,8 @@ interface IConProps {
   data: Array<IAnnProps>,
   nav: NavFn,
   win: Window,
-  playMode: boolean
+  playMode: boolean,
+  tourId: string;
 }
 
 interface HotspotProps {
@@ -419,10 +433,32 @@ interface HotspotProps {
   }>,
   nav: NavFn,
   playMode: boolean,
+  tourId: string,
+}
+
+function handleEventLogging(
+  btn_id: string,
+  btn_type: IAnnotationButtonType,
+  ann_id: string,
+  tour_id: string,
+  tsAnnEntered: number
+): void {
+  const btnClickedpayload: AnnotationBtnClickedPayload = { tour_id, ann_id, btn_id, btn_type };
+
+  const time_in_sec = Math.ceil((Date.now() - tsAnnEntered) / 1000);
+  const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = { tour_id, ann_id, time_in_sec };
+  logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
+  // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
-  render() {
+  private annotationEntered: number = Date.now();
+
+  componentDidMount(): void {
+    this.annotationEntered = Date.now();
+  }
+
+  render(): (JSX.Element | null)[] {
     return this.props.data.map((p, idx) => {
       const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
 
@@ -443,6 +479,8 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             isGranularHotspot={p.isGranularHotspot}
             className="fable-hotspot"
             onClick={() => {
+              handleEventLogging(btnConf.id, btnConf.type, p.conf.refId, this.props.tourId, this.annotationEntered);
+
               btnConf.hotspot && this.props.nav(
                 btnConf.hotspot.actionValue,
                 btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
@@ -492,6 +530,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
               }]}
               nav={this.props.nav}
               playMode={this.props.playMode}
+              tourId={this.props.tourId}
             />
           }
           {!hideAnnotation && <AnnotationCard
@@ -503,6 +542,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             playMode={this.props.playMode}
             isNextAnnVideo={p.isNextAnnVideo}
             isPrevAnnVideo={p.isPrevAnnVideo}
+            tourId={this.props.tourId}
           />}
         </div>
       );

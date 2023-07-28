@@ -144,9 +144,11 @@ export enum AnnotationButtonSize {
   Small = 'small'
 }
 
+export type IAnnotationButtonType = 'next' | 'prev' | 'custom';
+
 export interface IAnnotationButton {
   id: string;
-  type: 'next' | 'prev' | 'custom';
+  type: IAnnotationButtonType
   text: string;
   style: AnnotationButtonStyle;
   size: AnnotationButtonSize;

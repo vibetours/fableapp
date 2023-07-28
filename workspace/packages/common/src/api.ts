@@ -12,6 +12,7 @@ export default async function api<T, M>(
     headers?: Record<string, string>;
     body?: T;
     auth?: boolean;
+    noRespExpected?: boolean;
   }
 ): Promise<M> {
   let auth = payload?.auth;
@@ -61,6 +62,9 @@ export default async function api<T, M>(
     });
   }
 
+  if (payload?.noRespExpected) {
+    return {} as M;
+  }
   const json = await resp.json();
   return json as M;
 }

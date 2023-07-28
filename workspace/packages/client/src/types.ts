@@ -139,3 +139,9 @@ export enum DestinationAnnotationPosition {
   next,
   prev
 }
+
+export interface GlobalSettings {
+  shouldLogEvent?: boolean;
+}
+
+export type FWin = Window & { __fable_global_settings__?: GlobalSettings }

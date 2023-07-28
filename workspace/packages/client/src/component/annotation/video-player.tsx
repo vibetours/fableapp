@@ -13,6 +13,13 @@ import { IAnnoationDisplayConfig } from '.';
 import { NavFn } from '../../types';
 import { isCoverAnnotation } from './annotation-config-utils';
 import { playVideoAnn } from './utils';
+import { logEvent } from '../../analytics/utils';
+import {
+  AnalyticsEvents,
+  AnnotationBtnClickedPayload,
+  TimeSpentInAnnotationPayload,
+  VideoAnnotationSkippedPayload
+} from '../../analytics/types';
 
 interface IProps {
   conf: IAnnoationDisplayConfig;
@@ -22,6 +29,7 @@ interface IProps {
   width: number;
   isNextAnnVideo: boolean;
   isPrevAnnVideo: boolean;
+  tourId: string;
 }
 
 interface IOwnStateProps {
@@ -111,7 +119,33 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     return `0 0 ${blur} ${spread} ${borderColor}`;
   }
 
-  getPositioningAndSizingStyles() {
+  logStepEvent = (direction: 'next' | 'prev'): void => {
+    const ann_id = this.props.conf.config.refId;
+    const tour_id = this.props.tourId;
+    const time_in_sec_played = Math.ceil(this.videoRef.current!.currentTime);
+    const videoAnnSkippedPayload: VideoAnnotationSkippedPayload = { tour_id, ann_id, time_in_sec_played };
+    if (!this.videoRef.current!.ended) {
+      // logEvent(AnalyticsEvents.VIDEO_ANN_SKIPPED, videoAnnSkippedPayload);
+    } else {
+      const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = {
+        tour_id,
+        ann_id,
+        time_in_sec: Math.ceil(this.videoRef.current!.duration)
+      };
+
+      // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
+    }
+
+    const btn = this.props.conf.config.buttons.find(b => b.type === direction)!;
+    const btn_id = btn.id;
+    const btn_type = btn.type;
+
+    const btnClickedpayload: AnnotationBtnClickedPayload = { tour_id, ann_id, btn_id, btn_type };
+
+    logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
+  };
+
+  getPositioningAndSizingStyles(): { width: string; } {
     const position = this.props.conf.config.positioning;
     const isCover = isCoverAnnotation(this.props.conf.config.id);
     const offsetPosition = '20px';
@@ -151,6 +185,8 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
   }
 
   navigateAnns = (direction: 'prev' | 'next'):void => {
+    this.logStepEvent(direction);
+
     this.videoRef.current!.pause();
     this.videoRef.current!.currentTime = 0;
 

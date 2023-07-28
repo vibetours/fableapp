@@ -932,6 +932,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             toAnnotationId={this.state.selectedAnnotationId}
             onFrameAssetLoad={this.onFrameAssetLoad}
             allAnnotationsForTour={this.props.allAnnotationsForTour}
+            tour={this.props.tour}
           />
         </GTags.EmbedCon>
 

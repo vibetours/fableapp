@@ -122,6 +122,7 @@ export function createEmptyTour(): RespTour {
     createdBy: user,
     createdAt: new Date(new Date().toUTCString()),
     updatedAt: new Date(new Date().toUTCString()),
+    id: '' // TODO: remove this later
   };
 }
 
@@ -249,7 +250,10 @@ export function remoteToLocalAnnotationConfigMap(
   return config2;
 }
 
-export function normalizeBackwardCompatibility(an: IAnnotationOriginConfig, opts: ITourDataOpts): IAnnotationOriginConfig {
+export function normalizeBackwardCompatibility(
+  an: IAnnotationOriginConfig,
+  opts: ITourDataOpts
+): IAnnotationOriginConfig {
   if (an.isHotspot === undefined || an.isHotspot === null) {
     an.isHotspot = false;
   }
