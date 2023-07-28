@@ -10,6 +10,7 @@ import {
   FableAnalyticsLocalStoreKeys
 } from './types';
 import { FWin } from '../types';
+import raiseDeferredError from '../deffered-error';
 
 export const getUUID = (): string => uuidv4().replace(/\W+/g, '');
 
@@ -59,21 +60,27 @@ const getCommonEventProps = (date: Date): CommonEventProps => ({
 });
 
 export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof event]): void => {
-  const globalSettings = (window as FWin).__fable_global_settings__ || {};
-  if (!globalSettings.shouldLogEvent) return;
-  const data: EventLog = {
-    event,
-    payload,
-    ...getCommonEventProps(new Date())
-  };
-  const eventLogs = flattenLogEvent(data);
-  const sub = encodeURIComponent(btoa(eventLogs.event));
-  api(`/lue?sub=${sub}`, {
-    auth: false,
-    method: 'POST',
-    body: eventLogs,
-    noRespExpected: true,
-  });
+  setTimeout(() => {
+    try {
+      const globalSettings = (window as FWin).__fable_global_settings__ || {};
+      if (!globalSettings.shouldLogEvent) return;
+      const data: EventLog = {
+        event,
+        payload,
+        ...getCommonEventProps(new Date())
+      };
+      const eventLogs = flattenLogEvent(data);
+      const sub = encodeURIComponent(btoa(eventLogs.event));
+      api(`/lue?sub=${sub}`, {
+        auth: false,
+        method: 'POST',
+        body: eventLogs,
+        noRespExpected: true,
+      });
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+  }, 0);
 };
 
 export const flattenLogEvent = (logs: EventLog): FlattendEventLog => {
