@@ -509,6 +509,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 onTourDataChange={this.onTourDataChange}
                 tour={this.props.tour!}
                 timeline={this.props.timeline}
+                commitTx={this.commitTx}
               />
             </div>
           ) : (<HeartLoader />)
@@ -580,9 +581,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    tx.end();
-    const mergedData = tx.getData() as TourDataWoScheme;
-    this.props.saveTourData(this.props.tour!, mergedData);
+    this.commitTx(tx);
   };
 
   private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts): void => {
@@ -645,7 +644,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         opts
       );
 
-      if (lastAnnNextBtn.hotspot) {
+      if (lastAnnNextBtn.hotspot && lastAnnNextBtn.hotspot.actionType === 'navigate') {
         const nextEntityId = lastAnnNextBtn.hotspot.actionValue.split('/')[0];
         const nextEntity = this.props.tourData!.entities[nextEntityId];
         const nextEntityAnnotations = Object.values((nextEntity as TourScreenEntity).annotations)
@@ -710,6 +709,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       );
       if (!tx) this.props.saveTourData(this.props.tour!, mergedData!);
     }
+  };
+
+  private commitTx = (tx: Tx): void => {
+    tx.end();
+    const mergedData = tx.getData() as TourDataWoScheme;
+    this.props.saveTourData(this.props.tour!, mergedData);
   };
 
   private onScreenEditChange = (editChunks: AllEdits<ElEditType>): void => {

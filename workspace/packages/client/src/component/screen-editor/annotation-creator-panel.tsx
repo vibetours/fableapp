@@ -627,20 +627,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                             Describe what will happen when the button is clicked
                           </GTags.Txt>
                           <Tabs
-                            defaultActiveKey="navigate"
+                            defaultActiveKey="open"
                             style={{ fontSize: '0.95rem' }}
                             size="small"
                             items={[{
-                              key: 'navigate',
-                              label: 'Navigate to',
-                              children: (
-                                <div>
-                                  <GTags.Txt className="title">
-                                    Use the canvas to make connection between annotations
-                                  </GTags.Txt>
-                                </div>
-                              )
-                            }, {
                               key: 'open',
                               label: 'Open a link',
                               children: (
@@ -656,13 +646,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                           : ''
                                       }
                                       onBlur={(e) => {
-                                        const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', {
-                                          type: 'an-btn',
-                                          on: 'click',
-                                          target: '$this',
-                                          actionType: 'open',
-                                          actionValue: e.target.value,
-                                        } as ITourEntityHotspot);
+                                        const trimmedValue = (e.target.value || '').trim();
+                                        let hostspotConfig: ITourEntityHotspot | null = null;
+                                        if (trimmedValue) {
+                                          hostspotConfig = {
+                                            type: 'an-btn',
+                                            on: 'click',
+                                            target: '$this',
+                                            actionType: 'open',
+                                            actionValue: e.target.value,
+                                          };
+                                        }
+                                        const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
                                         setConfig(thisAntn);
                                       }}
                                       size="small"
@@ -675,6 +670,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                     >Submit
                                     </Button>
                                   </div>
+                                </div>
+                              )
+                            },
+                            {
+                              key: 'navigate',
+                              label: 'Navigate to',
+                              children: (
+                                <div>
+                                  <GTags.Txt className="title">
+                                    Use the canvas to make connection between annotations
+                                  </GTags.Txt>
                                 </div>
                               )
                             }]}

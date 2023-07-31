@@ -8,6 +8,7 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
+import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
@@ -43,6 +44,7 @@ type CanvasProps = {
   // addNewScreenToTour: AddScreenFn,
   tourOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
+  commitTx: (tx: Tx) => void
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -367,9 +369,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const fromAn = allAnns[fromScreenIdx].annotations[fromAnIdx];
     const toAn = allAnns[toScreenIdx].annotations[toAnIdx];
 
+    const tx = new Tx();
+    tx.start();
+
     const prevBtnOfToAn = toAn.buttons.find(btn => btn.type === 'prev')!;
     let update;
-    if (prevBtnOfToAn.hotspot !== null) {
+    if (prevBtnOfToAn.hotspot && prevBtnOfToAn.hotspot.actionType === 'navigate') {
       // if former connection does exists;
       // B -> A and a connection is getting established with C
       //  C.next => A
@@ -384,11 +389,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       updateFn('annotation-and-theme', allAnns[fromOldScrnIdx].screen.id, {
         config: update,
         actionType: 'upsert'
-      });
+      }, tx);
     }
 
     const nextBtnOfFromAn = fromAn.buttons.find(btn => btn.type === 'next')!;
-    if (nextBtnOfFromAn.hotspot !== null) {
+    if (nextBtnOfFromAn.hotspot && nextBtnOfFromAn.hotspot.actionType === 'navigate') {
       const toOldAnnId = nextBtnOfFromAn.hotspot.actionValue;
       const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId];
       const toOldAn = allAnns[toOldScrnIdx].annotations[toOldAnnIdx];
@@ -398,7 +403,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
         config: update,
         actionType: 'upsert'
-      });
+      }, tx);
     }
 
     // if former connection does not exist
@@ -415,7 +420,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     updateFn('annotation-and-theme', allAnns[toScreenIdx].screen.id, {
       config: update,
       actionType: 'upsert'
-    });
+    }, tx);
 
     update = updateButtonProp(fromAn, nextBtnOfFromAn.id, 'hotspot', {
       type: 'an-btn',
@@ -428,7 +433,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     updateFn('annotation-and-theme', allAnns[fromScreenIdx].screen.id, {
       config: update,
       actionType: 'upsert'
-    });
+    }, tx);
+
+    props.commitTx(tx);
   };
 
   const hideGuideConnector = (sel: D3Selection<SVGPathElement, {}, SVGGElement, AnnotationPerScreen[]>): void => {
