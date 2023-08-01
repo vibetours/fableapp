@@ -274,6 +274,13 @@ async function postProcessSerDocs(
           throw new Error('No sub frame present for node ^^^');
         } else {
           const subFrameData = subFrame.data as SerDoc;
+          node.chldrn.push({
+            type: 10,
+            name: 'html',
+            attrs: {},
+            props: {},
+            chldrn: []
+          });
           node.chldrn.push(subFrameData.docTree!);
           await process(subFrameData, subFrame.frameId, `${traversePath}1.${postProcess.path}.`);
         }
@@ -318,7 +325,7 @@ async function postProcessSerDocs(
   const mainFrameData = mainFrame.data as SerDoc;
   await process(mainFrameData as SerDoc, mainFrame.frameId, '');
   const screenBody: ScreenData = {
-    version: '2023-01-10',
+    version: '2023-07-27',
     vpd: {
       h: mainFrameData.rect.height,
       w: mainFrameData.rect.width,

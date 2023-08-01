@@ -1,7 +1,7 @@
 import { calculatePathFromEl, getRandomId, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "./msg";
-import { getSearializedDom } from "./doc";
+import { addFableIdsToAllEls, getSearializedDom } from "./doc";
 import {
   ReqScreenshotData,
   ScreenSerDataFromCS,
@@ -18,11 +18,15 @@ sentryInit("extension");
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
 
-function serialize(elPath: string, isSource: boolean, id: number) {
+function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null) {
   chrome.runtime.sendMessage<MsgPayload<ReqScreenshotData>>({
     type: Msg.TAKE_SCREENSHOT,
     data: { id }
   });
+  addFableIdsToAllEls();
+  if (el) {
+    elPath = calculatePathFromEl(el as Node, []).join(".");
+  }
   const serDoc = getSearializedDom();
   elPath && serDoc.postProcesses.push({ type: "elpath", path: elPath });
   chrome.runtime.sendMessage<MsgPayload<ScreenSerDataFromCS>>({
@@ -40,7 +44,7 @@ function serialize(elPath: string, isSource: boolean, id: number) {
 const onClickHandler = async (e: MouseEvent) => {
   if ((e.target as HTMLElement).classList.contains(FABLE_CONTROL_PILL)) return;
   const elPath = calculatePathFromEl(e.target as Node, []).join(".");
-  serialize(elPath, true, snowflake());
+  serialize(elPath, true, snowflake(), e.target);
 };
 
 function createListenerMarkerDivIfNotPresent(doc: Document) {
@@ -173,4 +177,4 @@ if (document.getElementById(FABLE_MSG_LISTENER_DIV_ID) == null) {
   init();
 }
 
-export {};
+export { };

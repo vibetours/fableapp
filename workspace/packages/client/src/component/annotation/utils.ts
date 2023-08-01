@@ -1,7 +1,7 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import { IAnnoationDisplayConfig } from '.';
 import { Rect } from '../base/hightligher-base';
-import { AnnotationPerScreen } from '../../types';
+import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 
 export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoationDisplayConfig) => {
@@ -42,9 +42,9 @@ export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoa
   win.scrollTo(0, scrollStart);
 };
 
-const extractRGBValues = (color: string) : number[] => color.match(/\d+/g)!.map(Number);
+const extractRGBValues = (color: string): number[] => color.match(/\d+/g)!.map(Number);
 
-const expandHexValues = (hexValue: string) : string => {
+const expandHexValues = (hexValue: string): string => {
   const expandedHexValue = hexValue
     .split('')
     .map(char => char + char)
@@ -53,7 +53,7 @@ const expandHexValues = (hexValue: string) : string => {
   return expandedHexValue;
 };
 
-const extractHexValuesToRGB = (color: string) : number[] => {
+const extractHexValuesToRGB = (color: string): number[] => {
   let hexValue = color.replace(/#/g, '');
 
   if (hexValue.length === 3) {
@@ -136,7 +136,7 @@ export const getAnnotationByRefId = (refId: string, allAnnotationsForTour: Annot
 export function isPrevNextBtnLinksToVideoAnn(
   config: IAnnotationConfig,
   allAnnotationsForTour: AnnotationPerScreen[]
-) : {isNextAnnVideo: boolean, isPrevAnnVideo: boolean} {
+): { isNextAnnVideo: boolean, isPrevAnnVideo: boolean } {
   const isNextAnnVideo = isBtnLinksToVideoAnn(config, allAnnotationsForTour, 'next');
   const isPrevAnnVideo = isBtnLinksToVideoAnn(config, allAnnotationsForTour, 'prev');
 
@@ -147,7 +147,7 @@ export function isBtnLinksToVideoAnn(
   config: IAnnotationConfig,
   allAnnotationsForTour: AnnotationPerScreen[],
   type: 'prev' | 'next'
-) : boolean {
+): boolean {
   let isLinkToVideoAnn = false;
 
   const btn = config.buttons.find(button => button.type === type)!;

@@ -1,6 +1,9 @@
+import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+
 export function scrollIframeEls(version: string, doc: Document): Promise<void> {
   return new Promise((resolve, reject) => {
     switch (version) {
+      case SCREEN_DIFFS_SUPPORTED_VERSION:
       case '2023-01-10': {
         // Apply original scroll positins to elements
         const allDocEls = doc.querySelectorAll('*');

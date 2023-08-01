@@ -10,18 +10,20 @@ import { logEvent } from '../../analytics/utils';
 import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
+import { isCoverAnnotation } from './annotation-config-utils';
+import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
   box: Rect,
-  nav: NavFn,
   win: Window,
   playMode: boolean,
-  isNextAnnVideo: boolean,
-  isPrevAnnVideo: boolean,
   tourId: string;
   annotationSerialIdMap: AnnotationSerialIdMap;
+  navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }
+
+export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom') => void;
 
 export class AnnotationContent extends React.PureComponent<{
   config: IAnnotationConfig;
@@ -31,12 +33,10 @@ export class AnnotationContent extends React.PureComponent<{
   top: number,
   left: number,
   onRender?: (el: HTMLDivElement) => void,
-  nav: NavFn,
-  isNextAnnVideo?: boolean,
-  isPrevAnnVideo?: boolean,
   tourId: string
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
+  navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }> {
   static readonly MIN_WIDTH = 360;
 
@@ -157,22 +157,8 @@ export class AnnotationContent extends React.PureComponent<{
                   btnLayout={this.props.config.buttonLayout}
                   borderRadius={this.props.opts.borderRadius}
                   onClick={() => {
-                    btnConf.hotspot && this.props.nav(
-                      btnConf.hotspot.actionValue,
-                      btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-                    );
-
-                    if (this.props.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
-                      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-                      playVideoAnn(screenId, annId);
-                    }
-
-                    if (this.props.isPrevAnnVideo && btnConf.type === 'prev' && btnConf.hotspot) {
-                      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-                      playVideoAnn(screenId, annId);
-                    }
-
                     handleEventLogging(btnConf.id, btnConf.type, this.props.config.refId, this.props.tourId, this.annotationEntered);
+                    this.props.navigateToAdjacentAnn(btnConf.type);
                   }}
                 > {btnConf.text}
                 </Tags.ABtn>
@@ -280,14 +266,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         const left = winW / 2 - w / 2;
         if (isVideoAnnotation) {
           return <AnnotationVideo
-            nav={this.props.nav}
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{ top, left }}
             width={w}
-            isNextAnnVideo={this.props.isNextAnnVideo}
-            isPrevAnnVideo={this.props.isPrevAnnVideo}
             tourId={this.props.tourId}
+            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
           />;
         }
         return <AnnotationContent
@@ -295,14 +279,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           config={this.props.annotationDisplayConfig.config}
           opts={this.props.annotationDisplayConfig.opts}
           isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-          nav={this.props.nav}
           width={w}
           top={top}
           left={left}
           dir={dir}
-          isNextAnnVideo={this.props.isNextAnnVideo}
-          isPrevAnnVideo={this.props.isPrevAnnVideo}
           tourId={this.props.tourId}
+          navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
         />;
       }
 
@@ -358,7 +340,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     if (isVideoAnnotation) {
       return <AnnotationVideo
-        nav={this.props.nav}
         conf={this.props.annotationDisplayConfig}
         playMode={this.props.playMode}
         annFollowPositions={{
@@ -366,9 +347,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
         }}
         width={w}
-        isNextAnnVideo={this.props.isNextAnnVideo}
-        isPrevAnnVideo={this.props.isPrevAnnVideo}
         tourId={this.props.tourId}
+        navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
       />;
     }
 
@@ -378,14 +358,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       config={this.props.annotationDisplayConfig.config}
       opts={this.props.annotationDisplayConfig.opts}
       isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-      nav={this.props.nav}
       width={w}
       dir={dir}
       top={t + this.props.win.scrollY}
       left={l + this.props.win.scrollX}
-      isNextAnnVideo={this.props.isNextAnnVideo}
-      isPrevAnnVideo={this.props.isPrevAnnVideo}
       tourId={this.props.tourId}
+      navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
     />;
   }
 }
@@ -419,6 +397,7 @@ interface IConProps {
   win: Window,
   playMode: boolean,
   tourId: string;
+  applyDiffAndGoToAnn: ApplyDiffAndGoToAnn,
 }
 
 interface HotspotProps {
@@ -431,9 +410,9 @@ interface HotspotProps {
     isGranularHotspot: boolean,
     isNextAnnVideo: boolean,
   }>,
-  nav: NavFn,
   playMode: boolean,
   tourId: string,
+  navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }
 
 function handleEventLogging(
@@ -480,15 +459,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             className="fable-hotspot"
             onClick={() => {
               handleEventLogging(btnConf.id, btnConf.type, p.conf.refId, this.props.tourId, this.annotationEntered);
-
-              btnConf.hotspot && this.props.nav(
-                btnConf.hotspot.actionValue,
-                btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-              );
-              if (p.isNextAnnVideo && btnConf.type === 'next' && btnConf.hotspot) {
-                const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-                playVideoAnn(screenId, annId);
-              }
+              this.props.navigateToAdjacentAnn('next');
             }}
           />
         );
@@ -515,6 +486,33 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
       const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
+
+      const navigateToAdjacentAnn: NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom'): void => {
+        const config = p.conf.config;
+        const btnConf = config.buttons.filter(button => button.type === direction)[0];
+        const isNavToVideoAnn = direction === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
+
+        if (!btnConf.hotspot) {
+          return;
+        }
+
+        if (direction === 'custom' || !this.props.playMode) {
+          this.props.nav(
+            btnConf.hotspot.actionValue,
+            btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+          );
+          return;
+        }
+
+        if ((btnConf.type === 'next' || btnConf.type === 'prev')
+          && btnConf.hotspot.actionType === 'navigate'
+        ) {
+          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue, isNavToVideoAnn);
+        } else {
+          this.props.nav(btnConf.hotspot.actionValue, 'abs');
+        }
+      };
+
       return (
         <div key={p.conf.config.id}>
           {
@@ -528,21 +526,19 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 isGranularHotspot,
                 isNextAnnVideo: p.isNextAnnVideo,
               }]}
-              nav={this.props.nav}
               playMode={this.props.playMode}
               tourId={this.props.tourId}
+              navigateToAdjacentAnn={navigateToAdjacentAnn}
             />
           }
           {!hideAnnotation && <AnnotationCard
             annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}
-            nav={this.props.nav}
             win={this.props.win}
             playMode={this.props.playMode}
-            isNextAnnVideo={p.isNextAnnVideo}
-            isPrevAnnVideo={p.isPrevAnnVideo}
             tourId={this.props.tourId}
+            navigateToAdjacentAnn={navigateToAdjacentAnn}
           />}
         </div>
       );

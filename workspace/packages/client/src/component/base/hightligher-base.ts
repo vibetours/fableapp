@@ -174,6 +174,10 @@ export default abstract class HighlighterBase {
       return this.maskEl;
     }
 
+    return this.createMask();
+  }
+
+  protected createMask(): HTMLDivElement {
     const cls = `fable-el-mask-${(Math.random() * 10 ** 6) | 0}`;
 
     const mask = this.doc.createElement('div');
@@ -229,10 +233,19 @@ export default abstract class HighlighterBase {
     }
   }
 
+  getDoc(): Document {
+    return this.doc as Document;
+  }
+
   elFromPath(path: string): HTMLElement | null {
     const elIdxs = path.split('.').map((id) => +id).slice(1);
     const document = this.doc as Document;
     let node = document.documentElement as Node;
+
+    if (path === '1') {
+      return node as HTMLElement;
+    }
+
     let p = '';
     for (const id of elIdxs) {
       p += `.${id}`;

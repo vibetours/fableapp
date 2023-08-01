@@ -9,7 +9,7 @@ import {
   StepForwardOutlined
 } from '@ant-design/icons';
 import * as Tags from './styled';
-import { IAnnoationDisplayConfig } from '.';
+import { IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
 import { NavFn } from '../../types';
 import { isCoverAnnotation } from './annotation-config-utils';
 import { playVideoAnn } from './utils';
@@ -20,16 +20,15 @@ import {
   TimeSpentInAnnotationPayload,
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
+import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 
 interface IProps {
   conf: IAnnoationDisplayConfig;
-  nav: NavFn,
   playMode: boolean,
-  annFollowPositions: {top: number, left: number},
+  annFollowPositions: { top: number, left: number },
   width: number;
-  isNextAnnVideo: boolean;
-  isPrevAnnVideo: boolean;
   tourId: string;
+  navigateToAdjacentAnn: NavigateToAdjacentAnn;
 }
 
 interface IOwnStateProps {
@@ -61,21 +60,21 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     });
 
     this.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-        this.hls!.loadSource(this.props.conf.config.videoUrlHls);
+      this.hls!.loadSource(this.props.conf.config.videoUrlHls);
 
-        this.hls!.on(Hls.Events.MANIFEST_PARSED, () => {
-          this.videoRef!.current!.setAttribute('data-playable', 'true');
-        });
+      this.hls!.on(Hls.Events.MANIFEST_PARSED, () => {
+        this.videoRef!.current!.setAttribute('data-playable', 'true');
+      });
     });
 
     this.hls.on(Hls.Events.ERROR, (event, data) => {
       if (data.fatal) {
         switch (data.type) {
           case Hls.ErrorTypes.NETWORK_ERROR:
-              this.hls!.startLoad();
+            this.hls!.startLoad();
             break;
           case Hls.ErrorTypes.MEDIA_ERROR:
-              this.hls!.recoverMediaError();
+            this.hls!.recoverMediaError();
             break;
           default:
             this.initPlayer();
@@ -91,6 +90,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
       return;
     }
     this.hls.attachMedia(this.videoRef!.current!);
+    this.setControlsBasedOnVideoState();
   }
 
   componentWillUnmount(): void {
@@ -101,13 +101,17 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
-      if (this.videoRef.current?.paused) {
-        this.setState({ showControls: true, videoState: 'paused' });
-      } else {
-        this.setState({ showControls: false, videoState: 'playing' });
-      }
+      this.setControlsBasedOnVideoState();
     }
   }
+
+  setControlsBasedOnVideoState = (): void => {
+    if (this.videoRef.current?.paused) {
+      this.setState({ showControls: true, videoState: 'paused' });
+    } else {
+      this.setState({ showControls: false, videoState: 'playing' });
+    }
+  };
 
   getAnnotationBorder(): string {
     const borderColor = this.props.conf.opts.annotationBodyBorderColor;
@@ -190,23 +194,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     this.videoRef.current!.pause();
     this.videoRef.current!.currentTime = 0;
 
-    const config = this.props.conf.config;
-    const btnConf = config.buttons.filter(button => button.type === direction)[0];
-    const isNavToVideoAnn = direction === 'prev' ? this.props.isPrevAnnVideo : this.props.isNextAnnVideo;
-
-    if (!btnConf.hotspot) {
-      return;
-    }
-
-    this.props.nav(
-      btnConf.hotspot.actionValue,
-      btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
-    );
-
-    if (isNavToVideoAnn) {
-      const [screenId, annId] = btnConf.hotspot.actionValue.split('/');
-      playVideoAnn(screenId, annId);
-    }
+    this.props.navigateToAdjacentAnn(direction);
   };
 
   render(): ReactElement {
@@ -238,11 +226,11 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           onEnded={() => this.setState({ showControls: true, videoState: 'ended' })}
         >
           {!isHlsSupported && (
-          <>
-            <source src={config.videoUrlMp4} type="video/mp4" />
-            <source src={config.videoUrlWebm} type="video/webm" />
-            {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
-          </>
+            <>
+              <source src={config.videoUrlMp4} type="video/mp4" />
+              <source src={config.videoUrlWebm} type="video/webm" />
+              {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
+            </>
           )}
         </Tags.AnVideo>
         {

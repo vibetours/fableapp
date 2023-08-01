@@ -26,7 +26,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 
 interface IAppStateProps {
   tour: P_RespTour | null;
-  screen: P_RespScreen | null;
+  // screen: P_RespScreen | null;
   screenDataAcrossScreens: Record<string, ScreenData>;
   allScreens: P_RespScreen[];
   isTourLoaded: boolean;
@@ -46,7 +46,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   return {
     tour: state.default.currentTour,
-    screen: state.default.currentScreen,
+    // screen: state.default.currentScreen,
     screenDataAcrossScreens: state.default.screenData,
     isTourLoaded: state.default.tourLoaded,
     allScreens: state.default.currentTour?.screens || [],
@@ -199,6 +199,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       );
     }
 
+    const currScreenId = this.props.allScreens.find(screen => screen.rid === this.props.match.params.screenRid!)!.id;
+
     return (
       <GTags.BodyCon style={{
         height: '100%',
@@ -214,7 +216,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
-                hidden={config.screen.id !== this.props.screen!.id}
+                hidden={config.screen.id !== currScreenId}
                 screenData={config.screenData}
                 divPadding={0}
                 navigate={this.navFn}
@@ -224,11 +226,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 tourDataOpts={this.props.tourOpts!}
                 allEdits={config.screenEdits}
                 toAnnotationId={
-                  config.screen.id === this.props.screen!.id ? this.props.match.params.annotationId || '' : ''
+                  config.screen.id === currScreenId ? this.props.match.params.annotationId || '' : ''
                 }
-                onFrameAssetLoad={() => {}}
+                onFrameAssetLoad={() => { }}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 tour={this.props.tour!}
+                allScreensData={this.props.screenDataAcrossScreens}
+                allScreens={this.props.allScreens}
+                editsAcrossScreens={this.props.editsAcrossScreens}
+                preRenderNextScreen={(rid: string) => this.getScreenDataPreloaded(rid)}
               />
             ))
         }

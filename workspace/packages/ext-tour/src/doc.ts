@@ -1,4 +1,5 @@
 import { PostProcess, SerDoc, SerNode, SerNodeWithPath } from "@fable/common/dist/types";
+import { nanoid } from "nanoid";
 import { FABLE_CONTROL_PILL, isCrossOrigin, isContentEmpty, isCaseInsensitiveEqual, isVisible } from "./utils";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -125,6 +126,8 @@ export function getSearializedDom(
         break;
 
       case Node.COMMENT_NODE:
+        sNode.name = node.nodeName;
+        sNode.props.textContent = node.nodeValue;
         return { serNode: sNode, shouldSkip: true };
 
       default:
@@ -249,6 +252,15 @@ export function getSearializedDom(
           // WARN[#doctypenode] search with this
           let idx = 0;
           const chldrn = frameDoc.childNodes;
+          if (chldrn[0].nodeType !== 10) {
+            sNode.chldrn.push({
+              type: 10,
+              name: "html",
+              attrs: {},
+              props: {},
+              chldrn: []
+            });
+          }
           for (let i = 0; i < chldrn.length; i++) {
             if (chldrn[i] === frameDoc.documentElement) {
               idx = i;
@@ -364,4 +376,170 @@ export function getSearializedDom(
     icon: candidateIcon,
     baseURI: doc.body.baseURI,
   };
+}
+
+/**
+ *
+ * Adding fable ids to els
+ *
+ */
+export function addFableIdsToAllEls(
+  params?: any,
+  testInjectedParams?: {
+    doc: Document;
+  }
+): void {
+  const isTest = !!(testInjectedParams && testInjectedParams.doc);
+  const doc: Document = isTest ? testInjectedParams.doc : document;
+
+  function getRep(
+    node: ChildNode | ShadowRoot,
+    origin: string,
+    traversalPath: Array<number>,
+  ): {
+    serNode: SerNode;
+    shouldSkip?: boolean;
+    isIcon?: boolean;
+    postProcess?: boolean;
+    isHidden?: boolean;
+  } {
+    const sNode: SerNode = {
+      type: node.nodeType,
+      name: "",
+      attrs: {},
+      props: {},
+      chldrn: [],
+    };
+
+    switch (node.nodeType) {
+      case Node.ELEMENT_NODE:
+        const tNode = node as HTMLElement;
+        sNode.name = tNode.tagName.toLowerCase();
+
+        if (!tNode.getAttribute("f-id")) {
+          tNode.setAttribute("f-id", nanoid());
+        }
+
+        if (tNode.shadowRoot) sNode.props.isShadowHost = true;
+
+        break;
+
+      case Node.DOCUMENT_FRAGMENT_NODE:
+        sNode.name = "#shadow-root";
+        sNode.props.isShadowRoot = true;
+        break;
+
+      case Node.TEXT_NODE:
+        sNode.name = node.nodeName;
+
+        /**
+         * For text node, we add a comment node prev to the text node with fid identified by textfid,
+         * There is no way to check if the prev text is the same as the next one,
+         * Thus, we remove the text node with textfid if present
+         * Then, we add a new comment node prev to the text node
+         */
+        if (node.parentNode?.nodeName.toLowerCase() !== "style") {
+          const prev = node.previousSibling;
+
+          if (prev && prev.nodeType === 8 && prev.nodeValue && prev.nodeValue.includes("textfid/")) {
+            prev.remove();
+          }
+
+          const comment = doc.createComment(`textfid/${nanoid()}`);
+          node.parentNode!.insertBefore(comment, node);
+        }
+        if (isContentEmpty(node as Text)) {
+          return { serNode: sNode, shouldSkip: true };
+        }
+        sNode.props.textContent = (node as Text).textContent;
+        break;
+
+      case Node.COMMENT_NODE:
+        const commentNode = node as Comment;
+        sNode.name = node.nodeName;
+
+        if (!commentNode.nodeValue
+          || (!commentNode.nodeValue?.includes("commentfid/")
+          && !commentNode.nodeValue?.includes("textfid/")
+          )) {
+          commentNode.nodeValue = `commentfid/${nanoid()}`;
+        }
+
+        return { serNode: sNode, shouldSkip: true };
+
+      default:
+        console.error("unknown node", node);
+    }
+
+    if (sNode.name === "iframe" || sNode.name === "frame" || sNode.name === "object") {
+      const tNode = node as HTMLIFrameElement;
+      let url = "";
+      // Fix: some time iframe won't have src in that case, path calculation during deserialization would not work
+      // as iframe.contentDocument.childNodes would not have html5 tag type
+      if (sNode.name !== "object") {
+        url = sNode.attrs.src || "";
+        sNode.attrs.src = sNode.attrs.src || url;
+      } else {
+        url = sNode.attrs.data || "";
+      }
+      const rect = tNode.getBoundingClientRect();
+      sNode.props.rect = {
+        height: rect.height,
+        width: rect.width,
+      };
+
+      if (rect.height === 0 || rect.width === 0 || !isVisible(tNode)) {
+        // If an iframe is not visible we skip it from DOM. While other element can be hidden and we still
+        // save in serialized file as those could contain css or other scripts as a child,
+        // we omit the iframe entry since iframe has isolated execution context which makes no sense to have
+        // an entry on serialized json.
+        return { serNode: sNode, shouldSkip: true };
+      }
+
+      if (!isCrossOrigin(origin, url)) {
+        try {
+          const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
+          if (!frameDoc) {
+            throw new Error(`Iframe with origin ${url} is same origin but document access is not possible`);
+          }
+
+          // WARN[#doctypenode] search with this
+          let idx = 0;
+          const chldrn = frameDoc.childNodes;
+          for (let i = 0; i < chldrn.length; i++) {
+            if (chldrn[i] === frameDoc.documentElement) {
+              idx = i;
+            }
+          }
+          traversalPath.push(idx);
+          const rep = getRep(frameDoc.documentElement, origin, traversalPath);
+          traversalPath.pop();
+          return { serNode: sNode, postProcess: false };
+        } catch {
+          return { serNode: sNode, postProcess: true };
+        }
+      }
+
+      return { serNode: sNode, postProcess: true };
+    }
+
+    const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
+    if ((node as HTMLElement).shadowRoot) {
+      childNodes.push((node as HTMLElement).shadowRoot!);
+    }
+
+    if (childNodes.length) {
+      for (let i = 0, ii = 0; i < childNodes.length; i++) {
+        traversalPath.push(ii);
+        const rep = getRep(childNodes[i], origin, traversalPath);
+        traversalPath.pop();
+        ii++;
+      }
+    }
+
+    return { serNode: sNode };
+  }
+
+  const frameUrl = isTest ? "test://case" : document.URL;
+  getRep(doc.documentElement, frameUrl, []);
 }

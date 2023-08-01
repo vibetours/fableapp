@@ -18,7 +18,7 @@ type ElSelectCallback = (
 
 type ElDeSelectCallback = (el: HTMLElement, doc: Document) => void;
 
-const SVG_EL = {
+export const SVG_EL = {
   a: 1,
   animate: 1,
   animateMotion: 1,

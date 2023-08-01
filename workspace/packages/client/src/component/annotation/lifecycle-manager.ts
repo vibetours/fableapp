@@ -10,6 +10,7 @@ import { AnnotationPerScreen, NavFn } from '../../types';
 import { isBodyEl, isVideoAnnotation } from '../../utils';
 import { isPrevNextBtnLinksToVideoAnn, scrollToAnn } from './utils';
 import { AnnotationSerialIdMap } from './ops';
+import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -61,6 +62,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private annotationSerialIdMap: AnnotationSerialIdMap;
 
+  private applyDiffAndGoToAnn: ApplyDiffAndGoToAnn;
+
   // Take the initial annotation config from here
   constructor(
     doc: Document,
@@ -72,7 +75,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     tourDataOpts: ITourDataOpts,
     tourId: string,
     annotationSerialIdMap: AnnotationSerialIdMap,
-    config: HighlighterBaseConfig
+    config: HighlighterBaseConfig,
+    applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn
   ) {
     super(doc, nestedFrames, config);
     this.nav = opts.navigate;
@@ -95,7 +99,28 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.tourDataOpts = tourDataOpts;
     this.tourId = tourId;
     this.annotationSerialIdMap = annotationSerialIdMap;
+    this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.prerenderVideoAnnotations();
+  }
+
+  resetCons(): void {
+    let umbrellaDiv = this.doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+    if (!umbrellaDiv) {
+      umbrellaDiv = this.doc.createElement('div');
+      umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+      umbrellaDiv.style.position = 'absolute';
+      umbrellaDiv.style.left = `${0}`;
+      umbrellaDiv.style.top = `${0}`;
+      this.doc.body.appendChild(umbrellaDiv);
+
+      const [con, root] = this.createContainerRoot('');
+      const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
+      this.con = con;
+      this.rRoot = root;
+      this.conProbe = conProbe;
+      this.rRootProbe = rootProbe;
+      this.createMask();
+    }
   }
 
   private hideAllAnnotations(): void {
@@ -230,6 +255,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (this.componentDisposed) {
       return;
     }
+
     const props: IAnnProps[] = [];
 
     for (const [_, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
@@ -286,7 +312,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           nav: this.nav,
           win: this.win,
           playMode: this.isPlayMode,
-          tourId: this.tourId
+          tourId: this.tourId,
+          applyDiffAndGoToAnn: this.applyDiffAndGoToAnn
         })
       )
     );
@@ -297,9 +324,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     config: IAnnotationConfig,
     opts: ITourDataOpts,
     showImmediate = false,
-  ): Promise<this> {
+  ): Promise<void> {
     if (this.isAnnotationDrawingInProgress) {
-      return this;
+      return;
     }
 
     this.isAnnotationDrawingInProgress = true;
@@ -328,7 +355,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
 
     this.isAnnotationDrawingInProgress = false;
-    return this;
   }
 
   private prerenderVideoAnnotations(): void {
@@ -388,7 +414,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           nav: this.nav,
           win: this.win,
           playMode: this.isPlayMode,
-          tourId: this.tourId
+          tourId: this.tourId,
+          applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
         })
       )
     );
@@ -419,9 +446,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               top: -9999,
               left: -9999,
               key: 777,
-              nav: this.nav,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap
+              annotationSerialIdMap: this.annotationSerialIdMap,
+              navigateToAdjacentAnn: () => {},
             })
           )
         );
@@ -443,9 +470,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               top: -9999,
               left: -9999,
               key: 666,
-              nav: this.nav,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap
+              annotationSerialIdMap: this.annotationSerialIdMap,
+              navigateToAdjacentAnn: () => {},
             })
           )
         );
@@ -467,9 +494,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               top: -9999,
               left: -9999,
               key: 888,
-              nav: this.nav,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap
+              annotationSerialIdMap: this.annotationSerialIdMap,
+              navigateToAdjacentAnn: () => {},
             })
           )
         );
