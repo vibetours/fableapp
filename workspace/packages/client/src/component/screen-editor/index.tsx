@@ -33,7 +33,9 @@ import {
   NavFn
 } from '../../types';
 import {
-  cloneAnnotation, IAnnotationConfigWithScreenId, replaceAnnotation
+  shallowCloneAnnotation,
+  IAnnotationConfigWithScreenId,
+  replaceAnnotation
 } from '../annotation/annotation-config-utils';
 import { AnnotationSerialIdMap } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
@@ -961,7 +963,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
                         if (annOnOldEl) {
                           this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
-                          const replaceWithAnn = cloneAnnotation(this.iframeElManager?.elPath(newSelEl)!, annOnOldEl);
+                          const replaceWithAnn = shallowCloneAnnotation(
+                            this.iframeElManager?.elPath(newSelEl)!,
+                            annOnOldEl
+                          );
                           const updates = replaceAnnotation(
                             this.props.allAnnotationsForTour,
                             annOnOldEl,
