@@ -243,7 +243,9 @@ export const reorderAnnotation = (
 const groupUpdatesByAnnotation = (updates: AnnUpdate[]): GroupUpdatesByAnnotationType => {
   const result: GroupUpdatesByAnnotationType = {};
   for (const update of updates) {
-    result[update.config.id] = [...Object.values(result[update.config.id] || {}), { ...update }];
+    const key = `${update.screenId}/${update.config.id}`;
+    if (key in result) result[key].push(update);
+    else result[key] = [update];
   }
 
   return result;
