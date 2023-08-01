@@ -56,6 +56,7 @@ export const initialState: {
   remoteEdits: Record<string, EditItem[]>;
   // TODO remote + local annotation changes in one state for one time consumption
   localAnnotations: Record<string, IAnnotationConfig[]>;
+  localAnnotationsIdMap: Record<string, string[]>;
   remoteAnnotations: Record<string, IAnnotationConfig[]>;
   // TODO remote + local opts changes in one state for one time consumption
   remoteTourOpts: ITourDataOpts | null;
@@ -88,6 +89,7 @@ export const initialState: {
   localEdits: {},
   remoteEdits: {},
   localAnnotations: {},
+  localAnnotationsIdMap: {},
   remoteAnnotations: {},
   localTourOpts: null,
   remoteTourOpts: null,
@@ -316,9 +318,11 @@ export default function projectReducer(state = initialState, action: Action) {
       if (tAction.isLocal) {
         newState.localTourOpts = tAction.opts;
         newState.localAnnotations = tAction.annotations;
+        newState.localAnnotationsIdMap = tAction.idMap;
       } else {
         newState.localTourOpts = null;
         newState.localAnnotations = {};
+        newState.localAnnotationsIdMap = {};
         newState.remoteAnnotations = tAction.annotations;
         newState.remoteTourOpts = tAction.opts;
         newState.tourData = tAction.data;

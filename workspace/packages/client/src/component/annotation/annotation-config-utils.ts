@@ -249,26 +249,6 @@ export function shallowCloneAnnotation(elPath: string, from: IAnnotationConfig):
   return newConf;
 }
 
-export function replaceAnnotation(
-  allAnnotationsForTour: AnnotationPerScreen[],
-  replaceThisAnn: IAnnotationConfig,
-  replaceWithAnn: IAnnotationConfig,
-  currentScreenId: number
-): AnnotationMutation[] {
-  const flatAnnotationMap: Record<string, IAnnotationConfig> = {};
-  for (const entry of allAnnotationsForTour) {
-    for (const an of entry.annotations) {
-      flatAnnotationMap[`${entry.screen.id}/${an.refId}`] = an;
-    }
-  }
-  const updates: AnnotationMutation[] = [];
-
-  updates.push([+currentScreenId, replaceThisAnn, 'delete']);
-  updates.push([+currentScreenId, replaceWithAnn, 'upsert']);
-
-  return updates;
-}
-
 export function isCoverAnnotation(annId: string): boolean {
   return annId.split('#')[0] === '$';
 }

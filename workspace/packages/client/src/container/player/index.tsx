@@ -14,6 +14,8 @@ import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
 
+const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
+
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean) => void,
@@ -84,10 +86,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     document.title = this.props.title;
-    (window as FWin).__fable_global_settings__ = {
-      ...((window as FWin).__fable_global_settings__ || {}),
-      shouldLogEvent: true
-    };
+    if (REACT_APP_ENVIRONMENT !== 'dev') {
+      (window as FWin).__fable_global_settings__ = {
+        ...((window as FWin).__fable_global_settings__ || {}),
+        shouldLogEvent: true
+      };
+    }
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     window.addEventListener('beforeunload', removeSessionId);
   }

@@ -431,13 +431,13 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }
 
     const prevBtnOfToAn = toAn.buttons.find(btn => btn.type === 'prev')!;
-    if (prevBtnOfToAn.hotspot && prevBtnOfToAn.hotspot.actionType === 'navigate') {
+    if (isNavigateHotspot(prevBtnOfToAn.hotspot)) {
       // if former connection does exists;
       // B -> A and a connection is getting established with C
       //  C.next => A
       //  A.prev.next = null (A.prev === B) // true
       //  A.prev = C
-      const fromOldAnnId = prevBtnOfToAn.hotspot.actionValue;
+      const fromOldAnnId = prevBtnOfToAn.hotspot!.actionValue;
       const [fromOldScrnIdx, fromOldAnnIdx] = lookupMap[fromOldAnnId];
       const fromOldAn = allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx];
       const nextBtn = fromOldAn.buttons.find(btn => btn.type === 'next')!;

@@ -168,6 +168,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   };
 
   useEffect(() => {
+    setConfig(props.config);
+  }, [props.config]);
+
+  useEffect(() => {
     if (
       prevConfig
       && prevOpts
@@ -216,7 +220,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
 
       const newConfig = updateAnnotationTypeToDefault(config, domElPicker.elPath(props.selectedAnnReplaceEl!));
-      setConfig(newConfig);
+      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
       setShowSelectElement(false);
       props.resetSelectedAnnotationElements();
     }
@@ -225,7 +229,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
 
       const newConfig = updateAnnotationTypeToDefault(config, props.selectedAnnotationCoords);
-      setConfig(newConfig);
+      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
       setShowSelectElement(false);
       props.resetSelectedAnnotationElements();
     }
@@ -278,7 +282,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     if (newType === 'cover') {
       props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
       const newConfig = updateAnnotationTypeToCover(config);
-      setConfig(newConfig);
+      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
     } else {
       setShowSelectElement(true);
       setConfig(c => updateAnnotationHideAnnotation(c, true));

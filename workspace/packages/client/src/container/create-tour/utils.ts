@@ -24,7 +24,7 @@ import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from 
 import { nanoid } from 'nanoid';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
-import raiseDeferredError from '../../deffered-error';
+import raiseDeferredError from '../../deferred-error';
 
 export async function saveScreens(
   data: FrameDataToBeProcessed[][],

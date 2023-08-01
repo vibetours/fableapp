@@ -1,7 +1,7 @@
 import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
-import defferedErr from './deffered-error';
+import deferredErr from './deferred-error';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order';
 
@@ -28,42 +28,56 @@ export function openTourExternalLink(uri: string) {
 
 export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
   const anPerScreen: AnnotationPerScreen[] = [];
-  const combinedAnnotations: Record<string, IAnnotationConfig> = {};
-  for (const [screenId, anns] of Object.entries(state.default.localAnnotations)) {
-    for (const an of anns) {
-      combinedAnnotations[`${screenId}/${an.refId}`] = an;
-    }
-  }
-  for (const [screenId, anns] of Object.entries(state.default.remoteAnnotations)) {
-    for (const an of anns) {
-      const key = `${screenId}/${an.refId}`;
-      if (!(key in combinedAnnotations)) {
-        combinedAnnotations[key] = an;
+  try {
+    const combinedAnnotations: Record<string, IAnnotationConfig> = {};
+    const annToDeleteAcrossScreen: Record<string, Record<string, number>> = {};
+    for (const [screenId, anns] of Object.entries(state.default.localAnnotations)) {
+      const idMap = state.default.localAnnotationsIdMap[screenId];
+      const deleteMap: Record<string, number> = annToDeleteAcrossScreen[screenId] = {};
+      for (let i = 0; i < anns.length; i++) {
+        if (!anns[i]) {
+          deleteMap[idMap[i]] = 1;
+          continue;
+        }
+        combinedAnnotations[`${screenId}/${anns[i].refId}`] = anns[i];
       }
     }
-  }
-  const screenAnMap: Record<string, IAnnotationConfig[]> = {};
-  for (const [qId, an] of Object.entries(combinedAnnotations)) {
-    const [screenId] = qId.split('/');
-    if (screenId in screenAnMap) {
-      screenAnMap[screenId].push(an);
-    } else {
-      screenAnMap[screenId] = [an];
-      const screen = state.default.allScreens.find(s => s.id === +screenId);
-      if (screen) {
-        anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
+    for (const [screenId, anns] of Object.entries(state.default.remoteAnnotations)) {
+      for (const an of anns) {
+        const key = `${screenId}/${an.refId}`;
+        if (an.id in (annToDeleteAcrossScreen[screenId] || {})) {
+          continue;
+        }
+        if (!(key in combinedAnnotations)) {
+          combinedAnnotations[key] = an;
+        }
+      }
+    }
+    const screenAnMap: Record<string, IAnnotationConfig[]> = {};
+    for (const [qId, an] of Object.entries(combinedAnnotations)) {
+      const [screenId] = qId.split('/');
+      if (screenId in screenAnMap) {
+        screenAnMap[screenId].push(an);
       } else {
-        defferedErr(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
+        screenAnMap[screenId] = [an];
+        const screen = state.default.allScreens.find(s => s.id === +screenId);
+        if (screen) {
+          anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
+        } else {
+          deferredErr(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
+        }
       }
     }
-  }
-  // If there are screen present as part of a tour but no annotation is yet made then also we
-  // show this
-  const screensForTours = state.default.currentTour?.screens || [];
-  for (const screen of screensForTours) {
-    if (!(screen.id in screenAnMap)) {
-      anPerScreen.push({ screen, annotations: [] });
+    // If there are screen present as part of a tour but no annotation is yet made then also we
+    // show this
+    const screensForTours = state.default.currentTour?.screens || [];
+    for (const screen of screensForTours) {
+      if (!(screen.id in screenAnMap)) {
+        anPerScreen.push({ screen, annotations: [] });
+      }
     }
+  } catch (e) {
+    deferredErr(e as Error);
   }
   return anPerScreen;
 }

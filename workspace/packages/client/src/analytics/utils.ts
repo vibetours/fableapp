@@ -10,7 +10,7 @@ import {
   FableAnalyticsLocalStoreKeys
 } from './types';
 import { FWin } from '../types';
-import raiseDeferredError from '../deffered-error';
+import raiseDeferredError from '../deferred-error';
 
 export const getUUID = (): string => uuidv4().replace(/\W+/g, '');
 

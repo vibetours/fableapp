@@ -656,6 +656,7 @@ export interface TSaveTourEntities {
   tour: P_RespTour;
   data: TourData | null,
   annotations: Record<string, IAnnotationConfig[]>,
+  idMap: Record<string, string[]>,
   opts: ITourDataOpts,
   isLocal: boolean,
 }
@@ -669,6 +670,7 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
       data: getState().default.tourData,
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,
+      idMap: annotationAndOpts.annotationsIdMap,
       isLocal: true,
     });
   };
@@ -699,6 +701,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         tour,
         data: mergedData,
         annotations: annotationAndOpts.annotations,
+        idMap: annotationAndOpts.annotationsIdMap,
         opts: annotationAndOpts.opts,
         isLocal: false,
       });

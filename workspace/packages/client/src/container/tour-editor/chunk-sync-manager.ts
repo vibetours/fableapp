@@ -1,5 +1,5 @@
 import { getRandomId } from '@fable/common/dist/utils';
-import raiseDeferredError from '../../deffered-error';
+import raiseDeferredError from '../../deferred-error';
 
 export enum SyncTarget {
   LocalStorage,

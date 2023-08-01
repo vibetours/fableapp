@@ -1,6 +1,6 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import { P_RespScreen } from './entity-processor';
-import err from './deffered-error';
+import err from './deferred-error';
 
 // INFO Ideally we should just get the connected component of the graph for which the main (entry point)
 // is defined.

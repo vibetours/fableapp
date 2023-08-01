@@ -89,11 +89,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
     (screen: P_RespScreen, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screen, edits)),
-  saveTourData:
-    (
-      tour: P_RespTour,
-      data: TourDataWoScheme,
-    ) => dispatch(saveTourData(tour, data)),
+  saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => dispatch(saveTourData(tour, data)),
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
@@ -201,10 +197,12 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => {
   const anPerScreen = getAnnotationsPerScreen(state);
-  let allAnnotationsForScreen = [
-    ...(state.default.currentScreen?.id ? state.default.localAnnotations[state.default.currentScreen.id] || [] : []),
-    ...(state.default.currentScreen?.id ? state.default.remoteAnnotations[state.default.currentScreen.id] || [] : []),
-  ];
+  let allAnnotationsForScreen: IAnnotationConfig[] = [];
+  for (const screenAnnPair of anPerScreen) {
+    if (screenAnnPair.screen.id === state.default.currentScreen?.id) {
+      allAnnotationsForScreen = screenAnnPair.annotations.slice(0);
+    }
+  }
   const hm: Record<string, IAnnotationConfig> = {};
   for (const an of allAnnotationsForScreen) {
     if (an.id in hm) {
@@ -514,10 +512,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
               onAnnotationCreateOrChange={
-                (screenId, c, actionType, o) => this.onTourDataChange(
+                (screenId, c, actionType, o, tx) => this.onTourDataChange(
                   'annotation-and-theme',
                   screenId,
-                  { config: c, actionType, opts: o }
+                  { config: c, actionType, opts: o },
+                  tx
                 )
               }
               applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}

@@ -35,7 +35,6 @@ import {
 import {
   shallowCloneAnnotation,
   IAnnotationConfigWithScreenId,
-  replaceAnnotation
 } from '../annotation/annotation-config-utils';
 import { AnnotationSerialIdMap } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
@@ -57,6 +56,7 @@ import * as Tags from './styled';
 import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
+import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 
 const { confirm } = Modal;
 
@@ -96,7 +96,8 @@ interface IOwnProps {
     screenId: number | null,
     config: IAnnotationConfig,
     actionType: 'upsert' | 'delete',
-    opts: ITourDataOpts | null
+    opts: ITourDataOpts | null,
+    tx?: Tx // TODO: remove optionality later
   ) => void;
   onScreenEditStart: () => void;
   toAnnotationId: string;
@@ -116,7 +117,6 @@ interface IOwnStateProps {
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
-  selectedElAnnFwd: string;
   selectedElsParents: Node[];
   selectedAnnotationId: string;
   targetEl: HTMLElement | null;
@@ -152,7 +152,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.state = {
       isInElSelectionMode: true,
       elSelRequestedBy: ElSelReqType.AnnotateEl,
-      selectedElAnnFwd: '',
       selectedEl: null,
       selectedElsParents: [],
       targetEl: null,
@@ -166,7 +165,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       activeTab: TabList.Annotations,
       showImageMaskUploadModal: false,
       imageMaskUploadModalError: '',
-      imageMaskUploadModalIsUploading: false
+      imageMaskUploadModalIsUploading: false,
     };
   }
 
@@ -584,22 +583,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         let conf = this.getAnnnotationFromEl(state.selectedEl!);
         let selectedAnnotationId;
         if (!conf) {
-          if (state.selectedElAnnFwd) {
-            // Annotation is being replaced, this happens from advanced anntoation selector
-            selectedAnnotationId = state.selectedElAnnFwd;
-          } else {
-            conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!), '');
-            opts = this.props.tourDataOpts || getDefaultTourOpts();
-            this.props.createDefaultAnnotation(
-              conf,
-              opts
-            );
-            selectedAnnotationId = conf.refId;
-          }
+          conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!), '');
+          opts = this.props.tourDataOpts || getDefaultTourOpts();
+          this.props.createDefaultAnnotation(
+            conf,
+            opts
+          );
+          selectedAnnotationId = conf.refId;
         } else {
           selectedAnnotationId = conf.refId;
         }
-        return { selectedAnnotationId, selectedElAnnFwd: '' };
+        return { selectedAnnotationId };
       });
     }
 
@@ -956,29 +950,34 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     selectedEl={this.state.selectedEl!}
                     count={this.state.selectedElsParents.length}
                     setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                      let fwdAnnotation = '';
                       const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
                       if (!annOnNewEl) {
                         // If there is annotation on top of new element then don't do anything
                         const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
                         if (annOnOldEl) {
+                          const newElPath = this.iframeElManager?.elPath(newSelEl)!;
                           this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
-                          const replaceWithAnn = shallowCloneAnnotation(
-                            this.iframeElManager?.elPath(newSelEl)!,
-                            annOnOldEl
-                          );
-                          const updates = replaceAnnotation(
-                            this.props.allAnnotationsForTour,
-                            annOnOldEl,
-                            replaceWithAnn,
-                            this.props.screen.id
-                          );
-                          fwdAnnotation = replaceWithAnn.refId;
-                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null));
-                          this.props.navigate(`${this.props.screen.id}/${fwdAnnotation}`, 'annotation-hotspot');
+                          const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
+
+                          for (const ann of this.props.allAnnotationsForScreen) {
+                            if (ann.id === annOnOldEl.id) {
+                              ann.id = newElPath;
+                            }
+                          }
+                          const updates: Array<
+                            [
+                              screenId: number | null,
+                              config: IAnnotationConfig,
+                              actionType: 'upsert' | 'delete'
+                            ]
+                          > = [
+                            [this.props.screen.id, annOnOldEl, 'delete'],
+                            [this.props.screen.id, replaceWithAnn, 'upsert']
+                          ];
+                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null)); // tx));
                         }
                       }
-                      this.setState({ selectedEl: newSelEl, selectedElAnnFwd: fwdAnnotation });
+                      this.setState({ selectedEl: newSelEl });
                     }}
                     mouseLeaveHighlightMode={HighlightMode.Pinned}
                   />
@@ -1236,7 +1235,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       opts
     );
 
-    this.setState({ selectedAnnotationId: conf.refId, selectedElAnnFwd: '' });
+    this.setState({ selectedAnnotationId: conf.refId });
   };
 
   private onBoxDeSelect = (): void => {

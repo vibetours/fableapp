@@ -137,16 +137,21 @@ export function createEmptyTourDataFile(): TourData {
 
 export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true): {
   annotations: Record<string, IAnnotationConfig[]>,
+  annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
 } {
   const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
+  const annotationsIdMapPerScreen: Record<string, string[]> = {};
   for (const [screenId, entity] of Object.entries(data.entities)) {
     if (entity.type === 'screen') {
-      const anns = Object.values((entity as TourScreenEntity).annotations);
-      annotationsPerScreen[screenId] = isLocal
-        ? (anns as IAnnotationConfig[])
-        : anns
-          .map(remoteToLocalAnnotationConfig);
+      const anns: IAnnotationConfig[] = [];
+      const ids: string[] = [];
+      for (const [annId, ann] of Object.entries((entity as TourScreenEntity).annotations)) {
+        ids.push(annId);
+        anns.push(ann as IAnnotationConfig);
+      }
+      annotationsPerScreen[screenId] = isLocal ? (anns as IAnnotationConfig[]) : anns.map(remoteToLocalAnnotationConfig);
+      annotationsIdMapPerScreen[screenId] = ids;
     } else {
       throw new Error('TODO not yet implemented');
     }
@@ -157,6 +162,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
       annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>,
       data.opts
     ),
+    annotationsIdMap: annotationsIdMapPerScreen,
     opts: isLocal ? data.opts : normalizeBackwardCompatibilityForOpts(data.opts),
   };
 }
