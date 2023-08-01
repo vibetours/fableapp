@@ -21,6 +21,7 @@ import {
   ScreenType
 } from '@fable/common/dist/api-contract';
 import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { nanoid } from 'nanoid';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
 import raiseDeferredError from '../../deffered-error';
@@ -111,10 +112,11 @@ async function addAnnotationConfigs(
   const annConfigs: Array<IAnnotationConfig> = [];
   const screensInTourPromises: Array<Promise<RespScreen>> = [];
 
+  const grpId = nanoid();
   for (const screen of screenInfo) {
     const newScreen = addScreenToTour(tourRid, screen.id);
     screensInTourPromises.push(newScreen);
-    annConfigs.push(getSampleConfig(screen.elPath));
+    annConfigs.push(getSampleConfig(screen.elPath, grpId));
   }
 
   const screensInTour: Array<RespScreen> = await Promise.all(screensInTourPromises);

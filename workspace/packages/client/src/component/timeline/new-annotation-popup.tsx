@@ -24,7 +24,7 @@ export default function NewAnnotationPopup(props: Props) : ReactElement {
   const [showScreenSlider, setShowScreenSlider] = useState(false);
 
   const addCoverAnn = (screenId: number) : void => {
-    const newAnnConfig = getSampleConfig('$');
+    const newAnnConfig = getSampleConfig('$', props.annotation.grpId);
 
     let result;
     if (props.position === 'prev') {
@@ -82,6 +82,7 @@ export default function NewAnnotationPopup(props: Props) : ReactElement {
           pos: props.position,
           refId: props.annotation.refId,
           screenId: props.annotation.screen.id,
+          grpId: props.annotation.grpId
         }}
       />
 

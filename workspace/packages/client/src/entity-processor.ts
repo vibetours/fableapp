@@ -211,6 +211,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
   return {
     id: lc.id,
     refId: lc.refId,
+    grpId: lc.grpId,
     bodyContent: lc.bodyContent,
     displayText: lc.displayText,
     buttons: lc.buttons,

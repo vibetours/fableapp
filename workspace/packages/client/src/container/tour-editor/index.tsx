@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import {
   IAnnotationConfig,
   IAnnotationOriginConfig,
@@ -49,10 +50,17 @@ import {
   TourDataChangeFn,
   NavFn,
   IAnnotationConfigWithScreen,
-  ConnectedOrderedAnnGroupedByScreen
+  ConnectedOrderedAnnGroupedByScreen,
+  OrderedAnnGroupedByScreen
 } from '../../types';
+import {
+  generateTimelineOrder,
+  LOCAL_STORE_TIMELINE_ORDER_KEY,
+  clearTimelineOrderFromLocalStorage,
+  openTourExternalLink,
+  getAnnotationsPerScreen
+} from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
-import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import HeartLoader from '../../component/loader/heart';
 import {
   addPrevAnnotation,
@@ -112,6 +120,7 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
   // inside each connected screen, each screen group is one array
   const orderedAnns: ConnectedOrderedAnnGroupedByScreen = [];
   while (true) {
+    const grpId = nanoid();
     const anns = Object.values(flatAnns);
     if (!anns.length) {
       break;
@@ -145,6 +154,7 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
     let prevScreenId = -1;
     for (let i = 0, l = connectedOrderedAnn.length; i < l; i++) {
       const an = connectedOrderedAnn[i];
+      an.grpId = an.grpId || grpId;
       if (an.screen.id === prevScreenId) {
         annotationGroupByScreen.push(an);
       } else {
@@ -156,6 +166,19 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
 
     orderedAnns.push(connectedOrderAnnotationGroupByScreen);
   }
+
+  const localStoreTimelineOrder = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
+
+  if (!localStoreTimelineOrder.length && orderedAnns.length > 0) {
+    const newTimelineOrder = generateTimelineOrder(orderedAnns);
+    localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
+  } else if (localStoreTimelineOrder.length) {
+    orderedAnns.sort(
+      (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
+    );
+  }
+
+  console.log(orderedAnns);
   return orderedAnns;
 };
 
@@ -272,6 +295,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
+    window.addEventListener('beforeunload', clearTimelineOrderFromLocalStorage);
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
@@ -282,7 +306,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if ((prevProps.relayScreenId !== this.props.relayScreenId
       || prevProps.relayAnnAdd !== this.props.relayAnnAdd)
       && (this.props.relayScreenId && this.props.relayAnnAdd)) {
-      const newAnnConfig = getSampleConfig('$');
+      const newAnnConfig = getSampleConfig('$', this.props.relayAnnAdd.grpId);
       let result;
       if (this.props.relayAnnAdd.pos === 'prev') {
         result = addPrevAnnotation(
@@ -408,6 +432,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.chunkSyncManager?.end();
     this.props.clearCurrentScreenSelection();
     this.props.clearCurrentTourSelection();
+    localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+    window.removeEventListener('beforeunload', clearTimelineOrderFromLocalStorage);
   }
 
   navFn: NavFn = (uri, type) => {
@@ -501,6 +527,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           ) : (this.isLoadingComplete() ? (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
               <Canvas
+                applyAnnGrpIdMutations={
+                  (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
+                }
                 applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
                 tourOpts={this.props.tourOpts}
                 key={this.props.tour?.rid}
@@ -525,9 +554,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     screenId: number,
     actionValue: string | null,
     opts: ITourDataOpts | null | undefined,
-    tx?: Tx
+    tx?: Tx,
+    grpId: string = config.grpId,
   ): IAnnotationConfig => {
     let btnUpdate: ReturnType<typeof updateButtonProp>;
+    config = { ...config, grpId };
 
     if (actionValue) {
       btnUpdate = updateButtonProp(config, btnId, 'hotspot', {
@@ -548,6 +579,22 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }, tx);
 
     return btnUpdate;
+  };
+
+  private updateGrpId = (
+    config: IAnnotationConfig,
+    screenId: number,
+    grpId: string,
+    tx?: Tx,
+  ): IAnnotationConfig => {
+    config = { ...config, grpId };
+
+    this.onTourDataChange('annotation-and-theme', screenId, {
+      config,
+      actionType: 'upsert'
+    }, tx);
+
+    return config;
   };
 
   applyAnnButtonLinkMutations = (mutations: AnnUpdateType): void => {
@@ -576,12 +623,28 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           update.screenId,
           update.actionValue,
           newOpts,
-          tx
+          tx,
+          update.grpId || update.config.grpId,
         );
       }
     }
 
     this.commitTx(tx);
+  };
+
+  applyAnnGrpIdMutations = (mutations: AnnUpdateType, tx: Tx): void => {
+    for (const annUpdates of Object.values(mutations.groupedUpdates)) {
+      let newAnnUpdate = null;
+
+      for (const update of annUpdates) {
+        newAnnUpdate = this.updateGrpId(
+          newAnnUpdate || update.config,
+          update.screenId,
+          update.grpId!,
+          tx,
+        );
+      }
+    }
   };
 
   private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts): void => {
@@ -637,7 +700,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       const currentAnnPrevButton = config.buttons.find(btn => btn.type === 'prev')!;
       const currentAnnNextButton = config.buttons.find(btn => btn.type === 'next')!;
       const currentAnnConfig = this.updateButton(
-        config,
+        { ...config, grpId: lastAnnotation.grpId },
         currentAnnPrevButton.id,
         currentScreenId,
         `${currentScreenId}/${lastAnnotation.refId}`,
@@ -653,7 +716,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         const nextAnnPrevBtn = nextAnnotation.buttons.find(btn => btn.type === 'prev')!;
         this.updateButton(nextAnnotation, nextAnnPrevBtn.id, +nextEntityId, `${currentScreenId}/${config.refId}`, opts);
         this.updateButton(
-          currentAnnConfig,
+          { ...currentAnnConfig, grpId: nextAnnotation.grpId },
           currentAnnNextButton.id,
           currentScreenId,
           `${nextEntityId}/${nextAnnotation.refId}`,

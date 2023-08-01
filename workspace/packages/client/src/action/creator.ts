@@ -332,6 +332,7 @@ export type AnnAdd = {
   pos: 'prev' | 'next',
   refId: string,
   screenId: number,
+  grpId: string
 }
 
 export type AddScreenToTour = (

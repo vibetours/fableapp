@@ -134,6 +134,7 @@ export interface IAnnotationConfigWithScreen extends IAnnotationConfig {
 }
 
 export type ConnectedOrderedAnnGroupedByScreen = Array<Array<Array<IAnnotationConfigWithScreen>>>;
+export type OrderedAnnGroupedByScreen = Array<Array<IAnnotationConfigWithScreen>>;
 
 export enum DestinationAnnotationPosition {
   next,

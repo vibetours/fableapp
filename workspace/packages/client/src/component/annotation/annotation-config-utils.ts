@@ -18,6 +18,12 @@ export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
   screenId: number
 }
 
+export function updateAnnotationGrpId<T extends IAnnotationConfig>(config: T, grpId: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.grpId = grpId;
+  return newConfig;
+}
+
 export function getBigramId(config: IAnnotationConfig): string {
   return config.refId.substring(2);
 }

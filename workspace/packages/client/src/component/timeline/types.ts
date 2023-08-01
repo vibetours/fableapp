@@ -5,6 +5,7 @@ export type AnnUpdate = {
     btnId: string,
     screenId: number,
     actionValue: string | null,
+    grpId?: string
 }
 
 export type AnnUpdateType = {

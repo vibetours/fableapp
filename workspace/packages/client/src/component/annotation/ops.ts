@@ -1,7 +1,9 @@
 import { IAnnotationButton, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { nanoid } from 'nanoid';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
-import { IAnnotationConfigWithScreenId } from './annotation-config-utils';
+import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
+import { isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
 
 export const addPrevAnnotation = (
   newAnnConfig: IAnnotationConfigWithScreenId,
@@ -191,9 +193,47 @@ export const deleteConnection = (
     actionValue: null,
   };
   updates.push(prevBtnOfToAnnUpdate);
+  const newGrpId = nanoid();
+  updateLocalTimelineGroupProp(newGrpId, fromAnnConfig.grpId);
+  const grpIdUpdates = updateGrpIdForTimelineTillEnd(toAnnConfig, allAnnotationsForTour, newGrpId);
 
-  const groupedUpdates = groupUpdatesByAnnotation(updates);
+  const groupedUpdates = groupUpdatesByAnnotation([...updates, ...grpIdUpdates]);
   return { groupedUpdates, updates, main: null, deletionUpdate: null };
+};
+
+export const updateGrpIdForTimelineTillEnd = (
+  annConfig: IAnnotationConfigWithScreenId,
+  allAnnotationsForTour: AnnotationPerScreen[],
+  grpId: string
+): AnnUpdate[] => {
+  const updates: AnnUpdate[] = [];
+  let toScreenId = annConfig.screenId.toString();
+  let annId = annConfig.refId;
+  let updatedAnn = updateAnnotationGrpId(annConfig, grpId);
+  let nextAnnBtn = updatedAnn.buttons.find(btn => btn.type === 'next');
+  let nextAnnBtnHotspot = nextAnnBtn!.hotspot;
+  updates.push({
+    config: annConfig,
+    btnId: nextAnnBtn!.id,
+    screenId: +toScreenId,
+    actionValue: nextAnnBtnHotspot?.actionValue || null,
+    grpId
+  });
+  while (isNavigateHotspot(nextAnnBtnHotspot)) {
+    [toScreenId, annId] = nextAnnBtnHotspot!.actionValue.split('/');
+    annConfig = getAnnotationByRefId(annId, allAnnotationsForTour)!;
+    updatedAnn = updateAnnotationGrpId(annConfig, grpId);
+    nextAnnBtn = updatedAnn.buttons.find(btn => btn.type === 'next');
+    nextAnnBtnHotspot = nextAnnBtn!.hotspot;
+    updates.push({
+      config: annConfig,
+      btnId: nextAnnBtn!.id,
+      screenId: +toScreenId,
+      actionValue: nextAnnBtnHotspot?.actionValue || null,
+      grpId
+    });
+  }
+  return updates;
 };
 
 export const reorderAnnotation = (
@@ -203,6 +243,9 @@ export const reorderAnnotation = (
   main: string | null,
   position: DestinationAnnotationPosition
 ): AnnUpdateType => {
+  const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
+  currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
+
   let updates: AnnUpdate[] = [];
   let result;
   if (position === DestinationAnnotationPosition.next) {
@@ -240,7 +283,7 @@ export const reorderAnnotation = (
   };
 };
 
-const groupUpdatesByAnnotation = (updates: AnnUpdate[]): GroupUpdatesByAnnotationType => {
+export const groupUpdatesByAnnotation = (updates: AnnUpdate[]): GroupUpdatesByAnnotationType => {
   const result: GroupUpdatesByAnnotationType = {};
   for (const update of updates) {
     const key = `${update.screenId}/${update.config.id}`;

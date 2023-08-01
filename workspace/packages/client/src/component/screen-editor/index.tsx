@@ -588,7 +588,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             // Annotation is being replaced, this happens from advanced anntoation selector
             selectedAnnotationId = state.selectedElAnnFwd;
           } else {
-            conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!));
+            conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!), '');
             opts = this.props.tourDataOpts || getDefaultTourOpts();
             this.props.createDefaultAnnotation(
               conf,
@@ -868,7 +868,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   createCoverAnnotation = (): void => {
-    const conf = getSampleConfig('$');
+    const conf = getSampleConfig('$', '');
     const opts = this.props.tourDataOpts || getDefaultTourOpts();
     this.props.createDefaultAnnotation(
       conf,
@@ -1229,7 +1229,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       return;
     }
     const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
-    const conf = getSampleConfig(coordsStr);
+    const conf = getSampleConfig(coordsStr, '');
 
     this.props.createDefaultAnnotation(
       conf,

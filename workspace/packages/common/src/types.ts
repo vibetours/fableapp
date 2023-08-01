@@ -179,6 +179,7 @@ export declare type AnnotationButtonLayoutType = typeof AnnotationButtonLayout[n
 export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
+  grpId: string;
   bodyContent: string;
   displayText: string;
   positioning: AnnotationPositions | VideoAnnotationPositions,

@@ -1,7 +1,9 @@
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
 import { TState } from './reducer';
-import { AnnotationPerScreen } from './types';
+import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
 import defferedErr from './deffered-error';
+
+export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order';
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -81,3 +83,27 @@ export function flatten<T>(arr: Array<T[]>): T[] {
   }
   return flatArr;
 }
+
+export const generateTimelineOrder = (timeline: ConnectedOrderedAnnGroupedByScreen): string[] => {
+  const newTimelineOrder: string[] = [];
+  for (const group of timeline) {
+    newTimelineOrder.push(group[0][0].grpId);
+  }
+
+  return newTimelineOrder;
+};
+
+export const updateLocalTimelineGroupProp = (grpId: string, nearbygrpId: string): void => {
+  const savedGroupIds = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
+  savedGroupIds.splice(savedGroupIds.indexOf(nearbygrpId) + 1, 0, grpId);
+  localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(savedGroupIds));
+};
+
+export const isNavigateHotspot = (hotspot: ITourEntityHotspot | null): boolean => {
+  const result = Boolean((hotspot && hotspot.actionType === 'navigate'));
+  return result;
+};
+
+export const clearTimelineOrderFromLocalStorage = (): void => {
+  localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+};

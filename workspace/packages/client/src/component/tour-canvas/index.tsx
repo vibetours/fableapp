@@ -1,4 +1,5 @@
 /* eslint-disable react/no-this-in-sfc */
+import { nanoid } from 'nanoid';
 import { DeleteOutlined, DisconnectOutlined, SisternodeOutlined } from '@ant-design/icons';
 import { ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import Modal from 'antd/lib/modal';
@@ -8,6 +9,14 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
+import {
+  updateGrpIdForTimelineTillEnd,
+  deleteAnnotation,
+  deleteConnection,
+  getAnnotationByRefId,
+  reorderAnnotation,
+  groupUpdatesByAnnotation
+} from '../annotation/ops';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespTour } from '../../entity-processor';
 import {
@@ -18,7 +27,6 @@ import {
   TourDataChangeFn
 } from '../../types';
 import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
-import { deleteAnnotation, deleteConnection, getAnnotationByRefId, reorderAnnotation } from '../annotation/ops';
 import Btn from '../btn';
 import { AnnUpdateType } from '../timeline/types';
 import { dSaveZoomPanState } from './deferred-tasks';
@@ -31,6 +39,7 @@ import {
   ModalPosition
 } from './types';
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
+import { isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
 
 const { confirm } = Modal;
 
@@ -44,7 +53,8 @@ type CanvasProps = {
   // addNewScreenToTour: AddScreenFn,
   tourOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
-  commitTx: (tx: Tx) => void
+  applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
+  commitTx: (tx: Tx) => void,
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -177,10 +187,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('opacity', Math.min(ze.transform.k, 1));
   };
 
-  const nodeDraggable = () : DragBehavior<
-  SVGForeignObjectElement,
-  AnnotationNode<dagre.Node>,
-  AnnotationNode<dagre.Node> | SubjectPosition
+  const nodeDraggable = (): DragBehavior<
+    SVGForeignObjectElement,
+    AnnotationNode<dagre.Node>,
+    AnnotationNode<dagre.Node> | SubjectPosition
   > => {
     let relX = 0;
     let relY = 0;
@@ -238,7 +248,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const data = el.datum();
 
         const fromElNodes = [fromEl.select('path.edgeconn'), fromEl.select('path.edgehotspot')] as
-            D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
+          D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
         fromElNodes.forEach(sel => {
           const n = sel.node();
           if (!n) return;
@@ -249,7 +259,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         });
 
         const toElNodes = [toEl.select('path.edgeconn'), toEl.select('path.edgehotspot')] as
-            D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
+          D3Selection<SVGPathElement, EdgeWithData, HTMLElement, any>[];
         toElNodes.forEach(sel => {
           const n = sel.node()!;
           if (!n) return;
@@ -368,12 +378,48 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const [toScreenIdx, toAnIdx] = lookupMap[to];
     const fromAn = allAnns[fromScreenIdx].annotations[fromAnIdx];
     const toAn = allAnns[toScreenIdx].annotations[toAnIdx];
+    toAn.grpId = fromAn.grpId;
 
     const tx = new Tx();
     tx.start();
 
-    const prevBtnOfToAn = toAn.buttons.find(btn => btn.type === 'prev')!;
+    const grpIdUpdates = updateGrpIdForTimelineTillEnd({ ...toAn, screenId: +to.split('/')[0] }, allAnns, fromAn.grpId);
+    const groupedUpdates = groupUpdatesByAnnotation(grpIdUpdates);
+    props.applyAnnGrpIdMutations({ groupedUpdates, updates: [], main: null, deletionUpdate: null }, tx);
+
     let update;
+    const newGrpIdForMiddleGroup = nanoid();
+    updateLocalTimelineGroupProp(newGrpIdForMiddleGroup, fromAn.grpId);
+
+    const nextBtnOfFromAn = fromAn.buttons.find(btn => btn.type === 'next')!;
+    if (isNavigateHotspot(nextBtnOfFromAn.hotspot)) {
+      const toOldAnnId = nextBtnOfFromAn.hotspot!.actionValue;
+      const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId];
+      const toOldAn = allAnns[toOldScrnIdx].annotations[toOldAnnIdx];
+      toOldAn.grpId = newGrpIdForMiddleGroup;
+
+      const middleGroupedUpdates = groupUpdatesByAnnotation(updateGrpIdForTimelineTillEnd(
+        { ...toOldAn, screenId: +toOldAnnId.split('/')[0] },
+        allAnns,
+        newGrpIdForMiddleGroup
+      ));
+      props.applyAnnGrpIdMutations({
+        groupedUpdates: middleGroupedUpdates,
+        updates: [],
+        main: null,
+        deletionUpdate: null
+      }, tx);
+
+      const prevBtn = toOldAn.buttons.find(btn => btn.type === 'prev')!;
+      update = updateButtonProp(toOldAn, prevBtn.id, 'hotspot', null);
+      allAnns[toOldScrnIdx].annotations[toOldAnnIdx] = update; // updated value push it back to the list
+      updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
+        config: update,
+        actionType: 'upsert'
+      }, tx);
+    }
+
+    const prevBtnOfToAn = toAn.buttons.find(btn => btn.type === 'prev')!;
     if (prevBtnOfToAn.hotspot && prevBtnOfToAn.hotspot.actionType === 'navigate') {
       // if former connection does exists;
       // B -> A and a connection is getting established with C
@@ -387,20 +433,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       update = updateButtonProp(fromOldAn, nextBtn.id, 'hotspot', null);
       allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx] = update; // Updated config push it back to list
       updateFn('annotation-and-theme', allAnns[fromOldScrnIdx].screen.id, {
-        config: update,
-        actionType: 'upsert'
-      }, tx);
-    }
-
-    const nextBtnOfFromAn = fromAn.buttons.find(btn => btn.type === 'next')!;
-    if (nextBtnOfFromAn.hotspot && nextBtnOfFromAn.hotspot.actionType === 'navigate') {
-      const toOldAnnId = nextBtnOfFromAn.hotspot.actionValue;
-      const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId];
-      const toOldAn = allAnns[toOldScrnIdx].annotations[toOldAnnIdx];
-      const prevBtn = toOldAn.buttons.find(btn => btn.type === 'prev')!;
-      update = updateButtonProp(toOldAn, prevBtn.id, 'hotspot', null);
-      allAnns[toOldScrnIdx].annotations[toOldAnnIdx] = update; // updated value push it back to the list
-      updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
         config: update,
         actionType: 'upsert'
       }, tx);
@@ -1055,7 +1087,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     // TODO[rrl] do this once api endpoint is completed
                     setTimeout(() => setNodeMenuModalData(initialAnnNodeModalData), 500);
                   },
-                  onCancel() {}
+                  onCancel() { }
                 });
               }}
             >

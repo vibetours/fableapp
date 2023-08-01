@@ -97,13 +97,14 @@ export function createEmptyTourDataFile(): TourData {
   };
 }
 
-export const getSampleConfig = (elPath: string): IAnnotationConfig => {
+export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfig => {
   const isCoverAnn = elPath === '$';
   const id = getRandomId();
 
   return {
     id: isCoverAnn ? `$#${id}` : elPath,
     refId: id,
+    grpId,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
     bodyContent: '<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">Write a description about what this feature of your product does to your user.</span></p>',
