@@ -23,7 +23,6 @@ import {
   clearRelayScreenAndAnnAdd,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
-  getAllScreens,
   loadScreenAndData,
   loadTourAndData,
   renameScreen,
@@ -178,7 +177,6 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
     );
   }
 
-  console.log(orderedAnns);
   return orderedAnns;
 };
 

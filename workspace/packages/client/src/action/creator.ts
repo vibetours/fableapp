@@ -170,12 +170,13 @@ export interface TGetAllScreens {
   type: ActionType.ALL_SCREENS_LOADED;
   allScreens: Array<P_RespScreen>;
   rootScreens: Array<P_RespScreen>;
+  resetFromLocalState?: boolean;
 }
 
 export function getAllScreens(shouldRefreshIfPresent = true) {
   return async (dispatch: Dispatch<TGetAllScreens | TGenericLoading>, getState: () => TState) => {
     const state = getState().default;
-    if (shouldRefreshIfPresent || state.allScreens.length === 0) {
+    if (shouldRefreshIfPresent || state.rootScreens.length === 0) {
       dispatch({
         type: ActionType.ALL_SCREENS_LOADING,
       });
@@ -185,6 +186,13 @@ export function getAllScreens(shouldRefreshIfPresent = true) {
         type: ActionType.ALL_SCREENS_LOADED,
         allScreens: pScreens,
         rootScreens: groupScreens(pScreens),
+      });
+    } else {
+      dispatch({
+        type: ActionType.ALL_SCREENS_LOADED,
+        allScreens: [],
+        rootScreens: [],
+        resetFromLocalState: true
       });
     }
   };

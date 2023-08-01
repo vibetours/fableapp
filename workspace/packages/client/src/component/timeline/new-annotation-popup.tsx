@@ -9,21 +9,21 @@ import * as GTags from '../../common-styled';
 import { AnnUpdateType } from './types';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { addNextAnnotation, addPrevAnnotation } from '../annotation/ops';
-import ScreenSlider from '../../container/screen-slider';
+import ScreenPicker from '../../container/screen-picker';
 
 type Props = {
-    position: 'prev' | 'next',
-    allAnnotationsForTour: AnnotationPerScreen[],
-    annotation: IAnnotationConfigWithScreen
-    tourDataOpts: ITourDataOpts,
-    hidePopup: () => void;
-    applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
+  position: 'prev' | 'next',
+  allAnnotationsForTour: AnnotationPerScreen[],
+  annotation: IAnnotationConfigWithScreen
+  tourDataOpts: ITourDataOpts,
+  hidePopup: () => void;
+  applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
 }
 
-export default function NewAnnotationPopup(props: Props) : ReactElement {
-  const [showScreenSlider, setShowScreenSlider] = useState(false);
+export default function NewAnnotationPopup(props: Props): ReactElement {
+  const [showScreenPicker, setShowScreenPicker] = useState(false);
 
-  const addCoverAnn = (screenId: number) : void => {
+  const addCoverAnn = (screenId: number): void => {
     const newAnnConfig = getSampleConfig('$', props.annotation.grpId);
 
     let result;
@@ -66,17 +66,16 @@ export default function NewAnnotationPopup(props: Props) : ReactElement {
             <GTags.PopoverMenuItem onClick={() => addCoverAnn(props.annotation.screen.id)}>
               <FullscreenOutlined />&nbsp;&nbsp;&nbsp;Of type cover
             </GTags.PopoverMenuItem>
-            <GTags.PopoverMenuItem onClick={() => setShowScreenSlider(true)}>
+            <GTags.PopoverMenuItem onClick={() => { setShowScreenPicker(true); }}>
               <FileTextOutlined />&nbsp;&nbsp;&nbsp;By adding a new screen
             </GTags.PopoverMenuItem>
           </div>
         </div>
       </div>
-      <ScreenSlider
-        isOpenScreenSlider={showScreenSlider}
-        hideScreenSlider={() => setShowScreenSlider(false)}
-        screenSliderMode="create"
-        hidePopup={props.hidePopup}
+      {showScreenPicker && <ScreenPicker
+        isOpenScreenPicker={showScreenPicker}
+        hideScreenPicker={() => { setShowScreenPicker(false); props.hidePopup(); }}
+        screenPickerMode="create"
         addCoverAnnToScreen={addCoverAnn}
         addAnnotationData={{
           pos: props.position,
@@ -84,7 +83,7 @@ export default function NewAnnotationPopup(props: Props) : ReactElement {
           screenId: props.annotation.screen.id,
           grpId: props.annotation.grpId
         }}
-      />
+      />}
 
     </>
   );

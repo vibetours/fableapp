@@ -25,7 +25,7 @@ export type IUpdateButton = (
   opts: ITourDataOpts | null | undefined
 ) => IAnnotationConfig
 
-export type ScreenSliderMode = 'create' | 'navigate';
+export type ScreenPickerMode = 'create' | 'navigate';
 
 export enum DestinationAnnotationPosition {
   next,

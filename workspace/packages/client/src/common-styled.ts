@@ -55,6 +55,11 @@ export const Txt = styled.div`
     font-weight: 600;
   }
 
+  &.subtitle {
+    font-weight: 400;
+    font-size: 0.75rem;
+  }
+
   &.link {
     &:hover {
       text-decoration: underline;

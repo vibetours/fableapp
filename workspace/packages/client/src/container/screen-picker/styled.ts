@@ -1,33 +1,24 @@
 import styled from 'styled-components';
-import { ScreenSliderMode } from '../../component/timeline/types';
+import Modal from 'antd/lib/modal';
+import Tabs from 'antd/lib/tabs';
+import Button from 'antd/lib/button';
 
-type SelectScreenContainerProp = {
-    screenSliderMode: ScreenSliderMode;
-  }
+export const ScreenPickerContainer = styled(Modal)`    
+    .ant-modal-content {
+      height: 90vh;
+      top: -50px;
+    }
 
-export const SelectScreenContainer = styled.div`
-  
-    position:fixed;
-    top: 30px;
-    left: ${(p:SelectScreenContainerProp) => (p.screenSliderMode === 'create' ? '50%' : '120px')};
-    transform: ${(p:SelectScreenContainerProp) => (p.screenSliderMode === 'create' ? 'translateX(-50%)' : '')};
-    width: ${(p:SelectScreenContainerProp) => (p.screenSliderMode === 'create' ? '90vw' : '')};
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
+    .ant-modal-body{
+      height: 100%;
+    }
+
+    .ant-modal-content .anticon {
+      color: #000;
+    }
   `;
 
 export const ScreensContainer = styled.div`
-  
-    background: #FFFFFF;
-    border: 1px solid #DDDDDD;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
-    border-radius: 20px;
-    max-width: 80vw;
-    margin: auto;
-    padding: 1rem 1rem;
   
     h2 {
       font-style: normal;
@@ -38,14 +29,18 @@ export const ScreensContainer = styled.div`
     }
   `;
 
-export const ScreenSlider = styled.div`
+export const ScreenPicker = styled.div`
     display: flex;
+    flex-direction: row;
     gap: 1rem;
     padding: 0.25rem;
     position: relative;
-    overflow-x: auto;
+    flex-wrap: wrap;
     scrollbar-color: #7567FF #E5E7EB;
-  
+    scrollbar-width: thin;
+    overflow-y: auto;
+    overflow-x: hidden;
+
     &::-webkit-scrollbar-track {
       padding: 2px 0;
       background-color: #e5e7eb;
@@ -56,43 +51,86 @@ export const ScreenSlider = styled.div`
     &::-webkit-scrollbar {
       margin: 4px 0;
       height: 4px;
+      width: 6px;
     }
   
     &::-webkit-scrollbar-thumb {
-      border-radius: 4px;
-      background-color: #7567FF;
+      border-radius: 10px;
+      background-color: #646e82;
     }
+  `;
+
+export const ScreenPickerTabs = styled(Tabs)`
+      height: 100%;
+
+      .ant-tabs-content {
+        height: 100%;
+      }
+
+      .ant-tabs-tabpane {
+        height: 100%;
+      }
+  `;
+
+export const ScreenTab = styled.div`
+      height: 100%;
+      display: flex;
+      flex-direction: column;
   `;
 
 export const Screen = styled.div`
     background: #FFFFFF;
-    border: 1px solid #DDDDDD;
+    border: 1px solid #EFEFEF;
     border-radius: 10px;
-    padding: 1rem;
-    width: 220px;
-    min-width: 220px;
-    max-width: 220px;
+    padding: 0.5rem;
+    width: 195px;
+    height: 198px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-  
-    img {
-      width: 100%;
-      height: 70%;
-      object-fit: cover;
-    }
-  
+    border-radius: 4px;
+    box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
+ 
     &:hover {
-      box-shadow: 0 0 0 1px black;
+      box-shadow: 0 0 0 1px #7566ff;
       cursor: pointer;
     }
   
   `;
 
+export const ScreenThumbnail = styled.img`
+    height: 7rem;
+    object-fit: cover;
+  `;
+
+export const ScreenContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.75rem;
+    flex-grow: 1;
+    row-gap: 0.5rem;
+    overflow: auto;
+    justify-content: space-between;
+
+    .card-title{
+      font-size: 1rem;
+      font-weight: 500;
+      height: 1.5rem;
+      overflow: hidden;
+    }
+  `;
+
+export const ScreenLink = styled.div`
+    display: flex;
+    column-gap: 0.5rem;
+    height: 1.3rem; 
+    overflow: hidden;
+  `;
+
 export const ScreenTitleIconCon = styled.div`
     display: flex;
+    flex-direction: row;
     justify-content: space-between;
-    margin-top: 1rem;
   `;
 
 export const UploadImgCont = styled.div`
@@ -188,4 +226,29 @@ export const InputContainer = styled.div`
           padding-left: 1rem;
           width: 100%;
       }
+  `;
+
+export const PaginationButton = styled(Button)`
+      width: 12.5rem;
+      padding: 1.5rem 6.8rem;  
+      background-color: #7566ff !important;
+      align-self: center;
+      margin-top: 0.5rem;
+      border-radius: 1.5rem !important;
+      display:flex;
+      justify-content: center;
+      align-items: center;
+      position: fixed;
+      bottom: 60px;
+      z-index: 10;
+  `;
+
+export const Blur = styled.div`
+    position: absolute;
+    bottom: 0;
+    width: 97%;
+    height: 60px;
+    position: absolute;
+    filter: blur(1px);
+    background-color: rgba(255,255,255, 0.45);
   `;

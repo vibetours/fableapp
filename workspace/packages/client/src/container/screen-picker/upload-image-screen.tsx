@@ -12,8 +12,7 @@ type Props = {
     open: boolean;
     closeModal: () => void;
     tourRid: string | undefined;
-    handleAddScreen: (screen: P_RespScreen) => void;
-    hidePopup: () => void,
+    handleAddScreen: () => void;
 };
 
 const GEN_ERR_MSG = 'Something went wrong! Please try again';
@@ -29,8 +28,8 @@ export default function UploadImageScreen(props: Props): JSX.Element {
     setError('');
 
     const formData = new FormData(event.currentTarget);
-    const screenName = formData.get('screenName') as string;
-    const screenImgFile = formData.get('screenImg') as File;
+    const screenName = formData.get('screen-name') as string;
+    const screenImgFile = formData.get('screen-img') as File;
 
     if (!props.tourRid) {
       captureException('No tour found while uploading screen image');
@@ -63,15 +62,12 @@ export default function UploadImageScreen(props: Props): JSX.Element {
         },
       });
 
-      // TODO screen is of type Screen not P_RespScreen, actions should always be called via action creator
-      //      this is antipattern
-      props.handleAddScreen(screen as P_RespScreen);
+      props.handleAddScreen();
 
       // TODO[rrl] do this once api endpoint is completed
       setTimeout(() => {
         setUploading(false);
         props.closeModal();
-        props.hidePopup();
       }, 1000);
     } catch (err) {
       captureException(err);
@@ -104,7 +100,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
               id="screen-img"
               type="file"
               accept="image/png, image/jpeg, image/webp"
-              name="screenImg"
+              name="screen-img"
               required
             />
           </Tags.InputContainer>
@@ -114,11 +110,11 @@ export default function UploadImageScreen(props: Props): JSX.Element {
               id="screen-name"
               placeholder="Untitled"
               type="text"
-              name="screenName"
+              name="screen-name"
               required
             />
           </Tags.InputContainer>
-          <Tags.PrimaryButton type="submit" disabled={uploading}>
+          <Tags.PrimaryButton type="submit" disabled={uploading} name="screen-upload">
             {uploading ? 'Saving' : 'Save'}
           </Tags.PrimaryButton>
 

@@ -32,6 +32,7 @@ import { AnnUpdateType } from '../timeline/types';
 import { dSaveZoomPanState } from './deferred-tasks';
 import * as Tags from './styled';
 import {
+  AnnAddScreenModal,
   AnnotationNode,
   AnnotationPosition, CanvasGrid,
   EdgeWithData,
@@ -40,6 +41,8 @@ import {
 } from './types';
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
 import { isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
+import ScreenPicker from '../../container/screen-picker';
+import NewAnnotationPopup from '../timeline/new-annotation-popup';
 
 const { confirm } = Modal;
 
@@ -127,6 +130,13 @@ const initialAnnNodeModalData = {
   annId: '',
 };
 
+const initialAddScreenModal: AnnAddScreenModal = {
+  position: initialModalPos,
+  annId: '',
+  annotationPosition: 'prev',
+  screenAnnotation: null
+};
+
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
@@ -136,6 +146,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const ctxData = useRef<CtxSelectionData | null>(null);
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
+  const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -475,8 +486,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const prevent = (e: any): void => {
+    if (e.target.name !== 'screen-img' && e.target.name !== 'screen-upload') {
+      e.preventDefault();
+    }
     e.stopPropagation();
-    e.preventDefault();
   };
 
   // todo[now] delete if not needed
@@ -574,15 +587,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         prevent(e);
         const con = svgRef.current!.parentNode as HTMLDivElement;
         const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
+        const relCoord = fromPointer(e, con);
 
-        // setAddScreenModalData(
-        //   {
-        //     position: getLRPosition(relCoord, con),
-        //     annId: sel.id,
-        //     screenAnnotation: d.annotation,
-        //     annotationPosition: position
-        //   }
-        // );
+        setAddScreenModalData(
+          {
+            position: getLRPosition(relCoord, con),
+            annId: sel.id,
+            screenAnnotation: d.annotation,
+            annotationPosition: position
+          }
+        );
       });
 
     parent.append('circle')
@@ -1020,6 +1034,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           />
         </Tags.CanvasMenuItemCon>
       </Tags.CanvasMenuCon>
+      {showScreenSelector
+        && <ScreenPicker
+          isOpenScreenPicker={showScreenSelector}
+          hideScreenPicker={() => setShowScreenSelector(false)}
+          screenPickerMode="navigate"
+        />}
       {isMenuModalVisible(connectorMenuModalData.position) && (
         <Tags.MenuModalMask onClick={() => {
           ctxData.current = null;
@@ -1099,6 +1119,23 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 </div>
               </div>
             </div>
+          </Tags.MenuModal>
+        </Tags.MenuModalMask>
+      )}
+      {isMenuModalVisible(addScreenModalData.position) && addScreenModalData.screenAnnotation && (
+        <Tags.MenuModalMask onClick={() => {
+          setAddScreenModalData(initialAddScreenModal);
+        }}
+        >
+          <Tags.MenuModal xy={addScreenModalData.position} onClick={prevent}>
+            <NewAnnotationPopup
+              position={addScreenModalData.annotationPosition}
+              allAnnotationsForTour={props.allAnnotationsForTour}
+              annotation={addScreenModalData.screenAnnotation}
+              tourDataOpts={props.tourOpts}
+              hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
+              applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+            />
           </Tags.MenuModal>
         </Tags.MenuModalMask>
       )}
