@@ -69,9 +69,9 @@ export const applyFadeInTransitionToNode = (node: Node): void => {
   if (node.nodeType === 1) {
     const element = node as HTMLElement;
     element.style.opacity = '0';
-    element.style.transition = 'opacity 0.2s ease-out';
+    element.style.transition = 'opacity 0.3s ease-out';
     setTimeout(() => {
       element.style.opacity = '1';
-    }, 200);
+    }, 300);
   }
 };

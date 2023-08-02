@@ -282,7 +282,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
       return false;
     }
-    this.annotationLCM?.hide();
+    if (id === '') this.annotationLCM?.hideAnnButKeepMask();
+    else this.annotationLCM?.hide();
     return false;
   }
 
@@ -514,7 +515,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           }
           (el as Element).setAttribute(update.attrKey, update.attrNewVal);
         });
-        (el as HTMLElement).style.transition = 'all 0.2s ease-out';
+        (el as HTMLElement).style.transition = 'all 0.3s ease-out';
       }
     }
   };
@@ -677,7 +678,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       // go to next annotation
       setTimeout(() => {
         this.reachAnnotation(goToAnnId);
-      }, 200);
+      }, 300);
     } catch (err) {
       captureException(err);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');

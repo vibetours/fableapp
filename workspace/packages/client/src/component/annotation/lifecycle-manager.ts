@@ -136,6 +136,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.hideAllAnnotations();
   }
 
+  hideAnnButKeepMask() {
+    this.mode = AnnotationViewMode.Hide;
+    this.con.style.display = 'none';
+    this.createFullScreenMask();
+    this.hideAllAnnotations();
+  }
+
   // eslint-disable-next-line class-methods-use-this
   getBoundingRectWrtRootFrame(el: HTMLElement): Rect {
     const doc = el.ownerDocument;
@@ -269,7 +276,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
       let hotspotEl = null;
       const hotspotElPath = annotationDisplayConfig.config.hotspotElPath;
-      if (hotspotElPath) {
+      if (hotspotElPath && annotationDisplayConfig.isMaximized) {
         hotspotEl = this.elFromPath(hotspotElPath);
       }
 
