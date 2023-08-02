@@ -105,6 +105,7 @@ interface IOwnProps {
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
+  commitTx: (tx: Tx) => void;
   setAlert: (msg?: string) => void;
 }
 
@@ -112,12 +113,14 @@ const enum ElSelReqType {
   NA = 0,
   EditEl,
   AnnotateEl,
+  ElPicker
 }
 
 interface IOwnStateProps {
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
+  advancedElPickerSyncing: boolean;
   selectedElsParents: Node[];
   selectedAnnotationId: string;
   targetEl: HTMLElement | null;
@@ -158,6 +161,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
+      advancedElPickerSyncing: false,
       selectedAnnotationId: '',
       selectedHotspotEl: null,
       selectedAnnReplaceEl: null,
@@ -580,6 +584,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         // this happens when user clicks on "Add an annotation" first
     )) {
       this.setState(state => {
+        if (state.elSelRequestedBy === ElSelReqType.ElPicker) {
+          return { selectedAnnotationId: state.selectedAnnotationId, elSelRequestedBy: ElSelReqType.NA };
+        }
+
         let opts: ITourDataOpts = this.props.tourDataOpts;
         let conf = this.getAnnnotationFromEl(state.selectedEl!);
         let selectedAnnotationId;
@@ -594,7 +602,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         } else {
           selectedAnnotationId = conf.refId;
         }
-        return { selectedAnnotationId };
+        return { selectedAnnotationId, elSelRequestedBy: state.elSelRequestedBy };
       });
     }
 
@@ -779,10 +787,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               >
                 Upload Mask
               </button>
-              {/* <UploadButton
-                accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                onChange={this.handleUploadMaskImgChange(this.state.selectedEl!)}
-              /> */}
             </Tags.EditCtrlLI>
           )}
       </>
@@ -949,6 +953,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     elements={this.state.selectedElsParents}
                     domElPicker={this.iframeElManager}
                     selectedEl={this.state.selectedEl!}
+                    disabled={this.state.advancedElPickerSyncing}
                     count={this.state.selectedElsParents.length}
                     setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
                       const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
@@ -957,14 +962,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
                         if (annOnOldEl) {
                           const newElPath = this.iframeElManager?.elPath(newSelEl)!;
-                          this.props.onAnnotationCreateOrChange(null, annOnOldEl, 'delete', null);
                           const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
-
-                          for (const ann of this.props.allAnnotationsForScreen) {
-                            if (ann.id === annOnOldEl.id) {
-                              ann.id = newElPath;
-                            }
-                          }
+                          const tx = new Tx();
+                          tx.start();
                           const updates: Array<
                             [
                               screenId: number | null,
@@ -975,10 +975,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             [this.props.screen.id, annOnOldEl, 'delete'],
                             [this.props.screen.id, replaceWithAnn, 'upsert']
                           ];
-                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null)); // tx));
+                          this.setState({ advancedElPickerSyncing: true });
+                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
+                          this.props.commitTx(tx);
+                          setTimeout(() => {
+                            this.setState({ advancedElPickerSyncing: false });
+                          }, 2000);
                         }
                       }
-                      this.setState({ selectedEl: newSelEl });
+                      this.setState({ selectedEl: newSelEl, elSelRequestedBy: ElSelReqType.ElPicker });
                     }}
                     mouseLeaveHighlightMode={HighlightMode.Pinned}
                   />

@@ -892,6 +892,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       elements={selectedHotspotElsParents}
                       domElPicker={domElPicker}
                       selectedEl={selectedHotspotEl}
+                      disabled={false}
                       count={selectedHotspotElsParents.length}
                       setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
                         const newElPath = domElPicker.elPath(newSelEl)!;
@@ -932,6 +933,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onChange={(e) => setConfig(c => updateOverlay(c, e))}
           />
         </div>
+        {/*
         <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem', flexDirection: 'column' }}>
           <Tags.ActionPaneBtn
             type="text"
@@ -943,6 +945,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </Tags.ActionPaneBtn>
           {showSelectElement && <p>Select an element from screen</p>}
         </div>
+        */}
       </ActionPanel>
       <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.25rem' }}>
         <Tags.ActionPaneBtn type="text" icon={<DeleteOutlined />} danger onClick={showDeleteConfirm}>

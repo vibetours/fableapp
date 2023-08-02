@@ -168,15 +168,6 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
 
   const localStoreTimelineOrder = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
 
-  // if (!localStoreTimelineOrder.length && orderedAnns.length > 0) {
-  //   const newTimelineOrder = generateTimelineOrder(orderedAnns);
-  //   localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
-  // } else if (localStoreTimelineOrder.length) {
-  //   orderedAnns.sort(
-  //     (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
-  //   );
-  // }
-
   if (localStoreTimelineOrder.length) {
     orderedAnns.sort(
       (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
@@ -551,6 +542,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
               allAnnotationsForTour={this.props.allAnnotationsForTour}
               tourDataOpts={this.props.tourOpts}
+              commitTx={this.commitTx}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}

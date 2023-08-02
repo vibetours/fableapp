@@ -244,7 +244,6 @@ export function shallowCloneAnnotation(elPath: string, from: IAnnotationConfig):
     ...from,
     id: elPath,
     updatedAt: getCurrentUtcUnixTime(),
-    monoIncKey: from.monoIncKey + 1,
   };
   return newConf;
 }

@@ -136,7 +136,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.hideAllAnnotations();
   }
 
-  hideAnnButKeepMask() {
+  hideAnnButKeepMask(): void {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
     this.createFullScreenMask();
@@ -251,6 +251,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         if (type === 'complete') this.onScrollComplete();
       });
     } else {
+      this.win.scrollTo(0, 0);
       setTimeout(this.onScrollComplete, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
     }
   }

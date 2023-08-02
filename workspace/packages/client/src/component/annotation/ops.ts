@@ -23,6 +23,16 @@ export const addPrevAnnotation = (
   const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
   const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
   const prevBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'prev');
+  if (prevBtnOfSelectedAnn.hotspot?.actionValue.split('/')[1] === newAnnConfig.refId) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation is already the previous of the destination annotation, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
   const nextBtnOfNewAnnUpdate = {
     config: newAnnConfig,
     btnId: nextBtnOfNewAnn.id,
@@ -259,6 +269,16 @@ export const reorderAnnotation = (
   }
 
   const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
+  if (destinationAnnotation.refId === currentAnnConfig.refId) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation is already a previous annotation, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
 
   if (isNextBtnOpensALink(destinationAnnotation)) {
     return {
@@ -273,7 +293,7 @@ export const reorderAnnotation = (
   currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
 
   let updates: AnnUpdate[] = [];
-  let result;
+  let result: AnnUpdateType;
   if (position === DestinationAnnotationPosition.next) {
     result = addNextAnnotation(
       currentAnnConfig,
@@ -302,7 +322,7 @@ export const reorderAnnotation = (
   const groupUpdates = groupUpdatesByAnnotation([...updates, ...deleteUpdates]);
 
   return {
-    status: 'accepted',
+    status: result.status,
     main: result.main || afterDeleteMain,
     groupedUpdates: groupUpdates,
     updates,
@@ -345,6 +365,17 @@ export const addNextAnnotation = (
   const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
 
   const nextBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'next');
+
+  if (nextBtnOfSelectedAnn.hotspot?.actionValue.split('/')[1] === newAnnConfig.refId) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation is already the next of the destination annotation, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
 
   const prevBtnOfNewAnnUpdate = {
     config: newAnnConfig,

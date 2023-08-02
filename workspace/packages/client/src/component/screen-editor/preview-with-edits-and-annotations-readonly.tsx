@@ -282,7 +282,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
       return false;
     }
-    if (id === '') this.annotationLCM?.hideAnnButKeepMask();
+    if (this.props.playMode) this.annotationLCM?.hideAnnButKeepMask();
     else this.annotationLCM?.hide();
     return false;
   }
