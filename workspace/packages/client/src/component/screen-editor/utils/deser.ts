@@ -230,6 +230,39 @@ export const deserFrame = async (
   }
 };
 
+export const deserIframeEl = (
+  serNode: SerNode,
+  doc: Document,
+  version: string,
+  frameLoadingPromises: Promise<unknown>[],
+  assetLoadingPromises: Promise<unknown>[],
+  props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
+): void => {
+  const iframeEl = deser(serNode, doc, version, frameLoadingPromises, assetLoadingPromises, props);
+  const tNode = iframeEl as HTMLIFrameElement;
+
+  const htmlNode = serNode.chldrn.find(n => n.type === Node.ELEMENT_NODE && n.name === 'html');
+  if (htmlNode) {
+    const p = new Promise(resolve => {
+      tNode.onabort = () => {
+        console.error('Iframe loading aborted');
+        resolve(1);
+      };
+      tNode.onerror = () => {
+        console.error('Iframe loading failed');
+        resolve(1);
+      };
+
+      tNode.onload = () => {
+        const newDoc = tNode.contentDocument!;
+        deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises);
+        resolve(1);
+      };
+    });
+    frameLoadingPromises.push(p);
+  }
+};
+
 const stopEventBehaviour = (e: Event): void => {
   e.preventDefault();
   e.stopPropagation();

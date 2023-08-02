@@ -1,4 +1,4 @@
-import { EditFile, IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
+import { EditFile, IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
@@ -20,12 +20,12 @@ import {
   NavFn
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
-import Preview from './preview';
+import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
 import { isVideoAnnotation } from '../../utils';
-import { deser } from './utils/deser';
+import { deser, deserIframeEl } from './utils/deser';
 import { getAddDiffs, getDelDiffs, getReorderDiffs, getReplaceDiffs, getUpdateDiffs } from './utils/diffs/get-diffs';
 import {
   applyAddDiffsToSerDom,
@@ -358,12 +358,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
             const replaceDiff = diff as ReplaceDiff;
 
             replaceDiff.toBeReplacedNodes.forEach(toBeReplacedNode => {
-              const replacedNode = deser(
+              const replacedNode = this.deserElOrIframeEl(
                 diff.parentSerNode.chldrn[toBeReplacedNode.replaceNodeIdx],
                 doc,
                 screenDataVersion,
-                this.frameLoadingPromises,
-                this.assetLoadingPromises,
                 {
                   partOfSvgEl: toBeReplacedNode.isPartOfSVG ? 1 : 0,
                   shadowParent: null
@@ -412,12 +410,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           case 'replace': {
             const replaceDiff = diff as ReplaceDiff;
             replaceDiff.toBeReplacedNodes.forEach(toBeReplacedNode => {
-              const replacedNode = deser(
+              const replacedNode = this.deserElOrIframeEl(
                 diff.parentSerNode.chldrn[toBeReplacedNode.replaceNodeIdx],
                 parentEl.ownerDocument! || doc,
                 screenDataVersion,
-                this.frameLoadingPromises,
-                this.assetLoadingPromises,
                 {
                   partOfSvgEl: toBeReplacedNode.isPartOfSVG ? 1 : 0,
                   shadowParent: null
@@ -456,17 +452,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
             const addDiff = diff as AddDiff;
 
             addDiff.toBeAddedNodes.forEach(toBeAddedNode => {
-              const addedNode = deser(
+              const addedNode = this.deserElOrIframeEl(
                 diff.parentSerNode.chldrn[toBeAddedNode.idx],
                 parentEl.ownerDocument! || doc,
                 screenDataVersion,
-                this.frameLoadingPromises,
-                this.assetLoadingPromises,
                 {
                   partOfSvgEl: toBeAddedNode.isPartOfSVG ? 1 : 0,
                   shadowParent: null
                 }
-              )!;
+              );
 
               const pivotEl = parentEl!.childNodes[toBeAddedNode.idx];
 
@@ -523,6 +517,37 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         (el as HTMLElement).style.transition = 'all 0.2s ease-out';
       }
     }
+  };
+
+  deserElOrIframeEl = (
+    serNode: SerNode,
+    doc: Document,
+    version: string,
+    props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
+  ): Node => {
+    let deserNode: Node;
+
+    if (serNode.name === 'iframe' || serNode.name === 'object') {
+      deserNode = deserIframeEl(
+        serNode,
+        doc,
+        version,
+        this.frameLoadingPromises,
+        this.assetLoadingPromises,
+        props,
+      )!;
+    } else {
+      deserNode = deser(
+        serNode,
+        doc,
+        version,
+        this.frameLoadingPromises,
+        this.assetLoadingPromises,
+        props,
+      )!;
+    }
+
+    return deserNode;
   };
 
   applyDiffAndGoToAnn = async (
