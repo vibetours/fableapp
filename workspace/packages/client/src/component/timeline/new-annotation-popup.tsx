@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import {
   FullscreenOutlined,
   FileTextOutlined,
@@ -17,6 +17,7 @@ type Props = {
   annotation: IAnnotationConfigWithScreen
   tourDataOpts: ITourDataOpts,
   hidePopup: () => void;
+  raiseAlertIfOpsDenied: (msg?: string) => void;
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
 }
 
@@ -43,8 +44,8 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
       );
     }
 
-    props.applyAnnButtonLinkMutations(result);
-
+    if (result.status === 'denied') props.raiseAlertIfOpsDenied(result.deniedReason);
+    else props.applyAnnButtonLinkMutations(result);
     props.hidePopup();
   };
 

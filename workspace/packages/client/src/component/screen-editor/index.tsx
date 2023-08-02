@@ -14,7 +14,6 @@ import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fab
 import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
 import React from 'react';
-import { Alert } from 'antd';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import * as GTags from '../../common-styled';
@@ -58,7 +57,6 @@ import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './ut
 import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { DEFAULT_ALERT_FOR_ANN_OPS } from '../../utils';
 
 const { confirm } = Modal;
 
@@ -107,6 +105,7 @@ interface IOwnProps {
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
+  setAlert: (msg?: string) => void;
 }
 
 const enum ElSelReqType {
@@ -132,7 +131,6 @@ interface IOwnStateProps {
   imageMaskUploadModalError: string;
   imageMaskUploadModalIsUploading: boolean;
   selectedAnnotationCoords: string | null;
-  alertMsg: string;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -169,7 +167,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       showImageMaskUploadModal: false,
       imageMaskUploadModalError: '',
       imageMaskUploadModalIsUploading: false,
-      alertMsg: '',
     };
   }
 
@@ -1034,10 +1031,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     resetSelectedAnnotationId={() => this.setState({ selectedAnnotationId: '', selectedEl: null })}
                     selectedAnnotationId={this.state.selectedAnnotationId}
                     goToSelectionMode={this.goToSelectionMode}
-                    setAlertMsg={(alertMsg?: string) => this.setState({ alertMsg: alertMsg || DEFAULT_ALERT_FOR_ANN_OPS })}
+                    setAlertMsg={this.props.setAlert}
                   >
                     <AnnotationCreatorPanel
-                      setAlertMsg={(alertMsg: string) => this.setState({ alertMsg })}
+                      setAlertMsg={this.props.setAlert}
                       opts={this.props.tourDataOpts}
                       allAnnotationsForTour={this.props.allAnnotationsForTour}
                       screen={this.props.screen}
@@ -1112,7 +1109,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             </Tags.EditPanelSec>
           </div>
         </GTags.EditPanelCon>
-
         <ImageMaskUploadModal
           open={this.state.showImageMaskUploadModal}
           onCancel={this.handleImageMaskUploadModalOnCancel}
@@ -1120,15 +1116,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           error={this.state.imageMaskUploadModalError}
           isUploading={this.state.imageMaskUploadModalIsUploading}
         />
-        {this.state.alertMsg && <Alert
-          style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', margin: '1rem auto' }}
-          message="Error"
-          description={this.state.alertMsg}
-          type="warning"
-          showIcon
-          closable
-          onClose={() => this.setState({ alertMsg: '' })}
-        />}
       </GTags.PreviewAndActionCon>
     );
   }

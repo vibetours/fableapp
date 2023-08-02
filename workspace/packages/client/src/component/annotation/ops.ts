@@ -5,6 +5,12 @@ import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotati
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 
+function getValidValueForActionType(btn: IAnnotationButton): string | null {
+  return isNavigateHotspot(btn.hotspot)
+    ? btn.hotspot!.actionValue
+    : null;
+}
+
 export const addPrevAnnotation = (
   newAnnConfig: IAnnotationConfigWithScreenId,
   selectedAnnId: string,
@@ -15,11 +21,8 @@ export const addPrevAnnotation = (
   const updates: AnnUpdate[] = [];
 
   const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
-
   const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
-
   const prevBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'prev');
-
   const nextBtnOfNewAnnUpdate = {
     config: newAnnConfig,
     btnId: nextBtnOfNewAnn.id,
@@ -56,7 +59,7 @@ export const addPrevAnnotation = (
       config: newAnnConfig,
       btnId: prevBtnOfNewAnn.id,
       screenId: newAnnConfig.screenId,
-      actionValue: prevBtnOfSelectedAnn.hotspot.actionValue,
+      actionValue: getValidValueForActionType(prevBtnOfSelectedAnn),
     };
 
     updates.push(prevBtnOfNewAnnUpdate);
@@ -107,7 +110,7 @@ export const deleteAnnotation = (
         config: oldPrevAnnOfAnnToBeDeletedConfig,
         btnId: nextBtnOfOldPrevAnn.id,
         screenId: +prevScreenId,
-        actionValue: nextBtnOfCurrentAnn.hotspot!.actionValue,
+        actionValue: getValidValueForActionType(nextBtnOfCurrentAnn)
       };
 
       updates.push(prevBtnOfCurrentAnnUpdate);
@@ -137,7 +140,7 @@ export const deleteAnnotation = (
         config: oldNextAnnOfAnnToBeDeletedConfig,
         btnId: prevBtnOfOldNextAnn.id,
         screenId: +nextScreenId,
-        actionValue: prevBtnOfCurrentAnn.hotspot!.actionValue,
+        actionValue: getValidValueForActionType(prevBtnOfCurrentAnn),
       };
 
       updates.push(nextBtnOfCurrentAnnUpdate);
@@ -207,6 +210,7 @@ export const updateGrpIdForTimelineTillEnd = (
   grpId: string
 ): AnnUpdate[] => {
   const updates: AnnUpdate[] = [];
+  // TODO duplicate code this and inside while loop. remove
   let toScreenId = annConfig.screenId.toString();
   let annId = annConfig.refId;
   let updatedAnn = updateAnnotationGrpId(annConfig, grpId);
@@ -255,6 +259,17 @@ export const reorderAnnotation = (
   }
 
   const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
+
+  if (isNextBtnOpensALink(destinationAnnotation)) {
+    return {
+      status: 'denied',
+      deniedReason: 'The destination annotation contains a link, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
   currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
 
   let updates: AnnUpdate[] = [];
@@ -366,7 +381,7 @@ export const addNextAnnotation = (
       config: newAnnConfig,
       btnId: nextBtnOfNewAnn.id,
       screenId: newAnnConfig.screenId,
-      actionValue: nextBtnOfSelectedAnn.hotspot.actionValue,
+      actionValue: getValidValueForActionType(nextBtnOfSelectedAnn),
     };
 
     updates.push(nextBtnOfNewAnnUpdate);

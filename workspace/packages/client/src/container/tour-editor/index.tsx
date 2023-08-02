@@ -16,6 +16,7 @@ import Button from 'antd/lib/button';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
+import Alert from 'antd/lib/alert';
 import {
   AnnAdd,
   clearCurrentScreenSelection,
@@ -57,17 +58,20 @@ import {
   LOCAL_STORE_TIMELINE_ORDER_KEY,
   clearTimelineOrderFromLocalStorage,
   openTourExternalLink,
-  getAnnotationsPerScreen
+  getAnnotationsPerScreen,
+  DEFAULT_ALERT_FOR_ANN_OPS
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
 import {
   addPrevAnnotation,
   addNextAnnotation,
-  getAnnotationSerialIdMap
+  getAnnotationSerialIdMap,
+  getAnnotationByRefId
 } from '../../component/annotation/ops';
 import { AnnUpdateType } from '../../component/timeline/types';
 import Loader from '../../component/loader';
+import raiseDeferredError from '../../deferred-error';
 
 interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
@@ -164,13 +168,22 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
 
   const localStoreTimelineOrder = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
 
-  if (!localStoreTimelineOrder.length && orderedAnns.length > 0) {
-    const newTimelineOrder = generateTimelineOrder(orderedAnns);
-    localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
-  } else if (localStoreTimelineOrder.length) {
+  // if (!localStoreTimelineOrder.length && orderedAnns.length > 0) {
+  //   const newTimelineOrder = generateTimelineOrder(orderedAnns);
+  //   localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
+  // } else if (localStoreTimelineOrder.length) {
+  //   orderedAnns.sort(
+  //     (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
+  //   );
+  // }
+
+  if (localStoreTimelineOrder.length) {
     orderedAnns.sort(
       (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
     );
+  } else {
+    const newTimelineOrder = generateTimelineOrder(orderedAnns);
+    localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
   }
 
   return orderedAnns;
@@ -237,7 +250,12 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
 
-  const annotationSerialIdMap: Record<string, number> = getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour);
+  let annotationSerialIdMap: Record<string, number> = {};
+  try {
+    annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour);
+  } catch (e) {
+    raiseDeferredError(e as Error);
+  }
 
   return {
     tour: state.default.currentTour,
@@ -248,7 +266,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     tourData: state.default.tourData,
     allEdits,
-    timeline: getTimeLine(anPerScreen),
+    timeline: state.default.tourLoaded ? getTimeLine(anPerScreen) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
     tourOpts,
@@ -271,7 +289,9 @@ type IProps = IOwnProps &
     screenId: string;
     annotationId?: string;
   }>;
-interface IOwnStateProps { }
+interface IOwnStateProps {
+  alertMsg: string;
+}
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private static LOCAL_STORAGE_KEY_PREFIX = 'fable/syncnd';
@@ -281,6 +301,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private static LOCAL_STORAGE_KEY_PREFIX_TOUR_DATA = `${TourEditor.LOCAL_STORAGE_KEY_PREFIX}/index`;
 
   private chunkSyncManager: ChunkSyncManager | null = null;
+
+  constructor(props: IProps) {
+    super(props);
+    this.state = {
+      alertMsg: '',
+    };
+  }
 
   componentDidMount(): void {
     document.title = this.props.title;
@@ -320,8 +347,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         );
       }
 
-      this.applyAnnButtonLinkMutations(result);
-      this.props.clearRelayScreenAndAnnAdd();
+      if (result.status === 'denied') this.showHideAlert(result.deniedReason);
+      else {
+        this.applyAnnButtonLinkMutations(result);
+        this.props.clearRelayScreenAndAnnAdd();
+      }
     }
   }
 
@@ -464,6 +494,17 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return [];
   };
 
+  isTourMainSet = (): boolean => {
+    const main = this.props.tourOpts.main;
+    if (main) {
+      const annId = main.split('/')[1];
+      if (getAnnotationByRefId(annId, this.props.allAnnotationsForTour)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   render(): ReactElement {
     if (!this.isLoadingComplete()) {
       return (
@@ -485,6 +526,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             renameScreen={(newVal: string) => this.props.renameScreen(this.props.screen!, newVal)}
             showRenameIcon={this.isInCanvas()}
             showPreview={`/p/tour/${this.props.tour?.rid}`}
+            isTourMainSet={this.isTourMainSet()}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{
@@ -503,6 +545,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               allEdits={this.props.allEdits}
               toAnnotationId={this.props.match.params.annotationId || ''}
               navigate={this.navFn}
+              setAlert={this.showHideAlert}
               timeline={this.props.timeline}
               createDefaultAnnotation={this.createDefaultAnnotation}
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
@@ -532,6 +575,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 key={this.props.tour?.rid}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 navigate={this.navigateTo}
+                setAlert={this.showHideAlert}
                 onTourDataChange={this.onTourDataChange}
                 tour={this.props.tour!}
                 timeline={this.props.timeline}
@@ -540,10 +584,23 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           ) : (<HeartLoader />)
           )}
+          {this.state.alertMsg && <Alert
+            style={{ position: 'absolute', left: '0', bottom: '0', width: '100%' }}
+            message="Error"
+            description={this.state.alertMsg}
+            type="warning"
+            showIcon
+            closable
+            onClose={() => this.setState({ alertMsg: '' })}
+          />}
         </GTags.BodyCon>
       </GTags.ColCon>
     );
   }
+
+  showHideAlert = (msg?: string): void => {
+    this.setState({ alertMsg: msg || DEFAULT_ALERT_FOR_ANN_OPS });
+  };
 
   private updateButton = (
     config: IAnnotationConfig,
@@ -562,7 +619,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         type: 'an-btn',
         on: 'click',
         target: '$this',
-        actionType: config.buttons.find(btn => btn.id === btnId)!.hotspot!.actionType || 'navigate',
+        actionType: config.buttons.find(btn => btn.id === btnId)!.hotspot?.actionType || 'navigate',
         actionValue
       });
     } else {

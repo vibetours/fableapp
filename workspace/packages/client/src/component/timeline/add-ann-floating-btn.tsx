@@ -17,6 +17,7 @@ interface Props {
   showAddAnnButtons: boolean;
   onOpenChange: (visible: boolean) => void;
   alignment: 'top' | 'bottom';
+  setAlertMsg: (alertMsg?: string) => void;
 }
 
 export default function AddAnnFloatingBtn({
@@ -29,7 +30,8 @@ export default function AddAnnFloatingBtn({
   open,
   showAddAnnButtons,
   onOpenChange,
-  alignment
+  alignment,
+  setAlertMsg
 }: Props):JSX.Element {
   return (
     <Popover
@@ -44,6 +46,7 @@ export default function AddAnnFloatingBtn({
           tourDataOpts={tourDataOpts}
           hidePopup={hidePopup}
           applyAnnButtonLinkMutations={applyAnnButtonLinkMutations}
+          raiseAlertIfOpsDenied={setAlertMsg}
         />
     }
       open={open}

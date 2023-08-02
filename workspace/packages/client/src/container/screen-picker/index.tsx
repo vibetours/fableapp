@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { ArrowUpOutlined, FileImageOutlined, FileTextOutlined, RightSquareFilled, UploadOutlined } from '@ant-design/icons';
 import { getDisplayableTime } from '@fable/common/dist/utils';
+import { LoadingStatus } from '@fable/common/dist/types';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import { AddScreenToTour, AnnAdd, addScreenToTour, getAllScreens } from '../../action/creator';
@@ -17,12 +18,12 @@ import { ScreenPickerMode } from '../../component/timeline/types';
 import Loader from '../../component/loader';
 
 interface IDispatchProps {
-  getAllScreens: () => void;
+  getAllScreens: (forceRefresh?: boolean) => void;
   addScreenToTour: AddScreenToTour;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  getAllScreens: () => dispatch(getAllScreens(false)),
+  getAllScreens: (forceRefresh: boolean = false) => dispatch(getAllScreens(forceRefresh)),
   addScreenToTour: (
     screen,
     tourRid,
@@ -35,12 +36,14 @@ interface IAppStateProps {
   rootScreens: P_RespScreen[];
   tour: P_RespTour | null;
   allAnnotationsForTour: AnnotationPerScreen[];
+  screenLoadingFinished: boolean;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   rootScreens: state.default.rootScreens,
   tour: state.default.currentTour,
   allAnnotationsForTour: getAnnotationsPerScreen(state),
+  screenLoadingFinished: state.default.allScreensLoadingStatus === LoadingStatus.Done
 });
 
 interface IOwnProps {
@@ -65,7 +68,6 @@ type IOwnStateProps = {
   screensPartOfTour: P_RespScreen[],
   showUploadScreenImgModal: boolean,
   currentPage: number,
-  screenLoading: boolean
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -124,7 +126,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       screensPartOfTour: [],
       showUploadScreenImgModal: false,
       currentPage: 1,
-      screenLoading: true,
+      // screenLoading: true,
     };
   }
 
@@ -135,9 +137,8 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
-    if (prevProps.rootScreens !== this.props.rootScreens) {
+    if (this.props.screenLoadingFinished && prevProps.screenLoadingFinished !== this.props.screenLoadingFinished) {
       this.formAndSetScreensNotPartOfTour();
-      this.setState({ screenLoading: false });
     }
 
     if (this.props.tour && prevProps.tour !== this.props.tour) {
@@ -228,6 +229,11 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
               label: 'All Screens',
               children: (
                 <Tags.ScreenTab>
+                  {!this.props.screenLoadingFinished && (
+                  <div style={{ height: '40px' }}>
+                    <Loader width="100px" txtBefore="Loading all screens" />
+                  </div>
+                  )}
                   {this.state.screensNotPartOfTour.length > 0 ? (
                     <>
                       <GTags.Txt
@@ -262,19 +268,6 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                     </>
                   ) : (
                     <>
-                      {this.state.screenLoading
-                        ? (
-                          <div style={{ height: '40px' }}>
-                            <Loader width="100px" />
-                          </div>
-                        )
-                        : (
-                          <p>
-                            <GTags.Txt>
-                              All captured screens are already part of this tour. Any new screen captured will be available here.
-                            </GTags.Txt>
-                          </p>
-                        )}
                       <Tags.Screen
                         onClick={() => {
                           this.setState({ showUploadScreenImgModal: true });
@@ -321,7 +314,9 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
               open={this.state.showUploadScreenImgModal}
               closeModal={() => this.setState({ showUploadScreenImgModal: false })}
               tourRid={this.props.tour!.rid}
-              handleAddScreen={() => this.props.getAllScreens()}
+              handleAddScreen={() => {
+                this.props.getAllScreens(true);
+              }}
             />
           )
         }

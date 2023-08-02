@@ -83,6 +83,7 @@ export default function Timeline(props: Props): JSX.Element {
                     tourDataOpts={props.tourDataOpts}
                     isAnnotationDragged={isAnnotationDragged}
                     setIsAnnotationDragged={setIsAnnotationDragged}
+                    setAlertMsg={props.setAlertMsg}
                     setCurrentSelectedAnnotation={
                       (currentSelectedAnnotation: IAnnotationConfigWithScreen) => {
                         reorderAnnotationPropsRef.current.currentSelectedAnnotation = currentSelectedAnnotation;

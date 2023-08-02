@@ -34,6 +34,7 @@ type Props = {
   reorderAnnotation: () => void,
   tourDataOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
+  setAlertMsg: (alertMsg?: string) => void,
 }
 
 export enum HoveredSection {
@@ -58,7 +59,8 @@ export default function TimelineItem(props: Props): JSX.Element {
     setDesinationAnnotation,
     setDesinationAnnotationPosition,
     reorderAnnotation,
-    children
+    children,
+    setAlertMsg
   } = props;
 
   const [showAddAnnButtons, setShowAddBtns] = useState(false);
@@ -110,6 +112,7 @@ export default function TimelineItem(props: Props): JSX.Element {
           showAddAnnButtons={showAddAnnButtons}
           onOpenChange={(visible: boolean) => setShowBeforeAnnPopup(visible)}
           alignment="top"
+          setAlertMsg={setAlertMsg}
         />
 
         <Tooltip
@@ -128,6 +131,7 @@ export default function TimelineItem(props: Props): JSX.Element {
         <AddAnnFloatingBtn
           position="next"
           allAnnotationsForTour={props.allAnnotationsForTour}
+          setAlertMsg={setAlertMsg}
           annotation={config}
           tourDataOpts={props.tourDataOpts}
           hidePopup={() => setShowAfterAnnPopup(false)}

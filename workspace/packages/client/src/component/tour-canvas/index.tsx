@@ -9,7 +9,6 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert } from 'antd';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -41,7 +40,7 @@ import {
   ModalPosition
 } from './types';
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
-import { DEFAULT_ALERT_FOR_ANN_OPS, isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
+import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import ScreenPicker from '../../container/screen-picker';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
 
@@ -59,6 +58,7 @@ type CanvasProps = {
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
   commitTx: (tx: Tx) => void,
+  setAlert: (msg?: string) => void,
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -148,7 +148,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
-  const [alertMsg, setAlertMsg] = useState<string>('');
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -341,7 +340,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               if (result.status === 'accepted') {
                 props.applyAnnButtonLinkMutations(result);
                 reorderPropsRef.current = { ...initialReorderPropsValue };
-              } else setAlertMsg(result.deniedReason || DEFAULT_ALERT_FOR_ANN_OPS);
+              } else props.setAlert(result.deniedReason);
             },
             onCancel() { reorderPropsRef.current = { ...initialReorderPropsValue }; },
           });
@@ -396,7 +395,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     toAn.grpId = fromAn.grpId;
 
     if (isNextBtnOpensALink(fromAn)) {
-      setAlertMsg("The selected annotation contains a link, hence, it can't be reordered. ");
+      props.setAlert("The selected annotation contains a link, hence, it can't be reordered. ");
       return;
     }
 
@@ -587,6 +586,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     position: AnnotationPosition
   ): void {
     parent
+      .attr('class', `actnicngrp-${position}`)
       .attr(
         'transform',
         (d: AnnotationNode<dagre.Node>) => `translate(${position === 'prev' ? 20 : d.width - 20}, ${d.height / 2})`
@@ -928,6 +928,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .filter((d) => d.localIdx !== 0)
           .style('visibility', 'hidden');
 
+        p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-next').data(p.data(), d => d.id);
+        p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-prev').data(p.data(), d => d.id);
+
         p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
           .data(p.data(), d => d.id)
@@ -981,7 +984,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .data(p.data(), d => d.id)
           .attr('width', d => d.width)
           .attr('height', d => d.height);
-      })
+      });
+
+    nodeG
       .exit()
       .remove();
   }, [props.allAnnotationsForTour]);
@@ -1144,21 +1149,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               annotation={addScreenModalData.screenAnnotation}
               tourDataOpts={props.tourOpts}
               hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
+              raiseAlertIfOpsDenied={props.setAlert}
               applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
             />
           </Tags.MenuModal>
         </Tags.MenuModalMask>
-      )}
-      {alertMsg
-      && (
-      <Alert
-        message="Error"
-        description={alertMsg}
-        type="warning"
-        showIcon
-        closable
-        onClose={() => setAlertMsg('')}
-      />
       )}
     </>
   );

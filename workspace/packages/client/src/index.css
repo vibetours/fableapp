@@ -46,3 +46,7 @@ html, body {
 .ant-modal .ant-modal-content .anticon {
   color: #ff7350;
 }
+
+:root {
+  --AnnotationFontSizeMedium:  18
+}

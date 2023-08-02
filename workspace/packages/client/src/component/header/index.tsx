@@ -2,7 +2,7 @@ import React, { ReactElement, useState } from 'react';
 import { Avatar, Button, Modal } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CaretDownOutlined, CaretRightOutlined, EditOutlined, LogoutOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { CaretDownOutlined, CaretRightOutlined, EditOutlined, LogoutOutlined, ShareAltOutlined, WarningOutlined } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
@@ -21,7 +21,8 @@ interface IOwnProps {
   principal?: RespUser | null;
   titleText?: string;
   showRenameIcon?: boolean;
-  renameScreen?: (newVal: string) => void
+  renameScreen?: (newVal: string) => void;
+  isTourMainSet?: boolean;
 }
 
 type IProps = IOwnProps;
@@ -110,6 +111,25 @@ function Header(props: IOwnProps) {
       <Tags.RMenuCon>
         {props.showPreview && (
           <div style={{ display: 'flex', marginRight: '1rem', paddingRight: '1rem', borderRight: '1px solid #ffffff42' }}>
+            {
+              !props.isTourMainSet && (
+              <Tags.MenuItem>
+                <Tooltip title="Starting point is not set for this tour" overlayStyle={{ fontSize: '0.75rem' }}>
+                  <Button
+                    size="small"
+                    shape="circle"
+                    type="text"
+                    icon={<WarningOutlined
+                      style={{ color: 'white' }}
+                    />}
+                    onClick={(e) => {
+                    }}
+                  />
+                </Tooltip>
+              </Tags.MenuItem>
+              )
+             }
+
             <Tags.MenuItem>
               <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
                 <Button
