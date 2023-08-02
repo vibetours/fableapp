@@ -105,6 +105,7 @@ interface IProps {
   resetSelectedAnnotationElements: () => void;
   resetSelectedAnnotationId: () => void;
   selectedAnnotationCoords: string | null;
+  setAlertMsg: (alertMsg: string) => void;
 }
 
 interface IState {
@@ -661,8 +662,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                             actionValue: e.target.value,
                                           };
                                         }
-                                        const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
-                                        setConfig(thisAntn);
+                                        if (btnConf.hotspot?.actionType === 'navigate') {
+                                          props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
+                                        } else {
+                                          const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
+                                          setConfig(thisAntn);
+                                        }
                                       }}
                                       size="small"
                                       style={{ marginRight: '1rem' }}

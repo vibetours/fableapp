@@ -118,6 +118,13 @@ export const isNavigateHotspot = (hotspot: ITourEntityHotspot | null): boolean =
   return result;
 };
 
+export const isNextBtnOpensALink = (ann: IAnnotationConfig): boolean => {
+  const nxt = ann.buttons.find(btn => btn.type === 'next')!;
+  return !!(nxt.hotspot && nxt.hotspot.actionType === 'open');
+};
+
 export const clearTimelineOrderFromLocalStorage = (): void => {
   localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
 };
+
+export const DEFAULT_ALERT_FOR_ANN_OPS = 'Operation can\'t be performed.';

@@ -9,6 +9,7 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
+import { Alert } from 'antd';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -40,7 +41,7 @@ import {
   ModalPosition
 } from './types';
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
-import { isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
+import { DEFAULT_ALERT_FOR_ANN_OPS, isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import ScreenPicker from '../../container/screen-picker';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
 
@@ -147,6 +148,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
+  const [alertMsg, setAlertMsg] = useState<string>('');
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -323,7 +325,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
         if (reorderPropsRef.current.isCursorOnDropTarget) {
           confirm({
-            title: 'Do you want to reorder annotaiton?',
+            title: 'Do you want to reorder annotation?',
             icon: <SisternodeOutlined />,
             onOk() {
               const [currentScreenId, currentAnnRefId] = reorderPropsRef.current.currentDraggedAnnotationId.split('/');
@@ -334,10 +336,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 destinationAnnId,
                 props.allAnnotationsForTour,
                 props.tourOpts.main,
-                reorderPropsRef.current.destinationPosition!
+                reorderPropsRef.current.destinationPosition!,
               );
-              props.applyAnnButtonLinkMutations(result);
-              reorderPropsRef.current = { ...initialReorderPropsValue };
+              if (result.status === 'accepted') {
+                props.applyAnnButtonLinkMutations(result);
+                reorderPropsRef.current = { ...initialReorderPropsValue };
+              } else setAlertMsg(result.deniedReason || DEFAULT_ALERT_FOR_ANN_OPS);
             },
             onCancel() { reorderPropsRef.current = { ...initialReorderPropsValue }; },
           });
@@ -391,12 +395,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const toAn = allAnns[toScreenIdx].annotations[toAnIdx];
     toAn.grpId = fromAn.grpId;
 
+    if (isNextBtnOpensALink(fromAn)) {
+      setAlertMsg("The selected annotation contains a link, hence, it can't be reordered. ");
+      return;
+    }
+
     const tx = new Tx();
     tx.start();
 
     const grpIdUpdates = updateGrpIdForTimelineTillEnd({ ...toAn, screenId: +to.split('/')[0] }, allAnns, fromAn.grpId);
     const groupedUpdates = groupUpdatesByAnnotation(grpIdUpdates);
-    props.applyAnnGrpIdMutations({ groupedUpdates, updates: [], main: null, deletionUpdate: null }, tx);
+    props.applyAnnGrpIdMutations({ groupedUpdates, updates: [], main: null, deletionUpdate: null, status: 'accepted' }, tx);
 
     let update;
     const newGrpIdForMiddleGroup = nanoid();
@@ -418,7 +427,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         groupedUpdates: middleGroupedUpdates,
         updates: [],
         main: null,
-        deletionUpdate: null
+        deletionUpdate: null,
+        status: 'accepted'
       }, tx);
 
       const prevBtn = toOldAn.buttons.find(btn => btn.type === 'prev')!;
@@ -1138,6 +1148,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             />
           </Tags.MenuModal>
         </Tags.MenuModalMask>
+      )}
+      {alertMsg
+      && (
+      <Alert
+        message="Error"
+        description={alertMsg}
+        type="warning"
+        showIcon
+        closable
+        onClose={() => setAlertMsg('')}
+      />
       )}
     </>
   );

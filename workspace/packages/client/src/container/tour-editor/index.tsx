@@ -562,7 +562,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         type: 'an-btn',
         on: 'click',
         target: '$this',
-        actionType: 'navigate',
+        actionType: config.buttons.find(btn => btn.id === btnId)!.hotspot!.actionType || 'navigate',
         actionValue
       });
     } else {

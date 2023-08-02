@@ -12,7 +12,9 @@ export type AnnUpdateType = {
   main: string | null,
   updates: AnnUpdate[],
   groupedUpdates: GroupUpdatesByAnnotationType,
-  deletionUpdate: AnnUpdate | null
+  deletionUpdate: AnnUpdate | null,
+  status: 'accepted' | 'denied',
+  deniedReason?: string;
 }
 
 export type GroupUpdatesByAnnotationType = Record<string, AnnUpdate[]>

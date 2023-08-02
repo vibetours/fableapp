@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
-import { isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
+import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 
 export const addPrevAnnotation = (
   newAnnConfig: IAnnotationConfigWithScreenId,
@@ -81,7 +81,7 @@ export const addPrevAnnotation = (
   }
 
   const groupedUpdates = groupUpdatesByAnnotation(updates);
-  return { groupedUpdates, updates, main: newMain, deletionUpdate: null };
+  return { groupedUpdates, updates, main: newMain, deletionUpdate: null, status: 'accepted' };
 };
 
 export const deleteAnnotation = (
@@ -92,7 +92,7 @@ export const deleteAnnotation = (
 ): AnnUpdateType => {
   const updates: AnnUpdate[] = [];
   let newMain = null;
-  let deletionUpdate: AnnUpdate| null = null;
+  let deletionUpdate: AnnUpdate | null = null;
 
   const nextBtnOfCurrentAnn = getAnnotationBtn(annToBeDeletedConfig, 'next');
   const prevBtnOfCurrentAnn = getAnnotationBtn(annToBeDeletedConfig, 'prev');
@@ -163,7 +163,7 @@ export const deleteAnnotation = (
   }
 
   const groupedUpdates = groupUpdatesByAnnotation(updates);
-  return { groupedUpdates, updates, main: newMain, deletionUpdate };
+  return { groupedUpdates, updates, main: newMain, deletionUpdate, status: 'accepted' };
 };
 
 export const deleteConnection = (
@@ -198,7 +198,7 @@ export const deleteConnection = (
   const grpIdUpdates = updateGrpIdForTimelineTillEnd(toAnnConfig, allAnnotationsForTour, newGrpId);
 
   const groupedUpdates = groupUpdatesByAnnotation([...updates, ...grpIdUpdates]);
-  return { groupedUpdates, updates, main: null, deletionUpdate: null };
+  return { groupedUpdates, updates, main: null, deletionUpdate: null, status: 'accepted' };
 };
 
 export const updateGrpIdForTimelineTillEnd = (
@@ -241,8 +241,19 @@ export const reorderAnnotation = (
   destinationAnnId: string,
   allAnnotationsForTour: AnnotationPerScreen[],
   main: string | null,
-  position: DestinationAnnotationPosition
+  position: DestinationAnnotationPosition,
 ): AnnUpdateType => {
+  if (isNextBtnOpensALink(currentAnnConfig)) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation contains a link, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
+
   const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
   currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
 
@@ -276,6 +287,7 @@ export const reorderAnnotation = (
   const groupUpdates = groupUpdatesByAnnotation([...updates, ...deleteUpdates]);
 
   return {
+    status: 'accepted',
     main: result.main || afterDeleteMain,
     groupedUpdates: groupUpdates,
     updates,
@@ -304,6 +316,16 @@ export const addNextAnnotation = (
   const updates: AnnUpdate[] = [];
 
   const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
+  if (isNextBtnOpensALink(selectedAnnConfig)) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation contains a link, hence, it can\'t be reordered.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
 
   const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
 
@@ -362,7 +384,7 @@ export const addNextAnnotation = (
   }
 
   const groupedUpdates = groupUpdatesByAnnotation(updates);
-  return { groupedUpdates, updates, main: newMain, deletionUpdate: null };
+  return { groupedUpdates, updates, main: newMain, deletionUpdate: null, status: 'accepted' };
 };
 
 export const getAnnotationByRefId = (
@@ -383,7 +405,7 @@ export const getAnnotationByRefId = (
 export const getAnnotationBtn = (
   config: IAnnotationConfig,
   type: 'prev' | 'next'
-):IAnnotationButton => config.buttons.find(btn => btn.type === type)!;
+): IAnnotationButton => config.buttons.find(btn => btn.type === type)!;
 
 export type AnnotationSerialIdMap = Record<string, number>
 export const getAnnotationSerialIdMap = (

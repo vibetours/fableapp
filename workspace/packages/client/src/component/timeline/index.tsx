@@ -20,6 +20,7 @@ interface Props {
   selectedAnnotationId: string;
   goToSelectionMode: () => () => void;
   children: JSX.Element;
+  setAlertMsg: (alertMsg?: string) => void;
 }
 
 interface ReorderAnnotationProps {
@@ -47,10 +48,11 @@ export default function Timeline(props: Props): JSX.Element {
       reorderAnnotationPropsRef.current.destinationAnnotation!.refId,
       props.allAnnotationsForTour,
       props.tourDataOpts.main,
-      reorderAnnotationPropsRef.current.destinationAnnotationPosition!
+      reorderAnnotationPropsRef.current.destinationAnnotationPosition!,
     );
 
-    props.applyAnnButtonLinkMutations(result);
+    if (result.status === 'denied') props.setAlertMsg(result.deniedReason);
+    else props.applyAnnButtonLinkMutations(result);
   };
 
   return (
