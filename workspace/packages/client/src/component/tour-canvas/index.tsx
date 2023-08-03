@@ -9,6 +9,7 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
+import transition from 'd3-transition';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -506,15 +507,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const updateNodePos = (node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, SVGGElement, {}>): void => {
-    node.attr(
-      'transform',
-      d => {
-        const pos = d.storedData!;
-        const x = pos.x - pos.width / 2;
-        const y = pos.y - pos.height / 2;
-        return `translate(${x}, ${y})`;
-      }
-    );
+    node
+      .transition()
+      .attr(
+        'transform',
+        d => {
+          const pos = d.storedData!;
+          const x = pos.x - pos.width / 2;
+          const y = pos.y - pos.height / 2;
+          return `translate(${x}, ${y})`;
+        }
+      );
   };
 
   useEffect(() => {

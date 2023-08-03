@@ -14,6 +14,7 @@ import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fab
 import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
 import React from 'react';
+import { nanoid } from 'nanoid';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import * as GTags from '../../common-styled';
@@ -21,7 +22,7 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
   AnnotationPerScreen,
-  ConnectedOrderedAnnGroupedByScreen, EditItem,
+  ConnectedOrderedAnnGroupedByScreen, DestinationAnnotationPosition, EditItem,
   EditValueEncoding,
   ElEditType,
   FrameAssetLoadFn, IdxEditEncodingText,
@@ -36,7 +37,7 @@ import {
   shallowCloneAnnotation,
   IAnnotationConfigWithScreenId,
 } from '../annotation/annotation-config-utils';
-import { AnnotationSerialIdMap } from '../annotation/ops';
+import { addNextAnnotation, addPrevAnnotation, AnnotationSerialIdMap, getAnnotationBtn } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
 import Timeline from '../timeline';
 import { AnnUpdateType } from '../timeline/types';
@@ -57,6 +58,7 @@ import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './ut
 import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
+import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
 
 const { confirm } = Modal;
 
@@ -90,7 +92,6 @@ interface IOwnProps {
   allAnnotationsForScreen: IAnnotationConfig[];
   tour: P_RespTour;
   tourDataOpts: ITourDataOpts;
-  createDefaultAnnotation: (config: IAnnotationConfig, opts: ITourDataOpts) => void;
   timeline: ConnectedOrderedAnnGroupedByScreen,
   onAnnotationCreateOrChange: (
     screenId: number | null,
@@ -146,6 +147,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   private iframeElManager: DomElPicker | null = null;
 
   private microEdits: AllEdits<ElEditType>;
+
+  private lastSelectedAnnId = '';
 
   constructor(props: IOwnProps) {
     super(props);
@@ -532,6 +535,41 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ selectedAnnotationId: this.props.toAnnotationId });
   }
 
+  findPositionToAddAnnotation(): [IAnnotationConfig, DestinationAnnotationPosition] {
+    const lastAnnId = this.lastSelectedAnnId;
+    let validAnn = null;
+    if (lastAnnId) {
+      validAnn = getAnnotationByRefId(lastAnnId, this.props.allAnnotationsForTour);
+    }
+
+    if (validAnn) {
+      if (isNextBtnOpensALink(validAnn)) {
+        // If the annotation's next button open a new url on click of next, the new annotation needs to be placed before
+        // the selecedAnnotation.
+        return [validAnn, DestinationAnnotationPosition.prev];
+      }
+      const nextBtn = getAnnotationBtn(validAnn, 'next');
+      // If the last selected annotation (say `t`) is connected to other annotations, then
+      //  - if `t` is not connected to any other annotation then the new annotaiton is placed after
+      //  - if `t` is connected to other annotation in same screen then the new annotation is placed after
+      //  - if `t` is connected to other annotation in different screen then the new annotation is placed before
+      if (isNavigateHotspot(nextBtn.hotspot)) {
+        const [nextScreenId] = nextBtn.hotspot!.actionValue.split('/');
+        if (+nextScreenId === this.props.screen.id) {
+          return [validAnn, DestinationAnnotationPosition.next];
+        }
+        return [validAnn, DestinationAnnotationPosition.prev];
+      }
+      return [validAnn, DestinationAnnotationPosition.next];
+    }
+
+    const ann = this.props.allAnnotationsForScreen.slice(0).reverse().at(-1)!;
+    if (isNextBtnOpensALink(ann)) {
+      return [ann, DestinationAnnotationPosition.prev];
+    }
+    return [ann, DestinationAnnotationPosition.next];
+  }
+
   async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>): Promise<void> {
     if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
       this.setState({ selectedAnnotationId: this.props.toAnnotationId });
@@ -588,17 +626,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           return { selectedAnnotationId: state.selectedAnnotationId, elSelRequestedBy: ElSelReqType.NA };
         }
 
-        let opts: ITourDataOpts = this.props.tourDataOpts;
         let conf = this.getAnnnotationFromEl(state.selectedEl!);
         let selectedAnnotationId;
         if (!conf) {
-          conf = getSampleConfig(this.iframeElManager!.elPath(state.selectedEl!), '');
-          opts = this.props.tourDataOpts || getDefaultTourOpts();
-          this.props.createDefaultAnnotation(
-            conf,
-            opts
-          );
-          selectedAnnotationId = conf.refId;
+          const path = this.iframeElManager!.elPath(state.selectedEl!);
+          conf = this.createNewDefaultAnnotation(path);
+          selectedAnnotationId = conf!.refId;
         } else {
           selectedAnnotationId = conf.refId;
         }
@@ -606,14 +639,49 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       });
     }
 
-    if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId && this.state.selectedAnnotationId) {
-      this.selectElementIfAnnoted();
-      this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
+    if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId) {
+      if (this.state.selectedAnnotationId) {
+        this.selectElementIfAnnoted();
+        this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
+      }
+      this.lastSelectedAnnId = this.state.selectedAnnotationId || prevState.selectedAnnotationId;
     }
 
     if (prevProps.tourDataOpts.annotationSelectionColor !== this.props.tourDataOpts.annotationSelectionColor) {
       this.iframeElManager?.updateConfig('selectionColor', this.props.tourDataOpts.annotationSelectionColor);
     }
+  }
+
+  createNewDefaultAnnotation(id: string): IAnnotationConfig {
+    let conf;
+    const opts: ITourDataOpts = this.props.tourDataOpts;
+    if (this.props.allAnnotationsForScreen.length) {
+      const [destAnn, pos] = this.findPositionToAddAnnotation();
+      conf = getSampleConfig(id, destAnn.grpId);
+      let result;
+      if (pos === DestinationAnnotationPosition.prev) {
+        result = addPrevAnnotation(
+          { ...conf, screenId: this.props.screen.id },
+          destAnn.refId,
+          this.props.allAnnotationsForTour,
+          opts.main,
+        );
+      } else {
+        result = addNextAnnotation(
+          { ...conf, screenId: this.props.screen.id },
+          destAnn.refId,
+          this.props.allAnnotationsForTour,
+          null
+        );
+      }
+      if (result.status === 'denied') this.props.setAlert(result.deniedReason);
+      else this.props.applyAnnButtonLinkMutations(result);
+    } else {
+      conf = getSampleConfig(id, nanoid());
+      this.createAnnotationForTheFirstTime(conf);
+    }
+
+    return conf;
   }
 
   getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
@@ -866,13 +934,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }));
   };
 
-  createCoverAnnotation = (): void => {
-    const conf = getSampleConfig('$', '');
+  createAnnotationForTheFirstTime = (ann: IAnnotationConfig): void => {
     const opts = this.props.tourDataOpts || getDefaultTourOpts();
-    this.props.createDefaultAnnotation(
-      conf,
-      opts
-    );
+    opts.main = `${this.props.screen.id}/${ann.refId}`;
+    this.props.onAnnotationCreateOrChange(null, ann, 'upsert', opts);
+  };
+
+  createCoverAnnotationForTheFirstTime = (): void => {
+    const conf = getSampleConfig('$', nanoid());
+    this.createAnnotationForTheFirstTime(conf);
     this.setState({ selectedAnnotationId: conf.refId });
   };
 
@@ -1018,13 +1088,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               {this.state.activeTab === TabList.Annotations && (
                 <div>
                   <Tags.InfoText style={{ textAlign: 'center' }}>
-                    Select an element on the screen on the left <em>or</em>
+                    Select an element on the screen on the left {
+                      this.props.allAnnotationsForScreen.length
+                        ? (<span>to create an annotation</span>)
+                        : (<em>or</em>)
+                    }
                   </Tags.InfoText>
-                  <Tags.CreateCoverAnnotationBtn onClick={() => { this.createCoverAnnotation(); }}>
-                    <PlusOutlined />
-                    &nbsp;
-                    Create cover annotation
-                  </Tags.CreateCoverAnnotationBtn>
+                  {this.props.allAnnotationsForScreen.length === 0 && (
+                    <Tags.CreateCoverAnnotationBtn onClick={() => { this.createCoverAnnotationForTheFirstTime(); }}>
+                      <PlusOutlined />
+                      &nbsp;
+                      Create cover annotation
+                    </Tags.CreateCoverAnnotationBtn>
+                  )}
                   <Timeline
                     timeline={this.props.timeline}
                     navigate={this.navigateToAnnotation}
@@ -1234,14 +1310,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.setState({ selectedAnnotationCoords: coordsStr, selectionMode: 'annotation' });
       return;
     }
-    const opts: ITourDataOpts = this.props.tourDataOpts || getDefaultTourOpts();
-    const conf = getSampleConfig(coordsStr, '');
-
-    this.props.createDefaultAnnotation(
-      conf,
-      opts
-    );
-
+    const conf = this.createNewDefaultAnnotation(coordsStr);
     this.setState({ selectedAnnotationId: conf.refId });
   };
 

@@ -8,9 +8,8 @@ export const deser = (
   version: string,
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
-  // isPartOfSVG: boolean,
-  // isShadowRoot: ShadowRoot | null = null,
-  props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
+  nestedFrames: HTMLIFrameElement[] = [],
+  props: DeSerProps = { partOfSvgEl: 0, shadowParent: null },
 ): Node | null | undefined => {
   const newProps: DeSerProps = {
     // For svg and all the child nodes of svg set a flag
@@ -52,6 +51,7 @@ export const deser = (
         version,
         frameLoadingPromises,
         assetLoadingPromises,
+        nestedFrames,
         newProps
       );
       if (childNode && node && !child.props.isShadowRoot) {
@@ -83,6 +83,7 @@ export const deser = (
               tNode.onload = () => {
                 const newDoc = tNode.contentDocument!;
                 deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises);
+                nestedFrames.push(tNode);
                 resolve(1);
               };
             });
@@ -213,6 +214,7 @@ export const deserFrame = async (
   v: string,
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
+  nestedFrames: HTMLIFrameElement[] = [],
 ): Promise<void> => {
   const rootHTMLEl = deser(
     docTree,
@@ -220,6 +222,7 @@ export const deserFrame = async (
     v,
     frameLoadingPromises,
     assetLoadingPromises,
+    nestedFrames,
   ) as HTMLElement;
   const childNodes = doc.childNodes;
   for (let i = 0; i < childNodes.length; i++) {
@@ -236,9 +239,10 @@ export const deserIframeEl = (
   version: string,
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
+  nestedFrames: HTMLIFrameElement[] = [],
   props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
 ): void => {
-  const iframeEl = deser(serNode, doc, version, frameLoadingPromises, assetLoadingPromises, props);
+  const iframeEl = deser(serNode, doc, version, frameLoadingPromises, assetLoadingPromises, nestedFrames, props);
   const tNode = iframeEl as HTMLIFrameElement;
 
   const htmlNode = serNode.chldrn.find(n => n.type === Node.ELEMENT_NODE && n.name === 'html');
@@ -256,6 +260,7 @@ export const deserIframeEl = (
       tNode.onload = () => {
         const newDoc = tNode.contentDocument!;
         deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises);
+        nestedFrames.push(tNode);
         resolve(1);
       };
     });

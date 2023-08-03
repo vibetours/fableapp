@@ -19,13 +19,13 @@ export default function TimelineScreen({
   const { user } = useAuth0();
   const conRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (selected) {
-      setTimeout(() => {
-        conRef.current && scrollIntoView(conRef.current, { time: 1000 });
-      }, 100);
-    }
-  }, [selected]);
+  // useEffect(() => {
+  //   if (selected) {
+  //     setTimeout(() => {
+  //       conRef.current && scrollIntoView(conRef.current, { time: 1000, top: 10 });
+  //     }, 100);
+  //   }
+  // }, [selected]);
 
   return (
     <Tags.Con style={{ opacity: selected ? 1 : 0.6, marginLeft: '28px' }} ref={conRef}>

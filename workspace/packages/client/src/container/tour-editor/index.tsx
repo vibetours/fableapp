@@ -119,7 +119,6 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
   // inside each connected screen, each screen group is one array
   const orderedAnns: ConnectedOrderedAnnGroupedByScreen = [];
   while (true) {
-    const grpId = nanoid();
     const anns = Object.values(flatAnns);
     if (!anns.length) {
       break;
@@ -153,7 +152,7 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
     let prevScreenId = -1;
     for (let i = 0, l = connectedOrderedAnn.length; i < l; i++) {
       const an = connectedOrderedAnn[i];
-      an.grpId = an.grpId || grpId;
+      an.grpId = an.grpId || nanoid();
       if (an.screen.id === prevScreenId) {
         annotationGroupByScreen.push(an);
       } else {
@@ -180,6 +179,16 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
   return orderedAnns;
 };
 
+const isTourMainSet = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
+  if (main) {
+    const annId = main.split('/')[1];
+    if (getAnnotationByRefId(annId, allAnns)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 interface IAppStateProps {
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
@@ -191,11 +200,11 @@ interface IAppStateProps {
   allAnnotationsForScreen: IAnnotationConfig[];
   tourOpts: ITourDataOpts;
   allAnnotationsForTour: AnnotationPerScreen[];
-  tourData: TourData | null;
   principal: RespUser | null;
   timeline: ConnectedOrderedAnnGroupedByScreen;
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
+  isMainValid: boolean;
   annotationSerialIdMap: Record<string, number>;
 }
 
@@ -240,12 +249,11 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   const allAnnotationsForTour = getAnnotationsPerScreen(state);
 
   const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
-
+  let isMainValid = false;
   let annotationSerialIdMap: Record<string, number> = {};
-  try {
+  if (state.default.tourLoaded) {
+    isMainValid = isTourMainSet(tourOpts.main, allAnnotationsForTour);
     annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour);
-  } catch (e) {
-    raiseDeferredError(e as Error);
   }
 
   return {
@@ -255,8 +263,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     flattenedScreens: state.default.allScreens,
     screenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
-    tourData: state.default.tourData,
     allEdits,
+    isMainValid,
     timeline: state.default.tourLoaded ? getTimeLine(anPerScreen) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
@@ -485,17 +493,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return [];
   };
 
-  isTourMainSet = (): boolean => {
-    const main = this.props.tourOpts.main;
-    if (main) {
-      const annId = main.split('/')[1];
-      if (getAnnotationByRefId(annId, this.props.allAnnotationsForTour)) {
-        return true;
-      }
-    }
-    return false;
-  };
-
   render(): ReactElement {
     if (!this.isLoadingComplete()) {
       return (
@@ -517,7 +514,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             renameScreen={(newVal: string) => this.props.renameScreen(this.props.screen!, newVal)}
             showRenameIcon={this.isInCanvas()}
             showPreview={`/p/tour/${this.props.tour?.rid}`}
-            isTourMainSet={this.isTourMainSet()}
+            isTourMainSet={this.props.isMainValid}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{
@@ -538,7 +535,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               navigate={this.navFn}
               setAlert={this.showHideAlert}
               timeline={this.props.timeline}
-              createDefaultAnnotation={this.createDefaultAnnotation}
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
               allAnnotationsForTour={this.props.allAnnotationsForTour}
               tourDataOpts={this.props.tourOpts}
@@ -688,85 +684,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           update.screenId,
           update.grpId!,
           tx,
-        );
-      }
-    }
-  };
-
-  private createDefaultAnnotation = (config: IAnnotationConfig, opts: ITourDataOpts): void => {
-    const flatAnnsForTour: [number, IAnnotationConfig][] = [];
-    for (const annPerScreen of this.props.allAnnotationsForTour) {
-      for (const ann of annPerScreen.annotations) {
-        if (ann.refId === config.refId) continue;
-        flatAnnsForTour.push([annPerScreen.screen.id, ann]);
-      }
-    }
-
-    flatAnnsForTour.sort((m, n) => n[1].createdAt - m[1].createdAt);
-
-    const currentScreenId = this.props.screen!.id;
-
-    const lastEntity = this.props.tourData!.entities[this.props.screen!.id!];
-    // TODO[rr] this extra step is required because if an annotation is deleted and created again
-    // the annotation object in tour index.tsx remains. we have to delete it from tour file and then
-    let noAnnotationPresent = false;
-    let annotations: IAnnotationOriginConfig[] = [];
-    if (!lastEntity) {
-      noAnnotationPresent = true;
-    } else {
-      annotations = Object.values((lastEntity as TourScreenEntity).annotations || {});
-      if (annotations.length === 0) {
-        noAnnotationPresent = true;
-      }
-    }
-
-    if (noAnnotationPresent) {
-      this.onTourDataChange('annotation-and-theme', this.props.screen!.id, {
-        config,
-        opts,
-        actionType: 'upsert'
-      });
-      this.props.navigate(`${config.refId}`);
-      return;
-    }
-
-    const lastEntityAnnotations = annotations.sort((m, n) => m.createdAt - n.createdAt);
-    const lastAnnotation = lastEntityAnnotations.at(-1) as IAnnotationConfig;
-
-    let newOpts = opts;
-    const newConfig = config;
-    const thisAnnQid = `${this.props.screen!.id}/${config.refId}`;
-    if (flatAnnsForTour.length === 0) {
-      // For the first time add the first annotation id as entry point
-      newOpts = updateTourDataOpts(opts, 'main', thisAnnQid);
-    } else if (lastAnnotation) {
-      const lastAnnNextBtn = lastAnnotation.buttons.find(btn => btn.type === 'next')!;
-      this.updateButton(lastAnnotation, lastAnnNextBtn.id, currentScreenId, `${currentScreenId}/${config.refId}`, opts);
-
-      const currentAnnPrevButton = config.buttons.find(btn => btn.type === 'prev')!;
-      const currentAnnNextButton = config.buttons.find(btn => btn.type === 'next')!;
-      const currentAnnConfig = this.updateButton(
-        { ...config, grpId: lastAnnotation.grpId },
-        currentAnnPrevButton.id,
-        currentScreenId,
-        `${currentScreenId}/${lastAnnotation.refId}`,
-        opts
-      );
-
-      if (lastAnnNextBtn.hotspot && lastAnnNextBtn.hotspot.actionType === 'navigate') {
-        const nextEntityId = lastAnnNextBtn.hotspot.actionValue.split('/')[0];
-        const nextEntity = this.props.tourData!.entities[nextEntityId];
-        const nextEntityAnnotations = Object.values((nextEntity as TourScreenEntity).annotations)
-          .sort((m, n) => m.createdAt - n.createdAt);
-        const nextAnnotation = nextEntityAnnotations[0] as IAnnotationConfig;
-        const nextAnnPrevBtn = nextAnnotation.buttons.find(btn => btn.type === 'prev')!;
-        this.updateButton(nextAnnotation, nextAnnPrevBtn.id, +nextEntityId, `${currentScreenId}/${config.refId}`, opts);
-        this.updateButton(
-          { ...currentAnnConfig, grpId: nextAnnotation.grpId },
-          currentAnnNextButton.id,
-          currentScreenId,
-          `${nextEntityId}/${nextAnnotation.refId}`,
-          opts
         );
       }
     }

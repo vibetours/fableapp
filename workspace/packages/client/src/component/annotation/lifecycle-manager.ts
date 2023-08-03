@@ -139,8 +139,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   hideAnnButKeepMask(): void {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
-    this.createFullScreenMask();
     this.hideAllAnnotations();
+    this.createFullScreenMask();
   }
 
   // eslint-disable-next-line class-methods-use-this

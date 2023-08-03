@@ -107,7 +107,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           doc,
           this.props.screenData.version,
           this.frameLoadingPromises,
-          this.assetLoadingPromises
+          this.assetLoadingPromises,
+          this.nestedFrames
         );
         frame.contentDocument.body.style.visibility = 'hidden';
         while (this.frameLoadingPromises.length) {

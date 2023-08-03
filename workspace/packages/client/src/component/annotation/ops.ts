@@ -1,15 +1,101 @@
-import { IAnnotationButton, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationButton, IAnnotationConfig, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 
-function getValidValueForActionType(btn: IAnnotationButton): string | null {
+function getValidNavigateValueForActionType(btn: IAnnotationButton): string | null {
   return isNavigateHotspot(btn.hotspot)
     ? btn.hotspot!.actionValue
     : null;
 }
+
+export const addNextAnnotation = (
+  newAnnConfig: IAnnotationConfigWithScreenId,
+  selectedAnnId: string,
+  allAnnotationsForTour: AnnotationPerScreen[],
+  main: string | null,
+): AnnUpdateType => {
+  const updates: AnnUpdate[] = [];
+
+  const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
+  if (isNextBtnOpensALink(selectedAnnConfig)) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation will open a new url when next button is cliced, hence a new annotation can\'t be added. Deleting the url and try again.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
+
+  const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
+  const nextBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'next');
+
+  if (isNavigateHotspot(nextBtnOfSelectedAnn.hotspot) && nextBtnOfSelectedAnn.hotspot!.actionValue.split('/')[1] === newAnnConfig.refId) {
+    return {
+      status: 'denied',
+      deniedReason: 'The selected annotation is already the next of the destination annotation. Nothing to do here.',
+      main,
+      groupedUpdates: {},
+      updates: [],
+      deletionUpdate: null
+    };
+  }
+
+  const prevBtnOfNewAnnUpdate = {
+    config: newAnnConfig,
+    btnId: prevBtnOfNewAnn.id,
+    screenId: newAnnConfig.screenId,
+    actionValue: `${selectedAnnConfig.screenId}/${selectedAnnConfig.refId}`,
+  };
+  updates.push(prevBtnOfNewAnnUpdate);
+
+  const nextBtnOfSelectedAnnUpdate = {
+    config: selectedAnnConfig,
+    btnId: nextBtnOfSelectedAnn.id,
+    screenId: selectedAnnConfig.screenId,
+    actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
+  };
+  updates.push(nextBtnOfSelectedAnnUpdate);
+
+  if (isNavigateHotspot(nextBtnOfSelectedAnn.hotspot)) {
+    const [nextScreenId, nextAnnRefId] = nextBtnOfSelectedAnn.hotspot!.actionValue.split('/');
+    const oldNextAnnOfSelectedAnnConfig = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
+    const prevBtnOfOldNextAnn = getAnnotationBtn(oldNextAnnOfSelectedAnnConfig, 'prev');
+    const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
+
+    const prevBtnOfOldNextAnnUpdate = {
+      config: oldNextAnnOfSelectedAnnConfig,
+      btnId: prevBtnOfOldNextAnn.id,
+      screenId: +nextScreenId,
+      actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
+    };
+    updates.push(prevBtnOfOldNextAnnUpdate);
+
+    const nextBtnOfNewAnnUpdate = {
+      config: newAnnConfig,
+      btnId: nextBtnOfNewAnn.id,
+      screenId: newAnnConfig.screenId,
+      actionValue: nextBtnOfSelectedAnn.hotspot!.actionValue,
+    };
+    updates.push(nextBtnOfNewAnnUpdate);
+  } else {
+    const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
+    const nextBtnOfNewAnnUpdate = {
+      config: newAnnConfig,
+      btnId: nextBtnOfNewAnn.id,
+      screenId: newAnnConfig.screenId,
+      actionValue: null,
+    };
+    updates.push(nextBtnOfNewAnnUpdate);
+  }
+
+  const groupedUpdates = groupUpdatesByAnnotation(updates);
+  return { groupedUpdates, updates, main: null, deletionUpdate: null, status: 'accepted' };
+};
 
 export const addPrevAnnotation = (
   newAnnConfig: IAnnotationConfigWithScreenId,
@@ -23,10 +109,12 @@ export const addPrevAnnotation = (
   const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
   const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
   const prevBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'prev');
-  if (prevBtnOfSelectedAnn.hotspot?.actionValue.split('/')[1] === newAnnConfig.refId) {
+  // TODO[clarify] why is this needed here. Looks like reordering code
+  // let's say reorder function is calling this, shouldn't it be the job of reordering function
+  if (isNavigateHotspot(prevBtnOfSelectedAnn.hotspot) && prevBtnOfSelectedAnn.hotspot!.actionValue.split('/')[1] === newAnnConfig.refId) {
     return {
       status: 'denied',
-      deniedReason: 'The selected annotation is already the previous of the destination annotation, hence, it can\'t be reordered.',
+      deniedReason: 'The selected annotation is already the previous of the destination annotation, Nothing to do here.',
       main,
       groupedUpdates: {},
       updates: [],
@@ -47,49 +135,41 @@ export const addPrevAnnotation = (
     screenId: selectedAnnConfig.screenId,
     actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
   };
-
   updates.push(prevBtnOfSelectedAnnUpdate);
 
-  if (prevBtnOfSelectedAnn.hotspot && prevBtnOfSelectedAnn.hotspot.actionType === 'navigate') {
-    const [prevScreenId, prevAnnRefId] = prevBtnOfSelectedAnn.hotspot.actionValue.split('/');
+  if (isNavigateHotspot(prevBtnOfSelectedAnn.hotspot)) {
+    const [prevScreenId, prevAnnRefId] = prevBtnOfSelectedAnn.hotspot!.actionValue.split('/');
     const oldPrevAnnOfSelectedAnnConfig = getAnnotationByRefId(prevAnnRefId, allAnnotationsForTour)!;
     const nextBtnOfOldPrevAnn = getAnnotationBtn(oldPrevAnnOfSelectedAnnConfig, 'next');
-
     const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
 
-    const nextBtnOfPrevAnnUpdate = {
+    const nextBtnOfOldPrevAnnUpdate = {
       config: oldPrevAnnOfSelectedAnnConfig,
       btnId: nextBtnOfOldPrevAnn.id,
       screenId: +prevScreenId,
       actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
     };
-    updates.push(nextBtnOfPrevAnnUpdate);
+    updates.push(nextBtnOfOldPrevAnnUpdate);
 
     const prevBtnOfNewAnnUpdate = {
       config: newAnnConfig,
       btnId: prevBtnOfNewAnn.id,
       screenId: newAnnConfig.screenId,
-      actionValue: getValidValueForActionType(prevBtnOfSelectedAnn),
+      actionValue: prevBtnOfSelectedAnn.hotspot!.actionValue,
     };
-
     updates.push(prevBtnOfNewAnnUpdate);
   } else {
     const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
-
     const prevBtnOfNewAnnUpdate = {
       config: newAnnConfig,
       btnId: prevBtnOfNewAnn.id,
       screenId: newAnnConfig.screenId,
       actionValue: null,
     };
-
     updates.push(prevBtnOfNewAnnUpdate);
   }
 
-  if ((
-    !prevBtnOfSelectedAnn.hotspot
-    || prevBtnOfSelectedAnn.hotspot.actionType === 'open')
-    && main && selectedAnnConfig.refId === main.split('/')[1]) {
+  if (main && selectedAnnConfig.refId === main.split('/')[1]) {
     newMain = `${newAnnConfig.screenId}/${newAnnConfig.refId}`;
   }
 
@@ -110,63 +190,40 @@ export const deleteAnnotation = (
   const nextBtnOfCurrentAnn = getAnnotationBtn(annToBeDeletedConfig, 'next');
   const prevBtnOfCurrentAnn = getAnnotationBtn(annToBeDeletedConfig, 'prev');
 
-  if (prevBtnOfCurrentAnn.hotspot && prevBtnOfCurrentAnn.hotspot.actionType === 'navigate') {
-    const [prevScreenId, prevAnnRefId] = prevBtnOfCurrentAnn.hotspot.actionValue.split('/');
-    const oldPrevAnnOfAnnToBeDeletedConfig = getAnnotationByRefId(prevAnnRefId, allAnnotationsForTour)!;
-    const nextBtnOfOldPrevAnn = getAnnotationBtn(oldPrevAnnOfAnnToBeDeletedConfig, 'next');
+  // a <- [b] <- c
+  if (isNavigateHotspot(prevBtnOfCurrentAnn.hotspot)) {
+    const [prevScreenId, prevAnnRefId] = prevBtnOfCurrentAnn.hotspot!.actionValue.split('/');
+    const oldPrevAnnConfig = getAnnotationByRefId(prevAnnRefId, allAnnotationsForTour)!;
+    const nextBtnOfOldPrevAnn = getAnnotationBtn(oldPrevAnnConfig, 'next');
 
-    if (nextBtnOfCurrentAnn.hotspot) {
-      const prevBtnOfCurrentAnnUpdate = {
-        config: oldPrevAnnOfAnnToBeDeletedConfig,
-        btnId: nextBtnOfOldPrevAnn.id,
-        screenId: +prevScreenId,
-        actionValue: getValidValueForActionType(nextBtnOfCurrentAnn)
-      };
-
-      updates.push(prevBtnOfCurrentAnnUpdate);
-    } else {
-      const prevBtnOfCurrentAnnUpdate = {
-        config: oldPrevAnnOfAnnToBeDeletedConfig,
-        btnId: nextBtnOfOldPrevAnn.id,
-        screenId: +prevScreenId,
-        actionValue: null,
-      };
-
-      updates.push(prevBtnOfCurrentAnnUpdate);
-    }
+    const nextBtnOfOldPrevAnnUpdate = {
+      config: oldPrevAnnConfig,
+      btnId: nextBtnOfOldPrevAnn.id,
+      screenId: +prevScreenId,
+      actionValue: getValidNavigateValueForActionType(nextBtnOfCurrentAnn)
+    };
+    updates.push(nextBtnOfOldPrevAnnUpdate);
   }
 
-  if (nextBtnOfCurrentAnn.hotspot && nextBtnOfCurrentAnn.hotspot.actionType === 'navigate') {
-    const [nextScreenId, nextAnnRefId] = nextBtnOfCurrentAnn.hotspot.actionValue.split('/');
-    const oldNextAnnOfAnnToBeDeletedConfig = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
-    const prevBtnOfOldNextAnn = getAnnotationBtn(oldNextAnnOfAnnToBeDeletedConfig, 'prev');
+  // a -> [b] -> c
+  if (isNavigateHotspot(nextBtnOfCurrentAnn.hotspot)) {
+    const [nextScreenId, nextAnnRefId] = nextBtnOfCurrentAnn.hotspot!.actionValue.split('/');
+    const oldNextAnnOfAnnConfig = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
+    const prevBtnOfOldNextAnn = getAnnotationBtn(oldNextAnnOfAnnConfig, 'prev');
 
-    if (main && annToBeDeletedConfig.refId === main.split('/')[1]) {
-      newMain = nextBtnOfCurrentAnn.hotspot.actionValue;
-    }
-
-    if (prevBtnOfCurrentAnn.hotspot) {
-      const nextBtnOfCurrentAnnUpdate = {
-        config: oldNextAnnOfAnnToBeDeletedConfig,
-        btnId: prevBtnOfOldNextAnn.id,
-        screenId: +nextScreenId,
-        actionValue: getValidValueForActionType(prevBtnOfCurrentAnn),
-      };
-
-      updates.push(nextBtnOfCurrentAnnUpdate);
-    } else {
-      const nextBtnOfCurrentAnnUpdate = {
-        config: oldNextAnnOfAnnToBeDeletedConfig,
-        btnId: prevBtnOfOldNextAnn.id,
-        screenId: +nextScreenId,
-        actionValue: null,
-      };
-
-      updates.push(nextBtnOfCurrentAnnUpdate);
-    }
+    const prevBtnOfOldNextAnnUpdate = {
+      config: oldNextAnnOfAnnConfig,
+      btnId: prevBtnOfOldNextAnn.id,
+      screenId: +nextScreenId,
+      actionValue: getValidNavigateValueForActionType(prevBtnOfCurrentAnn),
+    };
+    updates.push(prevBtnOfOldNextAnnUpdate);
   }
 
   if (hardDelete) {
+    if (main && annToBeDeletedConfig.refId === main.split('/')[1]) {
+      newMain = '';
+    }
     deletionUpdate = {
       config: annToBeDeletedConfig,
       btnId: '',
@@ -206,48 +263,13 @@ export const deleteConnection = (
     actionValue: null,
   };
   updates.push(prevBtnOfToAnnUpdate);
+
   const newGrpId = nanoid();
   updateLocalTimelineGroupProp(newGrpId, fromAnnConfig.grpId);
   const grpIdUpdates = updateGrpIdForTimelineTillEnd(toAnnConfig, allAnnotationsForTour, newGrpId);
 
   const groupedUpdates = groupUpdatesByAnnotation([...updates, ...grpIdUpdates]);
   return { groupedUpdates, updates, main: null, deletionUpdate: null, status: 'accepted' };
-};
-
-export const updateGrpIdForTimelineTillEnd = (
-  annConfig: IAnnotationConfigWithScreenId,
-  allAnnotationsForTour: AnnotationPerScreen[],
-  grpId: string
-): AnnUpdate[] => {
-  const updates: AnnUpdate[] = [];
-  // TODO duplicate code this and inside while loop. remove
-  let toScreenId = annConfig.screenId.toString();
-  let annId = annConfig.refId;
-  let updatedAnn = updateAnnotationGrpId(annConfig, grpId);
-  let nextAnnBtn = updatedAnn.buttons.find(btn => btn.type === 'next');
-  let nextAnnBtnHotspot = nextAnnBtn!.hotspot;
-  updates.push({
-    config: annConfig,
-    btnId: nextAnnBtn!.id,
-    screenId: +toScreenId,
-    actionValue: nextAnnBtnHotspot?.actionValue || null,
-    grpId
-  });
-  while (isNavigateHotspot(nextAnnBtnHotspot)) {
-    [toScreenId, annId] = nextAnnBtnHotspot!.actionValue.split('/');
-    annConfig = getAnnotationByRefId(annId, allAnnotationsForTour)!;
-    updatedAnn = updateAnnotationGrpId(annConfig, grpId);
-    nextAnnBtn = updatedAnn.buttons.find(btn => btn.type === 'next');
-    nextAnnBtnHotspot = nextAnnBtn!.hotspot;
-    updates.push({
-      config: annConfig,
-      btnId: nextAnnBtn!.id,
-      screenId: +toScreenId,
-      actionValue: nextAnnBtnHotspot?.actionValue || null,
-      grpId
-    });
-  }
-  return updates;
 };
 
 export const reorderAnnotation = (
@@ -257,22 +279,24 @@ export const reorderAnnotation = (
   main: string | null,
   position: DestinationAnnotationPosition,
 ): AnnUpdateType => {
-  if (isNextBtnOpensALink(currentAnnConfig)) {
+  const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
+  const nextBtnOfDestinationAnn = getAnnotationBtn(destinationAnnotation, 'next');
+
+  if (isNextBtnOpensALink(currentAnnConfig) && (position === DestinationAnnotationPosition.prev || nextBtnOfDestinationAnn.hotspot)) {
+    // if current annotation has a link in next button it can only be placec at the very end
     return {
       status: 'denied',
-      deniedReason: 'The selected annotation contains a link, hence, it can\'t be reordered.',
+      deniedReason: 'The selected annotation would open a url when next button is clicked, hence, it can\'t be reordered in between. Delete the url and try again.',
       main,
       groupedUpdates: {},
       updates: [],
       deletionUpdate: null
     };
   }
-
-  const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
   if (destinationAnnotation.refId === currentAnnConfig.refId) {
     return {
       status: 'denied',
-      deniedReason: 'The selected annotation is already a previous annotation, hence, it can\'t be reordered.',
+      deniedReason: 'The selected annotation is already a previous annotation, nothing to do',
       main,
       groupedUpdates: {},
       updates: [],
@@ -280,18 +304,18 @@ export const reorderAnnotation = (
     };
   }
 
-  if (isNextBtnOpensALink(destinationAnnotation)) {
+  if (isNextBtnOpensALink(destinationAnnotation) && position === DestinationAnnotationPosition.next) {
     return {
       status: 'denied',
-      deniedReason: 'The destination annotation contains a link, hence, it can\'t be reordered.',
+      deniedReason: 'The destination annotation would open a link when next button is clicked, hence it can\'t be reordered. Delete the url and try again.',
       main,
       groupedUpdates: {},
       updates: [],
       deletionUpdate: null
     };
   }
-  currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
 
+  currentAnnConfig = updateAnnotationGrpId(currentAnnConfig, destinationAnnotation.grpId);
   let updates: AnnUpdate[] = [];
   let result: AnnUpdateType;
   if (position === DestinationAnnotationPosition.next) {
@@ -301,7 +325,6 @@ export const reorderAnnotation = (
       allAnnotationsForTour,
       main
     );
-
     updates = [...result.updates];
   } else {
     result = addPrevAnnotation(
@@ -310,7 +333,6 @@ export const reorderAnnotation = (
       allAnnotationsForTour,
       main
     );
-
     updates = [...result.updates];
   }
 
@@ -318,9 +340,7 @@ export const reorderAnnotation = (
     updates: deleteUpdates,
     main: afterDeleteMain
   } = deleteAnnotation(currentAnnConfig, allAnnotationsForTour, main, false);
-
   const groupUpdates = groupUpdatesByAnnotation([...updates, ...deleteUpdates]);
-
   return {
     status: result.status,
     main: result.main || afterDeleteMain,
@@ -341,96 +361,29 @@ export const groupUpdatesByAnnotation = (updates: AnnUpdate[]): GroupUpdatesByAn
   return result;
 };
 
-export const addNextAnnotation = (
-  newAnnConfig: IAnnotationConfigWithScreenId,
-  selectedAnnId: string,
+export const updateGrpIdForTimelineTillEnd = (
+  annConfig: IAnnotationConfigWithScreenId,
   allAnnotationsForTour: AnnotationPerScreen[],
-  main: string | null,
-): AnnUpdateType => {
-  const newMain = null;
+  grpId: string
+): AnnUpdate[] => {
   const updates: AnnUpdate[] = [];
-
-  const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
-  if (isNextBtnOpensALink(selectedAnnConfig)) {
-    return {
-      status: 'denied',
-      deniedReason: 'The selected annotation contains a link, hence, it can\'t be reordered.',
-      main,
-      groupedUpdates: {},
-      updates: [],
-      deletionUpdate: null
-    };
+  let ptr = annConfig;
+  while (true) {
+    const updatedAnn = updateAnnotationGrpId(ptr, grpId);
+    const nextAnnBtn = getAnnotationBtn(updatedAnn, 'next')!;
+    // TODO why is actionValue required for groupid updates?
+    updates.push({
+      config: ptr,
+      btnId: nextAnnBtn!.id,
+      screenId: ptr.screenId,
+      actionValue: getValidNavigateValueForActionType(nextAnnBtn),
+      grpId
+    });
+    if (!isNavigateHotspot(nextAnnBtn.hotspot)) break;
+    const [, nextAnnId] = nextAnnBtn.hotspot!.actionValue.split('/');
+    ptr = getAnnotationByRefId(nextAnnId, allAnnotationsForTour)!;
   }
-
-  const prevBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'prev');
-
-  const nextBtnOfSelectedAnn = getAnnotationBtn(selectedAnnConfig, 'next');
-
-  if (nextBtnOfSelectedAnn.hotspot?.actionValue.split('/')[1] === newAnnConfig.refId) {
-    return {
-      status: 'denied',
-      deniedReason: 'The selected annotation is already the next of the destination annotation, hence, it can\'t be reordered.',
-      main,
-      groupedUpdates: {},
-      updates: [],
-      deletionUpdate: null
-    };
-  }
-
-  const prevBtnOfNewAnnUpdate = {
-    config: newAnnConfig,
-    btnId: prevBtnOfNewAnn.id,
-    screenId: newAnnConfig.screenId,
-    actionValue: `${selectedAnnConfig.screenId}/${selectedAnnConfig.refId}`,
-  };
-  updates.push(prevBtnOfNewAnnUpdate);
-
-  const nextBtnOfSelectedAnnUpdate = {
-    config: selectedAnnConfig,
-    btnId: nextBtnOfSelectedAnn.id,
-    screenId: selectedAnnConfig.screenId,
-    actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
-  };
-  updates.push(nextBtnOfSelectedAnnUpdate);
-
-  if (nextBtnOfSelectedAnn.hotspot && nextBtnOfSelectedAnn.hotspot.actionType === 'navigate') {
-    const [nextScreenId, nextAnnRefId] = nextBtnOfSelectedAnn.hotspot.actionValue.split('/');
-    const oldNextAnnOfSelectedAnnConfig = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
-    const prevBtnOfOldNextAnn = getAnnotationBtn(oldNextAnnOfSelectedAnnConfig, 'prev');
-
-    const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
-
-    const prevBtnOfNextAnnUpdate = {
-      config: oldNextAnnOfSelectedAnnConfig,
-      btnId: prevBtnOfOldNextAnn.id,
-      screenId: +nextScreenId,
-      actionValue: `${newAnnConfig.screenId}/${newAnnConfig.refId}`,
-    };
-    updates.push(prevBtnOfNextAnnUpdate);
-
-    const nextBtnOfNewAnnUpdate = {
-      config: newAnnConfig,
-      btnId: nextBtnOfNewAnn.id,
-      screenId: newAnnConfig.screenId,
-      actionValue: getValidValueForActionType(nextBtnOfSelectedAnn),
-    };
-
-    updates.push(nextBtnOfNewAnnUpdate);
-  } else {
-    const nextBtnOfNewAnn = getAnnotationBtn(newAnnConfig, 'next');
-
-    const nextBtnOfNewAnnUpdate = {
-      config: newAnnConfig,
-      btnId: nextBtnOfNewAnn.id,
-      screenId: newAnnConfig.screenId,
-      actionValue: null,
-    };
-
-    updates.push(nextBtnOfNewAnnUpdate);
-  }
-
-  const groupedUpdates = groupUpdatesByAnnotation(updates);
-  return { groupedUpdates, updates, main: newMain, deletionUpdate: null, status: 'accepted' };
+  return updates;
 };
 
 export const getAnnotationByRefId = (
@@ -453,27 +406,23 @@ export const getAnnotationBtn = (
   type: 'prev' | 'next'
 ): IAnnotationButton => config.buttons.find(btn => btn.type === type)!;
 
+// TODO why create custom type for a simple type
 export type AnnotationSerialIdMap = Record<string, number>
 export const getAnnotationSerialIdMap = (
   tourOpts: ITourDataOpts,
   allAnnotationsForTour: AnnotationPerScreen[]
-): AnnotationSerialIdMap => {
+): Record<string, number> => {
   const annotationSerialIdMap: Record<string, number> = {};
-
-  if (tourOpts.main) {
-    let refId = tourOpts.main.split('/')[1];
-    let annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
-    let nextBtn = getAnnotationBtn(annotation!, 'next');
-    let idx = 0;
-    while (nextBtn) {
-      annotationSerialIdMap[refId] = idx;
-      if (!(nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate')) break;
-      idx += 1;
-      refId = nextBtn.hotspot.actionValue.split('/')[1];
-      annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
-      nextBtn = getAnnotationBtn(annotation!, 'next');
-    }
+  let refId = tourOpts.main.split('/')[1];
+  let idx = 0;
+  while (true) {
+    const annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
+    if (!annotation) break; // sometime main would not point to proper annotation
+    annotationSerialIdMap[refId] = idx;
+    const nextBtn = getAnnotationBtn(annotation!, 'next');
+    if (!isNavigateHotspot(nextBtn.hotspot)) break;
+    idx += 1;
+    refId = nextBtn.hotspot!.actionValue.split('/')[1];
   }
-
   return annotationSerialIdMap;
 };

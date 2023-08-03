@@ -81,6 +81,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   private assetLoadingPromises: Promise<unknown>[] = [];
 
+  private nestedFrames: Array<HTMLIFrameElement> = [];
+
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
@@ -391,12 +393,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
 
       if (diff.isPartOfShadowHost || diffType === 'reorder') {
-        const newParentEl = deser(
+        const newParentEl = this.deserElOrIframeEl(
           diff.parentSerNode,
           parentEl.ownerDocument! || doc,
           screenDataVersion,
-          this.frameLoadingPromises,
-          this.assetLoadingPromises,
           {
             partOfSvgEl: 0,
             /**
@@ -474,6 +474,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
                   screenDataVersion,
                   this.frameLoadingPromises,
                   this.assetLoadingPromises,
+                  this.nestedFrames,
                   {
                     partOfSvgEl: toBeAddedNode.isPartOfSVG ? 1 : 0,
                     shadowParent: null
@@ -535,6 +536,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         version,
         this.frameLoadingPromises,
         this.assetLoadingPromises,
+        this.nestedFrames,
         props,
       )!;
     } else {
@@ -544,6 +546,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         version,
         this.frameLoadingPromises,
         this.assetLoadingPromises,
+        this.nestedFrames,
         props,
       )!;
     }
@@ -559,6 +562,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const [goToScreenId, goToAnnId] = goToAnnIdWithScreenId.split('/');
 
     const { screenId: currScreenId } = getAnnotationByRefId(currAnnId, this.props.allAnnotationsForTour)!;
+
+    this.reachAnnotation('');
 
     /**
      * If the annotation is on the same screen,
@@ -637,8 +642,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
-      this.reachAnnotation('');
-
       const replaceDiffs = getReplaceDiffs(currScreenData.docTree, goToScreenData.docTree);
       const afterReplaceSerDom = applyReplaceDiffsToSerDom(replaceDiffs, currScreenData.docTree);
 
