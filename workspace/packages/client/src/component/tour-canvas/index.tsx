@@ -338,10 +338,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 props.tourOpts.main,
                 reorderPropsRef.current.destinationPosition!,
               );
-              if (result.status === 'accepted') {
-                props.applyAnnButtonLinkMutations(result);
-                reorderPropsRef.current = { ...initialReorderPropsValue };
-              } else props.setAlert(result.deniedReason);
+              if (result.status === 'accepted') props.applyAnnButtonLinkMutations(result);
+              else props.setAlert(result.deniedReason);
+
+              reorderPropsRef.current = { ...initialReorderPropsValue };
             },
             onCancel() { reorderPropsRef.current = { ...initialReorderPropsValue }; },
           });

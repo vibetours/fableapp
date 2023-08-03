@@ -251,8 +251,10 @@ export function getSearializedDom(
 
           // WARN[#doctypenode] search with this
           let idx = 0;
+          let offset = 0;
           const chldrn = frameDoc.childNodes;
           if (chldrn[0].nodeType !== 10) {
+            offset = 1;
             sNode.chldrn.push({
               type: 10,
               name: "html",
@@ -274,7 +276,7 @@ export function getSearializedDom(
               });
             }
           }
-          traversalPath.push(idx);
+          traversalPath.push(idx + offset);
           const rep = getRep(frameDoc.documentElement, origin, traversalPath);
           sNode.chldrn.push(rep.serNode);
           traversalPath.pop();
