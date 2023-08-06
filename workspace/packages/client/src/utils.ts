@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
 import { TState } from './reducer';
 import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
@@ -9,7 +10,15 @@ export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
 }
 
-export function openTourExternalLink(uri: string) {
+export const usePrevious = <T extends unknown>(value: T): T | undefined => {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+};
+
+export function openTourExternalLink(uri: string): void {
   const qParamsStr = window.location.search;
   const qParams = new URLSearchParams(qParamsStr);
   qParams.forEach((val, key) => {

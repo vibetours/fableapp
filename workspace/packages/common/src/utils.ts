@@ -120,6 +120,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     videoUrlHls: '',
     videoUrlMp4: '',
     videoUrlWebm: '',
+    targetElCssStyle: '',
     showOverlay: true,
     // TODO : refactor it in such a way that only this 'hotspotElPath' property is enough
     // to convey if the ann has an hotspot. For eg. this will be null when hotspot toggle is off

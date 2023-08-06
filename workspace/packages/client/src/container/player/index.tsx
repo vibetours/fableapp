@@ -225,6 +225,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 divPadding={0}
                 navigate={this.navFn}
                 playMode
+                stashAnnIfAny={false}
                 onBeforeFrameBodyDisplay={() => {}}
                 allAnnotationsForScreen={this.props.allAnnotationAcrossScreens[config.screen.id]}
                 tourDataOpts={this.props.tourOpts!}

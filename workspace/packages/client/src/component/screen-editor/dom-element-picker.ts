@@ -7,13 +7,11 @@ export enum HighlightMode {
   Idle,
   Selection,
   Pinned,
-  NOOP,
-  PinnedHotspot,
+  __NOOP__
 }
 
 type ElSelectCallback = (
   el: HTMLElement,
-  parents: Node[]
 ) => void;
 
 type ElDeSelectCallback = (el: HTMLElement, doc: Document) => void;
@@ -100,7 +98,7 @@ export default class DomElementPicker extends HighlighterBase {
 
   private evts: Partial<Record<keyof HTMLElementEventMap, Array<(doc: Document) => (e: Event) => void>>>;
 
-  private selectedBoundedEl: HTMLElement | null;
+  private selectedBoundedEl: HTMLElement | null | undefined;
 
   constructor(
     doc: Document,
@@ -120,7 +118,7 @@ export default class DomElementPicker extends HighlighterBase {
     this.selectedBoundedEl = null;
   }
 
-  enable() {
+  enable(): DomElementPicker {
     if (this.highlightMode !== HighlightMode.Pinned) {
       this.highlightMode = HighlightMode.Selection;
     }
@@ -134,10 +132,10 @@ export default class DomElementPicker extends HighlighterBase {
 
   // eslint-disable-next-line class-methods-use-this
   highlightBgColor(): string {
-    return '#2196f317';
+    return `${this.config.selectionColor}25`;
   }
 
-  disable() {
+  disable(): DomElementPicker {
     if (this.highlightMode !== HighlightMode.Pinned) {
       this.highlightMode = HighlightMode.Idle;
       this.removeMaskIfPresent();
@@ -145,7 +143,15 @@ export default class DomElementPicker extends HighlighterBase {
     return this;
   }
 
-  getOutOfPinMode() {
+  clearMask(withMode?: HighlightMode): DomElementPicker {
+    if (withMode) this.highlightMode = withMode;
+    this.removeMaskIfPresent();
+    return this;
+  }
+
+  // stashCurrent -> only remove the selection from element visually
+  // It's the responsibility of the caller module to restore the stash
+  getOutOfPinMode(): DomElementPicker {
     this.highlightMode = HighlightMode.Selection;
     this.onElDeSelect(this.prevElHovered as HTMLElement, this.doc);
     this.removeMaskIfPresent();
@@ -159,7 +165,7 @@ export default class DomElementPicker extends HighlighterBase {
   addEventListener<K extends keyof DocumentEventMap>(
     eventName: K,
     fn: (doc: Document) => (e: DocumentEventMap[K]) => void
-  ) {
+  ): void {
     let fns: Array<(doc: Document) => (e: DocumentEventMap[K]) => void> = [];
     if (eventName in this.evts) {
       fns = this.evts[eventName]!;
@@ -173,18 +179,18 @@ export default class DomElementPicker extends HighlighterBase {
     }
   }
 
-  getMode() {
+  getMode(): HighlightMode {
     return this.highlightMode;
   }
 
-  setupHighlighting() {
+  setupHighlighting(): DomElementPicker {
     this.subscribeListenerToAllDoc('mousemove', this.handleMouseMove);
     this.subscribeListenerToAllDoc('click', this.handleClick);
 
     return this;
   }
 
-  dispose() {
+  dispose(): void {
     this.highlightMode = HighlightMode.Idle;
     this.evts = {};
     super.dispose();
@@ -193,7 +199,12 @@ export default class DomElementPicker extends HighlighterBase {
   // TODO If there are other html elements spanning over image element then we miss the image element, travarse the full
   // array returned by elementsFromPoint to checik if image element is in path.
   // Can be replicated using google analytics right top user icon click
-  private getPrimaryFocusElementBelowMouse(els: HTMLElement[], x: number, y: number, doc: Document): HTMLElement | Text {
+  private getPrimaryFocusElementBelowMouse(
+    els: HTMLElement[],
+    x: number,
+    y: number,
+    doc: Document
+  ): HTMLElement | Text {
     let i = 0;
     let svgEl: HTMLElement | null = null;
     for (const el of els) {
@@ -241,7 +252,6 @@ export default class DomElementPicker extends HighlighterBase {
 
   private handleMouseMove = (doc: Document) => (event: MouseEvent) => {
     if (this.highlightMode !== HighlightMode.Selection) return;
-    // const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
     const els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
     if (!els.length) return;
     const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY, doc);
@@ -257,14 +267,14 @@ export default class DomElementPicker extends HighlighterBase {
     this.selectElementInDoc(anchorEl, doc);
   };
 
-  selectElementInDoc(el: HTMLElement, doc: Document, mode = HighlightMode.NOOP, ghost = false) {
+  selectElementInDoc(el: HTMLElement, doc: Document, mode = HighlightMode.__NOOP__, ghost = false): void {
     !ghost && super.selectElementInDoc(el, doc);
     if (mode === HighlightMode.Pinned) {
       this.pinnedMode(el);
     }
   }
 
-  selectElement(el: HTMLElement, mode = HighlightMode.NOOP, ghost = false): void {
+  selectElement(el: HTMLElement, mode = HighlightMode.__NOOP__, ghost = false): void {
     this.selectElementInDoc(el, el.ownerDocument, mode, ghost);
   }
 
@@ -295,14 +305,13 @@ export default class DomElementPicker extends HighlighterBase {
     }).reverse();
   }
 
-  private pinnedMode(el: HTMLElement) {
+  private pinnedMode(el: HTMLElement): void {
     this.highlightMode = HighlightMode.Pinned;
-    const parents = this.getParents(el);
-    this.onElSelect(el, parents);
+    this.onElSelect(el);
     this.setBodyCursor('auto');
   }
 
-  createFullScreenMask() {
+  createFullScreenMask(): void {
     const el = this.doc.querySelector('body');
     if (el) {
       this.highlightMode = HighlightMode.Pinned;
@@ -324,11 +333,11 @@ export default class DomElementPicker extends HighlighterBase {
     }
   };
 
-  setSelectedBoundedEl(el: HTMLElement | null) {
+  setSelectedBoundedEl(el: HTMLElement | null | undefined): void {
     this.selectedBoundedEl = el;
   }
 
-  setBodyCursor(cursor: 'crosshair' | 'auto') {
+  setBodyCursor(cursor: 'crosshair' | 'auto'): void {
     this.doc.body.style.cursor = cursor;
   }
 }

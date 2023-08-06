@@ -284,3 +284,19 @@ export const ActionPaneSelect = styled(Select)`
     box-shadow: 0 0 0 1px #747474 !important;
   } 
 `;
+
+export const ActionPanelAdditionalActionIconCon = styled.span`
+  padding: 2px 4px;
+  border-radius: 2px;
+  &:hover {
+    background: #E0E0E0;
+    cursor: pointer;
+  }
+`;
+
+export const ActionPanelPopOverCon = styled.div`
+  .ant-popover-inner {
+    padding: 4px !important;
+    background: #f6f6f6 !important;
+  }
+`;

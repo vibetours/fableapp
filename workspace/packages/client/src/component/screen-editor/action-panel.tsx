@@ -1,5 +1,5 @@
 import { DownOutlined, UpOutlined, QuestionCircleOutlined, ArrowDownOutlined, ArrowUpOutlined, CaretDownOutlined, CaretUpOutlined } from '@ant-design/icons';
-import React, { ReactElement, useState } from 'react';
+import React, { JSXElementConstructor, ReactElement, useState } from 'react';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -10,9 +10,10 @@ interface IProps {
   helpText?: string;
   withGutter?: boolean;
   alwaysOpen?: boolean
+  sectionActionElWhenOpen?: ReactElement
 }
 
-function ActionPanel(props: React.PropsWithChildren<IProps>) {
+function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
   const [collapsed, setCollapsed] = useState(!props.alwaysOpen);
 
   return (
@@ -35,13 +36,21 @@ function ActionPanel(props: React.PropsWithChildren<IProps>) {
             </Tooltip>
             )}
           </div>
-          {!props.alwaysOpen && (
-            collapsed ? (
-              <CaretDownOutlined style={{ fontSize: '0.75rem' }} />
-            ) : (
-              <CaretUpOutlined style={{ fontSize: '0.75rem' }} />
-            )
-          )}
+          <div style={{
+            display: 'flex',
+            gap: '0.35rem',
+            alignItems: 'center',
+          }}
+          >
+            {!collapsed && props.sectionActionElWhenOpen && (props.sectionActionElWhenOpen)}
+            {!props.alwaysOpen && (
+              collapsed ? (
+                <CaretDownOutlined style={{ fontSize: '0.75rem' }} />
+              ) : (
+                <CaretUpOutlined style={{ fontSize: '0.75rem' }} />
+              )
+            )}
+          </div>
         </Tags.ActionPanelTitleCon>
       )}
       {!collapsed && (

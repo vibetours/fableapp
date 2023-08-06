@@ -1,21 +1,9 @@
 import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import HighlighterBase, { HighlighterBaseConfig } from '../base/hightligher-base';
-import { ROOT_EMBED_IFRAME_ID } from './preview';
-import DomElementPicker from './dom-element-picker';
+import { HighlighterBaseConfig } from '../base/hightligher-base';
+import DomElementPicker, { HighlightMode } from './dom-element-picker';
 
-export enum HighlightMode {
-  Idle,
-  Selection,
-  Pinned,
-  NOOP,
-  PinnedHotspot,
-}
-
-type ElSelectCallback = (
-  el: HTMLElement,
-  parents: Node[]
-) => void;
+type ElSelectCallback = (el: HTMLElement) => void;
 
 type ElDeSelectCallback = (el: HTMLElement, doc: Document) => void;
 

@@ -1,4 +1,4 @@
-import React, { HTMLInputTypeAttribute, ReactElement, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import {
   AnnotationButtonLayout,
   AnnotationButtonLayoutType,
@@ -32,20 +32,22 @@ import {
   SelectOutlined,
   SwitcherOutlined,
   ColumnWidthOutlined,
-  ColumnHeightOutlined
+  ColumnHeightOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { InputNumber, Radio } from 'antd';
-import type { RadioChangeEvent } from 'antd';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
+import CssEditor from '../css-editor';
 import {
   addCustomBtn,
   removeButtonWithId,
   toggleBooleanButtonProp,
   updateAnnotationText,
+  updateTargetElCssStyle,
   updateButtonProp,
   updateTourDataOpts,
   updateAnnotationBoxSize,
@@ -62,26 +64,21 @@ import {
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen, } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
-import AdvanceElementPicker from './advance-element.picker';
+import AEP from './advanced-element-picker';
 import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { hotspotHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation } from '../../utils';
+import { isVideoAnnotation, usePrevious } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../timeline/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
-
-const ButtonLayoutOptions = [
-  { label: ColumnHeightOutlined, value: 'column' },
-  { label: ColumnWidthOutlined, value: 'row' },
-];
+import ALCM from '../annotation/lifecycle-manager';
 
 const { confirm } = Modal;
 
 interface IProps {
   screen: P_RespScreen,
-  // config: IAnnotationConfigWithScreen,
   config: IAnnotationConfig,
   opts: ITourDataOpts,
   tour: P_RespTour,
@@ -93,6 +90,7 @@ interface IProps {
   ) => void;
   selectedHotspotEl: HTMLElement | null;
   selectedAnnReplaceEl: HTMLElement | null;
+  selectedEl: HTMLElement | null;
   setSelectionMode: (mode: 'annotation' | 'hotspot' | 'replace') => void;
   domElPicker: DomElPicker | null;
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
@@ -136,14 +134,6 @@ const buttonSecStyle: React.CSSProperties = {
   alignItems: 'center',
 };
 
-const usePrevious = <T extends unknown>(value: T): T | undefined => {
-  const ref = useRef<T>();
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-};
-
 export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
   const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
@@ -152,11 +142,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
   const [newHotspotSelected, setNewHotspotSelected] = useState<boolean>(false);
   const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
-  const [selectedHotspotElsParents, setSelectedHotspotElsParents] = useState<Node[]>([]);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [hotspotElText, setHotspotElText] = useState<string>('');
   const [showSelectElement, setShowSelectElement] = useState<boolean>(false);
   const [webFonts, setWebFonts] = useState<string[]>([]);
+  const [showBrandingOptionsPopup, setShowBrandingOptionsPopup] = useState(false);
+  const [showCssEditorForElOnScreen, setShowCssEditorForElOnScreen] = useState(false);
+  const unsubFn = useRef(() => {});
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -199,11 +191,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       const hotspotEl = domElPicker.elFromPath(config.hotspotElPath)!;
       if (hotspotEl) {
         setSelectedHotspotEl(hotspotEl);
-        const boundedEl = domElPicker.elFromPath(props.config.id)!;
-        domElPicker.setSelectedBoundedEl(boundedEl);
-        const parents = domElPicker.getParents(hotspotEl);
-        setSelectedHotspotElsParents(parents!);
-        domElPicker.setSelectedBoundedEl(null);
         setHotspotElText(hotspotEl.textContent || 'Hotspot element');
       }
     }
@@ -304,8 +291,22 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
 
+  let defaultCssTxt = config.targetElCssStyle;
+  if (props.selectedEl && props.config && showCssEditorForElOnScreen && !defaultCssTxt) {
+    const [sel, inf] = ALCM.getCompositeSelector(props.selectedEl!, props.config);
+    defaultCssTxt = `${sel} {
+  /* Write css for selected element here */
+}
+`;
+  }
+
   return (
-    <Tags.AnotCrtPanelCon className="e-ignr">
+    <Tags.AnotCrtPanelCon
+      className="e-ignr"
+      onClick={() => {
+        setShowBrandingOptionsPopup(false);
+      }}
+    >
       <ActionPanel alwaysOpen>
         <AnnotationRichTextEditor
           throttledChangeHandler={(htmlString, displayText) => {
@@ -382,207 +383,275 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
 
       </ActionPanel>
-      <ActionPanel title="Branding">
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Primary color</GTags.Txt>
-          <Tags.ColorInputWrapper>
-            <div>
-              <Tags.InputColorCircle color={opts.primaryColor} />
-            </div>
-            <Input
-              defaultValue={opts.primaryColor}
-              size="small"
-              bordered={false}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                  setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', (e.target as HTMLInputElement).value));
-                }
-              }}
-              onBlur={e => {
-                setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
-              }}
-              disabled={isVideoAnnotation(config)}
-            />
-          </Tags.ColorInputWrapper>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Background color</GTags.Txt>
-          <Tags.ColorInputWrapper>
-            <div>
-              <Tags.InputColorCircle color={opts.annotationBodyBackgroundColor} />
-            </div>
-            <Input
-              defaultValue={opts.annotationBodyBackgroundColor}
-              size="small"
-              bordered={false}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', (e.target as HTMLInputElement).value));
-                }
-              }}
-              onBlur={e => {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
-              }}
-              disabled={isVideoAnnotation(config)}
-            />
-          </Tags.ColorInputWrapper>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Border color</GTags.Txt>
-          <Tags.ColorInputWrapper>
-            <div>
-              <Tags.InputColorCircle color={opts.annotationBodyBorderColor} />
-            </div>
-            <Input
-              defaultValue={opts.annotationBodyBorderColor}
-              size="small"
-              bordered={false}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', (e.target as HTMLInputElement).value));
-                }
-              }}
-              onBlur={e => {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.target.value));
-              }}
-            />
-          </Tags.ColorInputWrapper>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Font color</GTags.Txt>
-          <Tags.ColorInputWrapper>
-            <div>
-              <Tags.InputColorCircle color={opts.annotationFontColor} />
-            </div>
-            <Input
-              defaultValue={opts.annotationFontColor}
-              size="small"
-              bordered={false}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.keyCode === 13) {
-                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', (e.target as HTMLInputElement).value));
-                }
-              }}
-              onBlur={e => {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.target.value));
-              }}
-            />
-          </Tags.ColorInputWrapper>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Selection color</GTags.Txt>
-          <Tags.ColorInputWrapper>
-            <div>
-              <Tags.InputColorCircle color={opts.annotationSelectionColor} />
-            </div>
-            <Input
-              defaultValue={opts.annotationSelectionColor}
-              size="small"
-              bordered={false}
-              onBlur={e => {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.target.value));
-              }}
-            />
-          </Tags.ColorInputWrapper>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Font family</GTags.Txt>
-          <Tags.ActionPaneSelect
-            defaultValue={opts.annotationFontFamily}
-            placeholder="select font"
-            size="small"
-            bordered={false}
-            options={webFonts.map(v => ({
-              value: v,
-              label: v,
-            }))}
-            onChange={(e) => {
-              if (e) {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
-              } else {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
-              }
+      <ActionPanel
+        title="Branding"
+        sectionActionElWhenOpen={
+          <Tags.ActionPanelPopOverCon
+            onClick={e => {
+              e.stopPropagation();
+              setShowBrandingOptionsPopup(!showBrandingOptionsPopup);
             }}
-            style={{
-              minWidth: '100px',
+          >
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              open={showBrandingOptionsPopup}
+              content={
+                <div>
+                  <GTags.PopoverMenuItem onClick={() => {
+                    setShowCssEditorForElOnScreen(true);
+                  }}
+                  >
+                    Apply CSS to element on screen
+                  </GTags.PopoverMenuItem>
+                  <GTags.PopoverMenuItem className="disabled">
+                    Apply CSS to annotation
+                  </GTags.PopoverMenuItem>
+                </div>
+                }
+            >
+              <Tags.ActionPanelAdditionalActionIconCon>
+                <PlusOutlined />
+              </Tags.ActionPanelAdditionalActionIconCon>
+            </Popover>
+          </Tags.ActionPanelPopOverCon>
+      }
+      >
+        {showCssEditorForElOnScreen ? (
+          <CssEditor
+            content={defaultCssTxt}
+            infoText={
+              <span>
+                Use variables
+                <pre>var(--fable-primary-color)</pre>
+                <pre>var(--fable-selection-color)</pre>
+                <pre>var(--fable-annotation-bg-color)</pre>
+                <pre>var(--fable-annotation-border-color)</pre>
+                <pre>var(--fable-annotation-font-color)</pre>
+                <pre>var(--fable-annotation-border-radius)</pre>
+                to use value from theme
+              </span>
+            }
+            onSubmit={(cssStr) => {
+              unsubFn.current();
+              unsubFn.current = () => {};
+              const newConfig = updateTargetElCssStyle(config, cssStr);
+              setConfig(newConfig);
             }}
-            onClick={loadWebFonts}
-            notFoundContent="loading"
-            showSearch
-            allowClear
+            onCancel={() => {
+              unsubFn.current();
+              unsubFn.current = () => {};
+              setShowCssEditorForElOnScreen(false);
+            }}
+            onPreview={(cssStr: string) => {
+              const lcm = (window as any).__f_alcm__;
+              if (!lcm || !props.selectedEl) return;
+              unsubFn.current = lcm.previewCustomStyle(cssStr, props.selectedEl, props.config);
+            }}
           />
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Button Layout</GTags.Txt>
-          <div style={{ padding: '0.3rem 0' }}>
-            <label htmlFor="default">
-              <ColumnWidthOutlined />
-              <input
-                id="default"
-                type="radio"
-                value="default"
-                checked={config.buttonLayout === 'default'}
-                onChange={
-                  (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
-                }
+        ) : (
+          <>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Primary color</GTags.Txt>
+              <Tags.ColorInputWrapper>
+                <div>
+                  <Tags.InputColorCircle color={opts.primaryColor} />
+                </div>
+                <Input
+                  defaultValue={opts.primaryColor}
+                  size="small"
+                  bordered={false}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', (e.target as HTMLInputElement).value));
+                    }
+                  }}
+                  onBlur={e => {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
+                  }}
+                  disabled={isVideoAnnotation(config)}
+                />
+              </Tags.ColorInputWrapper>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Background color</GTags.Txt>
+              <Tags.ColorInputWrapper>
+                <div>
+                  <Tags.InputColorCircle color={opts.annotationBodyBackgroundColor} />
+                </div>
+                <Input
+                  defaultValue={opts.annotationBodyBackgroundColor}
+                  size="small"
+                  bordered={false}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', (e.target as HTMLInputElement).value));
+                    }
+                  }}
+                  onBlur={e => {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
+                  }}
+                  disabled={isVideoAnnotation(config)}
+                />
+              </Tags.ColorInputWrapper>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Border color</GTags.Txt>
+              <Tags.ColorInputWrapper>
+                <div>
+                  <Tags.InputColorCircle color={opts.annotationBodyBorderColor} />
+                </div>
+                <Input
+                  defaultValue={opts.annotationBodyBorderColor}
+                  size="small"
+                  bordered={false}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', (e.target as HTMLInputElement).value));
+                    }
+                  }}
+                  onBlur={e => {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.target.value));
+                  }}
+                />
+              </Tags.ColorInputWrapper>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Font color</GTags.Txt>
+              <Tags.ColorInputWrapper>
+                <div>
+                  <Tags.InputColorCircle color={opts.annotationFontColor} />
+                </div>
+                <Input
+                  defaultValue={opts.annotationFontColor}
+                  size="small"
+                  bordered={false}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', (e.target as HTMLInputElement).value));
+                    }
+                  }}
+                  onBlur={e => {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.target.value));
+                  }}
+                />
+              </Tags.ColorInputWrapper>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Selection color</GTags.Txt>
+              <Tags.ColorInputWrapper>
+                <div>
+                  <Tags.InputColorCircle color={opts.annotationSelectionColor} />
+                </div>
+                <Input
+                  defaultValue={opts.annotationSelectionColor}
+                  size="small"
+                  bordered={false}
+                  onBlur={e => {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.target.value));
+                  }}
+                />
+              </Tags.ColorInputWrapper>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt>Font family</GTags.Txt>
+              <Tags.ActionPaneSelect
+                defaultValue={opts.annotationFontFamily}
+                placeholder="select font"
+                size="small"
+                bordered={false}
+                options={webFonts.map(v => ({
+                  value: v,
+                  label: v,
+                }))}
+                onChange={(e) => {
+                  if (e) {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
+                  } else {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
+                  }
+                }}
+                style={{
+                  minWidth: '100px',
+                }}
+                onClick={loadWebFonts}
+                notFoundContent="loading"
+                showSearch
+                allowClear
               />
-            </label>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={{}}>Button Layout</GTags.Txt>
+              <div style={{ padding: '0.3rem 0' }}>
+                <label htmlFor="default">
+                  <ColumnWidthOutlined />
+                  <input
+                    id="default"
+                    type="radio"
+                    value="default"
+                    checked={config.buttonLayout === 'default'}
+                    onChange={
+                      (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
+                    }
+                  />
+                </label>
 
-            <label htmlFor="full-width">
-              <ColumnHeightOutlined />
-              <input
-                id="full-width"
-                type="radio"
-                value="full-width"
-                checked={config.buttonLayout === 'full-width'}
-                onChange={
-                  (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
-                }
+                <label htmlFor="full-width">
+                  <ColumnHeightOutlined />
+                  <input
+                    id="full-width"
+                    type="radio"
+                    value="full-width"
+                    checked={config.buttonLayout === 'full-width'}
+                    onChange={
+                      (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
+              <Input
+                placeholder="Enter padding"
+                defaultValue={opts.annotationPadding}
+                size="small"
+                bordered={false}
+                style={{
+                  background: '#fff',
+                  width: '90px'
+                }}
+                disabled={isVideoAnnotation(config)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.keyCode === 13) {
+                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', (e.target as HTMLInputElement).value));
+                  }
+                }}
+                onBlur={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', e.target.value));
+                }}
               />
-            </label>
-          </div>
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
-          <Input
-            placeholder="Enter padding"
-            defaultValue={opts.annotationPadding}
-            size="small"
-            bordered={false}
-            style={{
-              background: '#fff',
-              width: '90px'
-            }}
-            disabled={isVideoAnnotation(config)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.keyCode === 13) {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', (e.target as HTMLInputElement).value));
-              }
-            }}
-            onBlur={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', e.target.value));
-            }}
-          />
-        </div>
+            </div>
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={commonActionPanelItemStyle}>Border Radius</GTags.Txt>
 
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Border Radius</GTags.Txt>
-
-          <InputNumber
-            min={0}
-            // bordered={false} // looks ugly
-            defaultValue={opts.borderRadius}
-            size="small"
-            addonAfter="px"
-            style={{ width: '90px' }}
-            disabled={isVideoAnnotation(config)}
-            onChange={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
-            }}
-          />
-        </div>
+              <InputNumber
+                min={0}
+                // bordered={false} // looks ugly
+                defaultValue={opts.borderRadius}
+                size="small"
+                addonAfter="px"
+                style={{ width: '90px' }}
+                disabled={isVideoAnnotation(config)}
+                onChange={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
+                }}
+              />
+            </div>
+          </>
+        )}
       </ActionPanel>
-      <ActionPanel title="Buttons">
+      <ActionPanel title="CTAs">
         {config.buttons.map(btnConf => {
           const primaryColor = opts.primaryColor;
           return (
@@ -817,7 +886,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onClick={() => {
               setConfig(c => addCustomBtn(c));
             }}
-          >Create a custom button
+          >Create a custom CTA
           </Tags.ActionPaneBtn>
         </div>
       </ActionPanel>
@@ -887,18 +956,19 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   }
                 </div>
                 {selectedHotspotEl && showHotspotAdvancedElPicker && (
-                  <div style={commonActionPanelItemStyle}>
-                    <AdvanceElementPicker
-                      elements={selectedHotspotElsParents}
-                      domElPicker={domElPicker}
+                  <div style={{ ...commonActionPanelItemStyle, width: '100%', height: '22px' }}>
+                    <AEP
                       selectedEl={selectedHotspotEl}
                       disabled={false}
-                      count={selectedHotspotElsParents.length}
-                      setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                        const newElPath = domElPicker.elPath(newSelEl)!;
-                        setConfig(c => updateAnnotationHotspotElPath(c, newElPath));
+                      boundEl={domElPicker.elFromPath(props.config.id)!}
+                      domElPicker={domElPicker}
+                      onElSelect={(newSelEl: HTMLElement, prevSelEl: HTMLElement) => {
+                        props.selectedEl && domElPicker.clearMask(HighlightMode.Pinned);
+                        if (newSelEl !== prevSelEl) {
+                          const newElPath = domElPicker.elPath(newSelEl)!;
+                          setConfig(c => updateAnnotationHotspotElPath(c, newElPath));
+                        }
                       }}
-                      mouseLeaveHighlightMode={HighlightMode.PinnedHotspot}
                     />
                   </div>
                 )}

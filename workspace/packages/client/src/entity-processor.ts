@@ -236,6 +236,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     videoUrlWebm: lc.videoUrlWebm,
     showOverlay: lc.showOverlay,
     buttonLayout: lc.buttonLayout,
+    targetElCssStyle: lc.targetElCssStyle,
   };
 }
 
@@ -287,6 +288,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.buttonLayout === undefined || an.buttonLayout === null) {
     an.buttonLayout = 'default';
+  }
+
+  if (an.targetElCssStyle === undefined || an.targetElCssStyle === null) {
+    an.targetElCssStyle = '';
   }
 
   const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);

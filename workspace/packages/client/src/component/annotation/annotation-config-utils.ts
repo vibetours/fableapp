@@ -35,6 +35,12 @@ export function updateAnnotationText<T extends IAnnotationConfig>(config: T, txt
   return newConfig;
 }
 
+export function updateTargetElCssStyle<T extends IAnnotationConfig>(config: T, cssStr: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.targetElCssStyle = cssStr;
+  return newConfig;
+}
+
 export function updateAnnotationBoxSize<T extends IAnnotationConfig>(config: T, size: EAnnotationBoxSize): T {
   const newConfig = newConfigFrom(config);
   newConfig.size = size;
@@ -209,7 +215,7 @@ function getCustomBtnTemplate(order: number, size: AnnotationButtonSize): IAnnot
     type: 'custom',
     style: AnnotationButtonStyle.Outline,
     size,
-    text: 'Your custom button',
+    text: 'Get a Demo!',
     order,
     hotspot: null
   };

@@ -37,6 +37,7 @@ export default async function api<T, M>(
     } catch (e) {
       // TODO
       console.log('>> login again. msg', (e as Error).message);
+      window.location.replace('/logout');
     }
   }
 

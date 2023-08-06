@@ -162,9 +162,18 @@ export const PopoverMenuItem = styled.div<{ nonit?: boolean }>`
   cursor: ${props => (props.nonit ? 'default' : 'pointer')};
   padding: 0.25rem 0.75rem;
   border-radius: 2px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   &:hover {
     background: ${props => (props.nonit ? 'initial' : '#eaeaea')};
+  }
+
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    pointer-events: none;
+    &:hover {
+      background: initial;
+    }
   }
 `;
 

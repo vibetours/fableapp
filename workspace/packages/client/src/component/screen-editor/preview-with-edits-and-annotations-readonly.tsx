@@ -24,7 +24,6 @@ import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
-import { isVideoAnnotation } from '../../utils';
 import { deser, deserIframeEl } from './utils/deser';
 import { getAddDiffs, getDelDiffs, getReorderDiffs, getReplaceDiffs, getUpdateDiffs } from './utils/diffs/get-diffs';
 import {
@@ -53,6 +52,7 @@ export interface IOwnProps {
   allEdits: EditItem[];
   toAnnotationId: string;
   hidden?: boolean;
+  stashAnnIfAny: boolean;
   onFrameAssetLoad: FrameAssetLoadFn;
   allAnnotationsForTour: AnnotationPerScreen[];
   tour: P_RespTour;
@@ -256,6 +256,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
         );
+        // WARN obviously this is not a right way of doing stuff. But for the perview feature
+        // annoation creator panel needs this instance to contorl preview functionality.
+        // We initially passed a callback that receives an instance of this, but uncontrolled rerender
+        // created issues for annotation display. Hence we resorted to this.
+        (window as any).__f_alcm__ = this.annotationLCM;
       }
     } else {
       throw new Error('Annoation document not found while initing annotationlcm');
@@ -320,7 +325,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel
-      this.reachAnnotation(this.props.toAnnotationId);
+      // eslint-disable-next-line no-lonely-if
+      if (this.props.stashAnnIfAny) {
+        this.annotationLCM?.hide();
+      } else {
+        this.reachAnnotation(this.props.toAnnotationId);
+      }
     }
 
     const opts = this.props.tourDataOpts;

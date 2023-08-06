@@ -19,6 +19,8 @@ export enum AnnotationViewMode {
   Hide
 }
 
+interface SelInf { id: string; cls: string, isOurId: boolean, hotspotCls?: string }
+
 export default class AnnotationLifecycleManager extends HighlighterBase {
   static SCROLL_TO_EL_TIME_MS = 350;
 
@@ -63,6 +65,41 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private annotationSerialIdMap: AnnotationSerialIdMap;
 
   private applyDiffAndGoToAnn: ApplyDiffAndGoToAnn;
+
+  private undoLastAnnStyleOverride: Array<() => void> = [];
+
+  private lastAnnHadOverlay = false;
+
+  static getFablePrefixedClsName(cls: string): string {
+    return `f-c-${cls}`;
+  }
+
+  static getFablePrefixedId(id: string): string {
+    return `f-i-${id}`;
+  }
+
+  static getCompositeSelector(el: HTMLElement, config: IAnnotationConfig): [
+    compositeSelector: string,
+    selectorInf: SelInf
+  ] {
+    let isOurId = false;
+    let id = el.getAttribute('id');
+    if (!id) {
+      id = AnnotationLifecycleManager.getFablePrefixedId(config.refId);
+      isOurId = true;
+    }
+    const cls = AnnotationLifecycleManager.getFablePrefixedClsName(config.refId);
+    let hotspotCls: string | undefined;
+    if (config.hotspotElPath) {
+      hotspotCls = 'fable-hotspot';
+    }
+    return [`#${id}.${cls}`, {
+      isOurId,
+      id,
+      cls,
+      hotspotCls
+    }];
+  }
 
   // Take the initial annotation config from here
   constructor(
@@ -140,7 +177,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
     this.hideAllAnnotations();
-    this.createFullScreenMask();
+    this.applyMaskOrNot();
+  }
+
+  private applyMaskOrNot(): void {
+    if (this.lastAnnHadOverlay) this.createFullScreenMask();
+    else this.removeMaskIfPresent();
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -184,12 +226,86 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       return;
     }
     this.con!.style.visibility = 'hidden';
-    this.createFullScreenMask();
+    this.applyMaskOrNot();
   };
 
-  private onScrollComplete = (): void => {
+  // algorithm: https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity#how_is_specificity_calculated
+  // eslint-disable-next-line class-methods-use-this
+  private setCssSelectorForHighestProbalbleSpecificity(el: HTMLElement, config: IAnnotationConfig): () => void {
+    const [, sel] = AnnotationLifecycleManager.getCompositeSelector(el, config);
+
+    if (sel.isOurId) {
+      el.setAttribute('id', sel.id);
+    }
+    el.classList.add(sel.cls);
+    el.classList.add('f-fable-anim-target');
+    return () => {
+      if (sel.isOurId) el.removeAttribute('id');
+      el.classList.remove(sel.cls);
+      el.classList.remove('f-fable-anim-target');
+    };
+  }
+
+  private static readonly ANIM_ONLY_CSS = `
+.f-fable-anim-target, .f-fable-anim-target * {
+  transition: all 0.3s ease-out;
+}
+
+`;
+
+  private exportTourThemeAsCssVar(): string {
+    return `
+:root {
+  --fable-primary-color: ${this.tourDataOpts.primaryColor};
+  --fable-selection-color: ${this.tourDataOpts.annotationSelectionColor};
+  --fable-annotation-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor};
+  --fable-annotation-border-color: ${this.tourDataOpts.annotationBodyBorderColor};
+  --fable-annotation-font-color: ${this.tourDataOpts.annotationFontColor};
+  --fable-annotation-border-radius: ${this.tourDataOpts.borderRadius};
+}
+
+`;
+  }
+
+  private addCustomStyleSheetFor(el: HTMLElement, config: IAnnotationConfig, styleStr: string): () => void {
+    if (!styleStr) return () => {};
+
+    this.updateConfig('showOverlay', false);
+    this.updateConfig('selectionColor', 'transparent');
+
+    const doc = el.ownerDocument;
+    let styleTag = doc.getElementById('f-fable-override-eph-style');
+    if (!styleTag) {
+      styleTag = doc.createElement('style');
+      styleTag.setAttribute('id', 'f-fable-override-eph-style');
+      if (doc.body) doc.body.appendChild(styleTag);
+    }
+    styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar() + styleStr;
+
+    return () => {
+      if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar();
+      this.updateConfig('showOverlay', config.showOverlay);
+      this.updateConfig('selectionColor', this.tourDataOpts.annotationSelectionColor);
+      this.render();
+    };
+  }
+
+  previewCustomStyle(css: string, el: HTMLElement, config: IAnnotationConfig): () => void {
+    const undo2 = this.addCustomStyleSheetFor(el, config, css);
+    const undo1 = this.setCssSelectorForHighestProbalbleSpecificity(el, config);
+    return () => {
+      undo1();
+      undo2();
+    };
+  }
+
+  private onScrollComplete = (el: HTMLElement, config: IAnnotationConfig): void => {
     this.render();
     this.con!.style.visibility = 'visible';
+    const undo1 = this.addCustomStyleSheetFor(el, config, config.targetElCssStyle);
+    const undo2 = this.setCssSelectorForHighestProbalbleSpecificity(el, config);
+    this.undoLastAnnStyleOverride.push(undo1, undo2);
+    this.lastAnnHadOverlay = config.targetElCssStyle ? false : config.showOverlay;
   };
 
   private createContainerRoot(type: '' | 'ann-probe' | 'ann-video' = ''): [HTMLDivElement, Root] {
@@ -205,7 +321,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return [con, rRoot];
   }
 
-  showAnnotationFor(el: HTMLElement, config: IAnnotationConfig): void {
+  private showAnnotationFor(el: HTMLElement, config: IAnnotationConfig): void {
+    this.undoLastAnnStyleOverride.forEach(f => f());
+
     const currId = config.id;
 
     for (const [id, [, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
@@ -228,7 +346,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       const box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
       scrollToAnn(this.win, box, this.annotationElMap[coordsStr][1]);
       setTimeout(() => {
-        this.onScrollComplete();
+        this.onScrollComplete(el, config);
       }, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
       return;
     }
@@ -248,11 +366,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       scrollIntoView(el, {
         time: AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS,
       }, (type: 'complete' | 'cancel') => {
-        if (type === 'complete') this.onScrollComplete();
+        if (type === 'complete') this.onScrollComplete(el, config);
       });
     } else {
       this.win.scrollTo(0, 0);
-      setTimeout(this.onScrollComplete, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
+      setTimeout(() => this.onScrollComplete(el, config), AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
     }
   }
 
@@ -302,7 +420,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           this.updateConfig('selectionColor', this.opts.annotationSelectionColor);
         }
         if (annotationDisplayConfig.config.type === 'cover') {
-          this.createFullScreenMask();
+          this.applyMaskOrNot();
         } else if (this.screenType === ScreenType.Img) {
           const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
           this.selectBoxInDoc({ x: +x, y: +y, width: +width, height: +height });
@@ -311,6 +429,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         }
       }
     }
+
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,

@@ -32,7 +32,7 @@ export default abstract class HighlighterBase {
 
   private listnrSubs: Partial<Record<keyof HTMLElementEventMap, Array<[(e: Event) => void, Document]>>>;
 
-  private config: HighlighterBaseConfig;
+  protected config: HighlighterBaseConfig;
 
   constructor(doc: Document, nestedFrames: HTMLIFrameElement[], config: HighlighterBaseConfig) {
     this.doc = doc;
@@ -66,7 +66,7 @@ export default abstract class HighlighterBase {
     );
   }
 
-  private drawMask(elSize: Rect, win: Window, dx: number, dy: number) {
+  private drawMask(elSize: Rect, win: Window, dx: number, dy: number): void {
     const maskBox = this.getOrCreateMask();
 
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
@@ -122,15 +122,14 @@ export default abstract class HighlighterBase {
     return calculatedVal;
   }
 
-  protected selectElementInDoc(el: HTMLElement, doc: Document) {
+  protected selectElementInDoc(el: HTMLElement, doc: Document): void {
     const win = doc.defaultView!;
-    // const [dx, dy] = doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
     const [dx, dy] = this.getCumulativeDxdy(doc);
     const elSize: DOMRect = el.getBoundingClientRect();
     this.drawMask(elSize, win, dx, dy);
   }
 
-  selectBoxInDoc(scaleCoords: Coords) {
+  selectBoxInDoc(scaleCoords: Coords): void {
     const win = this.doc.defaultView!;
     const [dx, dy] = this.doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
     const elSize = this.getAbsFromRelCoords(scaleCoords);

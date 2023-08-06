@@ -195,6 +195,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   videoUrlWebm: string;
   showOverlay: boolean;
   buttonLayout: AnnotationButtonLayoutType;
+  targetElCssStyle: string;
 }
 
 // TODO perform this conversion, client side

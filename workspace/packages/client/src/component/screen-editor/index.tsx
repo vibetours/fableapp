@@ -41,15 +41,14 @@ import { addNextAnnotation, addPrevAnnotation, AnnotationSerialIdMap, getAnnotat
 import { getAnnotationByRefId } from '../annotation/utils';
 import Timeline from '../timeline';
 import { AnnUpdateType } from '../timeline/types';
-import ActionPanel from './action-panel';
-import AdvanceElementPicker from './advance-element.picker';
+import AEP from './advanced-element-picker';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import ImageMaskUploadModal from './components/image-mask-modal';
 import TabBar from './components/tab-bar';
 import TabItem from './components/tab-bar/tab-item';
 import UploadButton from './components/upload-button';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
-import { advancedElPickerHelpText, annotationTabHelpText, editTabHelpText } from './helptexts';
+import { annotationTabHelpText, editTabHelpText } from './helptexts';
 import ListActionBtn from './list-action-btn';
 import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
 import ScreenImageBrusher from './screen-image-brushing';
@@ -59,6 +58,7 @@ import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
+import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 
 const { confirm } = Modal;
 
@@ -121,12 +121,12 @@ interface IOwnStateProps {
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
-  advancedElPickerSyncing: boolean;
-  selectedElsParents: Node[];
+  aepSyncing: boolean;
   selectedAnnotationId: string;
   targetEl: HTMLElement | null;
   editTargetType: EditTargetType;
   editItemSelected: string;
+  stashAnnIfAny: boolean;
   selectedHotspotEl: HTMLElement | null;
   selectedAnnReplaceEl: HTMLElement | null;
   selectionMode: 'hotspot' | 'annotation' | 'replace';
@@ -160,11 +160,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       isInElSelectionMode: true,
       elSelRequestedBy: ElSelReqType.AnnotateEl,
       selectedEl: null,
-      selectedElsParents: [],
+      stashAnnIfAny: false,
       targetEl: null,
       editTargetType: EditTargetType.None,
       editItemSelected: '',
-      advancedElPickerSyncing: false,
+      aepSyncing: false,
       selectedAnnotationId: '',
       selectedHotspotEl: null,
       selectedAnnReplaceEl: null,
@@ -986,6 +986,66 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     return (
       <GTags.PreviewAndActionCon>
+        {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
+        <div style={{
+          position: 'absolute',
+          width: 'calc(75% + 0.5rem)',
+          height: '25px',
+          bottom: '0',
+          left: '0',
+          borderRadius: '2px',
+          zIndex: '100'
+        }}
+        >
+          <AEP
+            selectedEl={this.state.selectedEl}
+            domElPicker={this.iframeElManager!}
+            disabled={this.state.aepSyncing}
+            onOverElPicker={() => {
+              this.setState({ stashAnnIfAny: true });
+            }}
+            onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+              this.iframeElManager!.clearMask(HighlightMode.Pinned);
+              if (newSelEl === oldSelEl) {
+                this.setState({ stashAnnIfAny: false });
+                return;
+              }
+
+              const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+              // If there is annotation on top of new element then don't do anything
+              if (!annOnNewEl) {
+                const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                if (annOnOldEl) {
+                  const newElPath = this.iframeElManager!.elPath(newSelEl)!;
+                  const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
+                  const tx = new Tx();
+                  tx.start();
+                  const updates: Array<
+                            [
+                              screenId: number | null,
+                              config: IAnnotationConfig,
+                              actionType: 'upsert' | 'delete'
+                            ]
+                          > = [
+                            [this.props.screen.id, annOnOldEl, 'delete'],
+                            [this.props.screen.id, replaceWithAnn, 'upsert']
+                          ];
+                  this.setState({ aepSyncing: true });
+                  updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
+                  this.props.commitTx(tx);
+                  setTimeout(() => {
+                  // TODO From the time something is selected via aep to the time view update happens, it takes few moment.
+                  // This is just a temporary guard for user to wait while the view gets updated. The proper fix would
+                  // be create a unidirectional flow via reducer (not local state)
+                    this.setState({ aepSyncing: false });
+                  }, 1500);
+                }
+              }
+              this.setState({ stashAnnIfAny: false, selectedEl: newSelEl, elSelRequestedBy: ElSelReqType.ElPicker });
+            }}
+          />
+        </div>
+        )}
         <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
           <PreviewWithEditsAndAnRO
             annotationSerialIdMap={this.props.annotationSerialIdMap}
@@ -1001,67 +1061,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             tourDataOpts={this.props.tourDataOpts}
             allEdits={this.props.allEdits}
             toAnnotationId={this.state.selectedAnnotationId}
+            stashAnnIfAny={this.state.stashAnnIfAny}
             onFrameAssetLoad={this.onFrameAssetLoad}
             allAnnotationsForTour={this.props.allAnnotationsForTour}
             tour={this.props.tour}
           />
         </GTags.EmbedCon>
-
         {/* this is the annotation creator panel */}
         <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
-          {/* this is advanced element picker */}
-          {
-            this.props.screen.type === ScreenType.SerDom && (
-              <ActionPanel
-                icon={<SelectOutlined />}
-                title="Advanced Element Picker"
-                helpText={advancedElPickerHelpText}
-                withGutter
-              >
-                {this.state.selectedEl ? (
-                  <AdvanceElementPicker
-                    elements={this.state.selectedElsParents}
-                    domElPicker={this.iframeElManager}
-                    selectedEl={this.state.selectedEl!}
-                    disabled={this.state.advancedElPickerSyncing}
-                    count={this.state.selectedElsParents.length}
-                    setSelectedEl={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-                      if (!annOnNewEl) {
-                        // If there is annotation on top of new element then don't do anything
-                        const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                        if (annOnOldEl) {
-                          const newElPath = this.iframeElManager?.elPath(newSelEl)!;
-                          const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
-                          const tx = new Tx();
-                          tx.start();
-                          const updates: Array<
-                            [
-                              screenId: number | null,
-                              config: IAnnotationConfig,
-                              actionType: 'upsert' | 'delete'
-                            ]
-                          > = [
-                            [this.props.screen.id, annOnOldEl, 'delete'],
-                            [this.props.screen.id, replaceWithAnn, 'upsert']
-                          ];
-                          this.setState({ advancedElPickerSyncing: true });
-                          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
-                          this.props.commitTx(tx);
-                          setTimeout(() => {
-                            this.setState({ advancedElPickerSyncing: false });
-                          }, 2000);
-                        }
-                      }
-                      this.setState({ selectedEl: newSelEl, elSelRequestedBy: ElSelReqType.ElPicker });
-                    }}
-                    mouseLeaveHighlightMode={HighlightMode.Pinned}
-                  />
-                )
-                  : <p style={{ margin: 0 }}>Please select an element</p>}
-              </ActionPanel>
-            )
-          }
           {/* this is top menu */}
           <TabBar>
             <TabItem
@@ -1117,6 +1124,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     <AnnotationCreatorPanel
                       setAlertMsg={this.props.setAlert}
                       opts={this.props.tourDataOpts}
+                      selectedEl={this.state.selectedEl}
                       allAnnotationsForTour={this.props.allAnnotationsForTour}
                       screen={this.props.screen}
                       onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
@@ -1284,20 +1292,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  private onElSelect = (el: HTMLElement, parents: Node[]): void => {
+  private onElSelect = (el: HTMLElement): void => {
     this.iframeElManager!.elPath(el);
 
     if (this.state.selectionMode === 'hotspot') {
-      this.setState({ selectedHotspotEl: el, selectedElsParents: parents, selectionMode: 'annotation' });
+      this.setState({ selectedHotspotEl: el, selectionMode: 'annotation' });
       return;
     }
 
     if (this.state.selectionMode === 'replace') {
-      this.setState({ selectedAnnReplaceEl: el, selectedElsParents: parents, selectionMode: 'annotation' });
+      this.setState({ selectedAnnReplaceEl: el, selectionMode: 'annotation' });
       return;
     }
 
-    this.setState({ selectedEl: el, selectedElsParents: parents });
+    this.setState({ selectedEl: el });
   };
 
   private onElDeSelect = (_: HTMLElement): void => {
