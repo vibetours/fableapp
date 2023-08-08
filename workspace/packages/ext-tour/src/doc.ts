@@ -296,7 +296,7 @@ export function getSearializedDom(
 
     const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
     if ((node as HTMLElement).shadowRoot) {
-      childNodes.push((node as HTMLElement).shadowRoot!);
+      childNodes.unshift((node as HTMLElement).shadowRoot!);
     }
 
     if (childNodes.length) {
@@ -527,7 +527,7 @@ export function addFableIdsToAllEls(
 
     const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
     if ((node as HTMLElement).shadowRoot) {
-      childNodes.push((node as HTMLElement).shadowRoot!);
+      childNodes.unshift((node as HTMLElement).shadowRoot!);
     }
 
     if (childNodes.length) {

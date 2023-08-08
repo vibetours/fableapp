@@ -19,14 +19,30 @@ export const getDelDiffs = (tree1: SerNode, tree2: SerNode): DelDiff[] => {
 
   const queue: [SerNodeWithElPathAndIsShadow, SerNodeWithElPathAndIsShadow][] = [];
   queue.push([
-    { node: tree1, elPath: '1', isPartOfShadowHost: tree1.props.isShadowHost || false },
-    { node: tree2, elPath: '1', isPartOfShadowHost: tree2.props.isShadowHost || false }]);
+    {
+      node: tree1,
+      elPath: '1',
+      isPartOfShadowHost: tree1.props.isShadowHost || false,
+    },
+    {
+      node: tree2,
+      elPath: '1',
+      isPartOfShadowHost: tree2.props.isShadowHost || false,
+    }]);
 
   while (queue.length > 0) {
     const currTree = queue.shift()!;
 
-    const { node: node1, elPath: elPathofNode1, isPartOfShadowHost: isNode1PartOfShadow } = currTree[0];
-    const { node: node2, elPath: elPathofNode2, isPartOfShadowHost: isNode2PartOfShadow } = currTree[1];
+    const {
+      node: node1,
+      elPath: elPathofNode1,
+      isPartOfShadowHost: isNode1PartOfShadow,
+    } = currTree[0];
+    const {
+      node: node2,
+      elPath: elPathofNode2,
+      isPartOfShadowHost: isNode2PartOfShadow,
+    } = currTree[1];
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
@@ -60,10 +76,12 @@ export const getDelDiffs = (tree1: SerNode, tree2: SerNode): DelDiff[] => {
         });
 
         if (nodeWithSameFidInOtherTree) {
+          const newPathOfNode1 = `${elPathofNode1}.${childOfNode1Idx}`;
+          const newPathOfNode2 = `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`;
           commonEls.push([
             {
               node: childOfNode1,
-              elPath: `${elPathofNode1}.${childOfNode1Idx}`,
+              elPath: newPathOfNode1,
               isPartOfShadowHost: node1.props.isShadowHost || childOfNode1.props.isShadowHost || false,
             },
             {
@@ -92,7 +110,7 @@ export const getDelDiffs = (tree1: SerNode, tree2: SerNode): DelDiff[] => {
         parentElPath: elPathofNode1,
         parentSerNode: node2,
         isPartOfShadowHost: isNode1PartOfShadow || node1.props.isShadowHost || false,
-        toBeDeletedNodes
+        toBeDeletedNodes,
       });
     }
 
@@ -135,13 +153,13 @@ export const getAddDiffs = (tree1: SerNode, tree2: SerNode): AddDiff[] => {
       node: node1,
       elPath: elPathofNode1,
       isPartOfSVG: isNode1PartOfSvg,
-      isPartOfShadowHost: isNode1PartOfShadow
+      isPartOfShadowHost: isNode1PartOfShadow,
     } = currTree[0];
     const {
       node: node2,
       elPath: elPathofNode2,
       isPartOfSVG: isNode2PartOfSvg,
-      isPartOfShadowHost: isNode2PartOfShadow
+      isPartOfShadowHost: isNode2PartOfShadow,
     } = currTree[1];
 
     const node1Chldrn = node1.chldrn;
@@ -179,16 +197,18 @@ export const getAddDiffs = (tree1: SerNode, tree2: SerNode): AddDiff[] => {
         });
 
         if (nodeWithSameFidInFirstTree) {
+          const newPathOfNode1 = `${elPathofNode1}.${nodeWithSameFidInFirstTreeIdx}`;
+          const newPathOfNode2 = `${elPathofNode2}.${childOfNode2Idx}`;
           commonEls.push([
             {
               node: nodeWithSameFidInFirstTree,
-              elPath: `${elPathofNode1}.${nodeWithSameFidInFirstTreeIdx}`,
+              elPath: newPathOfNode1,
               isPartOfSVG: isNode1PartOfSvg || nodeWithSameFidInFirstTree.name === 'svg',
               isPartOfShadowHost: isNode1PartOfShadow || nodeWithSameFidInFirstTree.props.isShadowHost || false,
             },
             {
               node: childOfNode2,
-              elPath: `${elPathofNode2}.${childOfNode2Idx}`,
+              elPath: newPathOfNode2,
               isPartOfSVG: isNode2PartOfSvg || childOfNode2.name === 'svg',
               isPartOfShadowHost: isNode2PartOfShadow || childOfNode2.props.isShadowHost || false,
             }
@@ -214,7 +234,7 @@ export const getAddDiffs = (tree1: SerNode, tree2: SerNode): AddDiff[] => {
         parentElPath: elPathofNode2,
         parentSerNode: node2,
         isPartOfShadowHost: isNode2PartOfShadow || node2.props.isShadowHost || false,
-        toBeAddedNodes
+        toBeAddedNodes,
       });
     }
 
@@ -239,19 +259,28 @@ export const getUpdateDiffs = (tree1: SerNode, tree2: SerNode): UpdateDiff[] => 
     {
       node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree1] },
       elPath: '-1',
-      isPartOfShadowHost: false
+      isPartOfShadowHost: false,
     },
     {
       node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree2] },
       elPath: '-1',
-      isPartOfShadowHost: false
+      isPartOfShadowHost: false,
     }]);
 
   while (queue.length > 0) {
     const currTree = queue.shift()!;
 
-    const { node: node1, elPath: elPathofNode1, isPartOfShadowHost: isNode1PartOfShadow } = currTree[0];
-    const { node: node2, elPath: elPathofNode2, isPartOfShadowHost: isNode2PartOfShadow } = currTree[1];
+    const {
+      node: node1,
+      elPath: elPathofNode1,
+      isPartOfShadowHost: isNode1PartOfShadow,
+    } = currTree[0];
+    const {
+      node: node2,
+      elPath: elPathofNode2,
+      isPartOfShadowHost:
+      isNode2PartOfShadow,
+    } = currTree[1];
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
@@ -324,15 +353,17 @@ export const getUpdateDiffs = (tree1: SerNode, tree2: SerNode): UpdateDiff[] => 
             });
           }
 
+          const newPathOfNode1 = elPathofNode1 === '-1' ? '1' : `${elPathofNode1}.${childOfNode1Idx}`;
+          const newPathOfNode2 = elPathofNode2 === '-1' ? '1' : `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`;
           commonEls.push([
             {
               node: childOfNode1,
-              elPath: elPathofNode1 === '-1' ? '1' : `${elPathofNode1}.${childOfNode1Idx}`,
+              elPath: newPathOfNode1,
               isPartOfShadowHost: isNode1PartOfShadow || childOfNode1.props.isShadowHost || false,
             },
             {
               node: nodeWithSameFidInOtherTree,
-              elPath: elPathofNode2 === '-1' ? '1' : `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`,
+              elPath: newPathOfNode2,
               isPartOfShadowHost: isNode2PartOfShadow || nodeWithSameFidInOtherTree.props.isShadowHost || false,
             },
           ]);
@@ -347,7 +378,7 @@ export const getUpdateDiffs = (tree1: SerNode, tree2: SerNode): UpdateDiff[] => 
         parentElPath: elPathofNode1,
         parentSerNode: node2,
         isPartOfShadowHost: isNode1PartOfShadow || node1.props.isShadowHost || false,
-        toBeUpdatedNodes
+        toBeUpdatedNodes,
       });
     }
 
@@ -394,13 +425,13 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
       node: node1,
       elPath: elPathofNode1,
       isPartOfSVG: isNode1PartOfSvg,
-      isPartOfShadowHost: isNode1PartOfShadow
+      isPartOfShadowHost: isNode1PartOfShadow,
     } = currTree[0];
     const {
       node: node2,
       elPath: elPathofNode2,
       isPartOfSVG: isNode2PartOfSvg,
-      isPartOfShadowHost: isNode2PartOfShadow
+      isPartOfShadowHost: isNode2PartOfShadow,
     } = currTree[1];
 
     const node1Chldrn = node1.chldrn;
@@ -480,18 +511,21 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
           }
 
           if (!isPropsDiff) {
+            const newPathOfNode1 = elPathofNode1 === '-1' ? '1' : `${elPathofNode1}.${childOfNode1Idx}`;
+            const newPathOfNode2 = elPathofNode1 === '-1' ? '1' : `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`;
+
             commonEls.push([
               {
                 node: childOfNode1,
-                elPath: elPathofNode1 === '-1' ? '1' : `${elPathofNode1}.${childOfNode1Idx}`,
+                elPath: newPathOfNode1,
                 isPartOfSVG: isNode1PartOfSvg || childOfNode1.name === 'svg',
-                isPartOfShadowHost: isNode1PartOfShadow || childOfNode1.props.isShadowHost || false
+                isPartOfShadowHost: isNode1PartOfShadow || childOfNode1.props.isShadowHost || false,
               },
               {
                 node: nodeWithSameFidInOtherTree,
-                elPath: elPathofNode1 === '-1' ? '1' : `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`,
+                elPath: newPathOfNode2,
                 isPartOfSVG: isNode2PartOfSvg || nodeWithSameFidInOtherTree.name === 'svg',
-                isPartOfShadowHost: isNode2PartOfShadow || nodeWithSameFidInOtherTree.props.isShadowHost || false
+                isPartOfShadowHost: isNode2PartOfShadow || nodeWithSameFidInOtherTree.props.isShadowHost || false,
               },
             ]);
           }
@@ -507,7 +541,7 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
         parentElPath: elPathofNode1,
         parentSerNode: node2,
         isPartOfShadowHost: isNode1PartOfShadow || node1.props.isShadowHost || false,
-        toBeReplacedNodes
+        toBeReplacedNodes,
       });
     }
 
@@ -527,16 +561,37 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
 export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] => {
   let reorderDiffs: ReorderDiff[] = [];
 
-  const queue: [SerNodeWithElPathAndIsShadow, SerNodeWithElPathAndIsShadow][] = [];
+  const queue: [SerNodeWithElPathAndIsSVGAndIsShadow, SerNodeWithElPathAndIsSVGAndIsShadow][] = [];
   queue.push([
-    { node: tree1, elPath: '1', isPartOfShadowHost: tree1.props.isShadowHost || false },
-    { node: tree2, elPath: '1', isPartOfShadowHost: tree2.props.isShadowHost || false }]);
+    {
+      node: tree1,
+      elPath: '1',
+      isPartOfShadowHost: tree1.props.isShadowHost || false,
+      isPartOfSVG: false,
+    },
+    {
+      node: tree2,
+      elPath: '1',
+      isPartOfShadowHost:
+      tree2.props.isShadowHost || false,
+      isPartOfSVG: false,
+    }]);
 
   while (queue.length > 0) {
     const currTree = queue.shift()!;
 
-    const { node: node1, elPath: elPathofNode1, isPartOfShadowHost: isNode1PartOfShadow } = currTree[0];
-    const { node: node2, elPath: elPathofNode2, isPartOfShadowHost: isNode2PartOfShadow } = currTree[1];
+    const {
+      node: node1,
+      elPath: elPathofNode1,
+      isPartOfShadowHost: isNode1PartOfShadow,
+      isPartOfSVG: isNode1PartOfSvg,
+    } = currTree[0];
+    const {
+      node: node2,
+      elPath: elPathofNode2,
+      isPartOfShadowHost: isNode2PartOfShadow,
+      isPartOfSVG: isNode2PartOfSvg,
+    } = currTree[1];
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
@@ -552,7 +607,7 @@ export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] =
         }
       }
     }
-    const commonEls: [SerNodeWithElPathAndIsShadow, SerNodeWithElPathAndIsShadow][] = [];
+    const commonEls: [SerNodeWithElPathAndIsSVGAndIsShadow, SerNodeWithElPathAndIsSVGAndIsShadow][] = [];
 
     node1Chldrn.forEach((childOfNode1, childOfNode1Idx) => {
       if (childOfNode1.type !== Node.TEXT_NODE || (childOfNode1.name !== '#comment' && childOfNode1.name !== '#text')) {
@@ -575,16 +630,20 @@ export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] =
         });
 
         if (nodeWithSameFidInOtherTree) {
+          const newPathOfNode1 = `${elPathofNode1}.${childOfNode1Idx}`;
+          const newPathOfNode2 = `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`;
           commonEls.push([
             {
               node: childOfNode1,
-              elPath: `${elPathofNode1}.${childOfNode1Idx}`,
+              elPath: newPathOfNode1,
               isPartOfShadowHost: isNode1PartOfShadow || childOfNode1.props.isShadowHost || false,
+              isPartOfSVG: isNode1PartOfSvg || childOfNode1.name === 'svg',
             },
             {
               node: nodeWithSameFidInOtherTree,
-              elPath: `${elPathofNode2}.${nodeWithSameFidInOtherTreeIdx}`,
+              elPath: newPathOfNode2,
               isPartOfShadowHost: isNode2PartOfShadow || nodeWithSameFidInOtherTree.props.isShadowHost || false,
+              isPartOfSVG: isNode2PartOfSvg || nodeWithSameFidInOtherTree.name === 'svg',
             },
           ]);
         }
@@ -597,6 +656,7 @@ export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] =
         parentElPath: elPathofNode1,
         parentSerNode: node2,
         isPartOfShadowHost: isNode1PartOfShadow || node1.props.isShadowHost || false,
+        isPartOfSVG: isNode1PartOfSvg || false,
       });
     } else {
       for (let i = 0; i < commonEls.length; i++) {

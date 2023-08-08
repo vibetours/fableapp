@@ -392,6 +392,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         return;
       }
 
+      const isParentShadowRoot: boolean = diff.parentSerNode.props.isShadowRoot || false;
       let parentEl = this.annotationLCM!.elFromPath(diff.parentElPath) as Node;
 
       if (parentEl?.nodeName.toLowerCase() === 'head') {
@@ -402,13 +403,14 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         parentEl = (parentEl as HTMLIFrameElement).contentDocument as Node;
       }
 
-      if (diff.isPartOfShadowHost || diffType === 'reorder') {
+      if ((diff.isPartOfShadowHost && !isParentShadowRoot) || diffType === 'reorder') {
+        diff = diff as ReorderDiff;
         const newParentEl = this.deserElOrIframeEl(
           diff.parentSerNode,
           parentEl.ownerDocument! || doc,
           screenDataVersion,
           {
-            partOfSvgEl: 0,
+            partOfSvgEl: diff.isPartOfSVG ? 1 : 0,
             /**
            * TODO: Confirm what should be here for shadow root
            */

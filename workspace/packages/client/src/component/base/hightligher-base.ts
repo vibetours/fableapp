@@ -252,7 +252,11 @@ export default abstract class HighlighterBase {
         || (node as HTMLElement).tagName.toLowerCase() === 'object')) {
         node = (node as HTMLIFrameElement).contentDocument!;
       }
-      node = node.childNodes[id];
+      const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
+      if ((node as HTMLElement).shadowRoot) {
+        childNodes.unshift((node as HTMLElement).shadowRoot!);
+      }
+      node = childNodes[id];
     }
     if (node === this.doc) {
       return null;

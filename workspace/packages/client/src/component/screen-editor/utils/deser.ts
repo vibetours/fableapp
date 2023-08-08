@@ -241,7 +241,7 @@ export const deserIframeEl = (
   assetLoadingPromises: Promise<unknown>[],
   nestedFrames: HTMLIFrameElement[] = [],
   props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
-): void => {
+): Node => {
   const iframeEl = deser(serNode, doc, version, frameLoadingPromises, assetLoadingPromises, nestedFrames, props);
   const tNode = iframeEl as HTMLIFrameElement;
 
@@ -266,6 +266,7 @@ export const deserIframeEl = (
     });
     frameLoadingPromises.push(p);
   }
+  return tNode;
 };
 
 const stopEventBehaviour = (e: Event): void => {

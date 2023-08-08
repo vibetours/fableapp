@@ -18,8 +18,6 @@ export function scrollIframeEls(version: string, doc: Document): Promise<void> {
           const scrollLeftFactor = allDocEls[i].getAttribute('fable-slf') || '0';
           const scrollTop = calculateScrollTopFromScrollFactor(scrollTopFactor, el);
           const scrollLeft = calculateScrollLeftFromScrollFactor(scrollLeftFactor, el);
-          allDocEls[i].removeAttribute('fable-stf');
-          allDocEls[i].removeAttribute('fable-slf');
           el.scroll({ top: scrollTop, left: scrollLeft });
         }
         break;

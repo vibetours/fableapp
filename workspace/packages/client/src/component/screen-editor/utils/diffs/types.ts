@@ -1,10 +1,13 @@
 import { SerNode } from '@fable/common/dist/types';
 
-export type DelDiff = {
+type Diff = {
     parentFid: string,
     parentElPath: string,
     parentSerNode: SerNode,
     isPartOfShadowHost: boolean,
+}
+
+export type DelDiff = Diff & {
     toBeDeletedNodes: ToBeDeletedNodes[];
 }
 
@@ -38,11 +41,7 @@ export type SerNodeWithElPathAndIsSVGAndIsShadow = {
     isPartOfShadowHost: boolean,
 }
 
-export type AddDiff = {
-    parentFid: string,
-    parentElPath: string,
-    parentSerNode: SerNode,
-    isPartOfShadowHost: boolean,
+export type AddDiff = Diff & {
     toBeAddedNodes: ToBeAddedNode[],
 }
 
@@ -53,11 +52,7 @@ export type ToBeAddedNode = {
     isPartOfSVG: boolean,
 }
 
-export type UpdateDiff = {
-    parentFid: string,
-    parentElPath: string,
-    parentSerNode: SerNode,
-    isPartOfShadowHost: boolean,
+export type UpdateDiff = Diff & {
     toBeUpdatedNodes: ToBeUpdatedNode[];
 }
 
@@ -73,11 +68,7 @@ export type Update = {
     attrNewVal: string,
 }
 
-export type ReplaceDiff = {
-    parentFid: string,
-    parentElPath: string,
-    parentSerNode: SerNode,
-    isPartOfShadowHost: boolean,
+export type ReplaceDiff = Diff & {
     toBeReplacedNodes: ToBeReplacedNode[];
 }
 
@@ -88,11 +79,8 @@ export type ToBeReplacedNode = {
     isPartOfSVG: boolean,
 }
 
-export type ReorderDiff = {
-    parentFid: string,
-    parentElPath: string,
-    parentSerNode: SerNode,
-    isPartOfShadowHost: boolean,
+export type ReorderDiff = Diff & {
+    isPartOfSVG: boolean,
 }
 
 export type Prop = 'nodeProps' | 'cssRules' | 'proxyUrl' | 'proxyAttr'
