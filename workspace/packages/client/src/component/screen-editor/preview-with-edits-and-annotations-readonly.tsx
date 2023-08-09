@@ -24,7 +24,7 @@ import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
-import { deser, deserIframeEl } from './utils/deser';
+import { deser, deserFrame, deserIframeEl } from './utils/deser';
 import { getAddDiffs, getDelDiffs, getReorderDiffs, getReplaceDiffs, getUpdateDiffs } from './utils/diffs/get-diffs';
 import {
   applyAddDiffsToSerDom,
@@ -697,6 +697,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } catch (err) {
       captureException(err);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
+      deserFrame(
+        currScreenData.docTree,
+        doc,
+        currScreenData.version,
+        [],
+        [],
+        [],
+      );
+      this.annotationLCM!.resetCons();
     }
   };
 
