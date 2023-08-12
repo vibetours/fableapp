@@ -14,7 +14,6 @@ export const SkeletonCon = styled.div`
   flex-direction: column;
   gap: 2rem;
   width: 100%;
-  align-items: center;
 `;
 
 export const SkeletonGrid = styled.div`
@@ -49,37 +48,60 @@ export const ModalContainer = styled.div`
     margin: 2.5rem 1rem 1.5rem 1rem;
 `;
 
-export const PrimaryModalButton = styled.button`
+export const PrimaryButton = styled.button<{ main?: boolean}>`
     background: #7567FF;
     color: white;
-    border-radius: 24px;
-    font-size: 0.875rem;
     border: 1px solid #7567FF;
     display: block;
-    width: 90%;
-    margin: auto;
-    padding: 0.75rem 0;
+    width: 80%;
     cursor: pointer;
+    padding: 1rem 3rem;
+    font-weight: 600;
+    border-radius: 2.5rem;
+    font-size: 1.2rem;
     
     span {
         margin-left: 0.5rem;
     }
 `;
 
-export const SecondaryModalButton = styled.button`
+export const SecondaryButton = styled.button<{ main?: boolean }>`
     background: #FFFFFF;
     border: 1px solid #16023E;
-    border-radius: 24px;
-    font-size: 0.875rem;
     display: block;
-    width: 90%;
-    margin: 1rem auto;
-    padding: 0.75rem 0;
+    width: 80%;
     cursor: pointer;
+    padding: ${props => (props.main ? '1rem 3rem' : '0.85rem 2.5rem')};
+    border-radius: 2.5rem;
+    font-weight: 600;
+    font-size: 1.2rem;
     
     span {
         margin-right: 0.5rem;
     }
+`;
+
+export const DangerButton = styled.button`
+  background: transparent;
+  border: none;
+  display: block;
+  width: 80%;
+  padding: 0rem 0;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+
+  .target {
+    color: #ff7350;
+    font-weight: 600;
+  }
+
+  &:hover {
+    .target {
+      text-decoration: underline;
+    }
+  }
+
 `;
 
 export const InputLabel = styled.label`
@@ -93,50 +115,26 @@ export const InputLabel = styled.label`
 
 export const NameTourInputContainer = styled.div`
     position: relative;
+    font-size: 1.2rem;
     
     input {
         background: #FFFFFF;
         border: 1px solid #7567FF;
         border-radius: 8px;
         font-weight: 600;
-        font-size: 1rem;
-        line-height: 1.25rem;
-        padding-block: 0.75rem;
-        padding-left: 2.5rem;
+        font-size: inherit;
+        padding: 0.85rem 1rem 0.85rem 3rem;
         width: 90%;
     }
 `;
 
 export const ModalButtonsContainer = styled.div`
     display: flex;
-    margin-top: 1.5rem;
+    margin: 1.5rem 0 0;
     gap: 1rem;
-
-    button {
-        width: 50%;
-        padding: 0.625rem 2rem;
-        border-radius: 60px;
-        cursor: pointer;
-    }
-
-    button.primary {
-        background-color: #7567ff;
-        color: white;
-        border: 1px solid #7567ff;
-
-        &:disabled {
-            opacity: 0.5;
-        }
-    }
-
-    button.secondary {
-        background: #FFFFFF;
-        border: 1px solid #16023E;
-    }
 `;
 
-export const ModalBorderTop = styled.div`
-
+export const FableColorSplit = styled.div`
     position: absolute;
     top: 0;
     left: 0;
@@ -211,4 +209,67 @@ export const HeartLoaderCon = styled.div`
     display: flex;
     flex-direction: column;
     gap: 2rem;
+`;
+
+export const AnnotationContainer = styled.div`
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 40px; 
+    min-height: 240px;
+    align-items: center;
+    justify-content: center;
+`;
+
+export const AnnContentOverlay = styled.div`
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(33, 33, 33, 0.60);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    &:hover{
+        opacity: 1;
+    }
+`;
+
+interface modalConfig{
+    showBorder: boolean;
+}
+
+export const AnnCardContainer = styled.div`
+    position: relative;
+    border-radius: 4px;
+
+    &:before{
+        opacity: 0;
+        z-index: -1;
+        content: '';
+        position: absolute;    
+    }
+
+    .fable-ann-card{
+        border: none;
+    }
+`;
+
+export const ConLogoImg = styled.img`
+  height: 3.5rem;
+  margin: 2rem 0;
+`;
+
+export const HeaderText = styled.div`
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+`;
+
+export const SubheaderText = styled.div`
+  font-size: 1.2rem;
+  font-weight: 400;
+  margin-bottom: 3rem;
 `;

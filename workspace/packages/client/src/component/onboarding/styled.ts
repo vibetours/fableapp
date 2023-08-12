@@ -1,11 +1,13 @@
 import styled from 'styled-components';
 
-export const RootLayoutCon = styled.div`
+export const RootLayoutCon = styled.div<{equalSpaced: boolean, abs: boolean, fullheight: boolean}>`
   padding-left: 4.375rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100vh;
+  padding-right: ${props => (props.equalSpaced ? '4.375rem' : '0')};
+  display: ${props => (props.abs ? 'block' : 'flex')};
+  flex-direction: ${props => (props.abs ? 'unset' : 'column')};
+  justify-content: ${props => (props.abs ? 'unset' : 'center')};
+  height: 100%;
+  overflow-y: ${props => (props.fullheight ? 'auto' : 'hidden')};
 `;
 
 export const ContentWrapper = styled.div`

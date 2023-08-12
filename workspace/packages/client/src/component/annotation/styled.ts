@@ -7,6 +7,7 @@ import {
 } from '@fable/common/dist/types';
 import { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
+import { getColorContrast } from '../../utils';
 
 export const BubbleCon = styled.div`
   position: absolute;
@@ -75,11 +76,11 @@ interface AnTextContentProps {
 }
 
 export const AnTextContent = styled.div`
-  font-weight: normal !important;
+  font-weight: 500;
 
   p {
     margin: 0;
-    font-weight: normal !important;
+    font-weight: 500;
   }
   p img {
     margin-top: 0.2em;
@@ -181,14 +182,6 @@ export interface BtnConf {
   borderRadius: number;
   idx?: number;
   bg: string;
-}
-
-function getColorContrast(hex: string): 'dark' | 'light' {
-  const r = parseInt(hex.substring(1, 3), 16);
-  const g = parseInt(hex.substring(3, 5), 16);
-  const b = parseInt(hex.substring(5, 7), 16);
-  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-  return (yiq >= 155) ? 'light' : 'dark';
 }
 
 interface AnHotspotProps {

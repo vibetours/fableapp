@@ -1,4 +1,4 @@
-import { SerDoc } from "@fable/common/dist/types";
+import { ThemeStats, SerDoc } from "@fable/common/dist/types";
 
 export interface IUser {
   id: number;
@@ -49,6 +49,7 @@ export interface ScreenSerDataFromCS {
   isLast: boolean;
   serDoc: SerDoc;
   location: string;
+  screenStyle: ThemeStats;
 }
 
 export interface FrameDataToBeProcessed {

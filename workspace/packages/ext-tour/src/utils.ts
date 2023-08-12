@@ -1,4 +1,5 @@
-import { CSSProperties } from "react";
+import { hexToRGB } from "@fable/common/dist/utils";
+import { DEFAULT_BORDER_RADIUS } from "@fable/common/dist/types";
 
 export const FABLE_CONTROL_PILL = "fable-dont-ser";
 export const BATCH_SIZE = 5;
@@ -92,4 +93,72 @@ export function isContentEmpty(el: Text): boolean {
 export function isVisible(el: HTMLElement): boolean {
   const style = getComputedStyle(el);
   return !(style.visibility === "hidden" || style.display === "none");
+}
+
+export const hslToHex = (hsl: string) : string => {
+  const hslValues = hsl.match(/\d+/g);
+  const h = parseInt(hslValues![0], 10);
+  const s = parseInt(hslValues![1], 10) / 100;
+  const l = parseInt(hslValues![2], 10) / 100;
+  let r; let g; let
+    b;
+
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hueToRgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hueToRgb(p, q, h / 360 + 1 / 3);
+    g = hueToRgb(p, q, h / 360);
+    b = hueToRgb(p, q, h / 360 - 1 / 3);
+  }
+
+  const toHex = (c: number) => {
+    const hex = Math.round(c * 255).toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+};
+
+export const standardizeHex = (hex: string) : string => {
+  const one = hex[1];
+  const two = hex[2];
+  const three = hex[3];
+  return hex.length === 7 ? hex : `#${one}${one}${two}${two}${three}${three}`;
+};
+
+export function isShadeOfWhiteOrBlack(hexColor: string): boolean {
+  const rgbColor = hexToRGB(hexColor);
+
+  const grayThreshold = 30;
+
+  const isGray = Math.abs(rgbColor.red - rgbColor.green) < grayThreshold
+  && Math.abs(rgbColor.green - rgbColor.blue) < grayThreshold
+  && Math.abs(rgbColor.blue - rgbColor.red) < grayThreshold;
+
+  const whiteThreshold = 240;
+  const blackThreshold = 15;
+
+  return ((rgbColor.red >= whiteThreshold && rgbColor.blue >= whiteThreshold && rgbColor.blue >= whiteThreshold)
+  || (rgbColor.red <= blackThreshold && rgbColor.green <= blackThreshold && rgbColor.blue <= blackThreshold)
+  || isGray);
+}
+
+export function getNormalizedBorderRadius(borderRadiusStr: string): number {
+  const match = borderRadiusStr.match(/^\d+/);
+  if (match && !Number.isNaN(+match[0])) {
+    const br = +match[0];
+    if (br < DEFAULT_BORDER_RADIUS) return DEFAULT_BORDER_RADIUS;
+    return br;
+  }
+  return DEFAULT_BORDER_RADIUS;
 }

@@ -1,20 +1,27 @@
-import React from 'react';
+import React, { CSSProperties } from 'react';
 import FableLogo from '../../assets/onboarding/fable-logo.svg';
 import Browser from '../../assets/onboarding/Browser.svg';
 import * as Tags from './styled';
 
 interface Props {
+  dontShowIllustration?: boolean;
+  equalSpaced?: boolean;
+  abs?: boolean;
   children: React.ReactNode;
+  stackedbarStyle?: CSSProperties;
+  dontShowStackedBars?: boolean;
+  fullheight?: boolean;
 }
 
-function VerticalStackedBars(): JSX.Element {
+export function VerticalStackedBars(props: { style: CSSProperties}): JSX.Element {
   return (
     <div style={{
       height: '100vh',
       position: 'absolute',
       zIndex: -1,
       top: 0,
-      right: '21%'
+      right: '21%',
+      ...props.style
     }}
     >
       <div style={{
@@ -44,10 +51,12 @@ function VerticalStackedBars(): JSX.Element {
   );
 }
 
-export default function RootLayout({ children }: Props) {
+export default function RootLayout(props: Props) {
   return (
-    <Tags.RootLayoutCon>
-      <VerticalStackedBars />
+    <Tags.RootLayoutCon equalSpaced={!!props.equalSpaced} abs={!!props.abs} fullheight={!!props.fullheight} id="frtlt">
+      {!props.dontShowStackedBars && (
+        <VerticalStackedBars style={props.stackedbarStyle || {}} />
+      )}
       <img
         style={{
           height: '2rem',
@@ -57,17 +66,19 @@ export default function RootLayout({ children }: Props) {
         src={FableLogo}
         alt="fable logo"
       />
-      <img
-        src={Browser}
-        alt="browser illustration"
-        style={{
-          position: 'absolute',
-          right: '4.25%',
-          width: '37rem',
-          top: 'calc(50vh - 14rem)'
-        }}
-      />
-      {children}
+      {!props.dontShowIllustration && (
+        <img
+          src={Browser}
+          alt="browser illustration"
+          style={{
+            position: 'absolute',
+            right: '4.25%',
+            width: '37rem',
+            top: 'calc(50vh - 14rem)'
+          }}
+        />
+      )}
+      {props.children}
     </Tags.RootLayoutCon>
   );
 }

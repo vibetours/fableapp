@@ -62,6 +62,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
       const cookiesEl = document.querySelector('#cookies-data') as HTMLElement;
       const totalScreenCountEl = document.querySelector('#total-screen-count') as HTMLElement;
       const numberOfScreensReceivedCountEl = document.querySelector('#number-of-screens-received-count') as HTMLElement;
+      const styleDataEl = document.querySelector('#screen-style-data') as HTMLElement;
 
       if (totalScreenCountEl && numberOfScreensReceivedCountEl) {
         const totalScreenCount = +totalScreenCountEl.textContent! || 1;
@@ -74,6 +75,12 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
         clearInterval(intervalId);
         const screensData = el.textContent;
         const cookies = cookiesEl.textContent || '';
+
+        let screenStyleData = '';
+        if (styleDataEl && styleDataEl.textContent) {
+          screenStyleData = styleDataEl.textContent;
+        }
+
         if (!screensData) {
           return;
         }
@@ -82,6 +89,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
           id: OBJECT_KEY_VALUE,
           screensData,
           cookies,
+          screenStyleData
         };
 
         if (this.db) {

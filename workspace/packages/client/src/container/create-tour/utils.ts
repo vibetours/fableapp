@@ -1,11 +1,18 @@
 import {
+  DEFAULT_BORDER_RADIUS,
   IAnnotationConfig,
+  ITourDataOpts,
   ITourEntityHotspot,
   ScreenData,
   SerDoc,
   SerNode,
   TourData,
-  TourScreenEntity
+  TourScreenEntity,
+  NODE_NAME,
+  ThemeStats,
+  ThemeBorderRadiusCandidatePerNode,
+  ThemeColorCandidatPerNode
+
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import {
@@ -20,31 +27,26 @@ import {
   RespTour,
   ScreenType
 } from '@fable/common/dist/api-contract';
-import { createEmptyTourDataFile, getSampleConfig, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import {
+  createEmptyTourDataFile,
+  getSampleConfig,
+  getCurrentUtcUnixTime,
+  getDefaultTourOpts,
+  hexToRGB,
+  rgbToHex
+} from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
 import raiseDeferredError from '../../deferred-error';
-
-export async function saveScreens(
-  data: FrameDataToBeProcessed[][],
-  cookies: chrome.cookies.Cookie[],
-): Promise<ScreenInfo[]> {
-  const screenFramesToBeProcessed: FrameDataToBeProcessed[][] = data || [];
-  const screens: ScreenInfo[] = [];
-  for (const frames of screenFramesToBeProcessed) {
-    const screenInfo = await processScreen(frames, cookies);
-    screens.push(screenInfo);
-  }
-
-  return screens;
-}
+import { getColorContrast } from '../../utils';
 
 export async function saveScreen(
   frames: FrameDataToBeProcessed[],
   cookies: chrome.cookies.Cookie[],
+  onProgress:(doneProcessing: number, totalProcessing: number) => void
 ): Promise<ScreenInfo> {
-  const screenInfo = await processScreen(frames, cookies);
+  const screenInfo = await processScreen(frames, cookies, onProgress);
   return screenInfo;
 }
 
@@ -52,8 +54,14 @@ export async function saveAsTour(
   screens: ScreenInfo[],
   existingTour: P_RespTour | null,
   tourName: string = 'Untitled',
+  // TODO[now] change this
+  annotationBodyBackgroundColor: string = '#ffffff',
+  annotationBorderRadius: number = DEFAULT_BORDER_RADIUS
 ): Promise<ApiResp<RespTour>> {
-  const { tourDataFile, tourRid } = await addAnnotationConfigs(screens, existingTour, tourName);
+  if (annotationBodyBackgroundColor.length === 0) {
+    annotationBodyBackgroundColor = '#ffffff';
+  }
+  const { tourDataFile, tourRid } = await addAnnotationConfigs(screens, existingTour, tourName, annotationBodyBackgroundColor, annotationBorderRadius);
   const res = await saveTour(tourRid, tourDataFile);
   return res;
 }
@@ -95,7 +103,9 @@ function createAnnotationHotspot(screenId: number, annotationRefId: string): ITo
 async function addAnnotationConfigs(
   screenInfo: Array<ScreenInfo>,
   existingTour: P_RespTour | null,
-  tourName: string
+  tourName: string,
+  annotationBodyBackgroundColor: string,
+  annotationBorderRadius: number
 ): Promise<{tourDataFile: TourData, tourRid: string}> {
   let tourDataFile: TourData;
   let tourRid: string;
@@ -113,10 +123,36 @@ async function addAnnotationConfigs(
   const screensInTourPromises: Array<Promise<RespScreen>> = [];
 
   const grpId = nanoid();
-  for (const screen of screenInfo) {
+
+  for (let i = 0; i < screenInfo.length; i++) {
+    const screen = screenInfo[i];
     const newScreen = addScreenToTour(tourRid, screen.id);
     screensInTourPromises.push(newScreen);
-    annConfigs.push(getSampleConfig(screen.elPath, grpId));
+    const screenConfig = getSampleConfig(screen.elPath, grpId);
+    screenConfig.showOverlay = false;
+    screenConfig.isHotspot = true;
+
+    if (!existingTour) {
+      // If we are adding the annotations in existing tour then don' change any of this.
+      if (i === 0) {
+        screenConfig.buttons.forEach((button) => {
+          if (button.type === 'prev') {
+            button.exclude = true;
+          }
+        });
+
+        screenConfig.buttonLayout = 'full-width';
+      }
+
+      if (i === screenInfo.length - 1) {
+        screenConfig.buttons.forEach((button) => {
+          if (button.type === 'next') {
+            button.text = 'Book a demo';
+          }
+        });
+      }
+    }
+    annConfigs.push(screenConfig);
   }
 
   const screensInTour: Array<RespScreen> = await Promise.all(screensInTourPromises);
@@ -160,6 +196,15 @@ async function addAnnotationConfigs(
     } as TourScreenEntity;
   }
 
+  // If we are adding annotations to existing tour then don't change anything from the theme
+  if (!existingTour) {
+    tourDataFile.opts.annotationBodyBackgroundColor = annotationBodyBackgroundColor;
+    const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
+    tourDataFile.opts.primaryColor = relevantColors.primary;
+    tourDataFile.opts.borderRadius = annotationBorderRadius;
+    tourDataFile.opts.annotationSelectionColor = relevantColors.selection;
+    tourDataFile.opts.annotationFontColor = relevantColors.font;
+  }
   return { tourDataFile, tourRid };
 }
 
@@ -176,7 +221,8 @@ async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<Re
 
 async function processScreen(
   frames: Array<FrameDataToBeProcessed>,
-  cookies: chrome.cookies.Cookie[]
+  cookies: chrome.cookies.Cookie[],
+  onProgress:(doneProcessing: number, totalProcessing: number) => void,
 ):
     Promise<ScreenInfo> {
   for (const frame of frames) {
@@ -185,7 +231,7 @@ async function processScreen(
       serDoc.docTree = JSON.parse(serDoc.docTreeStr);
     }
   }
-  const { data, elPath } = await postProcessSerDocs(frames, cookies);
+  const { data, elPath } = await postProcessSerDocs(frames, cookies, onProgress);
   return {
     id: data.id,
     elPath,
@@ -209,11 +255,13 @@ interface PostProcessSerDocsReturnType {
 
 async function postProcessSerDocs(
   results: Array<FrameDataToBeProcessed>,
-  cookies: chrome.cookies.Cookie[]
+  cookies: chrome.cookies.Cookie[],
+  onProgress:(doneProcessing: number, totalProcessing: number) => void,
 ): Promise<PostProcessSerDocsReturnType> {
   let imageData = '';
   let mainFrame;
   let iconPath: string | undefined;
+  let totalItemsToPostProcess = 0;
   const lookupWithProp = new CreateLookupWithProp<FrameDataToBeProcessed>();
   for (const r of results) {
     if (r.type === 'thumbnail') {
@@ -224,6 +272,7 @@ async function postProcessSerDocs(
     }
 
     const data = r.data as SerDoc;
+    totalItemsToPostProcess += data.postProcesses.length;
     if (r.frameId === 0) {
       mainFrame = r;
     } else {
@@ -239,10 +288,12 @@ async function postProcessSerDocs(
     throw new Error('Main frame not found, this should never happen');
   }
 
+  const mainFrameData = mainFrame.data as SerDoc;
   const allCookies = cookies;
   let elPath = '';
-  async function process(frame: SerDoc, frameId: number, traversePath: string) {
+  async function process(frame: SerDoc, frameId: number, traversePath: string, numberOfProcessingDone: number) {
     for (const postProcess of frame.postProcesses) {
+      numberOfProcessingDone++;
       if (postProcess.type === 'elpath') {
         elPath = traversePath ? `${traversePath}${postProcess.path}` : postProcess.path;
         continue;
@@ -282,7 +333,7 @@ async function postProcessSerDocs(
             chldrn: []
           });
           node.chldrn.push(subFrameData.docTree!);
-          await process(subFrameData, subFrame.frameId, `${traversePath}1.${postProcess.path}.`);
+          await process(subFrameData, subFrame.frameId, `${traversePath}1.${postProcess.path}.`, numberOfProcessingDone);
         }
       } else {
         const url = new URL(frame.frameUrl);
@@ -319,11 +370,11 @@ async function postProcessSerDocs(
           iconPath = node.attrs.href || undefined;
         }
       }
+      onProgress(numberOfProcessingDone, totalItemsToPostProcess);
     }
   }
 
-  const mainFrameData = mainFrame.data as SerDoc;
-  await process(mainFrameData as SerDoc, mainFrame.frameId, '');
+  await process(mainFrameData as SerDoc, mainFrame.frameId, '', 1);
   const screenBody: ScreenData = {
     version: '2023-07-27',
     vpd: {
@@ -332,6 +383,7 @@ async function postProcessSerDocs(
     },
     docTree: mainFrameData.docTree!,
   };
+
   const { data } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
     method: 'POST',
     body: {
@@ -428,3 +480,194 @@ class CreateLookupWithProp<T> {
     return this.rec[prop][key];
   };
 }
+
+export function getThemeAnnotationOpts(color: string, radius: number = DEFAULT_BORDER_RADIUS): ITourDataOpts {
+  const opts = getDefaultTourOpts();
+  if (color) {
+    opts.annotationBodyBackgroundColor = color;
+    const relevantColors = getRelevantColors(opts.annotationBodyBackgroundColor);
+    opts.primaryColor = relevantColors.primary;
+    opts.annotationFontColor = relevantColors.font;
+  }
+  opts.borderRadius = radius;
+  opts.annotationPadding = '18';
+  return opts;
+}
+
+export const getRelevantColors = (annotationBodyBackgroundColor: string) : {
+  primary: string,
+  selection: string,
+  font: string
+} => {
+  const font = getColorContrast(annotationBodyBackgroundColor) === 'dark' ? '#ffffff' : '#424242';
+  if (annotationBodyBackgroundColor.toLowerCase() === '#ffffff') {
+    return {
+      primary: '#7567FF',
+      selection: '#7567FF',
+      font,
+    };
+  }
+
+  if (getColorContrast(annotationBodyBackgroundColor) === 'dark') {
+    return {
+      primary: '#ffffff',
+      selection: annotationBodyBackgroundColor,
+      font
+    };
+  }
+
+  const darkerShade = generateShadeColor(annotationBodyBackgroundColor, 25);
+  return {
+    primary: darkerShade,
+    selection: darkerShade,
+    font
+  };
+};
+
+function generateShadeColor(color: string, percentage: number): string {
+  const { red, green, blue } = hexToRGB(color);
+  const darkerR = Math.max(0, Math.round(red * (1 - percentage / 100)));
+  const darkerG = Math.max(0, Math.round(green * (1 - percentage / 100)));
+  const darkerB = Math.max(0, Math.round(blue * (1 - percentage / 100)));
+
+  const darkenRGB = `rgb(${darkerR}, ${darkerG}, ${darkerB})`;
+  const darkerHexColor = rgbToHex(darkenRGB);
+
+  return darkerHexColor;
+}
+
+function areColorsDistant(color1: string, color2: string): boolean {
+  const color1Rgb = hexToRGB(color1);
+  const color2Rgb = hexToRGB(color2);
+
+  const d = deltaE([color1Rgb.red, color1Rgb.green, color1Rgb.blue], [color2Rgb.red, color2Rgb.green, color2Rgb.blue]);
+  // d <= 1.0 not visible by human eyes
+  // d (1, 2] perceptible through close observation
+  // d (2, 10] perceptible at a glance
+  // d (10, 49] more similar to opposite color
+  // d == 100 opposite
+  return d > 20;
+}
+
+(window as any).ffn = areColorsDistant;
+
+function deltaE(rgbA: [number, number, number], rgbB: [number, number, number]): number {
+  const labA = rgb2lab(rgbA);
+  const labB = rgb2lab(rgbB);
+  const deltaL = labA[0] - labB[0];
+  const deltaA = labA[1] - labB[1];
+  const deltaB = labA[2] - labB[2];
+  const c1 = Math.sqrt(labA[1] * labA[1] + labA[2] * labA[2]);
+  const c2 = Math.sqrt(labB[1] * labB[1] + labB[2] * labB[2]);
+  const deltaC = c1 - c2;
+  let deltaH = deltaA * deltaA + deltaB * deltaB - deltaC * deltaC;
+  deltaH = deltaH < 0 ? 0 : Math.sqrt(deltaH);
+  const sc = 1.0 + 0.045 * c1;
+  const sh = 1.0 + 0.015 * c1;
+  const deltaLKlsl = deltaL / (1.0);
+  const deltaCkcsc = deltaC / (sc);
+  const deltaHkhsh = deltaH / (sh);
+  const i = deltaLKlsl * deltaLKlsl + deltaCkcsc * deltaCkcsc + deltaHkhsh * deltaHkhsh;
+  return i < 0 ? 0 : Math.sqrt(i);
+}
+
+function rgb2lab(rgb: [number, number, number]): [number, number, number] {
+  let r = rgb[0] / 255;
+  let g = rgb[1] / 255;
+  let b = rgb[2] / 255;
+  let x;
+  let y;
+  let z;
+  r = (r > 0.04045) ? ((r + 0.055) / 1.055) ** 2.4 : r / 12.92;
+  g = (g > 0.04045) ? ((g + 0.055) / 1.055) ** 2.4 : g / 12.92;
+  b = (b > 0.04045) ? ((b + 0.055) / 1.055) ** 2.4 : b / 12.92;
+  x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+  y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.00000;
+  z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  x = (x > 0.008856) ? x ** (1 / 3) : (7.787 * x) + 16 / 116;
+  y = (y > 0.008856) ? y ** (1 / 3) : (7.787 * y) + 16 / 116;
+  z = (z > 0.008856) ? z ** (1 / 3) : (7.787 * z) + 16 / 116;
+  return [(116 * y) - 16, 500 * (x - y), 200 * (y - z)];
+}
+
+export const getOrderedColorsWithScore = (colorsPerNode: ThemeColorCandidatPerNode): Array<{
+  hex: string,
+  occurrence: number,
+  default?: boolean
+}> => {
+  const newColors: Record<string, number> = {};
+
+  for (const [tag, colorMap] of Object.entries(colorsPerNode)) {
+    let factor = 1;
+    if (tag === NODE_NAME.a) {
+      factor = 8;
+    } else if (tag === NODE_NAME.button) {
+      factor = 3;
+    }
+
+    for (const [hex, occurrence] of Object.entries(colorMap)) {
+      if (hex in newColors) newColors[hex] += occurrence * factor;
+      else newColors[hex] = occurrence * factor;
+    }
+  }
+
+  let orderedCandidates = Object.entries(newColors).map(kv => ({
+    hex: kv[0],
+    occurrence: kv[1]
+  })).sort((m, n) => n.occurrence - m.occurrence);
+
+  // remove color with similar shade
+  if (orderedCandidates.length === 1) {
+    return orderedCandidates;
+  }
+
+  const candidateColorMap = orderedCandidates.slice(0, 30).reduce((ob, c) => {
+    ob[c.hex] = c.occurrence;
+    return ob;
+  }, {} as Record<string, number>);
+
+  const candidateColors = Object.keys(candidateColorMap);
+
+  for (let i = 0; i < candidateColors.length - 1; i++) {
+    for (let k = i + 1; k < candidateColors.length; k++) {
+      if (!areColorsDistant(candidateColors[i], candidateColors[k])) {
+        const scoreI = candidateColorMap[candidateColors[i]];
+        const scoreK = candidateColorMap[candidateColors[k]];
+        if (scoreK > scoreI) delete candidateColorMap[candidateColors[i]];
+        else delete candidateColorMap[candidateColors[k]];
+      }
+    }
+  }
+
+  orderedCandidates = Object.entries(candidateColorMap).map(kv => ({
+    hex: kv[0],
+    occurrence: kv[1]
+  })).sort((m, n) => n.occurrence - m.occurrence);
+
+  return orderedCandidates;
+};
+
+const median = (arr: number[]): number => {
+  const mid = Math.floor(arr.length / 2);
+  const nums = [...arr].sort((a, b) => a - b);
+  return arr.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
+};
+
+export const getBorderRadius = (nodeBorderRadius: ThemeBorderRadiusCandidatePerNode): [number, number] => {
+  const divBr = nodeBorderRadius[NODE_NAME.div];
+  const orderedBorderRadius = Object.entries(divBr).sort((m, n) => n[1] - m[1]);
+  const mostUsedBorderRadius = orderedBorderRadius[0];
+
+  let option1;
+  let option2;
+  // check if the most frequently used border radius is in perceptible range from DEFAULT_BORDER_RADIUS
+  if (+mostUsedBorderRadius[0] - DEFAULT_BORDER_RADIUS <= 4) {
+    option1 = +mostUsedBorderRadius[0];
+    option2 = (2.5 * option1) | 0;
+  } else {
+    option1 = DEFAULT_BORDER_RADIUS;
+    option2 = +mostUsedBorderRadius[0];
+  }
+
+  return [option1, option2];
+};

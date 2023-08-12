@@ -1,40 +1,63 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import Modal from 'antd/lib/modal';
-import { PlusOutlined, EditFilled, DownOutlined, SearchOutlined } from '@ant-design/icons';
-import AutoComplete from 'antd/lib/auto-complete';
-import { startTransaction, captureMessage, captureException, Transaction } from '@sentry/react';
+import {
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  CheckOutlined,
+  DeleteOutlined,
+  DownOutlined,
+  EditFilled,
+  PlusOutlined
+} from '@ant-design/icons';
 import { sentryTxReport } from '@fable/common/dist/sentry';
-import { Progress } from 'antd';
-import HeartLoader from '../../component/loader/heart';
-import { saveAsTour, saveScreen } from './utils';
-import { withRouter, WithRouterProps } from '../../router-hoc';
-import { TState } from '../../reducer';
-import { DBData, FrameDataToBeProcessed, ModalTab, ScreenInfo } from './types';
-import { deleteDataFromDb, getDataFromDb, openDb } from './db-utils';
-import * as Tags from './styled';
+import {
+  DEFAULT_BORDER_RADIUS,
+  LoadingStatus,
+  NODE_NAME,
+  ThemeCandidature,
+  ThemeStats
+} from '@fable/common/dist/types';
+import { getSampleConfig } from '@fable/common/dist/utils';
+import { captureException, startTransaction, Transaction } from '@sentry/react';
+import Modal from 'antd/lib/modal';
+import Select from 'antd/lib/select';
+import React, { ReactElement } from 'react';
+import { connect } from 'react-redux';
 import { getAllTours } from '../../action/creator';
-import { P_RespTour } from '../../entity-processor';
-import * as GTags from '../../common-styled';
-import Header from '../../component/header';
-import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
+import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
 import SkeletonCard from '../../component/create-tour/skeleton-card';
+import Loader from '../../component/loader';
+import HeartLoader from '../../component/loader/heart';
+import RootLayout from '../../component/onboarding/root-layout';
+import { P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import { DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE } from './constants';
+import { deleteDataFromDb, getDataFromDb, openDb } from './db-utils';
+import * as Tags from './styled';
+import { DBData, FrameDataToBeProcessed, ScreenInfo } from './types';
+import { getBorderRadius, getOrderedColorsWithScore, getThemeAnnotationOpts, saveAsTour, saveScreen } from './utils';
+
+const reactanimated = require('react-animated-css');
+
+const { confirm } = Modal;
 
 interface IDispatchProps {
   getAllTours: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours(false)),
 });
 
 interface IAppStateProps {
   tours: P_RespTour[];
+  allToursLoaded: boolean;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
+  allToursLoaded: state.default.allToursLoadingStatus === LoadingStatus.Done,
 });
 
 interface IOwnProps {
@@ -50,13 +73,22 @@ type IProps = IOwnProps &
     annotationId?: string;
   }>;
 
+enum DisplayState {
+  ShowTourCreationOptions = 1,
+  ShowNewTourOptions,
+  ShowAddExistingTourOptions,
+  ShowColorThemeChoices,
+  ShowBorderChoices,
+  ShowReview,
+}
+
 type IOwnStateProps = {
   loading: boolean;
-  showSaveModal: boolean;
+  showSaveWizard: boolean;
   saving: boolean;
   notDataFound: boolean;
-  modalTab: ModalTab;
   tourName: string;
+  percentageProgress: Record<string, number>;
   showExistingTours: boolean;
   options: {
     value: string,
@@ -65,8 +97,15 @@ type IOwnStateProps = {
   isReadyToSave: boolean,
   isScreenProcessed: boolean,
   saveType: 'new_tour' | 'existing_tour' | null,
-  existingTourId: string | null,
+  existingTourRId: string | null,
   screens: ScreenInfo[];
+  colorList: string[];
+  selectedColor: string;
+  borderRadius: number[];
+  showMoreAnnotation: number;
+  selectedBorderRadius: number | null;
+  currentDisplayState: DisplayState;
+  prevDisplayState: DisplayState;
 }
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -80,55 +119,130 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   private sentryTransaction : Transaction | null;
 
+  private static readonly DEFAULT_SUGGESTED_COLORS = ['#0057ff', '#321b3a', '#051527', '#ffd073', '#7567ff'];
+
   constructor(props: IProps) {
     super(props);
     this.state = {
       loading: true,
-      showSaveModal: false,
+      showSaveWizard: false,
       saving: false,
+      percentageProgress: {},
       notDataFound: false,
-      modalTab: ModalTab.INIT,
       tourName: 'Untitled',
       showExistingTours: false,
       options: [],
       isReadyToSave: false,
       isScreenProcessed: false,
       saveType: null,
-      existingTourId: null,
-      screens: []
+      existingTourRId: null,
+      screens: [],
+      colorList: [],
+      selectedColor: '',
+      borderRadius: [],
+      showMoreAnnotation: 4,
+      selectedBorderRadius: null,
+      currentDisplayState: DisplayState.ShowTourCreationOptions,
+      prevDisplayState: DisplayState.ShowTourCreationOptions
     };
+
     this.data = null;
     this.db = null;
     this.sentryTransaction = null;
     this.frameDataToBeProcessed = [];
   }
 
-  async initDbOperations() {
+  async initDbOperations(): Promise<void> {
     this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
     const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
     if (dbData) {
       this.data = dbData;
-      this.setState({ loading: false, showSaveModal: true });
+      this.setState({ loading: false, showSaveWizard: true });
       this.processScreens();
+      this.createSuggestionsForTheme();
       return;
     }
     captureException('No data found in indexedDB in createTour');
     this.setState({ loading: false, notDataFound: true });
   }
 
-  processScreens = async () => {
-    if (!this.data) {
-      return;
+  // eslint-disable-next-line class-methods-use-this
+  createThemeCandidatesFromStats = (themeStats: ThemeStats) : ThemeCandidature => {
+    const theme: ThemeCandidature = { colorList: [], borderRadius: [] };
+    let orderedColors: {
+      hex: string,
+      occurrence: number,
+      default?: boolean
+    }[] = [];
+    if (themeStats && themeStats.nodeColor && Object.keys(themeStats.nodeColor).length >= 3) {
+      orderedColors = getOrderedColorsWithScore(themeStats.nodeColor);
+    }
+    let i = 0;
+    while (orderedColors.length < 5) {
+      orderedColors.push({
+        hex: CreateTour.DEFAULT_SUGGESTED_COLORS[i++],
+        occurrence: 1,
+        default: true
+      });
+    }
+    theme.colorList = orderedColors.map(c => c.hex).slice(0, 5);
+    theme.colorList.push(''); // default color
+    theme.borderRadius = [4, 10];
+    if (themeStats && themeStats.nodeBorderRadius && Object.keys(themeStats.nodeBorderRadius).length >= 3) {
+      theme.borderRadius = getBorderRadius(themeStats.nodeBorderRadius);
+    }
+    return theme;
+  };
+
+  createSuggestionsForTheme(): void {
+    if (!this.data!.screensData) return;
+
+    let theme;
+    try {
+      const themeStats = JSON.parse(this.data!.screenStyleData);
+      theme = this.createThemeCandidatesFromStats(themeStats);
+    } catch (e) {
+      theme = this.createThemeCandidatesFromStats({
+        nodeColor: {
+          [NODE_NAME.a]: {},
+          [NODE_NAME.div]: {},
+          [NODE_NAME.button]: {}
+        },
+        nodeBorderRadius: {
+          [NODE_NAME.a]: {
+            [DEFAULT_BORDER_RADIUS]: 1
+          },
+          [NODE_NAME.div]: {
+            [DEFAULT_BORDER_RADIUS]: 1
+          },
+          [NODE_NAME.button]: {
+            [DEFAULT_BORDER_RADIUS]: 1
+          }
+        }
+      });
     }
 
+    this.setState({ colorList: theme.colorList, borderRadius: theme.borderRadius });
+  }
+
+  processScreens = async (): Promise<void> => {
     this.sentryTransaction = startTransaction({ name: 'saveCreateTour' });
-    const frameDataToBeProcessed = JSON.parse(this.data.screensData) as FrameDataToBeProcessed[][];
+    const frameDataToBeProcessed = JSON.parse(this.data!.screensData) as FrameDataToBeProcessed[][];
     this.frameDataToBeProcessed = frameDataToBeProcessed;
-    const cookieData = JSON.parse(this.data.cookies);
+    const cookieData = JSON.parse(this.data!.cookies);
 
     for (let i = 0; i < frameDataToBeProcessed.length; i++) {
       const frames = frameDataToBeProcessed[i];
-      const screen = await saveScreen(frames, cookieData);
+      const screen = await saveScreen(frames, cookieData, (m, t) => {
+        // eslint-disable-next-line no-mixed-operators
+        const percentageProgress = Math.min(Math.ceil(m / t * 100), 100);
+        this.setState(s => ({
+          percentageProgress: {
+            ...s.percentageProgress,
+            [i]: percentageProgress
+          },
+        }));
+      });
       this.setState((prevState: Readonly<IOwnStateProps>) => (
         { ...prevState, screens: [...prevState.screens, screen] }
       ));
@@ -137,31 +251,34 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ isScreenProcessed: true });
   };
 
-  createNewTour = () => {
-    this.setState({ saveType: 'new_tour', isReadyToSave: true, saving: true, showSaveModal: false });
+  createNewTour = (): void => {
+    this.setState({ saveType: 'new_tour', isReadyToSave: true, saving: true, showSaveWizard: false });
   };
 
-  saveTour = async () => {
+  saveTour = async (): Promise<void> => {
     if (!this.db) {
       return;
     }
-    this.setState({ saving: true, showSaveModal: false });
+    this.setState({ saving: true, showSaveWizard: false });
+
     const tour = await saveAsTour(
       this.state.screens,
       null,
-      this.state.tourName
+      this.state.tourName,
+      this.state.selectedColor,
+      this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
     );
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
 
-  saveInExistingTour = async (value: string | null) => {
+  saveInExistingTour = async (value: string | null): Promise<void> => {
     if (!this.data || !this.db || !value) {
       return;
     }
     const existingTour = this.props.tours.filter(el => el.rid === value)[0];
-    this.setState({ saving: true, showSaveModal: false, tourName: existingTour.displayName });
+    this.setState({ saving: true, showSaveWizard: false, tourName: existingTour.displayName });
     const tour = await saveAsTour(
       this.state.screens,
       existingTour
@@ -171,45 +288,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
 
-  hideModal = () => {
-    this.setState({ showSaveModal: false });
-  };
-
-  static generateOptionsCard = (options: P_RespTour[]) => options.map(el => ({
-    value: el.rid,
-    label: (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}
-        key={Math.random()}
-      >
-        <span>
-          {el.displayName}
-        </span>
-      </div>
-    ),
-  }));
-
-  handleSearch = (value: string) => {
-    const filteredOptions = this.props.tours
-      .filter(tour => tour.displayName.toLocaleLowerCase().includes(value.toLowerCase()));
-    this.setState({ options: CreateTour.generateOptionsCard(filteredOptions) });
-  };
-
-  componentDidMount() {
+  componentDidMount(): void {
     document.title = this.props.title;
     this.setState({ loading: true });
-    this.props.getAllTours();
     this.initDbOperations();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
-    if (prevProps.tours !== this.props.tours) {
-      this.setState({ options: CreateTour.generateOptionsCard(this.props.tours) });
-    }
-
     if (prevState.isReadyToSave !== this.state.isReadyToSave
       || prevState.isScreenProcessed !== this.state.isScreenProcessed) {
       if (this.state.isReadyToSave && this.state.isScreenProcessed) {
@@ -218,16 +303,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         }
 
         if (this.state.saveType === 'existing_tour') {
-          this.saveInExistingTour(this.state.existingTourId);
+          this.saveInExistingTour(this.state.existingTourRId);
         }
       }
     }
 
-    if (prevState.modalTab !== this.state.modalTab) {
-      if (this.state.modalTab === ModalTab.CREATE_TOUR) {
-        this.nameTourRef.current?.focus();
-        this.nameTourRef.current?.select();
-      }
+    if (prevState.showExistingTours !== this.state.showExistingTours && this.state.showExistingTours) {
+      this.props.getAllTours();
     }
   }
 
@@ -235,149 +317,512 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.db?.close();
   }
 
-  render() {
+  render(): ReactElement {
     if (this.state.loading) {
       return (
         <HeartLoader />
       );
     }
 
-    return (
-      <>
-        <GTags.HeaderCon>
-          <Header rBtnTxt="Record a screen" leftElGroups={[]} />
-        </GTags.HeaderCon>
-        {
-          this.state.saving && <Tags.TourHeading>{this.state.tourName}</Tags.TourHeading>
-        }
-        <Tags.Container>
-          {
-            this.state.notDataFound && <Tags.Heading>No data found</Tags.Heading>
-          }
-
-          {
-            this.state.saving && (
-              <Tags.SkeletonCon>
-                <Tags.SkeletonGrid>
-                  {this.frameDataToBeProcessed.map((frameData, idx) => (
-                    this.state.screens.length > idx
-                      ? <ScreenCard
-                          key={idx}
-                          frameData={frameData}
-                          favicon={this.state.screens[idx].icon}
-                      />
-                      : <SkeletonCard key={idx} />
-                  ))}
-                </Tags.SkeletonGrid>
-                <Tags.LoadingToast>
-                  Loading... It might take a few seconds
-                </Tags.LoadingToast>
-              </Tags.SkeletonCon>
-            )
-          }
-          <Modal
-            open={this.state.showSaveModal}
-            title=""
-            onCancel={this.hideModal}
-            footer={null}
-            style={{ position: 'relative' }}
+    if (this.state.notDataFound) {
+      return (
+        <RootLayout
+          dontShowIllustration
+          equalSpaced
+          abs
+        >
+          <div
+            style={{
+              transform: 'translateY(10rem)',
+            }}
           >
-            <Tags.ModalBorderTop>
-              <div />
-              <div />
-              <div />
-            </Tags.ModalBorderTop>
-            <Tags.ModalContainer>
-              {
-                this.state.modalTab === ModalTab.INIT && (
-                  <div>
-                    <Tags.PrimaryModalButton
-                      onClick={() => this.setState({ modalTab: ModalTab.CREATE_TOUR })}
-                    >
-                      <PlusOutlined /> <span>Create a new tour</span>
-                    </Tags.PrimaryModalButton>
-                    <Tags.SecondaryModalButton
-                      onClick={() => this.setState({ showExistingTours: true })}
-                    >
-                      <span>Save in existing tour</span> <DownOutlined />
-                    </Tags.SecondaryModalButton>
+            <Tags.HeaderText>A little quiet here today</Tags.HeaderText>
+            <Tags.SubheaderText>No tours to be created. Use Fable's extension to record a tour.</Tags.SubheaderText>
+            <Tags.PrimaryButton
+              style={{
+                width: '240px'
+              }}
+              onClick={() => {
+                this.props.navigate('/tours');
+              }}
+            >
+              See all Tours
+            </Tags.PrimaryButton>
+          </div>
+        </RootLayout>
+      );
+    }
 
-                    {
-                      this.state.showExistingTours && (
-                        <Tags.SearchInputContainer>
-                          <Tags.SearchInputWrapper>
-                            <AutoComplete
-                              dropdownMatchSelectWidth={252}
-                              style={{ width: '100%' }}
-                              options={this.state.options}
-                              onSelect={(value: string) => this.setState({
-                                existingTourId: value,
-                                isReadyToSave: true,
-                                saveType: 'existing_tour',
-                                saving: true,
-                                showSaveModal: false
-                              })}
-                              onSearch={this.handleSearch}
-                              placeholder="Type to search"
-                            >
-                              <input type="text" />
-                            </AutoComplete>
-                            <SearchOutlined
-                              style={{ position: 'absolute', top: '10px', left: '15px' }}
-                            />
-                          </Tags.SearchInputWrapper>
-                        </Tags.SearchInputContainer>
-                      )
-                    }
+    let heading = '';
+    let subheading = '';
+    let contentWidth = '40%';
+    let step = 0;
+    const totalSteps = 3;
+    let fableColorBorderRight = '21%';
 
-                  </div>
-                )
-              }
-              {
-                this.state.modalTab === ModalTab.CREATE_TOUR && (
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    this.createNewTour();
-                  }}
+    switch (this.state.currentDisplayState) {
+      case DisplayState.ShowTourCreationOptions:
+        heading = 'Create your tour';
+        subheading = 'We have captured everything required to create the interactive tour of your product. We even capture your product\'s animation.';
+        break;
+
+      case DisplayState.ShowAddExistingTourOptions:
+        heading = 'Select an existing tour';
+        subheading = 'Your current recording would be added to the selected tour.';
+        break;
+
+      case DisplayState.ShowNewTourOptions:
+        heading = 'New tour name';
+        subheading = 'Give your tour a name so that it\'s easy to find. You can always change this later from inside the app.';
+        break;
+
+      case DisplayState.ShowColorThemeChoices:
+        heading = 'Choose color';
+        subheading = 'We have curated couple of themes for you based on your product\'s colorscheme. You can always change these from inside the app.';
+        contentWidth = 'calc(100% - 26rem)';
+        step = 1;
+        fableColorBorderRight = '0%';
+        break;
+
+      case DisplayState.ShowBorderChoices:
+        heading = 'Choose shape';
+        subheading = 'We have suggested couple of variations of annotations that we think you would like. You can always change these from inside the app.';
+        contentWidth = 'calc(100% - 26rem)';
+        step = 2;
+        fableColorBorderRight = '0%';
+        break;
+
+      case DisplayState.ShowReview:
+        heading = 'Review';
+        subheading = 'This is how your annotations would look like on the interactive tour. You can change any or all aspect of this from inside the app.';
+        step = 3;
+        break;
+
+      default:
+        break;
+    }
+
+    const animIn = this.state.currentDisplayState > this.state.prevDisplayState ? 'fadeInRight' : 'fadeInLeft';
+    const animOut = this.state.currentDisplayState > this.state.prevDisplayState ? 'fadeOutLeft' : 'fadeOutRight';
+
+    if (this.state.showSaveWizard) {
+      return (
+        <RootLayout
+          dontShowIllustration
+          equalSpaced
+          abs
+          fullheight={this.state.currentDisplayState === DisplayState.ShowColorThemeChoices}
+          stackedbarStyle={{
+            transition: 'all 0.2s ease-out',
+            right: fableColorBorderRight
+          }}
+        >
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css" />
+          <div style={{
+            transform: 'translateY(12rem)',
+            fontSize: '4rem',
+          }}
+          >
+            <span>🎉</span>
+          </div>
+          <div style={{ transform: 'translateY(12rem)', width: contentWidth }}>
+            <Tags.HeaderText>{heading}
+              {step > 0 && (
+                <span style={{
+                  fontSize: '0.85rem',
+                  display: 'inline-block',
+                  marginLeft: '1.5rem',
+                  fontWeight: 500
+                }}
+                >{step}/{totalSteps}
+                </span>
+              )}
+            </Tags.HeaderText>
+            <Tags.SubheaderText>{subheading}</Tags.SubheaderText>
+            <div>
+              <reactanimated.Animated
+                animationIn={this.state.currentDisplayState < this.state.prevDisplayState ? 'fadeInLeft' : 'jackInTheBox'}
+                animationOut="fadeOutLeft"
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowTourCreationOptions}
+              >
+                <div style={{ width: '90%', position: 'absolute' }}>
+                  <Tags.PrimaryButton
+                    main
+                    style={{ marginBottom: '1rem' }}
+                    onClick={() => this.setState({
+                      currentDisplayState: DisplayState.ShowNewTourOptions,
+                      prevDisplayState: DisplayState.ShowTourCreationOptions
+                    })}
                   >
-                    <Tags.InputLabel htmlFor="tour-name">Name your tour</Tags.InputLabel>
-                    <Tags.NameTourInputContainer>
-                      <input
-                        id="tour-name"
-                        placeholder="Untitled"
-                        value={this.state.tourName}
-                        onChange={(e) => this.setState({ tourName: e.target.value })}
-                        ref={this.nameTourRef}
+                    <PlusOutlined /> <span>Create a new tour</span>
+                  </Tags.PrimaryButton>
+                  <Tags.SecondaryButton
+                    main
+                    style={{ marginBottom: '1.5rem' }}
+                    onClick={() => {
+                      this.setState({
+                        showExistingTours: true,
+                        currentDisplayState: DisplayState.ShowAddExistingTourOptions,
+                        prevDisplayState: DisplayState.ShowTourCreationOptions
+                      });
+                    }}
+                  >
+                    <DownOutlined /> <span>Save in existing tour</span>
+                  </Tags.SecondaryButton
+                  >
+                  <Tags.DangerButton
+                    onClick={() => {
+                      confirm({
+                        title: 'Are you sure you don\'t want to continue?',
+                        icon: <DeleteOutlined />,
+                        onOk: async () => {
+                          if (this.db) await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
+                          this.props.navigate('/tours');
+                        },
+                        onCancel() { }
+                      });
+                    }}
+                  >
+                    I have created this by mistake, &nbsp;
+                    <span className="target">delete this!</span>
+                  </Tags.DangerButton>
+                </div>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn={animIn}
+                animationOut={animOut}
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowAddExistingTourOptions}
+              >
+                <div style={{ width: '80%', position: 'absolute' }}>
+                  {this.props.allToursLoaded ? (
+                    <div>
+                      <style>{`
+                        .ant-select-selector {
+                          border-radius: 8px !important;
+                          height: auto !important;
+                          padding: 0.2rem 11px !important;
+
+                          & input {
+                            font-size: 1.2rem !important;
+                            font-weight: 600 !important;
+                          }
+                        }
+
+                        .ant-select-selection-item {
+                          font-size: 1.2rem !important;
+                          font-weight: bold !important;
+                        }
+                        `}
+                      </style>
+                      <Select
+                        style={{ width: '100%', borderRadius: '8px' }}
+                        autoFocus
+                        defaultOpen
+                        size="large"
+                        onSelect={(selectedTourRId) => this.setState({ existingTourRId: selectedTourRId })}
+                        showSearch
+                        options={this.props.tours.map(t => ({
+                          label: t.displayName,
+                          value: t.rid
+                        }))}
                       />
-                      <EditFilled style={{ position: 'absolute', top: '0.875rem', left: '0.875rem' }} />
-                    </Tags.NameTourInputContainer>
-                    <Tags.ModalButtonsContainer>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => this.setState({ showSaveModal: false })}
+                      <Tags.ModalButtonsContainer style={{
+                        margin: '2rem 0',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                      }}
                       >
-                        Cancel
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="primary"
-                        // onClick={this.createNewTour}
-                        disabled={this.state.saving}
+                        <Tags.SecondaryButton
+                          onClick={() => this.setState({
+                            currentDisplayState: DisplayState.ShowTourCreationOptions,
+                            prevDisplayState: DisplayState.ShowAddExistingTourOptions
+                          })}
+                        >
+                          <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
+                        </Tags.SecondaryButton>
+                        {this.state.existingTourRId && (
+                          <Tags.PrimaryButton
+                            onClick={() => this.setState({
+                              isReadyToSave: true,
+                              saveType: 'existing_tour',
+                              saving: true,
+                              showSaveWizard: false
+                            })}
+                            disabled={this.state.saving}
+                          >
+                            <CheckOutlined />&nbsp;&nbsp;&nbsp;Add to Tour
+                          </Tags.PrimaryButton>
+                        )}
+                      </Tags.ModalButtonsContainer>
+                    </div>
+                  ) : (
+                    <Loader width="240px" />
+                  )}
+                </div>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn={animIn}
+                animationOut={animOut}
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowNewTourOptions}
+              >
+                <div style={{ width: '80%', position: 'absolute' }}>
+                  <Tags.NameTourInputContainer>
+                    <input
+                      id="tour-name"
+                      placeholder="Untitled"
+                      value={this.state.tourName}
+                      onChange={(e) => this.setState({ tourName: e.target.value })}
+                      ref={this.nameTourRef}
+                    />
+                    <EditFilled style={{ position: 'absolute', top: '0.875rem', left: '0.875rem' }} />
+                  </Tags.NameTourInputContainer>
+                  <Tags.ModalButtonsContainer>
+                    <Tags.SecondaryButton
+                      onClick={() => this.setState({
+                        currentDisplayState: DisplayState.ShowTourCreationOptions,
+                        prevDisplayState: DisplayState.ShowNewTourOptions
+                      })}
+                    >
+                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
+                    </Tags.SecondaryButton>
+                    <Tags.PrimaryButton
+                      onClick={() => this.setState({
+                        currentDisplayState: DisplayState.ShowColorThemeChoices,
+                        prevDisplayState: DisplayState.ShowNewTourOptions
+                      })}
+                      disabled={this.state.saving}
+                    >
+                      Next&nbsp;&nbsp;&nbsp;<ArrowRightOutlined />
+                    </Tags.PrimaryButton>
+                  </Tags.ModalButtonsContainer>
+                </div>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn={animIn}
+                animationOut={animOut}
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowColorThemeChoices}
+              >
+                <div style={{ width: '100%', position: 'absolute' }}>
+                  <Tags.AnnotationContainer>
+                    {this.state.colorList.map((color, idx) => (
+                      <Tags.AnnCardContainer
+                        key={idx}
+                        onClick={() => {
+                          this.setState({
+                            selectedColor: color,
+                            currentDisplayState: DisplayState.ShowBorderChoices,
+                            prevDisplayState: DisplayState.ShowColorThemeChoices
+                          });
+                        }}
                       >
-                        Save
-                      </button>
-                    </Tags.ModalButtonsContainer>
-                  </form>
-                )
-              }
-            </Tags.ModalContainer>
-          </Modal>
+                        <AnnotationContent
+                          config={getSampleConfig('$', '')}
+                          opts={getThemeAnnotationOpts(color)}
+                          isInDisplay
+                          width={200}
+                          dir="l"
+                          tourId=""
+                          top={0}
+                          left={0}
+                          annotationSerialIdMap={{}}
+                          navigateToAdjacentAnn={() => {}}
+                          isThemeAnnotation
+                        />
+                        <Tags.AnnContentOverlay>
+                          <Tags.SecondaryButton
+                            style={{ width: '200px', padding: '0.85rem 2rem' }}
+                          >
+                            <span>Select</span>
+                          </Tags.SecondaryButton>
+                        </Tags.AnnContentOverlay>
+                      </Tags.AnnCardContainer>
+                    ))}
+                  </Tags.AnnotationContainer>
+                  <Tags.ModalButtonsContainer style={{ margin: '3rem 0', justifyContent: 'center' }}>
+                    <Tags.SecondaryButton
+                      style={{ maxWidth: '240px' }}
+                      onClick={() => {
+                        const rootLayoutDiv = document.getElementById('frtlt');
+                        if (rootLayoutDiv) rootLayoutDiv.scrollTop = 0;
+                        this.setState({
+                          currentDisplayState: DisplayState.ShowNewTourOptions,
+                          prevDisplayState: DisplayState.ShowColorThemeChoices
+                        });
+                      }}
+                    >
+                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
+                    </Tags.SecondaryButton>
+                  </Tags.ModalButtonsContainer>
+                </div>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn={animIn}
+                animationOut={animOut}
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowBorderChoices}
+              >
+                <div style={{ width: '100%', position: 'absolute' }}>
+                  <Tags.AnnotationContainer>
+                    {this.state.borderRadius.map((r, idx) => (
+                      <Tags.AnnCardContainer
+                        key={idx}
+                        onClick={() => {
+                          this.setState({
+                            selectedBorderRadius: r,
+                            currentDisplayState: DisplayState.ShowReview,
+                            prevDisplayState: DisplayState.ShowBorderChoices
+                          });
+                        }}
+                      >
+                        <AnnotationContent
+                          config={getSampleConfig('$', '')}
+                          opts={getThemeAnnotationOpts(this.state.selectedColor, r)}
+                          isInDisplay
+                          width={200}
+                          dir="l"
+                          tourId=""
+                          top={0}
+                          left={0}
+                          annotationSerialIdMap={{}}
+                          navigateToAdjacentAnn={() => {}}
+                          isThemeAnnotation
+                        />
+                        <Tags.AnnContentOverlay>
+                          <Tags.SecondaryButton
+                            style={{ width: '200px', padding: '0.85rem 2rem' }}
+                          >
+                            <span>Select</span>
+                          </Tags.SecondaryButton>
+                        </Tags.AnnContentOverlay>
+                      </Tags.AnnCardContainer>
+                    ))}
+                  </Tags.AnnotationContainer>
+                  <Tags.ModalButtonsContainer style={{ margin: '3rem 0', justifyContent: 'center' }}>
+                    <Tags.SecondaryButton
+                      style={{ maxWidth: '240px' }}
+                      onClick={() => {
+                        const rootLayoutDiv = document.getElementById('frtlt');
+                        if (rootLayoutDiv) rootLayoutDiv.scrollTop = 0;
+                        this.setState({
+                          currentDisplayState: DisplayState.ShowColorThemeChoices,
+                          prevDisplayState: DisplayState.ShowBorderChoices
+                        });
+                      }}
+                    >
+                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
+                    </Tags.SecondaryButton>
+                  </Tags.ModalButtonsContainer>
+                </div>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn={animIn}
+                animationOut={animOut}
+                animationInDuration={500}
+                animationOutDuration={500}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowReview}
+              >
+                <div style={{
+                  fontSize: '1.5rem',
+                  marginBottom: '2rem'
+                }}
+                >
+                  Tour name
+                  <span style={{ fontWeight: 500, marginLeft: '0.5rem' }}>
+                    {this.state.tourName}
+                  </span>
+                </div>
+                <div>
+                  <AnnotationContent
+                    config={getSampleConfig('$', '')}
+                    opts={getThemeAnnotationOpts(this.state.selectedColor, this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS)}
+                    isInDisplay
+                    width={200}
+                    dir="l"
+                    tourId=""
+                    top={0}
+                    left={0}
+                    annotationSerialIdMap={{}}
+                    navigateToAdjacentAnn={() => {}}
+                    isThemeAnnotation
+                  />
+                </div>
+                <Tags.ModalButtonsContainer style={{
+                  width: '360px',
+                  margin: '2rem 0',
+                  flexDirection: 'column',
+                  alignItems: 'center'
+                }}
+                >
+                  <Tags.SecondaryButton
+                    onClick={() => this.setState({
+                      currentDisplayState: DisplayState.ShowBorderChoices,
+                      prevDisplayState: DisplayState.ShowReview
+                    })}
+                  >
+                    <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
+                  </Tags.SecondaryButton>
+                  <Tags.PrimaryButton
+                    onClick={this.createNewTour}
+                    disabled={this.state.saving}
+                  >
+                    <CheckOutlined />&nbsp;&nbsp;&nbsp;Create Tour
+                  </Tags.PrimaryButton>
+                </Tags.ModalButtonsContainer>
+              </reactanimated.Animated>
+            </div>
+          </div>
+        </RootLayout>
+      );
+    }
 
-        </Tags.Container>
-      </>
-    );
+    if (this.state.saving) {
+      return (
+        <RootLayout
+          dontShowIllustration
+          dontShowStackedBars
+          equalSpaced
+          abs
+          fullheight
+        >
+          <Tags.SkeletonCon style={{ transform: 'translateY(10rem)' }}>
+            <Tags.HeaderText
+              style={{ marginBottom: '0rem' }}
+            >Creating the tour...
+            </Tags.HeaderText>
+            <Tags.SubheaderText>We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time. <i>Please keep this tab open while we create your tour.</i>
+            </Tags.SubheaderText>
+            <Tags.SkeletonGrid>
+              {this.frameDataToBeProcessed.map((frameData, idx) => (
+                this.state.screens.length > idx
+                  ? <ScreenCard
+                      key={idx}
+                      frameData={frameData}
+                      favicon={this.state.screens[idx].icon}
+                  />
+                  : <SkeletonCard key={idx} progress={this.state.percentageProgress[idx]} />
+              ))}
+            </Tags.SkeletonGrid>
+          </Tags.SkeletonCon>
+        </RootLayout>
+      );
+    }
+
+    return <></>;
   }
 }
 

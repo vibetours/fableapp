@@ -1,7 +1,7 @@
 import { calculatePathFromEl, getRandomId, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "./msg";
-import { addFableIdsToAllEls, getSearializedDom } from "./doc";
+import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
   ReqScreenshotData,
   ScreenSerDataFromCS,
@@ -28,6 +28,7 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
     elPath = calculatePathFromEl(el as Node, []).join(".");
   }
   const serDoc = getSearializedDom();
+  const screenStyle = getScreenStyle();
   elPath && serDoc.postProcesses.push({ type: "elpath", path: elPath });
   chrome.runtime.sendMessage<MsgPayload<ScreenSerDataFromCS>>({
     type: Msg.FRAME_SERIALIZED,
@@ -36,7 +37,8 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
       id,
       isLast: elPath === "$",
       serDoc,
-      location: document.location.origin
+      location: document.location.origin,
+      screenStyle
     }
   });
 }
@@ -118,7 +120,7 @@ function init() {
 
   installListener(document);
 
-  const onMessageReceiveFromPopup = async (msg: MsgPayload<any>) => {
+  const onMessageReceiveFromBackground = async (msg: MsgPayload<any>) => {
     switch (msg.type) {
       case Msg.SCRIPT_INIT_DATA: {
         const tMsg = msg as MsgPayload<ScriptInitReportedData>;
@@ -155,7 +157,7 @@ function init() {
     }
   };
 
-  chrome.runtime.onMessage.addListener(onMessageReceiveFromPopup);
+  chrome.runtime.onMessage.addListener(onMessageReceiveFromBackground);
   chrome.runtime.sendMessage<MsgPayload<ScriptInitRequiredData>>({
     type: Msg.SCRIPT_INIT,
     data: { required: "frameId", scriptId: initData.scriptId }

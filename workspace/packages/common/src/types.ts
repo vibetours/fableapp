@@ -215,3 +215,26 @@ export enum AnnotationFontSize {
   large = '22',
   larger = '26'
 }
+
+export interface ThemeCandidature {
+  colorList: string[];
+  borderRadius: number[];
+}
+
+export const DEFAULT_BORDER_RADIUS = 4;
+
+export enum NODE_NAME {
+  div = 'div',
+  a = 'a',
+  button = 'button',
+}
+
+export type ThemeColorCandidatPerNode = {
+  [key in NODE_NAME]: Record<string, number>;
+}
+
+export type ThemeBorderRadiusCandidatePerNode = {
+  [key in NODE_NAME]: Record<string, number>;
+}
+
+export interface ThemeStats {nodeColor: ThemeColorCandidatPerNode, nodeBorderRadius: ThemeBorderRadiusCandidatePerNode}

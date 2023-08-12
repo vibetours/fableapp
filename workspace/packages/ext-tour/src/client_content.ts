@@ -1,41 +1,38 @@
 import { startTransaction } from "@sentry/browser";
 import { init as sentryInit, sentryTxReport } from "@fable/common/dist/sentry";
+import { ThemeStats } from "@fable/common/dist/types";
 import { Msg } from "./msg";
 import { FrameDataToBeProcessed } from "./types";
 import { BATCH_SIZE } from "./utils";
 
 sentryInit("extension");
 
-function createExchangeDataDiv(data: FrameDataToBeProcessed[][]) {
-  const div = document.createElement("div");
-  div.setAttribute("id", "exchange-data");
-  div.textContent = JSON.stringify(data);
+function createDataDiv(id: string, content: string): HTMLDivElement {
+  const div = (document.getElementById(id) || document.createElement("div")) as HTMLDivElement;
+  div.setAttribute("id", id);
+  div.textContent = content;
   div.style.display = "none";
   return div;
+}
+
+function createExchangeDataDiv(data: FrameDataToBeProcessed[][]) {
+  return createDataDiv("exchange-data", JSON.stringify(data));
 }
 
 function createCookiesDiv(data: FrameDataToBeProcessed[][]) {
-  const div = document.createElement("div");
-  div.setAttribute("id", "cookies-data");
-  div.textContent = JSON.stringify(data);
-  div.style.display = "none";
-  return div;
+  return createDataDiv("cookies-data", JSON.stringify(data));
 }
 
 function createTotalScreensCountDiv(count: number) {
-  const div = document.createElement("div");
-  div.setAttribute("id", "total-screen-count");
-  div.textContent = `${count}`;
-  div.style.display = "none";
-  return div;
+  return createDataDiv("total-screen-count", String(count));
 }
 
 function createOrUpdateNumberOfScreensReceivedCountDiv(count: number) {
-  const div = document.getElementById("number-of-screens-received-count") || document.createElement("div");
-  div.setAttribute("id", "number-of-screens-received-count");
-  div.textContent = `${count}`;
-  div.style.display = "none";
-  return div;
+  return createDataDiv("number-of-screens-received-count", String(count));
+}
+
+function createScreenStyleDiv(data: ThemeStats) {
+  return createDataDiv("screen-style-data", JSON.stringify(data));
 }
 
 function init() {
@@ -75,6 +72,12 @@ function init() {
         const cookiesDiv = createCookiesDiv(message.data.cookiesData);
         document.body.appendChild(cookiesDiv);
         sentryTxReport(transaction, "screensCount", totalScreenCount, "byte");
+        break;
+      }
+
+      case Msg.SAVE_STYLE_DATA: {
+        const dataDiv = createScreenStyleDiv(message.data.screenStyleData);
+        document.body.appendChild(dataDiv);
         break;
       }
 

@@ -37,6 +37,7 @@ export class AnnotationContent extends React.PureComponent<{
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
+  isThemeAnnotation?: boolean
 }> {
   static readonly MIN_WIDTH = 360;
 
@@ -75,7 +76,7 @@ export class AnnotationContent extends React.PureComponent<{
     const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
     const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
 
-    return `0 0 ${blur} ${spread} ${borderColor}, rgba(0, 0, 0) 0px 0px ${hasOverlay ? 0 : 8}px -1px`;
+    return `0 0 ${blur} ${spread} ${borderColor}, rgba(0, 0, 0) 0px 0px ${hasOverlay ? 0 : 4}px -1px`;
   }
 
   componentWillUnmount(): void {
@@ -111,11 +112,13 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
           transition: 'transform 0.3s ease-out',
           fontSize: '18px',
-          transform: `translate(${tx}px, ${ty}px)`,
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
           backgroundColor: this.props.opts.annotationBodyBackgroundColor,
-          borderRadius: this.props.opts.borderRadius
+          borderRadius: this.props.opts.borderRadius,
+          transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
+          position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
+        className="fable-ann-card"
       >
         <Tags.AnInnerContainer
           anPadding={this.props.opts.annotationPadding.trim()}

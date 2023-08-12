@@ -1,6 +1,21 @@
-import { PostProcess, SerDoc, SerNode, SerNodeWithPath } from "@fable/common/dist/types";
+import { DEFAULT_BORDER_RADIUS, PostProcess, SerDoc, SerNode, SerNodeWithPath,
+  NODE_NAME,
+  ThemeBorderRadiusCandidatePerNode,
+  ThemeColorCandidatPerNode
+} from "@fable/common/dist/types";
 import { nanoid } from "nanoid";
-import { FABLE_CONTROL_PILL, isCrossOrigin, isContentEmpty, isCaseInsensitiveEqual, isVisible } from "./utils";
+import { rgbToHex } from "@fable/common/dist/utils";
+import {
+  FABLE_CONTROL_PILL,
+  isCrossOrigin,
+  isContentEmpty,
+  isCaseInsensitiveEqual,
+  isVisible,
+  standardizeHex,
+  hslToHex,
+  isShadeOfWhiteOrBlack,
+  getNormalizedBorderRadius
+} from "./utils";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -544,4 +559,99 @@ export function addFableIdsToAllEls(
 
   const frameUrl = isTest ? "test://case" : document.URL;
   getRep(doc.documentElement, frameUrl, []);
+}
+
+export function getScreenStyle(
+  params?: any,
+  testInjectedParams?: {
+    doc: Document;
+  }
+) {
+  const nodeColor: ThemeColorCandidatPerNode = {
+    [NODE_NAME.a]: {},
+    [NODE_NAME.button]: {},
+    [NODE_NAME.div]: {},
+  };
+
+  const nodeBorderRadius: ThemeBorderRadiusCandidatePerNode = {
+    [NODE_NAME.a]: {
+      [DEFAULT_BORDER_RADIUS]: 1
+    },
+    [NODE_NAME.button]: {
+      [DEFAULT_BORDER_RADIUS]: 1
+    },
+    [NODE_NAME.div]: {
+      [DEFAULT_BORDER_RADIUS]: 1
+    },
+  };
+
+  const isTest = !!(testInjectedParams && testInjectedParams.doc);
+  const doc: Document = isTest ? testInjectedParams.doc : document;
+
+  function getRep(node: ChildNode | ShadowRoot): void {
+    const tNode = node as HTMLElement;
+
+    if (node.nodeType === Node.ELEMENT_NODE
+      && node.nodeName.toLowerCase() in NODE_NAME
+      && !tNode.classList.contains("fable-dont-ser")) {
+      const colorMap = nodeColor[node.nodeName.toLowerCase() as NODE_NAME];
+      const borderRadiusForNode = nodeBorderRadius[node.nodeName.toLowerCase() as NODE_NAME];
+
+      const style = getComputedStyle(tNode);
+
+      if (style.backgroundColor) {
+        const colorValue = style.backgroundColor;
+        const hexValue: string = colorValue.startsWith("rgb")
+          ? rgbToHex(colorValue)
+          : colorValue.startsWith("hsl")
+            ? hslToHex(colorValue)
+            : standardizeHex(colorValue);
+
+        if (!isShadeOfWhiteOrBlack(hexValue)) {
+          if (hexValue in colorMap) colorMap[hexValue] += 1;
+          else colorMap[hexValue] = 1;
+        }
+      }
+
+      if (style.borderRadius !== "0px") {
+        const allBorderRadius: number[] = [];
+        allBorderRadius.push(getNormalizedBorderRadius(style.borderTopLeftRadius));
+        allBorderRadius.push(getNormalizedBorderRadius(style.borderTopRightRadius));
+        allBorderRadius.push(getNormalizedBorderRadius(style.borderBottomLeftRadius));
+        allBorderRadius.push(getNormalizedBorderRadius(style.borderBottomRightRadius));
+
+        allBorderRadius.sort((m, n) => n - m);
+        let nbr = allBorderRadius[0];
+
+        const box = tNode.getBoundingClientRect();
+        if (nbr >= box.width / 2 && nbr >= box.height / 2) {
+          // ignore all the border radius that might make a node a perfect circle
+          nbr = DEFAULT_BORDER_RADIUS;
+        }
+
+        if (nbr > DEFAULT_BORDER_RADIUS) {
+          if (nbr in borderRadiusForNode) borderRadiusForNode[nbr] += 1;
+          else borderRadiusForNode[nbr] = 1;
+        }
+      }
+    }
+
+    const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
+    if ((node as HTMLElement).shadowRoot) {
+      childNodes.push((node as HTMLElement).shadowRoot!);
+    }
+
+    if (childNodes.length) {
+      for (let i = 0; i < childNodes.length; i++) {
+        getRep(childNodes[i]);
+      }
+    }
+  }
+
+  getRep(doc.documentElement);
+
+  return {
+    nodeColor,
+    nodeBorderRadius
+  };
 }

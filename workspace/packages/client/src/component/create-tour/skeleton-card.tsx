@@ -2,7 +2,11 @@ import React from 'react';
 import { Skeleton } from 'antd';
 import * as Tags from './styled';
 
-export default function SkeletonCard() {
+interface IProps {
+  progress?: number;
+}
+
+export default function SkeletonCard(props: IProps) {
   return (
     <Tags.CardCon>
       <Skeleton.Node
@@ -45,6 +49,18 @@ export default function SkeletonCard() {
         </Skeleton.Node>
         <Skeleton.Avatar active style={{ width: '1rem', height: '1rem' }} />
       </Tags.TimestampCon>
+      {props.progress !== undefined && (
+        <div>
+          <div style={{
+            background: '#7567ff',
+            width: `${props.progress!}%`,
+            borderRadius: '4px',
+            height: '6px',
+            transition: 'width 0.2s ease-out'
+          }}
+          />
+        </div>
+      )}
     </Tags.CardCon>
   );
 }

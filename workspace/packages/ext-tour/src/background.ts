@@ -1,6 +1,12 @@
 import { init as sentryInit } from "@fable/common/dist/sentry";
-import { SerDoc } from "@fable/common/dist/types";
 import { sleep, snowflake } from "@fable/common/dist/utils";
+import {
+  SerDoc,
+  NODE_NAME,
+  ThemeStats,
+  ThemeBorderRadiusCandidatePerNode,
+  ThemeColorCandidatPerNode
+} from "@fable/common/dist/types";
 import { getActiveTab } from "./common";
 import { Msg, MsgPayload } from "./msg";
 import {
@@ -11,7 +17,7 @@ import {
   ScriptInitReportedData,
   ScriptInitRequiredData,
   SerializeFrameData,
-  StopRecordingData
+  StopRecordingData,
 } from "./types";
 import { BATCH_SIZE, isCrossOrigin } from "./utils";
 
@@ -26,6 +32,7 @@ const FRAMES_TO_PROCESS_ORDER = "order_of_frames_to_process";
 const TABS_TO_TRACK = "app_update_listnr_for_tab_ids";
 const FRAMES_IN_TAB = "frames_in_tab";
 const SCREEN_DATA_FINISHED = "screen_data_finished";
+const SCREEN_STYLE_DATA = "screen_style_data";
 
 const enum RecordingStatus {
   Idle = 1,
@@ -118,11 +125,11 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       }
 
       // This is a failsafe mechanism to end the recording once the sigstop signal is received and the system waits for
-      // 3 seconds from the last msg received but message from some frames are not yet received (apparently)
+      // 5 seconds from the last msg received but message from some frames are not yet received (apparently)
       // This might happen if a frame gets deleted without reloading the page, hence FRAMES_IN_TAB never gets to know
       // that a frame gets deleted from body. This is observed in ga sometimes
       clearFinishTimer();
-      timer = setTimeout(finishAppRecording(storageKey, tVal, sessionFinishedType), 3000) as unknown as number;
+      timer = setTimeout(finishAppRecording(storageKey, tVal, sessionFinishedType), 5000) as unknown as number;
 
       allFramesRecorded = Object.keys(frames).length === 0;
       if (!allFramesRecorded || !isThumbnailCaptured) {
@@ -188,6 +195,7 @@ function finishAppRecording(storageKey: string, tVal: Object, sessionFinishedTyp
         });
       } else {
         await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
+        await chrome.storage.local.remove(SCREEN_STYLE_DATA);
       }
     } catch (e) {
       const debugData = await chrome.storage.local.get(null);
@@ -221,17 +229,54 @@ async function getPersistentExtState(): Promise<IExtStoredState> {
   };
 }
 
-// TODO until login is implemented
-async function addSampleUser() {
-  const sampleUser = {
-    id: 1,
-    belongsToOrg: {
-      rid: "",
-    },
-  };
-  await chrome.storage.local.set({
-    [APP_STATE_IDENTITY]: sampleUser,
-  });
+async function processStyleInfo(newScreenStyle: ThemeStats) {
+  const storedScreenStyleData: ThemeStats = (await chrome.storage.local.get(SCREEN_STYLE_DATA))[SCREEN_STYLE_DATA]
+      || {};
+  const storedNodeColors: ThemeColorCandidatPerNode = storedScreenStyleData.nodeColor || {
+    [NODE_NAME.a]: {},
+    [NODE_NAME.button]: {},
+    [NODE_NAME.div]: {},
+  } as ThemeColorCandidatPerNode;
+
+  const newNodeColor: ThemeColorCandidatPerNode = newScreenStyle.nodeColor;
+  for (const [tag, colorMap] of Object.entries(newNodeColor)) {
+    let storedColorMap: Record<string, number>;
+
+    if (tag in storedNodeColors) storedColorMap = (storedNodeColors as any)[tag];
+    else storedColorMap = (storedNodeColors as any)[tag] = {};
+
+    for (const [color, occurrence] of Object.entries(colorMap)) {
+      if (color in storedColorMap) storedColorMap[color] += occurrence;
+      else storedColorMap[color] = occurrence;
+    }
+  }
+  storedScreenStyleData.nodeColor = storedNodeColors;
+
+  const storedNodeBorderRadius: ThemeBorderRadiusCandidatePerNode = storedScreenStyleData.nodeBorderRadius || {
+    [NODE_NAME.a]: {},
+    [NODE_NAME.button]: {},
+    [NODE_NAME.div]: {},
+  } as ThemeBorderRadiusCandidatePerNode;
+
+  const newNodeBorderRadius = newScreenStyle.nodeBorderRadius;
+  for (const [tag, borderRadiusMap] of Object.entries(newNodeBorderRadius)) {
+    let storedBrMap: Record<string, number>;
+
+    if (tag in storedNodeBorderRadius) storedBrMap = (storedNodeBorderRadius as any)[tag];
+    else storedBrMap = (storedNodeBorderRadius as any)[tag] = {};
+
+    for (const [br, occurrence] of Object.entries(borderRadiusMap)) {
+      if (br in storedBrMap) storedBrMap[br] += occurrence;
+      else storedBrMap[br] = occurrence;
+    }
+  }
+  storedScreenStyleData.nodeBorderRadius = storedNodeBorderRadius;
+
+  chrome.storage.local.set(
+    {
+      [SCREEN_STYLE_DATA]: storedScreenStyleData,
+    }
+  );
 }
 
 /**
@@ -329,6 +374,11 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         type: "serdom",
         data: tMsg.data.serDoc,
       });
+      // INFO This iterates some html elements to figure out what are the dominant color etc
+      //      It's made part of this message, that could lead to slowness of the page. As serialization and
+      //      style stats calculation are synchronous ops. If there is delay in page oeprations, we can completely
+      //      detached this calculation from frame serialization
+      await processStyleInfo(tMsg.data.screenStyle);
       break;
     }
     case Msg.START_RECORDING: {
@@ -343,6 +393,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
     case Msg.DELETE_RECORDING: {
       endMsg = "sigskip";
     }
+
     // eslint-disable-next-line no-fallthrough
     case Msg.STOP_RECORDING: {
       await chrome.storage.local.set({
@@ -374,6 +425,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       }
       const data = await chrome.storage.local.get(SCREEN_DATA_FINISHED);
       const cookies = await chrome.cookies.getAll({});
+      const screenStyleData: ThemeStats = (await chrome.storage.local.get(SCREEN_STYLE_DATA))[SCREEN_STYLE_DATA] || {};
 
       await chrome.tabs.sendMessage(sender.tab.id!, {
         type: Msg.SAVE_TOTAL_SCREEN_COUNT_IN_EXCHANGE_DIV,
@@ -392,8 +444,15 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         data: { cookiesData: cookies }
       });
 
+      await chrome.tabs.sendMessage(sender.tab.id!, {
+        type: Msg.SAVE_STYLE_DATA,
+        data: { screenStyleData }
+      });
+
       await chrome.tabs.sendMessage(sender.tab.id!, { type: Msg.SAVE_TOUR_DATA });
+
       await chrome.storage.local.remove(SCREEN_DATA_FINISHED);
+      await chrome.storage.local.remove(SCREEN_STYLE_DATA);
       break;
     }
 

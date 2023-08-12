@@ -407,3 +407,21 @@ export const getImgScreenData = () => ({
     ]
   }
 });
+
+export function hexToRGB(colorValue: string) {
+  return {
+    red: parseInt(colorValue.substring(1, 3), 16),
+    green: parseInt(colorValue.substring(3, 5), 16),
+    blue: parseInt(colorValue.substring(5, 7), 16),
+  };
+}
+
+export const rgbToHex = (rgb: string) : string => {
+  const rgbValues = rgb.match(/\d+/g);
+
+  const r = parseInt(rgbValues![0], 10);
+  const g = parseInt(rgbValues![1], 10);
+  const b = parseInt(rgbValues![2], 10);
+
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+};
