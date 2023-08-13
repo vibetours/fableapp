@@ -357,6 +357,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     let subheading = '';
     let contentWidth = '40%';
     let step = 0;
+    let fullheight = false;
     const totalSteps = 3;
     let fableColorBorderRight = '21%';
 
@@ -382,6 +383,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         contentWidth = 'calc(100% - 26rem)';
         step = 1;
         fableColorBorderRight = '0%';
+        fullheight = true;
         break;
 
       case DisplayState.ShowBorderChoices:
@@ -390,12 +392,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         contentWidth = 'calc(100% - 26rem)';
         step = 2;
         fableColorBorderRight = '0%';
+        fullheight = true;
         break;
 
       case DisplayState.ShowReview:
         heading = 'Review';
         subheading = 'This is how your annotations would look like on the interactive tour. You can change any or all aspect of this from inside the app.';
         step = 3;
+        fullheight = true;
         break;
 
       default:
@@ -411,7 +415,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           dontShowIllustration
           equalSpaced
           abs
-          fullheight={this.state.currentDisplayState === DisplayState.ShowColorThemeChoices}
+          fullheight={fullheight}
           stackedbarStyle={{
             transition: 'all 0.2s ease-out',
             right: fableColorBorderRight
@@ -633,7 +637,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           isInDisplay
                           width={200}
                           dir="l"
-                          tourId=""
+                          tourId={0}
                           top={0}
                           left={0}
                           annotationSerialIdMap={{}}
@@ -694,7 +698,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           isInDisplay
                           width={200}
                           dir="l"
-                          tourId=""
+                          tourId={0}
                           top={0}
                           left={0}
                           annotationSerialIdMap={{}}
@@ -753,7 +757,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     isInDisplay
                     width={200}
                     dir="l"
-                    tourId=""
+                    tourId={0}
                     top={0}
                     left={0}
                     annotationSerialIdMap={{}}

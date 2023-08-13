@@ -97,22 +97,24 @@ export default class ChunkSyncManager {
     const newVal = updateFn(storedVal === null ? null : JSON.parse(storedVal), value);
     localStorage.setItem(key, JSON.stringify(newVal));
     if (tx) {
-      tx.onFinish(this.onTxFinish, [key, origKey]);
+      tx.onFinish(this.onTxFinish, [key, origKey, updateFn]);
       return null;
     }
     return newVal;
   }
 
   // eslint-disable-next-line class-methods-use-this
-  onTxFinish = (tx: Tx, key: string, origKey: string): void => {
-    const storedVal = JSON.parse(localStorage.getItem(key)!);
-    localStorage.removeItem(key);
+  onTxFinish = (tx: Tx, stagingKey: string, origKey: string, mergeFn: <K, T>(storedVal: K | null, v: T) => K): void => {
+    const storedStagingVal = JSON.parse(localStorage.getItem(stagingKey)!);
+    localStorage.removeItem(stagingKey);
 
-    if (!(origKey in this.lookupKeys)) {
-      this.lookupKeys[origKey] = 1;
-    }
-    localStorage.setItem(origKey, JSON.stringify(storedVal));
-    tx.setData(storedVal);
+    if (!(origKey in this.lookupKeys)) this.lookupKeys[origKey] = 1;
+
+    const storedVal = localStorage.getItem(origKey);
+    const mergedVal = mergeFn(storedVal === null ? null : JSON.parse(storedVal), storedStagingVal);
+
+    localStorage.setItem(origKey, JSON.stringify(mergedVal));
+    tx.setData(mergedVal);
   };
 
   startIfNotAlreadyStarted<K>(onLocalEditsLeft: (key: string, v: K) => void): void {

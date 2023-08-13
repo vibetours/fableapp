@@ -24,7 +24,8 @@ import {
   TGetOrg,
   TOpsInProgress,
   TAddScreenEntities,
-  AnnAdd
+  AnnAdd,
+  TAutosaving
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -64,6 +65,7 @@ export const initialState: {
   token : string;
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
+  isAutoSaving: boolean;
 } = {
   inited: false,
   commonConfig: null,
@@ -96,6 +98,7 @@ export const initialState: {
   token: '',
   relayScreenId: null,
   relayAnnAdd: null,
+  isAutoSaving: false,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -178,6 +181,13 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.tours = tAction.tours;
       newState.allToursLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.AUTOSAVING: {
+      const tAction = action as TAutosaving;
+      const newState = { ...state };
+      newState.isAutoSaving = tAction.isAutosaving;
       return newState;
     }
 

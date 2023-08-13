@@ -54,12 +54,8 @@ export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
     for (const [screenId, anns] of Object.entries(state.default.remoteAnnotations)) {
       for (const an of anns) {
         const key = `${screenId}/${an.refId}`;
-        if (an.id in (annToDeleteAcrossScreen[screenId] || {})) {
-          continue;
-        }
-        if (!(key in combinedAnnotations)) {
-          combinedAnnotations[key] = an;
-        }
+        if (an.id in (annToDeleteAcrossScreen[screenId] || {})) continue;
+        if (!(key in combinedAnnotations)) combinedAnnotations[key] = an;
       }
     }
     const screenAnMap: Record<string, IAnnotationConfig[]> = {};

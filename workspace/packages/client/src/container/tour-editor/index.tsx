@@ -28,7 +28,8 @@ import {
   loadTourAndData,
   renameScreen,
   saveEditChunks,
-  saveTourData
+  saveTourData,
+  startAutosaving
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
@@ -84,6 +85,7 @@ interface IDispatchProps {
   clearCurrentTourSelection: () => void,
   clearRelayScreenAndAnnAdd: () => void;
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
+  startAutoSaving: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -100,6 +102,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   clearCurrentTourSelection: () => dispatch(clearCurrentTourSelection()),
   renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
   clearRelayScreenAndAnnAdd: () => dispatch(clearRelayScreenAndAnnAdd()),
+  startAutoSaving: () => dispatch(startAutosaving()),
 });
 
 const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGroupedByScreen => {
@@ -206,12 +209,32 @@ interface IAppStateProps {
   relayAnnAdd: AnnAdd | null;
   isMainValid: boolean;
   annotationSerialIdMap: Record<string, number>;
+  isAutoSaving: boolean;
+}
+
+function __dbg(anns: AnnotationPerScreen[]): void {
+  const onlyAnns = anns.map(pair => pair.annotations);
+  const flatAnns: IAnnotationConfig[] = [];
+  onlyAnns.forEach(ann => flatAnns.push(...ann));
+  const miniFlatAns = flatAnns.map((ann: IAnnotationConfig) => {
+    const next = ann.buttons.find(btn => btn.type === 'next');
+    const prev = ann.buttons.find(btn => btn.type === 'prev');
+    return {
+      id: ann.id,
+      refId: ann.refId,
+      text: ann.displayText,
+      next: next!.hotspot ? next?.hotspot.actionValue : null,
+      prev: prev!.hotspot ? prev?.hotspot.actionValue : null,
+    };
+  });
+  console.log('>>> allAnnotationsForTour', miniFlatAns);
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
-  const anPerScreen = getAnnotationsPerScreen(state);
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+  // __dbg(allAnnotationsForTour);
   let allAnnotationsForScreen: IAnnotationConfig[] = [];
-  for (const screenAnnPair of anPerScreen) {
+  for (const screenAnnPair of allAnnotationsForTour) {
     if (screenAnnPair.screen.id === state.default.currentScreen?.id) {
       allAnnotationsForScreen = screenAnnPair.annotations.slice(0);
     }
@@ -246,8 +269,6 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   }
   allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
 
-  const allAnnotationsForTour = getAnnotationsPerScreen(state);
-
   const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
   let isMainValid = false;
   let annotationSerialIdMap: Record<string, number> = {};
@@ -265,14 +286,15 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     allEdits,
     isMainValid,
-    timeline: state.default.tourLoaded ? getTimeLine(anPerScreen) : [],
+    timeline: state.default.tourLoaded ? getTimeLine(allAnnotationsForTour) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
     tourOpts,
     principal: state.default.principal,
     relayScreenId: state.default.relayScreenId,
     relayAnnAdd: state.default.relayAnnAdd,
-    annotationSerialIdMap
+    annotationSerialIdMap,
+    isAutoSaving: state.default.isAutoSaving
   };
 };
 
@@ -515,6 +537,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             showRenameIcon={this.isInCanvas()}
             showPreview={`/p/tour/${this.props.tour?.rid}`}
             isTourMainSet={this.props.isMainValid}
+            isAutoSaving={this.props.isAutoSaving}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{
@@ -706,6 +729,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private onScreenEditFinish = (): void => { /* noop */ };
 
   private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, tx, isDefault = false) => {
+    this.props.startAutoSaving();
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
         opts: isDefault
@@ -744,6 +768,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   private onScreenEditChange = (editChunks: AllEdits<ElEditType>): void => {
+    this.props.startAutoSaving();
     const mergedEditChunks = this.chunkSyncManager!.add(
       this.getStorageKeyForType('edit-chunk'),
       editChunks,

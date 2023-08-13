@@ -60,7 +60,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private tourDataOpts: ITourDataOpts;
 
-  private tourId: string;
+  private tourId: number;
 
   private annotationSerialIdMap: AnnotationSerialIdMap;
 
@@ -110,7 +110,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     allAnnotationsForTour: AnnotationPerScreen[],
     allAnnotationsForScreen: IAnnotationConfig[],
     tourDataOpts: ITourDataOpts,
-    tourId: string,
+    tourId: number,
     annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig,
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn

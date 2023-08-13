@@ -18,7 +18,7 @@ interface IProps {
   box: Rect,
   win: Window,
   playMode: boolean,
-  tourId: string;
+  tourId: number;
   annotationSerialIdMap: AnnotationSerialIdMap;
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }
@@ -33,7 +33,7 @@ export class AnnotationContent extends React.PureComponent<{
   top: number,
   left: number,
   onRender?: (el: HTMLDivElement) => void,
-  tourId: string
+  tourId: number,
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
@@ -399,7 +399,7 @@ interface IConProps {
   nav: NavFn,
   win: Window,
   playMode: boolean,
-  tourId: string;
+  tourId: number;
   applyDiffAndGoToAnn: ApplyDiffAndGoToAnn,
 }
 
@@ -414,7 +414,7 @@ interface HotspotProps {
     isNextAnnVideo: boolean,
   }>,
   playMode: boolean,
-  tourId: string,
+  tourId: number,
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }
 
@@ -422,7 +422,7 @@ function handleEventLogging(
   btn_id: string,
   btn_type: IAnnotationButtonType,
   ann_id: string,
-  tour_id: string,
+  tour_id: number,
   tsAnnEntered: number
 ): void {
   const btnClickedpayload: AnnotationBtnClickedPayload = { tour_id, ann_id, btn_id, btn_type };

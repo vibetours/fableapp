@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-06-29 21:29:12.
+// Generated using typescript-generator version 2.35.1025 on 2023-08-13 13:27:33.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -32,11 +32,6 @@ export interface MediaTypeEntityHolding extends EntityHoldingInfoBase {
     deletable: boolean;
 }
 
-export interface ReqDuplicateTour {
-    duplicateTourName: string;
-    fromTourRid: string;
-}
-
 export interface VideoTranscodingJobInfo extends JobProcessingInfo {
     sourceFilePath: string;
     processedFilePath: string;
@@ -47,6 +42,11 @@ export interface VideoTranscodingJobInfo extends JobProcessingInfo {
 export interface ReqCopyScreen {
     parentId: number;
     tourRid: string;
+}
+
+export interface ReqDuplicateTour {
+    duplicateTourName: string;
+    fromTourRid: string;
 }
 
 export interface ReqEntityAssetAssn {
@@ -157,13 +157,12 @@ export interface RespScreen extends ResponseBase {
     url: string;
     icon: string;
     responsive: boolean;
-    tour?: RespTour;
     type: ScreenType;
     uploadUrl?: string;
 }
 
 export interface RespTour extends ResponseBase {
-    id: string; // TODO: remove this later
+    id: number;
     rid: string;
     assetPrefixHash: string;
     displayName: string;

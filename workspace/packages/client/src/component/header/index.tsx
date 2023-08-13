@@ -2,7 +2,7 @@ import React, { ReactElement, useState } from 'react';
 import { Avatar, Button, Modal } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CaretDownOutlined, CaretRightOutlined, EditOutlined, LogoutOutlined, ShareAltOutlined, WarningOutlined } from '@ant-design/icons';
+import { CaretDownOutlined, CaretRightOutlined, EditOutlined, LogoutOutlined, SaveOutlined, ShareAltOutlined, WarningOutlined } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
@@ -23,6 +23,7 @@ interface IOwnProps {
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
   isTourMainSet?: boolean;
+  isAutoSaving?: boolean
 }
 
 type IProps = IOwnProps;
@@ -109,6 +110,16 @@ function Header(props: IOwnProps) {
         </>
       </Tags.LMenuCon>
       <Tags.RMenuCon>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'end',
+          padding: '0 0.5rem 0.25rem 0',
+          animation: props.isAutoSaving ? 'blink 2s linear infinite' : 'none',
+          visibility: props.isAutoSaving ? 'visible' : 'hidden'
+        }}
+        >
+          <SaveOutlined style={{ color: 'white' }} />
+        </div>
         {props.showPreview && (
           <div style={{ display: 'flex', marginRight: '1rem', paddingRight: '1rem', borderRight: '1px solid #ffffff42' }}>
             {

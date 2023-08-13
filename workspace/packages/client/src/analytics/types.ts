@@ -20,20 +20,20 @@ export enum AnalyticsEvents {
 }
 
 export interface AnnotationBtnClickedPayload {
-  tour_id: string;
+  tour_id: number;
   ann_id: string;
   btn_type: IAnnotationButtonType;
   btn_id: string;
 }
 
 export interface TimeSpentInAnnotationPayload {
-  tour_id: string;
+  tour_id: number;
   ann_id: string;
   time_in_sec: number
 }
 
 export interface VideoAnnotationSkippedPayload {
-  tour_id: string;
+  tour_id: number;
   ann_id: string;
   time_in_sec_played: number
 }

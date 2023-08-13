@@ -27,7 +27,7 @@ interface IProps {
   playMode: boolean,
   annFollowPositions: { top: number, left: number },
   width: number;
-  tourId: string;
+  tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
 }
 

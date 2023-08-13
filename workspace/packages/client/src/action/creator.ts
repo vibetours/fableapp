@@ -75,6 +75,20 @@ export function init() {
   };
 }
 
+export interface TAutosaving {
+  type: ActionType.AUTOSAVING;
+  isAutosaving: boolean;
+}
+
+export function startAutosaving() {
+  return async (dispatch: Dispatch<TAutosaving>) => {
+    dispatch({
+      type: ActionType.AUTOSAVING,
+      isAutosaving: true,
+    });
+  };
+}
+
 /* ************************************************************************* */
 
 export interface TIAm {
@@ -484,7 +498,8 @@ export interface TOpsInProgress {
 }
 
 export function duplicateTour(tour: P_RespTour, newVal: string) {
-  return async (dispatch: Dispatch<TTour | TOpsInProgress>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving>, getState: () => TState) => {
+    startAutosaving();
     dispatch({
       type: ActionType.OPS_IN_PROGRESS,
       ops: Ops.DuplicateTour,
@@ -553,6 +568,11 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
       oldTourRid: '',
       performedAction: 'new',
     });
+
+    dispatch({
+      type: ActionType.AUTOSAVING,
+      isAutosaving: false
+    });
   };
 }
 
@@ -616,7 +636,7 @@ export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEdit
 }
 
 export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: AllEdits<ElEditType>) {
-  return async (dispatch: Dispatch<TSaveEditChunks>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TSaveEditChunks | TAutosaving>, getState: () => TState) => {
     const savedEditData = getState().default.screenEdits[screen.id];
     if (savedEditData) {
       let masterEdit = savedEditData?.edits;
@@ -646,6 +666,11 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
         });
       }
     }
+
+    dispatch({
+      type: ActionType.AUTOSAVING,
+      isAutosaving: false
+    });
   };
 }
 
@@ -677,7 +702,7 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
 }
 
 export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<TourDataWoScheme>) {
-  return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TSaveTourEntities | TAutosaving>, getState: () => TState) => {
     const savedData = getState().default.tourData;
     if (savedData) {
       savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
@@ -706,5 +731,10 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         isLocal: false,
       });
     }
+
+    dispatch({
+      type: ActionType.AUTOSAVING,
+      isAutosaving: false
+    });
   };
 }

@@ -322,7 +322,7 @@ async function postProcessSerDocs(
 
         if (!subFrame) {
           console.warn('Node', node);
-          throw new Error('No sub frame present for node ^^^');
+          raiseDeferredError(new Error(`No sub frame present for node ^^^. src=${node.attrs.src}`));
         } else {
           const subFrameData = subFrame.data as SerDoc;
           node.chldrn.push({

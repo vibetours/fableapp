@@ -110,22 +110,6 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function createEmptyTour(): RespTour {
-  const name = 'Untitled';
-  // TODO add the logged in user from state as createdBy once login is implemented
-  const user = {} as RespUser;
-  return {
-    rid: `xxx-xx-${name.toLowerCase()}`,
-    assetPrefixHash: '$local$',
-    displayName: name,
-    description: '',
-    createdBy: user,
-    createdAt: new Date(new Date().toUTCString()),
-    updatedAt: new Date(new Date().toUTCString()),
-    id: '' // TODO: remove this later
-  };
-}
-
 export function createEmptyTourDataFile(): TourData {
   return {
     v: SchemaVersion.V1,
