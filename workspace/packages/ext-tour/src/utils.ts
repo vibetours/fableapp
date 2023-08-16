@@ -64,15 +64,29 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string) {
   }
 }
 
+export function addStyleProperty(element: HTMLElement, style: string) {
+  const originalStyles = element.getAttribute("style") || "";
+  const newStyles = `
+    ${originalStyles}
+    ${style}
+  `;
+  element.setAttribute("style", newStyles);
+}
+
 export function createImgNode(src: string, alt: string, height: number, width: number, classList: Array<string>) {
   const imgNode = document.createElement("img");
   imgNode.setAttribute("src", src);
   imgNode.setAttribute("alt", alt);
-  imgNode.style.height = `${height}px`;
-  imgNode.style.width = `${width}px`;
   imgNode.setAttribute("height", `${height}`);
   imgNode.setAttribute("width", `${width}`);
   imgNode.classList.add(...classList);
+
+  const impStyles = `
+    width: ${width}px !important;
+    height: ${height}px !important;
+  `;
+
+  addStyleProperty(imgNode, impStyles);
 
   return imgNode;
 }

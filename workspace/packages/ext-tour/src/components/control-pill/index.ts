@@ -1,4 +1,4 @@
-import { createImgNode, FABLE_CONTROL_PILL } from "../../utils";
+import { addStyleProperty, createImgNode, FABLE_CONTROL_PILL } from "../../utils";
 import { GREEN_TICK, BIN } from "../../img_data";
 import { Msg } from "../../msg";
 
@@ -19,7 +19,7 @@ function createPillContainer(): HTMLDivElement {
     z-index: 9999999 !important;
   `;
 
-  pillContainer.setAttribute("style", impStyles);
+  addStyleProperty(pillContainer, impStyles);
   pillContainer.classList.add(FABLE_CONTROL_PILL);
 
   return pillContainer;
@@ -39,7 +39,7 @@ function createParagraphNode(text: string): HTMLParagraphElement {
     margin: 8px 2px 8px 0px;
   `;
 
-  paraTag.setAttribute("style", impStyles);
+  addStyleProperty(paraTag, impStyles);
   paraTag.classList.add(FABLE_CONTROL_PILL);
 
   return paraTag;
@@ -81,12 +81,11 @@ export function createStickyControlPill() {
 
   const greenTickImgNode = createImgNode(GREEN_TICK, "save", 40, 40, [FABLE_CONTROL_PILL]);
   const binImgNode = createImgNode(BIN, "delete", 24, 24, [FABLE_CONTROL_PILL]);
-  const impStyles = `
-    cursor: pointer;
-  `;
 
-  greenTickImgNode.setAttribute("style", impStyles);
-  binImgNode.setAttribute("style", impStyles);
+  const impStyles = "cursor: pointer !important;";
+
+  addStyleProperty(greenTickImgNode, impStyles);
+  addStyleProperty(binImgNode, impStyles);
 
   greenTickImgNode.addEventListener(
     "click",
@@ -131,13 +130,10 @@ function positionPill(pill: HTMLDivElement) {
   const pillTop = `${window.innerHeight - pillHeight - (2 * REM)}`;
   const pillLeft = `${window.innerWidth - pillWidth - (3 * REM)}`;
 
-  const originalStyles = pill.getAttribute("style");
-
   const impStyles = `
-    ${originalStyles}
     top: ${pillTop}px !important;
     left: ${pillLeft}px !important;
   `;
 
-  pill.setAttribute("style", impStyles);
+  addStyleProperty(pill, impStyles);
 }
