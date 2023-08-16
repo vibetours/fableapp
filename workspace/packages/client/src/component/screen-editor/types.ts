@@ -8,3 +8,6 @@ export type ApplyDiffAndGoToAnn = (
     goToAnnIdWithScreenId: string,
     isGoToVideoAnn: boolean,
 ) => Promise<void>;
+
+export type DisplayCSSPropValue = 'block' | 'inline' | 'inline-block' | 'flex' |
+'grid' | 'none' | 'table' | 'table-cell' | 'table-row' | 'initial' | 'inherit';

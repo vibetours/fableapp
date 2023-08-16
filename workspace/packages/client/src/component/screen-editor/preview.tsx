@@ -6,6 +6,7 @@ import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
 import { deserFrame } from './utils/deser';
+import { DisplayCSSPropValue } from './types';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -41,6 +42,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   private assetLoadingPromises: Promise<unknown>[] = [];
 
   private frameLoadingPromises: Promise<unknown>[] = [];
+
+  private initialFrameBodyDisplay: DisplayCSSPropValue = 'block';
 
   deserDomIntoFrame = async (frame: HTMLIFrameElement): Promise<void> => {
     /*
@@ -110,7 +113,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           this.assetLoadingPromises,
           this.nestedFrames
         );
-        frame.contentDocument.body.style.visibility = 'hidden';
+        const deserFrameBody = frame.contentDocument.body;
+        this.initialFrameBodyDisplay = getComputedStyle(frame.contentDocument.body).display as DisplayCSSPropValue;
+        deserFrameBody.style.display = 'none';
         while (this.frameLoadingPromises.length) {
           await this.frameLoadingPromises.shift();
         }
@@ -151,7 +156,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,
               });
-              frameBody.style.visibility = 'visible';
+              frameBody.style.display = this.initialFrameBodyDisplay;
               this.assetLoadingPromises.length = 0;
               if (this.props.screen.type === ScreenType.Img) {
                 const screenImage = doc.getElementById('img');
