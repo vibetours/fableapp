@@ -1,10 +1,10 @@
 import React, { ReactElement, SetStateAction, useEffect, useRef, Dispatch } from 'react';
-import Modal from 'antd/lib/modal';
-import Button from 'antd/lib/button';
+
 import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
 import { MediaType } from '@fable/common/dist/api-contract';
+import Button from '../button';
 import { uploadVideoToAws, transcodeMedia } from './utils/upload-video-to-aws';
 import {
   updateAnnotationBoxSize,
@@ -15,6 +15,8 @@ import {
 } from '../annotation/annotation-config-utils';
 import { blobToUint8Array } from './utils/blob-to-uint8array';
 import { P_RespTour } from '../../entity-processor';
+import * as Tags from './styled';
+import * as GTags from '../../common-styled';
 
 type Props = {
   tour: P_RespTour,
@@ -281,19 +283,21 @@ function VideoRecorder(props: Props): ReactElement {
 
   if (!state.permissionGiven) {
     return (
-      <Modal
+      <GTags.BorderedModal
+        style={{ height: '10px' }}
         title={<><WarningFilled style={{ color: 'red' }} /> Error</>}
         open={state.isVideoModalOpen}
         onCancel={closeRecorder}
         footer={null}
       >
         <p>Camera and microphone permission is required for this feature!</p>
-      </Modal>
+      </GTags.BorderedModal>
     );
   }
 
   return (
-    <Modal
+    <GTags.BorderedModal
+      style={{ height: '10px' }}
       title="Record video"
       open={state.isVideoModalOpen}
       onOk={closeRecorder}
@@ -312,11 +316,11 @@ function VideoRecorder(props: Props): ReactElement {
             />
             {
               state.isVideoReady && (
-                <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ margin: '1rem auto', marginBottom: '0', display: 'flex', justifyContent: 'center' }}>
                   {
                     state.isRecording
-                      ? <Button type="primary" onClick={stopRecording}>Stop Recording</Button>
-                      : <Button type="primary" onClick={startRecording}>Start Recording</Button>
+                      ? <Button onClick={stopRecording}>Stop Recording</Button>
+                      : <Button onClick={startRecording}>Start Recording</Button>
                   }
                 </div>
               )
@@ -342,16 +346,16 @@ function VideoRecorder(props: Props): ReactElement {
             }
             {
               !state.saving && (
-                <div style={{ margin: '1rem auto', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                  <Button type="link" onClick={restartRecording}>Discard</Button>
-                  <Button type="primary" onClick={saveRecording}>Save</Button>
-                </div>
+                <Tags.ActionBtnCon>
+                  <Button intent="secondary" onClick={restartRecording}>Discard</Button>
+                  <Button onClick={saveRecording}>Save</Button>
+                </Tags.ActionBtnCon>
               )
             }
           </>
         )
       }
-    </Modal>
+    </GTags.BorderedModal>
   );
 }
 

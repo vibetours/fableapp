@@ -5,6 +5,7 @@ import { sleep } from '@fable/common/dist/utils';
 interface Props {
   txtBefore?: string;
   width: string;
+  showAtPageCenter?: boolean;
 }
 
 /*
@@ -39,7 +40,13 @@ export default function Loader(props: Props) {
   }, []);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center' }}>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      height: props.showAtPageCenter ? '100vh' : '100%',
+      justifyContent: 'center'
+    }}
+    >
       {props.txtBefore && <div style={{ marginRight: '0.75rem' }}>{props.txtBefore}</div>}
       <div
         style={{

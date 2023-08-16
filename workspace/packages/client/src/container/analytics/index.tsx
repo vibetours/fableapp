@@ -164,7 +164,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.props.isTourLoaded) {
       return (
         <div>
-          <Loader width="80px" txtBefore="Crunching number!!!" />
+          <Loader width="80px" txtBefore="Crunching number!!!" showAtPageCenter />
         </div>
       );
     }

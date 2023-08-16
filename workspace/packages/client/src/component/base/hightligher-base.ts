@@ -69,10 +69,19 @@ export default abstract class HighlighterBase {
   private drawMask(elSize: Rect, win: Window, dx: number, dy: number): void {
     const maskBox = this.getOrCreateMask();
 
+    const { top, left, width, height } = HighlighterBase.getMaskBoxRect(elSize, win, dx, dy);
+
+    maskBox.style.top = `${top}px`;
+    maskBox.style.left = `${left}px`;
+    maskBox.style.width = `${width}px`;
+    maskBox.style.height = `${height}px`;
+  }
+
+  static getMaskBoxRect(elSize: Rect, win: Window, dx: number, dy: number): Rect {
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
 
-    const top = elSize.top + this.win.scrollY + dy;
-    const left = elSize.left + this.win.scrollX + dx;
+    const top = elSize.top + win.scrollY + dy;
+    const left = elSize.left + win.scrollX + dx;
 
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
     // the boundary is checked against the main window not iframe's window
@@ -87,10 +96,37 @@ export default abstract class HighlighterBase {
     const maskBoxTop = bottomEndpoint >= win.scrollY + window.innerHeight ? top : top - (top <= 0 ? -2 : padding);
     const maskBoxLeft = rightEndpoint >= win.scrollX + window.innerWidth ? left : left - (left <= 0 ? -2 : padding);
 
-    maskBox.style.top = `${maskBoxTop}px`;
-    maskBox.style.left = `${maskBoxLeft}px`;
-    maskBox.style.width = `${width}px`;
-    maskBox.style.height = `${height}px`;
+    return {
+      top: maskBoxTop,
+      left: maskBoxLeft,
+      width,
+      height,
+      bottom: maskBoxTop + height,
+      right: maskBoxLeft + width,
+      x: maskBoxLeft,
+      y: maskBoxTop
+    };
+  }
+
+  static getMaskPaddingWithBox(elBox: Rect, maskBox: Rect): {
+    left: number,
+    right: number,
+    top: number,
+    bottom: number,
+  } {
+    return {
+      left: elBox.left - maskBox.left,
+      right: maskBox.right - elBox.right,
+      top: elBox.top - maskBox.top,
+      bottom: maskBox.bottom - elBox.bottom
+    };
+  }
+
+  static getCumulativeDxDy(win: Window): [dx: number, dy: number] {
+    const doc = win.document;
+    const cdxdy = doc.body.getAttribute('cdxdy');
+    const [cdx, cdy] = (cdxdy || ',').split(',').map(d => +d);
+    return [cdx, cdy];
   }
 
   // We used to calculate dxdy of frames after loading complete

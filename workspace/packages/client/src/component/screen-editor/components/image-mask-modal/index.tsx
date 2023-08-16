@@ -1,11 +1,15 @@
-import React from 'react';
-import { Modal } from 'antd';
+import React, { useRef } from 'react';
 import * as Tags from './styled';
+import Button from '../../../button';
+import * as GTags from '../../../../common-styled';
+import FileInput from '../../../file-input';
+import SelectInput from '../../../select-input';
+import { ImgResolution } from '../../utils/resize-img';
 
 interface Props {
   open: boolean;
   onCancel: () => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  uploadImgMask: (maskImgFile: File, resolution: ImgResolution) => Promise<void>;
   isUploading: boolean;
   error: string;
 }
@@ -13,55 +17,71 @@ interface Props {
 export default function ImageMaskUploadModal({
   open,
   onCancel,
-  onSubmit,
+  uploadImgMask,
   isUploading,
   error
 }: Props): JSX.Element {
+  const selectResolutionIpValRef = useRef<ImgResolution>('480');
+
   return (
-    <Modal
+    <GTags.BorderedModal
       open={open}
       title=""
       onCancel={onCancel}
       onOk={() => { }}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', height: '10px' }}
       footer={null}
     >
-      <Tags.ModalBorderTop>
-        <div />
-        <div />
-        <div />
-      </Tags.ModalBorderTop>
       <Tags.ModalContainer>
         <h2>Upload Image Mask</h2>
-        <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
-          <Tags.InputLabel htmlFor="screen-img">Upload image mask</Tags.InputLabel>
-          <Tags.InputContainer
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            const maskImgFile = formData.get('maskImg') as File;
+            uploadImgMask(maskImgFile, selectResolutionIpValRef.current);
+          }}
+          style={{ display: 'flex', flexDirection: 'column' }}
+        >
+          <FileInput
             id="screen-img"
-            type="file"
             accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
             name="maskImg"
+            style={{ marginBottom: '1.5rem' }}
             required
           />
 
-          <Tags.InputLabel htmlFor="resolution">Select resolution</Tags.InputLabel>
-          <Tags.StyledSelect
-            defaultValue="480p"
-            name="resolution"
+          <SelectInput
             id="resolution"
-          >
-            <option value="480">480p</option>
-            <option value="720">720p</option>
-          </Tags.StyledSelect>
+            defaultValue="480"
+            options={[{ label: '480p', value: '480' }, { label: '720p', value: '720' }]}
+            onChange={e => selectResolutionIpValRef.current = e}
+            label="Select resolution"
+          />
 
-          <Tags.PrimaryButton type="submit" disabled={isUploading}>
-            {isUploading ? 'Saving' : 'Save'}
-          </Tags.PrimaryButton>
+          <div className="button-two-col-cont">
+            <Button
+              type="button"
+              intent="secondary"
+              onClick={onCancel}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
 
+            <Button
+              type="submit"
+              style={{ flex: 1 }}
+              disabled={isUploading}
+            >
+              {isUploading ? 'Saving' : 'Save'}
+            </Button>
+          </div>
           <Tags.ErrorMsg>
             {error}
           </Tags.ErrorMsg>
         </form>
       </Tags.ModalContainer>
-    </Modal>
+    </GTags.BorderedModal>
   );
 }

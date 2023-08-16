@@ -8,6 +8,4 @@ export const createIframe = (relativeURL = '') => {
   return iframe;
 };
 
-export const copyToClipboard = (text: string) => {
-  navigator.clipboard.writeText(text);
-};
+export const copyToClipboard = (text: string): Promise<void> => navigator.clipboard.writeText(text);

@@ -1,7 +1,5 @@
-import { RespUser } from '@fable/common/dist/api-contract';
 import React from 'react';
 import { connect } from 'react-redux';
-import { iam } from '../../action/creator';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import Loader from '../../component/loader';
@@ -33,7 +31,7 @@ class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
     this.db = null;
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     setTimeout(async () => {
       this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
       const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
@@ -47,9 +45,7 @@ class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): React.ReactNode {
     return (
-      <>
-        <div><Loader width="80px" /></div>
-      </>
+      <div><Loader width="80px" showAtPageCenter /></div>
     );
   }
 }

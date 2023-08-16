@@ -1,15 +1,15 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Outlet } from 'react-router-dom';
-import * as GTags from '../../common-styled';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import * as Tags from './styled';
 import RootLayout from '../../component/onboarding/root-layout';
+
+export const ONBOARDING_PAGE_ROUTES = ['/onboarding/pin-ext', '/onboarding/create-amazing-product-tours'];
 
 interface IDispatchProps {}
 
-const mapDispatchToProps = (dispatch: any) => ({});
+const mapDispatchToProps = (dispatch: any): IDispatchProps => ({});
 
 interface IAppStateProps {}
 
@@ -34,11 +34,11 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     if (window.location.pathname === '/onboarding' || window.location.pathname === '/onboarding/') {
-      window.location.replace('onboarding/pin');
+      window.location.replace('onboarding/pin-ext');
     }
   }
 
-  render() {
+  render(): JSX.Element {
     return (
       <RootLayout>
         <Outlet />

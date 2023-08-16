@@ -3,6 +3,7 @@ import Select from 'antd/lib/select';
 import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
+import { ColorPicker as AntColorPicker } from 'antd/lib';
 
 export const EmbedFrame = styled.iframe`
   height: 100%;
@@ -177,30 +178,6 @@ export const InputContainer = styled.div`
   justify-content: space-between;
 `;
 
-export const ColorInputWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-sizing: border-box;
-  width: 100px;
-  padding: 0.2rem 0.4rem;
-
-  &:hover {
-    box-shadow: 0 0 0 1px #d0d0ff !important;
-  }
-`;
-
-type ColorCircleProps = {
-  color: string;
-}
-
-export const InputColorCircle = styled.div`
-  height: 18px;
-  width: 18px;
-  border-radius: 18rem;
-  background-color: ${(p: ColorCircleProps) => p.color};
-`;
-
 export const InfoText = styled.p`
   padding: 0;
   margin: 0;
@@ -298,5 +275,35 @@ export const ActionPanelPopOverCon = styled.div`
   .ant-popover-inner {
     padding: 4px !important;
     background: #f6f6f6 !important;
+  }
+`;
+
+export const ActionBtnCon = styled.div`
+  margin: 1rem auto;
+  margin-bottom: 0rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+`;
+
+export const CTALinkInputCont = styled.div`
+  display: flex;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  gap: 0.5rem
+`;
+
+export const ColorPicker = styled(AntColorPicker)`
+  border: none;
+  background: inherit;
+  width: 100px;
+  display: flex;
+  justify-content: flex-start;
+  .ant-color-picker-color-block{ 
+    border-radius: 50% !important;
+  }
+  .ant-color-picker-color-block-inner{
+    min-width: 16px;
+    min-height: 16px;
   }
 `;

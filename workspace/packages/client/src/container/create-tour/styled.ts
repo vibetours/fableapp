@@ -269,7 +269,10 @@ export const HeaderText = styled.div`
 `;
 
 export const SubheaderText = styled.div`
-  font-size: 1.2rem;
   font-weight: 400;
-  margin-bottom: 3rem;
+  font-size: 1rem;
+  line-height: 1.625;
+  margin: 0;
+  color: #16023E;  
+  margin-bottom: 2rem;
 `;

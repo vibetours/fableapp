@@ -1,0 +1,77 @@
+import React from 'react-dom';
+import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
+import StepDot from '../../step-dot';
+import * as CTags from '../../styled';
+import LoveEyesEmoji from '../../../../assets/onboarding/love-eyes.png';
+import CurvedArrow from '../../../../assets/onboarding/curved-arrow.svg';
+import { ONBOARDING_PAGE_ROUTES } from '../../../../container/onboarding';
+import Button from '../../../button';
+import Browser from '../../../../assets/onboarding/pin-ext-browser.png';
+
+interface Props {
+  title: string,
+}
+
+export default function PinExt(props: Props): JSX.Element {
+  useEffect(() => {
+    document.title = props.title;
+  }, []);
+
+  return (
+    <>
+      <CTags.ContentWrapper>
+        <CTags.MotionDivWrapper
+          initial={{ opacity: 0, x: 100 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <CTags.FlexColContainer>
+            <img
+              src={LoveEyesEmoji}
+              alt=""
+              width={48}
+              style={{
+                display: 'block'
+              }}
+            />
+            <CTags.Header
+              style={{ position: 'relative' }}
+            >
+              <CTags.SpanBlock>Extension Installed!</CTags.SpanBlock>Pin it for easy access
+
+              <img
+                src={CurvedArrow}
+                alt=""
+                style={{
+                  position: 'absolute',
+                  bottom: '-70%',
+                  right: '-30%',
+                  width: '187px'
+                }}
+              />
+
+            </CTags.Header>
+            <CTags.Subtitle>
+              <CTags.SpanBlock>Make sure to pin it for easy access.</CTags.SpanBlock>
+              Click the pinned icon to start a recording from anywhere
+            </CTags.Subtitle>
+          </CTags.FlexColContainer>
+          <Link to="/onboarding/create-amazing-product-tours" style={{ textDecoration: 'none' }}>
+            <Button icon={<img src={ArrowRight} alt="" />} iconPlacement="right">Next</Button>
+          </Link>
+        </CTags.MotionDivWrapper>
+
+        <CTags.StepDotsWrapper>
+          {[...Array(2)].map((item, idx) => <StepDot key={idx} selected={idx === 0} to={ONBOARDING_PAGE_ROUTES[idx]} />)}
+        </CTags.StepDotsWrapper>
+      </CTags.ContentWrapper>
+      <CTags.BrowserCon
+        src={Browser}
+        alt="browser illustration"
+      />
+    </>
+
+  );
+}

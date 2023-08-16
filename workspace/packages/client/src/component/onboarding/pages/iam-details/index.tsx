@@ -3,18 +3,19 @@ import { RespUser, ResponseStatus, UserOrgAssociation } from '@fable/common/dist
 import * as CTags from '../../styled';
 import RightArrow from '../../../../assets/onboarding/arrow-right.svg';
 import RocketEmoji from '../../../../assets/onboarding/rocket.png';
-import Input from '../../components/Input';
 import { updateUser } from './utils';
+import Button from '../../../button';
+import Input from '../../../input';
 
 interface Props {
   principal: RespUser | null;
 }
 
-export default function IamDetails({ principal }: Props) {
+export default function IamDetails({ principal }: Props): JSX.Element {
   const [firstName, setFirstName] = useState<string>('');
   const [lastName, setLastName] = useState<string>('');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     const resStatus = await updateUser(firstName, lastName);
@@ -49,7 +50,7 @@ export default function IamDetails({ principal }: Props) {
           These tours are easy to create
         </CTags.Subtitle>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} style={{ width: '27rem' }}>
           <CTags.FlexColContainer>
             <Input label="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
             <Input
@@ -58,14 +59,13 @@ export default function IamDetails({ principal }: Props) {
               onChange={e => setLastName(e.target.value)}
             />
           </CTags.FlexColContainer>
-
-          <CTags.NextBtn
-            style={{ width: '27rem', marginTop: '1.5rem' }}
-            type="submit"
+          <Button
+            icon={<img src={RightArrow} alt="" />}
+            iconPlacement="right"
+            style={{ marginTop: '1.5rem', width: '100%' }}
           >
             Continue
-            <img src={RightArrow} alt="" />
-          </CTags.NextBtn>
+          </Button>
         </form>
 
       </CTags.FlexColContainer>

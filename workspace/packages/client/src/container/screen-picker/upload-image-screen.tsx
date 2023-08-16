@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import Modal from 'antd/lib/modal';
 import api from '@fable/common/dist/api';
 import { ApiResp, ReqNewScreen, ReqThumbnailCreation, RespScreen, ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
 import { getImgScreenData } from '@fable/common/dist/utils';
 import * as Tags from './styled';
 import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
-import { P_RespScreen } from '../../entity-processor';
+import Button from '../../component/button';
+import Input from '../../component/input';
+import * as GTags from '../../common-styled';
+import FileInput from '../../component/file-input';
 
 type Props = {
     open: boolean;
     closeModal: () => void;
     tourRid: string | undefined;
-    handleAddScreen: () => void;
+    uploadImgScreenAndAddToTour: (screenName: string, screenImgFile: File) => void;
 };
 
 const GEN_ERR_MSG = 'Something went wrong! Please try again';
@@ -36,93 +38,58 @@ export default function UploadImageScreen(props: Props): JSX.Element {
       return;
     }
 
-    try {
-      const { data: screen } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-        method: 'POST',
-        body: {
-          name: screenName,
-          type: ScreenType.Img,
-          body: JSON.stringify(getImgScreenData()),
-          contentType: screenImgFile.type
-        },
-      });
+    props.uploadImgScreenAndAddToTour(screenName, screenImgFile);
 
-      if (!screen.uploadUrl) {
-        captureException('Data url is not returned by server for image screen');
-        setError(GEN_ERR_MSG);
-        return;
-      }
-
-      await uploadImageAsBinary(screenImgFile, screen.uploadUrl);
-
-      await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
-        method: 'POST',
-        body: {
-          screenRid: screen.rid
-        },
-      });
-
-      props.handleAddScreen();
-
-      // TODO[rrl] do this once api endpoint is completed
-      setTimeout(() => {
-        setUploading(false);
-        props.closeModal();
-      }, 1000);
-    } catch (err) {
-      captureException(err);
+    // TODO[rrl] do this once api endpoint is completed
+    setTimeout(() => {
       setUploading(false);
-      setError('Something went wrong! Please try again');
-    }
+      props.closeModal();
+    }, 2000);
   };
 
   return (
-    <Modal
+    <GTags.BorderedModal
       open={props.open}
       title=""
       onCancel={props.closeModal}
       onOk={() => {}}
-      style={{ position: 'relative' }}
+      style={{ height: '10px' }}
       footer={null}
       zIndex={9999}
     >
-      <Tags.ModalBorderTop>
-        <div />
-        <div />
-        <div />
-      </Tags.ModalBorderTop>
       <Tags.ModalContainer>
         <h2>Upload Image Screen</h2>
         <form onSubmit={handleSubmit}>
-          <Tags.InputLabel htmlFor="screen-img">Upload screen image</Tags.InputLabel>
-          <Tags.InputContainer>
-            <input
-              id="screen-img"
-              type="file"
+          <Tags.FlexColCon>
+            <FileInput
+              id="screen-image"
               accept="image/png, image/jpeg, image/webp"
               name="screen-img"
               required
             />
-          </Tags.InputContainer>
-          <Tags.InputLabel htmlFor="screen-name">Name your screen</Tags.InputLabel>
-          <Tags.InputContainer>
-            <input
+            <Input
               id="screen-name"
-              placeholder="Untitled"
-              type="text"
+              label="Name your screen"
               name="screen-name"
               required
             />
-          </Tags.InputContainer>
-          <Tags.PrimaryButton type="submit" disabled={uploading} name="screen-upload">
-            {uploading ? 'Saving' : 'Save'}
-          </Tags.PrimaryButton>
+          </Tags.FlexColCon>
 
+          <Button
+            type="submit"
+            disabled={uploading}
+            style={{
+              width: '100%',
+              marginTop: '1rem'
+            }}
+          >
+            {uploading ? 'Saving' : 'Save'}
+          </Button>
           <Tags.ErrorMsg>
             {error}
           </Tags.ErrorMsg>
         </form>
       </Tags.ModalContainer>
-    </Modal>
+    </GTags.BorderedModal>
   );
 }

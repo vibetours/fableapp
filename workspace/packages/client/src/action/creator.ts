@@ -19,7 +19,9 @@ import {
   ReqScreenTour,
   ScreenType,
   ReqDuplicateTour,
-  RespTourWithScreens
+  RespTourWithScreens,
+  ReqNewScreen,
+  ReqThumbnailCreation
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -30,7 +32,7 @@ import {
   TourDataWoScheme,
   TourScreenEntity
 } from '@fable/common/dist/types';
-import { deepcopy, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import {
@@ -47,6 +49,7 @@ import {
 import { TState } from '../reducer';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
 import ActionType from './type';
+import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -363,6 +366,42 @@ export type AddScreenToTour = (
   shouldNavigate: boolean,
   annAdd?: AnnAdd
 ) => void;
+
+export function uploadImgScreenAndAddToTour(
+  screenName: string,
+  screenImgFile: File,
+  tourRid: string,
+  shouldNavigate: boolean,
+) {
+  return async (dispatch: Dispatch<TAddScreenEntities>, getState: () => TState) => {
+    const { data: screen } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+      method: 'POST',
+      body: {
+        name: screenName,
+        type: ScreenType.Img,
+        body: JSON.stringify(getImgScreenData()),
+        contentType: screenImgFile.type
+      },
+    });
+
+    const pScreen = processRawScreenData(screen, getState());
+
+    await uploadImageAsBinary(screenImgFile, pScreen.uploadUrl!);
+
+    await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
+      method: 'POST',
+      body: {
+        screenRid: screen.rid
+      },
+    });
+
+    addScreenToTour(
+      pScreen,
+      tourRid,
+      shouldNavigate
+    )(dispatch as Dispatch<TAddScreenEntities | TTourWithData | TGenericLoading>, getState);
+  };
+}
 
 export function addScreenToTour(
   screen: P_RespScreen,

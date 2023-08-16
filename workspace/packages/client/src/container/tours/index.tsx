@@ -1,25 +1,11 @@
-import {
-  BarChartOutlined,
-  CaretRightOutlined,
-  CopyOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  MoreOutlined,
-  NodeIndexOutlined,
-  ShareAltOutlined
-} from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { LoadingStatus } from '@fable/common/dist/types';
-import Button from 'antd/lib/button';
-import Modal from 'antd/lib/modal';
-import Popover from 'antd/lib/popover';
-import Tooltip from 'antd/lib/tooltip';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import message from 'antd/lib/message';
 import { createNewTour, getAllTours, renameTour, duplicateTour } from '../../action/creator';
 import * as GTags from '../../common-styled';
-import Btn from '../../component/btn';
 import Header from '../../component/header';
 import Loader from '../../component/loader';
 import SidePanel from '../../component/side-panel';
@@ -29,23 +15,29 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { Ops } from '../../types';
 import * as Tags from './styled';
+import Button from '../../component/button';
+import Input from '../../component/input';
+// import EmptyTourState from './empty-state';
+import TourCard from '../../component/tour/tour-card';
+import EmptyTourState from '../../component/tour/empty-state';
 
 interface IDispatchProps {
   getAllTours: () => void;
-  createNewTour: () => void;
+  createNewTour: (tourName: string) => void;
   renameTour: (tour: P_RespTour, newVal: string) => void;
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
 }
 
-enum CtxAction {
+export enum CtxAction {
   NA = 'na',
   Rename = 'rename',
-  Duplicate = 'duplicate'
+  Duplicate = 'duplicate',
+  Create = 'create',
 }
 
-const mapDispatchToProps = (dispatch: any) => ({
+const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   getAllTours: () => dispatch(getAllTours()),
-  createNewTour: () => dispatch(createNewTour(true)),
+  createNewTour: (tourName: string) => dispatch(createNewTour(true, tourName)),
   renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
 });
@@ -75,7 +67,7 @@ interface IOwnStateProps {
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
-  renameOrDuplicateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
+  renameOrDuplicateOrCreateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
 
   constructor(props: IProps) {
     super(props);
@@ -87,7 +79,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
   }
 
-  componentDidUpdate(prevProps: Readonly<IProps>): void {
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
     if (prevProps.opsInProgress !== this.props.opsInProgress) {
       if (this.props.opsInProgress === Ops.DuplicateTour) {
         message.warning({
@@ -100,14 +92,21 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         });
       }
     }
+
+    if (prevState.showModal !== this.state.showModal && this.state.showModal) {
+      setTimeout(() => {
+        this.renameOrDuplicateOrCreateIpRef.current!.focus();
+        this.renameOrDuplicateOrCreateIpRef.current!.select();
+      });
+    }
   }
 
-  handleShowModal = (tour: P_RespTour, ctxAction: CtxAction): void => {
+  handleShowModal = (tour: P_RespTour | null, ctxAction: CtxAction): void => {
     this.setState({ selectedTour: tour, showModal: true, ctxAction });
   };
 
   handleModalOk = (): void => {
-    const newVal = this.renameOrDuplicateIpRef.current!.value.trim().replace(/\s+/, ' ');
+    const newVal = this.renameOrDuplicateOrCreateIpRef.current!.value.trim().replace(/\s+/, ' ');
     if (!newVal) return;
     if (this.state.ctxAction === CtxAction.Rename) {
       if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
@@ -117,17 +116,58 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.selectedTour!.displayName = newVal;
     } else if (this.state.ctxAction === CtxAction.Duplicate) {
       this.props.duplicateTour(this.state.selectedTour!, newVal);
+    } else if (this.state.ctxAction === CtxAction.Create) {
+      this.props.createNewTour(newVal);
     }
+
     this.setState({ selectedTour: null, showModal: false, ctxAction: CtxAction.NA });
   };
 
-  handleRenameOrDuplicateTourFormSubmit = (e: React.FormEvent): void => {
+  handleRenameOrDuplicateOrCreateTourFormSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     this.handleModalOk();
   };
 
   handleModalCancel = (): void => {
     this.setState({ selectedTour: null, showModal: false, ctxAction: CtxAction.NA });
+  };
+
+  getModalInputDefaultVal = (): string => {
+    switch (this.state.ctxAction) {
+      case CtxAction.Duplicate:
+        return `Copy of ${this.state.selectedTour!.displayName}`;
+      case CtxAction.Rename:
+        return `${this.state.selectedTour!.displayName}`;
+      case CtxAction.Create:
+        return 'Untitled';
+      default:
+        return '';
+    }
+  };
+
+  getModalTitle = (): string => {
+    switch (this.state.ctxAction) {
+      case CtxAction.Duplicate:
+        return 'Duplicate Tour';
+      case CtxAction.Rename:
+        return 'Rename Tour';
+      case CtxAction.Create:
+        return 'Create Tour';
+      default:
+        return '';
+    }
+  };
+
+  getModalDesc = (): string => {
+    switch (this.state.ctxAction) {
+      case CtxAction.Duplicate:
+        return 'Choose a name for the new duplicated tour.';
+      case CtxAction.Rename:
+      case CtxAction.Create:
+        return 'Give a new name for this tour';
+      default:
+        return '';
+    }
   };
 
   render(): ReactElement {
@@ -143,165 +183,88 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             <SidePanel selected="tours" />
           </GTags.SidePanelCon>
           <GTags.MainCon>
-            <GTags.BodyCon style={{ height: '100%' }} id="main">
+            <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }} id="main">
               {toursLoaded ? (
                 <>
-                  <Tags.TopPanel style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginRight: '44%'
-                  }}
-                  >
-                    <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
-                    <Btn
-                      icon="plus"
-                      onClick={this.props.createNewTour}
-                      style={{
-                        margin: '0',
-                        border: '1px solid #150345',
-                        color: '#150345',
-                        borderRadius: '2px'
-                      }}
-                    >
-                      Create a new tour
-                    </Btn>
-                  </Tags.TopPanel>
-                  <Tags.BottomPanel style={{ overflow: 'auto' }}>
-                    {this.props.tours.map((tour) => (
-                      <Tags.TourCardCon key={tour.rid} to={`/tour/${tour.rid}`}>
-                        <Tags.TourCardLane style={{ justifyContent: 'space-between' }}>
-                          <Tags.LaneGroup>
-                            <NodeIndexOutlined />
-                            <GTags.Txt className="title">
-                              {tour.displayName}
-                            </GTags.Txt>
-                          </Tags.LaneGroup>
-                          <Tags.LaneGroup>
-                            <GTags.Txt className="faded">
-                              Edited {tour.displayableUpdatedAt}
-                            </GTags.Txt>
-                            <GTags.Avatar src={tour.createdBy.avatar} referrerPolicy="no-referrer" />
-                          </Tags.LaneGroup>
-                        </Tags.TourCardLane>
-                        <Tags.TourCardLane style={{ justifyContent: 'space-between', marginTop: '0.75rem' }}>
-                          <Tags.LaneGroup style={{ gap: '0' }}>
-                            <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
-                              <Button
-                                size="small"
-                                shape="circle"
-                                type="text"
-                                icon={<CaretRightOutlined />}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  window.open(`/p/tour/${tour.rid}`)?.focus();
-                                }}
-                              />
-                            </Tooltip>
-                            <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
-                              <Button
-                                size="small"
-                                shape="circle"
-                                type="text"
-                                icon={<BarChartOutlined />}
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  window.open(`/a/tour/${tour.rid}`, '_blank')?.focus();
-                                }}
-                              />
-                            </Tooltip>
-                          </Tags.LaneGroup>
-                          <Tags.LaneGroup style={{ gap: '0' }}>
-                            <Popover
-                              content={
-                                <div onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                }}
-                                >
-                                  <GTags.PopoverMenuItem
-                                    onMouseDown={e => { }}
-                                  >
-                                    <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Tour
-                                  </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItem
-                                    onMouseDown={e => this.handleShowModal(tour, CtxAction.Rename)}
-                                  >
-                                    <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Tour
-                                  </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItem
-                                    onMouseDown={e => this.handleShowModal(tour, CtxAction.Duplicate)}
-                                  >
-                                    <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Tour
-                                  </GTags.PopoverMenuItem>
-                                  <GTags.PopoverMenuItemDivider color="#ff735050" />
-                                  <GTags.PopoverMenuItem
-                                    onMouseDown={e => window.alert('Delete :: Coming soon...')}
-                                    style={{
-                                      color: '#ff7350'
-                                    }}
-                                  >
-                                    <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Tour
-                                  </GTags.PopoverMenuItem>
-                                </div>
-                            }
-                              trigger="focus"
-                              placement="right"
-                            >
-                              <Button
-                                size="small"
-                                shape="circle"
-                                type="text"
-                                icon={<MoreOutlined />}
-                                onClick={e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                }}
-                              />
-                            </Popover>
-                          </Tags.LaneGroup>
-                        </Tags.TourCardLane>
-                      </Tags.TourCardCon>
-                    ))}
-                  </Tags.BottomPanel>
+                  {
+                    this.props.tours.length === 0 ? (
+                      <EmptyTourState />
+                    ) : (
+                      <div style={{ maxWidth: '43.5rem' }}>
+                        <Tags.TopPanel style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                        >
+                          <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
+                          <Button
+                            icon={<PlusOutlined />}
+                            iconPlacement="left"
+                            onClick={() => this.handleShowModal(null, CtxAction.Create)}
+                          >
+                            Create a tour
+                          </Button>
+                        </Tags.TopPanel>
+                        <Tags.BottomPanel style={{ overflow: 'auto' }}>
+                          {this.props.tours.map((tour) => (
+                            <TourCard key={tour.rid} tour={tour} handleShowModal={this.handleShowModal} />
+                          ))}
+                        </Tags.BottomPanel>
+                      </div>
+                    )
+                  }
                 </>
               ) : (
                 <div>
-                  <Loader width="80px" txtBefore="Loading tours for you" />
+                  <Loader width="80px" txtBefore="Loading tours for you" showAtPageCenter />
                 </div>
               )}
             </GTags.BodyCon>
           </GTags.MainCon>
         </GTags.RowCon>
         {this.state.ctxAction !== CtxAction.NA && (
-          <Modal
-            title={this.state.ctxAction === CtxAction.Rename ? 'Rename Tour' : 'Duplicate Tour'}
+          <GTags.BorderedModal
+            style={{ height: '10px' }}
             open={this.state.showModal}
             onOk={this.handleModalOk}
             onCancel={this.handleModalCancel}
+            footer={(
+              <div className="button-two-col-cont">
+                <Button
+                  type="button"
+                  intent="secondary"
+                  onClick={this.handleModalCancel}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  style={{ flex: 1 }}
+                  onClick={this.handleModalOk}
+                >
+                  Save
+                </Button>
+              </div>
+            )}
           >
-            <form onSubmit={this.handleRenameOrDuplicateTourFormSubmit}>
-              <label htmlFor="renameOrDuplicateTour">
-                {this.state.ctxAction === CtxAction.Rename
-                  ? 'Give a new name for this tour'
-                  : 'Choose a name for duplicated tour. A new tour would be created with this name'}
-                <input
-                  id="renameOrDuplicateTour"
-                  ref={this.renameOrDuplicateIpRef}
-                  style={{
-                    marginTop: '0.75rem',
-                    fontSize: '1rem',
-                    padding: '0.75rem',
-                    borderRadius: '2px',
-                    width: 'calc(100% - 2rem)'
-                  }}
-                  defaultValue={`${this.state.ctxAction === CtxAction.Rename ? '' : 'Copy of '}${this.state.selectedTour!.displayName}`}
+            <div className="modal-content-cont">
+              <div className="modal-title">{this.getModalTitle()}</div>
+              <form
+                onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
+                style={{ paddingTop: '1rem' }}
+              >
+                <Input
+                  label={this.getModalDesc()}
+                  id="renameOrDuplicateOrCreateTour"
+                  innerRef={this.renameOrDuplicateOrCreateIpRef}
+                  defaultValue={this.getModalInputDefaultVal()}
                 />
-              </label>
-            </form>
-          </Modal>
+
+              </form>
+            </div>
+          </GTags.BorderedModal>
         )}
       </GTags.ColCon>
     );

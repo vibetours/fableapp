@@ -167,7 +167,7 @@ export const ErrorMsg = styled.div`
   `;
 
 export const ModalContainer = styled.div`
-      margin: 2.5rem 1rem 1.5rem 1rem;
+      
   `;
 
 export const ModalBorderTop = styled.div`
@@ -203,12 +203,12 @@ export const ModalBorderTop = styled.div`
       }
   `;
 
-export const InputLabel = styled.label`
+export const InputLabel = styled.div`
       font-weight: 700;
       font-size: 1rem;
       line-height: 21px;
       color: #16023E;
-      margin-bottom: 1rem;
+      margin-bottom: 0.25rem;
       display: inline-block;
   `;
 
@@ -221,10 +221,9 @@ export const InputContainer = styled.div`
           border-radius: 8px;
           font-weight: 600;
           font-size: 1rem;
-          line-height: 1.25rem;
-          padding-block: 0.75rem;
           padding-left: 1rem;
-          width: 100%;
+          padding-block: 0.7rem;
+          width: calc(100% - 1rem);
       }
   `;
 
@@ -252,3 +251,9 @@ export const Blur = styled.div`
     filter: blur(1px);
     background-color: rgba(255,255,255, 0.45);
   `;
+
+export const FlexColCon = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex-direction: column;
+`;

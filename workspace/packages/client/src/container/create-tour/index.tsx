@@ -36,6 +36,8 @@ import { deleteDataFromDb, getDataFromDb, openDb } from './db-utils';
 import * as Tags from './styled';
 import { DBData, FrameDataToBeProcessed, ScreenInfo } from './types';
 import { getBorderRadius, getOrderedColorsWithScore, getThemeAnnotationOpts, saveAsTour, saveScreen } from './utils';
+import Button from '../../component/button';
+import Input from '../../component/input';
 
 const reactanimated = require('react-animated-css');
 
@@ -338,7 +340,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           >
             <Tags.HeaderText>A little quiet here today</Tags.HeaderText>
             <Tags.SubheaderText>No tours to be created. Use Fable's extension to record a tour.</Tags.SubheaderText>
-            <Tags.PrimaryButton
+            <Button
               style={{
                 width: '240px'
               }}
@@ -347,7 +349,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               }}
             >
               See all Tours
-            </Tags.PrimaryButton>
+            </Button>
           </div>
         </RootLayout>
       );
@@ -438,34 +440,45 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   marginLeft: '1.5rem',
                   fontWeight: 500
                 }}
-                >{step}/{totalSteps}
+                >
+                  {step}/{totalSteps}
                 </span>
               )}
             </Tags.HeaderText>
             <Tags.SubheaderText>{subheading}</Tags.SubheaderText>
             <div>
               <reactanimated.Animated
-                animationIn={this.state.currentDisplayState < this.state.prevDisplayState ? 'fadeInLeft' : 'jackInTheBox'}
+                animationIn={
+                  this.state.currentDisplayState < this.state.prevDisplayState
+                    ? 'fadeInLeft' : 'jackInTheBox'
+                }
                 animationOut="fadeOutLeft"
                 animationInDuration={500}
                 animationOutDuration={500}
                 animateOnMount={false}
                 isVisible={this.state.currentDisplayState === DisplayState.ShowTourCreationOptions}
               >
-                <div style={{ width: '90%', position: 'absolute' }}>
-                  <Tags.PrimaryButton
-                    main
-                    style={{ marginBottom: '1rem' }}
+                <div style={{
+                  display: 'flex',
+                  width: '30rem',
+                  position: 'absolute',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}
+                >
+                  <Button
                     onClick={() => this.setState({
                       currentDisplayState: DisplayState.ShowNewTourOptions,
                       prevDisplayState: DisplayState.ShowTourCreationOptions
                     })}
+                    icon={<PlusOutlined />}
+                    style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >
-                    <PlusOutlined /> <span>Create a new tour</span>
-                  </Tags.PrimaryButton>
-                  <Tags.SecondaryButton
-                    main
-                    style={{ marginBottom: '1.5rem' }}
+                    Create a new tour
+                  </Button>
+
+                  <Button
+                    intent="secondary"
                     onClick={() => {
                       this.setState({
                         showExistingTours: true,
@@ -473,10 +486,12 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         prevDisplayState: DisplayState.ShowTourCreationOptions
                       });
                     }}
+                    icon={<DownOutlined />}
+                    style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >
-                    <DownOutlined /> <span>Save in existing tour</span>
-                  </Tags.SecondaryButton
-                  >
+                    Save in existing tour
+                  </Button>
+
                   <Tags.DangerButton
                     onClick={() => {
                       confirm({
@@ -542,14 +557,18 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         alignItems: 'center'
                       }}
                       >
-                        <Tags.SecondaryButton
+                        <Button
+                          style={{ width: '100%' }}
                           onClick={() => this.setState({
                             currentDisplayState: DisplayState.ShowTourCreationOptions,
                             prevDisplayState: DisplayState.ShowAddExistingTourOptions
                           })}
+                          intent="secondary"
+                          icon={<ArrowLeftOutlined />}
+                          iconPlacement="left"
                         >
-                          <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
-                        </Tags.SecondaryButton>
+                          Back
+                        </Button>
                         {this.state.existingTourRId && (
                           <Tags.PrimaryButton
                             onClick={() => this.setState({
@@ -578,35 +597,39 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 animateOnMount={false}
                 isVisible={this.state.currentDisplayState === DisplayState.ShowNewTourOptions}
               >
-                <div style={{ width: '80%', position: 'absolute' }}>
-                  <Tags.NameTourInputContainer>
-                    <input
-                      id="tour-name"
-                      placeholder="Untitled"
-                      value={this.state.tourName}
-                      onChange={(e) => this.setState({ tourName: e.target.value })}
-                      ref={this.nameTourRef}
-                    />
-                    <EditFilled style={{ position: 'absolute', top: '0.875rem', left: '0.875rem' }} />
-                  </Tags.NameTourInputContainer>
+                <div style={{ width: '30rem', position: 'absolute' }}>
+                  <Input
+                    id="tour-name"
+                    placeholder=""
+                    value={this.state.tourName}
+                    onChange={(e) => this.setState({ tourName: e.target.value })}
+                    innerRef={this.nameTourRef}
+                    label="Give a tour name"
+                    icon={<EditFilled />}
+                  />
                   <Tags.ModalButtonsContainer>
-                    <Tags.SecondaryButton
+                    <Button
+                      style={{ flex: 1 }}
                       onClick={() => this.setState({
                         currentDisplayState: DisplayState.ShowTourCreationOptions,
                         prevDisplayState: DisplayState.ShowNewTourOptions
                       })}
+                      icon={<ArrowLeftOutlined />}
+                      intent="secondary"
+                      iconPlacement="left"
                     >
-                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
-                    </Tags.SecondaryButton>
-                    <Tags.PrimaryButton
+                      Back
+                    </Button>
+                    <Button
+                      style={{ flex: 1 }}
                       onClick={() => this.setState({
                         currentDisplayState: DisplayState.ShowColorThemeChoices,
                         prevDisplayState: DisplayState.ShowNewTourOptions
                       })}
-                      disabled={this.state.saving}
+                      icon={<ArrowRightOutlined />}
                     >
-                      Next&nbsp;&nbsp;&nbsp;<ArrowRightOutlined />
-                    </Tags.PrimaryButton>
+                      Next
+                    </Button>
                   </Tags.ModalButtonsContainer>
                 </div>
               </reactanimated.Animated>
@@ -645,18 +668,20 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           isThemeAnnotation
                         />
                         <Tags.AnnContentOverlay>
-                          <Tags.SecondaryButton
-                            style={{ width: '200px', padding: '0.85rem 2rem' }}
+                          <Button
+                            intent="secondary"
                           >
-                            <span>Select</span>
-                          </Tags.SecondaryButton>
+                            Select
+                          </Button>
                         </Tags.AnnContentOverlay>
                       </Tags.AnnCardContainer>
                     ))}
                   </Tags.AnnotationContainer>
                   <Tags.ModalButtonsContainer style={{ margin: '3rem 0', justifyContent: 'center' }}>
-                    <Tags.SecondaryButton
-                      style={{ maxWidth: '240px' }}
+                    <Button
+                      intent="secondary"
+                      iconPlacement="left"
+                      icon={<ArrowLeftOutlined />}
                       onClick={() => {
                         const rootLayoutDiv = document.getElementById('frtlt');
                         if (rootLayoutDiv) rootLayoutDiv.scrollTop = 0;
@@ -666,8 +691,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         });
                       }}
                     >
-                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
-                    </Tags.SecondaryButton>
+                      Back
+                    </Button>
                   </Tags.ModalButtonsContainer>
                 </div>
               </reactanimated.Animated>
@@ -706,18 +731,17 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           isThemeAnnotation
                         />
                         <Tags.AnnContentOverlay>
-                          <Tags.SecondaryButton
-                            style={{ width: '200px', padding: '0.85rem 2rem' }}
+                          <Button
+                            intent="secondary"
                           >
-                            <span>Select</span>
-                          </Tags.SecondaryButton>
+                            Select
+                          </Button>
                         </Tags.AnnContentOverlay>
                       </Tags.AnnCardContainer>
                     ))}
                   </Tags.AnnotationContainer>
                   <Tags.ModalButtonsContainer style={{ margin: '3rem 0', justifyContent: 'center' }}>
-                    <Tags.SecondaryButton
-                      style={{ maxWidth: '240px' }}
+                    <Button
                       onClick={() => {
                         const rootLayoutDiv = document.getElementById('frtlt');
                         if (rootLayoutDiv) rootLayoutDiv.scrollTop = 0;
@@ -726,9 +750,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           prevDisplayState: DisplayState.ShowBorderChoices
                         });
                       }}
+                      intent="secondary"
+                      icon={<ArrowLeftOutlined />}
                     >
-                      <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
-                    </Tags.SecondaryButton>
+                      Back
+                    </Button>
                   </Tags.ModalButtonsContainer>
                 </div>
               </reactanimated.Animated>
@@ -741,7 +767,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 isVisible={this.state.currentDisplayState === DisplayState.ShowReview}
               >
                 <div style={{
-                  fontSize: '1.5rem',
+                  fontSize: '1.25rem',
                   marginBottom: '2rem'
                 }}
                 >
@@ -753,7 +779,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 <div>
                   <AnnotationContent
                     config={getSampleConfig('$', '')}
-                    opts={getThemeAnnotationOpts(this.state.selectedColor, this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS)}
+                    opts={getThemeAnnotationOpts(
+                      this.state.selectedColor,
+                      this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
+                    )}
                     isInDisplay
                     width={200}
                     dir="l"
@@ -769,23 +798,29 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   width: '360px',
                   margin: '2rem 0',
                   flexDirection: 'column',
-                  alignItems: 'center'
+                  // alignItems: 'center'
                 }}
                 >
-                  <Tags.SecondaryButton
+                  <Button
                     onClick={() => this.setState({
                       currentDisplayState: DisplayState.ShowBorderChoices,
                       prevDisplayState: DisplayState.ShowReview
                     })}
+                    icon={<ArrowLeftOutlined />}
+                    iconPlacement="left"
+                    intent="secondary"
                   >
-                    <ArrowLeftOutlined />&nbsp;&nbsp;&nbsp;Back
-                  </Tags.SecondaryButton>
-                  <Tags.PrimaryButton
+                    Back
+                  </Button>
+
+                  <Button
                     onClick={this.createNewTour}
                     disabled={this.state.saving}
+                    icon={<CheckOutlined />}
+                    iconPlacement="left"
                   >
-                    <CheckOutlined />&nbsp;&nbsp;&nbsp;Create Tour
-                  </Tags.PrimaryButton>
+                    Create Tour
+                  </Button>
                 </Tags.ModalButtonsContainer>
               </reactanimated.Animated>
             </div>
@@ -808,7 +843,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               style={{ marginBottom: '0rem' }}
             >Creating the tour...
             </Tags.HeaderText>
-            <Tags.SubheaderText>We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time. <i>Please keep this tab open while we create your tour.</i>
+            <Tags.SubheaderText>
+              We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time. <i>Please keep this tab open while we create your tour.</i>
             </Tags.SubheaderText>
             <Tags.SkeletonGrid>
               {this.frameDataToBeProcessed.map((frameData, idx) => (

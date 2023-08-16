@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import Modal from 'antd/lib/modal';
 
 export const ColCon = styled.div`
   display: flex;
@@ -125,7 +126,7 @@ export const MainCon = styled.div`
 
 export const HeaderCon = styled.div`
   width: 100%;
-  /* height: 75px; */
+  height: 48px; 
   border-bottom: 1px solid #E0E0E0;
 `;
 
@@ -182,4 +183,38 @@ export const Avatar = styled.img<{ sl?: boolean, glow?: boolean }>`
   height: ${props => (props.sl ? 1.75 : 1)}rem;
   border-radius: 50%;
   box-shadow: ${props => (props.glow ? '0 0 1px 1px white' : 'none')}
+`;
+
+export const BorderedModal = styled(Modal)`
+    border-radius: 15px;
+    border-top: double 4px transparent;
+    background-image: linear-gradient(white, white), linear-gradient(to right,  #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%);
+    background-clip: padding-box, border-box;
+
+    .ant-modal-content {
+      -webkit-box-shadow: none;
+      -moz-box-shadow: none;
+      -o-box-shadow: none;
+      box-shadow: none;
+      border-radius: 15px;
+    }
+
+    .modal-title {
+      margin:  0 0 0.5rem 0;
+      color: rgba(0, 0, 0, 0.88);
+      font-weight: 600;
+      font-size: 16px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+
+    .modal-content-cont {
+      margin: 1.5rem 1rem 0 1rem;
+    }
+
+    .button-two-col-cont {
+      display: flex;
+      gap: 1rem;
+      margin: 1.5rem 1rem 1.5rem 1rem;
+    }
 `;

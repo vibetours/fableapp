@@ -1,4 +1,3 @@
-import Button from 'antd/lib/button';
 import { useAuth0 } from '@auth0/auth0-react';
 import React, { useEffect } from 'react';
 import Loader from '../loader';
@@ -9,7 +8,7 @@ interface Props {
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-export default function Logout(props: Props) {
+export default function Logout(props: Props): JSX.Element {
   const { logout } = useAuth0();
 
   useEffect(() => {
@@ -21,7 +20,7 @@ export default function Logout(props: Props) {
 
   return (
     <div>
-      <Loader width="80px" />
+      <Loader width="80px" showAtPageCenter />
     </div>
   );
 }

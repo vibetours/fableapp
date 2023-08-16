@@ -1,6 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import {
-  AnnotationButtonLayout,
   AnnotationButtonLayoutType,
   AnnotationButtonSize,
   AnnotationButtonStyle,
@@ -11,7 +10,6 @@ import {
   ITourEntityHotspot,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import Button from 'antd/lib/button';
 import Input from 'antd/lib/input';
 import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
@@ -30,14 +28,14 @@ import {
   VideoCameraAddOutlined,
   VideoCameraOutlined,
   SelectOutlined,
-  SwitcherOutlined,
   ColumnWidthOutlined,
   ColumnHeightOutlined,
   PlusOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { InputNumber, Radio } from 'antd';
+import { InputNumber, Button as AntButton } from 'antd';
+import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
@@ -74,6 +72,7 @@ import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../timeline/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
+import FableInput from '../input';
 
 const { confirm } = Modal;
 
@@ -453,105 +452,63 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Primary color</GTags.Txt>
-              <Tags.ColorInputWrapper>
-                <div>
-                  <Tags.InputColorCircle color={opts.primaryColor} />
-                </div>
-                <Input
-                  defaultValue={opts.primaryColor}
-                  size="small"
-                  bordered={false}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                      setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', (e.target as HTMLInputElement).value));
-                    }
-                  }}
-                  onBlur={e => {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.target.value));
-                  }}
-                  disabled={isVideoAnnotation(config)}
-                />
-              </Tags.ColorInputWrapper>
+              <Tags.ColorPicker
+                showText={(color) => color.toHexString()}
+                size="small"
+                onChangeComplete={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.toHexString()));
+                }}
+                disabled={isVideoAnnotation(config)}
+                defaultValue={opts.primaryColor}
+              />
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Background color</GTags.Txt>
-              <Tags.ColorInputWrapper>
-                <div>
-                  <Tags.InputColorCircle color={opts.annotationBodyBackgroundColor} />
-                </div>
-                <Input
-                  defaultValue={opts.annotationBodyBackgroundColor}
-                  size="small"
-                  bordered={false}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', (e.target as HTMLInputElement).value));
-                    }
-                  }}
-                  onBlur={e => {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.target.value));
-                  }}
-                  disabled={isVideoAnnotation(config)}
-                />
-              </Tags.ColorInputWrapper>
+              <Tags.ColorPicker
+                showText={(color) => color.toHexString()}
+                size="small"
+                onChangeComplete={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.toHexString()));
+                }}
+                disabled={isVideoAnnotation(config)}
+                defaultValue={opts.annotationBodyBackgroundColor}
+              />
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Border color</GTags.Txt>
-              <Tags.ColorInputWrapper>
-                <div>
-                  <Tags.InputColorCircle color={opts.annotationBodyBorderColor} />
-                </div>
-                <Input
-                  defaultValue={opts.annotationBodyBorderColor}
-                  size="small"
-                  bordered={false}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', (e.target as HTMLInputElement).value));
-                    }
-                  }}
-                  onBlur={e => {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.target.value));
-                  }}
-                />
-              </Tags.ColorInputWrapper>
+              <Tags.ColorPicker
+                showText={(color) => color.toHexString()}
+                size="small"
+                onChangeComplete={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
+                }}
+                disabled={isVideoAnnotation(config)}
+                defaultValue={opts.annotationBodyBorderColor}
+              />
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Font color</GTags.Txt>
-              <Tags.ColorInputWrapper>
-                <div>
-                  <Tags.InputColorCircle color={opts.annotationFontColor} />
-                </div>
-                <Input
-                  defaultValue={opts.annotationFontColor}
-                  size="small"
-                  bordered={false}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                      setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', (e.target as HTMLInputElement).value));
-                    }
-                  }}
-                  onBlur={e => {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.target.value));
-                  }}
-                />
-              </Tags.ColorInputWrapper>
+              <Tags.ColorPicker
+                showText={(color) => color.toHexString()}
+                size="small"
+                onChangeComplete={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.toHexString()));
+                }}
+                disabled={isVideoAnnotation(config)}
+                defaultValue={opts.annotationFontColor}
+              />
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Selection color</GTags.Txt>
-              <Tags.ColorInputWrapper>
-                <div>
-                  <Tags.InputColorCircle color={opts.annotationSelectionColor} />
-                </div>
-                <Input
-                  defaultValue={opts.annotationSelectionColor}
-                  size="small"
-                  bordered={false}
-                  onBlur={e => {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.target.value));
-                  }}
-                />
-              </Tags.ColorInputWrapper>
+              <Tags.ColorPicker
+                showText={(color) => color.toHexString()}
+                size="small"
+                onChangeComplete={e => {
+                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.toHexString()));
+                }}
+                disabled={isVideoAnnotation(config)}
+                defaultValue={opts.annotationSelectionColor}
+              />
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Font family</GTags.Txt>
@@ -684,90 +641,91 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       </GTags.Txt>
                     }
                   >
-                    <Popover
-                      open={openConnectionPopover === btnConf.id}
-                      onOpenChange={(newOpen: boolean) => {
-                        if (newOpen) {
-                          setOpenConnectionPopover(btnConf.id);
-                        } else {
-                          setOpenConnectionPopover('');
-                        }
-                      }}
-                      trigger="click"
-                      placement="topRight"
-                      content={
-                        <div style={{ fontSize: '1rem' }}>
-                          <GTags.Txt className="title2">
-                            Describe what will happen when the button is clicked
-                          </GTags.Txt>
-                          <Tabs
-                            defaultActiveKey="open"
-                            style={{ fontSize: '0.95rem' }}
-                            size="small"
-                            items={[{
-                              key: 'open',
-                              label: 'Open a link',
-                              children: (
-                                <div>
-                                  <GTags.Txt className="title2">
-                                    Enter a link that would be opened in a new tab when the button is clicked
-                                  </GTags.Txt>
-                                  <div style={{ display: 'flex', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
-                                    <Input
-                                      defaultValue={
-                                        btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                          ? btnConf.hotspot.actionValue
-                                          : ''
-                                      }
-                                      onBlur={(e) => {
-                                        const trimmedValue = (e.target.value || '').trim();
-                                        let hostspotConfig: ITourEntityHotspot | null = null;
-                                        if (trimmedValue) {
-                                          hostspotConfig = {
-                                            type: 'an-btn',
-                                            on: 'click',
-                                            target: '$this',
-                                            actionType: 'open',
-                                            actionValue: e.target.value,
-                                          };
+                    <div>
+                      <Popover
+                        open={openConnectionPopover === btnConf.id}
+                        onOpenChange={(newOpen: boolean) => {
+                          if (newOpen) {
+                            setOpenConnectionPopover(btnConf.id);
+                          } else {
+                            setOpenConnectionPopover('');
+                          }
+                        }}
+                        trigger="click"
+                        placement="topRight"
+                        content={
+                          <div style={{ fontSize: '1rem', width: '500px' }}>
+                            <GTags.Txt className="title2">
+                              Describe what will happen when the button is clicked
+                            </GTags.Txt>
+                            <Tabs
+                              defaultActiveKey="open"
+                              style={{ fontSize: '0.95rem' }}
+                              size="small"
+                              items={[{
+                                key: 'open',
+                                label: 'Open a link',
+                                children: (
+                                  <div>
+                                    <Tags.CTALinkInputCont>
+                                      <div style={{ width: '100%' }}>
+                                        <FableInput
+                                          label="Enter a link that would open in new tab"
+                                          defaultValue={
+                                          btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                            ? btnConf.hotspot.actionValue
+                                            : ''
                                         }
-                                        if (btnConf.hotspot?.actionType === 'navigate') {
-                                          props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
-                                        } else {
-                                          const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
-                                          setConfig(thisAntn);
-                                        }
-                                      }}
-                                      size="small"
-                                      style={{ marginRight: '1rem' }}
-                                    />
-                                    <Button
-                                      type="primary"
-                                      size="small"
-                                      onClick={() => setOpenConnectionPopover('')}
-                                    >Submit
-                                    </Button>
+                                          onBlur={(e) => {
+                                            const trimmedValue = (e.target.value || '').trim();
+                                            let hostspotConfig: ITourEntityHotspot | null = null;
+                                            if (trimmedValue) {
+                                              hostspotConfig = {
+                                                type: 'an-btn',
+                                                on: 'click',
+                                                target: '$this',
+                                                actionType: 'open',
+                                                actionValue: e.target.value,
+                                              };
+                                            }
+                                            if (btnConf.hotspot?.actionType === 'navigate') {
+                                              props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
+                                            } else {
+                                              const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
+                                              setConfig(thisAntn);
+                                            }
+                                          }}
+                                          style={{ marginRight: '1rem' }}
+                                        />
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        intent="primary"
+                                        onClick={() => setOpenConnectionPopover('')}
+                                        style={{ borderRadius: '8px' }}
+                                      >Submit
+                                      </Button>
+                                    </Tags.CTALinkInputCont>
                                   </div>
-                                </div>
-                              )
-                            },
-                            {
-                              key: 'navigate',
-                              label: 'Navigate to',
-                              children: (
-                                <div>
-                                  <GTags.Txt className="title">
-                                    Use the canvas to make connection between annotations
-                                  </GTags.Txt>
-                                </div>
-                              )
-                            }]}
-                          />
-                        </div>
+                                )
+                              },
+                              {
+                                key: 'navigate',
+                                label: 'Navigate to',
+                                children: (
+                                  <div>
+                                    <GTags.Txt className="title">
+                                      Use the canvas to make connection between annotations
+                                    </GTags.Txt>
+                                  </div>
+                                )
+                              }]}
+                            />
+                          </div>
                       }
-                    >
-                      <Button
-                        icon={
+                      >
+                        <AntButton
+                          icon={
                           btnConf.hotspot
                             ? <NodeIndexOutlined
                                 style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
@@ -776,15 +734,16 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                 style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
                             />
                         }
-                        type="text"
-                        size="small"
-                        style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
-                      />
-                    </Popover>
+                          type="text"
+                          size="small"
+                          style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
+                        />
+                      </Popover>
+                    </div>
                   </Tooltip>
                   {
                     btnConf.type === 'custom' ? (
-                      <Button
+                      <AntButton
                         icon={<DeleteOutlined style={{ ...commonIconStyle }} />}
                         type="text"
                         size="small"
@@ -794,7 +753,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         }}
                       />
                     ) : (
-                      <Button
+                      <AntButton
                         icon={
                           btnConf.exclude
                             ? <EyeInvisibleOutlined style={{ ...commonIconStyle }} />
@@ -809,7 +768,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       />
                     )
                   }
-                  <Button
+                  <AntButton
                     icon={<EditOutlined style={{ ...commonIconStyle }} />}
                     type="text"
                     size="small"

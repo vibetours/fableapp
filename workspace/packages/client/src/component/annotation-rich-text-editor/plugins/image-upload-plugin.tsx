@@ -9,9 +9,11 @@ import {
   COMMAND_PRIORITY_EDITOR
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import Modal from 'antd/lib/modal';
 import { $createImageNode, ImagePayload } from '../nodes/image-node';
 import { uploadImgToAws } from '../../screen-editor/utils/upload-img-to-aws';
+import * as GTags from '../../../common-styled';
+import Button from '../../button';
+import FileInput from '../../file-input';
 
 export type InsertImagePayload = Readonly<ImagePayload>;
 
@@ -61,17 +63,41 @@ export default function ImageUploadPlugin({ isModalOpen, modalControls }: ImageU
   };
 
   return (
-    <Modal
-      title="Insert Image"
+    <GTags.BorderedModal
+      style={{ height: '10px' }}
       open={isModalOpen}
       onOk={modalControls.handleOk}
       onCancel={modalControls.handleCancel}
+      footer={(
+        <div className="button-two-col-cont">
+          <Button
+            type="button"
+            intent="secondary"
+            onClick={modalControls.handleCancel}
+            style={{ flex: 1 }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="submit"
+            style={{ flex: 1 }}
+            onClick={modalControls.handleOk}
+          >
+            Insert
+          </Button>
+        </div>
+      )}
     >
-      <input
-        onChange={handleSelectedImageChange}
-        type="file"
-        accept="image/png, image/gif, image/jpeg, image/webp, image/svg+xml"
-      />
-    </Modal>
+
+      <div className="modal-content-cont">
+        <div className="modal-title">Insert Image</div>
+        <FileInput
+          style={{ marginTop: '1rem' }}
+          onChange={handleSelectedImageChange}
+          accept="image/png, image/gif, image/jpeg, image/webp, image/svg+xml"
+        />
+      </div>
+    </GTags.BorderedModal>
   );
 }

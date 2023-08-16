@@ -58,7 +58,6 @@ import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadImgToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
-import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 
 const { confirm } = Modal;
 
@@ -480,15 +479,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.flushMicroEdits();
   };
 
-  handleImageMaskUploadModalOnSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
+  uploadImgMask = async (maskImgFile: File, resolution: ImgResolution): Promise<void> => {
     const el = this.state.selectedEl!;
 
     this.setState({ imageMaskUploadModalIsUploading: true, imageMaskUploadModalError: '' });
-
-    const formData = new FormData(event.currentTarget);
-    const maskImgFile = formData.get('maskImg') as File;
-    const resolution = formData.get('resolution') as ImgResolution;
 
     try {
       const newImageUrl = await uploadImgToAws(maskImgFile);
@@ -1201,7 +1195,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         <ImageMaskUploadModal
           open={this.state.showImageMaskUploadModal}
           onCancel={this.handleImageMaskUploadModalOnCancel}
-          onSubmit={this.handleImageMaskUploadModalOnSubmit}
+          uploadImgMask={this.uploadImgMask}
           error={this.state.imageMaskUploadModalError}
           isUploading={this.state.imageMaskUploadModalIsUploading}
         />

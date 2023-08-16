@@ -1,16 +1,20 @@
-import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, VideoAnnotationPositions } from '@fable/common/dist/types';
-import React, { ReactElement } from 'react';
+import {
+  IAnnotationButtonType,
+  IAnnotationConfig,
+  ITourDataOpts,
+  VideoAnnotationPositions
+} from '@fable/common/dist/types';
+import React from 'react';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
-import { playVideoAnn, generateShadeColor } from './utils';
-import { isVideoAnnotation as isVideoAnn, isBlankString } from '../../utils';
+import { generateShadeColor } from './utils';
+import { isVideoAnnotation as isVideoAnn } from '../../utils';
 import { logEvent } from '../../analytics/utils';
 import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
-import { isCoverAnnotation } from './annotation-config-utils';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 
 interface IProps {
@@ -21,6 +25,7 @@ interface IProps {
   tourId: number;
   annotationSerialIdMap: AnnotationSerialIdMap;
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
+  isThemeAnnotation?: boolean;
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom') => void;
@@ -62,10 +67,6 @@ export class AnnotationContent extends React.PureComponent<{
       } else {
         this.props.onRender(this.conRef.current!);
       }
-    } else {
-      setTimeout(() => {
-        this.conRef.current!.style.transform = 'translate(0px, 0px)';
-      }, 48);
     }
   }
 
@@ -87,18 +88,7 @@ export class AnnotationContent extends React.PureComponent<{
     const btns = this.props.config.buttons.filter(c => !c.exclude);
     const serialId = this.props.annotationSerialIdMap[this.props.config.refId] + 1;
     const totalAnnotations = Object.keys(this.props.annotationSerialIdMap).length;
-    const d = 30;
-    let tx = 0;
-    let ty = 0;
-    if (this.props.dir === 'l') {
-      tx -= d;
-    } else if (this.props.dir === 'r') {
-      tx += d;
-    } else if (this.props.dir === 't') {
-      ty -= d;
-    } else if (this.props.dir === 'b') {
-      ty += d;
-    }
+
     return (
       <Tags.AnContent
         key={this.props.config.refId}
@@ -110,12 +100,10 @@ export class AnnotationContent extends React.PureComponent<{
           visibility: 'visible',
           left: this.props.left,
           top: this.props.top,
-          transition: 'transform 0.3s ease-out',
           fontSize: '18px',
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
           backgroundColor: this.props.opts.annotationBodyBackgroundColor,
           borderRadius: this.props.opts.borderRadius,
-          transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
         className="fable-ann-card"
@@ -160,7 +148,13 @@ export class AnnotationContent extends React.PureComponent<{
                   btnLayout={this.props.config.buttonLayout}
                   borderRadius={this.props.opts.borderRadius}
                   onClick={() => {
-                    handleEventLogging(btnConf.id, btnConf.type, this.props.config.refId, this.props.tourId, this.annotationEntered);
+                    handleEventLogging(
+                      btnConf.id,
+                      btnConf.type,
+                      this.props.config.refId,
+                      this.props.tourId,
+                      this.annotationEntered
+                    );
                     this.props.navigateToAdjacentAnn(btnConf.type);
                   }}
                 > {btnConf.text}
@@ -180,6 +174,16 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   static readonly ANNOTAITON_EL_MARGIN = 20;
 
+  conRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+  componentDidMount(): void {
+    setTimeout(() => {
+      if (this.conRef.current) {
+        this.conRef.current.style.transform = 'translate(0px, 0px)';
+      }
+    }, 48);
+  }
+
   render(): JSX.Element {
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
@@ -191,6 +195,16 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let w = displayConfig.prerender ? this.props.box.width : 0;
     let h = displayConfig.prerender ? this.props.box.height : 0;
     let dir: AnimEntryDir = 't';
+    let isUltrawideBox = false;
+    const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
+    const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy);
+    let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
+    let isBorderColorDefault = false;
+    if (arrowColor.toUpperCase() === '#BDBDBD') {
+      arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor;
+      isBorderColorDefault = true;
+    }
+
     if (displayConfig.isInViewPort) {
       const elBox = this.props.box;
       const winW = this.props.annotationDisplayConfig.windowWidth;
@@ -291,6 +305,13 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         />;
       }
 
+      const maskBoxPadding = HighlighterBase.getMaskPaddingWithBox(this.props.box, maskBoxRect);
+
+      const LEFT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.left;
+      const RIGHT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.right;
+      const TOP_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.top;
+      const BOTTOM_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.bottom;
+
       const leftSpace = elBox.left;
       const rightSpace = winW - elBox.right;
       const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
@@ -301,19 +322,19 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       }
       if (p === 'l' || p === 'r') {
         t = elBox.top + elBox.height / 2 - (h / 2);
-        if (t <= AnnotationCard.ANNOTAITON_EL_MARGIN) {
+        if (t <= TOP_ANN_EL_MARGIN) {
           // If the top of the annotation is outside the viewport
           t = Math.max(elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.top);
         }
-        if (t + h + AnnotationCard.ANNOTAITON_EL_MARGIN >= winH) {
+        if (t + h + TOP_ANN_EL_MARGIN >= winH) {
           // If the bottom of the annotation is outside the viewport
           t = Math.min(elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.bottom - h);
         }
 
         if (p === 'l') {
-          l = elBox.left - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
+          l = elBox.left - w - LEFT_ANN_EL_MARGIN;
         } else {
-          l = elBox.right + AnnotationCard.ANNOTAITON_EL_MARGIN;
+          l = elBox.right + RIGHT_ANN_EL_MARGIN;
         }
       } else {
         const topSpace = elBox.top;
@@ -326,48 +347,297 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         if (p === 't' || p === 'b') {
           l = elBox.left + elBox.width / 2 - (w / 2);
           if (p === 't') {
-            t = elBox.top - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+            t = elBox.top - h - TOP_ANN_EL_MARGIN;
           } else {
-            t = elBox.bottom + AnnotationCard.ANNOTAITON_EL_MARGIN;
+            t = elBox.bottom + BOTTOM_ANN_EL_MARGIN;
           }
         }
       }
 
       if (!p) {
-        l = elBox.right - w - AnnotationCard.ANNOTAITON_EL_MARGIN;
-        t = elBox.bottom - h - AnnotationCard.ANNOTAITON_EL_MARGIN;
+        isUltrawideBox = true;
+        l = elBox.right - w - LEFT_ANN_EL_MARGIN;
+        t = elBox.bottom - h - TOP_ANN_EL_MARGIN;
       } else {
         dir = p || 't';
       }
     }
 
     if (isVideoAnnotation) {
-      return <AnnotationVideo
-        conf={this.props.annotationDisplayConfig}
-        playMode={this.props.playMode}
-        annFollowPositions={{
-          top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
-          left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
-        }}
-        width={w}
-        tourId={this.props.tourId}
-        navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-      />;
+      return (
+        <>
+          {
+          !isUltrawideBox
+           && this.props.annotationDisplayConfig.config.positioning === 'follow'
+           && !this.props.annotationDisplayConfig.prerender
+           && (
+           <AnnotationArrowHead
+             box={this.props.box}
+             pos={dir}
+             maskBoxRect={maskBoxRect}
+             arrowColor={arrowColor}
+             annBox={{
+               top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
+               left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
+               width: w,
+               height: h
+             }}
+             isBorderColorDefault={isBorderColorDefault}
+             annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+           />
+           )
+        }
+          <AnnotationVideo
+            conf={this.props.annotationDisplayConfig}
+            playMode={this.props.playMode}
+            annFollowPositions={{
+              top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
+              left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
+            }}
+            width={w}
+            tourId={this.props.tourId}
+            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+          />
+        </>
+      );
     }
 
+    const d = 30;
+    let tx = 0;
+    let ty = 0;
+    if (dir === 'l') {
+      tx -= d;
+    } else if (dir === 'r') {
+      tx += d;
+    } else if (dir === 't') {
+      ty -= d;
+    } else if (dir === 'b') {
+      ty += d;
+    }
     // This container should never have padding ever
-    return <AnnotationContent
-      annotationSerialIdMap={this.props.annotationSerialIdMap}
-      config={this.props.annotationDisplayConfig.config}
-      opts={this.props.annotationDisplayConfig.opts}
-      isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-      width={w}
-      dir={dir}
-      top={t + this.props.win.scrollY}
-      left={l + this.props.win.scrollX}
-      tourId={this.props.tourId}
-      navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-    />;
+    return (
+      <div
+        ref={this.conRef}
+        style={{
+          transition: 'transform 0.3s ease-out',
+          transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
+        }}
+      >
+        {
+          !isUltrawideBox && (
+            <AnnotationArrowHead
+              box={this.props.box}
+              pos={dir}
+              maskBoxRect={maskBoxRect}
+              arrowColor={arrowColor}
+              annBox={{
+                top: t + this.props.win.scrollY,
+                left: l + this.props.win.scrollX,
+                width: w,
+                height: h
+              }}
+              isBorderColorDefault={isBorderColorDefault}
+              annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+            />
+          )
+        }
+        <AnnotationContent
+          annotationSerialIdMap={this.props.annotationSerialIdMap}
+          config={this.props.annotationDisplayConfig.config}
+          opts={this.props.annotationDisplayConfig.opts}
+          isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+          width={w}
+          dir={dir}
+          top={t + this.props.win.scrollY}
+          left={l + this.props.win.scrollX}
+          tourId={this.props.tourId}
+          navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+        />
+      </div>
+    );
+  }
+}
+
+interface AnnotationArrowHeadProps {
+  box: Rect;
+  pos: AnimEntryDir;
+  arrowColor: string;
+  maskBoxRect: Rect;
+  annBox: {
+    top: number;
+    left: number;
+    height: number;
+    width: number;
+  }
+  isBorderColorDefault: boolean;
+  annBorderRadius: number;
+}
+
+export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHeadProps> {
+  conRef: React.RefObject<HTMLDivElement> = React.createRef();
+
+  static ARROW_PADDING = 5;
+
+  static ARROW_SPACE = AnnotationCard.ANNOTAITON_EL_MARGIN - AnnotationArrowHead.ARROW_PADDING;
+
+  private TRIANGLE_BASE_SIDE_LENGTH = 100;
+
+  private TRIANGLE_POINTING_SIDE_LENGTH = 80;
+
+  getArrowWidthHeight(): {arrowWidth: number, arrowHeight: number} {
+    const arrowSpace = AnnotationArrowHead.ARROW_SPACE;
+    const ratio = this.TRIANGLE_BASE_SIDE_LENGTH / this.TRIANGLE_POINTING_SIDE_LENGTH;
+
+    const isAnnPosVertical = this.isAnnPosVertical();
+
+    const width = isAnnPosVertical ? arrowSpace * ratio : arrowSpace;
+    const height = isAnnPosVertical ? arrowSpace : arrowSpace * ratio;
+
+    return { arrowWidth: width, arrowHeight: height };
+  }
+
+  getPositioningStyles(): Record<string, string> {
+    const styles: Record<string, string> = {};
+
+    const {
+      top: maskBoxTop,
+      left: maskBoxLeft,
+      width: maskBoxWidth,
+      height: maskBoxHeight
+    } = this.props.maskBoxRect;
+
+    const arrowPadding = AnnotationArrowHead.ARROW_PADDING;
+
+    const arrowLeftOffset = this.props.isBorderColorDefault ? 1 : 0;
+
+    const annPos = this.props.pos;
+
+    const { arrowWidth, arrowHeight } = this.getArrowWidthHeight();
+
+    if (annPos === 'l' || annPos === 'r') {
+      let top = this.props.box.top + this.props.box.height / 2 - arrowHeight / 2;
+      if (annPos === 'l') {
+        styles.left = `${maskBoxLeft - arrowWidth - arrowPadding - arrowLeftOffset}px`;
+      } else {
+        styles.left = `${maskBoxLeft + maskBoxWidth + arrowPadding + arrowLeftOffset}px`;
+      }
+      if (top + arrowHeight > this.props.annBox.top + this.props.annBox.height - this.props.annBorderRadius / 2) {
+        const diff = (top + arrowHeight) - (this.props.annBox.top + this.props.annBox.height);
+        top -= diff + this.props.annBorderRadius / 2;
+      } else if (top < this.props.annBox.top + this.props.annBorderRadius / 2) {
+        const diff = this.props.annBox.top - top;
+        top += diff + this.props.annBorderRadius / 2;
+      }
+      styles.top = `${top}px`;
+    } else {
+      let left = this.props.box.left + this.props.box.width / 2 - arrowWidth / 2;
+      if (annPos === 't') {
+        styles.top = `${maskBoxTop - arrowHeight - arrowPadding - arrowLeftOffset}px`;
+      } else {
+        styles.top = `${maskBoxTop + maskBoxHeight + arrowPadding + arrowLeftOffset}px`;
+      }
+      if (left + arrowWidth >= this.props.annBox.left + this.props.annBox.width - this.props.annBorderRadius / 2) {
+        const diff = (left + arrowWidth) - (this.props.annBox.left + this.props.annBox.width);
+        left -= diff + this.props.annBorderRadius / 2;
+      } else if (left < this.props.annBox.left + this.props.annBorderRadius / 2) {
+        const diff = this.props.annBox.left - left;
+        left += diff + this.props.annBorderRadius / 2;
+      }
+      styles.left = `${left}px`;
+    }
+
+    return {
+      position: 'absolute',
+      zIndex: '2',
+      ...styles,
+    };
+  }
+
+  getTransformRotateStyle(): {transform: string} {
+    if (this.props.pos === 't' || this.props.pos === 'r') {
+      return { transform: 'rotate(180deg)' };
+    }
+    return { transform: 'rotate(0deg)' };
+  }
+
+  isAnnPosVertical = (): boolean => this.props.pos === 't' || this.props.pos === 'b';
+
+  getViewBox(): string {
+    if (this.isAnnPosVertical()) {
+      return `
+      -${this.TRIANGLE_BASE_SIDE_LENGTH / 2} 0 ${this.TRIANGLE_BASE_SIDE_LENGTH} ${this.TRIANGLE_POINTING_SIDE_LENGTH}`;
+    }
+    return `0 0 ${this.TRIANGLE_POINTING_SIDE_LENGTH} ${this.TRIANGLE_BASE_SIDE_LENGTH}`;
+  }
+
+  getTrianglePath = (): string => {
+    const CURVE_START_OFFSET = 14;
+    const CURVE_VAL = 1;
+
+    if (this.isAnnPosVertical()) {
+      const startCurvePoint = {
+        x: 0 - CURVE_START_OFFSET,
+        y: 0 + CURVE_START_OFFSET
+      };
+      const endCurvePoint = {
+        x: 0 + CURVE_START_OFFSET,
+        y: 0 + CURVE_START_OFFSET
+      };
+      return `
+      M-${this.TRIANGLE_BASE_SIDE_LENGTH / 2} ${this.TRIANGLE_POINTING_SIDE_LENGTH}
+      L${startCurvePoint.x} ${startCurvePoint.y}
+      C${startCurvePoint.x} ${startCurvePoint.y}, 
+        0 ${CURVE_VAL}, 
+        ${endCurvePoint.x} ${endCurvePoint.y}
+      L${endCurvePoint.x} ${endCurvePoint.y}
+      L${this.TRIANGLE_BASE_SIDE_LENGTH / 2} ${this.TRIANGLE_POINTING_SIDE_LENGTH}
+      Z
+      `;
+    }
+
+    const startCurvePoint = {
+      x: this.TRIANGLE_POINTING_SIDE_LENGTH - CURVE_START_OFFSET,
+      y: this.TRIANGLE_BASE_SIDE_LENGTH / 2 - CURVE_START_OFFSET
+    };
+    const endCurvePoint = {
+      x: this.TRIANGLE_POINTING_SIDE_LENGTH - CURVE_START_OFFSET,
+      y: this.TRIANGLE_BASE_SIDE_LENGTH / 2 + CURVE_START_OFFSET
+    };
+    return `
+      M0 0
+      L${startCurvePoint.x} ${startCurvePoint.y}
+      C${startCurvePoint.x} ${startCurvePoint.y}, 
+        ${this.TRIANGLE_POINTING_SIDE_LENGTH - CURVE_VAL} ${this.TRIANGLE_BASE_SIDE_LENGTH / 2}, 
+        ${endCurvePoint.x} ${endCurvePoint.y}
+      L${endCurvePoint.x} ${endCurvePoint.y}
+      L0 ${this.TRIANGLE_BASE_SIDE_LENGTH}
+      Z
+    `;
+  };
+
+  render(): JSX.Element {
+    const { arrowWidth, arrowHeight } = this.getArrowWidthHeight();
+
+    return (
+      <div
+        style={{
+          ...this.getPositioningStyles(),
+        }}
+        ref={this.conRef}
+      >
+        <svg
+          width={`${arrowWidth}px`}
+          height={`${arrowHeight}px`}
+          viewBox={this.getViewBox()}
+          style={{ ...this.getTransformRotateStyle() }}
+        >
+          <path
+            fill={this.props.arrowColor}
+            d={this.getTrianglePath()}
+          />
+        </svg>
+      </div>
+    );
   }
 }
 

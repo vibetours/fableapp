@@ -519,7 +519,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.isLoadingComplete()) {
       return (
         <div>
-          <Loader width="80px" txtBefore="Loading tour" />
+          <Loader width="80px" txtBefore="Loading tour" showAtPageCenter />
         </div>
       );
     }

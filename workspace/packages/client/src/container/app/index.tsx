@@ -16,11 +16,10 @@ import IamDetails from '../org/iam-details';
 import Login from '../../component/auth/login';
 import Logout from '../../component/auth/logout';
 import Onboarding from '../onboarding';
-import Pin from '../../component/onboarding/pages/pin';
+import PinExt from '../../component/onboarding/pages/pin-ext';
 import PrepTour from '../create-tour/prep-tour';
 import ToursPage from '../../component/onboarding/pages/tours';
 import ProductTours from '../../component/onboarding/pages/product-tours';
-import TermsAndConditions from '../../component/onboarding/pages/terms-and-conditions';
 import ProtectedRoutes from '../protected-routes';
 import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
@@ -64,17 +63,16 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             <Route path="/" element={<Navigate to="/tours" />} />
             <Route path="/aboutblank" element={<div />} />
             <Route path="/onboarding" element={<Onboarding />}>
-              <Route path="pin" element={<Pin title="Fable Onboarding" />} />
-              <Route path="tours" element={<ToursPage title="Fable - Onboarding" />} />
-              <Route path="product-tours" element={<ProductTours title="Fable - Onboarding" />} />
-              <Route path="tnc" element={<TermsAndConditions title="Fable - Terms and Conditions" />} />
+              <Route path="pin-ext" element={<PinExt title="Fable - Onboarding" />} />
+              <Route path="create-amazing-product-tours" element={<ToursPage title="Fable - Onboarding" />} />
+              <Route path="go-to-app" element={<ProductTours title="Fable - Onboarding" />} />
             </Route>
 
             <Route path="/" element={<ProtectedRoutes />}>
               <Route path="/cb/auth" element={<AuthCB />} />
               <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
               <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
-              <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select organization" />} />
+              <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select Organization" />} />
               <Route path="/tours" element={<Tours title="Fable - Tours" />} />
               <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />

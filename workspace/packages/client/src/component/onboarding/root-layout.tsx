@@ -1,6 +1,6 @@
 import React, { CSSProperties } from 'react';
 import FableLogo from '../../assets/onboarding/fable-logo.svg';
-import Browser from '../../assets/onboarding/Browser.svg';
+import Browser from '../../assets/onboarding/pin-ext-browser.png';
 import * as Tags from './styled';
 
 interface Props {
@@ -51,7 +51,7 @@ export function VerticalStackedBars(props: { style: CSSProperties}): JSX.Element
   );
 }
 
-export default function RootLayout(props: Props) {
+export default function RootLayout(props: Props): JSX.Element {
   return (
     <Tags.RootLayoutCon equalSpaced={!!props.equalSpaced} abs={!!props.abs} fullheight={!!props.fullheight} id="frtlt">
       {!props.dontShowStackedBars && (

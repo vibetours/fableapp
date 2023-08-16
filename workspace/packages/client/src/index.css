@@ -43,10 +43,6 @@ html, body {
   background: #16023e;
 }
 
-.ant-modal .ant-modal-content .anticon {
-  color: #ff7350;
-}
-
 :root {
   --AnnotationFontSizeMedium: 18px;
 }

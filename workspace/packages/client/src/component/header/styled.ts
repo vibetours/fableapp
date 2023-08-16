@@ -1,6 +1,5 @@
 import styled from 'styled-components';
 import Button from 'antd/lib/button';
-import Modal from 'antd/lib/modal';
 
 export const ConLogoImg = styled.img`
   height: 2.5rem;
@@ -46,30 +45,6 @@ export const MenuItem = styled.div`
   margin: 0 0.25rem;
 `;
 
-export const ShareModal = styled(Modal)`
-
-  border-radius: 15px;
-  border-top: double 4px transparent;
-  background-image: linear-gradient(white, white), linear-gradient(to right,  #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%);
-  background-clip: padding-box, border-box;
-
-  .ant-modal-content {
-    -webkit-box-shadow: none;
-    -moz-box-shadow: none;
-    -o-box-shadow: none;
-    box-shadow: none;
-    padding: 32px;
-    border-radius: 20px;
-  }
-
-  .ant-modal-title {
-    font-family: "IBM Plex Sans", sans-serif;
-    color: #16023e;
-    font-size: 16px;
-    font-weight: 700;
-  }
-`;
-
 export const SMButton = styled(Button)`
   display: flex;
   align-items: center;
@@ -104,4 +79,32 @@ export const SMText = styled.p`
   padding: 5px;
   max-height: 196px; 
   overflow-y: auto;
+`;
+
+export const ModalButtonsContainer = styled.div`
+    display: flex;
+    margin: 1.5rem 0rem 1rem 0rem;
+    gap: 1rem;
+
+    button {
+        width: 50%;
+        padding: 0.625rem 2rem;
+        border-radius: 60px;
+        cursor: pointer;
+    }
+
+    button.primary {
+        background-color: #7567ff;
+        color: white;
+        border: 1px solid #7567ff;
+
+        &:disabled {
+            opacity: 0.5;
+        }
+    }
+
+    button.secondary {
+        background: #FFFFFF;
+        border: 1px solid #16023E;
+    }
 `;

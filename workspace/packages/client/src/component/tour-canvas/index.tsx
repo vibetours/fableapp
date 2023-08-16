@@ -10,6 +10,7 @@ import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
 import transition from 'd3-transition';
+import { Button, Tooltip } from 'antd';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -18,6 +19,7 @@ import {
   reorderAnnotation,
   groupUpdatesByAnnotation
 } from '../annotation/ops';
+import newScreenDark from '../../assets/new-screen-dark.svg';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespTour } from '../../entity-processor';
 import {
@@ -28,7 +30,6 @@ import {
   TourDataChangeFn
 } from '../../types';
 import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
-import Btn from '../btn';
 import { AnnUpdateType } from '../timeline/types';
 import { dSaveZoomPanState } from './deferred-tasks';
 import * as Tags from './styled';
@@ -149,6 +150,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
+  const [noAnnotationsPresent, setNoAnnotationsPresent] = useState(false);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -655,6 +657,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .merge(gBoundData);
 
     if (nodeWithDim.length === 0) {
+      setNoAnnotationsPresent(true);
       setShowScreenSelector(true);
     }
 
@@ -1028,35 +1031,31 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         onMouseDown={prevent}
       >
         <Tags.CanvasMenuItemCon>
-          <Btn
+          <Tooltip
             title="Add a new screen to this tour"
-            icon="new-screen"
-            style={{
-              margin: 0,
-              border: '1px solid black',
-            }}
-            onClick={() => setShowScreenSelector(!showScreenSelector)}
-          />
-        </Tags.CanvasMenuItemCon>
-      </Tags.CanvasMenuCon>
-      <Tags.CanvasMenuCon>
-        <Tags.CanvasMenuItemCon>
-          <Btn
-            title="Add a new screen to this tour"
-            icon="new-screen"
-            style={{
-              margin: 0,
-              border: '1px solid black',
-            }}
-            onClick={() => setShowScreenSelector(!showScreenSelector)}
-          />
+            overlayStyle={{ fontSize: '0.75rem' }}
+            placement="right"
+          >
+            <div>
+              <Button
+                onClick={() => setShowScreenSelector(!showScreenSelector)}
+                icon={<img src={newScreenDark} alt="new screen" />}
+                size="middle"
+                style={{
+                  margin: 0,
+                  border: '1px solid black',
+                }}
+              />
+            </div>
+          </Tooltip>
         </Tags.CanvasMenuItemCon>
       </Tags.CanvasMenuCon>
       {showScreenSelector
         && <ScreenPicker
           isOpenScreenPicker={showScreenSelector}
-          hideScreenPicker={() => setShowScreenSelector(false)}
+          hideScreenPicker={() => !noAnnotationsPresent && setShowScreenSelector(false)}
           screenPickerMode="navigate"
+          dontShowCloseBtn={noAnnotationsPresent}
         />}
       {isMenuModalVisible(connectorMenuModalData.position) && (
         <Tags.MenuModalMask onClick={() => {

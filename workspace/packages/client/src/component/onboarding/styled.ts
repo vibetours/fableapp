@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import styled from 'styled-components';
 
 export const RootLayoutCon = styled.div<{equalSpaced: boolean, abs: boolean, fullheight: boolean}>`
@@ -18,27 +19,19 @@ export const ContentWrapper = styled.div`
   align-items: flex-start;
 `;
 
+export const MotionDivWrapper = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  align-items: flex-start;
+`;
+
 export const StepDotsWrapper = styled.div`
   display: flex;
   padding: 0.5rem 0;
   gap: 0.5rem;
   position: absolute;
   bottom: 2.25rem;
-`;
-
-export const NextBtn = styled.button`
-  background-color: #7567FF;
-  padding: 0.75rem 2.5rem;
-  border: none;
-  color: #FFF;
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  border-radius: 24px;
-  font: inherit;
-  font-weight: 500;
-  cursor: pointer;
-  justify-content: center;
 `;
 
 export const Link = styled.a`
@@ -71,4 +64,12 @@ export const FlexColContainer = styled.div`
 
 export const SpanBlock = styled.span`
   display: block;
+`;
+
+export const BrowserCon = styled.img`
+  position: absolute;
+  right: 4.25%;
+  width: 37rem;
+  top: calc(50vh - 14rem);
+  filter: drop-shadow(0px 32px 48px rgba(0, 0, 0, 0.25));
 `;

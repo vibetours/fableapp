@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import Button from 'antd/lib/button';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useSearchParams } from 'react-router-dom';
 import Loader from '../loader';
-import Btn from '../btn';
+import Button from '../button';
 
 interface Props {
   title: string,
@@ -13,7 +12,7 @@ export const enum LoginErrorType {
   UserUsedPersonalEmail = '1',
 }
 
-export default function LogIn(props: Props) {
+export default function LogIn(props: Props): JSX.Element {
   const [searchParams] = useSearchParams();
   const { loginWithRedirect } = useAuth0();
   const [loginErrorType, setLoginErrorType] = useState('');
@@ -48,7 +47,7 @@ export default function LogIn(props: Props) {
       height: '100%',
       flexDirection: 'column',
       color: '#fff',
-      padding: '5rem',
+      justifyContent: 'center',
       alignItems: 'center'
     }}
     >
@@ -72,12 +71,7 @@ export default function LogIn(props: Props) {
           >{loginErrorMsg}
           </p>
           <div>
-            <Btn
-              size="large"
-              type="primary"
-              onClick={() => loginWithRedirect()}
-            >Click here to login using your work email id
-            </Btn>
+            <Button onClick={() => loginWithRedirect()}>Click here to login using your work email id</Button>
           </div>
         </>
         )}
