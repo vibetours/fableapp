@@ -65,13 +65,13 @@ export function getFidOfSerNode(node: SerNode): string {
 
 export const isDeepEqual = (val1: any, val2: any): boolean => JSON.stringify(val1) === JSON.stringify(val2);
 
-export const applyFadeInTransitionToNode = (node: Node): void => {
+export const applyFadeInTransitionToNode = (node: Node, originialOpacity: string): void => {
   if (node.nodeType === 1) {
     const element = node as HTMLElement;
     element.style.opacity = '0';
     element.style.transition = 'opacity 0.3s ease-out';
     setTimeout(() => {
-      element.style.opacity = '1';
+      element.style.opacity = originialOpacity;
     }, 300);
   }
 };

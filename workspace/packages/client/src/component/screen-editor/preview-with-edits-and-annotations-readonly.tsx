@@ -37,6 +37,7 @@ import { AddDiff, DelDiff, ReorderDiff, ReplaceDiff, ToBeUpdatedNode, UpdateDiff
 import { showOrHideEditsFromEl } from './utils/edits';
 import { playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import { getDefaultStyleEls, removeDefaultStyleEls, addDefaultStyleEls } from './utils/diffs/defaultStylesHandler';
 
 export interface IOwnProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
@@ -380,8 +381,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
                   shadowParent: null
                 }
               )!;
+              const originalOpacity = getOriginalOpacity(replacedNode);
+              setOpacityOfNode(replacedNode, '0');
+
               htmlEl.replaceWith(replacedNode);
-              applyFadeInTransitionToNode(replacedNode);
+
+              applyFadeInTransitionToNode(replacedNode, originalOpacity);
             });
             break;
           }
@@ -403,7 +408,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         parentEl = (parentEl as HTMLIFrameElement).contentDocument as Node;
       }
 
-      if ((diff.isPartOfShadowHost && !isParentShadowRoot) || diffType === 'reorder') {
+      if (diffType === 'reorder') {
         diff = diff as ReorderDiff;
         const newParentEl = this.deserElOrIframeEl(
           diff.parentSerNode,
@@ -433,7 +438,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
                 }
               )!;
               parentEl!.replaceChild(replacedNode, parentEl!.childNodes[toBeReplacedNode.idx]);
-              applyFadeInTransitionToNode(replacedNode);
+
+              const originalOpacity = getOriginalOpacity(replacedNode);
+              setOpacityOfNode(replacedNode, '0');
+
+              applyFadeInTransitionToNode(replacedNode, originalOpacity);
             });
             break;
           }
@@ -475,6 +484,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
                 }
               );
 
+              const originalOpacity = getOriginalOpacity(addedNode);
+              setOpacityOfNode(addedNode, '0');
+
               const pivotEl = parentEl!.childNodes[toBeAddedNode.idx];
 
               parentEl!.insertBefore(addedNode, pivotEl);
@@ -496,7 +508,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
                 parentEl!.insertBefore(addedTextNode, pivotEl);
               }
 
-              applyFadeInTransitionToNode(addedNode);
+              applyFadeInTransitionToNode(addedNode, originalOpacity);
             });
             break;
           }
@@ -529,6 +541,20 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           (el as Element).setAttribute(update.attrKey, update.attrNewVal);
         });
         (el as HTMLElement).style.transition = 'all 0.3s ease-out';
+      }
+    }
+
+    function getOriginalOpacity(node: Node): string {
+      let originalOpacity = '1';
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        originalOpacity = getComputedStyle(node as Element).opacity;
+      }
+      return originalOpacity;
+    }
+
+    function setOpacityOfNode(node: Node, opacity: string): void {
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        (node as HTMLElement).style.opacity = opacity;
       }
     }
   };
@@ -654,6 +680,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
+      const antdStyleEls = getDefaultStyleEls(doc);
+      removeDefaultStyleEls(antdStyleEls);
+
       const replaceDiffs = getReplaceDiffs(currScreenData.docTree, goToScreenData.docTree);
       const afterReplaceSerDom = applyReplaceDiffsToSerDom(replaceDiffs, currScreenData.docTree);
 
@@ -676,6 +705,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       const reorderDiffs = getReorderDiffs(afterAddSerDom, goToScreenData.docTree);
       this.applyDiffToDOM(reorderDiffs, 'reorder', goToScreenData.version);
+
+      addDefaultStyleEls(doc, antdStyleEls);
 
       while (this.frameLoadingPromises.length) {
         await this.frameLoadingPromises.shift();

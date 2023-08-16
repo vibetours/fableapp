@@ -654,7 +654,7 @@ export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] =
       reorderDiffs.push({
         parentFid: node1.attrs['f-id'] || '',
         parentElPath: elPathofNode1,
-        parentSerNode: node2,
+        parentSerNode: node1,
         isPartOfShadowHost: isNode1PartOfShadow || node1.props.isShadowHost || false,
         isPartOfSVG: isNode1PartOfSvg || false,
       });
