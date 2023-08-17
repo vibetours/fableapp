@@ -433,7 +433,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.head },
+        { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
         React.createElement(AnnotationCon, {
           data: props,
           nav: this.nav,
@@ -535,7 +535,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.head },
+        { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
         React.createElement(AnnotationCon, {
           data: videoAnnsProps,
           nav: this.nav,
@@ -562,7 +562,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.head },
+            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
             React.createElement(AnnotationContent, {
               onRender: resolve,
               isInDisplay: true,
@@ -586,7 +586,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.head },
+            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+
             React.createElement(AnnotationContent, {
               onRender: resolve,
               isInDisplay: true,
@@ -610,7 +611,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.head },
+            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+
             React.createElement(AnnotationContent, {
               onRender: resolve,
               isInDisplay: true,

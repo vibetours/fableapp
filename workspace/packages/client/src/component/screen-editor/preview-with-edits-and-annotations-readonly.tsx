@@ -37,7 +37,6 @@ import { AddDiff, DelDiff, ReorderDiff, ReplaceDiff, ToBeUpdatedNode, UpdateDiff
 import { showOrHideEditsFromEl } from './utils/edits';
 import { playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
-import { getDefaultStyleEls, removeDefaultStyleEls, addDefaultStyleEls } from './utils/diffs/defaultStylesHandler';
 
 export interface IOwnProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
@@ -680,9 +679,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
-      const antdStyleEls = getDefaultStyleEls(doc);
-      removeDefaultStyleEls(antdStyleEls);
-
       const replaceDiffs = getReplaceDiffs(currScreenData.docTree, goToScreenData.docTree);
       const afterReplaceSerDom = applyReplaceDiffsToSerDom(replaceDiffs, currScreenData.docTree);
 
@@ -705,8 +701,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       const reorderDiffs = getReorderDiffs(afterAddSerDom, goToScreenData.docTree);
       this.applyDiffToDOM(reorderDiffs, 'reorder', goToScreenData.version);
-
-      addDefaultStyleEls(doc, antdStyleEls);
 
       while (this.frameLoadingPromises.length) {
         await this.frameLoadingPromises.shift();
