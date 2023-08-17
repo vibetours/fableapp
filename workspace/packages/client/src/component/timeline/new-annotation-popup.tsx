@@ -74,7 +74,6 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
         </div>
       </div>
       {showScreenPicker && <ScreenPicker
-        isOpenScreenPicker={showScreenPicker}
         hideScreenPicker={() => { setShowScreenPicker(false); props.hidePopup(); }}
         screenPickerMode="create"
         addCoverAnnToScreen={addCoverAnn}

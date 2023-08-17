@@ -1052,7 +1052,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       </Tags.CanvasMenuCon>
       {showScreenSelector
         && <ScreenPicker
-          isOpenScreenPicker={showScreenSelector}
           hideScreenPicker={() => !noAnnotationsPresent && setShowScreenSelector(false)}
           screenPickerMode="navigate"
           dontShowCloseBtn={noAnnotationsPresent}

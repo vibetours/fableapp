@@ -67,7 +67,6 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
 });
 
 interface IOwnProps {
-  isOpenScreenPicker: boolean;
   hideScreenPicker: () => void;
   screenPickerMode: ScreenPickerMode;
   addAnnotationData?: AnnAdd;
