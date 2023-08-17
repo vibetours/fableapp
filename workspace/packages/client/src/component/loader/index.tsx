@@ -13,7 +13,7 @@ interface Props {
  *      see if we could move it to common
  */
 
-export default function Loader(props: Props) {
+export default function Loader(props: Props): JSX.Element {
   const conRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

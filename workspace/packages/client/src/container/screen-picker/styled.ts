@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import Modal from 'antd/lib/modal';
 import Tabs from 'antd/lib/tabs';
 import Button from 'antd/lib/button';
@@ -78,23 +78,36 @@ export const ScreenTab = styled.div`
       flex-direction: column;
   `;
 
+const bottomToTop = keyframes`
+  from {
+    transform: translateY(200%);
+  }
+
+  to {
+    transform: translateY(0%);
+  }
+`;
+
 export const Screen = styled.div`
     background: #FFFFFF;
     border: 1px solid #EFEFEF;
     border-radius: 10px;
     padding: 0.5rem;
-    width: 195px;
+    width: 214px;
     height: 198px;
+    flex-basis: 17%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     border-radius: 4px;
-    box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
- 
+    transition: box-shadow 0.2s ease-in-out;
+    
     &:hover {
-      box-shadow: 0 0 0 1px #7566ff;
+      box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
       cursor: pointer;
     }
+
+    animation: ${bottomToTop} 0.3s ease-in;
   
   `;
 
@@ -256,4 +269,132 @@ export const FlexColCon = styled.div`
   display: flex;
   gap: 1.5rem;
   flex-direction: column;
+`;
+
+export const ScreenPickerCon = styled.div`
+  position: fixed;
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  /* padding-top: 6.125rem; */
+  align-items: center;
+  background-color: #fff;
+  z-index: 2000;
+  top: 0;
+  left: 0;
+`;
+
+export const CloseIcon = styled.img`
+  position: absolute;
+  height: 2rem;
+  width: 2rem;
+  top: 40px;
+  right: 40px;
+  cursor: pointer;
+`;
+
+export const FableLogo = styled.img`
+  position: absolute;
+  width: 90px;
+  top: 40px;
+  left: 70px;
+`;
+
+export const PolkaDotGridBg = styled.div`
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-color: #FFFFFF;
+  opacity: 0.6;
+  background-image: radial-gradient(#bfbfc0 1px, #FFFFFF 1px);
+  background-size: 20px 20px;
+`;
+
+export const MsgCon = styled.div`
+  margin-top: 6.125rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .heading {
+    color: #222;
+    text-align: center;
+    font-family: IBM Plex Sans;
+    font-size: 1.25rem;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
+  }
+
+  .sub-heading {
+    color: #16023E;
+    text-align: center;
+    font-family: IBM Plex Sans;
+    font-size: 0.875rem;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.625rem; /* 185.714% */
+  }
+`;
+
+export const Heading = styled.div`
+  color: #222;
+  text-align: center;
+  font-family: IBM Plex Sans;
+  font-size: 1.25rem;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+`;
+
+export const SubHeading = styled.div`
+  color: #16023E;
+  text-align: center;
+  font-family: IBM Plex Sans;
+  font-size: 0.875rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.625rem; /* 185.714% */
+`;
+
+export const ScreenCardCon = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+
+  scrollbar-color: #7567FF #E5E7EB;
+  scrollbar-width: thin;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  &::-webkit-scrollbar-track {
+    padding: 2px 0;
+    background-color: #e5e7eb;
+    border-radius: 10px;
+    border: 1px solid #F3F4F6;
+  }
+
+  &::-webkit-scrollbar {
+    margin: 4px 0;
+    height: 4px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #646e82;
+  }
+`;
+
+export const LoadNextCon = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin: auto;
 `;

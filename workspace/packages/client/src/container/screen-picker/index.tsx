@@ -6,17 +6,23 @@ import { getDisplayableTime } from '@fable/common/dist/utils';
 import { LoadingStatus } from '@fable/common/dist/types';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
-import { AddScreenToTour, AnnAdd, addScreenToTour, getAllScreens, uploadImgScreenAndAddToTour } from '../../action/creator';
+import {
+  AddScreenToTour,
+  AnnAdd, addScreenToTour,
+  getAllScreens,
+  uploadImgScreenAndAddToTour
+} from '../../action/creator';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen } from '../../types';
-
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import { getAnnotationsPerScreen } from '../../utils';
 import UploadImageScreen from './upload-image-screen';
 import { ScreenPickerMode } from '../../component/timeline/types';
+import CloseIcon from '../../assets/tour/close.svg';
+import FableLogo from '../../assets/fable_logo_light_bg.png';
+import NextIcon from '../../assets/tour/next.svg';
 import Loader from '../../component/loader';
-import Button from '../../component/button';
 
 interface IDispatchProps {
   getAllScreens: (forceRefresh?: boolean) => void;
@@ -177,7 +183,8 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.tour) {
       this.setState({
         screensPartOfTour: this.props.tour.screens?.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
-        || [] });
+          || []
+      });
     }
   };
 
@@ -226,7 +233,10 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
     }));
   };
 
-  shouldShowPaginationOption = (paginatedScreens: P_RespScreen[]): boolean => paginatedScreens.length < this.state.screensNotPartOfTour.length;
+  shouldShowPaginationOption = (paginatedScreens: P_RespScreen[]): boolean => {
+    const result = paginatedScreens.length < this.state.screensNotPartOfTour.length;
+    return result;
+  };
 
   render(): JSX.Element {
     const endIndex = this.state.currentPage * ITEMS_PER_PAGE;
@@ -234,69 +244,54 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <>
-        <Tags.ScreenPickerContainer
-          open={this.props.isOpenScreenPicker}
-          onCancel={this.props.hideScreenPicker}
-          footer={null}
-          style={{ height: '88vh' }}
-          width="100vw"
-          zIndex={2000}
-          closable={!this.props.dontShowCloseBtn}
-        >
-          <Tags.ScreenTab>
-            <GTags.Txt
-              className="title"
-              style={{ marginBottom: '0.5rem' }}
-            >
-              Select a screen to add it in the tour
-            </GTags.Txt>
-            {!this.props.screenLoadingFinished && (
-              <Loader width="100px" txtBefore="Loading all screens" showAtPageCenter />
-            )}
-            {
-              this.props.screenLoadingFinished && (
-                <>
-                  <Tags.ScreenPicker>
-                    <Tags.Screen
-                      onClick={() => {
-                        this.setState({ showUploadScreenImgModal: true });
-                      }}
-                      style={{ border: '1px dashed #7566ff' }}
-                    >
-                      <Tags.UploadImgCont>
-                        <UploadOutlined style={{ fontSize: '3rem' }} />
-                        <GTags.Txt className="title2">Upload screen image</GTags.Txt>
-                      </Tags.UploadImgCont>
-                    </Tags.Screen>
-                    {this.state.screensPartOfTour.map(screen => (
-                      <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenPartOfTour} key={screen.id} />
-                    ))}
-                    {paginatedScreensNotPartOfTour.map(screen => (
-                      <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenNotPartOfTour} key={screen.id} />
-                    ))}
-                  </Tags.ScreenPicker>
-                  {this.shouldShowPaginationOption(paginatedScreensNotPartOfTour) && (
-                    <Button
-                      onClick={this.handleLoadMoreScreens}
-                      style={{
-                        width: 'fit-content',
-                        alignSelf: 'center',
-                        position: 'fixed',
-                        bottom: '60px',
-                        zIndex: 10
-                      }}
-                    >
-                      Load more screens
-                    </Button>
+        <Tags.ScreenPickerCon>
+          <Tags.PolkaDotGridBg />
+          {!this.props.dontShowCloseBtn
+          && <Tags.CloseIcon alt="" src={CloseIcon} onClick={this.props.hideScreenPicker} />}
+          <Tags.FableLogo alt="" src={FableLogo} />
+          {!this.props.screenLoadingFinished && <Loader width="100px" txtBefore="Loading all screens" />}
+          {this.props.screenLoadingFinished && (
+            <>
+              <Tags.MsgCon>
+                <Tags.Heading>Choose screens to add in this tour</Tags.Heading>
+                {/* <Tags.SubHeading>You can add 1 or multiple screens</Tags.SubHeading> */}
+              </Tags.MsgCon>
+              <Tags.ScreenCardCon>
+                <Tags.Screen
+                  onClick={() => {
+                    this.setState({ showUploadScreenImgModal: true });
+                  }}
+                  style={{ border: '1px dashed #7566ff' }}
+                >
+                  <Tags.UploadImgCont>
+                    <UploadOutlined style={{ fontSize: '3rem' }} />
+                    <GTags.Txt className="title2">Upload image</GTags.Txt>
+                  </Tags.UploadImgCont>
+                </Tags.Screen>
+                {this.state.screensPartOfTour.map(screen => (
+                  <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenPartOfTour} key={screen.id} />
+                ))}
+                {paginatedScreensNotPartOfTour.map(screen => (
+                  <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenNotPartOfTour} key={screen.id} />
+                ))}
+                {this.shouldShowPaginationOption(paginatedScreensNotPartOfTour)
+                  && (
+                  <Tags.Screen
+                    onClick={this.handleLoadMoreScreens}
+                    style={{ border: '1px dashed #E0E0E0' }}
+                  >
+                    <Tags.LoadNextCon>
+                      <img src={NextIcon} alt="" style={{ marginBottom: '21px' }} />
+                      <Tags.Heading>See next</Tags.Heading>
+                      <Tags.SubHeading>Load next set of screens</Tags.SubHeading>
+                    </Tags.LoadNextCon>
+                  </Tags.Screen>
                   )}
-                  {this.shouldShowPaginationOption(paginatedScreensNotPartOfTour) && (
-                  <Tags.Blur />
-                  )}
-                </>
-              )
-            }
-          </Tags.ScreenTab>
-        </Tags.ScreenPickerContainer>
+              </Tags.ScreenCardCon>
+            </>
+          )}
+
+        </Tags.ScreenPickerCon>
         {
           this.state.showUploadScreenImgModal && (
             <UploadImageScreen

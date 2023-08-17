@@ -570,17 +570,20 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           Back
                         </Button>
                         {this.state.existingTourRId && (
-                          <Tags.PrimaryButton
-                            onClick={() => this.setState({
-                              isReadyToSave: true,
-                              saveType: 'existing_tour',
-                              saving: true,
-                              showSaveWizard: false
-                            })}
-                            disabled={this.state.saving}
-                          >
-                            <CheckOutlined />&nbsp;&nbsp;&nbsp;Add to Tour
-                          </Tags.PrimaryButton>
+                        <Button
+                          onClick={() => this.setState({
+                            isReadyToSave: true,
+                            saveType: 'existing_tour',
+                            saving: true,
+                            showSaveWizard: false
+                          })}
+                          disabled={this.state.saving}
+                          icon={<CheckOutlined />}
+                          iconPlacement="left"
+                          style={{ width: '100%', paddingBlock: '12.4px' }}
+                        >
+                          Add to Tour
+                        </Button>
                         )}
                       </Tags.ModalButtonsContainer>
                     </div>
