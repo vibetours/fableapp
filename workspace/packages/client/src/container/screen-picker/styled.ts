@@ -308,7 +308,7 @@ export const PolkaDotGridBg = styled.div`
   height: 100vh;
   z-index: -1;
   background-color: #FFFFFF;
-  opacity: 0.6;
+  opacity: 0.4;
   background-image: radial-gradient(#bfbfc0 1px, #FFFFFF 1px);
   background-size: 20px 20px;
 `;
