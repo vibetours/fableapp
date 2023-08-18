@@ -1,5 +1,6 @@
 import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ROOT_EMBED_IFRAME_ID } from '../screen-editor/preview';
+import { getFableRtUmbrlDiv } from '../annotation/utils';
 
 export interface Rect {
   x: number;
@@ -251,7 +252,7 @@ export default abstract class HighlighterBase {
   }
 
   protected attachElToUmbrellaDiv(el: Element) {
-    const umbrellaDiv = this.doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+    const umbrellaDiv = getFableRtUmbrlDiv(this.doc);
     const annotationsContainer = this.doc.getElementsByClassName('fable-annotations--container')[0] as HTMLDivElement;
     if (!umbrellaDiv) {
       throw new Error('Container div not found');

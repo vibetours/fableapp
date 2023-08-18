@@ -1,5 +1,4 @@
 import { SerNode } from '@fable/common/dist/types';
-import { trimSpaceAndNewLine } from '@fable/common/dist/utils';
 import { DeSerProps } from '../preview';
 
 export const deser = (
@@ -20,7 +19,7 @@ export const deser = (
   let node;
   switch (serNode.type) {
     case Node.TEXT_NODE:
-      node = doc.createTextNode(trimSpaceAndNewLine(serNode.props.textContent!));
+      node = doc.createTextNode(serNode.props.textContent!);
       break;
     case Node.ELEMENT_NODE:
       if (serNode.name === 'meta') {

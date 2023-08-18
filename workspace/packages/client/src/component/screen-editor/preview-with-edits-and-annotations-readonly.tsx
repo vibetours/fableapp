@@ -35,7 +35,7 @@ import {
 import { applyFadeInTransitionToNode } from './utils/diffs/utils';
 import { AddDiff, DelDiff, ReorderDiff, ReplaceDiff, ToBeUpdatedNode, UpdateDiff } from './utils/diffs/types';
 import { showOrHideEditsFromEl } from './utils/edits';
-import { playVideoAnn } from '../annotation/utils';
+import { getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 
 export interface IOwnProps {
@@ -97,23 +97,23 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (doc !== undefined && doc !== null) {
       if (opts.annotationFontFamily === null && this.props.screen.type === ScreenType.Img) {
         // apply default font for img type screen
-        this.addFontLinkToHead(doc, 'IBM Plex Sans');
+        this.addFontLinkToAnnContainer(doc, 'IBM Plex Sans');
         if (!doc.getElementById(ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID)) {
           const style = doc.createElement('style');
           style.setAttribute('id', ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID);
           style.innerHTML = "body { font-family: 'IBM Plex Sans'; }";
-          doc.head.appendChild(style);
+          getFableRtUmbrlDiv(doc).prepend(style);
         }
       }
 
       if (opts.annotationFontFamily !== null) {
-        this.addFontLinkToHead(doc, opts.annotationFontFamily);
+        this.addFontLinkToAnnContainer(doc, opts.annotationFontFamily);
       }
     }
   };
 
   // eslint-disable-next-line class-methods-use-this
-  private addFontLinkToHead = (doc: Document, annotationFontFamily: string): void => {
+  private addFontLinkToAnnContainer = (doc: Document, annotationFontFamily: string): void => {
     const linkHref = `https://fonts.googleapis.com/css?family=${annotationFontFamily.replace(/\s+/g, '+')}`;
 
     const existingLinks = Array.from(
@@ -132,7 +132,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     link.type = 'text/css';
     link.setAttribute(ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR, '');
 
-    doc.head.appendChild(link);
+    getFableRtUmbrlDiv(doc).prepend(link);
   };
 
   onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
@@ -711,6 +711,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
 
       this.annotationLCM!.resetCons();
+      this.addFont();
       await scrollIframeEls(currScreenData.version, doc);
 
       this.applyEdits(goToScreenEdits);

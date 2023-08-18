@@ -4,6 +4,13 @@ import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 
+export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
+
+export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement => {
+  const umbrlDiv = doc.getElementsByClassName(FABLE_RT_UMBRL)[0];
+  return umbrlDiv as HTMLDivElement;
+};
+
 export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoationDisplayConfig) => {
   const doc = win.document;
 

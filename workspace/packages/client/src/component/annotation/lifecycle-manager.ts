@@ -8,7 +8,7 @@ import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightlighe
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
 import { AnnotationPerScreen, NavFn } from '../../types';
 import { isBodyEl, isVideoAnnotation } from '../../utils';
-import { isPrevNextBtnLinksToVideoAnn, scrollToAnn } from './utils';
+import { FABLE_RT_UMBRL, getFableRtUmbrlDiv, isPrevNextBtnLinksToVideoAnn, scrollToAnn } from './utils';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 
@@ -141,10 +141,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   resetCons(): void {
-    let umbrellaDiv = this.doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+    let umbrellaDiv = getFableRtUmbrlDiv(this.doc) as HTMLDivElement;
     if (!umbrellaDiv) {
       umbrellaDiv = this.doc.createElement('div');
-      umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+      umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
       umbrellaDiv.style.position = 'absolute';
       umbrellaDiv.style.left = `${0}`;
       umbrellaDiv.style.top = `${0}`;
@@ -433,7 +433,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+        { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
         React.createElement(AnnotationCon, {
           data: props,
           nav: this.nav,
@@ -535,7 +535,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.rRoot.render(
       React.createElement(
         StyleSheetManager,
-        { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+        { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
         React.createElement(AnnotationCon, {
           data: videoAnnsProps,
           nav: this.nav,
@@ -562,7 +562,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
             React.createElement(AnnotationContent, {
               onRender: resolve,
               isInDisplay: true,
@@ -586,7 +586,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
 
             React.createElement(AnnotationContent, {
               onRender: resolve,
@@ -611,7 +611,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.rRootProbe.render(
           React.createElement(
             StyleSheetManager,
-            { target: this.doc.getElementsByClassName('fable-rt-umbrl')[0]! as HTMLElement },
+            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
 
             React.createElement(AnnotationContent, {
               onRender: resolve,

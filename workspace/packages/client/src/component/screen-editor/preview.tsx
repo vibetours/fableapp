@@ -7,6 +7,7 @@ import { scrollIframeEls } from './scroll-util';
 import * as Tags from './styled';
 import { deserFrame } from './utils/deser';
 import { DisplayCSSPropValue } from './types';
+import { FABLE_RT_UMBRL, getFableRtUmbrlDiv } from '../annotation/utils';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -144,10 +145,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           Promise.all(this.assetLoadingPromises).then(() => {
             // create a elative container that would contain all the falbe related els
             if (frameBody) {
-              let umbrellaDiv = doc.getElementsByClassName('fable-rt-umbrl')[0] as HTMLDivElement;
+              let umbrellaDiv = getFableRtUmbrlDiv(doc);
               if (!umbrellaDiv) {
                 umbrellaDiv = doc.createElement('div');
-                umbrellaDiv.setAttribute('class', 'fable-rt-umbrl');
+                umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
                 umbrellaDiv.style.position = 'absolute';
                 umbrellaDiv.style.left = `${0}`;
                 umbrellaDiv.style.top = `${0}`;

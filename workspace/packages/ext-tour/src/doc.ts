@@ -134,9 +134,6 @@ export function getSearializedDom(
 
       case Node.TEXT_NODE:
         sNode.name = node.nodeName;
-        if (isContentEmpty(node as Text)) {
-          return { serNode: sNode, shouldSkip: true };
-        }
         sNode.props.textContent = (node as Text).textContent;
         break;
 
