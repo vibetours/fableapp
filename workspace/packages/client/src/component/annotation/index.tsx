@@ -622,6 +622,8 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
       <div
         style={{
           ...this.getPositioningStyles(),
+          width: `${arrowWidth}px`,
+          height: `${arrowHeight}px`
         }}
         ref={this.conRef}
       >
@@ -629,7 +631,7 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
           width={`${arrowWidth}px`}
           height={`${arrowHeight}px`}
           viewBox={this.getViewBox()}
-          style={{ ...this.getTransformRotateStyle() }}
+          style={{ ...this.getTransformRotateStyle(), verticalAlign: 'top' }}
         >
           <path
             fill={this.props.arrowColor}
