@@ -364,6 +364,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     if (isVideoAnnotation) {
+      const boxTopFactor = this.props.win.innerHeight + (t % this.props.win.innerHeight);
+      const boxLeftFactor = this.props.win.innerWidth + (l % this.props.win.innerWidth);
+
       return (
         <>
           {
@@ -372,13 +375,17 @@ export class AnnotationCard extends React.PureComponent<IProps> {
            && !this.props.annotationDisplayConfig.prerender
            && (
            <AnnotationArrowHead
-             box={this.props.box}
+             box={{
+               ...this.props.box,
+               top: this.props.box.top / boxTopFactor,
+               left: this.props.box.left / boxLeftFactor,
+             }}
              pos={dir}
              maskBoxRect={maskBoxRect}
              arrowColor={arrowColor}
              annBox={{
-               top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
-               left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
+               top: t / boxTopFactor,
+               left: l / boxLeftFactor,
                width: w,
                height: h
              }}
@@ -391,8 +398,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{
-              top: t / this.props.win.innerHeight + (t % this.props.win.innerHeight),
-              left: l / this.props.win.innerWidth + (l % this.props.win.innerWidth),
+              top: t / boxTopFactor,
+              left: l / boxLeftFactor,
             }}
             width={w}
             tourId={this.props.tourId}
@@ -426,7 +433,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         {
           !isUltrawideBox && (
             <AnnotationArrowHead
-              box={this.props.box}
+              box={{
+                ...this.props.box,
+                top: this.props.box.top + this.props.win.scrollY,
+                left: this.props.box.left + this.props.win.scrollX,
+              }}
               pos={dir}
               maskBoxRect={maskBoxRect}
               arrowColor={arrowColor}
