@@ -56,7 +56,8 @@ export function removeDuplicatesOfStrArr(arr: string[]): string[] {
 export function getFidOfSerNode(node: SerNode): string {
   let fid: string;
   if (node.type === 8 && node.name === '#comment') {
-    fid = node.props.textContent!.split('/')[1];
+    const sub = node.props.textContent!.split('==')[0];
+    fid = sub.split('/')[1];
   } else {
     fid = node.attrs['f-id']!;
   }

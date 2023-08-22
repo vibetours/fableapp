@@ -13,6 +13,8 @@ export const init = (target: Target) => {
 
   let initOptions: BrowserOptions = {};
 
+  const environment = process.env.REACT_APP_ENVIRONMENT;
+
   switch (target) {
     case 'client':
       initOptions = {
@@ -21,6 +23,7 @@ export const init = (target: Target) => {
         tracesSampleRate: 1.0,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,
+        environment
       };
       break;
     case 'extension':
@@ -28,12 +31,14 @@ export const init = (target: Target) => {
         dsn: DSN_KEY_EXT,
         integrations: [new BrowserTracing()],
         tracesSampleRate: 1.0,
+        environment
       };
       break;
     case 'background':
       initOptions = {
         dsn: DSN_KEY_EXT,
         tracesSampleRate: 1.0,
+        environment
       };
       break;
     default:

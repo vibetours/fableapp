@@ -452,15 +452,32 @@ export function addFableIdsToAllEls(
          * Thus, we remove the text node with textfid if present
          * Then, we add a new comment node prev to the text node
          */
+        /**
+         *  Style tags behave differently if they have comment nodes inside it
+         *  That's why we don't add comments to style nodes
+         *  (We replace them instead during the diffs)
+         */
         if (node.parentNode?.nodeName.toLowerCase() !== "style") {
           const prev = node.previousSibling;
 
-          if (prev && prev.nodeType === 8 && prev.nodeValue && prev.nodeValue.includes("textfid/")) {
-            prev.remove();
+          const isPrevCommentNode = prev
+                                    && prev.nodeType === Node.COMMENT_NODE
+                                    && prev.nodeValue
+                                    && prev.nodeValue.includes("textfid/");
+          let isPrevCommentTextSame = true;
+
+          if (isPrevCommentNode) {
+            const fText = prev.nodeValue!.split("==")[1];
+            if (fText && fText.split("ftext/")[1] !== node.textContent) {
+              isPrevCommentTextSame = false;
+              prev.remove();
+            }
           }
 
-          const comment = doc.createComment(`textfid/${nanoid()}`);
-          node.parentNode!.insertBefore(comment, node);
+          if (!isPrevCommentNode || !isPrevCommentTextSame) {
+            const comment = doc.createComment(`textfid/${nanoid()}==ftext/${node.textContent}`);
+            node.parentNode!.insertBefore(comment, node);
+          }
         }
         if (isContentEmpty(node as Text)) {
           return { serNode: sNode, shouldSkip: true };
@@ -471,11 +488,23 @@ export function addFableIdsToAllEls(
       case Node.COMMENT_NODE:
         const commentNode = node as Comment;
         sNode.name = node.nodeName;
+        const next = commentNode.nextSibling;
 
+        // if comment is a textcomment, but there is no text node after it, delete the textcomment
+        // this will occur when a text node is deleted, if a text node is deleted we delete its associated comment node
+        const isTextComment = commentNode.nodeValue && commentNode.nodeValue?.includes("textfid/");
+        const isNextTextNode = next && next.nodeType === Node.TEXT_NODE;
+        if (isTextComment && !isNextTextNode) {
+          commentNode.remove();
+          return { serNode: sNode, shouldSkip: true };
+        }
+
+        // if a comment doesn't have fid add it
+        // This is for the comments added by the recorded app.
+        // To uniquely identify a comment node, we add commentfid to it
         if (!commentNode.nodeValue
-          || (!commentNode.nodeValue?.includes("commentfid/")
-          && !commentNode.nodeValue?.includes("textfid/")
-          )) {
+          || (!commentNode.nodeValue.includes("commentfid/") && !commentNode.nodeValue.includes("textfid/"))
+        ) {
           commentNode.nodeValue = `commentfid/${nanoid()}`;
         }
 
