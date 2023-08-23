@@ -302,7 +302,7 @@ export function loadScreenAndData(screenRid: string, shouldUseCache = false, pre
     } else {
       [data, edits] = await Promise.all([
         api<null, ScreenData>(screen!.dataFileUri.href),
-        screen!.parentScreenId
+        screen!.parentScreenId && screen!.type === ScreenType.SerDom
           ? api<null, EditFile<AllEdits<ElEditType>>>(screen!.editFileUri.href)
           : Promise.resolve(null),
       ]);
