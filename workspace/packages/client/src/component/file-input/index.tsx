@@ -14,7 +14,7 @@ export default function FileInput({ innerRef, style, ...rest }: Props): JSX.Elem
 
       <input
         ref={innerRef}
-        style={{ display: 'none' }}
+        style={{ opacity: 0 }}
         type="file"
         {...rest}
         onChange={(e) => {

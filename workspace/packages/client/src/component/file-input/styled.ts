@@ -8,4 +8,5 @@ export const InputContainer = styled.label`
   font-size: 16px;
   cursor: pointer;
   display: block;
+  height: 30px;
 `;

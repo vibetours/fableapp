@@ -82,6 +82,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
               width: '100%',
               marginTop: '1rem'
             }}
+            name="img-submit-btn"
           >
             {uploading ? 'Saving' : 'Save'}
           </Button>

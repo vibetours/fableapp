@@ -498,7 +498,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const prevent = (e: any): void => {
-    if (e.target.name !== 'screen-img' && e.target.name !== 'screen-upload') {
+    if (e.target.name !== 'screen-img' && e.target.name !== 'img-submit-btn' && e.target.getAttribute('for') !== 'screen-image') {
       e.preventDefault();
     }
     e.stopPropagation();
