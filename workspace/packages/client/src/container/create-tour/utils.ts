@@ -22,6 +22,8 @@ import {
   ReqNewTour,
   ReqProxyAsset,
   ReqRecordEdit,
+  ReqScreenTour,
+  ReqThumbnailCreation,
   RespProxyAsset,
   RespScreen,
   RespTour,
@@ -33,18 +35,21 @@ import {
   getCurrentUtcUnixTime,
   getDefaultTourOpts,
   hexToRGB,
-  rgbToHex
+  rgbToHex,
+  getImgScreenData
 } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
 import raiseDeferredError from '../../deferred-error';
 import { getColorContrast } from '../../utils';
+import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 
 export async function saveScreen(
   frames: FrameDataToBeProcessed[],
   cookies: chrome.cookies.Cookie[],
-  onProgress:(doneProcessing: number, totalProcessing: number) => void
+  onProgress:(doneProcessing: number, totalProcessing: number) => void,
 ): Promise<ScreenInfo> {
   const screenInfo = await processScreen(frames, cookies, onProgress);
   return screenInfo;
@@ -79,14 +84,31 @@ async function createNewTour(tourName: string): Promise<RespTour> {
   return data;
 }
 
-async function addScreenToTour(tourRid: string, screenId: number): Promise<RespScreen> {
-  const screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
-    auth: true,
-    body: {
-      parentId: screenId,
-      tourRid,
-    },
-  });
+async function addScreenToTour(
+  tourRid: string,
+  screenId: number,
+  screenType: ScreenType,
+  screenRid: string
+): Promise<RespScreen> {
+  let screenResp: ApiResp<RespScreen>;
+  if (screenType === ScreenType.Img) {
+    screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
+      method: 'POST',
+      body: {
+        screenRid,
+        tourRid,
+      },
+    });
+  } else {
+    screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
+      auth: true,
+      body: {
+        parentId: screenId,
+        tourRid,
+      },
+    });
+  }
+
   return screenResp.data;
 }
 
@@ -124,13 +146,26 @@ async function addAnnotationConfigs(
 
   const grpId = nanoid();
 
+  screenInfo = screenInfo.filter(screen => !screen.skipped);
+
   for (let i = 0; i < screenInfo.length; i++) {
-    const screen = screenInfo[i];
-    const newScreen = addScreenToTour(tourRid, screen.id);
+    const screen = screenInfo[i].info!;
+    const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid);
     screensInTourPromises.push(newScreen);
     const screenConfig = getSampleConfig(screen.elPath, grpId);
     screenConfig.showOverlay = false;
     screenConfig.isHotspot = true;
+
+    if (screen.replacedWithImgScreen) {
+      const error = {
+        code: 100,
+        reason: 'Interactive recording failed as main frame not found. Replaced it with image screen',
+        type: 'interactive_recording_failed'
+      };
+      const tourDiag = tourDataFile.diagnostics;
+      if (!tourDiag[screen.id]) tourDiag[screen.id] = [];
+      tourDiag[screen.id].push(error);
+    }
 
     if (!existingTour) {
       // If we are adding the annotations in existing tour then don' change any of this.
@@ -231,11 +266,22 @@ async function processScreen(
       serDoc.docTree = JSON.parse(serDoc.docTreeStr);
     }
   }
-  const { data, elPath } = await postProcessSerDocs(frames, cookies, onProgress);
+  const res = await postProcessSerDocs(frames, cookies, onProgress);
+  if (res.skipped) {
+    return { info: null, skipped: true };
+  }
+
+  const data = res.data!;
   return {
-    id: data.id,
-    elPath,
-    icon: data.icon
+    info: {
+      id: data.id,
+      elPath: res.elPath,
+      icon: data.icon,
+      type: data.type,
+      rid: data.rid,
+      replacedWithImgScreen: res.replacedWithImgScreen,
+    },
+    skipped: res.skipped
   };
 }
 
@@ -248,9 +294,10 @@ function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
 }
 
 interface PostProcessSerDocsReturnType {
-    mainFrame: SerDoc;
-    data: RespScreen;
+    data: RespScreen | null;
     elPath: string;
+    replacedWithImgScreen: boolean;
+    skipped: boolean;
 }
 
 async function postProcessSerDocs(
@@ -259,10 +306,14 @@ async function postProcessSerDocs(
   onProgress:(doneProcessing: number, totalProcessing: number) => void,
 ): Promise<PostProcessSerDocsReturnType> {
   let imageData = '';
-  let mainFrame;
+  let mainFrame :FrameDataToBeProcessed | undefined;
   let iconPath: string | undefined;
   let totalItemsToPostProcess = 0;
   const lookupWithProp = new CreateLookupWithProp<FrameDataToBeProcessed>();
+
+  let isMainFrameFound = true;
+  let replacedWithImgScreen = false;
+
   for (const r of results) {
     if (r.type === 'thumbnail') {
       imageData = r.data as string;
@@ -285,12 +336,16 @@ async function postProcessSerDocs(
   }
 
   if (!(mainFrame && mainFrame.data)) {
-    throw new Error('Main frame not found, this should never happen');
+    isMainFrameFound = false;
+    sentryCaptureException(
+      new Error('Main frame not found, this should never happen'),
+      JSON.stringify(results),
+      'screendata.txt'
+    );
   }
 
-  const mainFrameData = mainFrame.data as SerDoc;
-  const allCookies = cookies;
   let elPath = '';
+  const allCookies = cookies;
   async function process(frame: SerDoc, frameId: number, traversePath: string, numberOfProcessingDone: number) {
     for (const postProcess of frame.postProcesses) {
       numberOfProcessingDone++;
@@ -374,31 +429,76 @@ async function postProcessSerDocs(
     }
   }
 
-  await process(mainFrameData as SerDoc, mainFrame.frameId, '', 1);
-  const screenBody: ScreenData = {
-    version: '2023-07-27',
-    vpd: {
-      h: mainFrameData.rect.height,
-      w: mainFrameData.rect.width,
-    },
-    docTree: mainFrameData.docTree!,
-  };
+  let data: RespScreen;
+  if (isMainFrameFound) {
+    const mainFrameData = mainFrame!.data as SerDoc;
+    await process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
+    const screenBody: ScreenData = {
+      version: '2023-07-27',
+      vpd: {
+        h: mainFrameData.rect.height,
+        w: mainFrameData.rect.width,
+      },
+      docTree: mainFrameData.docTree!,
+    };
 
-  const { data } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-    method: 'POST',
-    body: {
-      name: mainFrameData.title,
-      url: mainFrameData.frameUrl,
-      thumbnail: imageData,
-      body: JSON.stringify(screenBody),
-      favIcon: iconPath,
-      type: ScreenType.SerDom,
-    },
-  });
+    const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+      method: 'POST',
+      body: {
+        name: mainFrameData.title,
+        url: mainFrameData.frameUrl,
+        thumbnail: imageData,
+        body: JSON.stringify(screenBody),
+        favIcon: iconPath,
+        type: ScreenType.SerDom,
+      },
+    });
+
+    data = resp.data;
+  } else if (!imageData) {
+    return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+  } else {
+    const screenImgFile = dataURLtoFile(imageData, 'img.png');
+
+    const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+      method: 'POST',
+      body: {
+        name: 'Untitled',
+        type: ScreenType.Img,
+        body: JSON.stringify(getImgScreenData()),
+        contentType: screenImgFile.type
+      },
+    });
+
+    data = resp.data;
+
+    await uploadImageAsBinary(screenImgFile, data.uploadUrl!);
+
+    await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
+      method: 'POST',
+      body: {
+        screenRid: data.rid
+      },
+    });
+
+    elPath = '$';
+    replacedWithImgScreen = true;
+  }
 
   // TODO error handling with data
 
-  return { mainFrame: mainFrameData, data, elPath };
+  return { data, elPath, replacedWithImgScreen, skipped: false };
+}
+
+function dataURLtoFile(dataurl: string, filename: string): File {
+  const arr = dataurl.split(',');
+  const mime = arr[0].match(/:(.*?);/)![1];
+  const bstr = atob(arr[1]); let n = bstr.length; const
+    u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
 }
 
 export function getCookieHeaderForUrl(cookies: chrome.cookies.Cookie[], pageUrl: URL): String {

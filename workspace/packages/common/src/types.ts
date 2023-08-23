@@ -97,9 +97,18 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationPadding: string;
 }
 
+export interface ScreenDiagnostics {
+  type: string,
+  reason: string,
+  code: number,
+}
+
+export type ITourDiganostics = Record<number, ScreenDiagnostics[]>
+
 export interface TourDataWoScheme {
   opts: ITourDataOpts,
   entities: Record<string, TourEntity>;
+  diagnostics: ITourDiganostics;
 }
 
 export interface TourData extends TourDataWoScheme {

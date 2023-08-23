@@ -116,6 +116,7 @@ export function createEmptyTourDataFile(): TourData {
     lastUpdatedAtUtc: -1,
     opts: getDefaultTourOpts(),
     entities: {},
+    diagnostics: {},
   };
 }
 

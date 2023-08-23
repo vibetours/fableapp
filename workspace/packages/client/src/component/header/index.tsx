@@ -35,7 +35,8 @@ interface IOwnProps {
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
   isTourMainSet?: boolean;
-  isAutoSaving?: boolean
+  isAutoSaving?: boolean;
+  warnings?: string[]
 }
 
 type IProps = IOwnProps;
@@ -150,9 +151,16 @@ function Header(props: IOwnProps): JSX.Element {
           }}
           >
             {
-              !props.isTourMainSet && (
+              props.warnings && props.warnings.length > 0 && (
                 <Tags.MenuItem>
-                  <Tooltip title="Entry point is not set for this tour" overlayStyle={{ fontSize: '0.75rem' }}>
+                  <Tooltip
+                    title={(
+                      <>
+                        { props.warnings.map((warning, i) => <div style={{ marginBottom: '1rem' }} key={i}>- {warning}</div>)}
+                      </>)}
+                    overlayStyle={{ fontSize: '0.8rem' }}
+                    overlayInnerStyle={{ padding: '1rem' }}
+                  >
                     <AntButton
                       size="small"
                       shape="circle"

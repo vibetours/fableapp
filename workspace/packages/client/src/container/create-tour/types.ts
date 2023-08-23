@@ -1,3 +1,4 @@
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { SerDoc } from '@fable/common/dist/types';
 
 export interface FrameDataToBeProcessed {
@@ -9,9 +10,15 @@ export interface FrameDataToBeProcessed {
 }
 
 export interface ScreenInfo {
-    id: number;
-    elPath: string;
-    icon: string;
+    info: {
+        id: number;
+        elPath: string;
+        icon: string;
+        type: ScreenType;
+        rid: string;
+        replacedWithImgScreen: boolean;
+    } | null
+    skipped: boolean;
 }
 
 export interface DBData {

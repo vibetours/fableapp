@@ -8,7 +8,7 @@ import { FrameDataToBeProcessed } from '../../container/create-tour/types';
 
 interface Props {
   frameData: FrameDataToBeProcessed[];
-  favicon: string;
+  favicon: string | null;
 }
 
 export default function ScreenCard({ frameData, favicon }: Props) {
@@ -20,7 +20,7 @@ export default function ScreenCard({ frameData, favicon }: Props) {
     <Tags.CardCon>
       <Tags.Thumbnail src={thumbnailFrameData} alt="thumbnail" />
       <Tags.TitleCon>
-        <Tags.Avatar src={favicon} alt="favicon" />
+        {favicon ? <Tags.Avatar src={favicon} alt="favicon" /> : <div style={{ width: '1rem', height: '1rem' }} />}
         <Tags.CardTitle>{serDomFrameData.title}</Tags.CardTitle>
       </Tags.TitleCon>
       <Tags.LinkCon>

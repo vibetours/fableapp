@@ -3,8 +3,10 @@ import {
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
+  ITourDiganostics,
   LoadingStatus,
   ScreenData,
+  ScreenDiagnostics,
   TourData,
   TourDataWoScheme,
   TourScreenEntity
@@ -210,6 +212,7 @@ interface IAppStateProps {
   isMainValid: boolean;
   annotationSerialIdMap: Record<string, number>;
   isAutoSaving: boolean;
+  tourDiagnostics: ITourDiganostics;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -227,7 +230,6 @@ function __dbg(anns: AnnotationPerScreen[]): void {
       prev: prev!.hotspot ? prev?.hotspot.actionValue : null,
     };
   });
-  console.log('>>> allAnnotationsForTour', miniFlatAns);
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -294,7 +296,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     relayScreenId: state.default.relayScreenId,
     relayAnnAdd: state.default.relayAnnAdd,
     annotationSerialIdMap,
-    isAutoSaving: state.default.isAutoSaving
+    isAutoSaving: state.default.isAutoSaving,
+    tourDiagnostics: state.default.tourData?.diagnostics || {}
   };
 };
 
@@ -512,6 +515,35 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return [];
   };
 
+  getCurrentScreenDiagnostics(): ScreenDiagnostics[] {
+    if (!this.props.screen) return [];
+    const screenDiags = this.props.tourDiagnostics[this.props.screen!.id];
+
+    if (!screenDiags || screenDiags.length === 0) {
+      return [];
+    }
+
+    return screenDiags;
+  }
+
+  getTourWarnings(): string[] {
+    const warnings: string[] = [];
+
+    if (!this.props.isMainValid) {
+      warnings.push('Entry point is not set for the tour.');
+    }
+
+    const screenDiagnostics = this.getCurrentScreenDiagnostics();
+
+    screenDiagnostics.forEach(diag => {
+      if (diag.code === 100) {
+        warnings.push('This screen was replaced by an image screen since we encountered an issue while retrieving an interactive version of the page. You can try rerecording the screen again.');
+      }
+    });
+
+    return warnings;
+  }
+
   render(): ReactElement {
     if (!this.isLoadingComplete()) {
       return (
@@ -535,6 +567,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             showPreview={`/p/tour/${this.props.tour?.rid}`}
             isTourMainSet={this.props.isMainValid}
             isAutoSaving={this.props.isAutoSaving}
+            warnings={this.getTourWarnings()}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

@@ -855,7 +855,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   ? <ScreenCard
                       key={idx}
                       frameData={frameData}
-                      favicon={this.state.screens[idx].icon}
+                      favicon={this.state.screens[idx].info?.icon || null}
                   />
                   : <SkeletonCard key={idx} progress={this.state.percentageProgress[idx]} />
               ))}

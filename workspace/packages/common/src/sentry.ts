@@ -1,4 +1,12 @@
-import { init as sentryInit, BrowserTracing, Replay, Transaction, BrowserOptions } from '@sentry/react';
+import {
+  init as sentryInit,
+  BrowserTracing,
+  Replay, Transaction,
+  BrowserOptions,
+  withScope,
+  captureMessage,
+  captureException,
+} from '@sentry/react';
 import { isProdEnv } from './utils';
 
 type Target = 'client' | 'extension' | 'background';
@@ -63,3 +71,21 @@ export const sentryTxReport = (
   transaction.setMeasurement(measureName, measureValue, measureUnit);
   shouldFinish && transaction.finish();
 };
+
+export function sentryCaptureMessage(message: string, data?: string, filename: string = 'errordata.txt') {
+  withScope(scope => {
+    if (data) {
+      scope.addAttachment({ filename, data });
+    }
+    captureMessage(message);
+  });
+}
+
+export function sentryCaptureException(error: Error, data?: string, filename: string = 'errordata.txt') {
+  withScope(scope => {
+    if (data) {
+      scope.addAttachment({ filename, data });
+    }
+    captureException(error);
+  });
+}
