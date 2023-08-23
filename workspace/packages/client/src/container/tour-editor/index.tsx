@@ -56,11 +56,11 @@ import {
 } from '../../types';
 import {
   generateTimelineOrder,
-  LOCAL_STORE_TIMELINE_ORDER_KEY,
-  clearTimelineOrderFromLocalStorage,
   openTourExternalLink,
   getAnnotationsPerScreen,
-  DEFAULT_ALERT_FOR_ANN_OPS
+  DEFAULT_ALERT_FOR_ANN_OPS,
+  getFableTimelineOrder,
+  saveFableTimelineOrder
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
@@ -105,7 +105,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   startAutoSaving: () => dispatch(startAutosaving()),
 });
 
-const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGroupedByScreen => {
+const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): ConnectedOrderedAnnGroupedByScreen => {
   const screenHash: Record<number, P_RespScreen> = {};
   const flatAnns: Record<string, IAnnotationConfigWithScreen> = {};
   for (const annPerScreen of allAnns) {
@@ -168,15 +168,15 @@ const getTimeLine = (allAnns: AnnotationPerScreen[]): ConnectedOrderedAnnGrouped
     orderedAnns.push(connectedOrderAnnotationGroupByScreen);
   }
 
-  const localStoreTimelineOrder = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
+  const localStoreTimeline = getFableTimelineOrder();
 
-  if (localStoreTimelineOrder.length) {
-    orderedAnns.sort(
-      (a, b) => localStoreTimelineOrder.indexOf(a[0][0].grpId) - localStoreTimelineOrder.indexOf(b[0][0].grpId)
-    );
-  } else {
+  if (localStoreTimeline.order.length === 0 || tour.rid !== localStoreTimeline.rid) {
     const newTimelineOrder = generateTimelineOrder(orderedAnns);
-    localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(newTimelineOrder));
+    saveFableTimelineOrder({ order: newTimelineOrder, rid: tour.rid });
+  } else {
+    orderedAnns.sort(
+      (a, b) => localStoreTimeline.order.indexOf(a[0][0].grpId) - localStoreTimeline.order.indexOf(b[0][0].grpId)
+    );
   }
 
   return orderedAnns;
@@ -286,7 +286,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     allEdits,
     isMainValid,
-    timeline: state.default.tourLoaded ? getTimeLine(allAnnotationsForTour) : [],
+    timeline: state.default.tourLoaded ? getTimeLine(allAnnotationsForTour, state.default.currentTour!) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
     tourOpts,
@@ -339,7 +339,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
-    window.addEventListener('beforeunload', clearTimelineOrderFromLocalStorage);
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
@@ -479,8 +478,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.chunkSyncManager?.end();
     this.props.clearCurrentScreenSelection();
     this.props.clearCurrentTourSelection();
-    localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
-    window.removeEventListener('beforeunload', clearTimelineOrderFromLocalStorage);
   }
 
   navFn: NavFn = (uri, type) => {

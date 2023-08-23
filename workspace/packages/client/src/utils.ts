@@ -4,7 +4,7 @@ import { TState } from './reducer';
 import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
 import deferredErr from './deferred-error';
 
-export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order';
+export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -112,10 +112,26 @@ export const generateTimelineOrder = (timeline: ConnectedOrderedAnnGroupedByScre
   return newTimelineOrder;
 };
 
+export const getFableTimelineOrder = (): LocalStoreTimelineOrder => {
+  const FABLE_TIMELINE_ORDER = localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+  return FABLE_TIMELINE_ORDER
+    ? JSON.parse(FABLE_TIMELINE_ORDER) as LocalStoreTimelineOrder
+    : { rid: '', order: [] };
+};
+
+export const saveFableTimelineOrder = (timelineOrder: LocalStoreTimelineOrder): void => {
+  localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(timelineOrder));
+};
+
+interface LocalStoreTimelineOrder {
+  rid: string;
+  order: string[];
+}
+
 export const updateLocalTimelineGroupProp = (grpId: string, nearbygrpId: string): void => {
-  const savedGroupIds = JSON.parse(localStorage.getItem(LOCAL_STORE_TIMELINE_ORDER_KEY) || '[]') as string[];
-  savedGroupIds.splice(savedGroupIds.indexOf(nearbygrpId) + 1, 0, grpId);
-  localStorage.setItem(LOCAL_STORE_TIMELINE_ORDER_KEY, JSON.stringify(savedGroupIds));
+  const FABLE_TIMELINE_ORDER = getFableTimelineOrder();
+  FABLE_TIMELINE_ORDER.order.splice(FABLE_TIMELINE_ORDER.order.indexOf(nearbygrpId) + 1, 0, grpId);
+  saveFableTimelineOrder(FABLE_TIMELINE_ORDER);
 };
 
 export const isNavigateHotspot = (hotspot: ITourEntityHotspot | null): boolean => {
@@ -126,10 +142,6 @@ export const isNavigateHotspot = (hotspot: ITourEntityHotspot | null): boolean =
 export const isNextBtnOpensALink = (ann: IAnnotationConfig): boolean => {
   const nxt = ann.buttons.find(btn => btn.type === 'next')!;
   return !!(nxt.hotspot && nxt.hotspot.actionType === 'open');
-};
-
-export const clearTimelineOrderFromLocalStorage = (): void => {
-  localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
 };
 
 export const DEFAULT_ALERT_FOR_ANN_OPS = 'Operation can\'t be performed.';
