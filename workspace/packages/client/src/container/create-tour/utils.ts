@@ -66,7 +66,13 @@ export async function saveAsTour(
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
   }
-  const { tourDataFile, tourRid } = await addAnnotationConfigs(screens, existingTour, tourName, annotationBodyBackgroundColor, annotationBorderRadius);
+  const { tourDataFile, tourRid } = await addAnnotationConfigs(
+    screens,
+    existingTour,
+    tourName,
+    annotationBodyBackgroundColor,
+    annotationBorderRadius
+  );
   const res = await saveTour(tourRid, tourDataFile);
   return res;
 }
@@ -135,6 +141,8 @@ async function addAnnotationConfigs(
   if (existingTour) {
     tourRid = existingTour.rid;
     tourDataFile = await api<null, TourData>(existingTour.dataFileUri.href);
+    if (!tourDataFile.opts) tourDataFile.opts = getDefaultTourOpts();
+    if (!tourDataFile.diagnostics) tourDataFile.diagnostics = {};
   } else {
     const tourData = await createNewTour(tourName);
     tourRid = tourData.rid;
