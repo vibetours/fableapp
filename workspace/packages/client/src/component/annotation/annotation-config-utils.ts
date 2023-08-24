@@ -104,6 +104,12 @@ export function updateAnnotationTypeToDefault(
 export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: boolean): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.isHotspot = isHotspot;
+
+  if (!isHotspot) {
+    newConfig.hideAnnotation = false;
+    newConfig.hotspotElPath = null;
+  }
+
   return newConfig;
 }
 
