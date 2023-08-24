@@ -328,7 +328,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onClick={() => setShowVideoRecorder(true)}
             icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
           >
-            {videoAnn ? 'Record Again' : 'Record Video'}
+            {videoAnn ? 'Change Video' : 'Record/Upload Video'}
           </Tags.ActionPaneBtn>
           {isVideoAnnotation(config) && (
             <Tooltip title="Delete recorded video">

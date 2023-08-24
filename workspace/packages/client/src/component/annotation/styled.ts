@@ -159,11 +159,11 @@ export const ABtn = styled.button`
 
   padding: ${(p: BtnConf) => {
     if (p.size === AnnotationButtonSize.Large) {
-      return '0.8rem 1.1rem';
+      return '12px 22px';
     } if (p.size === AnnotationButtonSize.Medium) {
-      return '0.55rem .85rem';
+      return '8px 18px';
     }
-    return '0.3rem 0.6rem';
+    return '4px 12px';
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
@@ -171,6 +171,12 @@ export const ABtn = styled.button`
     text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')};
   }
   width:  ${(p: BtnConf) => (p.btnLayout === 'default' ? 'auto' : '100%')};
+  opacity: 0.85;
+  transition: opacity 0.2s ease-out;
+
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 export interface BtnConf {
@@ -220,24 +226,20 @@ interface AnVideoProps {
 
 const slideIn = keyframes`
   from {
-    transform: translateX(100%);
     opacity: 0;
   }
 
   to {
-    transform: translateX(0%);
     opacity: 1;
   }
 `;
 
 const slideOut = keyframes`
   from {
-    transform: translateX(0%);
     opacity: 1;
   }
 
   to {
-    transform: translateX(100%);
     opacity: 0;
   }
 `;
@@ -245,7 +247,7 @@ const slideOut = keyframes`
 export const AnVideoContainer = styled.div<{ out: 'slidein' | 'slideout' }>`
   position: fixed;
   border-radius: 8px;
-  animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.1s linear;
+  animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.2s ease-out;
 `;
 
 export const AnVideo = styled.video<{ border: string }>`
@@ -254,30 +256,119 @@ export const AnVideo = styled.video<{ border: string }>`
   box-shadow: ${p => `${p.border}`};
 `;
 
-export const AnVideoControls = styled.div`
+export const AnVideoControls = styled.div<{showOverlay: boolean}>`
+  transition: all 0.2s ease-in-out;
+  background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
+  height: 99%;
+  border-radius: 8px;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   width: 100%;
-  display: flex;
-  justify-content: space-evenly;
 `;
 
 export const AnVideoCtrlBtn = styled.button<{ pcolor: string }>`
-  height: 42px;
-  width: 48px;
-  border-radius: 6px;
-  color: ${p => generateShadeColor(p.pcolor, 200)};
-  background: ${p => `${p.pcolor}bf`};
-  font-size: 1.2rem;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  color: white;
+  background-color: transparent;
+  font-size: 2rem;
   border: none;
   display: flex;
   cursor: pointer;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem 0.45rem;
+  padding: 0.75rem;
+
   > span.anticon {
     display: block;
     height: 1em;
+  }
+
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 50%;
+  }
+`;
+
+export const ReplayButton = styled.button<{ pcolor: string }>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  height: 56px;
+  width: 56px;
+  border-radius: 50%;
+  background: ${p => generateShadeColor(p.pcolor, 200)};
+  color: ${p => `${p.pcolor}`};
+  font-size: 1.6rem;
+  border: none;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
+  > span.anticon {
+    display: block;
+    height: 1em;
+  }
+`;
+
+const bottomToTop = keyframes`
+  from {
+    bottom: -1rem;
+    opacity: 0;
+  }
+
+  to {
+    bottom: 0.5rem;
+    opacity: 1;
+  }
+`;
+
+export const NavButtonCon = styled.div<{ pcolor: string }>`
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  bottom: 0.75rem;
+  left: 0.75rem;
+  right: 0.75rem;
+
+  animation: ${bottomToTop} 0.2s ease-in-out;
+
+  .serial-num {
+    color: ${p => generateShadeColor(p.pcolor, -200)};
+  }
+
+  .next-btn {
+    color: ${p => generateShadeColor(p.pcolor, 200)};
+    background: ${p => `${p.pcolor}bf`};
+
+    &:hover {
+      background: ${p => `${p.pcolor}`};
+    }
+  }
+
+  .back-btn {
+    background: ${p => generateShadeColor(p.pcolor, 200)};
+    opacity: 0.8;
+    color: ${p => `${p.pcolor}`};
+
+    &:hover {
+      opacity: 1;
+    }
   }
 `;

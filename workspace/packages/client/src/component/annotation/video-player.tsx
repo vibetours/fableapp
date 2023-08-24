@@ -1,18 +1,14 @@
 import React, { RefObject, ReactElement } from 'react';
-import Hls, { HlsConfig } from 'hls.js';
+import Hls from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
-  CaretRightOutlined,
-  PauseOutlined,
+  AudioMutedOutlined,
+  AudioOutlined,
   ReloadOutlined,
-  StepBackwardOutlined,
-  StepForwardOutlined
 } from '@ant-design/icons';
 import * as Tags from './styled';
 import { IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
-import { NavFn } from '../../types';
 import { isCoverAnnotation } from './annotation-config-utils';
-import { playVideoAnn } from './utils';
 import { logEvent } from '../../analytics/utils';
 import {
   AnalyticsEvents,
@@ -20,7 +16,9 @@ import {
   TimeSpentInAnnotationPayload,
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
-import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
+import { AnnotationSerialIdMap } from './ops';
+import raiseDeferredError from '../../deferred-error';
+import { generateShadeColor } from './utils';
 
 interface IProps {
   conf: IAnnoationDisplayConfig;
@@ -29,11 +27,14 @@ interface IProps {
   width: number;
   tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
+  annotationSerialIdMap: AnnotationSerialIdMap;
 }
 
 interface IOwnStateProps {
   showControls: boolean;
   videoState: 'paused' | 'playing' | 'ended';
+  isMuted: boolean;
+  firstTimeClick: boolean;
 }
 
 export default class AnnotationVideo extends React.PureComponent<IProps, IOwnStateProps> {
@@ -41,9 +42,18 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
   private hls: Hls | null = null;
 
+  private serialId = this.props.annotationSerialIdMap[this.props.conf.config.refId] + 1;
+
+  private totalAnnotations = Object.keys(this.props.annotationSerialIdMap).length;
+
   constructor(props: IProps) {
     super(props);
-    this.state = { showControls: false, videoState: 'paused' };
+    this.state = {
+      showControls: false,
+      videoState: 'paused',
+      isMuted: true,
+      firstTimeClick: true
+    };
     if (Hls.isSupported() && this.props.playMode && this.props.conf.config.videoUrlHls) {
       this.initPlayer();
     }
@@ -188,7 +198,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     };
   }
 
-  navigateAnns = (direction: 'prev' | 'next'):void => {
+  navigateAnns = (direction: 'prev' | 'next'): void => {
     this.logStepEvent(direction);
 
     this.videoRef.current!.pause();
@@ -208,7 +218,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           ...this.getPositioningAndSizingStyles(),
           visibility: this.props.conf.isMaximized ? 'visible' : 'hidden'
         }}
-        onMouseMove={() => this.setState({ showControls: true })}
+        onMouseOver={() => this.setState({ showControls: true })}
         onMouseOut={() => {
           if (this.state.videoState === 'playing') {
             this.setState({ showControls: false });
@@ -216,6 +226,9 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         }}
       >
         <Tags.AnVideo
+          loop={this.state.firstTimeClick}
+          autoPlay
+          muted={this.state.isMuted}
           ref={this.videoRef}
           border={this.getAnnotationBorder()}
           id={`fable-ann-video-${config.refId}`}
@@ -233,59 +246,74 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
             </>
           )}
         </Tags.AnVideo>
-        {
-          this.state.showControls && (
-            <Tags.AnVideoControls>
-              <Tags.AnVideoCtrlBtn
-                pcolor={this.props.conf.opts.primaryColor}
-                type="button"
-                onClick={() => this.navigateAnns('prev')}
-              >
-                <StepBackwardOutlined />
-              </Tags.AnVideoCtrlBtn>
-              {
-                this.state.videoState === 'playing' && (
-                  <Tags.AnVideoCtrlBtn
-                    pcolor={this.props.conf.opts.primaryColor}
-                    type="button"
-                    onClick={() => this.videoRef.current!.pause()}
-                  >
-                    <PauseOutlined />
-                  </Tags.AnVideoCtrlBtn>
-                )
-              }
-              {
-                this.state.videoState === 'paused' && (
-                  <Tags.AnVideoCtrlBtn
-                    pcolor={this.props.conf.opts.primaryColor}
-                    type="button"
-                    onClick={() => this.videoRef.current!.play()}
-                  >
-                    <CaretRightOutlined />
-                  </Tags.AnVideoCtrlBtn>
-                )
-              }
+
+        <Tags.AnVideoControls
+          showOverlay={this.state.showControls}
+        >
+          {!this.props.conf.prerender && this.state.showControls && (
+            <>
+              {this.state.videoState !== 'ended' && (
+                <Tags.AnVideoCtrlBtn
+                  pcolor={this.props.conf.opts.primaryColor}
+                  type="button"
+                  onClick={() => {
+                    if (this.state.firstTimeClick) {
+                      this.videoRef.current!.currentTime = 0;
+                      this.videoRef.current!.play();
+                      this.setState({ firstTimeClick: false });
+                    }
+                    this.setState((prevState) => ({ ...prevState, isMuted: !prevState.isMuted }));
+                  }}
+                >
+                  {/* TODO: Change this icon */}
+                  {this.state.isMuted ? <AudioMutedOutlined /> : <AudioOutlined />}
+                </Tags.AnVideoCtrlBtn>
+              )}
+
               {
                 this.state.videoState === 'ended' && (
-                  <Tags.AnVideoCtrlBtn
+                  <Tags.ReplayButton
                     pcolor={this.props.conf.opts.primaryColor}
                     type="button"
                     onClick={() => this.videoRef.current!.play()}
                   >
                     <ReloadOutlined />
-                  </Tags.AnVideoCtrlBtn>
+                  </Tags.ReplayButton>
                 )
               }
-              <Tags.AnVideoCtrlBtn
+
+              <Tags.NavButtonCon
                 pcolor={this.props.conf.opts.primaryColor}
-                type="button"
-                onClick={() => this.navigateAnns('next')}
               >
-                <StepForwardOutlined />
-              </Tags.AnVideoCtrlBtn>
-            </Tags.AnVideoControls>
-          )
-        }
+                <div className="serial-num">{this.serialId} of {this.totalAnnotations}</div>
+                {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
+                  <Tags.ABtn
+                    bg={generateShadeColor(this.props.conf.opts.primaryColor,)}
+                    idx={idx}
+                    style={{ visibility: btnConf.type === 'next' ? 'visible' : 'hidden' }}
+                    key={btnConf.id}
+                    btnStyle={btnConf.style}
+                    color={this.props.conf.opts.primaryColor}
+                    size={btnConf.size}
+                    fontFamily={this.props.conf.opts.annotationFontFamily}
+                    btnLayout="default"
+                    borderRadius={this.props.conf.opts.borderRadius}
+                    onClick={() => {
+                      if (btnConf.type === 'next') {
+                        this.navigateAnns('next');
+                      } else if (btnConf.type === 'prev') {
+                        this.navigateAnns('prev');
+                      } else {
+                        raiseDeferredError(new Error('Custom button for video is not implemented'));
+                      }
+                    }}
+                  > {btnConf.text}
+                  </Tags.ABtn>
+                ))}
+              </Tags.NavButtonCon>
+            </>
+          )}
+        </Tags.AnVideoControls>
       </Tags.AnVideoContainer>
     );
   }

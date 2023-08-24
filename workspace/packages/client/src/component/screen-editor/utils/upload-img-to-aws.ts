@@ -1,6 +1,6 @@
 import { getS3UploadUrl } from './get-aws-signed-url';
 
-export async function uploadImgToAws(image: File): Promise<string> {
+export async function uploadFileToAws(image: File): Promise<string> {
   if (!image) {
     return '';
   }

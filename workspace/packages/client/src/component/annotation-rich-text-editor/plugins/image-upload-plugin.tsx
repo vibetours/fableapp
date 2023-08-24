@@ -10,7 +10,7 @@ import {
 } from 'lexical';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $createImageNode, ImagePayload } from '../nodes/image-node';
-import { uploadImgToAws } from '../../screen-editor/utils/upload-img-to-aws';
+import { uploadFileToAws } from '../../screen-editor/utils/upload-img-to-aws';
 import * as GTags from '../../../common-styled';
 import Button from '../../button';
 import FileInput from '../../file-input';
@@ -58,7 +58,7 @@ export default function ImageUploadPlugin({ isModalOpen, modalControls }: ImageU
     if (!selectedImage) {
       return;
     }
-    const imageUrl = await uploadImgToAws(selectedImage);
+    const imageUrl = await uploadFileToAws(selectedImage);
     setImgUrl(imageUrl);
   };
 

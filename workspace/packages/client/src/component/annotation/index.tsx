@@ -184,6 +184,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }, 48);
   }
 
+  // TODO[refactor]
+  //  Multiple branching besed render happens leading to similar configuration of same component. Make a single render
+  //  by calculating the variables / configs via branching and applying those variables / config on the singular
+  //  rendered component
   render(): JSX.Element {
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
@@ -204,6 +208,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor;
       isBorderColorDefault = true;
     }
+
+    const d = 30;
+    let tx = 0;
+    let ty = 0;
 
     if (displayConfig.isInViewPort) {
       const elBox = this.props.box;
@@ -289,20 +297,31 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             width={w}
             tourId={this.props.tourId}
             navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+            annotationSerialIdMap={this.props.annotationSerialIdMap}
           />;
         }
-        return <AnnotationContent
-          annotationSerialIdMap={this.props.annotationSerialIdMap}
-          config={this.props.annotationDisplayConfig.config}
-          opts={this.props.annotationDisplayConfig.opts}
-          isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-          width={w}
-          top={top}
-          left={left}
-          dir={dir}
-          tourId={this.props.tourId}
-          navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-        />;
+        return (
+          <div
+            ref={this.conRef}
+            style={{
+              transition: 'transform 0.3s ease-out',
+              transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty - d}px)`,
+            }}
+          >
+            <AnnotationContent
+              annotationSerialIdMap={this.props.annotationSerialIdMap}
+              config={this.props.annotationDisplayConfig.config}
+              opts={this.props.annotationDisplayConfig.opts}
+              isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+              width={w}
+              top={top}
+              left={left}
+              dir={dir}
+              tourId={this.props.tourId}
+              navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+            />;
+          </div>
+        );
       }
 
       const maskBoxPadding = HighlighterBase.getMaskPaddingWithBox(this.props.box, maskBoxRect);
@@ -395,6 +414,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
            )
         }
           <AnnotationVideo
+            annotationSerialIdMap={this.props.annotationSerialIdMap}
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{
@@ -409,9 +429,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       );
     }
 
-    const d = 30;
-    let tx = 0;
-    let ty = 0;
     if (dir === 'l') {
       tx -= d;
     } else if (dir === 'r') {

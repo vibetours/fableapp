@@ -55,7 +55,7 @@ import ScreenImageBrusher from './screen-image-brushing';
 import * as Tags from './styled';
 import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import { ImgResolution, resizeImg } from './utils/resize-img';
-import { uploadImgToAws } from './utils/upload-img-to-aws';
+import { uploadFileToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
 
@@ -465,7 +465,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!selectedImage) {
       return;
     }
-    const newImageUrl = await uploadImgToAws(selectedImage);
+    const newImageUrl = await uploadFileToAws(selectedImage);
     const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
 
     const path = this.iframeElManager!.elPath(imgEl);
@@ -485,7 +485,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.setState({ imageMaskUploadModalIsUploading: true, imageMaskUploadModalError: '' });
 
     try {
-      const newImageUrl = await uploadImgToAws(maskImgFile);
+      const newImageUrl = await uploadFileToAws(maskImgFile);
       const resizedImgUrl = maskImgFile.type === 'image/gif'
         ? ''
         : await resizeImg(newImageUrl, this.props.screen.rid, resolution);

@@ -1,5 +1,5 @@
 import React, { ReactElement, SetStateAction, useEffect, useRef, Dispatch } from 'react';
-
+import { Tabs, Spin } from 'antd';
 import { IAnnotationConfig, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { WarningFilled } from '@ant-design/icons';
 import { captureException } from '@sentry/react';
@@ -17,6 +17,8 @@ import { blobToUint8Array } from './utils/blob-to-uint8array';
 import { P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
+import FileInput from '../file-input';
+import { uploadFileToAws } from './utils/upload-img-to-aws';
 
 type Props = {
   tour: P_RespTour,
@@ -54,7 +56,7 @@ const initialState: VideoState = {
 const CODEC_OPTIONS = { mimeType: 'video/webm;codecs=h264' };
 
 // videoReducer is local to this video recorder component, that's why it's placed here
-const videoReducer = (state: VideoState, action: Action) : VideoState => {
+const videoReducer = (state: VideoState, action: Action): VideoState => {
   switch (action.type) {
     case 'OPEN_VIDEO_MODAL':
       return {
@@ -113,6 +115,28 @@ function VideoRecorder(props: Props): ReactElement {
   const mediaRecorderRef = useRef<MediaRecorder>();
   const [state, dispatch] = React.useReducer(videoReducer, initialState);
 
+  const TabList = [
+    {
+      tabName: 'Record',
+      component: () => RecordVideoTab({
+        state,
+        recorderRef,
+        stopRecording,
+        startRecording,
+        restartRecording,
+        saveRecording
+      })
+    },
+    {
+      tabName: 'Upload',
+      component: () => UploadVideoTab({
+        state,
+        handleUploadVideoFormOnSubmit
+      })
+    }
+
+  ];
+
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({
       audio: true,
@@ -156,7 +180,7 @@ function VideoRecorder(props: Props): ReactElement {
       });
   }, []);
 
-  const startRecording = () : void => {
+  const startRecording = (): void => {
     dispatch({
       type: 'SET_DONE_RECORDING',
       payload: {
@@ -180,7 +204,7 @@ function VideoRecorder(props: Props): ReactElement {
     }
   };
 
-  const stopRecording = () : void => {
+  const stopRecording = (): void => {
     dispatch({
       type: 'SET_DONE_RECORDING',
       payload: {
@@ -208,7 +232,7 @@ function VideoRecorder(props: Props): ReactElement {
     });
   };
 
-  const restartRecording = () : void => {
+  const restartRecording = (): void => {
     recordedPartsRef.current = [];
     dispatch({
       type: 'SET_IS_RECORDING',
@@ -232,7 +256,40 @@ function VideoRecorder(props: Props): ReactElement {
     });
   };
 
-  const saveRecording = async () => {
+  const transcodeMediaHandler = async (url: string): Promise<void> => {
+    const [err, stream1, stream2] = await transcodeMedia(url, props.tour.rid);
+    if (err || stream1.failureReason || stream2.failureReason) {
+      throw new Error('Transcoding failed');
+    }
+
+    [stream1, stream2].forEach(stream => {
+      if (stream1.mediaType === MediaType.VIDEO_HLS) {
+        props.setConfig(c => updateAnnotationVideoURLHLS(c, stream1.processedFilePath));
+      }
+      if (stream1.mediaType === MediaType.VIDEO_MP4) {
+        props.setConfig(c => updateAnnotationVideoURLMp4(c, stream1.processedFilePath));
+      }
+    });
+
+    props.setConfig(c => updateAnnotationVideoURLWebm(c, url));
+
+    props.setConfig(c => {
+      if (c.type === 'cover') {
+        return updateAnnotationPositioning(c, VideoAnnotationPositions.Center);
+      }
+      return updateAnnotationPositioning(c, VideoAnnotationPositions.BottomRight);
+    });
+
+    props.setConfig(c => updateAnnotationBoxSize(c, 'medium'));
+
+    dispatch({
+      type: 'FINISH_SAVING'
+    });
+
+    closeRecorder();
+  };
+
+  const saveRecording = async (): Promise<void> => {
     dispatch({
       type: 'START_SAVING'
     });
@@ -243,26 +300,23 @@ function VideoRecorder(props: Props): ReactElement {
     const webm = await blobToUint8Array(webmBlob);
 
     const webmUrl = await uploadVideoToAws(webm, 'video/webm');
-    const [err, stream1, stream2] = await transcodeMedia(webmUrl, props.tour.rid);
-    if (err || stream1.failureReason || stream2.failureReason) {
-      throw new Error('Transcoding failed');
-    }
-    [stream1, stream2].forEach(stream => {
-      if (stream1.mediaType === MediaType.VIDEO_HLS) { props.setConfig(c => updateAnnotationVideoURLHLS(c, stream1.processedFilePath)); }
-      if (stream1.mediaType === MediaType.VIDEO_MP4) { props.setConfig(c => updateAnnotationVideoURLMp4(c, stream1.processedFilePath)); }
-    });
-    props.setConfig(c => updateAnnotationVideoURLWebm(c, webmUrl));
-    props.setConfig(c => {
-      if (c.type === 'cover') {
-        return updateAnnotationPositioning(c, VideoAnnotationPositions.Center);
-      }
-      return updateAnnotationPositioning(c, VideoAnnotationPositions.BottomRight);
-    });
-    props.setConfig(c => updateAnnotationBoxSize(c, 'medium'));
+
+    await transcodeMediaHandler(webmUrl);
+  };
+
+  const handleUploadVideoFormOnSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+
     dispatch({
-      type: 'FINISH_SAVING'
+      type: 'START_SAVING'
     });
-    closeRecorder();
+
+    const formData = new FormData(event.currentTarget);
+    const videoAnnotationFile = formData.get('video-ann') as File;
+
+    const videoUrl = await uploadFileToAws(videoAnnotationFile);
+
+    await transcodeMediaHandler(videoUrl);
   };
 
   useEffect(() => {
@@ -271,7 +325,7 @@ function VideoRecorder(props: Props): ReactElement {
     }
   }, [state.doneRecording]);
 
-  const closeRecorder = async () => {
+  const closeRecorder = async (): Promise<void> => {
     streamRef.current?.getTracks().forEach((track) => {
       track.stop();
     });
@@ -298,12 +352,47 @@ function VideoRecorder(props: Props): ReactElement {
   return (
     <GTags.BorderedModal
       style={{ height: '10px' }}
-      title="Record video"
+      title="Record / Upload Video"
       open={state.isVideoModalOpen}
       onOk={closeRecorder}
       onCancel={closeRecorder}
       footer={null}
     >
+      <Tabs
+        type="card"
+        size="small"
+        items={TabList.map((tab, i) => {
+          const id = String(i + 1);
+          return {
+            label: tab.tabName,
+            key: id,
+            children: <>{tab.component()}</>,
+          };
+        })}
+      />
+    </GTags.BorderedModal>
+  );
+}
+
+interface RecordVideoTabProps {
+  state: VideoState;
+  recorderRef: React.RefObject<HTMLVideoElement>;
+  stopRecording: () => void;
+  startRecording: () => void;
+  restartRecording: () => void;
+  saveRecording: () => Promise<void>;
+}
+
+function RecordVideoTab({
+  state,
+  recorderRef,
+  stopRecording,
+  startRecording,
+  restartRecording,
+  saveRecording
+}: RecordVideoTabProps): JSX.Element {
+  return (
+    <>
       <p>Record a video explaining the feature you selected on the screen.</p>
       {
         !state.doneRecording && (
@@ -312,7 +401,7 @@ function VideoRecorder(props: Props): ReactElement {
               autoPlay
               muted
               ref={recorderRef}
-              style={{ height: '225px', margin: 'auto', display: 'block' }}
+              style={{ height: '225px', margin: 'auto', display: 'block', borderRadius: '12px' }}
             />
             {
               state.isVideoReady && (
@@ -355,7 +444,38 @@ function VideoRecorder(props: Props): ReactElement {
           </>
         )
       }
-    </GTags.BorderedModal>
+    </>
+  );
+}
+
+interface UploadVideoTabProps {
+  state: VideoState;
+  handleUploadVideoFormOnSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+}
+
+function UploadVideoTab({
+  state,
+  handleUploadVideoFormOnSubmit,
+}: UploadVideoTabProps): JSX.Element {
+  return (
+    <form onSubmit={handleUploadVideoFormOnSubmit}>
+      <FileInput
+        id="video-annotation"
+        accept=".mp4"
+        name="video-ann"
+        required
+      />
+      <Button
+        type="submit"
+        disabled={state.saving}
+        style={{
+          width: '100%',
+          marginTop: '1rem'
+        }}
+      >
+        {state.saving ? 'Uploading' : 'Upload'}
+      </Button>
+    </form>
   );
 }
 
