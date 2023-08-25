@@ -1,10 +1,11 @@
-import { PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlusOutlined, SisternodeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import message from 'antd/lib/message';
-import { createNewTour, getAllTours, renameTour, duplicateTour } from '../../action/creator';
+import Modal from 'antd/lib/modal';
+import { createNewTour, getAllTours, renameTour, duplicateTour, deleteTour } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import Loader from '../../component/loader';
@@ -20,12 +21,14 @@ import Input from '../../component/input';
 // import EmptyTourState from './empty-state';
 import TourCard from '../../component/tour/tour-card';
 import EmptyTourState from '../../component/tour/empty-state';
+import { Text } from './styled';
 
 interface IDispatchProps {
   getAllTours: () => void;
   createNewTour: (tourName: string) => void;
   renameTour: (tour: P_RespTour, newVal: string) => void;
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
+  deleteTour: (tourRid: string) => void;
 }
 
 export enum CtxAction {
@@ -40,6 +43,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   createNewTour: (tourName: string) => dispatch(createNewTour(true, tourName)),
   renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
+  deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
 });
 
 interface IAppStateProps {
@@ -65,6 +69,7 @@ interface IOwnStateProps {
   selectedTour: P_RespTour | null;
   ctxAction: CtxAction;
 }
+const { confirm } = Modal;
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   renameOrDuplicateOrCreateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
@@ -95,14 +100,22 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (prevState.showModal !== this.state.showModal && this.state.showModal) {
       setTimeout(() => {
-        this.renameOrDuplicateOrCreateIpRef.current!.focus();
-        this.renameOrDuplicateOrCreateIpRef.current!.select();
+          this.renameOrDuplicateOrCreateIpRef.current!.focus();
+          this.renameOrDuplicateOrCreateIpRef.current!.select();
       });
     }
   }
 
   handleShowModal = (tour: P_RespTour | null, ctxAction: CtxAction): void => {
     this.setState({ selectedTour: tour, showModal: true, ctxAction });
+  };
+
+  handleDelete = (tour: P_RespTour | null): void => {
+    confirm({
+      title: 'Are you sure you want to delete this tour ?',
+      icon: <DeleteOutlined />,
+      onOk: () => { this.props.deleteTour(tour!.rid); },
+    });
   };
 
   handleModalOk = (): void => {
@@ -208,7 +221,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         </Tags.TopPanel>
                         <Tags.BottomPanel style={{ overflow: 'auto' }}>
                           {this.props.tours.map((tour) => (
-                            <TourCard key={tour.rid} tour={tour} handleShowModal={this.handleShowModal} />
+                            <TourCard
+                              key={tour.rid}
+                              tour={tour}
+                              handleShowModal={this.handleShowModal}
+                              handleDelete={this.handleDelete}
+                            />
                           ))}
                         </Tags.BottomPanel>
                       </div>
@@ -239,7 +257,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 >
                   Cancel
                 </Button>
-
                 <Button
                   style={{ flex: 1 }}
                   onClick={this.handleModalOk}

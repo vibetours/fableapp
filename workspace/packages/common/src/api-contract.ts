@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-08-13 13:27:33.
+// Generated using typescript-generator version 2.35.1025 on 2023-08-23 19:16:48.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -79,6 +79,11 @@ export interface ReqNewTour {
     description?: string;
 }
 
+export interface ReqNfHook {
+    eventName: NfEvents;
+    payload: { [index: string]: string };
+}
+
 export interface ReqProxyAsset {
     origin: string;
     clientInfo: string;
@@ -101,6 +106,10 @@ export interface ReqScreenTour {
 
 export interface ReqThumbnailCreation {
     screenRid: string;
+}
+
+export interface ReqTourRid {
+    tourRid: string;
 }
 
 export interface ReqUpdateScreenProperty {
@@ -218,6 +227,7 @@ export const enum JobProcessingStatus {
 export const enum JobType {
     TRANSCODE_VIDEO = "TRANSCODE_VIDEO",
     RESIZE_IMG = "RESIZE_IMG",
+    DELETE_ASSET = "DELETE_ASSET",
 }
 
 export const enum SchemaVersion {
@@ -248,6 +258,11 @@ export const enum ResponseStatus {
 export const enum ErrorCode {
     IllegalArgs = 100,
     NotFound = 101,
+}
+
+export const enum NfEvents {
+    NEW_USER_SIGNUP = "NEW_USER_SIGNUP",
+    EBOOK_DOWNLOAD = "EBOOK_DOWNLOAD",
 }
 
 export const enum UserOrgAssociation {

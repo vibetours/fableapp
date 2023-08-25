@@ -21,7 +21,8 @@ import {
   ReqDuplicateTour,
   RespTourWithScreens,
   ReqNewScreen,
-  ReqThumbnailCreation
+  ReqThumbnailCreation,
+  ReqTourRid
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -611,6 +612,26 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
     dispatch({
       type: ActionType.AUTOSAVING,
       isAutosaving: false
+    });
+  };
+}
+
+export interface TTourDelete {
+  type: ActionType.DELETE_TOUR;
+  ridOfTourToBeDeleted: string;
+}
+
+export function deleteTour(tourRid: string) {
+  return async (dispatch: Dispatch<TTourDelete>) => {
+    dispatch({
+      type: ActionType.DELETE_TOUR,
+      ridOfTourToBeDeleted: tourRid
+    });
+    await api<ReqTourRid, ApiResp<RespTour[]>>('/deltour', {
+      auth: true,
+      body: {
+        tourRid
+      }
     });
   };
 }

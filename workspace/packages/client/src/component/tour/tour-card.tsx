@@ -19,9 +19,10 @@ import { createIframe, copyToClipboard } from '../header/utils';
 interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
+  handleDelete: (tour: P_RespTour | null) => void;
 }
 
-export default function TourCard({ tour, handleShowModal }: Props): JSX.Element {
+export default function TourCard({ tour, handleShowModal, handleDelete }: Props): JSX.Element {
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
 
@@ -105,7 +106,7 @@ export default function TourCard({ tour, handleShowModal }: Props): JSX.Element 
                 </GTags.PopoverMenuItem>
                 <GTags.PopoverMenuItemDivider color="#ff735050" />
                 <GTags.PopoverMenuItem
-                  onMouseDown={e => window.alert('Delete :: Coming soon...')}
+                  onMouseDown={e => handleDelete(tour)}
                   style={{
                     color: '#ff7350'
                   }}

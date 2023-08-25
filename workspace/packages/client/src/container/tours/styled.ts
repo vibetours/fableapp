@@ -29,3 +29,9 @@ export const ToursHeading = styled.h1`
   font-size: ${(props) => props.theme.typography.size.heading};
   font-weight: bold;
 `;
+
+export const Text = styled.h4`
+  color: #16023E;
+  margin-top: 0px;
+  font-style: italic;
+`;

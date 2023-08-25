@@ -25,7 +25,8 @@ import {
   TOpsInProgress,
   TAddScreenEntities,
   AnnAdd,
-  TAutosaving
+  TAutosaving,
+  TTourDelete
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -218,6 +219,13 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.tours = tours;
       }
       newState.opsInProgress = Ops.None;
+      return newState;
+    }
+
+    case ActionType.DELETE_TOUR: {
+      const tAction = action as TTourDelete;
+      const newState = { ...state };
+      newState.tours = newState.tours.filter(tour => tour.rid !== tAction.ridOfTourToBeDeleted);
       return newState;
     }
 
