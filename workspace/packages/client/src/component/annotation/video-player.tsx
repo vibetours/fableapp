@@ -7,7 +7,7 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import * as Tags from './styled';
-import { IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
+import { AnimEntryDir, IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
 import { isCoverAnnotation } from './annotation-config-utils';
 import { logEvent } from '../../analytics/utils';
 import {
@@ -23,8 +23,9 @@ import { generateShadeColor } from './utils';
 interface IProps {
   conf: IAnnoationDisplayConfig;
   playMode: boolean,
-  annFollowPositions: { top: number, left: number },
+  annFollowPositions: { top: number, left: number, dir: AnimEntryDir },
   width: number;
+  height: number;
   tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
   annotationSerialIdMap: AnnotationSerialIdMap;
@@ -159,12 +160,12 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
   };
 
-  getPositioningAndSizingStyles(): { width: string; } {
+  getPositioningAndSizingStyles(): Record<string, string> {
     const position = this.props.conf.config.positioning;
     const isCover = isCoverAnnotation(this.props.conf.config.id);
     const offsetPosition = '20px';
 
-    let styles = {};
+    let styles: Record<string, string> = {};
     switch (position) {
       case VideoAnnotationPositions.BottomRight:
         styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
@@ -184,6 +185,15 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
             top: `${this.props.annFollowPositions.top}px`,
             left: `${this.props.annFollowPositions.left}px`
           };
+          const annDir = this.props.annFollowPositions.dir;
+          styles.display = 'flex';
+          if (annDir === 't') {
+            styles.alignItems = 'end';
+          } else if (annDir === 'b') {
+            styles.alignItems = 'start';
+          } else {
+            styles.alignItems = 'center';
+          }
         }
         break;
       }
@@ -191,10 +201,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
         break;
     }
-
     return {
       ...styles,
       width: `${this.props.width}px`,
+      height: `${this.props.height}px`,
     };
   }
 
@@ -216,7 +226,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         out={this.props.conf.isMaximized ? 'slidein' : 'slideout'}
         style={{
           ...this.getPositioningAndSizingStyles(),
-          visibility: this.props.conf.isMaximized ? 'visible' : 'hidden'
+          visibility: this.props.conf.isMaximized ? 'visible' : 'hidden',
         }}
         onMouseOver={() => this.setState({ showControls: true })}
         onMouseOut={() => {
@@ -225,32 +235,34 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           }
         }}
       >
-        <Tags.AnVideo
-          loop={this.state.firstTimeClick}
-          autoPlay
-          muted={this.state.isMuted}
-          ref={this.videoRef}
-          border={this.getAnnotationBorder()}
-          id={`fable-ann-video-${config.refId}`}
-          className="fable-video"
-          playsInline
-          onPause={() => this.setState({ videoState: 'paused' })}
-          onPlay={() => this.setState({ videoState: 'playing' })}
-          onEnded={() => this.setState({ showControls: true, videoState: 'ended' })}
-        >
-          {!isHlsSupported && (
+
+        <div style={{ position: 'relative', display: 'flex', width: 'calc(100% - 2px)' }}>
+          <Tags.AnVideo
+            loop={this.state.firstTimeClick}
+            autoPlay
+            muted={this.state.isMuted}
+            ref={this.videoRef}
+            border={this.getAnnotationBorder()}
+            id={`fable-ann-video-${config.refId}`}
+            className="fable-video"
+            playsInline
+            onPause={() => this.setState({ videoState: 'paused' })}
+            onPlay={() => this.setState({ videoState: 'playing' })}
+            onEnded={() => this.setState({ showControls: true, videoState: 'ended' })}
+          >
+            {!isHlsSupported && (
             <>
               <source src={config.videoUrlMp4} type="video/mp4" />
               <source src={config.videoUrlWebm} type="video/webm" />
               {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
             </>
-          )}
-        </Tags.AnVideo>
+            )}
+          </Tags.AnVideo>
 
-        <Tags.AnVideoControls
-          showOverlay={this.state.showControls}
-        >
-          {!this.props.conf.prerender && this.state.showControls && (
+          <Tags.AnVideoControls
+            showOverlay={this.state.showControls}
+          >
+            {!this.props.conf.prerender && this.state.showControls && (
             <>
               {this.state.videoState !== 'ended' && (
                 <Tags.AnVideoCtrlBtn
@@ -312,8 +324,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                 ))}
               </Tags.NavButtonCon>
             </>
-          )}
-        </Tags.AnVideoControls>
+            )}
+          </Tags.AnVideoControls>
+        </div>
+
       </Tags.AnVideoContainer>
     );
   }

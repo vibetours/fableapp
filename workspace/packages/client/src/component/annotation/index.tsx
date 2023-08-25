@@ -168,7 +168,7 @@ export class AnnotationContent extends React.PureComponent<{
   }
 }
 
-type AnimEntryDir = 'l' | 't' | 'r' | 'b';
+export type AnimEntryDir = 'l' | 't' | 'r' | 'b';
 export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly BREATHING_SPACE_RATIO = 30;
 
@@ -182,6 +182,16 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         this.conRef.current.style.transform = 'translate(0px, 0px)';
       }
     }, 48);
+  }
+
+  getYAxisCoordWrtWinInnerHeight(top: number): number {
+    const winH = this.props.win.innerHeight;
+    return Math.round(top / winH + (top % winH));
+  }
+
+  getXAxisCoordWrtWinInnerWidth(left: number): number {
+    const winW = this.props.win.innerWidth;
+    return Math.round(left / winW + (left % winW));
   }
 
   // TODO[refactor]
@@ -293,8 +303,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           return <AnnotationVideo
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
-            annFollowPositions={{ top, left }}
+            annFollowPositions={{ top, left, dir }}
             width={w}
+            height={h}
             tourId={this.props.tourId}
             navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
             annotationSerialIdMap={this.props.annotationSerialIdMap}
@@ -383,9 +394,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     if (isVideoAnnotation) {
-      const boxTopFactor = this.props.win.innerHeight + (t % this.props.win.innerHeight);
-      const boxLeftFactor = this.props.win.innerWidth + (l % this.props.win.innerWidth);
-
       return (
         <>
           {
@@ -396,15 +404,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
            <AnnotationArrowHead
              box={{
                ...this.props.box,
-               top: this.props.box.top / boxTopFactor,
-               left: this.props.box.left / boxLeftFactor,
+               top: this.props.box.top + this.props.win.scrollY,
+               left: this.props.box.left + this.props.win.scrollX,
              }}
              pos={dir}
              maskBoxRect={maskBoxRect}
              arrowColor={arrowColor}
              annBox={{
-               top: t / boxTopFactor,
-               left: l / boxLeftFactor,
+               top: t + this.props.win.scrollY,
+               left: l + this.props.win.scrollX,
                width: w,
                height: h
              }}
@@ -418,10 +426,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{
-              top: t / boxTopFactor,
-              left: l / boxLeftFactor,
+              top: this.getYAxisCoordWrtWinInnerHeight(t),
+              left: this.getXAxisCoordWrtWinInnerWidth(l),
+              dir,
             }}
             width={w}
+            height={h}
             tourId={this.props.tourId}
             navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
           />

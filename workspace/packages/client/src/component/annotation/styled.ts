@@ -259,7 +259,7 @@ export const AnVideo = styled.video<{ border: string }>`
 export const AnVideoControls = styled.div<{showOverlay: boolean}>`
   transition: all 0.2s ease-in-out;
   background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
-  height: 99%;
+  height: 100%;
   border-radius: 8px;
   position: absolute;
   top: 50%;
