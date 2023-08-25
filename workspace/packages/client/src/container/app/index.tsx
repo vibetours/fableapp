@@ -23,6 +23,7 @@ import ProductTours from '../../component/onboarding/pages/product-tours';
 import ProtectedRoutes from '../protected-routes';
 import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
+import Healthcheck from '../healthcheck';
 
 interface IDispatchProps {
   init: () => void;
@@ -69,6 +70,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             </Route>
 
             <Route path="/" element={<ProtectedRoutes />}>
+              <Route path="/healthcheck" element={<Healthcheck />} />
               <Route path="/cb/auth" element={<AuthCB />} />
               <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
               <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
