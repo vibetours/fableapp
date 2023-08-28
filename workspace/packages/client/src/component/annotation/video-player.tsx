@@ -208,13 +208,13 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     };
   }
 
-  navigateAnns = (direction: 'prev' | 'next'): void => {
+  navigateAnns = (direction: 'prev' | 'next', btnId: string): void => {
     this.logStepEvent(direction);
 
     this.videoRef.current!.pause();
     this.videoRef.current!.currentTime = 0;
 
-    this.props.navigateToAdjacentAnn(direction);
+    this.props.navigateToAdjacentAnn(direction, btnId);
   };
 
   render(): ReactElement {
@@ -312,9 +312,9 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                     borderRadius={this.props.conf.opts.borderRadius}
                     onClick={() => {
                       if (btnConf.type === 'next') {
-                        this.navigateAnns('next');
+                        this.navigateAnns('next', btnConf.id);
                       } else if (btnConf.type === 'prev') {
-                        this.navigateAnns('prev');
+                        this.navigateAnns('prev', btnConf.id);
                       } else {
                         raiseDeferredError(new Error('Custom button for video is not implemented'));
                       }

@@ -45,7 +45,7 @@ export default abstract class HighlighterBase {
     this.config = config;
   }
 
-  protected dispose() {
+  protected dispose(): void {
     for (const [key, unsubs] of Object.entries(this.listnrSubs)) {
       const tKey = key as keyof HTMLElementEventMap;
       unsubs.forEach(([fn, doc]) => doc.removeEventListener(tKey, fn, key === 'scroll'));
@@ -56,7 +56,7 @@ export default abstract class HighlighterBase {
 
   // WARN this does not work for elements that are visible but height is greater than the
   // window height or width is greater than the window width
-  protected isElInViewPort(el: HTMLElement) {
+  protected isElInViewPort(el: HTMLElement): boolean {
     const rect = el.getBoundingClientRect();
 
     return (
@@ -223,17 +223,23 @@ export default abstract class HighlighterBase {
     mask.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     mask.style.background = this.highlightBgColor();
     mask.style.borderRadius = '2px';
-    mask.style.boxShadow = `${this.config.selectionColor} 0px 0px 0px 2px, rgba(0, 0, 0, ${(this.maskHasDarkBg() && this.config.showOverlay) ? '0.25' : '0.0'
-    }) 0px 0px 0px 1000vw`;
+    mask.style.transition = 'box-shadow 0.2s ease-out';
     this.maskEl = mask;
+    this.updateMask();
     this.attachElToUmbrellaDiv(mask);
     return mask;
+  }
+
+  updateMask(): void {
+    if (!this.maskEl) return;
+    this.maskEl.style.boxShadow = `${this.config.selectionColor} 0px 0px 0px 2px, rgba(0, 0, 0, ${(this.maskHasDarkBg() && this.config.showOverlay) ? '0.3' : '0.0'
+    }) 0px 0px 0px 1000vw`;
   }
 
   protected subscribeListenerToAllDoc<K extends keyof DocumentEventMap>(
     evt: K,
     fn: (doc: Document) => (e: DocumentEventMap[K]) => void
-  ) {
+  ): void {
     (this.listnrSubs as any)[evt] = [
       ...((this.listnrSubs as any)[evt] || []),
       ...[this.doc, ...this.nestedDocs].map(doc => {
@@ -246,8 +252,8 @@ export default abstract class HighlighterBase {
 
   updateConfig<K extends keyof HighlighterBaseConfig>(key: K, value: HighlighterBaseConfig[K]): void {
     if (value !== this.config[key]) {
-      this.removeMaskIfPresent();
       this.config[key] = value;
+      this.updateMask();
     }
   }
 
@@ -262,7 +268,7 @@ export default abstract class HighlighterBase {
     return this;
   }
 
-  protected removeMaskIfPresent() {
+  protected removeMaskIfPresent(): void {
     if (this.maskEl) {
       this.maskEl.remove();
       this.maskEl = null;

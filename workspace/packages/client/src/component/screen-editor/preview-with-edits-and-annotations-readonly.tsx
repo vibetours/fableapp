@@ -233,7 +233,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const highlighterBaseConfig = {
       selectionColor: this.props.tourDataOpts.annotationSelectionColor,
-      showOverlay: an?.showOverlay || true
+      showOverlay: !!an?.showOverlay
     };
 
     const el = this.embedFrameRef?.current;

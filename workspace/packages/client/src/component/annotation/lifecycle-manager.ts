@@ -68,8 +68,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private undoLastAnnStyleOverride: Array<() => void> = [];
 
-  private lastAnnHadOverlay = false;
-
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
   }
@@ -169,7 +167,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   hide(): void {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
-    this.removeMaskIfPresent();
+    this.updateConfig('showOverlay', false);
     this.hideAllAnnotations();
   }
 
@@ -177,12 +175,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
     this.hideAllAnnotations();
-    this.applyMaskOrNot();
-  }
-
-  private applyMaskOrNot(): void {
-    if (this.lastAnnHadOverlay) this.createFullScreenMask();
-    else this.removeMaskIfPresent();
+    this.createFullScreenMask();
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -226,7 +219,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       return;
     }
     this.con!.style.visibility = 'hidden';
-    this.applyMaskOrNot();
+    this.createFullScreenMask();
   };
 
   // algorithm: https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity#how_is_specificity_calculated
@@ -305,7 +298,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const undo1 = this.addCustomStyleSheetFor(el, config, config.targetElCssStyle);
     const undo2 = this.setCssSelectorForHighestProbalbleSpecificity(el, config);
     this.undoLastAnnStyleOverride.push(undo1, undo2);
-    this.lastAnnHadOverlay = config.targetElCssStyle ? false : config.showOverlay;
   };
 
   private createContainerRoot(type: '' | 'ann-probe' | 'ann-video' = ''): [HTMLDivElement, Root] {
@@ -369,7 +361,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         if (type === 'complete') this.onScrollComplete(el, config);
       });
     } else {
-      this.win.scrollTo(0, 0);
+      this.win.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
       setTimeout(() => this.onScrollComplete(el, config), AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
     }
   }
@@ -420,7 +412,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           this.updateConfig('selectionColor', this.opts.annotationSelectionColor);
         }
         if (annotationDisplayConfig.config.type === 'cover') {
-          this.applyMaskOrNot();
+          this.createFullScreenMask();
         } else if (this.screenType === ScreenType.Img) {
           const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
           this.selectBoxInDoc({ x: +x, y: +y, width: +width, height: +height });

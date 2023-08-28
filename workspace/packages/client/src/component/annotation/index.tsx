@@ -28,7 +28,7 @@ interface IProps {
   isThemeAnnotation?: boolean;
 }
 
-export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom') => void;
+export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
 
 export class AnnotationContent extends React.PureComponent<{
   config: IAnnotationConfig;
@@ -155,7 +155,7 @@ export class AnnotationContent extends React.PureComponent<{
                       this.props.tourId,
                       this.annotationEntered
                     );
-                    this.props.navigateToAdjacentAnn(btnConf.type);
+                    this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                   }}
                 > {btnConf.text}
                 </Tags.ABtn>
@@ -772,7 +772,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             className="fable-hotspot"
             onClick={() => {
               handleEventLogging(btnConf.id, btnConf.type, p.conf.refId, this.props.tourId, this.annotationEntered);
-              this.props.navigateToAdjacentAnn('next');
+              this.props.navigateToAdjacentAnn('next', btnConf.id);
             }}
           />
         );
@@ -800,16 +800,18 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
 
-      const navigateToAdjacentAnn: NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom'): void => {
+      const navigateToAdjacentAnn: NavigateToAdjacentAnn = (type: 'prev' | 'next' | 'custom', btnId: string): void => {
         const config = p.conf.config;
-        const btnConf = config.buttons.filter(button => button.type === direction)[0];
-        const isNavToVideoAnn = direction === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
+        const btnConf = type === 'custom'
+          ? config.buttons.filter(button => button.id === btnId)[0]
+          : config.buttons.filter(button => button.type === type)[0];
+        const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
 
         if (!btnConf.hotspot) {
           return;
         }
 
-        if (direction === 'custom' || !this.props.playMode) {
+        if (type === 'custom' || !this.props.playMode) {
           this.props.nav(
             btnConf.hotspot.actionValue,
             btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
