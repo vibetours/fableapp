@@ -1,4 +1,4 @@
-name: Build and Deploy Ext and Client
+name: Build and Deploy Ext and Client and Sentry Release
 
 on:
   push:
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with: 
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -62,9 +64,48 @@ jobs:
         run: yarn build-${{env.DEPLOY_ENV}}
         working-directory: workspace/packages/ext-tour
 
+      - name: Create Sentry release and upload sourcemap for extension
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ vars.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_EXTENSION_PROJECT }}
+        with:
+          environment: ${{env.DEPLOY_ENV}}
+          sourcemaps: ./workspace/packages/ext-tour/build
+          version: ${{ vars.SENTRY_EXTENSION_PROJECT }}@${{ steps.version.outputs.version }}
+          url_prefix: '~/'
+        if: env.DEPLOY_ENV == 'prod'
+
+      - name: Remove map files from Extension build
+        run: |
+          cd workspace/packages/ext-tour/build
+          rm -rf *.map
+        if: env.DEPLOY_ENV == 'prod'
+
       - name: Build Client
         run: yarn build-${{env.DEPLOY_ENV}}
         working-directory: workspace/packages/client
+
+      - name: Create Sentry release and upload sourcemap for client
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ vars.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_CLIENT_PROJECT }}
+        with:
+          environment: ${{env.DEPLOY_ENV}}
+          sourcemaps: ./workspace/packages/client/build
+          version: ${{ vars.SENTRY_CLIENT_PROJECT }}@${{ steps.version.outputs.version }}
+          url_prefix: '~/'
+        if: env.DEPLOY_ENV == 'prod'
+
+      - name: Remove map files from Client build
+        run: |
+          cd workspace/packages/client/build
+          rm -rf static/js/*.map
+          rm -f static/css/*.map
+        if: env.DEPLOY_ENV == 'prod'
 
       - name: Zip Build Directory
         run: zip -r extension-${{ steps.version.outputs.version }}.zip build

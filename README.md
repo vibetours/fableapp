@@ -7,10 +7,10 @@
 The project is setup as [yarn workspaces](https://classic.yarnpkg.com/lang/en/docs/workspaces/). Here is the app structure
 - `workspace/packages/client` contains the frontend code for Fable app
 - `workspace/packages/ext-tour` contains the code for browser extension
-- `workspace/packages/scripts` contains the code for common scripts that are served via cdn
 - `redux` is used as application state
 - `thunk` is used for sideeffect management
 - `styled-components` are used for applying style on element
+- In `env.json` we generate the sourcemap even for prod build so that CI can push sourcemap information to sentry, however before deploying to CDN (s3 -> cloudfront) sourcemaps are deleted. Check github workflows
 
 Checkout all the `*/packages.json > scripts` to understand how dev / staging / prod builds are done.
 

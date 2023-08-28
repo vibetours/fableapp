@@ -68,7 +68,8 @@ if (process.env.NODE_ENV === "production") {
   config.mode = "production";
 } else {
   config.mode = "development";
-  config.devtool = "inline-source-map";
 }
+
+config.devtool = "source-map";
 
 module.exports = config;

@@ -20,8 +20,9 @@ import {
   StopRecordingData,
 } from "./types";
 import { BATCH_SIZE, isCrossOrigin } from "./utils";
+import { version } from "../package.json";
 
-sentryInit("background");
+sentryInit("background", version);
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 

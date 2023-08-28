@@ -12,8 +12,9 @@ import {
 } from "./types";
 import { createStickyControlPill } from "./components/control-pill";
 import { FABLE_CONTROL_PILL } from "./utils";
+import { version } from "../package.json";
 
-sentryInit("extension");
+sentryInit("extension", version);
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";

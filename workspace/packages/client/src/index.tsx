@@ -15,7 +15,7 @@ localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-sentryInit('client');
+sentryInit('client', packageJSON.version);
 
 const theme = {
   colors: {

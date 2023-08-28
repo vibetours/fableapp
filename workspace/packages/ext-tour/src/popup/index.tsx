@@ -10,7 +10,7 @@ import { version } from "../../package.json";
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-sentryInit("extension");
+sentryInit("extension", version);
 
 type Props = {};
 

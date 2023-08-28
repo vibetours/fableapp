@@ -14,7 +14,7 @@ type Target = 'client' | 'extension' | 'background';
 const DSN_KEY_CLIENT = 'https://fb9d18e316c749079ad14a6d6fa70f7b@o4505113177620480.ingest.sentry.io/4505114454917120';
 const DSN_KEY_EXT = 'https://62b1df8a61314adfbf35374d53498a43@o4505113177620480.ingest.sentry.io/4505114458062848';
 
-export const init = (target: Target) => {
+export const init = (target: Target, version: string) => {
   if (!isProdEnv()) {
     return;
   }
@@ -31,7 +31,8 @@ export const init = (target: Target) => {
         tracesSampleRate: 1.0,
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1.0,
-        environment
+        environment,
+        release: `client@${version}`,
       };
       break;
     case 'extension':
@@ -39,14 +40,16 @@ export const init = (target: Target) => {
         dsn: DSN_KEY_EXT,
         integrations: [new BrowserTracing()],
         tracesSampleRate: 1.0,
-        environment
+        environment,
+        release: `extension@${version}`
       };
       break;
     case 'background':
       initOptions = {
         dsn: DSN_KEY_EXT,
         tracesSampleRate: 1.0,
-        environment
+        environment,
+        release: `extension@${version}`
       };
       break;
     default:

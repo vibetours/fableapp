@@ -4,8 +4,9 @@ import { ThemeStats } from "@fable/common/dist/types";
 import { Msg } from "./msg";
 import { FrameDataToBeProcessed } from "./types";
 import { BATCH_SIZE } from "./utils";
+import { version } from "../package.json";
 
-sentryInit("extension");
+sentryInit("extension", version);
 
 function createDataDiv(id: string, content: string): HTMLDivElement {
   const div = (document.getElementById(id) || document.createElement("div")) as HTMLDivElement;
