@@ -244,7 +244,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <>
         <Tags.ScreenPickerCon>
-          <Tags.PolkaDotGridBg />
+          {/* <Tags.PolkaDotGridBg /> */}
           {!this.props.dontShowCloseBtn
           && <Tags.CloseIcon alt="" src={CloseIcon} onClick={this.props.hideScreenPicker} />}
           <Tags.FableLogo alt="" src={FableLogo} />

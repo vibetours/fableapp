@@ -280,7 +280,8 @@ export const ScreenPickerCon = styled.div`
   gap: 2rem;
   /* padding-top: 6.125rem; */
   align-items: center;
-  background-color: #fff;
+  background-color: transparent;
+  backdrop-filter: blur(16px);
   z-index: 2000;
   top: 0;
   left: 0;
