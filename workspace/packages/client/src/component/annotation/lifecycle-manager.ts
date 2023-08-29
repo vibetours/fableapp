@@ -279,7 +279,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar();
       this.updateConfig('showOverlay', config.showOverlay);
       this.updateConfig('selectionColor', this.tourDataOpts.annotationSelectionColor);
-      this.render();
+      !this.isPlayMode && this.render();
     };
   }
 
@@ -584,6 +584,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         }),
       ]);
 
+      const r = Math.random() * (10 ** 6) | 0;
       this.rRootProbe.render(
         React.createElement(
           StyleSheetManager,
@@ -600,7 +601,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               width: smallWidth,
               top: -9999,
               left: -9999,
-              key: 777,
+              key: `${config.refId}-sm-${r}`,
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
@@ -615,7 +616,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               width: mediumWidth,
               top: -9999,
               left: -9999,
-              key: 666,
+              key: `${config.refId}-md-${r}`,
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
@@ -630,7 +631,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               width: largeWidth,
               top: -9999,
               left: -9999,
-              key: 888,
+              key: `${config.refId}-lg-${r}`,
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
