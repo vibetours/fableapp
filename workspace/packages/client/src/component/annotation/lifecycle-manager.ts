@@ -571,13 +571,28 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 2.5 | 0);
 
     try {
-      const elSmall = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRootProbe.render(
+      const rs: Array<(e: HTMLDivElement) => void> = [];
+      const ps = Promise.all([
+        new Promise((resolve: (e: HTMLDivElement) => void, re) => {
+          rs.push(resolve);
+        }),
+        new Promise((resolve: (e: HTMLDivElement) => void) => {
+          rs.push(resolve);
+        }),
+        new Promise((resolve: (e: HTMLDivElement) => void) => {
+          rs.push(resolve);
+        }),
+      ]);
+
+      this.rRootProbe.render(
+        React.createElement(
+          StyleSheetManager,
+          { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
           React.createElement(
-            StyleSheetManager,
-            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
+            'div',
+            {},
             React.createElement(AnnotationContent, {
-              onRender: resolve,
+              onRender: rs[0],
               isInDisplay: true,
               config,
               dir: 't',
@@ -590,20 +605,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc
-            })
-          )
-        );
-      });
-      const smallDim = elSmall.getBoundingClientRect();
-
-      const elMedium = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRootProbe.render(
-          React.createElement(
-            StyleSheetManager,
-            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
-
+            }),
             React.createElement(AnnotationContent, {
-              onRender: resolve,
+              onRender: rs[1],
               isInDisplay: true,
               config,
               dir: 't',
@@ -616,20 +620,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc
-            })
-          )
-        );
-      });
-      const mediumDim = elMedium.getBoundingClientRect();
-
-      const elLarge = await new Promise((resolve: (e: HTMLDivElement) => void) => {
-        this.rRootProbe.render(
-          React.createElement(
-            StyleSheetManager,
-            { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
-
+            }),
             React.createElement(AnnotationContent, {
-              onRender: resolve,
+              onRender: rs[2],
               isInDisplay: true,
               config,
               opts,
@@ -644,8 +637,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               doc: this.doc
             })
           )
-        );
-      });
+        )
+      );
+
+      const [elSmall, elMedium, elLarge] = await ps;
+      const smallDim = elSmall.getBoundingClientRect();
+      const mediumDim = elMedium.getBoundingClientRect();
       const largeDim = elLarge.getBoundingClientRect();
 
       return {

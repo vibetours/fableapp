@@ -67,7 +67,7 @@ export class AnnotationContent extends React.PureComponent<{
         if (defaultFontFamily && this.props.doc) {
           let timer = 0;
           fontLoadingPromise = Promise.race([
-            sleep(3 * 1000),
+            sleep(300),
             new Promise((res) => {
               timer = setInterval(() => {
                 const result = this.props.doc?.fonts.check(`1rem ${defaultFontFamily}`);
