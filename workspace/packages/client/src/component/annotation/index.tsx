@@ -16,6 +16,7 @@ import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayl
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
+import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -107,10 +108,12 @@ export class AnnotationContent extends React.PureComponent<{
           borderRadius: this.props.opts.borderRadius,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
-        className="fable-ann-card"
+        className={`fable-ann-card f-a-c-${this.props.config.refId}`}
+        id={`f-a-i-${this.props.config.refId}`}
       >
         <Tags.AnInnerContainer
           anPadding={this.props.opts.annotationPadding.trim()}
+          className="inner-con"
         >
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
@@ -120,6 +123,7 @@ export class AnnotationContent extends React.PureComponent<{
             ref={this.contentRef}
             borderRadius={this.props.opts.borderRadius}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
+            className="text"
           />
           {btns.length > 0 && (
             <Tags.ButtonCon
@@ -128,11 +132,13 @@ export class AnnotationContent extends React.PureComponent<{
               btnLength={btns.length}
               flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
               anPadding={this.props.opts.annotationPadding.trim()}
+              className="button-con"
             >
               {Boolean(serialId) && (
               <Tags.Progress
                 bg={this.props.opts.annotationBodyBackgroundColor}
                 fg={this.props.opts.annotationFontColor}
+                className="progress"
               >
                   {serialId} of {totalAnnotations}
               </Tags.Progress>
@@ -140,6 +146,7 @@ export class AnnotationContent extends React.PureComponent<{
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
                   bg={this.props.opts.annotationBodyBackgroundColor}
+                  className={`${generateCSSSelectorFromText(btnConf.text)}-btn`}
                   idx={idx}
                   key={btnConf.id}
                   btnStyle={btnConf.style}

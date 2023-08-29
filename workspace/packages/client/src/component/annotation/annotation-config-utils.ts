@@ -41,6 +41,12 @@ export function updateTargetElCssStyle<T extends IAnnotationConfig>(config: T, c
   return newConfig;
 }
 
+export function updateAnnCssStyle<T extends IAnnotationConfig>(config: T, cssStr: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.annCSSStyle = cssStr;
+  return newConfig;
+}
+
 export function updateAnnotationBoxSize<T extends IAnnotationConfig>(config: T, size: EAnnotationBoxSize): T {
   const newConfig = newConfigFrom(config);
   newConfig.size = size;

@@ -58,6 +58,7 @@ import {
   updateAnnotationTypeToDefault,
   updateAnnotationTypeToCover,
   updateAnnotationButtonLayout,
+  updateAnnCssStyle,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen, } from '../../types';
@@ -73,6 +74,7 @@ import { AnnUpdateType } from '../timeline/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
+import { getDefaultAnnCSSStyleText } from './utils/css-styles';
 
 const { confirm } = Modal;
 
@@ -133,6 +135,19 @@ const buttonSecStyle: React.CSSProperties = {
   alignItems: 'center',
 };
 
+const CSSEditorInfoText = (
+  <span>
+    Use variables
+    <pre>var(--fable-primary-color)</pre>
+    <pre>var(--fable-selection-color)</pre>
+    <pre>var(--fable-annotation-bg-color)</pre>
+    <pre>var(--fable-annotation-border-color)</pre>
+    <pre>var(--fable-annotation-font-color)</pre>
+    <pre>var(--fable-annotation-border-radius)</pre>
+    to use value from theme
+  </span>
+);
+
 export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
   const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
@@ -147,6 +162,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [webFonts, setWebFonts] = useState<string[]>([]);
   const [showBrandingOptionsPopup, setShowBrandingOptionsPopup] = useState(false);
   const [showCssEditorForElOnScreen, setShowCssEditorForElOnScreen] = useState(false);
+  const [showCssEditorForAnnOnScreen, setShowCssEditorForAnnOnScreen] = useState(false);
   const unsubFn = useRef(() => {});
 
   const prevConfig = usePrevious(config);
@@ -290,13 +306,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
 
-  let defaultCssTxt = config.targetElCssStyle;
-  if (props.selectedEl && props.config && showCssEditorForElOnScreen && !defaultCssTxt) {
+  let defaultElCssTxt = config.targetElCssStyle;
+  if (props.selectedEl && props.config && showCssEditorForElOnScreen && !defaultElCssTxt) {
     const [sel, inf] = ALCM.getCompositeSelector(props.selectedEl!, props.config);
-    defaultCssTxt = `${sel} {
+    defaultElCssTxt = `${sel} {
   /* Write css for selected element here */
 }
 `;
+  }
+
+  let defaultAnnCssTxt = config.annCSSStyle;
+  if (showCssEditorForAnnOnScreen && !defaultAnnCssTxt) {
+    defaultAnnCssTxt = getDefaultAnnCSSStyleText(props.config);
   }
 
   return (
@@ -403,7 +424,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   >
                     Apply CSS to element on screen
                   </GTags.PopoverMenuItem>
-                  <GTags.PopoverMenuItem className="disabled">
+                  <GTags.PopoverMenuItem onClick={() => {
+                    setShowCssEditorForAnnOnScreen(true);
+                  }}
+                  >
                     Apply CSS to annotation
                   </GTags.PopoverMenuItem>
                 </div>
@@ -416,21 +440,33 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </Tags.ActionPanelPopOverCon>
       }
       >
-        {showCssEditorForElOnScreen ? (
+        {
+          showCssEditorForAnnOnScreen && (
+            <CssEditor
+              content={defaultAnnCssTxt}
+              infoText={CSSEditorInfoText}
+              onSubmit={(cssStr) => {
+                const newConfig = updateAnnCssStyle(config, cssStr);
+                setConfig(newConfig);
+              }}
+              onCancel={() => {
+                const lcm = (window as any).__f_alcm__ as ALCM;
+                if (!lcm) return;
+                lcm.addAnnStyleTag(props.config.annCSSStyle);
+                setShowCssEditorForAnnOnScreen(false);
+              }}
+              onPreview={(cssStr: string) => {
+                const lcm = (window as any).__f_alcm__ as ALCM;
+                if (!lcm) return;
+                lcm.addAnnStyleTag(cssStr);
+              }}
+            />
+          )
+        }
+        {showCssEditorForElOnScreen && (
           <CssEditor
-            content={defaultCssTxt}
-            infoText={
-              <span>
-                Use variables
-                <pre>var(--fable-primary-color)</pre>
-                <pre>var(--fable-selection-color)</pre>
-                <pre>var(--fable-annotation-bg-color)</pre>
-                <pre>var(--fable-annotation-border-color)</pre>
-                <pre>var(--fable-annotation-font-color)</pre>
-                <pre>var(--fable-annotation-border-radius)</pre>
-                to use value from theme
-              </span>
-            }
+            content={defaultElCssTxt}
+            infoText={CSSEditorInfoText}
             onSubmit={(cssStr) => {
               unsubFn.current();
               unsubFn.current = () => {};
@@ -448,7 +484,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               unsubFn.current = lcm.previewCustomStyle(cssStr, props.selectedEl, props.config);
             }}
           />
-        ) : (
+        )}
+        {!showCssEditorForAnnOnScreen && !showCssEditorForElOnScreen && (
           <>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Primary color</GTags.Txt>

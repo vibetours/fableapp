@@ -205,6 +205,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   showOverlay: boolean;
   buttonLayout: AnnotationButtonLayoutType;
   targetElCssStyle: string;
+  annCSSStyle: string;
 }
 
 // TODO perform this conversion, client side

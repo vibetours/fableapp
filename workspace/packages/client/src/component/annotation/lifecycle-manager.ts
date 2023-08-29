@@ -292,8 +292,21 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     };
   }
 
+  addAnnStyleTag(styleStr: string):void {
+    const fableAnnOverrideStyleTagId = 'f-fable-override-ann-style';
+    let styleTag = this.doc.getElementById(fableAnnOverrideStyleTagId);
+    if (!styleTag) {
+      const umbrlDiv = getFableRtUmbrlDiv(this.doc);
+      styleTag = this.doc.createElement('style');
+      styleTag.setAttribute('id', fableAnnOverrideStyleTagId);
+      umbrlDiv.prepend(styleTag);
+    }
+    styleTag.innerHTML = this.exportTourThemeAsCssVar() + styleStr;
+  }
+
   private onScrollComplete = (el: HTMLElement, config: IAnnotationConfig): void => {
     this.render();
+    this.addAnnStyleTag(config.annCSSStyle);
     this.con!.style.visibility = 'visible';
     const undo1 = this.addCustomStyleSheetFor(el, config, config.targetElCssStyle);
     const undo2 = this.setCssSelectorForHighestProbalbleSpecificity(el, config);
