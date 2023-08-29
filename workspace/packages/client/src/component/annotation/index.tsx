@@ -26,6 +26,7 @@ interface IProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean;
+  maskBox: Rect | null;
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
@@ -335,7 +336,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         );
       }
 
-      const maskBoxPadding = HighlighterBase.getMaskPaddingWithBox(this.props.box, maskBoxRect);
+      const maskBoxPadding = this.props.maskBox
+        ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
+        : { left: 0, right: 0, top: 0, bottom: 0 };
 
       const LEFT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.left;
       const RIGHT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.right;
@@ -702,6 +705,7 @@ export interface IAnnProps {
   isPrevAnnVideo: boolean;
   hotspotBox?: Rect | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
+  maskBox: Rect | null;
 }
 
 interface IConProps {
@@ -854,6 +858,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             playMode={this.props.playMode}
             tourId={this.props.tourId}
             navigateToAdjacentAnn={navigateToAdjacentAnn}
+            maskBox={p.maskBox}
           />}
         </div>
       );

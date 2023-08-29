@@ -378,6 +378,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     for (const [_, [el, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       let box: Rect;
+      let maskBox: Rect | null = null;
       if (this.screenType === ScreenType.Img && annotationDisplayConfig.config.type === 'default') {
         const [x, y, width, height] = annotationDisplayConfig.config.id.split('-');
         box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
@@ -396,14 +397,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         isPrevAnnVideo,
       } = isPrevNextBtnLinksToVideoAnn(annotationDisplayConfig.config, this.allAnnotationsForTour);
 
-      props.push({
-        box,
-        conf: annotationDisplayConfig,
-        hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
-        isNextAnnVideo,
-        isPrevAnnVideo,
-        annotationSerialIdMap: this.annotationSerialIdMap,
-      });
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
         if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
@@ -420,6 +413,20 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           this.selectElementInDoc(el, el.ownerDocument);
         }
       }
+
+      if (this.maskEl) {
+        maskBox = this.getBoundingRectWrtRootFrame(this.maskEl);
+      }
+
+      props.push({
+        box,
+        conf: annotationDisplayConfig,
+        hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
+        isNextAnnVideo,
+        isPrevAnnVideo,
+        annotationSerialIdMap: this.annotationSerialIdMap,
+        maskBox
+      });
     }
 
     this.rRoot.render(
@@ -520,7 +527,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         conf: displayConf,
         isNextAnnVideo: false,
         isPrevAnnVideo: false,
-        annotationSerialIdMap: this.annotationSerialIdMap
+        annotationSerialIdMap: this.annotationSerialIdMap,
+        maskBox: null
       };
     });
 
