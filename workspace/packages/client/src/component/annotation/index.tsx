@@ -5,11 +5,12 @@ import {
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import React from 'react';
+import { sleep } from '@fable/common/dist/utils';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
-import { generateShadeColor } from './utils';
+import { generateShadeColor, getFableRtUmbrlDiv } from './utils';
 import { isVideoAnnotation as isVideoAnn } from '../../utils';
 import { logEvent } from '../../analytics/utils';
 import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
@@ -44,7 +45,8 @@ export class AnnotationContent extends React.PureComponent<{
   annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
-  isThemeAnnotation?: boolean
+  isThemeAnnotation?: boolean,
+  doc?: Document
 }> {
   static readonly MIN_WIDTH = 360;
 
@@ -58,12 +60,33 @@ export class AnnotationContent extends React.PureComponent<{
     this.annotationEntered = Date.now();
     if (this.props.onRender) {
       if (this.contentRef.current) {
-        const imgs = this.contentRef.current?.getElementsByTagName('img');
-        Promise.all(Array.from(imgs).map(img => new Promise(resolve => {
+        const annTextP = this.contentRef.current.querySelector('p')!;
+        const defaultFontFamily = this.props.opts.annotationFontFamily || getComputedStyle(annTextP).fontFamily;
+
+        let fontLoadingPromise: Promise<unknown> = Promise.resolve();
+        if (defaultFontFamily && this.props.doc) {
+          let timer = 0;
+          fontLoadingPromise = Promise.race([
+            sleep(3 * 1000),
+            new Promise((res) => {
+              timer = setInterval(() => {
+                const result = this.props.doc?.fonts.check(`1rem ${defaultFontFamily}`);
+                if (result) res(1);
+              }, 16) as unknown as number;
+            })
+          ]);
+          fontLoadingPromise.then(() => {
+            if (timer) clearInterval(timer);
+          });
+        }
+
+        const els: Array<HTMLImageElement | HTMLLinkElement> = Array.from(this.contentRef.current?.getElementsByTagName('img'));
+
+        Promise.all(els.map(img => new Promise(resolve => {
           img.onload = resolve;
           img.onerror = resolve;
           img.onabort = resolve;
-        }))).then(() => {
+        })).concat(fontLoadingPromise)).then(() => {
           requestAnimationFrame(() => this.props.onRender!(this.conRef.current!));
         });
       } else {
@@ -138,6 +161,7 @@ export class AnnotationContent extends React.PureComponent<{
               <Tags.Progress
                 bg={this.props.opts.annotationBodyBackgroundColor}
                 fg={this.props.opts.annotationFontColor}
+                fontFamily={this.props.opts.annotationFontFamily || 'inherit'}
                 className="f-progress"
               >
                   {serialId} of {totalAnnotations}

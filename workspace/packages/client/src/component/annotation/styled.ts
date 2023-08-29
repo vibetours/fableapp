@@ -126,11 +126,12 @@ export const ButtonCon = styled.div`
   )}
 `;
 
-export const Progress = styled.p<{bg: string; fg: string}>`
+export const Progress = styled.p<{bg: string; fg: string, fontFamily: string}>`
   font-size: 1rem;
   margin: 0;
   background-color: ${props => props.bg};
   color: ${props => props.fg}a8;
+  font-family: ${props => props.fontFamily};
 `;
 
 export const ABtn = styled.button`

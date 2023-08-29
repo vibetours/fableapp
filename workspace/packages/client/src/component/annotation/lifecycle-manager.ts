@@ -469,7 +469,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
 
     this.isAnnotationDrawingInProgress = true;
-    const dim = await this.probeForAnnotationSize(config);
+    const dim = await this.probeForAnnotationSize(config, opts);
 
     const key = config.id;
     if (!this.componentDisposed) {
@@ -561,7 +561,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     );
   }
 
-  private async probeForAnnotationSize(config: IAnnotationConfig): Promise<{
+  private async probeForAnnotationSize(config: IAnnotationConfig, opts: ITourDataOpts): Promise<{
     dimForSmallAnnotation: { w: number, h: number },
     dimForMediumAnnotation: { w: number, h: number },
     dimForLargeAnnotation: { w: number, h: number },
@@ -581,7 +581,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               isInDisplay: true,
               config,
               dir: 't',
-              opts: this.opts,
+              opts,
               width: smallWidth,
               top: -9999,
               left: -9999,
@@ -589,6 +589,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
+              doc: this.doc
             })
           )
         );
@@ -606,7 +607,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               isInDisplay: true,
               config,
               dir: 't',
-              opts: this.opts,
+              opts,
               width: mediumWidth,
               top: -9999,
               left: -9999,
@@ -614,6 +615,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
+              doc: this.doc
             })
           )
         );
@@ -630,7 +632,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               onRender: resolve,
               isInDisplay: true,
               config,
-              opts: this.opts,
+              opts,
               dir: 't',
               width: largeWidth,
               top: -9999,
@@ -639,6 +641,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
+              doc: this.doc
             })
           )
         );
