@@ -26,10 +26,3 @@ export type IUpdateButton = (
   actionValue: string | null,
   opts: ITourDataOpts | null | undefined
 ) => IAnnotationConfig
-
-export type ScreenPickerMode = 'create' | 'navigate';
-
-export enum DestinationAnnotationPosition {
-  next,
-  prev
-}

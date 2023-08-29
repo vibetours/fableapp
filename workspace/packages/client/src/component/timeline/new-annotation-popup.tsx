@@ -4,57 +4,29 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { ITourDataOpts } from '@fable/common/dist/types';
-import { getSampleConfig } from '@fable/common/dist/utils';
 import * as GTags from '../../common-styled';
 import { AnnUpdateType } from './types';
-import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
-import { addNextAnnotation, addPrevAnnotation } from '../annotation/ops';
-import ScreenPicker from '../../container/screen-picker';
+import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
+import { addNewAnn } from '../annotation/ops';
 
 type Props = {
-  position: 'prev' | 'next',
+  position: DestinationAnnotationPosition,
   allAnnotationsForTour: AnnotationPerScreen[],
   annotation: IAnnotationConfigWithScreen
   tourDataOpts: ITourDataOpts,
   hidePopup: () => void;
   raiseAlertIfOpsDenied: (msg?: string) => void;
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 }
 
 export default function NewAnnotationPopup(props: Props): ReactElement {
-  const [showScreenPicker, setShowScreenPicker] = useState(false);
-
-  const addCoverAnn = (screenId: number): void => {
-    const newAnnConfig = getSampleConfig('$', props.annotation.grpId);
-
-    let result;
-    if (props.position === 'prev') {
-      result = addPrevAnnotation(
-        { ...newAnnConfig, screenId },
-        props.annotation.refId,
-        props.allAnnotationsForTour,
-        props.tourDataOpts.main,
-      );
-    } else {
-      result = addNextAnnotation(
-        { ...newAnnConfig, screenId },
-        props.annotation.refId,
-        props.allAnnotationsForTour,
-        null,
-      );
-    }
-
-    if (result.status === 'denied') props.raiseAlertIfOpsDenied(result.deniedReason);
-    else props.applyAnnButtonLinkMutations(result);
-    props.hidePopup();
-  };
-
   return (
     <>
       <div>
         <div>
           <GTags.Txt className="title2">
-            Create a new annotation&nbsp;{props.position}
+            Create a new annotation&nbsp;
           </GTags.Txt>
           <div style={{
             borderTop: '1px solid #ddd',
@@ -64,27 +36,40 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
             gap: '0.25rem'
           }}
           >
-            <GTags.PopoverMenuItem onClick={() => addCoverAnn(props.annotation.screen.id)}>
+            <GTags.PopoverMenuItem onClick={() => {
+              addNewAnn(
+                props.allAnnotationsForTour,
+                {
+                  position: props.position,
+                  grpId: props.annotation.grpId,
+                  screenId: props.annotation.screen.id,
+                  refId: props.annotation.refId
+                },
+                props.tourDataOpts,
+                props.raiseAlertIfOpsDenied,
+                props.applyAnnButtonLinkMutations
+              );
+              props.hidePopup();
+            }}
+
+            >
               <FullscreenOutlined />&nbsp;&nbsp;&nbsp;Of type cover
             </GTags.PopoverMenuItem>
-            <GTags.PopoverMenuItem onClick={() => { setShowScreenPicker(true); }}>
+            <GTags.PopoverMenuItem onClick={() => {
+              props.shouldShowScreenPicker({
+                position: props.position,
+                annotation: props.annotation,
+                screenPickerMode: 'create',
+                showCloseButton: true
+              });
+              props.hidePopup();
+            }}
+            >
               <FileTextOutlined />&nbsp;&nbsp;&nbsp;By adding a new screen
             </GTags.PopoverMenuItem>
           </div>
         </div>
       </div>
-      {showScreenPicker && <ScreenPicker
-        hideScreenPicker={() => { setShowScreenPicker(false); props.hidePopup(); }}
-        screenPickerMode="create"
-        addCoverAnnToScreen={addCoverAnn}
-        addAnnotationData={{
-          pos: props.position,
-          refId: props.annotation.refId,
-          screenId: props.annotation.screen.id,
-          grpId: props.annotation.grpId
-        }}
-      />}
-
     </>
   );
 }

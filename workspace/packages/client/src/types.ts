@@ -146,3 +146,12 @@ export interface GlobalSettings {
 }
 
 export type FWin = Window & { __fable_global_settings__?: GlobalSettings }
+
+export type ScreenPickerMode = 'create' | 'navigate';
+
+export type ScreenPickerData = {
+  screenPickerMode: ScreenPickerMode;
+  annotation: IAnnotationConfigWithScreen | null,
+  position: DestinationAnnotationPosition,
+  showCloseButton: boolean
+}

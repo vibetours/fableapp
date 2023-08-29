@@ -1,9 +1,11 @@
 import { IAnnotationButton, IAnnotationConfig, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
+import { getSampleConfig } from '@fable/common/dist/utils';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
+import { AnnAdd } from '../../action/creator';
 
 function getValidNavigateValueForActionType(btn: IAnnotationButton): string | null {
   return isNavigateHotspot(btn.hotspot)
@@ -425,4 +427,43 @@ export const getAnnotationSerialIdMap = (
     refId = nextBtn.hotspot!.actionValue.split('/')[1];
   }
   return annotationSerialIdMap;
+};
+
+export const addNewAnn = (
+  allAnnotationsForTour: AnnotationPerScreen[],
+  annData: AnnAdd,
+  tourDataOpts: ITourDataOpts,
+  raiseAlertIfOpsDenied: (msg?: string) => void,
+  applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
+  id?: string | null,
+  clearRelayScreenAndAnnAdd?: () => void
+): IAnnotationConfig => {
+  const newAnnConfig = getSampleConfig(id || '$', annData.grpId);
+  const screenId = annData.screenId;
+  let result;
+  if (annData.position === DestinationAnnotationPosition.prev) {
+    result = addPrevAnnotation(
+      { ...newAnnConfig, screenId },
+      annData.refId,
+      allAnnotationsForTour,
+      tourDataOpts.main,
+    );
+  } else {
+    result = addNextAnnotation(
+      { ...newAnnConfig, screenId },
+      annData.refId,
+      allAnnotationsForTour,
+      null,
+    );
+  }
+
+  if (result.status === 'denied') raiseAlertIfOpsDenied(result.deniedReason);
+  else {
+    applyAnnButtonLinkMutations(result);
+    if (clearRelayScreenAndAnnAdd) {
+      clearRelayScreenAndAnnAdd();
+    }
+  }
+
+  return newAnnConfig;
 };

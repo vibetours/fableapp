@@ -3,10 +3,10 @@ import { ITourDataOpts } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import TimelineScreen from './screen';
 import TimelineItem from './item';
-import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, IAnnotationConfigWithScreen } from '../../types';
+import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
 import { P_RespScreen } from '../../entity-processor';
 import { reorderAnnotation } from '../annotation/ops';
-import { AnnUpdateType, DestinationAnnotationPosition } from './types';
+import { AnnUpdateType } from './types';
 
 interface Props {
   timeline: ConnectedOrderedAnnGroupedByScreen;
@@ -21,6 +21,7 @@ interface Props {
   goToSelectionMode: () => () => void;
   children: JSX.Element;
   setAlertMsg: (alertMsg?: string) => void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 }
 
 interface ReorderAnnotationProps {
@@ -100,6 +101,7 @@ export default function Timeline(props: Props): JSX.Element {
                       }
                     }
                     applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                    shouldShowScreenPicker={props.shouldShowScreenPicker}
                   >
                     {props.selectedAnnotationId === config.refId && (
                       <div style={{ color: 'black' }}>

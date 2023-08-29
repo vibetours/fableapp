@@ -8,17 +8,16 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import {
   AddScreenToTour,
-  AnnAdd, addScreenToTour,
+  addScreenToTour,
   getAllScreens,
   uploadImgScreenAndAddToTour
 } from '../../action/creator';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { AnnotationPerScreen } from '../../types';
+import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerMode } from '../../types';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import { getAnnotationsPerScreen } from '../../utils';
 import UploadImageScreen from './upload-image-screen';
-import { ScreenPickerMode } from '../../component/timeline/types';
 import CloseIcon from '../../assets/tour/close.svg';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import NextIcon from '../../assets/tour/next.svg';
@@ -69,9 +68,10 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
 interface IOwnProps {
   hideScreenPicker: () => void;
   screenPickerMode: ScreenPickerMode;
-  addAnnotationData?: AnnAdd;
-  addCoverAnnToScreen?: (screenId: number) => void;
-  dontShowCloseBtn?: boolean;
+  addAnnotationData: IAnnotationConfigWithScreen | null;
+  showCloseButton: boolean;
+  addCoverAnnToScreen: (screenId: number) => void;
+  position: DestinationAnnotationPosition,
 }
 
 type IProps = IOwnProps &
@@ -146,7 +146,6 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       screensPartOfTour: [],
       showUploadScreenImgModal: false,
       currentPage: 1,
-      // screenLoading: true,
     };
   }
 
@@ -192,25 +191,32 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
     const screenRid = screen.rid;
 
     if (this.props.screenPickerMode === 'create') {
-      this.props.addCoverAnnToScreen!(screenId);
+      this.props.addCoverAnnToScreen(screenId);
 
       // TODO[rrl] do this once api endpoint is completed
       setTimeout(() => {
         this.props.hideScreenPicker();
       }, 1000);
     } else {
+      this.props.hideScreenPicker();
       const url = `/tour/${this.props.tour!.rid}/${screenRid}`;
       this.props.navigate(url);
     }
   };
 
+  // eslint-disable-next-line class-methods-use-this
   handleAddScreenNotPartOfTour = (screen: P_RespScreen): void => {
     if (this.props.screenPickerMode === 'create') {
       this.props.addScreenToTour(
         screen,
         this.props.tour!.rid,
         false,
-        this.props.addAnnotationData!
+        {
+          position: this.props.position,
+          screenId: this.props.addAnnotationData!.screen.id,
+          grpId: this.props.addAnnotationData!.grpId,
+          refId: this.props.addAnnotationData!.refId
+        }
       );
 
       // TODO[rrl] do this once api endpoint is completed
@@ -245,7 +251,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       <>
         <Tags.ScreenPickerCon>
           {/* <Tags.PolkaDotGridBg /> */}
-          {!this.props.dontShowCloseBtn
+          {this.props.showCloseButton
           && <Tags.CloseIcon alt="" src={CloseIcon} onClick={this.props.hideScreenPicker} />}
           <Tags.FableLogo alt="" src={FableLogo} />
           {!this.props.screenLoadingFinished && <Loader width="100px" txtBefore="Loading all screens" />}

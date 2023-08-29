@@ -2,12 +2,12 @@ import { PlusCircleOutlined } from '@ant-design/icons';
 import { Button, Popover } from 'antd';
 import React from 'react';
 import { ITourDataOpts } from '@fable/common/dist/types';
-import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
+import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
 import { AnnUpdateType } from './types';
 import NewAnnotationPopup from './new-annotation-popup';
 
 interface Props {
-  position: 'prev' | 'next';
+  position: DestinationAnnotationPosition;
   allAnnotationsForTour: AnnotationPerScreen[];
   annotation: IAnnotationConfigWithScreen;
   tourDataOpts: ITourDataOpts;
@@ -18,6 +18,7 @@ interface Props {
   onOpenChange: (visible: boolean) => void;
   alignment: 'top' | 'bottom';
   setAlertMsg: (alertMsg?: string) => void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 }
 
 export default function AddAnnFloatingBtn({
@@ -31,7 +32,8 @@ export default function AddAnnFloatingBtn({
   showAddAnnButtons,
   onOpenChange,
   alignment,
-  setAlertMsg
+  setAlertMsg,
+  shouldShowScreenPicker
 }: Props):JSX.Element {
   return (
     <Popover
@@ -47,10 +49,13 @@ export default function AddAnnFloatingBtn({
           hidePopup={hidePopup}
           applyAnnButtonLinkMutations={applyAnnButtonLinkMutations}
           raiseAlertIfOpsDenied={setAlertMsg}
+          shouldShowScreenPicker={shouldShowScreenPicker}
         />
     }
       open={open}
-      onOpenChange={(visible: boolean) => onOpenChange(visible)}
+      onOpenChange={(visible: boolean) => {
+        onOpenChange(visible);
+      }}
     >
       <Button
         type="text"

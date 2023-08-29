@@ -1,13 +1,11 @@
 import { nanoid } from 'nanoid';
 import {
   IAnnotationConfig,
-  IAnnotationOriginConfig,
   ITourDataOpts,
   ITourDiganostics,
   LoadingStatus,
   ScreenData,
   ScreenDiagnostics,
-  TourData,
   TourDataWoScheme,
   TourScreenEntity
 } from '@fable/common/dist/types';
@@ -17,7 +15,7 @@ import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
+import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import Alert from 'antd/lib/alert';
 import {
   AnnAdd,
@@ -39,7 +37,7 @@ import {
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
-import ScreenEditor, { ITimelineConfig } from '../../component/screen-editor';
+import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -54,7 +52,8 @@ import {
   NavFn,
   IAnnotationConfigWithScreen,
   ConnectedOrderedAnnGroupedByScreen,
-  OrderedAnnGroupedByScreen
+  DestinationAnnotationPosition,
+  ScreenPickerData
 } from '../../types';
 import {
   generateTimelineOrder,
@@ -67,14 +66,14 @@ import {
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
 import {
-  addPrevAnnotation,
-  addNextAnnotation,
   getAnnotationSerialIdMap,
-  getAnnotationByRefId
+  getAnnotationByRefId,
+  addNewAnn
 } from '../../component/annotation/ops';
 import { AnnUpdateType } from '../../component/timeline/types';
 import Loader from '../../component/loader';
 import raiseDeferredError from '../../deferred-error';
+import ScreenPicker from '../screen-picker';
 
 interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
@@ -297,7 +296,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     relayAnnAdd: state.default.relayAnnAdd,
     annotationSerialIdMap,
     isAutoSaving: state.default.isAutoSaving,
-    tourDiagnostics: state.default.tourData?.diagnostics || {}
+    tourDiagnostics: state.default.tourData?.diagnostics || {},
   };
 };
 
@@ -315,6 +314,8 @@ type IProps = IOwnProps &
   }>;
 interface IOwnStateProps {
   alertMsg: string;
+  showScreenPicker: boolean;
+  screenPickerData: ScreenPickerData
 }
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
@@ -330,6 +331,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       alertMsg: '',
+      showScreenPicker: false,
+      screenPickerData: {
+        screenPickerMode: 'create',
+        annotation: null,
+        position: DestinationAnnotationPosition.next,
+        showCloseButton: true
+      },
     };
   }
 
@@ -352,29 +360,20 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if ((prevProps.relayScreenId !== this.props.relayScreenId
       || prevProps.relayAnnAdd !== this.props.relayAnnAdd)
       && (this.props.relayScreenId && this.props.relayAnnAdd)) {
-      const newAnnConfig = getSampleConfig('$', this.props.relayAnnAdd.grpId);
-      let result;
-      if (this.props.relayAnnAdd.pos === 'prev') {
-        result = addPrevAnnotation(
-          { ...newAnnConfig, screenId: this.props.relayScreenId },
-          this.props.relayAnnAdd.refId,
-          this.props.allAnnotationsForTour,
-          this.props.tourOpts.main,
-        );
-      } else {
-        result = addNextAnnotation(
-          { ...newAnnConfig, screenId: this.props.relayScreenId },
-          this.props.relayAnnAdd.refId,
-          this.props.allAnnotationsForTour,
-          null,
-        );
-      }
-
-      if (result.status === 'denied') this.showHideAlert(result.deniedReason);
-      else {
-        this.applyAnnButtonLinkMutations(result);
-        this.props.clearRelayScreenAndAnnAdd();
-      }
+      addNewAnn(
+        this.props.allAnnotationsForTour,
+        {
+          position: this.props.relayAnnAdd.position,
+          refId: this.props.relayAnnAdd.refId,
+          screenId: this.props.relayScreenId,
+          grpId: this.props.relayAnnAdd.grpId
+        },
+        this.props.tourOpts,
+        this.showHideAlert,
+        this.applyAnnButtonLinkMutations,
+        null,
+        this.props.clearRelayScreenAndAnnAdd
+      );
     }
   }
 
@@ -544,6 +543,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return warnings;
   }
 
+  updateShowScreenPicker = (newScreenPickerData: ScreenPickerData) : void => {
+    this.setState({ showScreenPicker: true, screenPickerData: newScreenPickerData });
+  };
+
   render(): ReactElement {
     if (!this.isLoadingComplete()) {
       return (
@@ -604,6 +607,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 )
               }
               applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
+              shouldShowScreenPicker={this.updateShowScreenPicker}
             />
           ) : (this.isLoadingComplete() ? (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -621,6 +625,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 tour={this.props.tour!}
                 timeline={this.props.timeline}
                 commitTx={this.commitTx}
+                shouldShowScreenPicker={this.updateShowScreenPicker}
               />
             </div>
           ) : (<HeartLoader />)
@@ -633,6 +638,26 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             showIcon
             closable
             onClose={() => this.setState({ alertMsg: '' })}
+          />}
+          { this.state.showScreenPicker
+          && <ScreenPicker
+            hideScreenPicker={() => { this.setState({ showScreenPicker: false }); }}
+            screenPickerMode={this.state.screenPickerData.screenPickerMode}
+            addCoverAnnToScreen={(screenId) => addNewAnn(
+              this.props.allAnnotationsForTour,
+              {
+                position: this.state.screenPickerData.position,
+                refId: this.state.screenPickerData.annotation!.refId,
+                screenId,
+                grpId: this.state.screenPickerData.annotation!.grpId
+              },
+              this.props.tourOpts,
+              this.showHideAlert,
+              this.applyAnnButtonLinkMutations,
+            )}
+            addAnnotationData={this.state.screenPickerData.annotation}
+            showCloseButton={this.state.screenPickerData.showCloseButton}
+            position={this.state.screenPickerData.position}
           />}
         </GTags.BodyCon>
       </GTags.ColCon>

@@ -10,9 +10,9 @@ import { ITourDataOpts } from '@fable/common/dist/types';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import * as PTags from '../screen-editor/styled';
 import * as Tags from './styled';
-import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
+import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
 import { P_RespScreen } from '../../entity-processor';
-import { AnnUpdateType, DestinationAnnotationPosition } from './types';
+import { AnnUpdateType } from './types';
 import AddAnnFloatingBtn from './add-ann-floating-btn';
 
 type Props = {
@@ -35,6 +35,7 @@ type Props = {
   tourDataOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   setAlertMsg: (alertMsg?: string) => void,
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 }
 
 export enum HoveredSection {
@@ -60,7 +61,8 @@ export default function TimelineItem(props: Props): JSX.Element {
     setDesinationAnnotationPosition,
     reorderAnnotation,
     children,
-    setAlertMsg
+    setAlertMsg,
+    shouldShowScreenPicker
   } = props;
 
   const [showAddAnnButtons, setShowAddBtns] = useState(false);
@@ -102,7 +104,7 @@ export default function TimelineItem(props: Props): JSX.Element {
         style={{ position: 'relative' }}
       >
         <AddAnnFloatingBtn
-          position="prev"
+          position={DestinationAnnotationPosition.prev}
           allAnnotationsForTour={props.allAnnotationsForTour}
           annotation={config}
           tourDataOpts={props.tourDataOpts}
@@ -113,6 +115,7 @@ export default function TimelineItem(props: Props): JSX.Element {
           onOpenChange={(visible: boolean) => setShowBeforeAnnPopup(visible)}
           alignment="top"
           setAlertMsg={setAlertMsg}
+          shouldShowScreenPicker={shouldShowScreenPicker}
         />
 
         <Tooltip
@@ -129,7 +132,7 @@ export default function TimelineItem(props: Props): JSX.Element {
         </Tooltip>
 
         <AddAnnFloatingBtn
-          position="next"
+          position={DestinationAnnotationPosition.next}
           allAnnotationsForTour={props.allAnnotationsForTour}
           setAlertMsg={setAlertMsg}
           annotation={config}
@@ -140,6 +143,7 @@ export default function TimelineItem(props: Props): JSX.Element {
           showAddAnnButtons={showAddAnnButtons}
           onOpenChange={(visible: boolean) => setShowAfterAnnPopup(visible)}
           alignment="bottom"
+          shouldShowScreenPicker={shouldShowScreenPicker}
         />
 
       </div>

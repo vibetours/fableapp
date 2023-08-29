@@ -27,6 +27,7 @@ import {
   ConnectedOrderedAnnGroupedByScreen,
   DestinationAnnotationPosition,
   NavFn,
+  ScreenPickerData,
   TourDataChangeFn
 } from '../../types';
 import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
@@ -43,7 +44,6 @@ import {
 } from './types';
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
-import ScreenPicker from '../../container/screen-picker';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
 
 const { confirm } = Modal;
@@ -61,6 +61,7 @@ type CanvasProps = {
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -140,12 +141,18 @@ const initialAddScreenModal: AnnAddScreenModal = {
   screenAnnotation: null
 };
 
+const newScreenPickerData: ScreenPickerData = {
+  screenPickerMode: 'navigate',
+  annotation: null,
+  position: DestinationAnnotationPosition.next,
+  showCloseButton: true,
+};
+
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
   const svgRef = useRef<SVGSVGElement | null>(null);
   const rootGRef = useRef<SVGGElement | null>(null);
-  const [showScreenSelector, setShowScreenSelector] = useState(false);
   const ctxData = useRef<CtxSelectionData | null>(null);
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
@@ -658,7 +665,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
     if (nodeWithDim.length === 0) {
       setNoAnnotationsPresent(true);
-      setShowScreenSelector(true);
+      props.shouldShowScreenPicker({ ...newScreenPickerData, showCloseButton: false });
     }
 
     const nodeLookup = nodeWithDim.reduce((hm, n) => {
@@ -1038,7 +1045,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           >
             <div>
               <Button
-                onClick={() => setShowScreenSelector(!showScreenSelector)}
+                onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
                 icon={<img src={newScreenDark} alt="new screen" />}
                 size="middle"
                 style={{
@@ -1050,12 +1057,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           </Tooltip>
         </Tags.CanvasMenuItemCon>
       </Tags.CanvasMenuCon>
-      {showScreenSelector
-        && <ScreenPicker
-          hideScreenPicker={() => !noAnnotationsPresent && setShowScreenSelector(false)}
-          screenPickerMode="navigate"
-          dontShowCloseBtn={noAnnotationsPresent}
-        />}
       {isMenuModalVisible(connectorMenuModalData.position) && (
         <Tags.MenuModalMask onClick={() => {
           ctxData.current = null;
@@ -1145,13 +1146,15 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         >
           <Tags.MenuModal xy={addScreenModalData.position} onClick={prevent}>
             <NewAnnotationPopup
-              position={addScreenModalData.annotationPosition}
+              position={addScreenModalData.annotationPosition === 'next'
+                ? DestinationAnnotationPosition.next : DestinationAnnotationPosition.prev}
               allAnnotationsForTour={props.allAnnotationsForTour}
               annotation={addScreenModalData.screenAnnotation}
               tourDataOpts={props.tourOpts}
               hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
               raiseAlertIfOpsDenied={props.setAlert}
               applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+              shouldShowScreenPicker={props.shouldShowScreenPicker}
             />
           </Tags.MenuModal>
         </Tags.MenuModalMask>

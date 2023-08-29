@@ -5,8 +5,7 @@ import {
   FilterOutlined,
   FontSizeOutlined,
   LoadingOutlined,
-  PictureOutlined, PlusOutlined,
-  SelectOutlined
+  PictureOutlined, PlusOutlined
 } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
@@ -31,13 +30,14 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
   IdxEncodingTypeMask,
-  NavFn
+  NavFn,
+  ScreenPickerData
 } from '../../types';
 import {
   shallowCloneAnnotation,
   IAnnotationConfigWithScreenId,
 } from '../annotation/annotation-config-utils';
-import { addNextAnnotation, addPrevAnnotation, AnnotationSerialIdMap, getAnnotationBtn } from '../annotation/ops';
+import { AnnotationSerialIdMap, addNewAnn, getAnnotationBtn } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
 import Timeline from '../timeline';
 import { AnnUpdateType } from '../timeline/types';
@@ -107,6 +107,7 @@ interface IOwnProps {
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
   commitTx: (tx: Tx) => void;
   setAlert: (msg?: string) => void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
 }
 
 const enum ElSelReqType {
@@ -651,25 +652,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const opts: ITourDataOpts = this.props.tourDataOpts;
     if (this.props.allAnnotationsForScreen.length) {
       const [destAnn, pos] = this.findPositionToAddAnnotation();
-      conf = getSampleConfig(id, destAnn.grpId);
-      let result;
-      if (pos === DestinationAnnotationPosition.prev) {
-        result = addPrevAnnotation(
-          { ...conf, screenId: this.props.screen.id },
-          destAnn.refId,
-          this.props.allAnnotationsForTour,
-          opts.main,
-        );
-      } else {
-        result = addNextAnnotation(
-          { ...conf, screenId: this.props.screen.id },
-          destAnn.refId,
-          this.props.allAnnotationsForTour,
-          null
-        );
-      }
-      if (result.status === 'denied') this.props.setAlert(result.deniedReason);
-      else this.props.applyAnnButtonLinkMutations(result);
+      conf = addNewAnn(
+        this.props.allAnnotationsForTour,
+        {
+          position: pos,
+          refId: destAnn.refId,
+          screenId: this.props.screen.id,
+          grpId: destAnn.grpId
+        },
+        opts,
+        this.props.setAlert,
+        this.props.applyAnnButtonLinkMutations,
+        id
+      );
     } else {
       conf = getSampleConfig(id, nanoid());
       this.createAnnotationForTheFirstTime(conf);
@@ -1114,6 +1109,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     selectedAnnotationId={this.state.selectedAnnotationId}
                     goToSelectionMode={this.goToSelectionMode}
                     setAlertMsg={this.props.setAlert}
+                    shouldShowScreenPicker={this.props.shouldShowScreenPicker}
                   >
                     <AnnotationCreatorPanel
                       setAlertMsg={this.props.setAlert}

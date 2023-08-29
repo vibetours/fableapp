@@ -48,7 +48,7 @@ import {
   P_RespTour
 } from '../entity-processor';
 import { TState } from '../reducer';
-import { AllEdits, EditItem, ElEditType, Ops } from '../types';
+import { AllEdits, DestinationAnnotationPosition, EditItem, ElEditType, Ops } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 
@@ -355,7 +355,7 @@ export interface TAddScreenEntities {
 }
 
 export type AnnAdd = {
-  pos: 'prev' | 'next',
+  position: DestinationAnnotationPosition,
   refId: string,
   screenId: number,
   grpId: string
