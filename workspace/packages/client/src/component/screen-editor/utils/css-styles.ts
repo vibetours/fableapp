@@ -11,28 +11,28 @@ ${cssSelector} {
 }
 
 /* Inner container */
-${cssSelector} .inner-con {
+${cssSelector} .f-inner-con {
 
 }
 
 /* Text content */
-${cssSelector} .text p {
+${cssSelector} .f-text p {
 
 }
 
 /* Button container */
-${cssSelector} .button-con {
+${cssSelector} .f-button-con {
 
 }
 
 ${buttonTexts.map(btnText => ` /* ${btnText} button */
-${cssSelector} .${generateCSSSelectorFromText(btnText)}-btn {
+${cssSelector} .f-${generateCSSSelectorFromText(btnText)}-btn {
 
 }
 
 `).join('')}
 /* Progress indicator */
-${cssSelector} .progress {
+${cssSelector} .f-progress {
 
 }
 

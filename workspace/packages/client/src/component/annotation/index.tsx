@@ -113,7 +113,7 @@ export class AnnotationContent extends React.PureComponent<{
       >
         <Tags.AnInnerContainer
           anPadding={this.props.opts.annotationPadding.trim()}
-          className="inner-con"
+          className="f-inner-con"
         >
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
@@ -123,7 +123,7 @@ export class AnnotationContent extends React.PureComponent<{
             ref={this.contentRef}
             borderRadius={this.props.opts.borderRadius}
             dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
-            className="text"
+            className="f-text"
           />
           {btns.length > 0 && (
             <Tags.ButtonCon
@@ -132,13 +132,13 @@ export class AnnotationContent extends React.PureComponent<{
               btnLength={btns.length}
               flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
               anPadding={this.props.opts.annotationPadding.trim()}
-              className="button-con"
+              className="f-button-con"
             >
               {Boolean(serialId) && (
               <Tags.Progress
                 bg={this.props.opts.annotationBodyBackgroundColor}
                 fg={this.props.opts.annotationFontColor}
-                className="progress"
+                className="f-progress"
               >
                   {serialId} of {totalAnnotations}
               </Tags.Progress>
@@ -146,7 +146,7 @@ export class AnnotationContent extends React.PureComponent<{
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
                   bg={this.props.opts.annotationBodyBackgroundColor}
-                  className={`${generateCSSSelectorFromText(btnConf.text)}-btn`}
+                  className={`f-${generateCSSSelectorFromText(btnConf.text)}-btn`}
                   idx={idx}
                   key={btnConf.id}
                   btnStyle={btnConf.style}
