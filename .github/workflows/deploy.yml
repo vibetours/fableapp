@@ -75,6 +75,7 @@ jobs:
           sourcemaps: ./workspace/packages/ext-tour/build
           version: ${{ vars.SENTRY_EXTENSION_PROJECT }}@${{ steps.version.outputs.version }}
           url_prefix: '~/'
+          ignore_missing: true
         if: env.DEPLOY_ENV == 'prod'
 
       - name: Remove map files from Extension build
@@ -98,6 +99,7 @@ jobs:
           sourcemaps: ./workspace/packages/client/build
           version: ${{ vars.SENTRY_CLIENT_PROJECT }}@${{ steps.version.outputs.version }}
           url_prefix: '~/'
+          ignore_missing: true
         if: env.DEPLOY_ENV == 'prod'
 
       - name: Remove map files from Client build
