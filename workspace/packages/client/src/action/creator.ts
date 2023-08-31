@@ -197,7 +197,7 @@ export function fetchOrg(fetchImplicitOrg = false) {
       type: ActionType.ORG,
       org: org.rid ? org : null,
     });
-    dispatch(getSubscriptionOrCheckoutNew(org));
+    if (!fetchImplicitOrg) dispatch(getSubscriptionOrCheckoutNew(org));
   };
 }
 
