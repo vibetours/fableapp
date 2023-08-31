@@ -1,5 +1,5 @@
 import { Action } from 'redux';
-import { RespCommonConfig, RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { RespCommonConfig, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import {
   EditFile,
   IAnnotationConfig,
@@ -26,9 +26,12 @@ import {
   TAddScreenEntities,
   AnnAdd,
   TAutosaving,
-  TTourDelete
+  TTourDelete,
+  TSubs,
+  TGetAllUsers,
+  TUserPropChange
 } from '../action/creator';
-import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour } from '../entity-processor';
+import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
 
 export const initialState: {
@@ -38,9 +41,12 @@ export const initialState: {
   allScreens: Array<P_RespScreen>;
   principal: RespUser | null;
   principalLoadingStatus: LoadingStatus;
-  orgs: RespOrg[];
+  org: RespOrg | null;
+  subs: P_RespSubscription | null;
   orgsLoadingStatus: LoadingStatus;
   allScreensLoadingStatus: LoadingStatus;
+  allUsersLoadingStatus: LoadingStatus;
+  users: Array<RespUser>;
   tours: Array<P_RespTour>;
   allToursLoadingStatus: LoadingStatus;
   screenData: Record<string, ScreenData>;
@@ -78,7 +84,10 @@ export const initialState: {
   principalLoadingStatus: LoadingStatus.NotStarted,
   orgsLoadingStatus: LoadingStatus.NotStarted,
   principal: null,
-  orgs: [],
+  org: null,
+  subs: null,
+  allUsersLoadingStatus: LoadingStatus.NotStarted,
+  users: [],
   currentScreen: null,
   screenData: {},
   screenEdits: {},
@@ -162,11 +171,43 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
-    case ActionType.GET_ORGS: {
+    case ActionType.ORG: {
       const tAction = action as TGetOrg;
       const newState = { ...state };
-      newState.orgs = tAction.orgs;
+      newState.org = tAction.org;
       newState.orgsLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.SUBS: {
+      const tAction = action as TSubs;
+      const newState = { ...state };
+      newState.subs = tAction.subs;
+      return newState;
+    }
+
+    case ActionType.ALL_USERS_FOR_ORG_LOADING: {
+      const newState = { ...state };
+      newState.allUsersLoadingStatus = LoadingStatus.InProgress;
+      return newState;
+    }
+
+    case ActionType.ALL_USERS_FOR_ORG_LOADED: {
+      const tAction = action as TGetAllUsers;
+      const newState = { ...state };
+      newState.users = tAction.users;
+      newState.allUsersLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.USER_UPDATED: {
+      const tAction = action as TUserPropChange;
+      const newState = { ...state };
+      const newUsers = newState.users.map(u => {
+        if (u.id === tAction.user.id) return tAction.user;
+        return u;
+      });
+      newState.users = newUsers;
       return newState;
     }
 

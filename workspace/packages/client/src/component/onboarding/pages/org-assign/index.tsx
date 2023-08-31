@@ -10,10 +10,10 @@ import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/org-assign-browser.png';
 
 interface Props {
-  orgs: RespOrg[];
+  org: RespOrg;
 }
 
-export default function OrgAssign({ orgs }: Props): JSX.Element {
+export default function OrgAssign({ org }: Props): JSX.Element {
   const handleOnOrgJoin = async (): Promise<void> => {
     // Right now there is no option to choose from org, hence we always assign the user to
     // default org
@@ -49,41 +49,39 @@ export default function OrgAssign({ orgs }: Props): JSX.Element {
           </CTags.Subtitle>
 
           <CTags.FlexColContainer>
-            {orgs.map(org => (
-              <Tags.CardCon key={org.rid}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1.5rem'
-                }}
-                >
-                  <img
-                    src={PlaceholderPicture}
-                    alt="avatar"
-                    style={{ width: '3rem', borderRadius: '50%', aspectRatio: 1 }}
-                  />
+            <Tags.CardCon key={org.rid}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1.5rem'
+              }}
+              >
+                <img
+                  src={PlaceholderPicture}
+                  alt="avatar"
+                  style={{ width: '3rem', borderRadius: '50%', aspectRatio: 1 }}
+                />
 
-                  <Tags.CardTitle>
-                    {org.displayName}
-                  </Tags.CardTitle>
-                </div>
-                <Button
-                  iconPlacement="left"
-                  type="button"
-                  onClick={handleOnOrgJoin}
-                  icon={
-                    <img
-                      src={Plus}
-                      alt=""
-                      width="14"
-                      height="14"
-                    />
+                <Tags.CardTitle>
+                  {org.displayName}
+                </Tags.CardTitle>
+              </div>
+              <Button
+                iconPlacement="left"
+                type="button"
+                onClick={handleOnOrgJoin}
+                icon={
+                  <img
+                    src={Plus}
+                    alt=""
+                    width="14"
+                    height="14"
+                  />
                 }
-                >
-                  Join
-                </Button>
-              </Tags.CardCon>
-            ))}
+              >
+                Join
+              </Button>
+            </Tags.CardCon>
           </CTags.FlexColContainer>
 
         </CTags.FlexColContainer>

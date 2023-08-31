@@ -11,14 +11,13 @@ import Header from '../../component/header';
 import Loader from '../../component/loader';
 import SidePanel from '../../component/side-panel';
 import SkipLink from '../../component/skip-link';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { Ops } from '../../types';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import Input from '../../component/input';
-// import EmptyTourState from './empty-state';
 import TourCard from '../../component/tour/tour-card';
 import EmptyTourState from '../../component/tour/empty-state';
 import { Text } from './styled';
@@ -48,6 +47,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 
 interface IAppStateProps {
   tours: P_RespTour[];
+  subs: P_RespSubscription | null;
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
   opsInProgress: Ops
@@ -55,6 +55,7 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
+  subs: state.default.subs,
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
@@ -189,11 +190,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon className="tour-con">
         <SkipLink />
         <div style={{ height: '48px' }}>
-          <Header shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
+          <Header subs={this.props.subs} shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>
-            <SidePanel selected="tours" />
+            <SidePanel selected="tours" subs={this.props.subs} />
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }} id="main">

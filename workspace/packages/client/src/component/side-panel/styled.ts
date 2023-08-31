@@ -63,7 +63,6 @@ export const Footer = styled.div`
 export const FooterItem = styled.div`
   display: flex;
   align-items: center;
-  cursor: pointer;
 
   p {
     margin: 0 0.8rem;

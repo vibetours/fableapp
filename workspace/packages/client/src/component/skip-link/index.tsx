@@ -16,11 +16,11 @@ class SkipLink extends React.Component<IOwnProps, IOwnStateProps> {
     this.portalContainer = document.createElement('div');
   }
 
-  componentDidMount() {
+  componentDidMount(): void {
     this.portalRoot.prepend(this.portalContainer);
   }
 
-  componentWillUnmount() {
+  componentWillUnmount(): void {
     this.portalRoot.removeChild(this.portalContainer);
   }
 

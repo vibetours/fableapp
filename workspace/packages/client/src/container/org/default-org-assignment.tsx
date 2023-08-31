@@ -3,7 +3,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { fetchOrgs, assignImplicitOrgToUser } from '../../action/creator';
+import { fetchOrg, assignImplicitOrgToUser } from '../../action/creator';
 import OrgAssign from '../../component/onboarding/pages/org-assign';
 import RootLayout from '../../component/onboarding/root-layout';
 
@@ -12,15 +12,15 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
-  fetchOrgs: () => dispatch(fetchOrgs()),
+  fetchOrgs: () => dispatch(fetchOrg(true)),
 });
 
 interface IAppStateProps {
-  orgs: RespOrg[],
+  org: RespOrg | null,
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
-  orgs: state.default.orgs,
+  org: state.default.org,
 });
 
 interface IOwnProps {
@@ -39,7 +39,9 @@ class DefaultOrgAssignment extends React.PureComponent<IProps, IOwnStateProps> {
   render(): React.ReactNode {
     return (
       <RootLayout>
-        <OrgAssign orgs={this.props.orgs} />
+        {this.props.org && (
+          <OrgAssign org={this.props.org} />
+        )}
       </RootLayout>
     );
   }

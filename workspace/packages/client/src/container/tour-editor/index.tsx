@@ -39,7 +39,7 @@ import {
 import Header from '../../component/header';
 import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
-import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
+import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
@@ -197,6 +197,7 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
   screenData: ScreenData | null;
+  subs: P_RespSubscription | null;
   isScreenLoaded: boolean;
   isTourLoaded: boolean;
   flattenedScreens: P_RespScreen[];
@@ -286,6 +287,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     screenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     allEdits,
+    subs: state.default.subs,
     isMainValid,
     timeline: state.default.tourLoaded ? getTimeLine(allAnnotationsForTour, state.default.currentTour!) : [],
     allAnnotationsForScreen,
@@ -561,6 +563,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <GTags.HeaderCon>
           <Header
             navigateToWhenLogoIsClicked="/tours"
+            subs={this.props.subs}
             titleElOnLeft={this.getHeaderTxtEl()}
             leftElGroups={this.getHeaderLeftGroup()}
             principal={this.props.principal}

@@ -155,3 +155,5 @@ export type ScreenPickerData = {
   position: DestinationAnnotationPosition,
   showCloseButton: boolean
 }
+
+export const STORAGE_PREFIX_KEY_QUERY_PARAMS = 'fable/qp';

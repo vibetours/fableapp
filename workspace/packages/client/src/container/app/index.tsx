@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
 import Tours from '../tours';
+import UserManagement from '../user-management';
+import Billing from '../billing';
 import TourEditor from '../tour-editor';
 import Player from '../player';
 import Form from '../form';
@@ -24,6 +26,8 @@ import ProtectedRoutes from '../protected-routes';
 import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
+import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
+import raiseDeferredError from '../../deferred-error';
 
 interface IDispatchProps {
   init: () => void;
@@ -49,6 +53,18 @@ interface IOwnStateProps { }
 
 class App extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
+    const queryParamsStr = window.location.search.substring(1);
+    try {
+      const params = new URLSearchParams(queryParamsStr);
+      ['wpp', 'wpd'].forEach(name => {
+        const value = params.get(name);
+        if (!value) return;
+        localStorage.setItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/${name}`, value);
+      });
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+
     this.props.init();
   }
 
@@ -76,6 +92,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
               <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select Organization" />} />
               <Route path="/tours" element={<Tours title="Fable - Tours" />} />
+              <Route path="/users" element={<UserManagement title="Fable - User Management" />} />
+              <Route path="/billing" element={<Billing title="Fable - Billing & Subscription" />} />
               <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/a/tour/:tourId" element={<Analytics />} />

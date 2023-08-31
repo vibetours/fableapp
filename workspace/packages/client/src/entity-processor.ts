@@ -1,4 +1,4 @@
-import { RespScreen, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
+import { RespScreen, RespSubscription, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
 import { deepcopy, getDefaultTourOpts, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
@@ -23,6 +23,34 @@ import {
   IdxEncodingTypeMask
 } from './types';
 import { isVideoAnnotation as isVideoAnn } from './utils';
+
+function getNumberOfDaysFromNow(d: Date): [string, number] {
+  const msDiffs = +d - +new Date();
+  const days = Math.ceil(msDiffs / (1000 * 60 * 60 * 24)) - 1;
+  if (days >= 2) return [`in ${days} days`, days];
+  if (days >= 1) return ['Tomorrow', days];
+  if (days >= 0) return ['Today', days];
+  return ['', days];
+}
+
+export interface P_RespSubscription extends RespSubscription {
+  dTrialEndsOn: Date;
+  dTrialStartedOn: Date;
+  displayableTrialEndsOn: String;
+}
+
+export function processRawSubscriptionData(sub: RespSubscription): P_RespSubscription {
+  const d = new Date(sub.trialEndsOn);
+  const [readableDays, days] = getNumberOfDaysFromNow(d);
+  return {
+    ...sub,
+    dTrialEndsOn: d,
+    dTrialStartedOn: new Date(sub.trialStartedOn),
+    displayableTrialEndsOn: readableDays ? `Expiring ${readableDays}` : 'Expired'
+  };
+}
+
+/* ************************************************************************* */
 
 export interface P_RespScreen extends RespScreen {
   urlStructured: URL;

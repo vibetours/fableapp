@@ -22,12 +22,19 @@ import {
   RespTourWithScreens,
   ReqNewScreen,
   ReqThumbnailCreation,
-  ReqTourRid
+  ReqTourRid,
+  UserOrgAssociation,
+  ReqSubscriptionInfo,
+  Plan as PaymentTermsPlan,
+  Interval as PaymentTermsInterval,
+  RespSubscription,
+  ReqActivateOrDeactivateUser,
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
+  LoadingStatus,
   ScreenData,
   TourData,
   TourDataWoScheme,
@@ -43,12 +50,21 @@ import {
   mergeEdits,
   mergeTourData,
   processRawScreenData,
+  processRawSubscriptionData,
   processRawTourData,
   P_RespScreen,
+  P_RespSubscription,
   P_RespTour
 } from '../entity-processor';
 import { TState } from '../reducer';
-import { AllEdits, DestinationAnnotationPosition, EditItem, ElEditType, Ops } from '../types';
+import {
+  AllEdits,
+  DestinationAnnotationPosition,
+  EditItem,
+  ElEditType,
+  Ops,
+  STORAGE_PREFIX_KEY_QUERY_PARAMS
+} from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 
@@ -58,7 +74,8 @@ export interface TGenericLoading {
       | ActionType.ALL_TOURS_LOADING
       | ActionType.USER_LOADING
       | ActionType.TOUR_LOADING
-      | ActionType.ORG_LOADING ;
+      | ActionType.ORG_LOADING
+      | ActionType.ALL_USERS_FOR_ORG_LOADING;
   shouldCache?: boolean;
 }
 
@@ -101,7 +118,7 @@ export interface TIAm {
 }
 
 export function iam() {
-  return async (dispatch: Dispatch<TIAm | TGenericLoading>) => {
+  return async (dispatch: Dispatch<TIAm | TGenericLoading | ReturnType<typeof fetchOrg>>) => {
     dispatch({
       type: ActionType.USER_LOADING,
     });
@@ -112,12 +129,15 @@ export function iam() {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      org: user.belongsToOrg,
     });
     dispatch({
       type: ActionType.IAM,
       user
     });
+
+    if (user.orgAssociation === UserOrgAssociation.Explicit) {
+      dispatch(fetchOrg());
+    }
   };
 }
 
@@ -158,27 +178,107 @@ export function createOrg(displayName: string) {
 }
 
 export interface TGetOrg {
-  type: ActionType.GET_ORGS;
-  orgs: RespOrg[];
+  type: ActionType.ORG;
+  org: RespOrg | null;
 }
 
-export function fetchOrgs() {
-  return async (dispatch: Dispatch<TGetOrg | TGenericLoading>) => {
+export function fetchOrg(fetchImplicitOrg = false) {
+  return async (
+    dispatch: Dispatch<TGetOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew>>,
+    getState: () => TState
+  ) => {
+    const state = getState();
     dispatch({
       type: ActionType.ORG_LOADING,
     });
-    const data = await api<null, ApiResp<RespOrg[]>>('/orgforiam', { auth: true });
-    const orgs = data.data;
+    const data = await api<null, ApiResp<RespOrg>>(`/org?if=${+fetchImplicitOrg}`, { auth: true });
+    const org = data.data;
     dispatch({
-      type: ActionType.GET_ORGS,
-      orgs,
+      type: ActionType.ORG,
+      org: org.rid ? org : null,
     });
+    dispatch(getSubscriptionOrCheckoutNew(org));
   };
 }
 
 export function assignImplicitOrgToUser() {
   return async () => {
     const data = await api<null, ApiResp<RespOrg>>('/assgnimplorg', { auth: true, method: 'POST' });
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TSubs {
+  type: ActionType.SUBS;
+  subs: P_RespSubscription;
+}
+
+export function checkout(chosenPlan: 'pro' | 'business', chosenInterval: 'annual' | 'monthly') {
+  return async (dispatch: Dispatch<TSubs>, getState: () => TState) => {
+    let plan: PaymentTermsPlan | null = null;
+    switch (chosenPlan.toUpperCase()) {
+      case 'PRO':
+        plan = PaymentTermsPlan.PRO;
+        break;
+
+      case 'BUSINESS':
+        plan = PaymentTermsPlan.BUSINESS;
+        break;
+
+      default:
+        plan = null;
+        break;
+    }
+
+    let interval: PaymentTermsInterval | null = null;
+    switch (chosenInterval.toUpperCase()) {
+      case 'ANNUAL':
+        interval = PaymentTermsInterval.YEARLY;
+        break;
+
+      case 'MONTHLY':
+        interval = PaymentTermsInterval.MONTHLY;
+        break;
+
+      default:
+        interval = null;
+        break;
+    }
+
+    const data = await api<ReqSubscriptionInfo, ApiResp<RespSubscription>>('/checkout', {
+      method: 'POST',
+      body: {
+        pricingPlan: plan!,
+        pricingInterval: interval!,
+      }
+    });
+    const subs = data.data;
+
+    dispatch({
+      type: ActionType.SUBS,
+      subs: processRawSubscriptionData(subs),
+    });
+  };
+}
+
+export function getSubscriptionOrCheckoutNew(org: RespOrg) {
+  return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout>>, getState: () => TState) => {
+    const data = await api<null, ApiResp<RespSubscription>>('/subs', { auth: true });
+    const subs = data.data;
+    if (subs) {
+      dispatch({
+        type: ActionType.SUBS,
+        subs: processRawSubscriptionData(subs),
+      });
+    } else {
+      const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
+      const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';
+      dispatch(checkout(chosenPlan as any, chosenInterval as any));
+    }
+
+    localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
+    localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
   };
 }
 
@@ -795,6 +895,48 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
     dispatch({
       type: ActionType.AUTOSAVING,
       isAutosaving: false
+    });
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TGetAllUsers {
+  type: ActionType.ALL_USERS_FOR_ORG_LOADED;
+  users: Array<RespUser>;
+}
+
+export function getAllUsersForOrg() {
+  return async (dispatch: Dispatch<TGetAllUsers | TGenericLoading>, getState: () => TState) => {
+    if (getState().default.allUsersLoadingStatus === LoadingStatus.Done) return;
+    dispatch({
+      type: ActionType.ALL_USERS_FOR_ORG_LOADING,
+    });
+    const data = await api<null, ApiResp<RespUser[]>>('/users', { auth: true });
+    dispatch({
+      type: ActionType.ALL_USERS_FOR_ORG_LOADED,
+      users: data.data,
+    });
+  };
+}
+
+export interface TUserPropChange {
+  type: ActionType.USER_UPDATED;
+  user: RespUser;
+}
+
+export function activateOrDeactivateUser(id: number, shouldActivate: boolean) {
+  return async (dispatch: Dispatch<TUserPropChange>) => {
+    const data = await api<ReqActivateOrDeactivateUser, ApiResp<RespUser>>('/aodusr', {
+      method: 'POST',
+      body: {
+        userId: id,
+        shouldActivate,
+      }
+    });
+    dispatch({
+      type: ActionType.USER_UPDATED,
+      user: data.data,
     });
   };
 }

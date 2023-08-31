@@ -20,7 +20,7 @@ export const ButtonCon = styled.button<ButtonConProps>`
   transition: transform 0.2s ease-out;
   
   &:hover {
-    transform: translate(3px, -3px);
+    transform: translate(2px, -2px);
   }
 
   &:disabled {

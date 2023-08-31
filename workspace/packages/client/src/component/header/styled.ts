@@ -108,3 +108,29 @@ export const ModalButtonsContainer = styled.div`
         border: 1px solid #16023E;
     }
 `;
+
+export const TrialBadgeCon = styled.div`
+  display: flex;
+  margin-left: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  jlex-direction: row;
+  transition: transform 0.2s ease-out;
+  transform: translate(0, 0);
+
+  & > a {
+    padding: 0.2rem 0.45rem;
+    border: 2px solid #ffdf65;
+    background: #ff7350;
+    border-radius: 4px;
+    color: white;
+    text-decoration: none;
+  }
+
+  &:hover {
+    transform: translate(1px, -1px);
+    cursor: pointer;
+  }
+`;

@@ -1,7 +1,7 @@
 import React, { ReactElement, useState } from 'react';
 import { Button as AntButton, notification } from 'antd';
 import { Link } from 'react-router-dom';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { RespUser, Status } from '@fable/common/dist/api-contract';
 import {
   CaretDownOutlined,
   CaretRightOutlined,
@@ -22,12 +22,15 @@ import IframeCodeSnippet from './iframe-code-snippet';
 import Button from '../button';
 import Input from '../input';
 import ShareTourModal from '../tour/share-tour-modal';
+import { P_RespSubscription } from '../../entity-processor';
+import { PlanBadge } from './plan-badge';
 
 interface IOwnProps {
   rBtnTxt?: string;
   shouldShowFullLogo?: boolean;
   navigateToWhenLogoIsClicked?: string;
   titleElOnLeft?: ReactElement;
+  subs: P_RespSubscription | null;
   leftElGroups: ReactElement[];
   showPreview?: string;
   principal?: RespUser | null;
@@ -78,11 +81,11 @@ function Header(props: IOwnProps): JSX.Element {
     handleRenameScreenModalOk();
   };
 
-  const showModal = () => {
+  const showModal = (): void => {
     setIsModalVisible(true);
   };
 
-  const closeModal = () => {
+  const closeModal = (): void => {
     setIsModalVisible(false);
   };
 
@@ -131,6 +134,11 @@ function Header(props: IOwnProps): JSX.Element {
           ))}
         </>
       </Tags.LMenuCon>
+      <div>
+        {props.subs && props.subs.status === Status.IN_TRIAL && (
+        <PlanBadge subs={props.subs} />
+        )}
+      </div>
       <Tags.RMenuCon>
         <div style={{
           display: 'flex',

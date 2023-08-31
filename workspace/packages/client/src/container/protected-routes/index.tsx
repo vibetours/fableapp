@@ -29,7 +29,7 @@ interface IOwnStateProps { }
 // Since during the /p or /form route does not need any auth we don't even initialize the auth0 for those
 
 class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
-  render() {
+  render(): JSX.Element {
     const pathname = this.props.location.pathname.toLowerCase();
     const shouldResolvePrincipal = !(pathname === '/login' || pathname === '/logout');
 

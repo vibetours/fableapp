@@ -11,7 +11,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import Funnel from './sleeping-funnel';
 import { loadTourAndData, } from '../../action/creator';
 import { flatten } from '../../utils';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import Loader from '../../component/loader';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
@@ -35,6 +35,7 @@ type TOrderedAnnWithMetrics = [status: EmptyStateType, orderedAnn: FunnelData, v
 
 interface IAppStateProps {
   tour: P_RespTour | null;
+  subs: P_RespSubscription | null;
   isTourLoaded: boolean;
   orderedAnnotationsForTour: TOrderedAnnWithMetrics;
   principal: RespUser | null;
@@ -128,6 +129,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   const conversion = (10 + Math.random() * 10 | 0);
   return {
     tour: state.default.currentTour,
+    subs: state.default.subs,
     isTourLoaded: state.default.tourLoaded,
     conversion,
     orderedAnnotationsForTour: orderedAnnotationsForTour(
@@ -175,6 +177,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
+            subs={this.props.subs}
             navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
