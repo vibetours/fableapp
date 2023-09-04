@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
 import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
-import deferredErr from './deferred-error';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 
@@ -69,7 +69,7 @@ export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
         if (screen) {
           anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
         } else {
-          deferredErr(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
+          raiseDeferredError(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
         }
       }
     }
@@ -82,7 +82,7 @@ export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
       }
     }
   } catch (e) {
-    deferredErr(e as Error);
+    raiseDeferredError(e as Error);
   }
   return anPerScreen;
 }
@@ -153,3 +153,14 @@ export function getColorContrast(hex: string): 'dark' | 'light' {
   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
   return (yiq >= 154) ? 'light' : 'dark';
 }
+
+export const setEventCommonState = (property: string, value: any): void => {
+  const ep = localStorage.getItem('fable/ep');
+  const eventProperties = ep ? JSON.parse(ep) : {};
+  eventProperties[property] = value;
+
+  localStorage.setItem('fable/ep', JSON.stringify(eventProperties));
+};
+
+const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const createIframeSrc = (relativeURL : string) => baseURL + relativeURL;

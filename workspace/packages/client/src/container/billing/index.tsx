@@ -9,6 +9,7 @@ import AntBtn from 'antd/lib/button';
 import { getDisplayableTime, SHORT_MONTHS } from '@fable/common/dist/utils';
 import Tooltip from 'antd/lib/tooltip';
 import api from '@fable/common/dist/api';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -19,7 +20,6 @@ import Loader from '../../component/loader';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { IPriceDetails, PriceDetailsData } from './plans';
-import raiseDeferredError from '../../deferred-error';
 
 const { confirm } = Modal;
 

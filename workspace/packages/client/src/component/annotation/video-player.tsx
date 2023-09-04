@@ -6,6 +6,7 @@ import {
   AudioOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as Tags from './styled';
 import { AnimEntryDir, IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
 import { isCoverAnnotation } from './annotation-config-utils';
@@ -17,7 +18,6 @@ import {
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
 import { AnnotationSerialIdMap } from './ops';
-import raiseDeferredError from '../../deferred-error';
 import { generateShadeColor } from './utils';
 
 interface IProps {

@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import {
+  CmnEvtProp,
   IAnnotationConfig,
   ITourDataOpts,
   ITourDiganostics,
@@ -61,7 +62,9 @@ import {
   getAnnotationsPerScreen,
   DEFAULT_ALERT_FOR_ANN_OPS,
   getFableTimelineOrder,
-  saveFableTimelineOrder
+  saveFableTimelineOrder,
+  setEventCommonState,
+  createIframeSrc
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
@@ -72,7 +75,6 @@ import {
 } from '../../component/annotation/ops';
 import { AnnUpdateType } from '../../component/timeline/types';
 import Loader from '../../component/loader';
-import raiseDeferredError from '../../deferred-error';
 import ScreenPicker from '../screen-picker';
 
 interface IDispatchProps {
@@ -346,6 +348,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/tour/${this.props.match.params.tourId}`));
     this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
       onSyncNeeded: this.flushEdits,
     });

@@ -22,6 +22,7 @@ import CloseIcon from '../../assets/tour/close.svg';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import NextIcon from '../../assets/tour/next.svg';
 import Loader from '../../component/loader';
+import { amplitudeAddScreensToTour } from '../../amplitude';
 
 interface IDispatchProps {
   getAllScreens: (forceRefresh?: boolean) => void;
@@ -206,6 +207,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
 
   // eslint-disable-next-line class-methods-use-this
   handleAddScreenNotPartOfTour = (screen: P_RespScreen): void => {
+    amplitudeAddScreensToTour(1, 'app');
     if (this.props.screenPickerMode === 'create') {
       this.props.addScreenToTour(
         screen,
@@ -310,6 +312,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                   this.props.tour!.rid,
                   false
                 );
+                amplitudeAddScreensToTour(1, 'app');
               }}
             />
           )

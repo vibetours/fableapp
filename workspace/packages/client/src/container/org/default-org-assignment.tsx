@@ -3,7 +3,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { fetchOrg, assignImplicitOrgToUser } from '../../action/creator';
+import { fetchOrg } from '../../action/creator';
 import OrgAssign from '../../component/onboarding/pages/org-assign';
 import RootLayout from '../../component/onboarding/root-layout';
 

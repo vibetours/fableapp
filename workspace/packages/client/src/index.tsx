@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
 import AntDesignThemeConfigProvider from 'antd/lib/config-provider';
 import { init as sentryInit } from '@fable/common/dist/sentry';
+import { initAmplitude } from '@fable/common/dist/amplitude';
 import App from './container/app';
 import reportWebVitals from './reportWebVitals';
 import config from './store-config';
@@ -16,6 +17,7 @@ localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 sentryInit('client', packageJSON.version);
+initAmplitude();
 
 const theme = {
   colors: {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
 import Tours from '../tours';
@@ -27,7 +28,6 @@ import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
-import raiseDeferredError from '../../deferred-error';
 
 interface IDispatchProps {
   init: () => void;

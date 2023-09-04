@@ -40,9 +40,9 @@ import {
 } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
-import raiseDeferredError from '../../deferred-error';
 import { getColorContrast } from '../../utils';
 import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 

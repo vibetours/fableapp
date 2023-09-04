@@ -1,5 +1,7 @@
 import React from 'react';
 import { RespOrg, ResponseStatus } from '@fable/common/dist/api-contract';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import Plus from '../../../../assets/onboarding/plus.svg';
 import * as CTags from '../../styled';
 import * as Tags from './styled';
@@ -8,6 +10,7 @@ import RocketEmoji from '../../../../assets/onboarding/rocket.png';
 import { assignImplicitOrgToUser } from './utils';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/org-assign-browser.png';
+import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
 
 interface Props {
   org: RespOrg;
@@ -21,6 +24,10 @@ export default function OrgAssign({ org }: Props): JSX.Element {
     const redirect = localStorage.getItem('redirect');
 
     if (resStatus === ResponseStatus.Success) {
+      traceEvent(AMPLITUDE_EVENTS.USER_ORG_ASSIGN, {
+        org_name: org.displayName,
+        type: 'join'
+      }, [CmnEvtProp.EMAIL, CmnEvtProp.FIRST_NAME, CmnEvtProp.LAST_NAME]);
       if (redirect) {
         localStorage.removeItem('redirect');
         window.location.replace(`/${redirect!}`);

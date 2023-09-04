@@ -103,6 +103,7 @@ export const Screen = styled.div`
     transition: box-shadow 0.2s ease-in-out;
     
     &:hover {
+      border: 1px solid #7567FF;
       box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
       cursor: pointer;
     }

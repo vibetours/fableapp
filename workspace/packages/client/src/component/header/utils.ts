@@ -1,6 +1,4 @@
-const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
-
-export const createIframeSrc = (relativeURL : string) => baseURL + relativeURL;
+import { createIframeSrc } from '../../utils';
 
 export const createIframe = (relativeURL = '') => {
   const iframeSrc = createIframeSrc(relativeURL);

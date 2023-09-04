@@ -3,7 +3,7 @@ import Button from '../button';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
-import { createIframeSrc } from '../header/utils';
+import { createIframeSrc } from '../../utils';
 
 interface Props {
   relativeUrl: string;

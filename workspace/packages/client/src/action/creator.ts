@@ -14,8 +14,6 @@ import {
   RespScreen,
   RespTour,
   RespUser,
-  ResponseStatus,
-  ReqUpdateUser,
   ReqScreenTour,
   ScreenType,
   ReqDuplicateTour,
@@ -141,41 +139,7 @@ export function iam() {
   };
 }
 
-export interface TUpdateUser {
-  type: ActionType.UPDATE_USER_PROP;
-  user: RespUser;
-}
-
-export function updateUser(firstName: string, lastName: string) {
-  return async () => {
-    const data = await api<ReqUpdateUser, ApiResp<RespUser>>('/userprop', {
-      auth: true,
-      body: {
-        firstName,
-        lastName
-      }
-    });
-  };
-}
-
 /* ************************************************************************* */
-
-export interface TCreateNewOrg {
-  type: ActionType.CREATE_NEW_ORG;
-  org: RespOrg;
-}
-
-export function createOrg(displayName: string) {
-  return async () => {
-    const data = await api<ReqNewOrg, ApiResp<RespOrg>>('/neworg', {
-      auth: true,
-      body: {
-        displayName,
-        thumbnail: ''
-      },
-    });
-  };
-}
 
 export interface TGetOrg {
   type: ActionType.ORG;
@@ -599,6 +563,7 @@ export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mod
       },
     });
     const tour = processRawTourData(data.data, getState());
+
     if (shouldNavigate) {
       window.location.replace(`/tour/${tour.rid}`);
     }

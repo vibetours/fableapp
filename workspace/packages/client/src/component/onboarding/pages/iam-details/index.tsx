@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { RespUser, ResponseStatus, UserOrgAssociation } from '@fable/common/dist/api-contract';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import * as CTags from '../../styled';
 import RightArrow from '../../../../assets/onboarding/arrow-right.svg';
 import RocketEmoji from '../../../../assets/onboarding/rocket.png';
 import { updateUser } from './utils';
 import Button from '../../../button';
 import Input from '../../../input';
+import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
+import { setEventCommonState } from '../../../../utils';
 
 interface Props {
   principal: RespUser | null;
@@ -19,6 +23,14 @@ export default function IamDetails({ principal }: Props): JSX.Element {
     e.preventDefault();
 
     const resStatus = await updateUser(firstName, lastName);
+    setEventCommonState(CmnEvtProp.FIRST_NAME, firstName);
+    setEventCommonState(CmnEvtProp.LAST_NAME, lastName);
+    traceEvent(
+      AMPLITUDE_EVENTS.USER_SIGNUP,
+      {},
+      [CmnEvtProp.FIRST_NAME, CmnEvtProp.LAST_NAME, CmnEvtProp.EMAIL]
+    );
+
     if (
       resStatus === ResponseStatus.Success
       && principal

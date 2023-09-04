@@ -5,6 +5,7 @@
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "private": true,
   "dependencies": {
+    "@amplitude/analytics-browser": "^2.2.3",
     "@ant-design/icons": "^4.8.0",
     "@auth0/auth0-react": "^2.0.1",
     "@lexical/react": "^0.8.0",

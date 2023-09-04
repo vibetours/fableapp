@@ -3,7 +3,6 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { updateUser } from '../../action/creator';
 import IamDetailsForm from '../../component/onboarding/pages/iam-details';
 import RootLayout from '../../component/onboarding/root-layout';
 

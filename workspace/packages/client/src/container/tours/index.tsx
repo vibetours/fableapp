@@ -1,10 +1,11 @@
 import { DeleteOutlined, PlusOutlined, SisternodeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { ITourDataOpts, LoadingStatus } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import message from 'antd/lib/message';
 import Modal from 'antd/lib/modal';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import {
   createNewTour,
   getAllTours,
@@ -27,7 +28,7 @@ import Button from '../../component/button';
 import Input from '../../component/input';
 import TourCard from '../../component/tour/tour-card';
 import EmptyTourState from '../../component/tour/empty-state';
-import { Text } from './styled';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -142,6 +143,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     } else if (this.state.ctxAction === CtxAction.Duplicate) {
       this.props.duplicateTour(this.state.selectedTour!, newVal);
     } else if (this.state.ctxAction === CtxAction.Create) {
+      traceEvent(
+        AMPLITUDE_EVENTS.CREATE_NEW_TOUR,
+        { from: 'app', tour_name: newVal },
+        [CmnEvtProp.EMAIL]
+      );
       this.props.createNewTour(newVal);
     }
 

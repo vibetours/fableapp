@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ResponseStatus } from '@fable/common/dist/api-contract';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import Plus from '../../../../assets/onboarding/plus.svg';
 import * as CTags from '../../styled';
 import RocketEmoji from '../../../../assets/onboarding/rocket.png';
@@ -7,6 +9,7 @@ import { createOrg } from './utils';
 import Button from '../../../button';
 import Input from '../../../input';
 import Browser from '../../../../assets/onboarding/org-create-browser.png';
+import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
 
 export default function OrgCreate(): JSX.Element {
   const [orgName, setOrgName] = useState<string>('');
@@ -15,6 +18,10 @@ export default function OrgCreate(): JSX.Element {
     e.preventDefault();
 
     if (orgName) {
+      traceEvent(AMPLITUDE_EVENTS.USER_ORG_ASSIGN, {
+        org_name: orgName,
+        type: 'create_new'
+      }, [CmnEvtProp.EMAIL, CmnEvtProp.FIRST_NAME, CmnEvtProp.LAST_NAME]);
       const resStatus = await createOrg(orgName);
       const redirect = localStorage.getItem('redirect');
       if (resStatus === ResponseStatus.Success) {

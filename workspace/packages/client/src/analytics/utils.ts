@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import api from '@fable/common/dist/api';
-import { ResponseStatus } from '@fable/common/dist/api-contract';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   CommonEventProps,
   AnalyticsEvents,
@@ -10,7 +10,6 @@ import {
   FableAnalyticsLocalStoreKeys
 } from './types';
 import { FWin } from '../types';
-import raiseDeferredError from '../deferred-error';
 
 export const getUUID = (): string => uuidv4().replace(/\W+/g, '');
 

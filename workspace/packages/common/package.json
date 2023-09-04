@@ -15,7 +15,9 @@
     "dupdetect": "jscpd src/",
     "clean": "rm -rf dist"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@amplitude/analytics-browser": "^2.2.3"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.193",
     "@types/jest": "^25.2.1",

@@ -248,3 +248,10 @@ export type ThemeBorderRadiusCandidatePerNode = {
 }
 
 export interface ThemeStats {nodeColor: ThemeColorCandidatPerNode, nodeBorderRadius: ThemeBorderRadiusCandidatePerNode}
+
+export enum CmnEvtProp {
+  FIRST_NAME = 'first_name',
+  LAST_NAME = 'last_name',
+  EMAIL = 'email',
+  TOUR_URL = 'tour_url'
+}

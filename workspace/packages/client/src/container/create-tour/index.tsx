@@ -10,8 +10,10 @@ import {
 import { sentryTxReport } from '@fable/common/dist/sentry';
 import {
   DEFAULT_BORDER_RADIUS,
+  CmnEvtProp,
   LoadingStatus,
   NODE_NAME,
+  SerDoc,
   ThemeCandidature,
   ThemeStats
 } from '@fable/common/dist/types';
@@ -21,6 +23,7 @@ import Modal from 'antd/lib/modal';
 import Select from 'antd/lib/select';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import { getAllTours } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
@@ -38,6 +41,9 @@ import { DBData, FrameDataToBeProcessed, ScreenInfo } from './types';
 import { getBorderRadius, getOrderedColorsWithScore, getThemeAnnotationOpts, saveAsTour, saveScreen } from './utils';
 import Button from '../../component/button';
 import Input from '../../component/input';
+import { amplitudeAddScreensToTour } from '../../amplitude';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { createIframeSrc, setEventCommonState } from '../../utils';
 
 const reactanimated = require('react-animated-css');
 
@@ -123,6 +129,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   private static readonly DEFAULT_SUGGESTED_COLORS = ['#0057ff', '#321b3a', '#051527', '#ffd073', '#7567ff'];
 
+  private startTime: number | null;
+
+  private defaultColorsInList: string[] = [];
+
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -152,6 +162,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.db = null;
     this.sentryTransaction = null;
     this.frameDataToBeProcessed = [];
+    this.startTime = null;
   }
 
   async initDbOperations(): Promise<void> {
@@ -180,13 +191,18 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       orderedColors = getOrderedColorsWithScore(themeStats.nodeColor);
     }
     let i = 0;
+    const newDefaultColorInList: string[] = [];
     while (orderedColors.length < 5) {
+      const defColor = CreateTour.DEFAULT_SUGGESTED_COLORS[i++];
+      newDefaultColorInList.push(defColor);
+
       orderedColors.push({
-        hex: CreateTour.DEFAULT_SUGGESTED_COLORS[i++],
+        hex: defColor,
         occurrence: 1,
         default: true
       });
     }
+    this.defaultColorsInList = newDefaultColorInList;
     theme.colorList = orderedColors.map(c => c.hex).slice(0, 5);
     theme.colorList.push(''); // default color
     theme.borderRadius = [4, 10];
@@ -270,8 +286,41 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.selectedColor,
       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
     );
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/tour/${tour.data.rid}`));
+
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
+
+    traceEvent(
+      AMPLITUDE_EVENTS.CREATE_NEW_TOUR,
+      { from: 'ext', tour_name: this.state.tourName },
+      [CmnEvtProp.EMAIL]
+    );
+    if (this.startTime != null) {
+      const serDomFrame = this.frameDataToBeProcessed[0].find(frame => frame.type === 'serdom');
+      const pageUrl = serDomFrame ? (serDomFrame.data as SerDoc).frameUrl : '';
+
+      traceEvent(
+        AMPLITUDE_EVENTS.TIME_TO_CREATE_TOUR,
+        {
+          time: Math.ceil((Date.now() - this.startTime) / 1000),
+          page_url: pageUrl,
+        },
+        [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+      );
+    }
+    if (this.defaultColorsInList.includes(this.state.selectedColor) || this.state.selectedColor === '') {
+      traceEvent(
+        AMPLITUDE_EVENTS.DEFAULT_COLOR_THEME_CHOOSEN,
+        { },
+        [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+      );
+    } else {
+      traceEvent(AMPLITUDE_EVENTS.SUGGESTED_COLOR_THEME_CHOOSEN, {
+        color: this.state.selectedColor
+      }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+    }
+
     this.props.navigate(`/tour/${tour.data.rid}`);
   };
 
@@ -285,6 +334,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.screens,
       existingTour
     );
+    amplitudeAddScreensToTour(this.state.screens.length, 'ext');
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
     this.props.navigate(`/tour/${tour.data.rid}`);
@@ -467,10 +517,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 >
                   <Button
-                    onClick={() => this.setState({
-                      currentDisplayState: DisplayState.ShowNewTourOptions,
-                      prevDisplayState: DisplayState.ShowTourCreationOptions
-                    })}
+                    onClick={() => {
+                      this.setState({
+                        currentDisplayState: DisplayState.ShowNewTourOptions,
+                        prevDisplayState: DisplayState.ShowTourCreationOptions
+                      });
+                      this.startTime = Date.now();
+                    }}
                     icon={<PlusOutlined />}
                     style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >

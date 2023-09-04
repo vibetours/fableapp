@@ -2,7 +2,6 @@ import { RespUser } from '@fable/common/dist/api-contract';
 import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
-import { createOrg } from '../../action/creator';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import OrgCreate from '../../component/onboarding/pages/org-create';
 import RootLayout from '../../component/onboarding/root-layout';

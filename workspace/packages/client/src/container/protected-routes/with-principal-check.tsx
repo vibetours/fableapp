@@ -3,14 +3,16 @@ import { connect } from 'react-redux';
 import { Outlet } from 'react-router-dom';
 import { withAuth0, WithAuth0Props, Auth0Provider } from '@auth0/auth0-react';
 import { RespUser, UserOrgAssociation } from '@fable/common/dist/api-contract';
-import { LoadingStatus } from '@fable/common/dist/types';
+import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
+import { resetAmplitude, setAmplitudeUserId } from '@fable/common/dist/amplitude';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import Auth0Config from '../../component/auth/auth0-config.json';
 import { iam } from '../../action/creator';
 import HeartLoader from '../../component/loader/heart';
 import { LoginErrorType } from '../../component/auth/login';
+import { setEventCommonState } from '../../utils';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -61,6 +63,15 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidUpdate(prevProps: Readonly<IProps>): void {
     if (prevProps.auth0.isAuthenticated !== this.props.auth0.isAuthenticated && this.props.auth0.isAuthenticated) {
       this.props.iam();
+    }
+    if (prevProps.principal !== this.props.principal && this.props.principal) {
+      setEventCommonState(CmnEvtProp.EMAIL, this.props.principal.email);
+      setEventCommonState(CmnEvtProp.FIRST_NAME, this.props.principal.firstName);
+      setEventCommonState(CmnEvtProp.LAST_NAME, this.props.principal.lastName);
+      setAmplitudeUserId(this.props.principal.email);
+    }
+    if (!this.props.auth0.isAuthenticated) {
+      resetAmplitude();
     }
   }
 
