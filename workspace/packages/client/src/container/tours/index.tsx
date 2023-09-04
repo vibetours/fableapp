@@ -1,11 +1,18 @@
 import { DeleteOutlined, PlusOutlined, SisternodeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { LoadingStatus } from '@fable/common/dist/types';
+import { ITourDataOpts, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import message from 'antd/lib/message';
 import Modal from 'antd/lib/modal';
-import { createNewTour, getAllTours, renameTour, duplicateTour, deleteTour } from '../../action/creator';
+import {
+  createNewTour,
+  getAllTours,
+  renameTour,
+  duplicateTour,
+  deleteTour,
+  loadTourAndData
+} from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import Loader from '../../component/loader';
@@ -28,6 +35,7 @@ interface IDispatchProps {
   renameTour: (tour: P_RespTour, newVal: string) => void;
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
+  loadTourWithData: (rid: string) => void,
 }
 
 export enum CtxAction {
@@ -43,6 +51,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
+  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid)),
 });
 
 interface IAppStateProps {
@@ -50,7 +59,8 @@ interface IAppStateProps {
   subs: P_RespSubscription | null;
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
-  opsInProgress: Ops
+  opsInProgress: Ops;
+  opts: ITourDataOpts | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -59,6 +69,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
+  opts: state.default.remoteTourOpts,
 });
 
 interface IOwnProps {
@@ -223,6 +234,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         <Tags.BottomPanel style={{ overflow: 'auto' }}>
                           {this.props.tours.map((tour) => (
                             <TourCard
+                              opts={this.props.opts}
+                              loadTourData={(rid: string) => this.props.loadTourWithData(rid)}
                               key={tour.rid}
                               tour={tour}
                               handleShowModal={this.handleShowModal}

@@ -8,7 +8,8 @@ import {
   DeleteOutlined,
   MoreOutlined
 } from '@ant-design/icons';
-import { Tooltip, Popover, Button, notification } from 'antd';
+import { Tooltip, Popover, Button, notification, Modal } from 'antd';
+import { ITourDataOpts } from '@fable/common/dist/types';
 import { P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 import { CtxAction } from '../../container/tours';
@@ -16,13 +17,34 @@ import * as GTags from '../../common-styled';
 import ShareTourModal from './share-tour-modal';
 import { createIframe, copyToClipboard } from '../header/utils';
 
+const MainNotSetInfoModal = (): void => {
+  Modal.info({
+    title: 'Entry point for the tour is not set',
+    content: (
+      <div>
+        <p>
+          The enry point has not been set for the tour that you
+          are trying to preview
+        </p>
+        <p>
+          To set an entry point, go into the tour, select a screen, and set "main" from
+          "Advance" options
+        </p>
+      </div>
+    ),
+    onOk() {},
+  });
+};
+
 interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
+  opts: ITourDataOpts | null;
+  loadTourData: (rid: string) => void;
 }
 
-export default function TourCard({ tour, handleShowModal, handleDelete }: Props): JSX.Element {
+export default function TourCard({ tour, handleShowModal, handleDelete, ...props }: Props): JSX.Element {
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
 
@@ -64,7 +86,12 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
               onClick={e => {
                 e.stopPropagation();
                 e.preventDefault();
-                window.open(`/p/tour/${tour.rid}`)?.focus();
+                props.loadTourData(tour.rid);
+                if (props.opts?.main) {
+                  window.open(`/p/tour/${tour.rid}`)?.focus();
+                } else {
+                  MainNotSetInfoModal();
+                }
               }}
             />
           </Tooltip>
