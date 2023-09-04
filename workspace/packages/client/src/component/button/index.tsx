@@ -5,12 +5,14 @@ export interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
   iconPlacement?: 'left' | 'right';
   intent?: 'primary' | 'secondary';
+  size?: 'large' | 'medium';
 }
 
-export default function Button({ children, icon, iconPlacement, intent = 'primary', ...rest }: Props): JSX.Element {
+export default function Button({ children, icon, iconPlacement, intent = 'primary', size = 'medium', ...rest }: Props): JSX.Element {
   return (
     <Tags.ButtonCon
       intent={intent}
+      size={size}
       {...rest}
     >
       {iconPlacement === 'left' ? (

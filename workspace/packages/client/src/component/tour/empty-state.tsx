@@ -1,12 +1,24 @@
 import React from 'react';
+import { ChromeOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import Browser1 from '../../assets/tour/browser-1.png';
 import Browser2 from '../../assets/tour/browser-2.png';
 import Browser3 from '../../assets/tour/browser-3.png';
+import Button from '../button';
 
 function EmptyTourState(): JSX.Element {
   return (
     <Tags.EmptyToursContainer>
+      <Button
+        onClick={() => {
+          window.open('https://chrome.google.com/webstore/detail/fable/ekmabenadlgfkjplmpldkjkhiikobaoc', '_blank');
+        }}
+        icon={<ChromeOutlined />}
+        iconPlacement="left"
+        size="large"
+      >
+        Download Fable's Chrome Extension
+      </Button>
       <Tags.HeaderMsgCon>
         <h1>No Tours Created</h1>
         <p>Seems like you haven’t recorded any screens yet</p>
