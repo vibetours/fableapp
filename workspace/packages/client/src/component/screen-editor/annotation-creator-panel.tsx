@@ -973,8 +973,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </ActionPanel>
         )
       }
-      <ActionPanel title="Advanced">
-        <div style={commonActionPanelItemStyle}>
+      <ActionPanel id="advanced-creator-panel" title="Advanced">
+        <div id="entry-point-checkbox" style={commonActionPanelItemStyle}>
           <GTags.Txt>Entry point</GTags.Txt>
           <Checkbox
             style={{ marginLeft: '0.75rem' }}

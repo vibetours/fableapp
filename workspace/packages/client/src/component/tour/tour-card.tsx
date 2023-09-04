@@ -78,6 +78,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
         <Tags.TourActionBtnCon>
           <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
             <Button
+              id="TG-1"
               style={{ padding: 0, margin: 0 }}
               size="small"
               shape="circle"
@@ -97,6 +98,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
           </Tooltip>
           <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
             <Button
+              id="TG-2"
               style={{ padding: 0, margin: 0 }}
               size="small"
               shape="circle"
@@ -146,6 +148,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
             placement="right"
           >
             <Button
+              id="TG-3"
               style={{ padding: 0, margin: 0 }}
               size="small"
               shape="circle"

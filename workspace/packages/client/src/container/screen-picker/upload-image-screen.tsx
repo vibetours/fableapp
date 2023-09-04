@@ -59,7 +59,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
     >
       <Tags.ModalContainer>
         <h2>Upload Image Screen</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} id="screen-picker-form">
           <Tags.FlexColCon>
             <FileInput
               id="screen-image"
@@ -83,6 +83,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
               marginTop: '1rem'
             }}
             name="img-submit-btn"
+            id="IUG-5"
           >
             {uploading ? 'Saving' : 'Save'}
           </Button>

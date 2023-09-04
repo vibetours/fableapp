@@ -9,7 +9,6 @@ import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
-import transition from 'd3-transition';
 import { Button, Tooltip } from 'antd';
 import {
   updateGrpIdForTimelineTillEnd,
@@ -45,8 +44,14 @@ import {
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
+import PreviewAndEmbedGuide from '../../user-guides/preview-and-embed-guide';
+import CanvasGuidePart1 from '../../user-guides/getting-to-know-the-canvas/part-1';
+import CanvasGuidePart3 from '../../user-guides/getting-to-know-the-canvas/part-3';
+import SelectorComponent from '../../user-guides/selector-component';
 
 const { confirm } = Modal;
+
+const userGuides = [PreviewAndEmbedGuide, CanvasGuidePart1, CanvasGuidePart3];
 
 // TODO[now] addScreenToTour + addNewScreenToTouris redundant
 type CanvasProps = {
@@ -414,7 +419,13 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
     const grpIdUpdates = updateGrpIdForTimelineTillEnd({ ...toAn, screenId: +to.split('/')[0] }, allAnns, fromAn.grpId);
     const groupedUpdates = groupUpdatesByAnnotation(grpIdUpdates);
-    props.applyAnnGrpIdMutations({ groupedUpdates, updates: [], main: null, deletionUpdate: null, status: 'accepted' }, tx);
+    props.applyAnnGrpIdMutations({
+      groupedUpdates,
+      updates: [],
+      main: null,
+      deletionUpdate: null,
+      status: 'accepted'
+    }, tx);
 
     let update;
     const newGrpIdForMiddleGroup = nanoid();
@@ -1052,6 +1063,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   margin: 0,
                   border: '1px solid black',
                 }}
+                id="IUG-1"
               />
             </div>
           </Tooltip>
@@ -1159,6 +1171,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           </Tags.MenuModal>
         </Tags.MenuModalMask>
       )}
+
+      <SelectorComponent userGuides={userGuides} />
     </>
   );
 }

@@ -106,7 +106,12 @@ function Header(props: IOwnProps): JSX.Element {
             <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
           ) : (
             <Link to={props.navigateToWhenLogoIsClicked!}>
-              <Tags.ConLogoImg src={FableQuill} alt="Fable logo" style={{ height: '2rem', cursor: 'pointer' }} />
+              <Tags.ConLogoImg
+                id="fable-logo-screen-editor"
+                src={FableQuill}
+                alt="Fable logo"
+                style={{ height: '2rem', cursor: 'pointer' }}
+              />
             </Link>
           )}
           {
@@ -188,6 +193,7 @@ function Header(props: IOwnProps): JSX.Element {
                   <Tags.MenuItem>
                     <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
                       <AntButton
+                        id="step-1"
                         size="small"
                         shape="circle"
                         type="text"
@@ -203,6 +209,7 @@ function Header(props: IOwnProps): JSX.Element {
                   <Tags.MenuItem>
                     <Tooltip title="Embed" overlayStyle={{ fontSize: '0.75rem' }}>
                       <AntButton
+                        id="step-2"
                         size="small"
                         shape="circle"
                         type="text"
@@ -252,14 +259,16 @@ function Header(props: IOwnProps): JSX.Element {
                 </div>
               }
             >
-              <div style={{
-                color: 'white',
-                fontSize: '0.7rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                cursor: 'pointer'
-              }}
+              <div
+                style={{
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer'
+                }}
+                id="step-3"
               >
                 <GTags.Avatar glow sl src={props.principal?.avatar} alt="pic" referrerPolicy="no-referrer" />
                 <CaretDownOutlined />

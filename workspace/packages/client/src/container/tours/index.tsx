@@ -29,6 +29,10 @@ import Input from '../../component/input';
 import TourCard from '../../component/tour/tour-card';
 import EmptyTourState from '../../component/tour/empty-state';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import SelectorComponent from '../../user-guides/selector-component';
+import TourCardGuide from '../../user-guides/tour-card-guide';
+
+const userGuides = [TourCardGuide];
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -249,6 +253,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             />
                           ))}
                         </Tags.BottomPanel>
+                        <SelectorComponent userGuides={userGuides} />
                       </div>
                     )
                   }

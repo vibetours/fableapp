@@ -114,7 +114,7 @@ export const BodyCon = styled.div`
 
 export const SidePanelCon = styled.aside`
   height: 100%;
-  max-width: 260px;
+  width: 260px;
 `;
 
 export const MainCon = styled.div`

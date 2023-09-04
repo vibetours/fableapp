@@ -72,7 +72,7 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
     isRootScreen: screen.parentScreenId === 0,
     displayableUpdatedAt: getDisplayableTime(d),
     urlStructured: screen.url === ''
-      ? new URL(`https://${screen.displayName.replaceAll(' ', '-')}.img.flbk.sharefable.com`)
+      ? new URL(`https://${screen.displayName.toLowerCase().trim().replace(/\W+/g, '-')}}.img.flbk.sharefable.com`)
       : new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
     dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash

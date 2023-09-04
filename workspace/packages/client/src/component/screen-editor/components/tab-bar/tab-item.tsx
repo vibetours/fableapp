@@ -9,11 +9,12 @@ interface Props {
   helpText: string;
   active?: boolean;
   onClick?: () => void;
+  id?: string;
 }
 
-export default function TabItem({ title, active, onClick, helpText }: Props) {
+export default function TabItem({ title, active, onClick, helpText, id }: Props): JSX.Element {
   return (
-    <Tags.TabItem onClick={onClick}>
+    <Tags.TabItem onClick={onClick} id={id}>
       <Tags.TabTitle active={active}>
         <div style={{
           display: 'flex',

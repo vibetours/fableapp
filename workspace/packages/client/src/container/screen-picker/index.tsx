@@ -101,6 +101,7 @@ interface ScreenComponentProps {
 function ScreenCard({ screen, handleAddScreen }: ScreenComponentProps): ReactElement {
   return (
     <Tags.Screen
+      id="screen-card"
       key={screen.id}
       onClick={() => {
         handleAddScreen(screen);
@@ -263,12 +264,13 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                 <Tags.Heading>Choose screens to add in this tour</Tags.Heading>
                 {/* <Tags.SubHeading>You can add 1 or multiple screens</Tags.SubHeading> */}
               </Tags.MsgCon>
-              <Tags.ScreenCardCon>
+              <Tags.ScreenCardCon id="screen-picker-grid">
                 <Tags.Screen
                   onClick={() => {
                     this.setState({ showUploadScreenImgModal: true });
                   }}
                   style={{ border: '1px dashed #7566ff' }}
+                  id="IUG-2"
                 >
                   <Tags.UploadImgCont>
                     <UploadOutlined style={{ fontSize: '3rem' }} />

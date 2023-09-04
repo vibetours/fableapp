@@ -11,6 +11,7 @@ import reportWebVitals from './reportWebVitals';
 import config from './store-config';
 import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
+import { upsertAllUserGuides } from './user-guides';
 
 localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
 
@@ -18,6 +19,7 @@ export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as stri
 
 sentryInit('client', packageJSON.version);
 initAmplitude();
+upsertAllUserGuides();
 
 const theme = {
   colors: {

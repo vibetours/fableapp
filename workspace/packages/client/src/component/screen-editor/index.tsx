@@ -58,6 +58,8 @@ import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
+import CanvasScreenGuide2 from '../../user-guides/getting-to-know-the-canvas/part-2';
+import SelectorComponent from '../../user-guides/selector-component';
 
 const { confirm } = Modal;
 
@@ -136,6 +138,8 @@ interface IOwnStateProps {
   imageMaskUploadModalIsUploading: boolean;
   selectedAnnotationCoords: string | null;
 }
+
+const userGuides = [CanvasScreenGuide2];
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
   private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
@@ -974,114 +978,117 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     return (
-      <GTags.PreviewAndActionCon>
-        {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
-        <div style={{
-          position: 'absolute',
-          width: 'calc(75% + 0.5rem)',
-          height: '25px',
-          bottom: '0',
-          left: '0',
-          borderRadius: '2px',
-          zIndex: '100'
-        }}
-        >
-          <AEP
-            selectedEl={this.state.selectedEl}
-            domElPicker={this.iframeElManager!}
-            disabled={this.state.aepSyncing}
-            onOverElPicker={() => {
-              this.setState({ stashAnnIfAny: true });
+      <>
+        <GTags.PreviewAndActionCon>
+          {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
+            <div style={{
+              position: 'absolute',
+              width: 'calc(75% + 0.5rem)',
+              height: '25px',
+              bottom: '0',
+              left: '0',
+              borderRadius: '2px',
+              zIndex: '100'
             }}
-            onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-              this.iframeElManager!.clearMask(HighlightMode.Pinned);
-              if (newSelEl === oldSelEl) {
-                this.setState({ stashAnnIfAny: false });
-                return;
-              }
+            >
+              <AEP
+                selectedEl={this.state.selectedEl}
+                domElPicker={this.iframeElManager!}
+                disabled={this.state.aepSyncing}
+                onOverElPicker={() => {
+                  this.setState({ stashAnnIfAny: true });
+                }}
+                onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
+                  this.iframeElManager!.clearMask(HighlightMode.Pinned);
+                  if (newSelEl === oldSelEl) {
+                    this.setState({ stashAnnIfAny: false });
+                    return;
+                  }
 
-              const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-              // If there is annotation on top of new element then don't do anything
-              if (!annOnNewEl) {
-                const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                if (annOnOldEl) {
-                  const newElPath = this.iframeElManager!.elPath(newSelEl)!;
-                  const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
-                  const tx = new Tx();
-                  tx.start();
-                  const updates: Array<
-                            [
-                              screenId: number | null,
-                              config: IAnnotationConfig,
-                              actionType: 'upsert' | 'delete'
-                            ]
-                          > = [
-                            [this.props.screen.id, annOnOldEl, 'delete'],
-                            [this.props.screen.id, replaceWithAnn, 'upsert']
-                          ];
-                  this.setState({ aepSyncing: true });
-                  updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
-                  this.props.commitTx(tx);
-                  setTimeout(() => {
-                  // TODO From the time something is selected via aep to the time view update happens, it takes few moment.
-                  // This is just a temporary guard for user to wait while the view gets updated. The proper fix would
-                  // be create a unidirectional flow via reducer (not local state)
-                    this.setState({ aepSyncing: false });
-                  }, 1500);
-                }
-              }
-              this.setState({ stashAnnIfAny: false, selectedEl: newSelEl, elSelRequestedBy: ElSelReqType.ElPicker });
-            }}
-          />
-        </div>
-        )}
-        <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
-          <PreviewWithEditsAndAnRO
-            annotationSerialIdMap={this.props.annotationSerialIdMap}
-            key={this.props.screen.rid}
-            screen={this.props.screen}
-            screenData={this.props.screenData}
-            divPadding={18}
-            navigate={this.props.navigate}
-            innerRef={this.embedFrameRef}
-            playMode={false}
-            onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
-            allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-            tourDataOpts={this.props.tourDataOpts}
-            allEdits={this.props.allEdits}
-            toAnnotationId={this.state.selectedAnnotationId}
-            stashAnnIfAny={this.state.stashAnnIfAny}
-            onFrameAssetLoad={this.onFrameAssetLoad}
-            allAnnotationsForTour={this.props.allAnnotationsForTour}
-            tour={this.props.tour}
-          />
-        </GTags.EmbedCon>
-        {/* this is the annotation creator panel */}
-        <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
-          {/* this is top menu */}
-          <TabBar>
-            <TabItem
-              title="Annotations"
-              helpText={annotationTabHelpText}
-              active={this.state.activeTab === TabList.Annotations}
-              onClick={() => this.handleTabOnClick(TabList.Annotations)}
+                  const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+                  // If there is annotation on top of new element then don't do anything
+                  if (!annOnNewEl) {
+                    const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+                    if (annOnOldEl) {
+                      const newElPath = this.iframeElManager!.elPath(newSelEl)!;
+                      const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
+                      const tx = new Tx();
+                      tx.start();
+                      const updates: Array<
+                        [
+                          screenId: number | null,
+                          config: IAnnotationConfig,
+                          actionType: 'upsert' | 'delete'
+                        ]
+                      > = [
+                        [this.props.screen.id, annOnOldEl, 'delete'],
+                        [this.props.screen.id, replaceWithAnn, 'upsert']
+                      ];
+                      this.setState({ aepSyncing: true });
+                      updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
+                      this.props.commitTx(tx);
+                      setTimeout(() => {
+                        // TODO From the time something is selected via aep to the time view update happens, it takes few moment.
+                        // This is just a temporary guard for user to wait while the view gets updated. The proper fix would
+                        // be create a unidirectional flow via reducer (not local state)
+                        this.setState({ aepSyncing: false });
+                      }, 1500);
+                    }
+                  }
+                  this.setState({ stashAnnIfAny: false, selectedEl: newSelEl, elSelRequestedBy: ElSelReqType.ElPicker });
+                }}
+              />
+            </div>
+          )}
+          <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
+            <PreviewWithEditsAndAnRO
+              annotationSerialIdMap={this.props.annotationSerialIdMap}
+              key={this.props.screen.rid}
+              screen={this.props.screen}
+              screenData={this.props.screenData}
+              divPadding={18}
+              navigate={this.props.navigate}
+              innerRef={this.embedFrameRef}
+              playMode={false}
+              onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
+              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+              tourDataOpts={this.props.tourDataOpts}
+              allEdits={this.props.allEdits}
+              toAnnotationId={this.state.selectedAnnotationId}
+              stashAnnIfAny={this.state.stashAnnIfAny}
+              onFrameAssetLoad={this.onFrameAssetLoad}
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
+              tour={this.props.tour}
             />
-            {
-              this.props.screen.type === ScreenType.SerDom && (
-                <TabItem
-                  title="Edit"
-                  helpText={editTabHelpText}
-                  active={this.state.activeTab === TabList.Edits}
-                  onClick={() => this.handleTabOnClick(TabList.Edits)}
-                />
-              )
-            }
-          </TabBar>
+          </GTags.EmbedCon>
+          {/* this is the annotation creator panel */}
+          <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
+            {/* this is top menu */}
+            <TabBar>
+              <TabItem
+                title="Annotations"
+                helpText={annotationTabHelpText}
+                active={this.state.activeTab === TabList.Annotations}
+                onClick={() => this.handleTabOnClick(TabList.Annotations)}
+                id="SE-guide-step-1"
+              />
+              {
+                this.props.screen.type === ScreenType.SerDom && (
+                  <TabItem
+                    title="Edit"
+                    helpText={editTabHelpText}
+                    active={this.state.activeTab === TabList.Edits}
+                    onClick={() => this.handleTabOnClick(TabList.Edits)}
+                    id="SE-guide-step-2"
+                  />
+                )
+              }
+            </TabBar>
 
-          <div style={{}}>
-            <Tags.EditPanelSec>
-              {/* this is annotations timeline */}
-              {this.state.activeTab === TabList.Annotations && (
+            <div style={{}}>
+              <Tags.EditPanelSec>
+                {/* this is annotations timeline */}
+                {this.state.activeTab === TabList.Annotations && (
                 <div>
                   <Tags.InfoText style={{ textAlign: 'center' }}>
                     Select an element on the screen on the left {
@@ -1091,13 +1098,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     }
                   </Tags.InfoText>
                   {this.props.allAnnotationsForScreen.length === 0 && (
-                    <Tags.CreateCoverAnnotationBtn onClick={() => { this.createCoverAnnotationForTheFirstTime(); }}>
+                    <Tags.CreateCoverAnnotationBtn
+                      id="cover-annotation-btn"
+                      onClick={() => { this.createCoverAnnotationForTheFirstTime(); }}
+                    >
                       <PlusOutlined />
                       &nbsp;
                       Create cover annotation
                     </Tags.CreateCoverAnnotationBtn>
                   )}
                   <Timeline
+                    shouldShowScreenPicker={this.props.shouldShowScreenPicker}
                     timeline={this.props.timeline}
                     navigate={this.navigateToAnnotation}
                     screen={this.props.screen}
@@ -1109,7 +1120,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     selectedAnnotationId={this.state.selectedAnnotationId}
                     goToSelectionMode={this.goToSelectionMode}
                     setAlertMsg={this.props.setAlert}
-                    shouldShowScreenPicker={this.props.shouldShowScreenPicker}
                   >
                     <AnnotationCreatorPanel
                       setAlertMsg={this.props.setAlert}
@@ -1143,10 +1153,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     />
                   </Timeline>
                 </div>
-              )}
+                )}
 
-              {/* this is edits panel */}
-              {this.state.activeTab === TabList.Edits && (
+                {/* this is edits panel */}
+                {this.state.activeTab === TabList.Edits && (
                 <>
                   <Tags.InfoText>
                     Edits are applied on the recorded screen. Select an element to edit.
@@ -1158,44 +1168,49 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   </Tags.EditTabCon>
                   {/* this is edits list */}
                   {this.props.screen.parentScreenId !== 0
-                    && this.props.allEdits
-                      .map((editEncoding) => (
-                        <Tags.EditLIPCon
-                          key={editEncoding[IdxEditItem.KEY]}
-                          onClick={((edit) => (evt): void => {
-                            this.setState({
-                              editItemSelected: editEncoding[IdxEditItem.KEY],
-                              isInElSelectionMode: true,
-                              elSelRequestedBy: ElSelReqType.EditEl,
-                            });
-                            this.highlightElementForPath(edit[IdxEditItem.PATH]);
-                          })(editEncoding)}
-                        >
-                          {ScreenEditor.getEditTypeComponent(editEncoding, editEncoding[IdxEditItem.EDIT_TYPE_LOCAL])}
-                          {editEncoding[IdxEditItem.KEY] === this.state.editItemSelected && (
-                            <div style={{ display: 'flex' }}>
-                              <ListActionBtn edit={editEncoding} element={this.state.selectedEl!} />
-                              &nbsp;&nbsp;|&nbsp;&nbsp;
-                              <Tags.ListActionBtn onClick={() => this.showDeleteConfirm(editEncoding)}>
-                                Delete
-                              </Tags.ListActionBtn>
-                            </div>
-                          )}
-                        </Tags.EditLIPCon>
-                      ))}
+                      && this.props.allEdits
+                        .map((editEncoding) => (
+                          <Tags.EditLIPCon
+                            key={editEncoding[IdxEditItem.KEY]}
+                            onClick={((edit) => (evt): void => {
+                              this.setState({
+                                editItemSelected: editEncoding[IdxEditItem.KEY],
+                                isInElSelectionMode: true,
+                                elSelRequestedBy: ElSelReqType.EditEl,
+                              });
+                              this.highlightElementForPath(edit[IdxEditItem.PATH]);
+                            })(editEncoding)}
+                          >
+                            {ScreenEditor.getEditTypeComponent(editEncoding, editEncoding[IdxEditItem.EDIT_TYPE_LOCAL])}
+                            {editEncoding[IdxEditItem.KEY] === this.state.editItemSelected && (
+                              <div style={{ display: 'flex' }}>
+                                <ListActionBtn edit={editEncoding} element={this.state.selectedEl!} />
+                                &nbsp;&nbsp;|&nbsp;&nbsp;
+                                <Tags.ListActionBtn onClick={() => this.showDeleteConfirm(editEncoding)}>
+                                  Delete
+                                </Tags.ListActionBtn>
+                              </div>
+                            )}
+                          </Tags.EditLIPCon>
+                        ))}
                 </>
-              )}
-            </Tags.EditPanelSec>
-          </div>
-        </GTags.EditPanelCon>
-        <ImageMaskUploadModal
-          open={this.state.showImageMaskUploadModal}
-          onCancel={this.handleImageMaskUploadModalOnCancel}
-          uploadImgMask={this.uploadImgMask}
-          error={this.state.imageMaskUploadModalError}
-          isUploading={this.state.imageMaskUploadModalIsUploading}
-        />
-      </GTags.PreviewAndActionCon>
+                )}
+              </Tags.EditPanelSec>
+            </div>
+          </GTags.EditPanelCon>
+          <ImageMaskUploadModal
+            open={this.state.showImageMaskUploadModal}
+            onCancel={this.handleImageMaskUploadModalOnCancel}
+            uploadImgMask={this.uploadImgMask}
+            error={this.state.imageMaskUploadModalError}
+            isUploading={this.state.imageMaskUploadModalIsUploading}
+          />
+        </GTags.PreviewAndActionCon>
+        {
+          !this.props.toAnnotationId
+          && <SelectorComponent userGuides={userGuides} />
+        }
+      </>
     );
   }
 

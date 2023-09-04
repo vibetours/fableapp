@@ -1,10 +1,11 @@
-import { DownOutlined, UpOutlined, QuestionCircleOutlined, ArrowDownOutlined, ArrowUpOutlined, CaretDownOutlined, CaretUpOutlined } from '@ant-design/icons';
-import React, { JSXElementConstructor, ReactElement, useState } from 'react';
+import { QuestionCircleOutlined, CaretDownOutlined, CaretUpOutlined } from '@ant-design/icons';
+import React, { ReactElement, useState } from 'react';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 
 interface IProps {
+  id?: string;
   icon?: ReactElement;
   title?: string;
   helpText?: string;
@@ -19,7 +20,11 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
   return (
     <Tags.ActionPanel gutter={!!props.withGutter}>
       {props.title && (
-        <Tags.ActionPanelTitleCon className={collapsed ? '' : 'selected'} onClick={() => setCollapsed(!collapsed)}>
+        <Tags.ActionPanelTitleCon
+          id={props.id}
+          className={collapsed ? '' : 'selected'}
+          onClick={() => setCollapsed(!collapsed)}
+        >
           <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
             <div className="title">
               {props.icon ? (<>{props.icon}&nbsp;&nbsp;</>) : ''}

@@ -501,6 +501,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <div style={{ marginLeft: '0.25rem' }}>
           <Tooltip title="Go to Canvas" overlayStyle={{ fontSize: '0.75rem' }}>
             <Button
+              id="go-to-canvas-btn"
               size="small"
               shape="circle"
               type="text"

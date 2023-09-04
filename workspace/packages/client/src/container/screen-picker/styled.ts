@@ -79,13 +79,8 @@ export const ScreenTab = styled.div`
   `;
 
 const bottomToTop = keyframes`
-  from {
-    transform: translateY(200%);
-  }
-
-  to {
-    transform: translateY(0%);
-  }
+  0% {  opacity: 0; }
+  100% { opacity: 1; }
 `;
 
 export const Screen = styled.div`
@@ -106,10 +101,7 @@ export const Screen = styled.div`
       border: 1px solid #7567FF;
       box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
       cursor: pointer;
-    }
-
-    animation: ${bottomToTop} 0.3s ease-in;
-  
+    }  
   `;
 
 export const ScreenThumbnail = styled.img`
@@ -286,6 +278,7 @@ export const ScreenPickerCon = styled.div`
   z-index: 2000;
   top: 0;
   left: 0;
+  animation: ${bottomToTop} 0.3s ease-out;
 `;
 
 export const CloseIcon = styled.img`

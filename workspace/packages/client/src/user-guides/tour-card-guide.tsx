@@ -1,0 +1,115 @@
+import React, { useState } from 'react';
+import Tour from '../component/user-guide-tour';
+import { completeUserGuide, skipUserGuide, updateStepsTaken, shouldShowGuide, UserGuideHotspotManager } from './utils';
+import { Guide, GuideProps } from './types';
+import IntroCard from '../component/user-guide-tour/intro-card';
+
+export const guide: Guide = {
+  id: 'tour-card-guide',
+  name: 'Get started with managing Tours',
+  steps: [
+    {
+      title: 'Preview a tour',
+      description: 'Once a tour is created you can see how your users would see it by clicking this button. We call it Preview button.',
+      target: () => document.getElementById('TG-1')!,
+      nextButtonProps: {
+        onClick() {
+          updateStepsTaken(guide.id, 1);
+        },
+      },
+    },
+    {
+      title: 'Analytics',
+      description: 'You can click the analytics button to check how your tours are performing. Analytics is refreshed every hour.',
+      target: () => document.getElementById('TG-2')!,
+      nextButtonProps: {
+        onClick() {
+          updateStepsTaken(guide.id, 2);
+        },
+      },
+    },
+    {
+      title: 'More actions',
+      description: (
+        <>
+          There are plenty more things you can do to manage the tours
+          <ul>
+            <li>Renaming a tour - for organization purpose in case you have created many tours and having difficult time managing those</li>
+            <li>Duplicating a tour - Sometimes you wanna run experiment on a tour by changing an existing tour</li>
+            <li>Deleting a tour</li>
+          </ul>
+        </>
+      ),
+      target: () => document.getElementById('TG-3')!,
+      nextButtonProps: {
+        onClick() {
+          updateStepsTaken(guide.id, 3);
+        },
+      },
+      hotspot: false,
+      width: '20rem'
+    },
+  ]
+};
+
+const hotspotManager = new UserGuideHotspotManager(guide.steps);
+
+function TourCardGuide(props: GuideProps): JSX.Element {
+  const [startTour, setStartTour] = useState<boolean>(false);
+
+  return (
+    <>
+      <IntroCard
+        title={
+          <>
+            👋🏻 <br />
+            Hey, let's get you started on tours
+          </>
+          }
+        description="All your tours in Fable would be displayed in this page. You can create as many tours as you want. There is no limitation."
+        acceptButtonProps={{
+          children: 'Show me',
+          onClick() {
+            setStartTour(true);
+            hotspotManager.updateHotspot(0);
+          },
+        }}
+        rejectButtonProps={{
+          children: 'Nah! I\'m too smart',
+          onClick() {
+            skipUserGuide(guide);
+            props.goToNextUserGuide();
+          },
+        }}
+        show={props.isVisible && !startTour}
+      />
+
+      <Tour
+        open={startTour}
+        steps={guide.steps}
+        onClose={() => {
+          completeUserGuide(guide.id);
+          setStartTour(false);
+          props.goToNextUserGuide();
+        }}
+        onFinish={props.goToNextUserGuide}
+        indicatorsRender={(current, total) => `${current + 1}/${total}`}
+        arrow={false}
+        onChange={(current) => hotspotManager.updateHotspot(current)}
+      />
+    </>
+  );
+}
+
+const guideInfo = {
+  stepsTaken: 0,
+  totalSteps: guide.steps.length,
+  isCompleted: false,
+  isSkipped: false,
+  name: guide.name,
+  id: guide.id,
+  groupId: guide.name,
+  partId: 0,
+};
+
+export default { guideInfo, component: TourCardGuide };

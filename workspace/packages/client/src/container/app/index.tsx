@@ -28,6 +28,7 @@ import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
+import { upsertAllUserGuides } from '../../user-guides';
 
 interface IDispatchProps {
   init: () => void;
