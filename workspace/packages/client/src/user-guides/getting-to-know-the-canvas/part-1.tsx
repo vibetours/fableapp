@@ -84,7 +84,11 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 5);
           const intervalId = setInterval(() => {
             const uploadedScreen = document.getElementsByClassName('card-title').item(0) as HTMLElement;
-            if (uploadedScreen.innerText === uploadedScreenName) {
+
+            if (!uploadedScreen || uploadedScreenName === '') {
+              clearInterval(intervalId);
+              skipUserGuide(guide);
+            } else if (uploadedScreen.innerText === uploadedScreenName) {
               clearInterval(intervalId);
               document.getElementById('screen-card')!.click();
             }
