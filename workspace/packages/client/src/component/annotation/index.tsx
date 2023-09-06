@@ -362,7 +362,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               dir={dir}
               tourId={this.props.tourId}
               navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-            />;
+            />
           </div>
         );
       }

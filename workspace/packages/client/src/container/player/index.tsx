@@ -125,23 +125,31 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     prerenderList.map(s => this.props.loadScreenAndData(s.rid, s.id !== screen.id));
   }
 
+  navigateToMain = (): void => {
+    this.preRender();
+    const main = this.props.tourOpts!.main;
+    if (!main) {
+      throw new Error('No main in config');
+    }
+    if (!this.props.match.params.screenRid || !this.props.match.params.annotationId) {
+      this.navigateTo(main);
+    }
+  };
+
   componentDidUpdate(prevProps: IProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
     const currTourLoaded = this.props.isTourLoaded;
     const prevScreenRId = prevProps.match.params.screenRid;
     const currScreenRId = this.props.match.params.screenRid;
 
+    if (!currScreenRId && currScreenRId !== prevScreenRId) {
+      this.navigateToMain();
+    }
+
     let firstTimeTourLoading = false;
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
       firstTimeTourLoading = true;
-      this.preRender();
-      const main = this.props.tourOpts!.main;
-      if (!main) {
-        throw new Error('No main in config');
-      }
-      if (!this.props.match.params.screenRid || !this.props.match.params.annotationId) {
-        this.navigateTo(main);
-      }
+      this.navigateToMain();
     }
     if (currScreenRId && (firstTimeTourLoading || currScreenRId !== prevScreenRId)) {
       this.getScreenDataPreloaded(currScreenRId);
@@ -196,6 +204,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return v;
   }
 
+  getCurrScreenId(): number {
+    if (!this.props.match.params.screenRid) return -1;
+    return this.props.allScreens.find(screen => screen.rid === this.props.match.params.screenRid!)!.id;
+  }
+
   render(): JSX.Element {
     if (!this.isLoadingComplete()) {
       return (
@@ -203,7 +216,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       );
     }
 
-    const currScreenId = this.props.allScreens.find(screen => screen.rid === this.props.match.params.screenRid!)!.id;
+    const currScreenId = this.getCurrScreenId();
 
     return (
       <GTags.BodyCon style={{
