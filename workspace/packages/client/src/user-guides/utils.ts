@@ -65,6 +65,11 @@ export const updateStepsTaken = (guideId: string, stepsTaken: number): void => {
   }
 };
 
+export const closeUserGuide = (): void => {
+  const closeBtn = document.getElementsByClassName('ant-tour-close').item(0) as HTMLSpanElement;
+  if (closeBtn) closeBtn.click();
+};
+
 export const skipUserGuide = (guide: Guide): void => {
   const FABLE_USER_GUIDE = getFableUserGuide();
 
@@ -119,7 +124,7 @@ export const getUserGuideCompletionProgressInModules = (): {
   const FABLE_USER_GUIDE = groupUserGuidesByGroupId(getFableUserGuide());
 
   return Object.values(FABLE_USER_GUIDE).reduce((acc, curr) => {
-    if (curr.isCompleted) {
+    if (curr.isCompleted && !curr.isSkipped) {
       acc.completedModules += 1;
     }
     acc.totalmodules += 1;
@@ -254,6 +259,10 @@ export class UserGuideHotspotManager {
 
       if (timeElapsed > this.POLL_DURATION || guideCard) clearInterval(intervalId);
     }, this.POLL_INTERVAL);
+  };
+
+  cleanupHotspot = (): void => {
+    if (this.hotspotEl) this.removeHotspot(this.hotspotEl!);
   };
 
   updateHotspot(index: number): void {

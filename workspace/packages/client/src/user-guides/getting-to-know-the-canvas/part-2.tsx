@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { CloseOutlined } from '@ant-design/icons';
 import Tour from '../../component/user-guide-tour';
 import {
   completeUserGuide,
   updateStepsTaken,
   UserGuideHotspotManager,
   emulateHotspotClick,
+  closeUserGuide,
+  skipUserGuide,
 } from '../utils';
 import { Guide, GuideProps } from '../types';
 
@@ -22,6 +25,13 @@ export const guide: Guide = {
           emulateHotspotClick(document.getElementById('cover-annotation-btn')!);
         },
       },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
       hotspot: true,
       width: '24rem'
     },
@@ -35,6 +45,13 @@ export const guide: Guide = {
           (document.getElementById('advanced-creator-panel')! as HTMLElement).click();
         },
       },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
       width: '24rem',
       placement: 'left'
     },
@@ -46,6 +63,13 @@ export const guide: Guide = {
         onClick() {
           updateStepsTaken(guide.id, 3);
         },
+      },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
       width: '24rem',
       placement: 'left'
@@ -60,6 +84,13 @@ export const guide: Guide = {
           emulateHotspotClick(document.getElementById('go-to-canvas-btn')!);
         },
         children: 'Next'
+      },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
       hotspot: true,
     },
@@ -77,10 +108,12 @@ function CanvasGuidePart2(props: GuideProps): JSX.Element {
         open={startTour}
         steps={guide.steps}
         onClose={() => {
+          hotspotManager.cleanupHotspot();
           completeUserGuide(guide.id);
           setStartTour(false);
         }}
         onFinish={() => {
+          hotspotManager.cleanupHotspot();
           completeUserGuide(guide.id);
         }}
         indicatorsRender={(current, total) => `${current + 1 + 4}/10`}

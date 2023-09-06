@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Tour from '../component/user-guide-tour';
-import { completeUserGuide, skipUserGuide, updateStepsTaken, shouldShowGuide, UserGuideHotspotManager } from './utils';
+import { completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
 import { Guide, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
 
@@ -92,7 +92,10 @@ function TourCardGuide(props: GuideProps): JSX.Element {
           setStartTour(false);
           props.goToNextUserGuide();
         }}
-        onFinish={props.goToNextUserGuide}
+        onFinish={() => {
+          hotspotManager.cleanupHotspot();
+          props.goToNextUserGuide();
+        }}
         indicatorsRender={(current, total) => `${current + 1}/${total}`}
         arrow={false}
         onChange={(current) => hotspotManager.updateHotspot(current)}

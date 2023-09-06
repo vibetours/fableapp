@@ -86,7 +86,10 @@ function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
           setStartTour(false);
           props.goToNextUserGuide();
         }}
-        onFinish={props.goToNextUserGuide}
+        onFinish={() => {
+          hotspotManager.cleanupHotspot();
+          props.goToNextUserGuide();
+        }}
         indicatorsRender={(current, total) => `${current + 1}/${total}`}
         arrow={false}
         onChange={(current) => hotspotManager.updateHotspot(current)}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Progress } from 'antd';
-import { getUserGuideCompletionProgress, getUserGuideCompletionProgressInModules } from '../../user-guides/utils';
+import { getUserGuideCompletionProgressInModules } from '../../user-guides/utils';
 import * as Tags from './styled';
 
 interface Props {

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CloseOutlined } from '@ant-design/icons';
 import Tour from '../../component/user-guide-tour';
 import {
   completeUserGuide,
@@ -6,6 +7,8 @@ import {
   updateStepsTaken,
   UserGuideHotspotManager,
   emulateHotspotClick,
+  closeUserGuide,
+  shouldShowGuide,
 } from '../utils';
 import { Guide, GuideProps } from '../types';
 import IntroCard from '../../component/user-guide-tour/intro-card';
@@ -25,6 +28,13 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 1);
         },
       },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
       width: '20rem',
       placement: 'bottomLeft'
     },
@@ -43,6 +53,13 @@ export const guide: Guide = {
           emulateHotspotClick(document.getElementById('IUG-1')!);
         },
       },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
       hotspot: true,
       width: '20rem',
     },
@@ -55,6 +72,13 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 3);
           emulateHotspotClick(document.getElementById('IUG-2')!);
         },
+      },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
       hotspot: true,
       width: '20rem',
@@ -70,6 +94,13 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 4);
           emulateHotspotClick(document.getElementById('IUG-5')!);
         },
+      },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
       hotspot: true,
       hotspotTarget: () => document.getElementById('IUG-5')!,
@@ -95,6 +126,13 @@ export const guide: Guide = {
           }, 400);
         },
         children: 'Next'
+      },
+      prevButtonProps: {
+        children: (<><CloseOutlined /> Skip guide</>),
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
       width: '30rem',
       placement: 'center'
@@ -131,7 +169,7 @@ function CanvasGuidePart1(props: GuideProps): JSX.Element {
             props.goToNextUserGuide();
           },
         }}
-        show={props.isVisible && !startTour}
+        show={props.isVisible && !startTour && shouldShowGuide(guide.id)}
         width="20rem"
       />
 
@@ -139,10 +177,12 @@ function CanvasGuidePart1(props: GuideProps): JSX.Element {
         open={startTour}
         steps={guide.steps}
         onClose={() => {
+          hotspotManager.cleanupHotspot();
           completeUserGuide(guide.id);
           setStartTour(false);
         }}
         onFinish={() => {
+          hotspotManager.cleanupHotspot();
           completeUserGuide(guide.id);
         }}
         indicatorsRender={(current, total) => `${current + 1}/10`}
