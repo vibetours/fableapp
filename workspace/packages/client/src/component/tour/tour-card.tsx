@@ -20,34 +20,13 @@ import { createIframe, copyToClipboard } from '../header/utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { createIframeSrc } from '../../utils';
 
-const MainNotSetInfoModal = (): void => {
-  Modal.info({
-    title: 'Entry point for the tour is not set',
-    content: (
-      <div>
-        <p>
-          The enry point has not been set for the tour that you
-          are trying to preview
-        </p>
-        <p>
-          To set an entry point, go into the tour, select a screen, and set "main" from
-          "Advance" options
-        </p>
-      </div>
-    ),
-    onOk() {},
-  });
-};
-
 interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
-  opts: ITourDataOpts | null;
-  loadTourData: (rid: string) => void;
 }
 
-export default function TourCard({ tour, handleShowModal, handleDelete, ...props }: Props): JSX.Element {
+export default function TourCard({ tour, handleShowModal, handleDelete }: Props): JSX.Element {
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
   const [notificationApi, notificationContextHolder] = notification.useNotification();
 
@@ -90,16 +69,11 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
               onClick={e => {
                 e.stopPropagation();
                 e.preventDefault();
-                props.loadTourData(tour.rid);
-                if (props.opts?.main) {
-                  traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                    preview_clicked_from: 'tours',
-                    tour_url: createIframeSrc(`/tour/${tour.rid}`)
-                  }, [CmnEvtProp.EMAIL]);
-                  window.open(`/p/tour/${tour.rid}`)?.focus();
-                } else {
-                  MainNotSetInfoModal();
-                }
+                traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                  preview_clicked_from: 'tours',
+                  tour_url: createIframeSrc(`/tour/${tour.rid}`)
+                }, [CmnEvtProp.EMAIL]);
+                window.open(`/p/tour/${tour.rid}`)?.focus();
               }}
             />
           </Tooltip>

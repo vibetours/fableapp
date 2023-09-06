@@ -1,6 +1,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { IAnnotationConfig, ITourDataOpts, LoadingStatus, ScreenData } from '@fable/common/dist/types';
+import { Link } from 'react-router-dom';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
@@ -13,6 +15,8 @@ import HeartLoader from '../../component/loader/heart';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
+import Button from '../../component/button';
+import * as Tags from './styled';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -28,7 +32,6 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 
 interface IAppStateProps {
   tour: P_RespTour | null;
-  // screen: P_RespScreen | null;
   screenDataAcrossScreens: Record<string, ScreenData>;
   allScreens: P_RespScreen[];
   isTourLoaded: boolean;
@@ -48,7 +51,6 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   return {
     tour: state.default.currentTour,
-    // screen: state.default.currentScreen,
     screenDataAcrossScreens: state.default.screenData,
     isTourLoaded: state.default.tourLoaded,
     allScreens: state.default.currentTour?.screens || [],
@@ -75,7 +77,9 @@ type IProps = IOwnProps &
     annotationId?: string;
   }>;
 
-interface IOwnStateProps { }
+interface IOwnStateProps {
+  isMainSet: boolean;
+}
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private adjList: ScreenAdjacencyList | null = null;
@@ -83,6 +87,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private renderSlots: Record<string, number> = {};
 
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
+
+  constructor(props: IProps) {
+    super(props);
+
+    this.state = {
+      isMainSet: true,
+    };
+  }
 
   componentDidMount(): void {
     document.title = this.props.title;
@@ -129,9 +141,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     this.preRender();
     const main = this.props.tourOpts!.main;
     if (!main) {
-      throw new Error('No main in config');
-    }
-    if (!this.props.match.params.screenRid || !this.props.match.params.annotationId) {
+      this.setState({ isMainSet: false });
+    } else if (!this.props.match.params.screenRid || !this.props.match.params.annotationId) {
       this.navigateTo(main);
     }
   };
@@ -169,7 +180,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       const url = `/p/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
       this.props.navigate(url);
     } else {
-      throw new Error(`Can't navigate because screenId ${screenId} is not found`);
+      raiseDeferredError(new Error(`Can't navigate because screenId ${screenId} is not found`));
     }
   };
 
@@ -210,6 +221,32 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   render(): JSX.Element {
+    if (!this.state.isMainSet) {
+      return (
+        <Tags.InfoCon>
+          <div className="title">
+            Entry point is not set for this tour
+          </div>
+          <div className="description-con">
+            <p>
+              Entry point is the annotation where the tour starts. You can set an annotation as entry point by
+            </p>
+            <ol>
+              <li>Clicking on the annotation</li>
+              <li>Go to Advanced Section</li>
+              <li>Check Entry Point</li>
+            </ol>
+          </div>
+          <Link
+            to={`/tour/${this.props.tour!.rid}`}
+            className="link-to-canvas"
+          >
+            <Button style={{ width: '100%' }}>Go to Canvas</Button>
+          </Link>
+        </Tags.InfoCon>
+      );
+    }
+
     if (!this.isLoadingComplete()) {
       return (
         <HeartLoader />
