@@ -50,6 +50,7 @@ export default function AddAnnFloatingBtn({
           applyAnnButtonLinkMutations={applyAnnButtonLinkMutations}
           raiseAlertIfOpsDenied={setAlertMsg}
           shouldShowScreenPicker={shouldShowScreenPicker}
+          calledFrom="timeline"
         />
     }
       open={open}

@@ -22,7 +22,7 @@ import CloseIcon from '../../assets/tour/close.svg';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import NextIcon from '../../assets/tour/next.svg';
 import Loader from '../../component/loader';
-import { amplitudeAddScreensToTour } from '../../amplitude';
+import { amplitudeAddScreensToTour, amplitudeNewAnnotationCreated, propertyCreatedFromWithType } from '../../amplitude';
 
 interface IDispatchProps {
   getAllScreens: (forceRefresh?: boolean) => void;
@@ -191,8 +191,14 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
   handleAddScreenPartOfTour = (screen: P_RespScreen): void => {
     const screenId = screen.id;
     const screenRid = screen.rid;
+    amplitudeAddScreensToTour(1, 'app');
 
     if (this.props.screenPickerMode === 'create') {
+      if (this.props.match.params.screenId) {
+        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.TIMELINE_PLUS_ICON_COVER_NEW_SCREEN);
+      } else {
+        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_NEW_SCREEN);
+      }
       this.props.addCoverAnnToScreen(screenId);
 
       // TODO[rrl] do this once api endpoint is completed
@@ -210,6 +216,11 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
   handleAddScreenNotPartOfTour = (screen: P_RespScreen): void => {
     amplitudeAddScreensToTour(1, 'app');
     if (this.props.screenPickerMode === 'create') {
+      if (this.props.match.params.screenId) {
+        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.TIMELINE_PLUS_ICON_COVER_NEW_SCREEN);
+      } else {
+        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_NEW_SCREEN);
+      }
       this.props.addScreenToTour(
         screen,
         this.props.tour!.rid,
@@ -314,7 +325,6 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                   this.props.tour!.rid,
                   false
                 );
-                amplitudeAddScreensToTour(1, 'app');
               }}
             />
           )

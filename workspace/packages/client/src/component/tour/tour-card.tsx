@@ -9,13 +9,16 @@ import {
   MoreOutlined
 } from '@ant-design/icons';
 import { Tooltip, Popover, Button, notification, Modal } from 'antd';
-import { ITourDataOpts } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import { P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 import { CtxAction } from '../../container/tours';
 import * as GTags from '../../common-styled';
 import ShareTourModal from './share-tour-modal';
 import { createIframe, copyToClipboard } from '../header/utils';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { createIframeSrc } from '../../utils';
 
 const MainNotSetInfoModal = (): void => {
   Modal.info({
@@ -89,6 +92,10 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
                 e.preventDefault();
                 props.loadTourData(tour.rid);
                 if (props.opts?.main) {
+                  traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                    preview_clicked_from: 'tours',
+                    tour_url: createIframeSrc(`/tour/${tour.rid}`)
+                  }, [CmnEvtProp.EMAIL]);
                   window.open(`/p/tour/${tour.rid}`)?.focus();
                 } else {
                   MainNotSetInfoModal();
@@ -167,6 +174,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, ...props
         relativeUrl={`/p/tour/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}
         copyHandler={copyHandler}
+        embedClickedFrom="tours"
       />
     </>
   );

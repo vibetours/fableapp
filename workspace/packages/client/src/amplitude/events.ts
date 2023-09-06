@@ -5,5 +5,16 @@ export enum AMPLITUDE_EVENTS {
     CREATE_NEW_TOUR = 'create_new_tour',
     ADD_SCREENS_TO_TOUR = 'add_screens_to_tour',
     SUGGESTED_COLOR_THEME_CHOOSEN='suggested_color_theme_choosen',
-    DEFAULT_COLOR_THEME_CHOOSEN='default_color_theme_choosen'
+    DEFAULT_COLOR_THEME_CHOOSEN='default_color_theme_choosen',
+    TOUR_PREVIEW_CLICKED='tour_preview_clicked',
+    NEW_ANNOTATION_CREATED='new_annotation_created',
+    GENERAL_TOUR_ACTIONS='general_tour_actions',
+    EMBED_TOUR='embed_tour',
+    EDGE_CONNECTION_DELETED='edge_connection_deleted',
+    ANNOTATION_MOVED='annotation_moved',
+    ANNOTATION_DELETED='annotation_deleted',
+    ADVANCED_EL_PICKER_USED='advanced_el_picker_used',
+    SCREEN_TAB_SELECTED='screen_tab_selected',
+    SCREEN_EDITED='screen_edited',
+    ANNOTATION_EDITED='annotation_edited'
 }

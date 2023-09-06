@@ -8,12 +8,13 @@ import {
   PictureOutlined, PlusOutlined
 } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
+import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
 import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
 import React from 'react';
 import { nanoid } from 'nanoid';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import * as GTags from '../../common-styled';
@@ -60,6 +61,8 @@ import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
 import CanvasScreenGuide2 from '../../user-guides/getting-to-know-the-canvas/part-2';
 import SelectorComponent from '../../user-guides/selector-component';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 
 const { confirm } = Modal;
 
@@ -342,6 +345,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   static getEditTypeComponent(edit: EditItem, shouldShowLoading = false): JSX.Element {
     const encoding = edit[IdxEditItem.ENCODING];
+    if (edit[IdxEditItem.TYPE] === ElEditType.Text && shouldShowLoading) {
+      amplitudeScreenEdited('text', encoding[IdxEditEncodingText.NEW_VALUE] as string);
+    }
+
     switch (edit[IdxEditItem.TYPE]) {
       case ElEditType.Text:
         return (
@@ -481,6 +488,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imgEl.setAttribute(attrName, origVal);
     }
     this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+    amplitudeScreenEdited('replace_image', '');
     this.flushMicroEdits();
   };
 
@@ -511,6 +519,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
       this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
       this.flushMicroEdits();
+      amplitudeScreenEdited('mask_el', '');
     } catch (err) {
       this.setState({ imageMaskUploadModalError: 'Something went wrong' });
     } finally {
@@ -628,6 +637,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         let conf = this.getAnnnotationFromEl(state.selectedEl!);
         let selectedAnnotationId;
         if (!conf) {
+          amplitudeNewAnnotationCreated(propertyCreatedFromWithType.DOM_EL_PICKER);
           const path = this.iframeElManager!.elPath(state.selectedEl!);
           conf = this.createNewDefaultAnnotation(path);
           selectedAnnotationId = conf!.refId;
@@ -648,6 +658,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     if (prevProps.tourDataOpts.annotationSelectionColor !== this.props.tourDataOpts.annotationSelectionColor) {
       this.iframeElManager?.updateConfig('selectionColor', this.props.tourDataOpts.annotationSelectionColor);
+    }
+
+    if (prevState.activeTab !== this.state.activeTab) {
+      traceEvent(
+        AMPLITUDE_EVENTS.SCREEN_TAB_SELECTED,
+        { screen_tab: this.state.activeTab === 0 ? 'annotation' : 'edit' },
+        [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+      );
     }
   }
 
@@ -771,6 +789,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
               this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
               this.flushMicroEdits();
+              amplitudeScreenEdited('show_or_hide_el', checked);
             })(this.state.selectedEl!)}
           />
         </Tags.EditCtrlLI>
@@ -822,6 +841,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 newFilterStr,
               ]);
               this.flushMicroEdits();
+              amplitudeScreenEdited('blur_el', checked);
             })(this.state.selectedEl!)}
             size="small"
           />
@@ -1008,6 +1028,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
                   // If there is annotation on top of new element then don't do anything
                   if (!annOnNewEl) {
+                    traceEvent(AMPLITUDE_EVENTS.ADVANCED_EL_PICKER_USED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                     const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
                     if (annOnOldEl) {
                       const newElPath = this.iframeElManager!.elPath(newSelEl)!;
@@ -1100,7 +1121,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   {this.props.allAnnotationsForScreen.length === 0 && (
                     <Tags.CreateCoverAnnotationBtn
                       id="cover-annotation-btn"
-                      onClick={() => { this.createCoverAnnotationForTheFirstTime(); }}
+                      onClick={() => {
+                        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
+                        this.createCoverAnnotationForTheFirstTime();
+                      }}
                     >
                       <PlusOutlined />
                       &nbsp;
@@ -1323,6 +1347,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.setState({ selectedAnnotationCoords: coordsStr, selectionMode: 'annotation' });
       return;
     }
+    amplitudeNewAnnotationCreated(propertyCreatedFromWithType.IMG_DRAG_RECT);
     const conf = this.createNewDefaultAnnotation(coordsStr);
     this.setState({ selectedAnnotationId: conf.refId });
   };

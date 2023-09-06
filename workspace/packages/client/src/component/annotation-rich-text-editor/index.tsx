@@ -19,6 +19,7 @@ import AutoLinkPlugin from './plugins/auto-link-plugin';
 import './styles.css';
 import { ImageNode } from './nodes/image-node';
 import { ExtendedTextNode } from './plugins/extended-text-node';
+import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -125,6 +126,7 @@ export default function AnnotationRichTextEditor({ defaultValue, throttledChange
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={defaultValue} />
+          <EditorBlurPlugin updatedText={defaultValue} />
           <div style={{
             display: 'flex',
             justifyContent: 'end',

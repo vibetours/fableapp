@@ -4,6 +4,7 @@ import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
+  CmnEvtProp,
   EAnnotationBoxSize,
   IAnnotationConfig,
   ITourDataOpts,
@@ -35,6 +36,7 @@ import {
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { InputNumber, Button as AntButton } from 'antd';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -75,6 +77,8 @@ import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
 import { getDefaultAnnCSSStyleText } from './utils/css-styles';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { amplitudeAnnotationEdited, amplitudeScreenEdited } from '../../amplitude';
 
 const { confirm } = Modal;
 
@@ -185,6 +189,42 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       && prevOpts
       && (config.monoIncKey > prevConfig.monoIncKey
         || opts.monoIncKey > prevOpts.monoIncKey)) {
+      if (prevConfig.size !== config.size) {
+        amplitudeAnnotationEdited('box_sizing', config.size);
+      }
+      if (prevOpts.primaryColor !== opts.primaryColor) {
+        amplitudeAnnotationEdited('branding-primary_color', opts.primaryColor);
+      }
+      if (prevOpts.annotationBodyBackgroundColor !== opts.annotationBodyBackgroundColor) {
+        amplitudeAnnotationEdited('branding-background_color', opts.annotationBodyBackgroundColor);
+      }
+      if (prevOpts.annotationBodyBorderColor !== opts.annotationBodyBorderColor) {
+        amplitudeAnnotationEdited('branding-border_color', opts.annotationBodyBorderColor);
+      }
+      if (prevOpts.annotationFontColor !== opts.annotationFontColor) {
+        amplitudeAnnotationEdited('branding-font_color', opts.annotationFontColor);
+      }
+      if (prevOpts.annotationSelectionColor !== opts.annotationSelectionColor) {
+        amplitudeAnnotationEdited('branding-selection_color', opts.annotationSelectionColor);
+      }
+      if (prevConfig.buttonLayout !== config.buttonLayout) {
+        amplitudeAnnotationEdited('branding-button_layout', config.buttonLayout);
+      }
+      if (prevOpts.annotationPadding !== opts.annotationPadding) {
+        amplitudeAnnotationEdited('branding-padding', opts.annotationPadding);
+      }
+      if (prevOpts.borderRadius !== opts.borderRadius) {
+        amplitudeAnnotationEdited('branding-border_radius', opts.borderRadius);
+      }
+      if (prevConfig.hideAnnotation !== config.hideAnnotation) {
+        amplitudeAnnotationEdited('hotspot-hide_annotation', config.hideAnnotation);
+      }
+      if (prevConfig.isHotspot !== config.isHotspot) {
+        amplitudeAnnotationEdited('hotspot-interactive_element', config.isHotspot);
+      }
+      if (prevConfig.showOverlay !== config.showOverlay) {
+        amplitudeAnnotationEdited('overlay', config.showOverlay);
+      }
       props.onConfigChange(config, 'upsert', opts);
     }
   }, [config, opts]);
@@ -245,6 +285,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       okText: 'Yes',
       okType: 'danger',
       onOk: () => {
+        traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
+          annotation_op_location: 'timeline'
+        }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
         const result = deleteAnnotation(
           { ...config, screenId: props.screen.id },
           props.allAnnotationsForTour,
@@ -300,6 +343,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     domElPicker.setSelectedBoundedEl(boundedEl!);
     domElPicker.setSelectionMode();
     setNewHotspotSelected(true);
+    amplitudeAnnotationEdited('hotspot-nested_element', '');
   };
 
   const videoAnn = isVideoAnnotation(config);
@@ -561,8 +605,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 onChange={(e) => {
                   if (e) {
                     setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
+                    amplitudeAnnotationEdited('branding-font_family', e as string);
                   } else {
                     setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
+                    amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
                   }
                 }}
                 style={{
@@ -584,9 +630,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     type="radio"
                     value="default"
                     checked={config.buttonLayout === 'default'}
-                    onChange={
-                      (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
-                    }
+                    onChange={(e) => {
+                      setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
+                    }}
                   />
                 </label>
 
@@ -597,9 +643,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     type="radio"
                     value="full-width"
                     checked={config.buttonLayout === 'full-width'}
-                    onChange={
-                      (e) => setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType))
-                    }
+                    onChange={(e) => {
+                      setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
+                    }}
                   />
                 </label>
               </div>
@@ -730,6 +776,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                             } else {
                                               const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
                                               setConfig(thisAntn);
+                                              amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
                                             }
                                           }}
                                           style={{ marginRight: '1rem' }}
@@ -800,6 +847,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         size="small"
                         style={{ color: '#bdbdbd', ...buttonSecStyle }}
                         onClick={() => {
+                          amplitudeAnnotationEdited('hide_cta', btnConf.exclude!);
                           setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
                         }}
                       />
@@ -833,6 +881,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         label: v,
                       }))}
                       onSelect={(val) => {
+                        if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
                         setConfig(c => updateButtonProp(c, btnConf.id, 'style', val as AnnotationButtonStyle));
                       }}
                     />
@@ -848,6 +897,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         label: v,
                       }))}
                       onSelect={(val) => {
+                        if (val !== btnConf.size) { amplitudeAnnotationEdited('cta-button_size', val as string); }
                         setConfig(c => updateButtonProp(c, btnConf.id, 'size', val as AnnotationButtonSize));
                       }}
                     />
@@ -866,6 +916,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       }}
                       placeholder="Button text"
                       onBlur={e => {
+                        if (e.target.value !== btnConf.text) {
+                          amplitudeAnnotationEdited('cta-button_text', e.target.value);
+                        }
                         setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
                       }}
                     />
@@ -880,6 +933,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             type="text"
             icon={<SubnodeOutlined />}
             onClick={() => {
+              amplitudeAnnotationEdited('add_new_cta', '');
               setConfig(c => addCustomBtn(c));
             }}
           >Create a custom CTA
@@ -986,6 +1040,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               } else {
                 newOpts = updateTourDataOpts(opts, 'main', '');
               }
+              amplitudeAnnotationEdited('entry_point', e.target.checked);
               setTourDataOpts(newOpts);
             }}
           />

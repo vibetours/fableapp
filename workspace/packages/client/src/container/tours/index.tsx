@@ -31,6 +31,7 @@ import EmptyTourState from '../../component/tour/empty-state';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
+import { createIframeSrc } from '../../utils';
 
 const userGuides = [TourCardGuide];
 
@@ -131,7 +132,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     confirm({
       title: 'Are you sure you want to delete this tour ?',
       icon: <DeleteOutlined />,
-      onOk: () => { this.props.deleteTour(tour!.rid); },
+      onOk: () => {
+        traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
+          tour_action_type: 'delete',
+          tour_url: createIframeSrc(`/tour/${tour!.rid}`)
+        }, [CmnEvtProp.EMAIL]);
+        this.props.deleteTour(tour!.rid);
+      },
     });
   };
 
@@ -142,9 +149,17 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
         return;
       }
+      traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
+        tour_action_type: 'rename',
+        tour_url: createIframeSrc(`/tour/${this.state.selectedTour!.rid}`)
+      }, [CmnEvtProp.EMAIL]);
       this.props.renameTour(this.state.selectedTour!, newVal);
       this.state.selectedTour!.displayName = newVal;
     } else if (this.state.ctxAction === CtxAction.Duplicate) {
+      traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
+        tour_action_type: 'duplicate',
+        tour_url: createIframeSrc(`/tour/${this.state.selectedTour!.rid}`)
+      }, [CmnEvtProp.EMAIL]);
       this.props.duplicateTour(this.state.selectedTour!, newVal);
     } else if (this.state.ctxAction === CtxAction.Create) {
       traceEvent(

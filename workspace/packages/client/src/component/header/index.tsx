@@ -13,6 +13,8 @@ import {
 } from '@ant-design/icons';
 import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import FableQuill from '../../assets/fable-quill.svg';
 import * as GTags from '../../common-styled';
@@ -22,6 +24,7 @@ import Input from '../input';
 import ShareTourModal from '../tour/share-tour-modal';
 import { P_RespSubscription } from '../../entity-processor';
 import { PlanBadge } from './plan-badge';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -201,6 +204,9 @@ function Header(props: IOwnProps): JSX.Element {
                           style={{ color: 'white' }}
                         />}
                         onClick={(e) => {
+                          traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                            preview_clicked_from: 'header'
+                          }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                           window.open(props.showPreview)?.focus();
                         }}
                       />
@@ -284,6 +290,7 @@ function Header(props: IOwnProps): JSX.Element {
             isModalVisible={isModalVisible}
             closeModal={closeModal}
             copyHandler={copyHandler}
+            embedClickedFrom="header"
           />
         )
       }

@@ -8,6 +8,7 @@ import * as GTags from '../../common-styled';
 import { AnnUpdateType } from './types';
 import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
 import { addNewAnn } from '../annotation/ops';
+import { amplitudeNewAnnotationCreated, propertyCreatedFromWithType } from '../../amplitude';
 
 type Props = {
   position: DestinationAnnotationPosition,
@@ -18,6 +19,7 @@ type Props = {
   raiseAlertIfOpsDenied: (msg?: string) => void;
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
+  calledFrom: 'canvas' | 'timeline';
 }
 
 export default function NewAnnotationPopup(props: Props): ReactElement {
@@ -37,6 +39,10 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
           }}
           >
             <GTags.PopoverMenuItem onClick={() => {
+              amplitudeNewAnnotationCreated(
+                props.calledFrom === 'canvas' ? propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
+                  : propertyCreatedFromWithType.TIMELINE_PLUS_ICON_COVER_SAME_SCREEN
+              );
               addNewAnn(
                 props.allAnnotationsForTour,
                 {

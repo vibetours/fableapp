@@ -1,7 +1,7 @@
 /* eslint-disable react/no-this-in-sfc */
 import { nanoid } from 'nanoid';
 import { DeleteOutlined, DisconnectOutlined, SisternodeOutlined } from '@ant-design/icons';
-import { ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import Modal from 'antd/lib/modal';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
@@ -10,6 +10,7 @@ import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Tooltip } from 'antd';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -48,6 +49,7 @@ import PreviewAndEmbedGuide from '../../user-guides/preview-and-embed-guide';
 import CanvasGuidePart1 from '../../user-guides/getting-to-know-the-canvas/part-1';
 import CanvasGuidePart3 from '../../user-guides/getting-to-know-the-canvas/part-3';
 import SelectorComponent from '../../user-guides/selector-component';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 const { confirm } = Modal;
 
@@ -342,6 +344,13 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             title: 'Do you want to reorder annotation?',
             icon: <SisternodeOutlined />,
             onOk() {
+              traceEvent(
+                AMPLITUDE_EVENTS.ANNOTATION_MOVED,
+                {
+                  annotation_op_location: 'canvas'
+                },
+                [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+              );
               const [currentScreenId, currentAnnRefId] = reorderPropsRef.current.currentDraggedAnnotationId.split('/');
               const currentAnnConfig = getAnnotationByRefId(currentAnnRefId, props.allAnnotationsForTour)!;
               const [, destinationAnnId] = reorderPropsRef.current.destinationDraggedAnnotationId.split('/');
@@ -1083,6 +1092,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   title: 'Are you sure you want to delete the connector?',
                   icon: <DisconnectOutlined />,
                   onOk() {
+                    traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                     const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
                     const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
                     const result = deleteConnection(
@@ -1122,6 +1132,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   title: 'Are you sure you want to delete this annotation?',
                   icon: <DeleteOutlined />,
                   onOk() {
+                    traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
+                      annotation_op_location: 'canvas'
+                    }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                     const [screenId, annId] = nodeMenuModalData.annId.split('/');
                     const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
                     const main = props.tourOpts.main;
@@ -1167,6 +1180,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               raiseAlertIfOpsDenied={props.setAlert}
               applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
               shouldShowScreenPicker={props.shouldShowScreenPicker}
+              calledFrom="canvas"
             />
           </Tags.MenuModal>
         </Tags.MenuModalMask>

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ITourDataOpts } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import * as Tags from './styled';
 import TimelineScreen from './screen';
 import TimelineItem from './item';
@@ -7,6 +8,7 @@ import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, DestinationAnn
 import { P_RespScreen } from '../../entity-processor';
 import { reorderAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from './types';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
   timeline: ConnectedOrderedAnnGroupedByScreen;
@@ -41,6 +43,13 @@ export default function Timeline(props: Props): JSX.Element {
   const [isAnnotationDragged, setIsAnnotationDragged] = useState<boolean>(false);
 
   const reorderAnnotationHandler = (): void => {
+    traceEvent(
+      AMPLITUDE_EVENTS.ANNOTATION_MOVED,
+      {
+        annotation_op_location: 'timeline'
+      },
+      [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+    );
     const result = reorderAnnotation(
       {
         ...reorderAnnotationPropsRef.current.currentSelectedAnnotation!,
