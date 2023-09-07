@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { CloseOutlined } from '@ant-design/icons';
 import Tour from '../../component/user-guide-tour';
 import {
   completeUserGuide,
@@ -26,7 +25,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: (<><CloseOutlined /> Skip guide</>),
+        children: 'Skip guide',
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -46,7 +45,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: (<><CloseOutlined /> Skip guide</>),
+        children: 'Skip guide',
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -65,7 +64,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: (<><CloseOutlined /> Skip guide</>),
+        children: 'Skip guide',
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -86,7 +85,7 @@ export const guide: Guide = {
         children: 'Next'
       },
       prevButtonProps: {
-        children: (<><CloseOutlined /> Skip guide</>),
+        children: 'Skip guide',
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
