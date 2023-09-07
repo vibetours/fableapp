@@ -142,6 +142,7 @@ export interface RespCommonConfig extends ResponseBase {
     tourAssetPath: string;
     dataFileName: string;
     editFileName: string;
+    loaderFileName: string;
     latestSchemaVersion: SchemaVersion;
 }
 

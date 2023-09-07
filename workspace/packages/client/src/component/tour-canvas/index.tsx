@@ -1,6 +1,6 @@
 /* eslint-disable react/no-this-in-sfc */
 import { nanoid } from 'nanoid';
-import { DeleteOutlined, DisconnectOutlined, SisternodeOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DisconnectOutlined, HourglassOutlined, SisternodeOutlined } from '@ant-design/icons';
 import { CmnEvtProp, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import Modal from 'antd/lib/modal';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
@@ -50,6 +50,7 @@ import CanvasGuidePart1 from '../../user-guides/getting-to-know-the-canvas/part-
 import CanvasGuidePart3 from '../../user-guides/getting-to-know-the-canvas/part-3';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import LoaderEditor from '../../container/loader-editor';
 
 const { confirm } = Modal;
 
@@ -165,6 +166,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
   const [noAnnotationsPresent, setNoAnnotationsPresent] = useState(false);
+  const [showLoaderEditor, setShowLoaderEditor] = useState(false);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -1077,7 +1079,30 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             </div>
           </Tooltip>
         </Tags.CanvasMenuItemCon>
+
+        <Tags.CanvasMenuItemCon>
+          <Tooltip
+            title="Design your loader"
+            overlayStyle={{ fontSize: '0.75rem' }}
+            placement="right"
+          >
+            <div>
+              <Button
+                onClick={() => setShowLoaderEditor(true)}
+                icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500 }} />}
+                size="middle"
+                style={{
+                  margin: 0,
+                  border: '1px solid black',
+                }}
+              />
+            </div>
+          </Tooltip>
+        </Tags.CanvasMenuItemCon>
       </Tags.CanvasMenuCon>
+      {
+        showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
+      }
       {isMenuModalVisible(connectorMenuModalData.position) && (
         <Tags.MenuModalMask onClick={() => {
           ctxData.current = null;

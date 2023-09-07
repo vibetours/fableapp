@@ -288,6 +288,14 @@ export const CloseIcon = styled.img`
   top: 40px;
   right: 40px;
   cursor: pointer;
+  background: #ffffffc4;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease-out;
+
+  &:hover {
+    background: #ffffff;
+  }
 `;
 
 export const FableLogo = styled.img`

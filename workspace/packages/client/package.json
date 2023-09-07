@@ -9,6 +9,7 @@
     "@ant-design/icons": "^4.8.0",
     "@auth0/auth0-react": "^2.0.1",
     "@lexical/react": "^0.8.0",
+    "@lottiefiles/react-lottie-player": "^3.5.3",
     "@sentry/react": "^7.49.0",
     "antd": "^5.8.2",
     "d3-array": "^3.2.4",

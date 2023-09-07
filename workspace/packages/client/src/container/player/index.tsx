@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { IAnnotationConfig, ITourDataOpts, LoadingStatus, ScreenData } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, ITourLoaderData, LoadingStatus, ScreenData } from '@fable/common/dist/types';
 import { Link } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
@@ -8,7 +8,7 @@ import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
-import createAdjacencyList, { ScreenAdjacencyList } from '../../screen-adjacency-list';
+import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AnnotationPerScreen, EditItem, FWin, NavFn } from '../../types';
 import HeartLoader from '../../component/loader/heart';
@@ -17,6 +17,8 @@ import { removeSessionId } from '../../analytics/utils';
 import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
 import Button from '../../component/button';
 import * as Tags from './styled';
+import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
+import FableLogo from '../../assets/fable_logo_light_bg.png';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -41,7 +43,8 @@ interface IAppStateProps {
   editsAcrossScreens: Record<string, EditItem[]>;
   isScreenLoaded: boolean;
   allAnnotationsForTour: AnnotationPerScreen[];
-  annotationSerialIdMap: Record<string, number>
+  annotationSerialIdMap: Record<string, number>;
+  tourLoaderData: ITourLoaderData | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -51,6 +54,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   return {
     tour: state.default.currentTour,
+    tourLoaderData: state.default.tourLoaderData,
+    // screen: state.default.currentScreen,
     screenDataAcrossScreens: state.default.screenData,
     isTourLoaded: state.default.tourLoaded,
     allScreens: state.default.currentTour?.screens || [],
@@ -79,6 +84,9 @@ type IProps = IOwnProps &
 
 interface IOwnStateProps {
   isMainSet: boolean;
+  initialScreenRid: string;
+  initiallyPrerenderedScreens: Record<string, boolean>;
+  isMinLoaderTimeDone: boolean;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -88,11 +96,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
 
+  private lastPrerenderedScreens: P_RespScreen[] = [];
+
+  private loadedScreenRids: Set<string> = new Set<string>();
+
   constructor(props: IProps) {
     super(props);
-
     this.state = {
       isMainSet: true,
+      initialScreenRid: '',
+      initiallyPrerenderedScreens: {},
+      isMinLoaderTimeDone: false,
     };
   }
 
@@ -127,14 +141,48 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  getScreenDataPreloaded(rid: string): void {
+  // TODO [optimization]: get prev n next screens to prerender in one function call
+  getScreenDataPreloaded(rid: string, nextScreenPrerenderCount: number): P_RespScreen[] {
     const screen = this.props.allScreens.find(s => s.rid === rid);
     if (!screen) {
       throw new Error(`No screen found for rid=${rid}`);
     }
-    const adj = this.adjList![screen.id];
-    const prerenderList = [adj[0], ...adj[1], ...adj[2]];
+
+    const nextScreensToPrerender = bfsTraverse(
+      this.adjList!,
+      this.lastPrerenderedScreens,
+      nextScreenPrerenderCount,
+      'next'
+    );
+    this.lastPrerenderedScreens = nextScreensToPrerender.lastLevelNodes;
+
+    const prevScreensToPrerender = bfsTraverse(this.adjList!, [screen], 1, 'prev');
+
+    const prerenderList = this.removeDuplicateScreens([
+      ...nextScreensToPrerender.traversedNodes,
+      ...prevScreensToPrerender.traversedNodes,
+    ]).filter(s => !this.loadedScreenRids.has(s.rid));
+
     prerenderList.map(s => this.props.loadScreenAndData(s.rid, s.id !== screen.id));
+
+    prerenderList.forEach(s => this.loadedScreenRids.add(s.rid));
+
+    return prerenderList;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  removeDuplicateScreens(screens: P_RespScreen[]): P_RespScreen[] {
+    const uniqueScreens: P_RespScreen[] = [];
+    const traversedScreenIds: Record<string, boolean> = {};
+
+    screens.forEach(screen => {
+      if (!traversedScreenIds[screen.id]) {
+        uniqueScreens.push(screen);
+        traversedScreenIds[screen.id] = true;
+      }
+    });
+
+    return uniqueScreens;
   }
 
   navigateToMain = (): void => {
@@ -161,9 +209,35 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       firstTimeTourLoading = true;
       this.navigateToMain();
     }
-    if (currScreenRId && (firstTimeTourLoading || currScreenRId !== prevScreenRId)) {
-      this.getScreenDataPreloaded(currScreenRId);
+    if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
+      if (this.state.initialScreenRid) {
+        this.getScreenDataPreloaded(currScreenRId, 1);
+      } else {
+        // this happens when the user uses the tourURl as  /tour/tourid without any screen id
+        // in this case, we navigate to main, hence, firstTimeLoading is false
+        // but still we are rendering the screens for the first time
+        this.initialScreenLoad(currScreenRId);
+      }
     }
+
+    // this happens when the user uses the tourUrl as /tour/tourid/screenid
+    if (currScreenRId && firstTimeTourLoading) {
+      this.initialScreenLoad(currScreenRId);
+    }
+
+    if (this.props.tourLoaderData !== prevProps.tourLoaderData && this.props.tourLoaderData) {
+      setTimeout(() => {
+        this.setState({ isMinLoaderTimeDone: true });
+      }, 3500);
+    }
+  }
+
+  initialScreenLoad(screenRid: string): void {
+    this.lastPrerenderedScreens = [this.props.allScreens.find(s => s.rid === screenRid)!];
+    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(screenRid, 3);
+    const obj: Record<string, boolean> = {};
+    initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
+    this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
   }
 
   componentWillUnmount(): void {
@@ -219,10 +293,28 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return this.props.allScreens.find(screen => screen.rid === this.props.match.params.screenRid!)!.id;
   }
 
+  isInitialPrerenderingComplete(): boolean {
+    if (!this.state.isMinLoaderTimeDone) {
+      return false;
+    }
+    for (const isPrerendered of Object.values(this.state.initiallyPrerenderedScreens)) {
+      if (!isPrerendered) return false;
+    }
+    return true;
+  }
+
   render(): JSX.Element {
     if (!this.state.isMainSet) {
       return (
         <Tags.InfoCon>
+          <img
+            src={FableLogo}
+            alt="fable-logo"
+            style={{
+              height: '2rem',
+              marginBottom: '2rem',
+            }}
+          />
           <div className="title">
             Entry point is not set for this tour
           </div>
@@ -232,8 +324,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             </p>
             <ol>
               <li>Clicking on the annotation</li>
-              <li>Go to Advanced Section</li>
-              <li>Check Entry Point</li>
+              <li>Expanding <em>Advanced</em> section</li>
+              <li><em>Checking </em> Entry Point</li>
             </ol>
           </div>
           <Link
@@ -246,14 +338,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       );
     }
 
-    if (!this.isLoadingComplete()) {
-      return (
-        <HeartLoader />
-      );
-    }
-
-    const currScreenId = this.getCurrScreenId();
-
     return (
       <GTags.BodyCon style={{
         height: '100%',
@@ -261,7 +345,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         overflowY: 'hidden',
       }}
       > {
-          this.getScreenWithRenderSlot()
+          this.isLoadingComplete() && this.getScreenWithRenderSlot()
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
@@ -269,7 +353,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
-                hidden={config.screen.id !== currScreenId}
+                hidden={config.screen.id !== this.getCurrScreenId()}
                 screenData={config.screenData}
                 divPadding={0}
                 navigate={this.navFn}
@@ -280,18 +364,31 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 tourDataOpts={this.props.tourOpts!}
                 allEdits={config.screenEdits}
                 toAnnotationId={
-                  config.screen.id === currScreenId ? this.props.match.params.annotationId || '' : ''
+                  config.screen.id === this.getCurrScreenId() ? this.props.match.params.annotationId || '' : ''
                 }
-                onFrameAssetLoad={() => { }}
+                onFrameAssetLoad={() => {
+                  if (this.state.initiallyPrerenderedScreens[config.screen.rid] === false) {
+                    this.setState(prev => ({
+                      initiallyPrerenderedScreens: {
+                        ...prev.initiallyPrerenderedScreens,
+                        [config.screen.rid]: true
+                      }
+                    }));
+                  }
+                }}
                 allAnnotationsForTour={this.props.allAnnotationsForTour}
                 tour={this.props.tour!}
                 allScreensData={this.props.screenDataAcrossScreens}
                 allScreens={this.props.allScreens}
                 editsAcrossScreens={this.props.editsAcrossScreens}
-                preRenderNextScreen={(rid: string) => this.getScreenDataPreloaded(rid)}
+                preRenderNextScreen={(rid: string) => this.getScreenDataPreloaded(rid, 1)}
               />
             ))
         }
+        {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
+          && (
+          <FullScreenLoader data={this.props.tourLoaderData} />
+          )}
       </GTags.BodyCon>
     );
   }

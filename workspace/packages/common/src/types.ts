@@ -97,6 +97,19 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationPadding: string;
 }
 
+export interface ITourLoaderData {
+  logo: {
+      url: string;
+  },
+  loader: {
+      url: string;
+      type: 'gif' | 'lottie' | '';
+  },
+  lastUpdatedAtUTC: number;
+  loadingText: string;
+  version: string;
+}
+
 export interface ScreenDiagnostics {
   type: string,
   reason: string,

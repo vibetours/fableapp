@@ -4,6 +4,7 @@ import {
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
+  ITourLoaderData,
   LoadingStatus,
   ScreenData,
   TourData
@@ -29,7 +30,10 @@ import {
   TTourDelete,
   TSubs,
   TGetAllUsers,
-  TUserPropChange
+  TUserPropChange,
+  TTourWithLoader,
+  TSaveTourLoader,
+  TAutosavingLoader
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -69,10 +73,12 @@ export const initialState: {
   // TODO remote + local opts changes in one state for one time consumption
   remoteTourOpts: ITourDataOpts | null;
   localTourOpts: ITourDataOpts | null;
+  tourLoaderData: ITourLoaderData | null;
   token : string;
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
   isAutoSaving: boolean;
+  isAutoSavingLoader: boolean;
 } = {
   inited: false,
   commonConfig: null,
@@ -105,10 +111,12 @@ export const initialState: {
   remoteAnnotations: {},
   localTourOpts: null,
   remoteTourOpts: null,
+  tourLoaderData: null,
   token: '',
   relayScreenId: null,
   relayAnnAdd: null,
   isAutoSaving: false,
+  isAutoSavingLoader: false,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -233,6 +241,13 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
+    case ActionType.AUTOSAVING_LOADER: {
+      const tAction = action as TAutosavingLoader;
+      const newState = { ...state };
+      newState.isAutoSavingLoader = tAction.isAutosavingLoader;
+      return newState;
+    }
+
     case ActionType.OPS_IN_PROGRESS: {
       const tAction = action as TOpsInProgress;
       const newState = { ...state };
@@ -309,6 +324,7 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.tourData = null;
       newState.remoteTourOpts = null;
       newState.remoteAnnotations = {};
+      newState.tourLoaderData = null;
       newState.tourLoaded = false;
       newState.allScreens = [];
       newState.newTourLoadingStatus = LoadingStatus.NotStarted;
@@ -335,6 +351,14 @@ export default function projectReducer(state = initialState, action: Action) {
         ...newState.remoteEdits,
         [tAction.screen.id]: tAction.remoteEdits
       };
+      return newState;
+    }
+
+    case ActionType.TOUR_AND_LOADER_LOADED: {
+      const tAction = action as TTourWithLoader;
+      const newState = { ...state };
+      newState.currentTour = tAction.tour;
+      newState.tourLoaderData = tAction.loader;
       return newState;
     }
 
@@ -386,6 +410,14 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.remoteTourOpts = tAction.opts;
         newState.tourData = tAction.data;
       }
+      return newState;
+    }
+
+    case ActionType.SAVE_TOUR_LOADER: {
+      const tAction = action as TSaveTourLoader;
+      const newState = { ...state };
+      newState.tourLoaderData = tAction.loader;
+      newState.isAutoSavingLoader = false;
       return newState;
     }
 

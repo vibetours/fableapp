@@ -2,8 +2,9 @@ import styled from 'styled-components';
 
 export const InfoCon = styled.div`
   border-radius: 16px;
+  box-shadow: 0 0 2px 0px gray;
   width: 375px;
-  padding: 1rem;
+  padding: 2rem 1.2rem;
   transform: translate(-50%, -50%);
   top: 50%;
   left: 50%;

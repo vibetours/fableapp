@@ -618,8 +618,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const goToScreen = this.getScreenById(+goToScreenId)!;
     const currScreen = this.getScreenById(+currScreenId)!;
 
-    this.props.preRenderNextScreen!(goToScreen.rid);
-
     /**
      * If either of the screen type is image,
      * OR
@@ -651,6 +649,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       return;
     }
+
+    this.props.preRenderNextScreen!(goToScreen.rid);
 
     /**
      * If either of the screen type doesn't support screen diff version,

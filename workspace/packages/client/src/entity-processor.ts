@@ -115,6 +115,7 @@ export interface P_RespTour extends RespTour {
   displayableUpdatedAt: string;
   isPlaceholder: boolean;
   screens?: P_RespScreen[];
+  loaderFileUri: URL;
 }
 
 export function processRawTourData(
@@ -134,6 +135,7 @@ export function processRawTourData(
     updatedAt: d,
     displayableUpdatedAt: getDisplayableTime(d),
     dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.dataFileName}?ts=${+new Date()}`),
+    loaderFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.loaderFileName}?ts=${+new Date()}`),
     isPlaceholder,
   } as P_RespTour;
 }

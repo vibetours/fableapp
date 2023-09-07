@@ -32,6 +32,7 @@ import {
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
+  ITourLoaderData,
   LoadingStatus,
   ScreenData,
   TourData,
@@ -104,6 +105,20 @@ export function startAutosaving() {
     dispatch({
       type: ActionType.AUTOSAVING,
       isAutosaving: true,
+    });
+  };
+}
+
+export interface TAutosavingLoader {
+  type: ActionType.AUTOSAVING_LOADER;
+  isAutosavingLoader: boolean;
+}
+
+export function startAutosavingLoader() {
+  return async (dispatch: Dispatch<TAutosavingLoader>) => {
+    dispatch({
+      type: ActionType.AUTOSAVING_LOADER,
+      isAutosavingLoader: true,
     });
   };
 }
@@ -515,7 +530,10 @@ export function addScreenToTour(
     if (shouldNavigate) {
       window.location.replace(`/tour/${tourRid}/${screenResp.data.rid}`);
     } else {
-      loadTourAndData(tourRid, true, false)(dispatch as Dispatch<TTourWithData | TGenericLoading>, getState);
+      loadTourAndData(tourRid, true, false)(
+        dispatch as Dispatch<TTourWithData | TTourWithLoader | TGenericLoading>,
+        getState
+      );
     }
   };
 }
@@ -710,8 +728,14 @@ export interface TTourWithData {
   allCorrespondingScreens: boolean,
 }
 
+export interface TTourWithLoader {
+  type: ActionType.TOUR_AND_LOADER_LOADED;
+  tour: P_RespTour;
+  loader: ITourLoaderData;
+}
+
 export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFreshLoading = true) {
-  return async (dispatch: Dispatch<TTourWithData | TGenericLoading>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading>, getState: () => TState) => {
     const state = getState();
     if (isFreshLoading) {
       dispatch({
@@ -726,6 +750,15 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFre
     } catch (e) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
+
+    const loader = await api<null, ITourLoaderData>(tour!.loaderFileUri.href);
+
+    dispatch({
+      type: ActionType.TOUR_AND_LOADER_LOADED,
+      tour,
+      loader,
+    });
+
     const data = await api<null, TourData>(tour!.dataFileUri.href);
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
     dispatch({
@@ -822,6 +855,30 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
       opts: annotationAndOpts.opts,
       idMap: annotationAndOpts.annotationsIdMap,
       isLocal: true,
+    });
+  };
+}
+
+export interface TSaveTourLoader {
+  type: ActionType.SAVE_TOUR_LOADER,
+  tour: P_RespTour,
+  loader: ITourLoaderData
+}
+
+export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) {
+  return async (dispatch: Dispatch<TSaveTourLoader>, getState: () => TState) => {
+    loaderData.lastUpdatedAtUTC = getCurrentUtcUnixTime();
+    const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtrloaderedit', {
+      auth: true,
+      body: {
+        rid: tour.rid,
+        editData: JSON.stringify(loaderData),
+      },
+    });
+    dispatch({
+      type: ActionType.SAVE_TOUR_LOADER,
+      tour,
+      loader: loaderData
     });
   };
 }

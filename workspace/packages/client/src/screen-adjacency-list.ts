@@ -59,3 +59,54 @@ export default function create(
 
   return adjList;
 }
+
+interface QueueNode {
+  screen: P_RespScreen;
+  level: number;
+}
+
+export const bfsTraverse = (
+  graph: ScreenAdjacencyList,
+  startScreens: P_RespScreen[],
+  nLevels: number,
+  dir: 'prev' | 'next',
+): {
+  traversedNodes: P_RespScreen[],
+  lastLevelNodes: P_RespScreen[],
+} => {
+  const visited = new Set<number>();
+  const queue: QueueNode[] = [];
+  const traversedNodes: P_RespScreen[] = [];
+  const lastLevelNodes: P_RespScreen[] = [];
+
+  for (const startScreen of startScreens) {
+    queue.push({ screen: startScreen, level: 0 });
+  }
+
+  while (queue.length > 0) {
+    const { screen, level } = queue.shift()!;
+
+    if (level > nLevels) {
+      break;
+    }
+
+    if (level === nLevels) {
+      lastLevelNodes.push(screen);
+    }
+
+    if (!visited.has(screen.id)) {
+      traversedNodes.push(screen);
+      visited.add(screen.id);
+
+      const neighbors = dir === 'prev' ? graph[screen.id][2] : graph[screen.id][1];
+
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor.id)) {
+          queue.push({ screen: neighbor, level: level + 1 });
+        }
+      }
+    }
+  }
+
+  return { traversedNodes, lastLevelNodes };
+};

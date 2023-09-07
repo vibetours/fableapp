@@ -112,7 +112,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           this.props.screenData.version,
           this.frameLoadingPromises,
           this.assetLoadingPromises,
-          this.nestedFrames
+          this.nestedFrames,
+          this.props.screen.type === ScreenType.Img,
         );
         const deserFrameBody = frame.contentDocument.body;
         this.initialFrameBodyDisplay = getComputedStyle(frame.contentDocument.body).display as DisplayCSSPropValue;

@@ -9,6 +9,8 @@ export const deser = (
   assetLoadingPromises: Promise<unknown>[],
   nestedFrames: HTMLIFrameElement[] = [],
   props: DeSerProps = { partOfSvgEl: 0, shadowParent: null },
+  shouldAddImgToAssetLoadingPromises: boolean = false,
+
 ): Node | null | undefined => {
   const newProps: DeSerProps = {
     // For svg and all the child nodes of svg set a flag
@@ -25,7 +27,14 @@ export const deser = (
       if (serNode.name === 'meta') {
         node = doc.createComment('meta');
       } else {
-        node = createHtmlElement(serNode, doc, version, newProps, assetLoadingPromises);
+        node = createHtmlElement(
+          serNode,
+          doc,
+          version,
+          newProps,
+          assetLoadingPromises,
+          shouldAddImgToAssetLoadingPromises
+        );
         newProps.shadowParent = (node as HTMLElement).shadowRoot;
       }
       break;
@@ -51,7 +60,8 @@ export const deser = (
         frameLoadingPromises,
         assetLoadingPromises,
         nestedFrames,
-        newProps
+        newProps,
+        shouldAddImgToAssetLoadingPromises,
       );
       if (childNode && node && !child.props.isShadowRoot) {
         node.appendChild(childNode);
@@ -110,7 +120,8 @@ export const createHtmlElement = (
   doc: Document,
   version: string,
   props: DeSerProps,
-  assetLoadingPromises: Promise<unknown>[]
+  assetLoadingPromises: Promise<unknown>[],
+  shouldAddImgToAssetLoadingPromises: boolean,
 ): Node => {
   const el = props.partOfSvgEl
     ? doc.createElementNS('http://www.w3.org/2000/svg', node.name)
@@ -188,20 +199,28 @@ export const createHtmlElement = (
 
   if (node.props.isStylesheet) {
     if (node.attrs.href) {
-      const p = new Promise((resolve) => {
-        // on either cases we resolve the promises so that the rendering happens
-        el.onload = resolve;
-        el.onerror = resolve;
-        el.onabort = resolve;
-      });
-      assetLoadingPromises.push(p);
+      addToAssetLoadingPromises(el as HTMLLinkElement);
     } else {
       console.warn('No href present for style node', node);
     }
   }
 
+  if (node.name.toLowerCase() === 'img' && shouldAddImgToAssetLoadingPromises) {
+    addToAssetLoadingPromises(el as HTMLImageElement);
+  }
+
   if (node.props.isShadowHost) {
     el.attachShadow({ mode: 'open' });
+  }
+
+  function addToAssetLoadingPromises(element: HTMLLinkElement | HTMLImageElement): void {
+    const p = new Promise((resolve) => {
+      // on either cases we resolve the promises so that the rendering happens
+      element.onload = resolve;
+      element.onerror = resolve;
+      element.onabort = resolve;
+    });
+    assetLoadingPromises.push(p);
   }
 
   return el;
@@ -214,6 +233,7 @@ export const deserFrame = async (
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
   nestedFrames: HTMLIFrameElement[] = [],
+  shouldAddImgToAssetLoadingPromises: boolean = false,
 ): Promise<void> => {
   const rootHTMLEl = deser(
     docTree,
@@ -222,6 +242,8 @@ export const deserFrame = async (
     frameLoadingPromises,
     assetLoadingPromises,
     nestedFrames,
+    { partOfSvgEl: 0, shadowParent: null },
+    shouldAddImgToAssetLoadingPromises
   ) as HTMLElement;
   const childNodes = doc.childNodes;
   for (let i = 0; i < childNodes.length; i++) {
@@ -239,9 +261,19 @@ export const deserIframeEl = (
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
   nestedFrames: HTMLIFrameElement[] = [],
-  props: DeSerProps = { partOfSvgEl: 0, shadowParent: null }
+  props: DeSerProps = { partOfSvgEl: 0, shadowParent: null },
+  shouldAddImgToAssetLoadingPromises: boolean = false,
 ): Node => {
-  const iframeEl = deser(serNode, doc, version, frameLoadingPromises, assetLoadingPromises, nestedFrames, props);
+  const iframeEl = deser(
+    serNode,
+    doc,
+    version,
+    frameLoadingPromises,
+    assetLoadingPromises,
+    nestedFrames,
+    props,
+    shouldAddImgToAssetLoadingPromises
+  );
   const tNode = iframeEl as HTMLIFrameElement;
 
   const htmlNode = serNode.chldrn.find(n => n.type === Node.ELEMENT_NODE && n.name === 'html');

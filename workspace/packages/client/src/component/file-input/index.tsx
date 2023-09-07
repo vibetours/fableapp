@@ -3,14 +3,15 @@ import * as Tags from './styled';
 
 export interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   innerRef?: RefObject<HTMLInputElement>;
+  label?: string;
 }
 
-export default function FileInput({ innerRef, style, ...rest }: Props): JSX.Element {
+export default function FileInput({ innerRef, label, style, ...rest }: Props): JSX.Element {
   const [selectedFileName, setSelectedFileName] = useState<string>('No file chosen');
 
   return (
     <Tags.InputContainer htmlFor={rest.id} style={style}>
-      Click to upload: {selectedFileName}
+      {label || 'Click to upload:'} {selectedFileName}
 
       <input
         ref={innerRef}
