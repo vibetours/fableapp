@@ -66,12 +66,17 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
       raiseDeferredError(e as Error);
     }
 
-    this.props.init();
+    if (this.shouldInit()) this.props.init();
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  shouldInit(): boolean {
+    return document.location.pathname !== '/aboutblank';
   }
 
   render():JSX.Element {
-    if (!this.props.isInitied) {
-      return <HeartLoader />;
+    if (this.shouldInit() && !this.props.isInitied) {
+      return <div />;
     }
 
     return (

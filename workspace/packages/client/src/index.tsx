@@ -13,18 +13,29 @@ import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import { upsertAllUserGuides } from './user-guides';
 
-try {
-  // Fails with https://stackoverflow.com/q/63195318 for incognito mode
-  localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
-} catch (e) {
-  console.log((e as Error).stack);
-}
-
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
-sentryInit('client', packageJSON.version);
-initAmplitude();
-upsertAllUserGuides();
+function addChargebeeScript(): void {
+  const script = document.createElement('script');
+  script.setAttribute('src', 'https://js.chargebee.com/v2/chargebee.js');
+  document.head.appendChild(script);
+}
+
+if (document.location.pathname !== '/aboutblank') {
+  console.log(`Version: ${packageJSON.version}`);
+
+  try {
+    // Fails with https://stackoverflow.com/q/63195318 for incognito mode
+    localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+  } catch (e) {
+    console.log((e as Error).stack);
+  }
+
+  sentryInit('client', packageJSON.version);
+  initAmplitude();
+  upsertAllUserGuides();
+  addChargebeeScript();
+}
 
 const theme = {
   colors: {
@@ -59,8 +70,6 @@ const theme = {
 };
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
-
-console.log(`Version: ${packageJSON.version}`);
 
 root.render(
   <Provider store={config}>
