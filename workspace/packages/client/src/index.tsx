@@ -13,7 +13,12 @@ import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import { upsertAllUserGuides } from './user-guides';
 
-localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+try {
+  // Fails with https://stackoverflow.com/q/63195318 for incognito mode
+  localStorage.removeItem(LOCAL_STORE_TIMELINE_ORDER_KEY);
+} catch (e) {
+  console.log((e as Error).stack);
+}
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
