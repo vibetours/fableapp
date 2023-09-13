@@ -85,6 +85,19 @@ function installListener(doc: Document) {
             f.onload = resolve;
           }))
         );
+
+        const crossOriginFrameOccurances = frames
+          .map(f => f.contentDocument)
+          .filter(d => !d)
+          .length;
+
+        if (crossOriginFrameOccurances) {
+          chrome.runtime.sendMessage<MsgPayload<{}>>({
+            type: Msg.REINJECT_CONTENT_SCRIPT,
+            data: { }
+          });
+        }
+
         installListener(doc);
       }
     });

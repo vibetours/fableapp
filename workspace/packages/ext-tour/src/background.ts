@@ -391,6 +391,15 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       break;
     }
 
+    case Msg.REINJECT_CONTENT_SCRIPT: {
+      const tab = await getActiveTab();
+      if (!(tab && tab.id)) {
+        throw new Error("Active tab not found. Are you focused on the browser?");
+      }
+      await injectContentScriptInCrossOriginFrames({ id: tab.id!, url: tab.url! });
+      break;
+    }
+
     case Msg.DELETE_RECORDING: {
       endMsg = "sigskip";
     }
