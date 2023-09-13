@@ -966,16 +966,21 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-next').data(p.data(), d => d.id);
         p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-prev').data(p.data(), d => d.id);
 
-        p
+        const titleBar = p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
-          .data(p.data(), d => d.id)
+          .data(p.data(), d => d.id);
+
+        titleBar.merge(titleBar)
           .attr('width', d => d.width - 20)
           .attr('height', 20)
           .attr('x', 20)
           .attr('y', 0)
           .call(nodeDraggable())
           .call(fo => {
-            fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+            const screentitle = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .data(p.data(), d => d.id);
+
+            screentitle.merge(screentitle)
               .style('width', d => d.width)
               .style('height', '16px')
               .style('display', 'block')

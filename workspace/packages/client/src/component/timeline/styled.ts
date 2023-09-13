@@ -327,30 +327,29 @@ export const AnotCrtPanelSecLabel = styled.div`
   justify-content: space-between;
   padding: 0 1rem;
 
-  & > div:first-child {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    span {
-      width: 1rem;
-      height: 1rem;
-      border-radius: 50%;
-      background: #FF7450;
-      margin-right: 0.6rem;
-    }
-  }
 `;
 
 export const AnnDisplayText = styled.div`
   line-height: 1.25rem;
-  font-weight: 600;
   color: #212121;
-  display: inline-block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 2rem);
   margin-right: 10px;
+
+  .steps {
+    font-weight: 600;
+    display: inline-block;
+    font-size: 1rem;
+  }
+
+  .head {
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
+  }
 `;
 
 export const BottomInvisibleDiv = styled.div`

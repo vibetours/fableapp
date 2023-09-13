@@ -131,6 +131,7 @@ export const enum Ops {
 
 export interface IAnnotationConfigWithScreen extends IAnnotationConfig {
   screen: P_RespScreen;
+  index: string;
 }
 
 export type ConnectedOrderedAnnGroupedByScreen = Array<Array<Array<IAnnotationConfigWithScreen>>>;

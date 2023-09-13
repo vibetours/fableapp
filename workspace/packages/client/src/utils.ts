@@ -163,4 +163,29 @@ export const setEventCommonState = (property: string, value: any): void => {
 };
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
-export const createIframeSrc = (relativeURL : string) => baseURL + relativeURL;
+export const createIframeSrc = (relativeURL: string): string => baseURL + relativeURL;
+
+export const generateScreenIndex = (timelineCount: number, timelineIdx: number, annIdx: number): string => {
+  if (timelineCount > 1) {
+    const screenIdx = `Step ${String.fromCharCode(65 + timelineIdx)}-${annIdx}`;
+    return screenIdx;
+  }
+
+  return `Step ${annIdx.toString()}`;
+};
+
+export const assignScreenIndices = (
+  orderedAnns: ConnectedOrderedAnnGroupedByScreen
+): ConnectedOrderedAnnGroupedByScreen => {
+  for (let i = 0; i < orderedAnns.length; i++) {
+    let annIdx = 0;
+    for (const screenGroup of orderedAnns[i]) {
+      for (const annotation of screenGroup) {
+        annIdx++;
+        annotation.index = generateScreenIndex(orderedAnns.length, i, annIdx);
+      }
+    }
+  }
+
+  return orderedAnns;
+};

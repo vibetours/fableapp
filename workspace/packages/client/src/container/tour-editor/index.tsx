@@ -64,7 +64,9 @@ import {
   getFableTimelineOrder,
   saveFableTimelineOrder,
   setEventCommonState,
-  createIframeSrc
+  createIframeSrc,
+  generateScreenIndex,
+  assignScreenIndices
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
@@ -116,7 +118,8 @@ const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Connecte
     for (const ann of annPerScreen.annotations) {
       flatAnns[ann.refId] = {
         ...ann,
-        screen: annPerScreen.screen
+        screen: annPerScreen.screen,
+        index: ''
       };
     }
   }
@@ -182,7 +185,9 @@ const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Connecte
     );
   }
 
-  return orderedAnns;
+  const indexedOrderedAnns = assignScreenIndices(orderedAnns);
+
+  return indexedOrderedAnns;
 };
 
 const isTourMainSet = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {

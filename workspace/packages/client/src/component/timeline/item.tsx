@@ -177,7 +177,8 @@ export default function TimelineItem(props: Props): JSX.Element {
                 <HomeOutlined style={{ background: 'none' }} />
               </Tooltip>
             )}
-            {config.displayText}
+            <span className="steps">{config.index}</span>
+            <span className="head">{config.displayText}</span>
           </Tags.AnnDisplayText>
           {config.syncPending && (<LoadingOutlined />)}
           <img src={ExpandArrowFilled} height={20} width={20} alt="" />

@@ -34,7 +34,7 @@ export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, gr
           y: 0,
           imageUrl: screen.thumbnailUri.href,
           text: annotation.displayText,
-          screenTitle: screen.displayName,
+          screenTitle: annotation.index,
           annotation
         });
       });
