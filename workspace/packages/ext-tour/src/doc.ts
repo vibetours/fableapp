@@ -175,6 +175,20 @@ export function getSearializedDom(
     if (sNode.name === "img") {
       const tNode = node as HTMLImageElement;
       const src = tNode.src;
+
+      let base64: string = "";
+      if (src.startsWith("blob:")) {
+        const canvas = document.createElement("canvas");
+        canvas.width = tNode.width;
+        canvas.height = tNode.height;
+        const ctx = canvas.getContext("2d");
+        ctx!.drawImage(tNode, 0, 0);
+        const dataURL = canvas.toDataURL("image/png");
+        base64 = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+      }
+
+      sNode.props.base64Img = base64;
+
       sNode.props.proxyUrl = src || undefined;
       sNode.props.proxyAttr = "src";
       if (src) {

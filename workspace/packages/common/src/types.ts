@@ -19,6 +19,7 @@ export interface SerNode {
     isShadowHost?: boolean;
     isShadowRoot?: boolean;
     origHref?: string | null;
+    base64Img?: string;
     rect?: {
       height: number;
       width: number;

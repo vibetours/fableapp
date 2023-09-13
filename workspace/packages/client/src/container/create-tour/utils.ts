@@ -44,12 +44,12 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
 import { getColorContrast } from '../../utils';
-import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
+import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 
 export async function saveScreen(
   frames: FrameDataToBeProcessed[],
   cookies: chrome.cookies.Cookie[],
-  onProgress:(doneProcessing: number, totalProcessing: number) => void,
+  onProgress: (doneProcessing: number, totalProcessing: number) => void,
 ): Promise<ScreenInfo> {
   const screenInfo = await processScreen(frames, cookies, onProgress);
   return screenInfo;
@@ -134,7 +134,7 @@ async function addAnnotationConfigs(
   tourName: string,
   annotationBodyBackgroundColor: string,
   annotationBorderRadius: number
-): Promise<{tourDataFile: TourData, tourRid: string}> {
+): Promise<{ tourDataFile: TourData, tourRid: string }> {
   let tourDataFile: TourData;
   let tourRid: string;
 
@@ -265,9 +265,9 @@ async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<Re
 async function processScreen(
   frames: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
-  onProgress:(doneProcessing: number, totalProcessing: number) => void,
+  onProgress: (doneProcessing: number, totalProcessing: number) => void,
 ):
-    Promise<ScreenInfo> {
+  Promise<ScreenInfo> {
   for (const frame of frames) {
     if (frame.type === 'serdom') {
       const serDoc = frame.data as SerDoc;
@@ -302,19 +302,19 @@ function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
 }
 
 interface PostProcessSerDocsReturnType {
-    data: RespScreen | null;
-    elPath: string;
-    replacedWithImgScreen: boolean;
-    skipped: boolean;
+  data: RespScreen | null;
+  elPath: string;
+  replacedWithImgScreen: boolean;
+  skipped: boolean;
 }
 
 async function postProcessSerDocs(
   results: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
-  onProgress:(doneProcessing: number, totalProcessing: number) => void,
+  onProgress: (doneProcessing: number, totalProcessing: number) => void,
 ): Promise<PostProcessSerDocsReturnType> {
   let imageData = '';
-  let mainFrame :FrameDataToBeProcessed | undefined;
+  let mainFrame: FrameDataToBeProcessed | undefined;
   let iconPath: string | undefined;
   let totalItemsToPostProcess = 0;
   const lookupWithProp = new CreateLookupWithProp<FrameDataToBeProcessed>();
@@ -337,7 +337,7 @@ async function postProcessSerDocs(
     } else {
       lookupWithProp.push('frameId', `${r.frameId}`, r);
       !(data.name === undefined || data.name === null || data.name === '')
-          && lookupWithProp.push('name', data.name, r);
+        && lookupWithProp.push('name', data.name, r);
       lookupWithProp.push('url', data.frameUrl, r);
       lookupWithProp.push('dim', `${data.rect.width}:${data.rect.height}`, r);
     }
@@ -377,7 +377,7 @@ async function postProcessSerDocs(
           subFrame = subFrames[0];
         } else if (
           node.props.rect
-            && (subFrames = lookupWithProp.find('dim', `${node.props.rect.width}:${node.props.rect.height}`)).length === 1
+          && (subFrames = lookupWithProp.find('dim', `${node.props.rect.width}:${node.props.rect.height}`)).length === 1
         ) {
           // If none of the above condition matches we try to get iframe with same dimension
           subFrame = subFrames[0];
@@ -410,7 +410,32 @@ async function postProcessSerDocs(
 
         const assetUrlStr = getAbsoluteUrl(node.props.proxyUrl || '', frame.baseURI);
         const assetUrl = new URL(assetUrlStr);
-        if (assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:') {
+
+        if (node.props.base64Img) {
+          try {
+            const binaryData = atob(node.props.base64Img);
+            const arrayBuffer = new ArrayBuffer(binaryData.length);
+            const uint8Array = new Uint8Array(arrayBuffer);
+
+            for (let i = 0; i < binaryData.length; i++) {
+              uint8Array[i] = binaryData.charCodeAt(i);
+            }
+
+            const blob = new Blob([uint8Array]);
+
+            const file = new File([blob], 'image.png', { type: 'image/png' });
+
+            const urlString = await uploadFileToAws(file);
+
+            node.props.origHref = node.props.proxyUrl;
+            node.attrs[node.props.proxyAttr || ''] = urlString || assetUrlStr;
+            node.props.base64Img = '';
+          } catch (e) {
+            raiseDeferredError(e as Error);
+            node.props.origHref = node.props.proxyUrl;
+            node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+          }
+        } else if (assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:') {
           try {
             const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
               method: 'POST',
@@ -602,7 +627,7 @@ export function getThemeAnnotationOpts(color: string, radius: number = DEFAULT_B
   return opts;
 }
 
-export const getRelevantColors = (annotationBodyBackgroundColor: string) : {
+export const getRelevantColors = (annotationBodyBackgroundColor: string): {
   primary: string,
   selection: string,
   font: string
