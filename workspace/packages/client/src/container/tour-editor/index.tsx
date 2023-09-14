@@ -30,7 +30,7 @@ import {
   renameScreen,
   saveEditChunks,
   saveTourData,
-  startAutosaving
+  startAutosaving,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
@@ -94,7 +94,7 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid)),
+  loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid, true)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
@@ -431,7 +431,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.match.params.tourId) {
       result = result && this.props.isTourLoaded;
     }
-    if (this.props.match.params.screenId) {
+    if (this.props.screen === null && this.props.match.params.screenId) {
       result = result && this.props.isScreenLoaded;
     }
     return result;
@@ -440,9 +440,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   shouldShowScreen = (): boolean => {
     let result = false;
     if (this.props.match.params.screenId) {
-      result = this.props.isScreenLoaded;
       if (this.props.match.params.tourId) {
-        result = result && this.props.isTourLoaded;
+        result = this.props.isTourLoaded;
+      }
+      if (this.props.screen === null) {
+        result = result && this.props.isScreenLoaded;
       }
     }
     return result;
@@ -620,6 +622,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               }
               applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
               shouldShowScreenPicker={this.updateShowScreenPicker}
+              isScreenLoaded={this.props.isScreenLoaded}
             />
           ) : (this.isLoadingComplete() ? (
             <div style={{ position: 'relative', height: '100%', width: '100%' }}>

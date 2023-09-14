@@ -79,6 +79,7 @@ export const initialState: {
   relayAnnAdd: AnnAdd | null;
   isAutoSaving: boolean;
   isAutoSavingLoader: boolean;
+  allScreensForCurrentTourLoadingStatus: LoadingStatus;
 } = {
   inited: false,
   commonConfig: null,
@@ -117,6 +118,7 @@ export const initialState: {
   relayAnnAdd: null,
   isAutoSaving: false,
   isAutoSavingLoader: false,
+  allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {

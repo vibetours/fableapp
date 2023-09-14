@@ -172,12 +172,14 @@ export default function TimelineItem(props: Props): JSX.Element {
           }}
         >
           <Tags.AnnDisplayText>
-            {startAnnotationId === config.refId && (
+            <span className="steps">
+              {startAnnotationId === config.refId && (
               <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
-                <HomeOutlined style={{ background: 'none' }} />
+                <HomeOutlined style={{ background: 'none' }} />&nbsp;
               </Tooltip>
-            )}
-            <span className="steps">{config.index}</span>
+              )}
+              {config.index}
+            </span>
             <span className="head">{config.displayText}</span>
           </Tags.AnnDisplayText>
           {config.syncPending && (<LoadingOutlined />)}

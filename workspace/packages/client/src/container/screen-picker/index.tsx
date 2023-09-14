@@ -4,16 +4,23 @@ import { ScreenType } from '@fable/common/dist/api-contract';
 import { ArrowUpOutlined, FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
 import { getDisplayableTime } from '@fable/common/dist/utils';
 import { LoadingStatus } from '@fable/common/dist/types';
+import { NavigateFunction } from 'react-router-dom';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import {
-  AddScreenToTour,
   addScreenToTour,
+  AnnAdd,
   getAllScreens,
-  uploadImgScreenAndAddToTour
+  uploadImgScreenAndAddToTour,
+  loadTourAndData
 } from '../../action/creator';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerMode } from '../../types';
+import {
+  AnnotationPerScreen,
+  DestinationAnnotationPosition,
+  IAnnotationConfigWithScreen,
+  ScreenPickerMode
+} from '../../types';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import { getAnnotationsPerScreen } from '../../utils';
@@ -26,12 +33,18 @@ import { amplitudeAddScreensToTour, amplitudeNewAnnotationCreated, propertyCreat
 
 interface IDispatchProps {
   getAllScreens: (forceRefresh?: boolean) => void;
-  addScreenToTour: AddScreenToTour;
+  addScreenToTour: (
+    screen: P_RespScreen,
+    tourRid: string,
+    annAdd?: AnnAdd,
+    navigateTo?: NavigateFunction,
+    closeScreenPicker?: ()=>void,
+  ) => void,
   uploadImgScreenAndAddToTour: (
     screenName: string,
     screenImgFile: File,
     tourRid: string,
-    shouldNavigate: boolean,
+    navigateTo?: NavigateFunction
   ) => void
 }
 
@@ -40,15 +53,28 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   addScreenToTour: (
     screen,
     tourRid,
-    shouldNavigate,
     annAddData,
-  ) => dispatch(addScreenToTour(screen, tourRid, shouldNavigate, annAddData)),
+    navigateTo,
+    closeScreenPicker
+  ) => {
+    dispatch(addScreenToTour(screen, tourRid, annAddData))
+      .then((screenRid: string) => {
+        if (navigateTo) {
+          closeScreenPicker!();
+          navigateTo(`/tour/${tourRid}/${screenRid}`);
+        }
+      });
+  },
   uploadImgScreenAndAddToTour: (
     screenName,
     screenImgFile,
     tourRid,
-    shouldNavigate,
-  ) => dispatch(uploadImgScreenAndAddToTour(screenName, screenImgFile, tourRid, shouldNavigate))
+  ) => {
+    dispatch(uploadImgScreenAndAddToTour(screenName, screenImgFile, tourRid))
+      .then((screenRid: string) => {
+        dispatch(loadTourAndData(tourRid, true, false));
+      });
+  }
 
 });
 
@@ -224,7 +250,6 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.addScreenToTour(
         screen,
         this.props.tour!.rid,
-        false,
         {
           position: this.props.position,
           screenId: this.props.addAnnotationData!.screen.id,
@@ -241,7 +266,9 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.addScreenToTour(
         screen,
         this.props.tour!.rid,
-        true,
+        undefined,
+        this.props.navigate,
+        this.props.hideScreenPicker
       );
     }
   };
@@ -323,7 +350,6 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                   screenName,
                   screenImgFile,
                   this.props.tour!.rid,
-                  false
                 );
               }}
             />

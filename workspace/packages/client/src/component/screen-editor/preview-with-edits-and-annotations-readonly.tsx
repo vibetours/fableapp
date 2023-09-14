@@ -60,6 +60,7 @@ export interface IOwnProps {
   allScreens?: P_RespScreen[];
   editsAcrossScreens?: Record<string, EditItem[]>;
   preRenderNextScreen?: (rid: string) => void;
+  onDispose?: () => void;
 }
 
 interface IOwnStateProps {
@@ -344,6 +345,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     clearTimeout(this.timer);
     this.timer = 0;
     this.disposeAndAnnotationLCM();
+    this.props.onDispose && this.props.onDispose();
   }
 
   getScreenById = (id: number): P_RespScreen | undefined => this.props.allScreens!.find(screen => screen.id === id);

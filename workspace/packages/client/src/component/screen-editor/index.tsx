@@ -63,6 +63,7 @@ import CanvasScreenGuide2 from '../../user-guides/getting-to-know-the-canvas/par
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
+import Loader from '../loader';
 
 const { confirm } = Modal;
 
@@ -113,6 +114,7 @@ interface IOwnProps {
   commitTx: (tx: Tx) => void;
   setAlert: (msg?: string) => void;
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
+  isScreenLoaded: boolean;
 }
 
 const enum ElSelReqType {
@@ -140,6 +142,7 @@ interface IOwnStateProps {
   imageMaskUploadModalError: string;
   imageMaskUploadModalIsUploading: boolean;
   selectedAnnotationCoords: string | null;
+  isAssetLoaded: boolean;
 }
 
 const userGuides = [CanvasScreenGuide2];
@@ -181,6 +184,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       showImageMaskUploadModal: false,
       imageMaskUploadModalError: '',
       imageMaskUploadModalIsUploading: false,
+      isAssetLoaded: false,
     };
   }
 
@@ -943,7 +947,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       isInElSelectionMode: true,
       elSelRequestedBy: state.elSelRequestedBy === ElSelReqType.NA
         ? ElSelReqType.EditEl
-        : state.elSelRequestedBy
+        : state.elSelRequestedBy,
+      isAssetLoaded: true
     }));
   };
 
@@ -990,6 +995,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   handleImageMaskUploadModalOnCancel = (): void => {
     this.setState({ showImageMaskUploadModal: false });
   };
+
+  isScreenAndAssetLoaded = (): boolean => this.state.isAssetLoaded && this.props.isScreenLoaded;
 
   render(): React.ReactNode {
     let startAnnotaitonId = '';
@@ -1062,7 +1069,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             </div>
           )}
           <GTags.EmbedCon style={{ overflow: 'hidden', position: 'relative' }} ref={this.frameConRef}>
-            <PreviewWithEditsAndAnRO
+            {this.props.isScreenLoaded && <PreviewWithEditsAndAnRO
               annotationSerialIdMap={this.props.annotationSerialIdMap}
               key={this.props.screen.rid}
               screen={this.props.screen}
@@ -1080,7 +1087,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               onFrameAssetLoad={this.onFrameAssetLoad}
               allAnnotationsForTour={this.props.allAnnotationsForTour}
               tour={this.props.tour}
-            />
+              hidden={!this.state.isAssetLoaded}
+              onDispose={() => {
+                this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
+                this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
+              }}
+            />}
+            {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading tour" showAtPageCenter />}
           </GTags.EmbedCon>
           {/* this is the annotation creator panel */}
           <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
@@ -1313,8 +1326,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   private disposeDomPicker(): void {
-    this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
-    this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
     if (this.iframeElManager) {
       this.iframeElManager.dispose();
       this.iframeElManager = null;

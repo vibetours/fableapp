@@ -440,20 +440,15 @@ export type AnnAdd = {
   grpId: string
 }
 
-export type AddScreenToTour = (
-  screen: P_RespScreen,
-  tourRid: string,
-  shouldNavigate: boolean,
-  annAdd?: AnnAdd
-) => void;
-
 export function uploadImgScreenAndAddToTour(
   screenName: string,
   screenImgFile: File,
   tourRid: string,
-  shouldNavigate: boolean,
 ) {
-  return async (dispatch: Dispatch<TAddScreenEntities>, getState: () => TState) => {
+  return async (
+    dispatch: Dispatch<TAddScreenEntities | ReturnType<typeof addScreenToTour>>,
+    getState: () => TState
+  ) => {
     const { data: screen } = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
       method: 'POST',
       body: {
@@ -467,7 +462,6 @@ export function uploadImgScreenAndAddToTour(
     const pScreen = processRawScreenData(screen, getState());
 
     await uploadImageAsBinary(screenImgFile, pScreen.uploadUrl!);
-
     await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
       method: 'POST',
       body: {
@@ -475,21 +469,19 @@ export function uploadImgScreenAndAddToTour(
       },
     });
 
-    addScreenToTour(
+    return dispatch(addScreenToTour(
       pScreen,
       tourRid,
-      shouldNavigate
-    )(dispatch as Dispatch<TAddScreenEntities | TTourWithData | TGenericLoading>, getState);
+    ));
   };
 }
 
 export function addScreenToTour(
   screen: P_RespScreen,
   tourRid: string,
-  shouldNavigate: boolean,
   annAdd?: AnnAdd,
 ) {
-  return async (dispatch: Dispatch<TAddScreenEntities | TTourWithData | TGenericLoading>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TAddScreenEntities | TTourWithData | TGenericLoading | ReturnType<typeof loadTourAndData>>, getState: () => TState) => {
     let screenResp: ApiResp<RespScreen>;
     if (screen.type === ScreenType.SerDom) {
       screenResp = await api<ReqCopyScreen, ApiResp<RespScreen>>('/copyscreen', {
@@ -523,18 +515,9 @@ export function addScreenToTour(
       } catch (e) {
         throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
       }
-
-      return;
     }
-
-    if (shouldNavigate) {
-      window.location.replace(`/tour/${tourRid}/${screenResp.data.rid}`);
-    } else {
-      loadTourAndData(tourRid, true, false)(
-        dispatch as Dispatch<TTourWithData | TTourWithLoader | TGenericLoading>,
-        getState
-      );
-    }
+    dispatch(loadTourAndData(tourRid, true, false));
+    return Promise.resolve(screenResp.data.rid);
   };
 }
 
