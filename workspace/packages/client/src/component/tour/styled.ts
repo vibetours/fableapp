@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 
 export const TourCardCon = styled(Link)`
   display: flex;
-  width: 39.375rem;
   padding: 1rem;
   gap: 1rem;
   border-radius: 0.5rem;
@@ -94,7 +93,7 @@ export const EmptyToursContainer = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  max-width: 30rem;
+  max-width: 40rem;
   display: flex;
   flex-direction: column;
   align-items: center;

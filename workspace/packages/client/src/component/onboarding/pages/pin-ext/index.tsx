@@ -54,8 +54,8 @@ export default function PinExt(props: Props): JSX.Element {
 
             </CTags.Header>
             <CTags.Subtitle>
-              <CTags.SpanBlock>Make sure to pin it for easy access.</CTags.SpanBlock>
-              Click the pinned icon to start a recording from anywhere
+              <CTags.SpanBlock>Once you pin your extension in chrome,</CTags.SpanBlock>
+              you can start creating tour with just few clicks.
             </CTags.Subtitle>
           </CTags.FlexColContainer>
           <Link to="/onboarding/create-amazing-product-tours" style={{ textDecoration: 'none' }}>

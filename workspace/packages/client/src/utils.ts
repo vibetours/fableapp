@@ -5,6 +5,7 @@ import { TState } from './reducer';
 import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
+const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -91,9 +92,9 @@ export function isBlankString(str: string): boolean {
   return str.trim() === '';
 }
 export const isVideoAnnotation = (config: IAnnotationConfig): boolean => !isBlankString(config.videoUrl)
-    || (!isBlankString(config.videoUrlMp4)
-      || !isBlankString(config.videoUrlWebm)
-      || !isBlankString(config.videoUrlHls));
+  || (!isBlankString(config.videoUrlMp4)
+    || !isBlankString(config.videoUrlWebm)
+    || !isBlankString(config.videoUrlHls));
 
 export function flatten<T>(arr: Array<T[]>): T[] {
   const flatArr: T[] = [];
@@ -163,7 +164,6 @@ export const setEventCommonState = (property: string, value: any): void => {
 };
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
-export const createIframeSrc = (relativeURL: string): string => baseURL + relativeURL;
 
 export const generateScreenIndex = (timelineCount: number, timelineIdx: number, annIdx: number): string => {
   if (timelineCount > 1) {
@@ -189,3 +189,17 @@ export const assignScreenIndices = (
 
   return orderedAnns;
 };
+export const createIframeSrc = (relativeURL: string) => baseURL + relativeURL;
+
+export const isExtensionInstalled = (): Promise<boolean> => new Promise((resolve) => {
+  if (typeof chrome === 'undefined' || !chrome.runtime) resolve(false);
+
+  chrome.runtime.sendMessage(
+    EXTENSION_ID,
+    { message: 'version' },
+    (response) => {
+      if (response && response.version) resolve(true);
+      if (chrome.runtime.lastError) resolve(false);
+    }
+  );
+});

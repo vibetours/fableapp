@@ -56,6 +56,15 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
+chrome.runtime.onMessageExternal.addListener(
+  (data, sender, sendResponse) => {
+    if (data && data.message && data.message === "version") {
+      sendResponse({ version });
+    }
+    return true;
+  }
+);
+
 const LOCKS: Record<string, number> = {};
 async function acquireLock(key: string) {
   return new Promise(resolve => {

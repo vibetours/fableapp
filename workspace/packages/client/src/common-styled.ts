@@ -153,7 +153,7 @@ export const EditPanelCon = styled.div`
   border-left: 1px solid #ddd;
 `;
 
-export const PopoverMenuItemDivider = styled.div<{ color?: string}>`
+export const PopoverMenuItemDivider = styled.div<{ color?: string }>`
   padding: 0.5rem 0rem 0;
   margin: 0.5rem 0.5rem 0;
   border-top: ${props => `1px solid ${props.color || '#eaeaea'}`};

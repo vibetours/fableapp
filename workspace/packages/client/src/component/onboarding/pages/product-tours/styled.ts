@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 export const CardCon = styled.div`
   display: flex;
+  justify-content: space-between;
   border-radius: 8px;
   border: 1px solid #E6E6E6;
   padding: 1rem 1.5rem;

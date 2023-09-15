@@ -36,8 +36,7 @@ export default function Tours(props: Props): JSX.Element {
             />
             <CTags.Header><CTags.SpanBlock>Create amazing</CTags.SpanBlock>product tours</CTags.Header>
             <CTags.Subtitle>
-              <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
-              These tours are easy to create
+              We make sure your prospect / customers experience best possible version of your product by creating a controlled but interactive version of your product. You build the narrative, we take care of product experience.
             </CTags.Subtitle>
           </CTags.FlexColContainer>
           <Link to="/login?redirect=onboarding/go-to-app" style={{ textDecoration: 'none' }}>

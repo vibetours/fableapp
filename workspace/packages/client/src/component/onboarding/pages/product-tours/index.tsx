@@ -29,21 +29,17 @@ export default function ProductTours(props: Props): JSX.Element {
               display: 'block'
             }}
           />
-          <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
+          <CTags.Header>
+            You're all set!!!
+          </CTags.Header>
           <CTags.Subtitle>
-            <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
-            These tours are easy to create
+            You have finished the most difficult part. Let's get you started.
           </CTags.Subtitle>
           <CTags.FlexColContainer>
             <Tags.CardCon>
-              <CTags.FlexColContainer>
-                <Tags.CardTitle>
-                  Chrome Extention
-                </Tags.CardTitle>
-                <div style={{ color: '#595959' }}>
-                  Get ready to create amazing product or feature tours for your users
-                </div>
-              </CTags.FlexColContainer>
+              <Tags.CardTitle>
+                Chrome Extention
+              </Tags.CardTitle>
               <Button
                 type="button"
                 style={{ cursor: 'default', backgroundColor: '#E6E6E6', color: '#555555', transform: 'none' }}
@@ -55,14 +51,9 @@ export default function ProductTours(props: Props): JSX.Element {
             </Tags.CardCon>
 
             <Tags.CardCon>
-              <CTags.FlexColContainer>
-                <Tags.CardTitle>
-                  Try out Fable
-                </Tags.CardTitle>
-                <div style={{ color: '#595959' }}>
-                  Get ready to create amazing product or feature tours for your users
-                </div>
-              </CTags.FlexColContainer>
+              <Tags.CardTitle>
+                Get started
+              </Tags.CardTitle>
               <Link
                 to="/"
                 style={{
@@ -72,9 +63,8 @@ export default function ProductTours(props: Props): JSX.Element {
                 <Button
                   icon={<img src={ArrowRight} alt="" height={17} />}
                   iconPlacement="right"
-                  style={{ width: 175 }}
                 >
-                  Try Now
+                  Go to app
                 </Button>
               </Link>
             </Tags.CardCon>

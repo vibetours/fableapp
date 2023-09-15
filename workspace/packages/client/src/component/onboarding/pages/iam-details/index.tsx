@@ -59,7 +59,6 @@ export default function IamDetails({ principal }: Props): JSX.Element {
         <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
         <CTags.Subtitle>
           <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
-          These tours are easy to create
         </CTags.Subtitle>
 
         <form onSubmit={handleSubmit} style={{ width: '27rem' }}>

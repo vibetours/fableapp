@@ -1,4 +1,4 @@
-import { DeleteOutlined, PlusOutlined, SisternodeOutlined } from '@ant-design/icons';
+import { DeleteOutlined, PlusOutlined, SisternodeOutlined, ChromeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ITourDataOpts, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
@@ -30,7 +30,8 @@ import EmptyTourState from '../../component/tour/empty-state';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
-import { createIframeSrc } from '../../utils';
+import { createIframeSrc, isExtensionInstalled } from '../../utils';
+import ExtDownloadRemainder from '../../component/ext-download';
 
 const userGuides = [TourCardGuide];
 
@@ -81,6 +82,7 @@ interface IOwnStateProps {
   showModal: boolean;
   selectedTour: P_RespTour | null;
   ctxAction: CtxAction;
+  isExtInstalled: boolean;
 }
 const { confirm } = Modal;
 
@@ -89,12 +91,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   constructor(props: IProps) {
     super(props);
-    this.state = { showModal: false, selectedTour: null, ctxAction: CtxAction.NA };
+    this.state = { showModal: false, selectedTour: null, ctxAction: CtxAction.NA, isExtInstalled: false };
   }
 
   componentDidMount(): void {
     this.props.getAllTours();
     document.title = this.props.title;
+    isExtensionInstalled()
+      .then((isExtInstalled) => {
+        this.setState({ isExtInstalled });
+      });
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
@@ -113,8 +119,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (prevState.showModal !== this.state.showModal && this.state.showModal) {
       setTimeout(() => {
-          this.renameOrDuplicateOrCreateIpRef.current!.focus();
-          this.renameOrDuplicateOrCreateIpRef.current!.select();
+        this.renameOrDuplicateOrCreateIpRef.current!.focus();
+        this.renameOrDuplicateOrCreateIpRef.current!.select();
       });
     }
   }
@@ -228,41 +234,48 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             <SidePanel selected="tours" subs={this.props.subs} />
           </GTags.SidePanelCon>
           <GTags.MainCon>
-            <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }} id="main">
+            <GTags.BodyCon
+              style={{ height: '100%', position: 'relative', overflowY: 'scroll', flexDirection: 'row', gap: '5rem' }}
+              id="main"
+            >
               {toursLoaded ? (
                 <>
                   {
                     this.props.tours.length === 0 ? (
-                      <EmptyTourState />
+                      <EmptyTourState extensionInstalled={this.state.isExtInstalled} />
                     ) : (
-                      <div style={{ maxWidth: '43.5rem' }}>
-                        <Tags.TopPanel style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                        >
-                          <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
-                          <Button
-                            icon={<PlusOutlined />}
-                            iconPlacement="left"
-                            onClick={() => this.handleShowModal(null, CtxAction.Create)}
+                      <>
+                        <div style={{ width: '45%', minWidth: '43.5rem' }}>
+                          <Tags.TopPanel style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
                           >
-                            Create a tour
-                          </Button>
-                        </Tags.TopPanel>
-                        <Tags.BottomPanel style={{ overflow: 'auto' }}>
-                          {this.props.tours.map((tour) => (
-                            <TourCard
-                              key={tour.rid}
-                              tour={tour}
-                              handleShowModal={this.handleShowModal}
-                              handleDelete={this.handleDelete}
-                            />
-                          ))}
-                        </Tags.BottomPanel>
-                        <SelectorComponent userGuides={userGuides} />
-                      </div>
+                            <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
+                            <Button
+                              icon={<PlusOutlined />}
+                              iconPlacement="left"
+                              onClick={() => this.handleShowModal(null, CtxAction.Create)}
+                              intent={this.state.isExtInstalled ? 'primary' : 'secondary'}
+                            >
+                              Create a tour
+                            </Button>
+                          </Tags.TopPanel>
+                          <Tags.BottomPanel style={{ overflow: 'auto' }}>
+                            {this.props.tours.map((tour) => (
+                              <TourCard
+                                key={tour.rid}
+                                tour={tour}
+                                handleShowModal={this.handleShowModal}
+                                handleDelete={this.handleDelete}
+                              />
+                            ))}
+                          </Tags.BottomPanel>
+                          <SelectorComponent userGuides={userGuides} />
+                        </div>
+                        <ExtDownloadRemainder extensionInstalled={this.state.isExtInstalled} />
+                      </>
                     )
                   }
                 </>

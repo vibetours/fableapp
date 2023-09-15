@@ -83,14 +83,14 @@ class Root extends Component<Props, State> {
         )}
         {this.state.inited && (
           <div className="action-con">
-            <img alt="illustration" src="./illustration-extension.svg" />
-            <div style={{ margin: "1.5rem 0rem 1rem 0rem" }}>
+            <img alt="illustration" style={{ margin: "0.5rem 0" }} width={100} src="./illustration-extension.png" />
+            <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
               <div className="as-p title">Fable helps you create tour of your product in matter of minutes.</div>
               <div className="as-p description">
                 <ol>
                   <li>Click on “Start Recording”</li>
-                  <li>Fable copies an interactive version of the current webpage</li>
-                  <li>You can edit, annotate & connect multiple screens to create a tour of your product.</li>
+                  <li>Click through your product to create the tour. Don't worry, it's not a video recording, if you've made a mistake you can edit / augment / trim every aspect of your tour.</li>
+                  <li>Once you are done, click on the tick sign from the control pill or click on "Stop Recording" from the extension menu.</li>
                 </ol>
               </div>
             </div>

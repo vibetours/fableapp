@@ -49,11 +49,11 @@ export default function OrgCreate(): JSX.Element {
           />
           <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
           <CTags.Subtitle>
-            <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
-            These tours are easy to create
+            Create an org to invite your team members.
+            All the tours that you and your team creates would be linked to your org.
           </CTags.Subtitle>
 
-          <form onSubmit={handleSubmit} style={{ marginTop: '1.75rem', width: '27rem' }}>
+          <form onSubmit={handleSubmit} style={{ width: '27rem' }}>
             <Input label="Your org name" value={orgName} onChange={e => setOrgName(e.target.value)} />
             <Button
               style={{ width: '100%', marginTop: '1.5rem' }}
