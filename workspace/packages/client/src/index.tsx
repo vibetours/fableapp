@@ -15,6 +15,12 @@ import { upsertAllUserGuides } from './user-guides';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
+function addReditusTrackingScript(): void {
+  const script = document.createElement('script');
+  script.innerHTML = '(function (w, d, s, p, t) { w.gr = w.gr || function () { w.gr.q = w.gr.q || []; w.gr.q.push(arguments); }; p = d.getElementsByTagName(s)[0]; t = d.createElement(s); t.async = true; t.src = "https://app.getreditus.com/gr.js?_ce=90"; p.parentNode.insertBefore(t, p); })(window, document, "script"); gr("track", "pageview");';
+  document.head.appendChild(script);
+}
+
 function addChargebeeScript(): void {
   const script = document.createElement('script');
   script.setAttribute('src', 'https://js.chargebee.com/v2/chargebee.js');
@@ -35,6 +41,7 @@ if (document.location.pathname !== '/aboutblank') {
   initAmplitude();
   upsertAllUserGuides();
   addChargebeeScript();
+  addReditusTrackingScript();
 }
 
 const theme = {

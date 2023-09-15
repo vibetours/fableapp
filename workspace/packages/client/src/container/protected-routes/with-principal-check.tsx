@@ -6,6 +6,7 @@ import { RespUser, UserOrgAssociation } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
 import { resetAmplitude, setAmplitudeUserId } from '@fable/common/dist/amplitude';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import Auth0Config from '../../component/auth/auth0-config.json';
@@ -107,6 +108,12 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
         return <HeartLoader />;
       }
     } else if (this.props.principal.orgAssociation !== UserOrgAssociation.Explicit) {
+      try {
+        // @ts-ignore
+        window.gr('track', 'conversion', { email: this.props.principal.email });
+      } catch (e) {
+        raiseDeferredError(new Error('User not defined for Reditus logging'));
+      }
       // If org creation is not yet done then create org first
       if (!document.location.pathname.startsWith('/org/')) {
         window.location.replace(
