@@ -278,21 +278,22 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   timer: number = 0;
 
   reachAnnotation(id: string): boolean {
+    let annFound = false;
+    let an: IAnnotationConfig | null = null;
     if (id) {
-      const an = getAnnotationByRefId(id, this.props.allAnnotationsForTour);
-      if (an) {
-        clearTimeout(this.timer);
-        this.timer = setTimeout(() => {
-          this.showAnnotation(an, this.props.tourDataOpts);
-          this.timer = 0;
-        }) as unknown as number;
-        return true;
-      }
-      return false;
+      an = getAnnotationByRefId(id, this.props.allAnnotationsForTour);
+      if (an) annFound = true;
     }
-    if (this.props.playMode) this.annotationLCM?.hideAnnButKeepMask();
-    else this.annotationLCM?.hide();
-    return false;
+
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      if (an) this.showAnnotation(an, this.props.tourDataOpts);
+      else if (this.props.playMode) this.annotationLCM?.hideAnnButKeepMask();
+      else this.annotationLCM?.hide();
+      this.timer = 0;
+    }) as unknown as number;
+
+    return annFound;
   }
 
   async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts): Promise<void> {
