@@ -1093,7 +1093,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
               }}
             />}
-            {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading tour" showAtPageCenter />}
+            {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" showAtPageCenter />}
           </GTags.EmbedCon>
           {/* this is the annotation creator panel */}
           <GTags.EditPanelCon style={{ overflowY: 'auto' }}>
@@ -1160,6 +1160,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   >
                     <AnnotationCreatorPanel
                       setAlertMsg={this.props.setAlert}
+                      busy={!this.props.isScreenLoaded}
                       opts={this.props.tourDataOpts}
                       selectedEl={this.state.selectedEl}
                       allAnnotationsForTour={this.props.allAnnotationsForTour}

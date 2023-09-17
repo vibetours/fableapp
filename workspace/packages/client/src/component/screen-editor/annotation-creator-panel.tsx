@@ -31,7 +31,8 @@ import {
   SelectOutlined,
   ColumnWidthOutlined,
   ColumnHeightOutlined,
-  PlusOutlined
+  PlusOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
@@ -88,6 +89,7 @@ interface IProps {
   opts: ITourDataOpts,
   tour: P_RespTour,
   allAnnotationsForTour: AnnotationPerScreen[],
+  busy: boolean,
   onConfigChange: (
     config: IAnnotationConfig,
     actionType: 'upsert' | 'delete',
@@ -362,6 +364,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   let defaultAnnCssTxt = config.annCSSStyle;
   if (showCssEditorForAnnOnScreen && !defaultAnnCssTxt) {
     defaultAnnCssTxt = getDefaultAnnCSSStyleText(props.config);
+  }
+
+  if (props.busy) {
+    return (
+      <div style={{
+        padding: '0.5rem 1rem 0.5rem',
+        fontSize: '0.75rem'
+      }}
+      > <LoadingOutlined />&nbsp;&nbsp; Loading...
+      </div>
+    );
   }
 
   return (

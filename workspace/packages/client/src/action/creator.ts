@@ -877,14 +877,6 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         ...mergedMasterData
       };
 
-      const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
-        auth: true,
-        body: {
-          rid: tour.rid,
-          editData: JSON.stringify(mergedData),
-        },
-      });
-
       const annotationAndOpts = getThemeAndAnnotationFromDataFile(mergedData, false);
       dispatch({
         type: ActionType.SAVE_TOUR_ENTITIES,
@@ -894,6 +886,13 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         idMap: annotationAndOpts.annotationsIdMap,
         opts: annotationAndOpts.opts,
         isLocal: false,
+      });
+      await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+        auth: true,
+        body: {
+          rid: tour.rid,
+          editData: JSON.stringify(mergedData),
+        },
       });
     }
 

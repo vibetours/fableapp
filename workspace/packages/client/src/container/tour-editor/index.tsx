@@ -799,6 +799,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   private onScreenEditFinish = (): void => { /* noop */ };
 
   private onTourDataChange: TourDataChangeFn = (changeType, screenId, changeObj, tx, isDefault = false) => {
+    if (screenId === null && !this.props.isScreenLoaded) {
+      // If currentscreen is not loaded and an mutation on current screen is requested, then we silently drop the
+      // mutation request
+      return;
+    }
     this.props.startAutoSaving();
     if (changeType === 'annotation-and-theme') {
       const partialTourData: Partial<TourDataWoScheme> = {
