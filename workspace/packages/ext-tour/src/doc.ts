@@ -185,6 +185,7 @@ export function getSearializedDom(
         ctx!.drawImage(tNode, 0, 0);
         const dataURL = canvas.toDataURL("image/png");
         base64 = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+        canvas.remove();
       }
 
       sNode.props.base64Img = base64;
