@@ -10,7 +10,7 @@ const fadeIn = keyframes`
   }
 `;
 
-export const IntroCardCon = styled.div<{width?: string}>`
+export const IntroCardCon = styled.div<{ width?: string }>`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -24,6 +24,7 @@ export const IntroCardCon = styled.div<{width?: string}>`
   border-radius: 8px;
   background: #FFF;
   box-shadow: 0px 0px 10px 100vh rgb(0, 0, 0, 0.4);
+  z-index: 1;
 
   animation: ${fadeIn} 0.3s ease-in;
 

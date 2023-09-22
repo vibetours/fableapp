@@ -1,5 +1,4 @@
 import React from 'react';
-import { CheckOutlined } from '@ant-design/icons';
 import FableRoundedIcon from '../../assets/fable-rounded-icon.svg';
 import Button from '../button';
 import * as Tags from './styled';
@@ -30,7 +29,8 @@ export default function ExtDownloadRemainder({ extensionInstalled }: IProps): JS
           window.open('https://chrome.google.com/webstore/detail/fable/ekmabenadlgfkjplmpldkjkhiikobaoc', '_blank');
         }}
         style={{
-          width: '100%'
+          width: '100%',
+          cursor: 'pointer'
         }}
       >
         Download Extension

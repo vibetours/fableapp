@@ -13,7 +13,6 @@ export const Con = styled.div`
   gap: 1rem;
   position: sticky;
   top: 5.4rem;
-  z-index: -1;
 `;
 
 export const TitleCon = styled.div`
