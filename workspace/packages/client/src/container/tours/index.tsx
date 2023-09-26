@@ -132,7 +132,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   handleDelete = (tour: P_RespTour | null): void => {
     confirm({
       title: 'Are you sure you want to delete this tour ?',
-      icon: <DeleteOutlined />,
+      okText: 'Delete',
+      okType: 'danger',
       onOk: () => {
         traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
           tour_action_type: 'delete',

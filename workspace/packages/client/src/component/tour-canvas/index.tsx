@@ -69,7 +69,7 @@ type CanvasProps = {
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
-  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData) => void;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -230,7 +230,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     let id = '';
 
     return drag<SVGForeignObjectElement, AnnotationNode<dagre.Node>>()
-      .on('start', function (
+      .on('start', function(
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
       ) {
         const [eventX, eventY] = fromPointer(event, rootGRef.current);
@@ -243,23 +243,23 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         id = data.id;
         reorderPropsRef.current.currentDraggedAnnotationId = id;
 
-        const nodeParent = selectedScreen.select(function () { return this.closest('g.node'); });
+        const nodeParent = selectedScreen.select(function() { return this.closest('g.node'); });
         nodeParent.raise(); // moves the dragged element to the end simulating higher zindex
         nodeParent.selectAll('rect.tg-hide')
           .classed('rev', true);
 
         const allNodesParentParent = select('g#fab-tour-canvas-main');
         allNodesParentParent.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.tg-hide')
-          .classed('tg-show', function (datum) {
+          .classed('tg-show', function(datum) {
             return shouldShowRepositionMarker(this, datum, data);
           })
-          .classed('tg-hide', function (datum) {
+          .classed('tg-hide', function(datum) {
             return !shouldShowRepositionMarker(this, datum, data);
           });
 
         select('g.connectors').classed('fade', true);
       })
-      .on('drag', function (
+      .on('drag', function(
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
         d: any
       ) {
@@ -627,7 +627,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       )
       .on('mousedown', prevent)
       .on('mouseup', prevent)
-      .on('click', function (e, d) {
+      .on('click', function(e, d) {
         prevent(e);
         const con = svgRef.current!.parentNode as HTMLDivElement;
         const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
@@ -754,19 +754,19 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('class', 'edgehotspot')
           .attr('cursor', 'pointer')
           .attr('d', attr => lines(attr.points as any))
-          .on('mouseover', function () {
+          .on('mouseover', function() {
             // eslint-disable-next-line react/no-this-in-sfc
             const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
             gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_HOVERED);
             gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_HOVERED);
           })
-          .on('mouseout', function () {
+          .on('mouseout', function() {
             // eslint-disable-next-line react/no-this-in-sfc
             const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
             gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_NON_HOVERED);
             gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED);
           })
-          .on('click', function (e: MouseEvent) {
+          .on('click', function(e: MouseEvent) {
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
             const d = select<SVGGElement, EdgeWithData>(this).datum();
@@ -796,7 +796,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .append('g')
       .attr('class', 'node')
       .on('mouseover', null)
-      .on('mouseover', function () {
+      .on('mouseover', function() {
         const gEl = select(this);
         gEl.select('rect.interaction-marker')
           .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
@@ -809,7 +809,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
       })
       .on('mousedown', null)
-      .on('mousedown', function (e: MouseEvent) {
+      .on('mousedown', function(e: MouseEvent) {
         prevent(e);
         connectorG
           .selectAll('path.guide-arr')
@@ -825,7 +825,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         isGuideArrowDrawing.current = 1;
       })
       .on('mouseup', null)
-      .on('mouseup', function (e: MouseEvent) {
+      .on('mouseup', function(e: MouseEvent) {
         prevent(e);
         const toEl = this;
         const fromEl = connectorG.selectAll<SVGPathElement, SVGGElement>('path.guide-arr').datum();
@@ -847,7 +847,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         hideGuideConnector(connectorG.selectAll('path.guide-arr'));
       })
       .on('mouseout', null)
-      .on('mouseout', function () {
+      .on('mouseout', function() {
         const gEl = select(this);
         gEl.select('rect.interaction-marker')
           .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
@@ -920,7 +920,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('transform', 'translate(4, 4) scale(0.04)')
           .on('mousedown', prevent)
           .on('mouseup', prevent)
-          .on('click', function (e) {
+          .on('click', function(e) {
             prevent(e);
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
@@ -1120,7 +1120,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               onClick={() => {
                 confirm({
                   title: 'Are you sure you want to delete the connector?',
-                  icon: <DisconnectOutlined />,
+                  content: 'This connector will get deleted and previous annotation and next annotation will get separated',
+                  okText: 'Delete',
+                  okType: 'danger',
                   onOk() {
                     traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                     const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
@@ -1133,7 +1135,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     props.applyAnnButtonLinkMutations(result);
                     setConnectorMenuModalData(initialConnectorModalData);
                   },
-                  onCancel() { }
+                  onCancel() { },
                 });
               }}
             >
@@ -1160,7 +1162,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               onClick={() => {
                 confirm({
                   title: 'Are you sure you want to delete this annotation?',
-                  icon: <DeleteOutlined />,
+                  content: 'This annotation will be deleted and the previous annotation will get connected to the next',
+                  okText: 'Delete',
+                  okType: 'danger',
                   onOk() {
                     traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
                       annotation_op_location: 'canvas'

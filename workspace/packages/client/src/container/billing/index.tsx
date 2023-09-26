@@ -141,7 +141,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                 ),
                                 icon: <InfoCircleOutlined />,
                                 onOk() { },
-                                onCancel() {},
+                                onCancel() { },
+                                okType: 'primary'
                               });
                             },
                             success() { },

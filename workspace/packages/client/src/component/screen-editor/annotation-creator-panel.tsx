@@ -169,7 +169,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [showBrandingOptionsPopup, setShowBrandingOptionsPopup] = useState(false);
   const [showCssEditorForElOnScreen, setShowCssEditorForElOnScreen] = useState(false);
   const [showCssEditorForAnnOnScreen, setShowCssEditorForAnnOnScreen] = useState(false);
-  const unsubFn = useRef(() => {});
+  const unsubFn = useRef(() => { });
 
   const prevConfig = usePrevious(config);
   const prevOpts = usePrevious(opts);
@@ -284,7 +284,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     confirm({
       title: 'Are you sure you want to delete this annotation?',
       icon: <ExclamationCircleOutlined />,
-      okText: 'Yes',
+      okText: 'Delete',
       okType: 'danger',
       onOk: () => {
         traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
@@ -299,6 +299,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         props.applyAnnButtonLinkMutations(result);
         props.resetSelectedAnnotationId();
       },
+      content: 'This annotation will get deleted and previous annotation will be connected to next annotation.',
     });
   };
 
@@ -306,12 +307,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     confirm({
       title: 'Are you sure you want to delete this video?',
       icon: <ExclamationCircleOutlined />,
-      okText: 'Yes',
+      okText: 'Delete',
       okType: 'danger',
       onOk: () => {
         setConfig(c => clearAnnotationAllVideoURL(c));
       },
-
     });
   };
 
@@ -488,14 +488,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     Apply CSS to annotation
                   </GTags.PopoverMenuItem>
                 </div>
-                }
+              }
             >
               <Tags.ActionPanelAdditionalActionIconCon>
                 <PlusOutlined />
               </Tags.ActionPanelAdditionalActionIconCon>
             </Popover>
           </Tags.ActionPanelPopOverCon>
-      }
+        }
       >
         {
           showCssEditorForAnnOnScreen && (
@@ -526,13 +526,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             infoText={CSSEditorInfoText}
             onSubmit={(cssStr) => {
               unsubFn.current();
-              unsubFn.current = () => {};
+              unsubFn.current = () => { };
               const newConfig = updateTargetElCssStyle(config, cssStr);
               setConfig(newConfig);
             }}
             onCancel={() => {
               unsubFn.current();
-              unsubFn.current = () => {};
+              unsubFn.current = () => { };
               setShowCssEditorForElOnScreen(false);
             }}
             onPreview={(cssStr: string) => {
@@ -768,10 +768,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                         <FableInput
                                           label="Enter a link that would open in new tab"
                                           defaultValue={
-                                          btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                            ? btnConf.hotspot.actionValue
-                                            : ''
-                                        }
+                                            btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                              ? btnConf.hotspot.actionValue
+                                              : ''
+                                          }
                                           onBlur={(e) => {
                                             const trimmedValue = (e.target.value || '').trim();
                                             let hostspotConfig: ITourEntityHotspot | null = null;
@@ -819,18 +819,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                               }]}
                             />
                           </div>
-                      }
+                        }
                       >
                         <AntButton
                           icon={
-                          btnConf.hotspot
-                            ? <NodeIndexOutlined
+                            btnConf.hotspot
+                              ? <NodeIndexOutlined
                                 style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
-                            />
-                            : <DisconnectOutlined
+                              />
+                              : <DisconnectOutlined
                                 style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
-                            />
-                        }
+                              />
+                          }
                           type="text"
                           size="small"
                           style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
