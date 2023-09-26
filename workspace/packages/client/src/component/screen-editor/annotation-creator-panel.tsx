@@ -825,10 +825,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           icon={
                             btnConf.hotspot
                               ? <NodeIndexOutlined
-                                style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
+                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
                               />
                               : <DisconnectOutlined
-                                style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
+                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
                               />
                           }
                           type="text"
