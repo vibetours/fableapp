@@ -11,8 +11,8 @@ export interface SerNode {
       checked?: boolean;
     };
     cssRules?: string;
-    proxyUrl?: string;
-    proxyAttr?: 'href' | 'src';
+    proxyUrl?: string[];
+    proxyAttr?: 'href' | 'src' | 'style' | 'cssRules';
     isStylesheet?: boolean;
     textContent?: string | null;
     isHidden?: boolean;

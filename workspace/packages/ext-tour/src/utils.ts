@@ -176,3 +176,8 @@ export function getNormalizedBorderRadius(borderRadiusStr: string): number {
   }
   return DEFAULT_BORDER_RADIUS;
 }
+
+export function sanitizeUrlsInCssStr(urls: string[]) {
+  return urls
+    .map(match => match.replace(/url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/, "$1$2$3"));
+}

@@ -1,4 +1,5 @@
-import { DEFAULT_BORDER_RADIUS, PostProcess, SerDoc, SerNode, SerNodeWithPath,
+import {
+  DEFAULT_BORDER_RADIUS, PostProcess, SerDoc, SerNode, SerNodeWithPath,
   NODE_NAME,
   ThemeBorderRadiusCandidatePerNode,
   ThemeColorCandidatPerNode
@@ -14,7 +15,8 @@ import {
   standardizeHex,
   hslToHex,
   isShadeOfWhiteOrBlack,
-  getNormalizedBorderRadius
+  getNormalizedBorderRadius,
+  sanitizeUrlsInCssStr
 } from "./utils";
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -70,6 +72,7 @@ export function getSearializedDom(
     };
 
     const ICON_MATCHER = new RegExp("icon", "i");
+    const URL_MATCHER = /url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/g;
 
     const NO_INCLUDE_DOM_EL = {
       script: 1,
@@ -101,13 +104,25 @@ export function getSearializedDom(
       chldrn: [],
     };
 
+    let shouldPostProcess: boolean = false;
+
     switch (node.nodeType) {
       case Node.ELEMENT_NODE:
         const tNode = node as HTMLElement;
         sNode.name = tNode.tagName.toLowerCase();
         const attrNames = tNode.getAttributeNames();
         for (const name of attrNames) {
-          sNode.attrs[name] = tNode.getAttribute(name);
+          const attrValue = tNode.getAttribute(name);
+          if (attrValue && name.toLowerCase() === "style") {
+            const urls = attrValue.match(URL_MATCHER);
+            if (urls) {
+              sNode.props.proxyUrl = sanitizeUrlsInCssStr(urls);
+              sNode.props.proxyAttr = "style";
+              shouldPostProcess = true;
+            }
+          }
+
+          sNode.attrs[name] = attrValue;
         }
         if (!(sNode.name in HEAD_TAGS) && isCaseInsensitiveEqual(getComputedStyle(tNode).display, "none")) {
           sNode.props.isHidden = true;
@@ -158,14 +173,14 @@ export function getSearializedDom(
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
       if (tNode.sheet) {
-        sNode.props.proxyUrl = tNode.sheet.href || undefined;
+        sNode.props.proxyUrl = tNode.sheet.href ? [tNode.sheet.href] : undefined;
         sNode.props.proxyAttr = "href";
         sNode.props.isStylesheet = true;
         return { serNode: sNode, postProcess: true };
       }
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
       if (ICON_MATCHER.exec(rel) !== null) {
-        sNode.props.proxyUrl = sNode.attrs.href || undefined;
+        sNode.props.proxyUrl = sNode.attrs.href ? [sNode.attrs.href] : undefined;
         sNode.props.proxyAttr = "href";
         return { serNode: sNode, postProcess: true, isIcon: true };
       }
@@ -190,7 +205,7 @@ export function getSearializedDom(
 
       sNode.props.base64Img = base64;
 
-      sNode.props.proxyUrl = src || undefined;
+      sNode.props.proxyUrl = [src];
       sNode.props.proxyAttr = "src";
       if (src) {
         return { serNode: sNode, postProcess: true };
@@ -201,12 +216,17 @@ export function getSearializedDom(
       const tNode = node as HTMLStyleElement;
       const cssRules = tNode.sheet?.cssRules ?? [];
       let cssText = "";
+      const proxyUrls = [];
       for (let i = 0; i < cssRules.length; i++) {
+        const urls = cssRules[i].cssText.match(URL_MATCHER);
+        if (urls) proxyUrls.push(...urls);
         cssText += `${cssRules[i].cssText} `;
       }
       sNode.props.cssRules = cssText;
+      sNode.props.proxyUrl = sanitizeUrlsInCssStr(proxyUrls);
 
-      return { serNode: sNode };
+      sNode.props.proxyAttr = "cssRules";
+      return { serNode: sNode, postProcess: Boolean(proxyUrls.length) };
     }
 
     if (sNode.name === "input") {
@@ -240,7 +260,6 @@ export function getSearializedDom(
       sNode.attrs.src = imageData;
       sNode.attrs.width = `${width}`;
       sNode.attrs.height = `${height}`;
-
       return { serNode: sNode };
     }
 
@@ -319,7 +338,6 @@ export function getSearializedDom(
     }
 
     // TODO <audio>, <video>
-    // TODO background image in style in div
 
     const childNodes: Array<ChildNode | ShadowRoot> = Array.from(node.childNodes);
     if ((node as HTMLElement).shadowRoot) {
@@ -339,7 +357,9 @@ export function getSearializedDom(
         ii++;
         if (rep.postProcess) {
           const postProcess = {} as PostProcess;
-          postProcess.type = rep.serNode.name === "iframe" ? "iframe" : (rep.serNode.name === "object" ? "object" : "asset");
+          postProcess.type = rep.serNode.name === "iframe"
+            ? "iframe"
+            : (rep.serNode.name === "object" ? "object" : "asset");
           postProcess.path = traversalPathStr;
           postProcesses.push(postProcess);
         }
@@ -350,7 +370,7 @@ export function getSearializedDom(
       }
     }
 
-    return { serNode: sNode };
+    return { serNode: sNode, postProcess: shouldPostProcess };
   }
 
   function getViewport(): [w: number, h: number] {
@@ -476,9 +496,9 @@ export function addFableIdsToAllEls(
           const prev = node.previousSibling;
 
           const isPrevCommentNode = prev
-                                    && prev.nodeType === Node.COMMENT_NODE
-                                    && prev.nodeValue
-                                    && prev.nodeValue.includes("textfid/");
+            && prev.nodeType === Node.COMMENT_NODE
+            && prev.nodeValue
+            && prev.nodeValue.includes("textfid/");
           let isPrevCommentTextSame = true;
 
           if (isPrevCommentNode) {

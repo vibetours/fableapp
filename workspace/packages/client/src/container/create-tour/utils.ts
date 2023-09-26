@@ -354,7 +354,12 @@ async function postProcessSerDocs(
 
   let elPath = '';
   const allCookies = cookies;
-  async function process(frame: SerDoc, frameId: number, traversePath: string, numberOfProcessingDone: number) {
+  async function process(
+    frame: SerDoc,
+    frameId: number,
+    traversePath: string,
+    numberOfProcessingDone: number
+  ): Promise<void> {
     for (const postProcess of frame.postProcesses) {
       numberOfProcessingDone++;
       if (postProcess.type === 'elpath') {
@@ -396,7 +401,12 @@ async function postProcessSerDocs(
             chldrn: []
           });
           node.chldrn.push(subFrameData.docTree!);
-          await process(subFrameData, subFrame.frameId, `${traversePath}1.${postProcess.path}.`, numberOfProcessingDone);
+          await process(
+            subFrameData,
+            subFrame.frameId,
+            `${traversePath}1.${postProcess.path}.`,
+            numberOfProcessingDone
+          );
         }
       } else {
         const url = new URL(frame.frameUrl);
@@ -408,10 +418,17 @@ async function postProcessSerDocs(
           })
         );
 
-        const assetUrlStr = getAbsoluteUrl(node.props.proxyUrl || '', frame.baseURI);
-        const assetUrl = new URL(assetUrlStr);
+        // COMPATIBILITY this is to support the type change proxyUrl (string -> string[]).
+        // While the old extension is not released by chromestore we have to support proxyUrl
+        // being both string & string[]
+        // FIXME Delete this once extension is released
+        if (!(node.props.proxyUrl instanceof Array) && node.props.proxyUrl !== undefined) {
+          node.props.proxyUrl = [node.props.proxyUrl as string];
+        }
 
         if (node.props.base64Img) {
+          const originalBlobUrl = node.props.proxyUrl![0];
+
           try {
             const binaryData = atob(node.props.base64Img);
             const arrayBuffer = new ArrayBuffer(binaryData.length);
@@ -422,34 +439,56 @@ async function postProcessSerDocs(
             }
 
             const blob = new Blob([uint8Array]);
-
             const file = new File([blob], 'image.png', { type: 'image/png' });
-
             const urlString = await uploadFileToAws(file);
 
-            node.props.origHref = node.props.proxyUrl;
-            node.attrs[node.props.proxyAttr || ''] = urlString || assetUrlStr;
+            node.attrs[node.props.proxyAttr || ''] = urlString;
             node.props.base64Img = '';
           } catch (e) {
             raiseDeferredError(e as Error);
-            node.props.origHref = node.props.proxyUrl;
-            node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+            node.attrs[node.props.proxyAttr || ''] = getAbsoluteUrl(
+              originalBlobUrl,
+              frame.baseURI,
+              frame.frameUrl
+            );
+          } finally {
+            node.props.origHref = originalBlobUrl;
           }
-        } else if (assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:') {
-          try {
-            const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
-              method: 'POST',
-              body: {
-                origin: assetUrlStr,
-                clientInfo,
-              },
-            });
-            node.props.origHref = node.props.proxyUrl;
-            node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
-          } catch (e) {
-            raiseDeferredError(e as Error);
-            node.props.origHref = node.props.proxyUrl;
-            node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+        } else if (node.props.proxyUrl && node.props.proxyUrl.length) {
+          for (const proxyUrl of node.props.proxyUrl) {
+            const assetUrlStr = getAbsoluteUrl(proxyUrl, frame.baseURI, frame.frameUrl);
+            const assetUrl = new URL(assetUrlStr);
+
+            if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
+
+            try {
+              const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
+                method: 'POST',
+                body: {
+                  origin: assetUrlStr,
+                  clientInfo,
+                },
+              });
+
+              if (node.props.proxyAttr === 'style') {
+                node.attrs.style = getAllPossibleCssUrlReplace(node.attrs.style!, proxyUrl, data.data.proxyUri);
+              } else if (node.props.proxyAttr === 'cssRules') {
+                node.props.cssRules = getAllPossibleCssUrlReplace(node.props.cssRules!, proxyUrl, data.data.proxyUri);
+              } else {
+                node.props.origHref = node.props.proxyUrl[0];
+                node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
+              }
+            } catch (e) {
+              if (node.props.proxyAttr === 'style') {
+                node.attrs.style = getAllPossibleCssUrlReplace(node.attrs.style!, proxyUrl, assetUrlStr);
+              } else if (node.props.proxyAttr === 'cssRules') {
+                node.props.cssRules = getAllPossibleCssUrlReplace(node.props.cssRules!, proxyUrl, assetUrlStr);
+              } else {
+                node.props.origHref = node.props.proxyUrl[0];
+                node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+              }
+              raiseDeferredError(e as Error);
+            }
           }
         }
 
@@ -523,6 +562,13 @@ async function postProcessSerDocs(
   return { data, elPath, replacedWithImgScreen, skipped: false };
 }
 
+function getAllPossibleCssUrlReplace(str: string, replaceThisUrl: string, replaceWithUrl: string): string {
+  return str
+    .replaceAll(`url('${replaceThisUrl}')`, `url('${replaceWithUrl}')`)
+    .replaceAll(`url("${replaceThisUrl}")`, `url("${replaceWithUrl}")`)
+    .replaceAll(`url(${replaceThisUrl})`, `url(${replaceWithUrl})`);
+}
+
 function dataURLtoFile(dataurl: string, filename: string): File {
   const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)![1];
@@ -552,9 +598,9 @@ export function getCookieHeaderForUrl(cookies: chrome.cookies.Cookie[], pageUrl:
     .join('; ');
 }
 
-export function getAbsoluteUrl(urlStr: string, baseUrl: string) {
+export function getAbsoluteUrl(urlStr: string, baseUrl: string, frameUrl: string): string {
   try {
-    const url = new URL(urlStr);
+    const url = new URL(urlStr, frameUrl);
     return url.href;
   } catch {
     const first2CharOfUrl = urlStr.substring(0, 2);
