@@ -323,7 +323,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         this.reachAnnotation(this.props.toAnnotationId);
       }
       if (prevProps.toAnnotationId && !this.props.toAnnotationId) {
-        this.annotationLCM?.hide();
+        this.annotationLCM?.hide(true);
       }
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel

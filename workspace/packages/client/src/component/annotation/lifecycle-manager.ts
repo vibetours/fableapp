@@ -164,10 +164,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
   }
 
-  hide(): void {
+  hide(playMode: boolean = false): void {
     this.mode = AnnotationViewMode.Hide;
     this.con.style.display = 'none';
-    this.updateConfig('showOverlay', false);
+    if (playMode) this.updateConfig('showOverlay', false);
+    else this.removeMaskIfPresent();
     this.hideAllAnnotations();
   }
 

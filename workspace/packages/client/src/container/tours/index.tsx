@@ -51,7 +51,7 @@ export enum CtxAction {
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  getAllTours: () => dispatch(getAllTours()),
+  getAllTours: () => dispatch(getAllTours(false)),
   createNewTour: (tourName: string) => dispatch(createNewTour(true, tourName)),
   renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
@@ -281,7 +281,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 </>
               ) : (
-                <div>
+                <div style={{ width: '100%' }}>
                   <Loader width="80px" txtBefore="Loading tours for you" showAtPageCenter />
                 </div>
               )}
