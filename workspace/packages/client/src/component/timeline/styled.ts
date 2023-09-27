@@ -310,11 +310,12 @@ export const AnnotationLI = styled.div`
   background: #F7F7F7;
   padding: 0.65rem 0 0.25rem;
   border-radius: 2px;
-  border: 1px solid #DDDDDD;
   display: flex;
   flex-direction: column;
   width: 90%;
   flex-grow: 1;
+  border-top: 1px solid #DDD;
+  border-bottom: 1px solid #DDD;
 
   &:hover {
     cursor: pointer;
@@ -336,11 +337,12 @@ export const AnnDisplayText = styled.div`
   flex-direction: column;
   width: calc(100% - 2rem);
   margin-right: 10px;
+  margin-bottom: 0.5rem;
 
   .steps {
     font-weight: 600;
     display: inline-block;
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 
   .head {

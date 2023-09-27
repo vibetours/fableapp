@@ -107,6 +107,14 @@ export type TourDataChangeFn = (
     isDefault?: boolean,
 ) => void;
 
+export type onAnnCreateOrChangeFn = (
+  screenId: number | null,
+  config: IAnnotationConfig,
+  actionType: 'upsert' | 'delete',
+  opts: ITourDataOpts | null,
+  tx?: Tx // TODO: remove optionality later
+) => void;
+
 export type FrameAssetLoadFn = (params: {
   foundAnnotation: boolean;
 }) => void;

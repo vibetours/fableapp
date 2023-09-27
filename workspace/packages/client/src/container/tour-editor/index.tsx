@@ -370,7 +370,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if ((prevProps.relayScreenId !== this.props.relayScreenId
       || prevProps.relayAnnAdd !== this.props.relayAnnAdd)
       && (this.props.relayScreenId && this.props.relayAnnAdd)) {
-      addNewAnn(
+      const newAnnConfig = addNewAnn(
         this.props.allAnnotationsForTour,
         {
           position: this.props.relayAnnAdd.position,
@@ -384,6 +384,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         null,
         this.props.clearRelayScreenAndAnnAdd
       );
+      this.navFn(`${this.props.relayScreenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
     }
   }
 
@@ -396,6 +397,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     } else {
       throw new Error(`Can't navigate because screenId ${screenId} is not found`);
     }
+  };
+
+  navigateBackToTour = (): void => {
+    this.props.navigate(`/tour/${this.props.tour!.rid}`);
   };
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>): void => {
@@ -437,15 +442,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return result;
   };
 
-  shouldShowScreen = (): boolean => {
-    let result = false;
-    if (this.props.match.params.screenId) {
-      if (this.props.match.params.tourId) {
-        result = this.props.isTourLoaded;
-      }
-      if (this.props.screen === null) {
-        result = result && this.props.isScreenLoaded;
-      }
+  isTourLoadingComplete = (): boolean => {
+    let result = true;
+    if (this.props.match.params.tourId) {
+      result = result && this.props.isTourLoaded;
     }
     return result;
   };
@@ -549,7 +549,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     screenDiagnostics.forEach(diag => {
       if (diag.code === 100) {
-        warnings.push('This screen was replaced by an image screen since we encountered an issue while retrieving an interactive version of the page. You can try rerecording the screen again.');
+        warnings.push(`This screen was replaced by an image screen since we 
+        encountered an issue while retrieving an interactive version of the page. 
+        You can try rerecording the screen again.`);
       }
     });
 
@@ -561,7 +563,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render(): ReactElement {
-    if (!this.isLoadingComplete()) {
+    if (!this.isTourLoadingComplete()) {
       return (
         <div>
           <Loader width="80px" txtBefore="Loading tour" showAtPageCenter />
@@ -593,58 +595,47 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           overflowY: 'hidden',
         }}
         >
-          {this.shouldShowScreen() ? (
-            <ScreenEditor
-              annotationSerialIdMap={this.props.annotationSerialIdMap}
-              key={this.props.screen!.rid}
-              screen={this.props.screen!}
+          <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+            <Canvas
+              applyAnnGrpIdMutations={
+                   (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
+                }
+              applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
+              tourOpts={this.props.tourOpts}
+              key={this.props.tour?.rid}
+              toAnnotationId={this.props.match.params.annotationId || ''}
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
+              navigate={this.navigateTo}
+              navigateBackToTour={this.navigateBackToTour}
+              setAlert={this.showHideAlert}
+              onTourDataChange={this.onTourDataChange}
               tour={this.props.tour!}
+              timeline={this.props.timeline}
+              commitTx={this.commitTx}
+              shouldShowScreenPicker={this.updateShowScreenPicker}
+              annotationSerialIdMap={this.props.annotationSerialIdMap}
+              screen={this.props.screen!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}
-              toAnnotationId={this.props.match.params.annotationId || ''}
-              navigate={this.navFn}
-              setAlert={this.showHideAlert}
-              timeline={this.props.timeline}
               allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-              allAnnotationsForTour={this.props.allAnnotationsForTour}
-              tourDataOpts={this.props.tourOpts}
-              commitTx={this.commitTx}
               onScreenEditStart={this.onScreenEditStart}
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
               onAnnotationCreateOrChange={
-                (screenId, c, actionType, o, tx) => this.onTourDataChange(
-                  'annotation-and-theme',
-                  screenId,
-                  { config: c, actionType, opts: o },
-                  tx
-                )
-              }
-              applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
-              shouldShowScreenPicker={this.updateShowScreenPicker}
-              isScreenLoaded={this.props.isScreenLoaded}
-            />
-          ) : (this.isLoadingComplete() ? (
-            <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-              <Canvas
-                applyAnnGrpIdMutations={
-                  (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
+                  (screenId, c, actionType, o, tx) => this.onTourDataChange(
+                    'annotation-and-theme',
+                    screenId,
+                    { config: c, actionType, opts: o },
+                    tx
+                  )
                 }
-                applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
-                tourOpts={this.props.tourOpts}
-                key={this.props.tour?.rid}
-                allAnnotationsForTour={this.props.allAnnotationsForTour}
-                navigate={this.navigateTo}
-                setAlert={this.showHideAlert}
-                onTourDataChange={this.onTourDataChange}
-                tour={this.props.tour!}
-                timeline={this.props.timeline}
-                commitTx={this.commitTx}
-                shouldShowScreenPicker={this.updateShowScreenPicker}
-              />
-            </div>
-          ) : (<HeartLoader />)
-          )}
+              isScreenLoaded={this.props.isScreenLoaded}
+              shouldShowOnlyScreen={Boolean(
+                this.props.match.params.screenId && !this.props.match.params.annotationId
+              )}
+            />
+
+          </div>
           {this.state.alertMsg && <Alert
             style={{ position: 'absolute', left: '0', bottom: '0', width: '100%' }}
             message="Error"
@@ -658,18 +649,21 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           && <ScreenPicker
             hideScreenPicker={() => { this.setState({ showScreenPicker: false }); }}
             screenPickerMode={this.state.screenPickerData.screenPickerMode}
-            addCoverAnnToScreen={(screenId) => addNewAnn(
-              this.props.allAnnotationsForTour,
-              {
-                position: this.state.screenPickerData.position,
-                refId: this.state.screenPickerData.annotation!.refId,
-                screenId,
-                grpId: this.state.screenPickerData.annotation!.grpId
-              },
-              this.props.tourOpts,
-              this.showHideAlert,
-              this.applyAnnButtonLinkMutations,
-            )}
+            addCoverAnnToScreen={(screenId) => {
+              const newAnnConfig = addNewAnn(
+                this.props.allAnnotationsForTour,
+                {
+                  position: this.state.screenPickerData.position,
+                  refId: this.state.screenPickerData.annotation!.refId,
+                  screenId,
+                  grpId: this.state.screenPickerData.annotation!.grpId
+                },
+                this.props.tourOpts,
+                this.showHideAlert,
+                this.applyAnnButtonLinkMutations,
+              );
+              this.navFn(`${screenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
+            }}
             addAnnotationData={this.state.screenPickerData.annotation}
             showCloseButton={this.state.screenPickerData.showCloseButton}
             position={this.state.screenPickerData.position}

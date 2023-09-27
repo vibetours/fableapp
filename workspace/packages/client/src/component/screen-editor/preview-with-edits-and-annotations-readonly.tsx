@@ -762,6 +762,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
       onFrameAssetLoad={this.onFrameAssetLoad}
       isScreenPreview={false}
+      playMode={this.props.playMode}
     />;
   }
 }

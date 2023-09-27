@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
+import styled, { StyleSheetManager } from 'styled-components';
+import { createPortal } from 'react-dom';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
+
+const scrollIntoView = require('scroll-into-view');
 
 interface IProps {
     selectedEl: HTMLElement;
@@ -20,6 +23,13 @@ export default function AdvanceElementPicker(props: IProps): JSX.Element {
   const [elsInPath, setElsInPath] = useState<[Node, 'valid' | 'sel' | 'invalid'][]>([]);
   const lastIndexHovered = useRef(-1);
   const [lastEls, setLastEls] = useState<Node[]>([]);
+  const [contentRef, setContentRef] = useState<HTMLIFrameElement | null>(null);
+  const mountNode = contentRef?.contentWindow?.document?.body;
+
+  useEffect(() => {
+    const body = contentRef?.contentWindow?.document?.body;
+    if (body) { body.style.margin = '0'; }
+  }, [contentRef]);
 
   useEffect(() => {
     props.domElPicker.setSelectedBoundedEl(props.boundEl);
@@ -38,52 +48,63 @@ export default function AdvanceElementPicker(props: IProps): JSX.Element {
   }, [props.selectedEl, lastEls]);
 
   return (
-    <AEPCon
-      className={props.disabled ? 'disabled' : ''}
-      onMouseOver={() => {
-        if (props.disabled) return;
+    <AEPIframe title="AEP" ref={setContentRef}>
+      {
+        mountNode && createPortal(
+          (
+            <StyleSheetManager target={contentRef?.contentWindow?.document?.head}>
 
-        props.domElPicker.setSelectionMode();
-        props.onOverElPicker && props.onOverElPicker(props.selectedEl);
-      }}
-      onMouseMove={e => {
-        if (props.disabled) return;
+              <AEPCon
+                className={props.disabled ? 'disabled' : ''}
+                onMouseOver={() => {
+                  if (props.disabled) return;
 
-        const i = getDataIdxFromEvtTarget(e);
-        if (i === lastIndexHovered.current) return;
-        lastIndexHovered.current = i;
-        if (i !== -1) {
-          const el = elsInPath[i];
-          props.domElPicker.selectElement(el[0] as HTMLElement, HighlightMode.Selection);
-        }
-      }}
-      onMouseLeave={() => {
-        if (props.disabled) return;
+                  props.domElPicker.setSelectionMode();
+                  props.onOverElPicker && props.onOverElPicker(props.selectedEl);
+                }}
+                onMouseMove={e => {
+                  if (props.disabled) return;
 
-        setLastEls([]);
-        lastIndexHovered.current = -1;
-        props.onElSelect(props.selectedEl, props.selectedEl);
-      }}
-      onClick={e => {
-        if (props.disabled) return;
-        if (lastEls.length === 0) {
-          setLastEls(elsInPath.map(el => el[0]));
-        }
+                  const i = getDataIdxFromEvtTarget(e);
+                  if (i === lastIndexHovered.current) return;
+                  lastIndexHovered.current = i;
+                  if (i !== -1) {
+                    const el = elsInPath[i];
+                    props.domElPicker.selectElement(el[0] as HTMLElement, HighlightMode.Selection);
+                  }
+                }}
+                onMouseLeave={() => {
+                  if (props.disabled) return;
 
-        const i = getDataIdxFromEvtTarget(e);
-        if (i !== -1) {
-          const el = elsInPath[i];
-          props.onElSelect(el[0] as HTMLElement, props.selectedEl);
-        }
-      }}
-    >
-      {elsInPath.map((el, i) => (
-        <span key={i} data-f-elidx={i} className={el[1]}>
-          {el[0].nodeName}
-        </span>
-      ))}
-      <AlwaysScrollToRightEnd key={-1} />
-    </AEPCon>
+                  setLastEls([]);
+                  lastIndexHovered.current = -1;
+                  props.onElSelect(props.selectedEl, props.selectedEl);
+                }}
+                onClick={e => {
+                  if (props.disabled) return;
+                  if (lastEls.length === 0) {
+                    setLastEls(elsInPath.map(el => el[0]));
+                  }
+
+                  const i = getDataIdxFromEvtTarget(e);
+                  if (i !== -1) {
+                    const el = elsInPath[i];
+                    props.onElSelect(el[0] as HTMLElement, props.selectedEl);
+                  }
+                }}
+              >
+                {elsInPath.map((el, i) => (
+                  <span key={i} data-f-elidx={i} className={el[1]}>
+                    {el[0].nodeName}
+                  </span>
+                ))}
+                <AlwaysScrollToRightEnd key={-1} />
+              </AEPCon>
+            </StyleSheetManager>
+          ), mountNode
+        )
+      }
+    </AEPIframe>
   );
 }
 
@@ -91,11 +112,21 @@ function AlwaysScrollToRightEnd(): JSX.Element {
   const elementRef = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     setTimeout(() => {
-      elementRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'end' });
+      elementRef.current && scrollIntoView(elementRef.current);
     }, 300);
   });
   return <span ref={elementRef} style={{ padding: 0, width: '1px', height: '1px' }} />;
 }
+
+export const AEPIframe = styled.iframe`
+  width: 100%;
+  height: 100%;
+  border: none;
+
+  body {
+    margin: none;
+  }
+`;
 
 const AEPCon = styled.div`
   width: 100%;
@@ -109,6 +140,7 @@ const AEPCon = styled.div`
   overflow-x: auto;
   transition: all 0.3s ease-out;
   opacity: 1;
+  font-family: IBM Plex Sans, sans-serif;
 
   &.disabled {
     opacity: 0.4;

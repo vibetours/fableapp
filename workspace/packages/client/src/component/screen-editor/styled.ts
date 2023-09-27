@@ -4,6 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import Slider from 'antd/lib/slider';
 import TextArea from 'antd/lib/input/TextArea';
 import { ColorPicker as AntColorPicker } from 'antd/lib';
+import { InputNumber, Input, Switch } from 'antd';
 
 export const EmbedFrame = styled.iframe`
   height: 100%;
@@ -16,7 +17,7 @@ export const EmbedFrame = styled.iframe`
 
 export const EditPanelSec = styled.div`
   display: flex;
-  padding: 1rem 0.75rem 1rem 0.25rem;
+  padding: 1rem 0;
   flex-direction: column;
 `;
 
@@ -179,12 +180,14 @@ export const InputContainer = styled.div`
 `;
 
 export const InfoText = styled.p`
-  padding: 0;
+  padding: 0 1rem;
   margin: 0;
   line-height: 1.25rem;
   font-size: 0.875rem;
   font-weight: 400;
   color: #333333;
+  text-align: left;
+  font-size: 12px;
 `;
 
 export const AnnTimelineCon = styled.div`
@@ -206,7 +209,7 @@ export const EditTabCon = styled.div`
   justify-content: center;
   display: flex;
   flex-direction: column;
-  margin-bottom: 1rem;
+  margin: 0 1rem 1rem 1rem;
 `;
 
 interface AnotPanelSecOri {
@@ -225,6 +228,7 @@ export const ActionPanelTitleCon = styled.div`
   align-items: center;
   opacity: 0.65;
   cursor: pointer;
+  font-size: 1rem;
 
   .ht-icn {
     font-size: 0.75rem;
@@ -244,11 +248,25 @@ export const ActionPanelTitleCon = styled.div`
   }
 
   .title {
-    font-weight: 500;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
   }
 `;
 
 export const ActionPaneBtn = styled(Button)`
+
+  &.fullWidth {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid #E8E8E8;
+    background: #FFF;
+    width: 100%;
+    height: 48px;
+  }
+
   &:hover {
     box-shadow: 0 0 0 1px #747474 !important;
     background: transparent !important;
@@ -257,9 +275,21 @@ export const ActionPaneBtn = styled(Button)`
 `;
 
 export const ActionPaneSelect = styled(Select)`
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #E8E8E8;
+  height: 100%;
+  min-width: 140px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   &:hover {
     box-shadow: 0 0 0 1px #747474 !important;
-  } 
+  }
+  
+  .ant-select-clear {
+    transform: translate(-100%, -100%);
+  }
 `;
 
 export const ActionPanelAdditionalActionIconCon = styled.span`
@@ -269,6 +299,7 @@ export const ActionPanelAdditionalActionIconCon = styled.span`
     background: #E0E0E0;
     cursor: pointer;
   }
+
 `;
 
 export const ActionPanelPopOverCon = styled.div`
@@ -290,20 +321,77 @@ export const CTALinkInputCont = styled.div`
   display: flex;
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
-  gap: 0.5rem
+  gap: 0.5rem;
 `;
 
 export const ColorPicker = styled(AntColorPicker)`
-  border: none;
-  background: inherit;
-  width: 100px;
+  border: 1px solid #E8E8E8;
+  background: white;
+  min-width: 140px;
+  border-radius: 8px;
   display: flex;
   justify-content: flex-start;
+  height: 100%;
+  font-weight: 400;
   .ant-color-picker-color-block{ 
     border-radius: 50% !important;
+    position: absolute;
+    right: 28px;
   }
-  .ant-color-picker-color-block-inner{
-    min-width: 16px;
-    min-height: 16px;
+  .ant-color-picker-color-block-inner,
+  .ant-color-picker-color-block {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  &:hover {
+    border: 1px solid #747474 ;
+  }
+`;
+
+export const InputText = styled(Input)`
+  border-radius: 8px;
+  border: 1px solid #E8E8E8;
+  height: 100%;
+  width: 140px;
+  background: white;
+
+  &:hover {
+    background: white;
+    border: 1px solid #747474 ;
+  }
+`;
+
+export const InputNumberBorderRadius = styled(InputNumber)`
+  width: 140px;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid #E8E8E8;
+
+  .ant-input-number,
+  .ant-input-number-wrapper, 
+  .ant-input-number-input-wrap,
+  .ant-input-number-group-addon,
+  input {
+    height: 100%;
+    border: none;
+  }
+
+  .ant-input-number:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+  }
+`;
+
+export const StyledSwitch = styled(Switch)`
+  height: 20px;
+  width: 46px;
+ 
+  .ant-switch-handle {
+    height: 16px ;
+    width: 16px;
+  }
+ 
+  &:where(.css-dev-only-do-not-override-byeoj0).ant-switch.ant-switch-checked .ant-switch-handle {
+    inset-inline-start: calc(100% - 18px);
   }
 `;

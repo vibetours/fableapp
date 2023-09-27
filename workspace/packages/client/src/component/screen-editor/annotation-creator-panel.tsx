@@ -32,7 +32,7 @@ import {
   ColumnWidthOutlined,
   ColumnHeightOutlined,
   PlusOutlined,
-  LoadingOutlined
+  LoadingOutlined,
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
@@ -64,7 +64,7 @@ import {
   updateAnnCssStyle,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { AnnotationPerScreen, } from '../../types';
+import { AnnotationPerScreen, onAnnCreateOrChangeFn, } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AEP from './advanced-element-picker';
 import VideoRecorder from './video-recorder';
@@ -80,6 +80,22 @@ import FableInput from '../input';
 import { getDefaultAnnCSSStyleText } from './utils/css-styles';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeAnnotationEdited, amplitudeScreenEdited } from '../../amplitude';
+import CaretOutlined from '../icons/caret-outlined';
+import CloseOutlined from '../icons/close-outlines';
+import ButtonIcon from '../../assets/icons/buttons.svg';
+import SizingIcon from '../../assets/icons/sizing-positioning.svg';
+import HotspotIcon from '../../assets/icons/hotspot.svg';
+import ThemeIcon from '../../assets/icons/theme.svg';
+import LinkIcon from '../../assets/icons/link.svg';
+import VisibilityIcon from '../../assets/icons/visible.svg';
+import EditIcon from '../../assets/icons/edit.svg';
+import CustomButtonIcon from '../../assets/icons/custombutton.svg';
+import DeleteIcon from '../../assets/icons/delete.svg';
+import DeleteDangerIcon from '../../assets/icons/delete-danger.svg';
+import ResetIcon from '../../assets/icons/reset.svg';
+import InvisibilityIcon from '../../assets/icons/invisibility.svg';
+import LinkInActiveIcon from '../../assets/icons/link-inactive.svg';
+import SettingsIcon from '../../assets/icons/settings.svg';
 
 const { confirm } = Modal;
 
@@ -101,14 +117,9 @@ interface IProps {
   setSelectionMode: (mode: 'annotation' | 'hotspot' | 'replace') => void;
   domElPicker: DomElPicker | null;
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
-  onAnnotationCreateOrChange: (
-    screenId: number | null,
-    config: IAnnotationConfig,
-    actionType: 'upsert' | 'delete',
-    opts: ITourDataOpts | null
-  ) => void;
+  onAnnotationCreateOrChange: onAnnCreateOrChangeFn;
   resetSelectedAnnotationElements: () => void;
-  resetSelectedAnnotationId: () => void;
+  onDeleteAnnotation: (deletedAnnRid: string) => void;
   selectedAnnotationCoords: string | null;
   setAlertMsg: (alertMsg: string) => void;
 }
@@ -127,7 +138,12 @@ const commonInputStyles: React.CSSProperties = {
 const commonActionPanelItemStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'space-between'
+  justifyContent: 'space-between',
+  height: '44px',
+  margin: '4px 0',
+  fontSize: '14px',
+  fontWeight: '500',
+  color: '#212121',
 };
 
 const commonIconStyle: React.CSSProperties = {
@@ -139,6 +155,11 @@ const buttonSecStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
+  background: 'white',
+  border: '1px solid #E8E8E8',
+  borderRadius: '8px',
+  height: '44px',
+  width: '44px',
 };
 
 const CSSEditorInfoText = (
@@ -290,6 +311,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
           annotation_op_location: 'timeline'
         }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+        props.onDeleteAnnotation(config.refId);
         const result = deleteAnnotation(
           { ...config, screenId: props.screen.id },
           props.allAnnotationsForTour,
@@ -297,7 +319,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           true
         );
         props.applyAnnButtonLinkMutations(result);
-        props.resetSelectedAnnotationId();
       },
       content: 'This annotation will get deleted and previous annotation will be connected to next annotation.',
     });
@@ -385,34 +406,44 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       }}
     >
       <ActionPanel alwaysOpen>
-        <AnnotationRichTextEditor
-          throttledChangeHandler={(htmlString, displayText) => {
-            setConfig(c => {
-              if (c.bodyContent === htmlString) {
+        <div style={{
+          background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '0 1rem 1rem 1rem' }}
+        >
+          <AnnotationRichTextEditor
+            throttledChangeHandler={(htmlString, displayText) => {
+              setConfig(c => {
+                if (c.bodyContent === htmlString) {
                 // This gets fired on focus or if the user makes some change and then deletes the change.
                 // In all those case we don't do quitely skip the update.
-                return c;
-              }
-              return updateAnnotationText(c, htmlString, displayText);
-            });
-          }}
-          defaultValue={config.bodyContent}
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>
-          <Tags.ActionPaneBtn
-            type="text"
-            style={{ ...commonInputStyles, border: 'none', padding: 'none', flexGrow: 1 }}
-            onClick={() => setShowVideoRecorder(true)}
-            icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
-          >
-            {videoAnn ? 'Change Video' : 'Record/Upload Video'}
-          </Tags.ActionPaneBtn>
-          {isVideoAnnotation(config) && (
+                  return c;
+                }
+                return updateAnnotationText(c, htmlString, displayText);
+              });
+            }}
+            defaultValue={config.bodyContent}
+          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+            <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>
+            <Tags.ActionPaneBtn
+              type="text"
+              style={{ ...commonInputStyles,
+                border: 'none',
+                padding: 'none',
+                flexGrow: 1,
+                background: 'white',
+                borderRadius: '8px',
+                color: '#666' }}
+              onClick={() => setShowVideoRecorder(true)}
+              icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
+            >
+              {videoAnn ? 'Change Video' : 'Record/Upload Video'}
+            </Tags.ActionPaneBtn>
+            {isVideoAnnotation(config) && (
             <Tooltip title="Delete recorded video">
               <DeleteOutlined style={{ cursor: 'pointer' }} onClick={showVideoDeleteConfirm} />
             </Tooltip>
-          )}
+            )}
+          </div>
         </div>
         {showVideoRecorder && (
           <VideoRecorder
@@ -422,7 +453,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         )}
       </ActionPanel>
-      <ActionPanel title="Sizing & Positioning">
+      <ActionPanel title="Sizing & Positioning" icon={<img src={SizingIcon} alt="" />}>
         <div style={commonActionPanelItemStyle}>
           <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
           <Tags.ActionPaneSelect
@@ -440,6 +471,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onChange={(e) => (
               setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)))
             )}
+            suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
         <div style={commonActionPanelItemStyle}>
@@ -456,12 +488,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 label: `${v}`
               }))}
             onChange={(e) => setConfig(c => updateAnnotationBoxSize(c, e as EAnnotationBoxSize))}
+            suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
 
       </ActionPanel>
       <ActionPanel
-        title="Branding"
+        title="Theme"
+        icon={<img src={ThemeIcon} alt="" />}
         sectionActionElWhenOpen={
           <Tags.ActionPanelPopOverCon
             onClick={e => {
@@ -548,7 +582,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <GTags.Txt>Primary color</GTags.Txt>
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
-                size="small"
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.toHexString()));
                 }}
@@ -560,7 +593,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <GTags.Txt>Background color</GTags.Txt>
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
-                size="small"
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.toHexString()));
                 }}
@@ -572,7 +604,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <GTags.Txt>Border color</GTags.Txt>
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
-                size="small"
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
                 }}
@@ -584,7 +615,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <GTags.Txt>Font color</GTags.Txt>
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
-                size="small"
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.toHexString()));
                 }}
@@ -596,7 +626,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <GTags.Txt>Selection color</GTags.Txt>
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
-                size="small"
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.toHexString()));
                 }}
@@ -609,7 +638,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <Tags.ActionPaneSelect
                 defaultValue={opts.annotationFontFamily}
                 placeholder="select font"
-                size="small"
                 bordered={false}
                 options={webFonts.map(v => ({
                   value: v,
@@ -624,13 +652,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
                   }
                 }}
-                style={{
-                  minWidth: '100px',
-                }}
                 onClick={loadWebFonts}
                 notFoundContent="loading"
                 showSearch
-                allowClear
+                allowClear={{ clearIcon: <CloseOutlined bgColor="white" /> }}
+                suffixIcon={<CaretOutlined dir="down" />}
               />
             </div>
             <div style={commonActionPanelItemStyle}>
@@ -665,19 +691,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
-              <Input
+              <Tags.InputText
                 placeholder="Enter padding"
                 defaultValue={opts.annotationPadding}
-                size="small"
                 bordered={false}
-                style={{
-                  background: '#fff',
-                  width: '90px'
-                }}
                 disabled={isVideoAnnotation(config)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' || e.keyCode === 13) {
-                    setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', (e.target as HTMLInputElement).value));
+                    setTourDataOpts(t => updateTourDataOpts(
+                      t,
+                      'annotationPadding',
+                      (e.target as HTMLInputElement).value
+                    ));
                   }
                 }}
                 onBlur={e => {
@@ -688,13 +713,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt style={commonActionPanelItemStyle}>Border Radius</GTags.Txt>
 
-              <InputNumber
+              <Tags.InputNumberBorderRadius
                 min={0}
                 // bordered={false} // looks ugly
                 defaultValue={opts.borderRadius}
-                size="small"
                 addonAfter="px"
-                style={{ width: '90px' }}
                 disabled={isVideoAnnotation(config)}
                 onChange={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
@@ -704,7 +727,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </>
         )}
       </ActionPanel>
-      <ActionPanel title="CTAs">
+      <ActionPanel
+        title="Buttons"
+        icon={<img src={ButtonIcon} alt="" />}
+      >
         {config.buttons.map(btnConf => {
           const primaryColor = opts.primaryColor;
           return (
@@ -785,9 +811,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                               };
                                             }
                                             if (btnConf.hotspot?.actionType === 'navigate') {
-                                              props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
+                                              props.setAlertMsg(`Cannot add link as this button
+                                               is already connected to an annotation`);
                                             } else {
-                                              const thisAntn = updateButtonProp(config, btnConf.id, 'hotspot', hostspotConfig);
+                                              const thisAntn = updateButtonProp(
+                                                config,
+                                                btnConf.id,
+                                                'hotspot',
+                                                hostspotConfig
+                                              );
                                               setConfig(thisAntn);
                                               amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
                                             }
@@ -823,14 +855,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       >
                         <AntButton
                           icon={
-                            btnConf.hotspot
-                              ? <NodeIndexOutlined
-                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
-                              />
-                              : <DisconnectOutlined
-                                  style={{ ...commonIconStyle, color: btnConf.hotspot ? '#7567FF' : '#FF7450' }}
-                              />
-                          }
+                          btnConf.hotspot
+                            ? <img src={LinkIcon} alt="" />
+                            : <img src={LinkInActiveIcon} alt="" />
+                        }
                           type="text"
                           size="small"
                           style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
@@ -841,7 +869,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   {
                     btnConf.type === 'custom' ? (
                       <AntButton
-                        icon={<DeleteOutlined style={{ ...commonIconStyle }} />}
+                        icon={<img src={DeleteIcon} alt="" />}
                         type="text"
                         size="small"
                         style={{ color: '#bdbdbd', ...buttonSecStyle }}
@@ -853,8 +881,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       <AntButton
                         icon={
                           btnConf.exclude
-                            ? <EyeInvisibleOutlined style={{ ...commonIconStyle }} />
-                            : <EyeOutlined style={{ ...commonIconStyle }} />
+                            ? <img src={InvisibilityIcon} alt="" />
+                            : <img src={VisibilityIcon} alt="" />
                         }
                         type="text"
                         size="small"
@@ -867,7 +895,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     )
                   }
                   <AntButton
-                    icon={<EditOutlined style={{ ...commonIconStyle }} />}
+                    icon={<img src={EditIcon} alt="" />}
                     type="text"
                     size="small"
                     style={{
@@ -897,6 +925,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
                         setConfig(c => updateButtonProp(c, btnConf.id, 'style', val as AnnotationButtonStyle));
                       }}
+                      suffixIcon={<CaretOutlined dir="down" />}
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
@@ -913,6 +942,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         if (val !== btnConf.size) { amplitudeAnnotationEdited('cta-button_size', val as string); }
                         setConfig(c => updateButtonProp(c, btnConf.id, 'size', val as AnnotationButtonSize));
                       }}
+                      suffixIcon={<CaretOutlined dir="down" />}
                     />
                   </div>
                   <div style={{ ...commonActionPanelItemStyle, marginTop: '4px' }}>
@@ -923,9 +953,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       bordered={false}
                       style={{
                         flexGrow: 1,
-                        maxWidth: '60%',
+                        maxWidth: '140px',
                         background: '#fff',
-                        padding: '4px 6px'
+                        borderRadius: '8px',
+                        height: '100%',
+                        border: '1px solid #E8E8E8',
                       }}
                       placeholder="Button text"
                       onBlur={e => {
@@ -944,22 +976,28 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem' }}>
           <Tags.ActionPaneBtn
             type="text"
-            icon={<SubnodeOutlined />}
+            className="fullWidth"
+            icon={<img src={CustomButtonIcon} alt="" />}
             onClick={() => {
               amplitudeAnnotationEdited('add_new_cta', '');
               setConfig(c => addCustomBtn(c));
             }}
-          >Create a custom CTA
+            style={{ color: '#7567FF' }}
+          >
+            Create a custom button
           </Tags.ActionPaneBtn>
         </div>
       </ActionPanel>
       {
         props.screen.type === ScreenType.SerDom && (
-          <ActionPanel title="Hotspot" helpText={hotspotHelpText}>
+          <ActionPanel
+            title="Hotspot"
+            helpText={hotspotHelpText}
+            icon={<img src={HotspotIcon} alt="" />}
+          >
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Interactive element</GTags.Txt>
-              <Switch
-                size="small"
+              <Tags.StyledSwitch
                 style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
                 defaultChecked={config.isHotspot}
                 onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
@@ -970,18 +1008,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 <div style={{ ...commonActionPanelItemStyle, marginTop: '0.25rem' }}>
                   <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
                     <GTags.Txt>Hide annotation</GTags.Txt>
-                    <Switch
-                      size="small"
+                    <Tags.StyledSwitch
                       style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
                       defaultChecked={config.hideAnnotation}
                       onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
                     />
                   </Tags.AnotCrtPanelSec>
                 </div>
-                <div style={commonActionPanelItemStyle}>
+                <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
                   <GTags.Txt>{!config.hotspotElPath ? 'Nested element' : 'Selected'}</GTags.Txt>
                   {
-                    !config.hotspotElPath ? (
+                    !config.hotspotElPath && (
                       <Tags.ActionPaneBtn
                         type="text"
                         size="small"
@@ -989,36 +1026,41 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       >
                         Select
                       </Tags.ActionPaneBtn>
-                    ) : (
+                    )
+                  }
+                </div>
+                {
+                  config.hotspotElPath && (
+                  <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
+                    <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+                      <GTags.Txt style={{ opacity: '0.65', margin: '0' }}>{hotspotElText.substring(0, 15)}</GTags.Txt>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <div style={{ opacity: 0.5 }}>{hotspotElText.substring(0, 9)}</div>
-                        <Tags.ActionPaneBtn
-                          icon={<EditOutlined style={{ ...commonIconStyle }} />}
-                          type="text"
-                          size="small"
-                          onClick={startSelectingHotspotEl}
-                        />
-                        <Tags.ActionPaneBtn
-                          icon={<DeleteOutlined style={{ ...commonIconStyle }} />}
+                        <Tooltip
+                          title="Select other element"
+                        >
+                          <AntButton
+                            icon={<img src={ResetIcon} alt="" />}
+                            type="text"
+                            size="small"
+                            onClick={startSelectingHotspotEl}
+                            style={buttonSecStyle}
+                          />
+                        </Tooltip>
+                        <AntButton
+                          icon={<img src={DeleteIcon} alt="" />}
                           type="text"
                           size="small"
                           onClick={() => {
                             setConfig(c => updateAnnotationHotspotElPath(c, null));
                           }}
-                        />
-                        <Tags.ActionPaneBtn
-                          icon={<SelectOutlined style={{ ...commonIconStyle }} />}
-                          type="text"
-                          size="small"
-                          onClick={() => {
-                            setShowHotspotAdvancedElPicker(!showHotspotAdvancedElPicker);
-                          }}
+                          style={buttonSecStyle}
                         />
                       </div>
-                    )
+                    </Tags.AnotCrtPanelSec>
+                  </div>
+                  )
                   }
-                </div>
-                {selectedHotspotEl && showHotspotAdvancedElPicker && (
+                {selectedHotspotEl && config.hotspotElPath && (
                   <div style={{ ...commonActionPanelItemStyle, width: '100%', height: '22px' }}>
                     <AEP
                       selectedEl={selectedHotspotEl}
@@ -1040,7 +1082,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </ActionPanel>
         )
       }
-      <ActionPanel id="advanced-creator-panel" title="Advanced">
+      <ActionPanel
+        id="advanced-creator-panel"
+        title="Advanced"
+        icon={<img src={SettingsIcon} alt="" />}
+      >
         <div id="entry-point-checkbox" style={commonActionPanelItemStyle}>
           <GTags.Txt>Entry point</GTags.Txt>
           <Checkbox
@@ -1060,15 +1106,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem' }}>
           <GTags.Txt>Overlay</GTags.Txt>
-          <Switch
-            size="small"
+          <Tags.StyledSwitch
             style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
             defaultChecked={config.showOverlay}
             onChange={(e) => setConfig(c => updateOverlay(c, e))}
           />
         </div>
         {/*
-        <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem', flexDirection: 'column' }}>
+        <div style={{
+          ...commonActionPanelItemStyle,
+          justifyContent: 'center',
+          marginTop: '0.5rem', flexDirection: 'column'
+        }}>
           <Tags.ActionPaneBtn
             type="text"
             icon={<SwitcherOutlined />}
@@ -1081,8 +1130,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
         */}
       </ActionPanel>
-      <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.25rem' }}>
-        <Tags.ActionPaneBtn type="text" icon={<DeleteOutlined />} danger onClick={showDeleteConfirm}>
+      <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', margin: '0.5rem 1rem' }}>
+        <Tags.ActionPaneBtn
+          type="text"
+          icon={<img src={DeleteDangerIcon} alt="" width="24" height="24" />}
+          onClick={showDeleteConfirm}
+          style={{ color: '#AB2424' }}
+          className="fullWidth"
+        >
           Delete this annotation
         </Tags.ActionPaneBtn>
       </div>

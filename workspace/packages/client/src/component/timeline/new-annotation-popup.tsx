@@ -6,7 +6,9 @@ import {
 import { ITourDataOpts } from '@fable/common/dist/types';
 import * as GTags from '../../common-styled';
 import { AnnUpdateType } from './types';
-import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
+import {
+  AnnotationPerScreen,
+  DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
 import { addNewAnn } from '../annotation/ops';
 import { amplitudeNewAnnotationCreated, propertyCreatedFromWithType } from '../../amplitude';
 
@@ -20,6 +22,7 @@ type Props = {
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
   calledFrom: 'canvas' | 'timeline';
+  onCoverAnnAdded?: (annRefId: string, screenRefId: number) => void;
 }
 
 export default function NewAnnotationPopup(props: Props): ReactElement {
@@ -43,7 +46,7 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
                 props.calledFrom === 'canvas' ? propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
                   : propertyCreatedFromWithType.TIMELINE_PLUS_ICON_COVER_SAME_SCREEN
               );
-              addNewAnn(
+              const newAnnConfig = addNewAnn(
                 props.allAnnotationsForTour,
                 {
                   position: props.position,
@@ -55,6 +58,7 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
                 props.raiseAlertIfOpsDenied,
                 props.applyAnnButtonLinkMutations
               );
+              props.onCoverAnnAdded && props.onCoverAnnAdded(newAnnConfig.refId, props.annotation.screen.id);
               props.hidePopup();
             }}
 

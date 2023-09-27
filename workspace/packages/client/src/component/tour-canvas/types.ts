@@ -9,6 +9,7 @@ export interface AnnotationNode<T> extends CanvasNode {
   text?: string;
   id: string;
   storedData?: T;
+  origStoredData?: T;
   annotation: IAnnotationConfigWithScreen;
 }
 

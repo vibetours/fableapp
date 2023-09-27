@@ -1,15 +1,15 @@
 import styled from 'styled-components';
-import { LRPostion, ModalPosition } from './types';
+import { ModalPosition } from './types';
 
 export const TILE_STROKE_COLOR_ON_HOVER = '#7566ff';
 export const TILE_STROKE_COLOR_DEFAULT = '#E0E0E0';
+export const TILE_STROKE_COLORON_SELECT = '#9f96fa';
 
 export const SVGCanvas = styled.svg`
   position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
-  cursor: move;
 
   .fade {
     opacity: 0.2;
@@ -29,10 +29,6 @@ export const SVGCanvas = styled.svg`
 
   .canvasElArea {
     fill: transparent
-  }
-
-  .poh {
-    fill: ${TILE_STROKE_COLOR_DEFAULT} !important;
   }
 
   .node {
@@ -59,25 +55,6 @@ export const SVGCanvas = styled.svg`
       }
     }
 
-    &:hover {
-      .poh {
-        background: #7566ff !important;
-        fill: #7566ff !important;
-      }
-
-      .menuicnovrly {
-        cursor: pointer;
-      }
-
-      .plusicnovrly{
-        cursor: pointer;
-      }
-
-      .poh {
-        color: white !important;
-        font-weight: 500 !important;
-      }
-    }
   }
 `;
 
@@ -309,6 +286,7 @@ export const MenuModal = styled.div<{xy: ModalPosition}>`
   border-radius: 2px;
   box-shadow: 0 0 3px -1px black;
   font-size: 0.9rem;
+  z-index: 2;
 
   div.menu-item {
     padding: 0.25rem 0.45rem;
@@ -328,7 +306,7 @@ export const MenuModal = styled.div<{xy: ModalPosition}>`
   div.danger {
     color: red;
   }
-}
+
 `;
 
 export const MenuModalMask = styled.div`
@@ -336,4 +314,69 @@ export const MenuModalMask = styled.div`
   height: 100%;
   width: 100%;
   background: transparent;
+`;
+
+export const AnnEditorModalCon = styled.div`
+  animation: fade-in 1.75s ease-out;
+    
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 0;
+    }
+
+    75% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+`;
+
+export const AnnEditorModalArrow = styled.svg<{top: number, left: number, applyTransition: boolean}>`
+  position: absolute;
+  top: ${props => `${props.top}px`};
+  left: ${props => `${props.left}px`};
+  transform: translateX(-50%);
+  transition:${props => (props.applyTransition ? 'left 0.5s ease-in-out' : 'none')};
+`;
+
+export const AnnEditorModalWrapper = styled.div<{top: number}>`
+  position: absolute;
+  top: ${props => `${props.top}px`};
+  left: 10px;
+  right: 10px;
+  bottom: 0px;
+  width: calc(100% - 20px);
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 20px;
+`;
+
+export const AnnEditorModal = styled.div`
+  height: 100%;
+  margin: auto;
+  border-radius: 20px;
+`;
+
+export const CloseIcon = styled.img`
+  position: absolute;
+  height: 2rem;
+  width: 2rem;
+  top: 40px;
+  right: 40px;
+  cursor: pointer;
+  background: #ffffffc4;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease-out;
+
+  &:hover {
+    background: #ffffff;
+  }
 `;

@@ -2,10 +2,12 @@ import { useEffect, useRef } from 'react';
 import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
-import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen } from './types';
+import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, IAnnotationConfigWithScreen } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
+export const AEP_HEIGHT = 25;
+export const ANN_EDIT_PANEL_HEIGHT = 350;
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -189,6 +191,7 @@ export const assignScreenIndices = (
 
   return orderedAnns;
 };
+
 export const createIframeSrc = (relativeURL: string) => baseURL + relativeURL;
 
 export const isExtensionInstalled = (): Promise<boolean> => new Promise((resolve) => {
@@ -203,3 +206,18 @@ export const isExtensionInstalled = (): Promise<boolean> => new Promise((resolve
     }
   );
 });
+
+export const getAnnotationWithScreenAndIdx = (
+  annRefId: string,
+  entireTimeline: ConnectedOrderedAnnGroupedByScreen
+): IAnnotationConfigWithScreen | null => {
+  let ann: IAnnotationConfigWithScreen | null = null;
+  entireTimeline.forEach(connectedTimeline => {
+    connectedTimeline.forEach(timeline => {
+      timeline.forEach(config => {
+        if (config.refId === annRefId) ann = config;
+      });
+    });
+  });
+  return ann;
+};

@@ -3,7 +3,7 @@ import { AnnotationNode, Box, CanvasGrid, Edge, Point } from './types';
 import { ConnectedOrderedAnnGroupedByScreen } from '../../types';
 import { getAnnotationBtn } from '../annotation/ops';
 
-export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, grid: CanvasGrid)
+export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, dim: {width: number, height: number})
 : [AnnotationNode<Box>[], Edge[]] {
   const annotationNodes: AnnotationNode<Box>[] = [];
   const edges: [srcId: string, destId: string][] = [];
@@ -28,8 +28,8 @@ export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, gr
           id: annId,
           localIdx: i++,
           grp: groupId,
-          width: grid.gridSize * 6,
-          height: grid.gridSize * 4,
+          width: dim.width,
+          height: dim.height,
           x: 0,
           y: 0,
           imageUrl: screen.thumbnailUri.href,

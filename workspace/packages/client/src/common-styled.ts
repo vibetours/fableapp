@@ -139,14 +139,13 @@ export const PreviewAndActionCon = styled.div`
 `;
 
 export const EmbedCon = styled.div`
-  width: 75%;
+  flex-grow: 1;
   background: #F5F5F5;
   margin: 1rem;
 `;
 
 export const EditPanelCon = styled.div`
   height: 100%;
-  width: 25%;
   display: flex;
   flex-direction: column;
   background: #fff;

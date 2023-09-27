@@ -1,8 +1,9 @@
-import { QuestionCircleOutlined, CaretDownOutlined, CaretUpOutlined } from '@ant-design/icons';
-import React, { ReactElement, useState } from 'react';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import React, { ReactElement, ReactNode, useState } from 'react';
 import Tooltip from 'antd/lib/tooltip';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
+import CaretOutlined from '../icons/caret-outlined';
 
 interface IProps {
   id?: string;
@@ -50,9 +51,9 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
             {!collapsed && props.sectionActionElWhenOpen && (props.sectionActionElWhenOpen)}
             {!props.alwaysOpen && (
               collapsed ? (
-                <CaretDownOutlined style={{ fontSize: '0.75rem' }} />
+                <CaretOutlined dir="down" />
               ) : (
-                <CaretUpOutlined style={{ fontSize: '0.75rem' }} />
+                <CaretOutlined dir="up" />
               )
             )}
           </div>

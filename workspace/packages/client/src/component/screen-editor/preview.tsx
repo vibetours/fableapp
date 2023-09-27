@@ -8,6 +8,7 @@ import * as Tags from './styled';
 import { deserFrame } from './utils/deser';
 import { DisplayCSSPropValue } from './types';
 import { FABLE_RT_UMBRL, getFableRtUmbrlDiv } from '../annotation/utils';
+import { AEP_HEIGHT } from '../../utils';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -18,6 +19,7 @@ export interface IOwnProps {
   onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
   onFrameAssetLoad: () => void;
   isScreenPreview: boolean;
+  playMode: boolean;
 }
 
 export interface DeSerProps {
@@ -98,7 +100,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2 + divPadding}px`;
     }
     if (origFrameViewPort.height - viewPortAfterScaling.height) {
-      frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2 + divPadding}px`;
+      const padding = this.props.playMode ? divPadding : divPadding - AEP_HEIGHT - AEP_HEIGHT / 2;
+      frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2 + padding}px`;
     }
 
     const doc = frame?.contentDocument;
@@ -191,6 +194,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         className={`fable-iframe-${this.props.screen.id}`}
         style={{
           visibility: this.props.hidden ? 'hidden' : 'visible',
+          borderRadius: `${this.props.playMode ? 'none' : '20px'}`
         }}
         ref={ref => {
           this.embedFrameRef.current = ref;

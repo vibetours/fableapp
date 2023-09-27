@@ -1,34 +1,40 @@
 /* eslint-disable react/no-this-in-sfc */
 import { nanoid } from 'nanoid';
 import { DeleteOutlined, DisconnectOutlined, HourglassOutlined, SisternodeOutlined } from '@ant-design/icons';
-import { CmnEvtProp, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
+import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, ITourEntityHotspot, ScreenData } from '@fable/common/dist/types';
 import Modal from 'antd/lib/modal';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
-import { D3ZoomEvent, zoom, zoomIdentity } from 'd3-zoom';
+import { D3ZoomEvent, ZoomBehavior, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import { interpolate } from 'd3-interpolate';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
   deleteConnection,
   getAnnotationByRefId,
   reorderAnnotation,
-  groupUpdatesByAnnotation
+  groupUpdatesByAnnotation,
+  AnnotationSerialIdMap
 } from '../annotation/ops';
 import newScreenDark from '../../assets/new-screen-dark.svg';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
+  AllEdits,
   AnnotationPerScreen,
   ConnectedOrderedAnnGroupedByScreen,
   DestinationAnnotationPosition,
+  EditItem,
+  ElEditType,
   NavFn,
   ScreenPickerData,
-  TourDataChangeFn
+  TourDataChangeFn,
+  onAnnCreateOrChangeFn
 } from '../../types';
 import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
 import { AnnUpdateType } from '../timeline/types';
@@ -51,25 +57,38 @@ import CanvasGuidePart3 from '../../user-guides/getting-to-know-the-canvas/part-
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import LoaderEditor from '../../container/loader-editor';
+import ScreenEditor from '../screen-editor';
+import CloseIcon from '../../assets/tour/close.svg';
 
 const { confirm } = Modal;
 
 const userGuides = [PreviewAndEmbedGuide, CanvasGuidePart1, CanvasGuidePart3];
 
-// TODO[now] addScreenToTour + addNewScreenToTouris redundant
 type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: NavFn;
+  navigateBackToTour: () => void;
+  toAnnotationId: string;
   onTourDataChange: TourDataChangeFn;
   tour: P_RespTour;
   timeline: ConnectedOrderedAnnGroupedByScreen,
-  // addNewScreenToTour: AddScreenFn,
   tourOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
-  shouldShowScreenPicker: (screenPickerData: ScreenPickerData) => void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
+  annotationSerialIdMap: AnnotationSerialIdMap;
+  screen: P_RespScreen;
+  screenData: ScreenData;
+  allEdits: EditItem[];
+  allAnnotationsForScreen: IAnnotationConfig[];
+  onAnnotationCreateOrChange: onAnnCreateOrChangeFn;
+  onScreenEditStart: () => void;
+  onScreenEditFinish: () => void;
+  onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
+  isScreenLoaded: boolean;
+  shouldShowOnlyScreen: boolean
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -83,6 +102,17 @@ const canvasGrid: CanvasGrid = {
     scale: 1
   }
 };
+
+const ANN_NODE_HEIGHT = canvasGrid.gridSize * 4;
+const ANN_NODE_WIDTH = canvasGrid.gridSize * 6;
+const ANN_NODE_SEP = canvasGrid.gridSize * 3;
+const ANN_EDITOR_ZOOM = 0.75;
+const ANN_NODE_TOP_MARGIN_FOR_EDITOR = 20 * ANN_EDITOR_ZOOM;
+const ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR = 40 * ANN_EDITOR_ZOOM;
+const ANN_EDITOR_TOP = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM
+ + ANN_NODE_TOP_MARGIN_FOR_EDITOR + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
+
+const SVG_ZOOM_EXTENT: [number, number] = [0.5, 2];
 
 let dragTimer = 0;
 
@@ -156,6 +186,22 @@ const newScreenPickerData: ScreenPickerData = {
   showCloseButton: true,
 };
 
+interface AnnEditorModal {
+  annId: string,
+  newSvgZoom: { x: number, y: number, k: number, centerX: number },
+  applyTransitionToArrow: boolean,
+  prevAnnId: string,
+}
+
+interface AnnWithCoords {
+  screenId: number,
+  annId: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+}
+
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
@@ -165,8 +211,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [connectorMenuModalData, setConnectorMenuModalData] = useState(initialConnectorModalData);
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
-  const [noAnnotationsPresent, setNoAnnotationsPresent] = useState(false);
   const [showLoaderEditor, setShowLoaderEditor] = useState(false);
+  const zoomBehaviorRef = useRef <ZoomBehavior<SVGSVGElement, unknown>>();
+  const [annEditorModal, setAnnEditorModal] = useState<AnnEditorModal | null>(null);
+  const annEditorModalRef = useRef<AnnEditorModal | null>(null);
+  const [annWithCoords, setAnnWithCoords] = useState<AnnWithCoords[]>([]);
+  const [selectedAnnId, setSelectedAnnId] = useState<string>('');
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -201,21 +251,21 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('fill', 'url(#grid-pattern)');
   };
 
-  const updateGrid = (ze: D3ZoomEvent<SVGGElement, unknown>): void => {
+  const updateGrid = (x: number, y: number, k: number): void => {
     const svgEl = svgRef.current;
     if (!svgEl) {
       return;
     }
     const svg = select(svgEl);
     svg.select('#grid-pattern')
-      .attr('x', ze.transform.x)
-      .attr('y', ze.transform.y)
-      .attr('width', canvasGrid.gridSize * ze.transform.k)
-      .attr('height', canvasGrid.gridSize * ze.transform.k)
+      .attr('x', x)
+      .attr('y', y)
+      .attr('width', canvasGrid.gridSize * k)
+      .attr('height', canvasGrid.gridSize * k)
       .selectAll('rect')
-      .attr('x', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
-      .attr('y', (canvasGrid.gridSize * (ze.transform.k / 2)) - (canvasGrid.gridDotSize / 2))
-      .attr('opacity', Math.min(ze.transform.k, 1));
+      .attr('x', (canvasGrid.gridSize * (k / 2)) - (canvasGrid.gridDotSize / 2))
+      .attr('y', (canvasGrid.gridSize * (k / 2)) - (canvasGrid.gridDotSize / 2))
+      .attr('opacity', Math.min(k, 1));
   };
 
   const nodeDraggable = (): DragBehavior<
@@ -527,7 +577,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const prevent = (e: any): void => {
-    if (e.target.name !== 'screen-img' && e.target.name !== 'img-submit-btn' && e.target.getAttribute('for') !== 'screen-image') {
+    if (e.target.name !== 'screen-img'
+    && e.target.name !== 'img-submit-btn'
+    && e.target.getAttribute('for') !== 'screen-image'
+    ) {
       e.preventDefault();
     }
     e.stopPropagation();
@@ -551,24 +604,65 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       );
   };
 
+  const handleUserZoomPanWhenAnnEditorIsShown = (x: number): void => {
+    const { y: currZoomY } = annEditorModalRef.current!.newSvgZoom;
+    updateGrid(x, currZoomY, ANN_EDITOR_ZOOM);
+    select(rootGRef.current!).attr('transform', `translate(${x}, ${currZoomY}) scale(${ANN_EDITOR_ZOOM})`);
+    setAnnEditorModal(prev => ({ ...prev!, newSvgZoom: { ...prev!.newSvgZoom, x, }, applyTransitionToArrow: false }));
+  };
+
+  useEffect(() => {
+    annEditorModalRef.current = annEditorModal;
+
+    if (!zoomBehaviorRef.current) return;
+
+    if (annEditorModal) {
+      zoomBehaviorRef.current.scaleExtent([ANN_EDITOR_ZOOM, ANN_EDITOR_ZOOM]);
+      select(svgRef.current).attr('cursor', 'ew-resize');
+    } else {
+      zoomBehaviorRef.current.scaleExtent(SVG_ZOOM_EXTENT);
+      select(svgRef.current).attr('cursor', 'move');
+    }
+  }, [annEditorModal]);
+
   useEffect(() => {
     const svg = svgRef.current;
     const rootG = rootGRef.current;
     if (svg && rootG) {
       drawGrid();
+      select(svgRef.current).attr('cursor', 'move');
 
       const [sk, sx, sy] = zoomPanState.get();
       const initialZoom = sk !== null ? sk : canvasGrid.initial.scale;
       const initialPan = sx !== null && sy !== null ? [sx, sy] : [canvasGrid.initial.tx, canvasGrid.initial.ty];
 
       const z = zoom<SVGSVGElement, unknown>()
-        .scaleExtent([0.5, 2])
+        .interpolate(interpolate)
+        .scaleExtent(SVG_ZOOM_EXTENT)
         .on('zoom', null)
         .on('zoom', (e: D3ZoomEvent<SVGGElement, unknown>) => {
-          zoomPanState.set(e.transform.k, e.transform.x, e.transform.y);
-          updateGrid(e);
+          /**
+           * e.sourceEvent is null for programmatic zoom/pan change but is present when user uses the mouse.
+           * Ideally this is to determine if user is initiating the zoom or is it triggered programatically
+           */
+          // when user zooms when Ann Editor is shown, only pan on X-axis
+          const isMouseZoomWhenAnnEditorShown = annEditorModalRef.current && e.sourceEvent;
+          if (isMouseZoomWhenAnnEditorShown) {
+            handleUserZoomPanWhenAnnEditorIsShown(e.transform.x);
+            return;
+          }
+
+          // don't save zoom value if zoom is triggered when ann editor is shown
+          const isProgrammaticZoomTriggeredWhenAnnEditorIsShown = annEditorModalRef.current;
+          if (!isProgrammaticZoomTriggeredWhenAnnEditorIsShown) {
+            zoomPanState.set(e.transform.k, e.transform.x, e.transform.y);
+          }
+
+          updateGrid(e.transform.x, e.transform.y, e.transform.k);
           select(rootG).attr('transform', e.transform.toString());
         });
+
+      zoomBehaviorRef.current = z;
 
       const initialTransform = zoomIdentity.translate(initialPan[0], initialPan[1]).scale(initialZoom);
       select(svg)
@@ -585,6 +679,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         .on('mousemove', null)
         .on('mousemove', (e: MouseEvent) => {
           if (isGuideArrowDrawing.current !== 0) {
+            if (annEditorModalRef.current) return;
             const relativeCoord = fromPointer(e, rootG);
             svgSel.select<SVGGElement>('g.connectors')
               .selectAll<SVGPathElement, SVGGElement>('path.guide-arr')
@@ -625,6 +720,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         'transform',
         (d: AnnotationNode<dagre.Node>) => `translate(${position === 'prev' ? 20 : d.width - 20}, ${d.height / 2})`
       )
+      .style('cursor', 'pointer')
       .on('mousedown', prevent)
       .on('mouseup', prevent)
       .on('click', function (e, d) {
@@ -673,7 +769,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }
     const g = select(rootG);
 
-    const [nodeWithDim, edges] = formAnnotationNodes(props.timeline, canvasGrid);
+    const [nodeWithDim, edges] = formAnnotationNodes(
+      props.timeline,
+      { width: ANN_NODE_WIDTH, height: ANN_NODE_HEIGHT }
+    );
 
     const gBoundData = g
       .selectAll<SVGGElement, number>('g.connectors')
@@ -685,8 +784,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('class', 'connectors')
       .merge(gBoundData);
 
-    if (nodeWithDim.length === 0) {
-      setNoAnnotationsPresent(true);
+    if (nodeWithDim.length === 0 && !props.shouldShowOnlyScreen) {
       props.shouldShowScreenPicker({ ...newScreenPickerData, showCloseButton: false });
     }
 
@@ -696,7 +794,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }, {} as Record<string, AnnotationNode<dagre.Node>>);
 
     const graph = new dagre.graphlib.Graph();
-    graph.setGraph({ rankdir: 'LR', ranksep: canvasGrid.gridSize * 3, nodesep: canvasGrid.gridSize * 3 });
+    graph.setGraph({ rankdir: 'LR', ranksep: ANN_NODE_SEP, nodesep: ANN_NODE_SEP });
     graph.setDefaultEdgeLabel(() => ({}));
     nodeWithDim.forEach(node => graph.setNode(node.id, { label: node.id, width: node.width, height: node.height }));
     edges.forEach(edge => graph.setEdge(edge[0], edge[1]));
@@ -706,8 +804,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       const graphNode = graph.node(v);
       const logicalNode = nodeLookup[graphNode.label!];
       logicalNode.storedData = graphNode;
+      logicalNode.origStoredData = { ...graphNode };
       return logicalNode;
     });
+    // TODO Keep the x, y, width, height in d3 only.
+    // Right now we save it as part of d3 & react. That means this map code will be part of the above map code
+    setAnnWithCoords(graph.nodes().map(v => {
+      const graphNode = graph.node(v);
+      const [screenId, annId] = graphNode.label!.split('/');
+      const { x, y, width, height } = graphNode;
+      return { annId, screenId: +screenId, x, y, width, height } as AnnWithCoords;
+    }));
+
     const newEdgesWithPositions: EdgeWithData[] = graph.edges().map(ed => {
       const e = graph.edge(ed);
       return {
@@ -755,6 +863,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('cursor', 'pointer')
           .attr('d', attr => lines(attr.points as any))
           .on('mouseover', function () {
+            if (annEditorModalRef.current) return;
             // eslint-disable-next-line react/no-this-in-sfc
             const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
             gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_HOVERED);
@@ -767,6 +876,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED);
           })
           .on('click', function (e: MouseEvent) {
+            if (annEditorModalRef.current) return;
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
             const d = select<SVGGElement, EdgeWithData>(this).datum();
@@ -797,16 +907,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('class', 'node')
       .on('mouseover', null)
       .on('mouseover', function () {
-        const gEl = select(this);
-        gEl.select('rect.interaction-marker')
-          .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
-          .style('stroke', Tags.TILE_STROKE_COLOR_ON_HOVER);
-
-        gEl.selectAll('circle.plusicnbase')
-          .style('fill', Tags.TILE_STROKE_COLOR_ON_HOVER);
-
-        gEl.selectAll('path.plusicn')
-          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
+        const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
+        if (annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId) return;
+        setAnnNodeSelectionStyle(gEl, Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
       .on('mousedown', function (e: MouseEvent) {
@@ -836,10 +939,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         isGuideArrowDrawing.current = 0;
         if (fromElData.id === toElData.id) {
           // self loop, treat this as click
-          props.navigate(toElData.id, 'annotation-hotspot');
+          resetNodePos();
+          selectAnn(toElData.id);
           return;
         }
 
+        if (annEditorModalRef.current) return;
         const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
         const lookupMap = getAnnotationLookupMap(allAnns);
         updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange);
@@ -848,16 +953,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       })
       .on('mouseout', null)
       .on('mouseout', function () {
-        const gEl = select(this);
-        gEl.select('rect.interaction-marker')
-          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
-          .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
-
-        gEl.selectAll('circle.plusicnbase')
-          .style('fill', 'transparent');
-
-        gEl.selectAll('path.plusicn')
-          .style('stroke', 'transparent');
+        const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
+        if (annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId) return;
+        resetAnnNodeSelectionStyle(gEl);
       })
       .call(p => {
         p.append('rect')
@@ -865,14 +963,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('y', '0')
           .attr('class', 'poh')
           .attr('width', '20')
-          .attr('height', '20');
+          .attr('height', '24');
 
         p
           .append('image')
           .attr('x', 0)
           .attr('preserveAspectRatio', 'xMidYMid meet')
           .attr('clip-path', 'url(#fit-rect)')
-          .attr('y', 20);
+          .attr('y', 24);
 
         p.append('foreignObject')
           .attr('class', 'screen-info')
@@ -918,6 +1016,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const menug = p
           .append('g')
           .attr('transform', 'translate(4, 4) scale(0.04)')
+          .style('cursor', 'pointer')
           .on('mousedown', prevent)
           .on('mouseup', prevent)
           .on('click', function (e) {
@@ -935,6 +1034,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('class', 'menuicn')
           .attr('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
           .attr('fill', Tags.TILE_STROKE_COLOR_DEFAULT)
+          // eslint-disable-next-line max-len
           .attr('d', 'M165,0C74.019,0,0,74.019,0,165s74.019,165,165,165s165-74.019,165-165S255.981,0,165,0z M85,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S98.785,190,85,190z M165,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S178.785,190,165,190z M245,190c-13.785,0-25-11.215-25-25s11.215-25,25-25c13.785,0,25,11.215,25,25S258.785,190,245,190z');
 
         menug
@@ -971,8 +1071,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .data(p.data(), d => d.id);
 
         titleBar.merge(titleBar)
+          .style('cursor', 'grab')
           .attr('width', d => d.width - 20)
-          .attr('height', 20)
+          .attr('height', 24)
           .attr('x', 20)
           .attr('y', 0)
           .call(nodeDraggable())
@@ -982,34 +1083,39 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
             screentitle.merge(screentitle)
               .style('width', d => d.width)
-              .style('height', '16px')
+              .style('height', '24px')
               .style('display', 'block')
+              .style('text-align', 'center')
               .style('margin', 0)
-              .style('font-size', '12px')
+              .style('font-size', '16px')
               .attr('class', 'poh')
               .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
               .style('color', 'black')
               .style('padding', '2px')
-              .style('display', 'flex')
-              .style('align-items', 'center')
-              .style('justify-content', 'center')
               .text(d => `${d.screenTitle.substring(0, 30)}${d.screenTitle.length > 30 ? '...' : ''}`);
           });
 
-        p
+        const annTextBar = p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
-          .data(p.data(), d => d.id)
+          .data(p.data(), d => d.id);
+
+        annTextBar
+          .merge(annTextBar)
           .attr('width', d => d.width)
-          .attr('height', 40)
+          .attr('height', 46)
           .attr('x', 0)
-          .attr('y', d => d.height - 40)
+          .attr('y', d => d.height - 46)
           .call(fo => {
-            fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+            const annText = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .data(p.data(), d => d.id);
+
+            annText
+              .merge(annText)
               .style('width', d => d.width)
-              .style('height', '40px')
               .style('display', 'block')
+              .style('height', '100%')
               .style('margin', 0)
-              .style('font-size', '12px')
+              .style('font-size', '16px')
               .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
               .style('color', 'black')
               .style('padding', '2px')
@@ -1017,7 +1123,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .style('align-items', 'center')
               .style('justify-content', 'center')
               .style('cursor', 'pointer')
-              .text(d => `${d.text!.substring(0, 65)}${d.text!.length > 65 ? '...' : ''}`);
+              .text(d => `${d.text!.substring(0, 51)}${d.text!.length > 51 ? '...' : ''}`);
           });
 
         p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect.interaction-marker')
@@ -1029,9 +1135,271 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     nodeG
       .exit()
       .remove();
+
+    function resetNodePos(): void {
+      g
+        .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+        .transition()
+        .attr(
+          'transform',
+          d => {
+            const pos = d.origStoredData!;
+            const x = pos.x - pos.width / 2;
+            const y = pos.y - pos.height / 2;
+            return `translate(${x}, ${y})`;
+          }
+        );
+
+      connectorG
+        .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+        .call(p => {
+          ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
+            p.selectAll<SVGPathElement, EdgeWithData>(sel)
+              .data(p.data(), d => `${d.srcId}:${d.destId}`)
+              .attr('d', attr => lines(attr.points as any));
+          });
+        });
+    }
   }, [props.allAnnotationsForTour]);
 
+  const setAnnNodeSelectionStyle = (
+    node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>,
+    color: string,
+  ): void => {
+    node.select('rect.interaction-marker')
+      .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
+      .style('stroke', color);
+
+    node.selectAll('circle.plusicnbase')
+      .style('fill', color);
+
+    node.selectAll('path.plusicn')
+      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
+
+    node.selectAll('rect.poh')
+      .style('stroke', color)
+      .style('fill', color)
+      .style('color', 'white');
+
+    node.selectAll('p.poh')
+      .style('background', color)
+      .style('color', 'white');
+  };
+
+  const resetAnnNodeSelectionStyle = (
+    node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>
+  ): void => {
+    node.select('rect.interaction-marker')
+      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+      .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
+
+    node.selectAll('circle.plusicnbase')
+      .style('fill', 'transparent');
+
+    node.selectAll('path.plusicn')
+      .style('stroke', 'transparent');
+
+    node.selectAll('rect.poh')
+      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+      .style('fill', Tags.TILE_STROKE_COLOR_DEFAULT);
+
+    node.selectAll('p.poh')
+      .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
+      .style('color', 'black');
+  };
+
+  const getAnnModalArrowLeftPos = (): number => {
+    const annCoords = annWithCoords.find(ann => ann.annId === annEditorModal!.annId)!;
+    const left = annEditorModal!.newSvgZoom.x + (annCoords.x * ANN_EDITOR_ZOOM);
+    return left;
+  };
+
+  const zoomThenPan = (
+    currZoom: {x: number, y: number, k: number},
+    intermediateZoom: {x: number, y: number, k: number},
+    newZoom: {x: number, y: number, k: number}
+  ): void => {
+    const currZoomTransform = zoomIdentity
+      .translate(currZoom.x, currZoom.y)
+      .scale(currZoom.k);
+    const onlyZoomTransform = zoomIdentity
+      .translate(intermediateZoom.x, intermediateZoom.y)
+      .scale(intermediateZoom.k);
+    const finalTransform = zoomIdentity
+      .translate(newZoom.x!, newZoom.y!)
+      .scale(newZoom.k!);
+
+    select<SVGSVGElement, unknown>(svgRef.current!)
+      .call(zoomBehaviorRef.current!.transform, currZoomTransform)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current!.transform, onlyZoomTransform)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current!.transform, finalTransform);
+  };
+
+  const panThenZoom = (
+    intermediateZoom: {x: number, y: number, k: number},
+    newZoom: {x: number, y: number, k: number}
+  ): void => {
+    const onlyTranslateTransform = zoomIdentity
+      .translate(intermediateZoom.x, intermediateZoom.y)
+      .scale(intermediateZoom.k);
+    const finalTransform = zoomIdentity
+      .translate(newZoom.x, newZoom.y)
+      .scale(newZoom.k);
+
+    select<SVGSVGElement, unknown>(svgRef.current!)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current!.transform, onlyTranslateTransform)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current!.transform, finalTransform);
+  };
+
+  const zoomAndPan = (
+    currZoom: {x: number, y: number, k: number},
+    newZoom: {x: number, y: number, k: number},
+  ): void => {
+    const currTransform = zoomIdentity
+      .translate(currZoom.x, currZoom.y)
+      .scale(currZoom.k);
+
+    const finalTransform = zoomIdentity
+      .translate(newZoom.x, newZoom.y)
+      .scale(newZoom.k);
+
+    select<SVGSVGElement, unknown>(svgRef.current!)
+      .call(zoomBehaviorRef.current!.transform, currTransform)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current!.transform, finalTransform);
+  };
+
+  useEffect(() => {
+    // reset previously selected ann's selection marker
+    const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    resetAnnNodeSelectionStyle(annNodes);
+
+    if (!annWithCoords.length) return;
+
+    if (!selectedAnnId && annEditorModal) {
+      const [k, x, y,] = zoomPanState.getValueFromBuffer();
+      const centerX = annEditorModal.newSvgZoom.centerX;
+
+      const translateXWithoutZoom = window.innerWidth / 2 - (centerX * k!);
+
+      const newSvgZoom = annEditorModal.newSvgZoom;
+
+      zoomThenPan(
+        { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
+        { x: translateXWithoutZoom, y: annEditorModal.newSvgZoom.y * k!, k: k! },
+        { x: x!, y: y!, k: k! }
+      );
+      setAnnEditorModal(null);
+      return;
+    }
+
+    if (!selectedAnnId) return;
+
+    // set selection marker
+    const annNode = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+      .filter((d) => d.annotation.refId === selectedAnnId);
+    setAnnNodeSelectionStyle(annNode, Tags.TILE_STROKE_COLORON_SELECT);
+
+    const annCoords = annWithCoords.find(ann => ann.annId === selectedAnnId)!;
+
+    if (annEditorModal) {
+      const { x: zoomAfterAnnModalShownX } = annEditorModal.newSvgZoom;
+      const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
+      const endY = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM + (annCoords.width * ANN_EDITOR_ZOOM) / 2;
+
+      const isAnnNodeInViewPort = startX > 0 && endY * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
+      if (isAnnNodeInViewPort) {
+        setAnnEditorModal(prev => ({
+          ...prev!,
+          annId: selectedAnnId,
+          applyTransitionToArrow: true,
+          prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
+        }));
+        return;
+      }
+    }
+
+    const [currK] = zoomPanState.getValueFromBuffer();
+    const rowHeight = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM + ANN_NODE_SEP * ANN_EDITOR_ZOOM;
+    const row = Math.floor((annCoords.y * ANN_EDITOR_ZOOM) / rowHeight);
+    const newY = -(row * rowHeight) + ANN_NODE_TOP_MARGIN_FOR_EDITOR;
+
+    const newX = window.innerWidth / 2 - (annCoords.x * ANN_EDITOR_ZOOM);
+
+    const translateXWithoutZoom = window.innerWidth / 2 - (annCoords.x * currK!);
+
+    if (annEditorModal) {
+      const newSvgZoom = annEditorModal.newSvgZoom;
+      zoomAndPan(
+        { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
+        { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
+      );
+    } else {
+      panThenZoom(
+        { x: translateXWithoutZoom, y: newY * currK!, k: currK! },
+        { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
+      );
+    }
+
+    setAnnEditorModal(prev => ({
+      annId: selectedAnnId,
+      newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: annCoords.x },
+      applyTransitionToArrow: true,
+      prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
+    }));
+  }, [selectedAnnId, annWithCoords]);
+
+  useEffect(() => {
+    setSelectedAnnId(props.toAnnotationId);
+  }, [props.toAnnotationId]);
+
+  const resetSelectedAnn = (): void => {
+    setSelectedAnnId('');
+    props.navigateBackToTour();
+  };
+
+  const selectAnn = (annQualificationUri: string): void => {
+    props.navigate(annQualificationUri, 'annotation-hotspot');
+    setSelectedAnnId(annQualificationUri.split('/')[1]);
+  };
+
+  const getPrevSelectedAnnIdForEditor = (prevAnnEditorData: AnnEditorModal | null, selectedAnnRid: string): string => {
+    if (!prevAnnEditorData) return '';
+
+    if (prevAnnEditorData.annId === selectedAnnRid) return prevAnnEditorData.prevAnnId;
+
+    return prevAnnEditorData.annId;
+  };
+
+  const handleReselectionOfPrevAnnWhenCurAnnIsDeleted = (deletedAnnRid: string): void => {
+    if (deletedAnnRid !== selectedAnnId) return;
+    if (!annEditorModal) return;
+
+    if (!annEditorModal.prevAnnId) {
+      resetSelectedAnn();
+      return;
+    }
+
+    const prevAnn = getAnnotationByRefId(annEditorModal!.prevAnnId, props.allAnnotationsForTour);
+    if (!prevAnn) {
+      resetSelectedAnn();
+    } else {
+      selectAnn(`${prevAnn!.screenId}/${annEditorModal!.prevAnnId}`);
+    }
+  };
+
   const viewBox = `0 0 ${window.innerWidth} ${window.innerHeight}`;
+
+  const isAnnSelected = selectedAnnId && annEditorModal;
 
   return (
     <>
@@ -1059,52 +1427,56 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         <rect id="pattern-fill" width="100%" height="100%" />
         <g id="fab-tour-canvas-main" ref={rootGRef} />
       </Tags.SVGCanvas>
-      <Tags.CanvasMenuCon
-        onClick={prevent}
-        onMouseUp={prevent}
-        onMouseDown={prevent}
-      >
-        <Tags.CanvasMenuItemCon>
-          <Tooltip
-            title="Add a new screen to this tour"
-            overlayStyle={{ fontSize: '0.75rem' }}
-            placement="right"
+      {
+        !annEditorModal && (
+          <Tags.CanvasMenuCon
+            onClick={prevent}
+            onMouseUp={prevent}
+            onMouseDown={prevent}
           >
-            <div>
-              <Button
-                onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
-                icon={<img src={newScreenDark} alt="new screen" />}
-                size="middle"
-                style={{
-                  margin: 0,
-                  border: '1px solid black',
-                }}
-                id="IUG-1"
-              />
-            </div>
-          </Tooltip>
-        </Tags.CanvasMenuItemCon>
+            <Tags.CanvasMenuItemCon>
+              <Tooltip
+                title="Add a new screen to this tour"
+                overlayStyle={{ fontSize: '0.75rem' }}
+                placement="right"
+              >
+                <div>
+                  <Button
+                    onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
+                    icon={<img src={newScreenDark} alt="new screen" />}
+                    size="middle"
+                    style={{
+                      margin: 0,
+                      border: '1px solid black',
+                    }}
+                    id="IUG-1"
+                  />
+                </div>
+              </Tooltip>
+            </Tags.CanvasMenuItemCon>
 
-        <Tags.CanvasMenuItemCon>
-          <Tooltip
-            title="Design your loader"
-            overlayStyle={{ fontSize: '0.75rem' }}
-            placement="right"
-          >
-            <div>
-              <Button
-                onClick={() => setShowLoaderEditor(true)}
-                icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500 }} />}
-                size="middle"
-                style={{
-                  margin: 0,
-                  border: '1px solid black',
-                }}
-              />
-            </div>
-          </Tooltip>
-        </Tags.CanvasMenuItemCon>
-      </Tags.CanvasMenuCon>
+            <Tags.CanvasMenuItemCon>
+              <Tooltip
+                title="Design your loader"
+                overlayStyle={{ fontSize: '0.75rem' }}
+                placement="right"
+              >
+                <div>
+                  <Button
+                    onClick={() => setShowLoaderEditor(true)}
+                    icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500 }} />}
+                    size="middle"
+                    style={{
+                      margin: 0,
+                      border: '1px solid black',
+                    }}
+                  />
+                </div>
+              </Tooltip>
+            </Tags.CanvasMenuItemCon>
+          </Tags.CanvasMenuCon>
+        )
+      }
       {
         showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
       }
@@ -1120,7 +1492,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               onClick={() => {
                 confirm({
                   title: 'Are you sure you want to delete the connector?',
-                  content: 'This connector will get deleted and previous annotation and next annotation will get separated',
+                  content: `This connector will get deleted and previous 
+                  annotation and next annotation will get separated`,
                   okText: 'Delete',
                   okType: 'danger',
                   onOk() {
@@ -1170,6 +1543,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                       annotation_op_location: 'canvas'
                     }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                     const [screenId, annId] = nodeMenuModalData.annId.split('/');
+
+                    handleReselectionOfPrevAnnWhenCurAnnIsDeleted(annId);
+
                     const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
                     const main = props.tourOpts.main;
                     const result = deleteAnnotation(
@@ -1180,8 +1556,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     );
 
                     props.applyAnnButtonLinkMutations(result);
-                    // TODO[rrl] do this once api endpoint is completed
-                    setTimeout(() => setNodeMenuModalData(initialAnnNodeModalData), 500);
+                    setNodeMenuModalData(initialAnnNodeModalData);
                   },
                   onCancel() { }
                 });
@@ -1215,11 +1590,123 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
               shouldShowScreenPicker={props.shouldShowScreenPicker}
               calledFrom="canvas"
+              onCoverAnnAdded={(annRefId: string, screenRefId: number) => {
+                props.navigate(`${screenRefId}/${annRefId}`, 'annotation-hotspot');
+              }}
             />
           </Tags.MenuModal>
         </Tags.MenuModalMask>
       )}
+      {
+        props.shouldShowOnlyScreen && (
+          <Tags.AnnEditorModalWrapper
+            top={20}
+          >
+            <Tags.AnnEditorModal style={{ position: 'relative' }}>
+              <Tags.CloseIcon
+                alt=""
+                src={CloseIcon}
+                role="button"
+                tabIndex={0}
+                onClick={resetSelectedAnn}
+                style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+              />
+              {
+              props.isScreenLoaded && (
+                <ScreenEditor
+                  annotationSerialIdMap={props.annotationSerialIdMap}
+                  key={props.screen!.rid}
+                  screen={props.screen!}
+                  tour={props.tour!}
+                  screenData={props.screenData!}
+                  allEdits={props.allEdits}
+                  toAnnotationId={selectedAnnId}
+                  navigate={props.navigate}
+                  setAlert={props.setAlert}
+                  timeline={props.timeline}
+                  allAnnotationsForScreen={props.allAnnotationsForScreen}
+                  allAnnotationsForTour={props.allAnnotationsForTour}
+                  tourDataOpts={props.tourOpts}
+                  commitTx={props.commitTx}
+                  onScreenEditStart={props.onScreenEditStart}
+                  onScreenEditFinish={props.onScreenEditFinish}
+                  onScreenEditChange={props.onScreenEditChange}
+                  onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
+                  applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                  shouldShowScreenPicker={props.shouldShowScreenPicker}
+                  showEntireTimeline={false}
+                  isScreenLoaded={props.isScreenLoaded}
+                />
+              )
+          }
 
+            </Tags.AnnEditorModal>
+          </Tags.AnnEditorModalWrapper>
+        )
+      }
+      {
+        isAnnSelected && (
+          <Tags.AnnEditorModalCon>
+            <Tags.AnnEditorModalArrow
+              top={ANN_EDITOR_TOP - 12}
+              left={getAnnModalArrowLeftPos()}
+              applyTransition={annEditorModal.applyTransitionToArrow}
+              width={`${15}px`}
+              height={`${12}px`}
+              viewBox="-50 0 100 80"
+              style={{ verticalAlign: 'bottom' }}
+            >
+              <path
+                fill="#7567FF"
+                d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
+              />
+            </Tags.AnnEditorModalArrow>
+            <Tags.AnnEditorModalWrapper
+              top={ANN_EDITOR_TOP}
+            >
+              <Tags.AnnEditorModal style={{ position: 'relative' }}>
+                <Tags.CloseIcon
+                  alt=""
+                  src={CloseIcon}
+                  role="button"
+                  tabIndex={0}
+                  onClick={resetSelectedAnn}
+                  style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+                />
+                {
+                props.isScreenLoaded && (
+                  <ScreenEditor
+                    annotationSerialIdMap={props.annotationSerialIdMap}
+                    key={props.screen!.rid}
+                    screen={props.screen!}
+                    tour={props.tour!}
+                    screenData={props.screenData!}
+                    allEdits={props.allEdits}
+                    toAnnotationId={selectedAnnId}
+                    navigate={props.navigate}
+                    setAlert={props.setAlert}
+                    timeline={props.timeline}
+                    allAnnotationsForScreen={props.allAnnotationsForScreen}
+                    allAnnotationsForTour={props.allAnnotationsForTour}
+                    tourDataOpts={props.tourOpts}
+                    commitTx={props.commitTx}
+                    onScreenEditStart={props.onScreenEditStart}
+                    onScreenEditFinish={props.onScreenEditFinish}
+                    onScreenEditChange={props.onScreenEditChange}
+                    onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
+                    applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                    shouldShowScreenPicker={props.shouldShowScreenPicker}
+                    showEntireTimeline={false}
+                    isScreenLoaded={props.isScreenLoaded}
+                    onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
+                  />
+                )
+              }
+              </Tags.AnnEditorModal>
+            </Tags.AnnEditorModalWrapper>
+          </Tags.AnnEditorModalCon>
+        )
+      }
       <SelectorComponent userGuides={userGuides} />
     </>
   );

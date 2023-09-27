@@ -226,11 +226,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
         amplitudeNewAnnotationCreated(propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_NEW_SCREEN);
       }
       this.props.addCoverAnnToScreen(screenId);
-
-      // TODO[rrl] do this once api endpoint is completed
-      setTimeout(() => {
-        this.props.hideScreenPicker();
-      }, 1000);
+      this.props.hideScreenPicker();
     } else {
       this.props.hideScreenPicker();
       const url = `/tour/${this.props.tour!.rid}/${screenRid}`;

@@ -10,6 +10,7 @@ interface StoredObj {
 export function dSaveZoomPanState(forTour: string): {
     set: (k: number, x: number, y: number) => void,
     get: ()=> [k: number | null, x: number | null, y: number | null]
+    getValueFromBuffer: ()=> [k: number | null, x: number | null, y: number | null]
 } {
   let timer = 0;
   let buffer = '';
@@ -42,6 +43,12 @@ export function dSaveZoomPanState(forTour: string): {
           timer = 0;
         }, 750) as unknown as number;
       }
+    },
+    getValueFromBuffer() {
+      if (!buffer) {
+        return this.get();
+      }
+      return buffer.split(',').map(d => +d) as [number, number, number];
     },
     get: () => {
       const savedVal = localStorage.getItem(LS_KEYS.ZoomPan);
