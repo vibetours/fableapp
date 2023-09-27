@@ -33,7 +33,8 @@ import {
   TUserPropChange,
   TTourWithLoader,
   TSaveTourLoader,
-  TAutosavingLoader
+  TAutosavingLoader,
+  TScreenUpdate
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -298,6 +299,27 @@ export default function projectReducer(state = initialState, action: Action) {
           newState.currentTour.screens = replaceScreens(newState.currentTour.screens, tAction.prevScreenRid, tAction.screen);
         }
       }
+      return newState;
+    }
+
+    case ActionType.SCREEN_UPDATE: {
+      const tAction = action as TScreenUpdate;
+      const newState = { ...state };
+
+      newState.allScreens = replaceScreens(newState.allScreens, tAction.updatedScreen.rid, tAction.updatedScreen);
+
+      if (newState.currentTour && newState.currentTour.screens && newState.currentTour.screens.length) {
+        newState.currentTour.screens = replaceScreens(
+          newState.currentTour.screens,
+          tAction.updatedScreen.rid,
+          tAction.updatedScreen
+        );
+      }
+
+      if (newState.currentScreen && newState.currentScreen.rid === tAction.updatedScreen.rid) {
+        newState.currentScreen = tAction.updatedScreen;
+      }
+
       return newState;
     }
 

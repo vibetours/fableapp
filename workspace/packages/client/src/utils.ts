@@ -7,7 +7,7 @@ import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, IAnnotationCon
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
 export const AEP_HEIGHT = 25;
-export const ANN_EDIT_PANEL_HEIGHT = 350;
+export const ANN_EDIT_PANEL_WIDTH = 350;
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -72,7 +72,8 @@ export function getAnnotationsPerScreen(state: TState): AnnotationPerScreen[] {
         if (screen) {
           anPerScreen.push({ screen, annotations: screenAnMap[screenId] });
         } else {
-          raiseDeferredError(new Error(`screenId ${screenId} is part of tour config, but is not present as part of entity association`));
+          raiseDeferredError(new Error(`screenId ${screenId} 
+          is part of tour config, but is not present as part of entity association`));
         }
       }
     }
@@ -192,7 +193,7 @@ export const assignScreenIndices = (
   return orderedAnns;
 };
 
-export const createIframeSrc = (relativeURL: string) => baseURL + relativeURL;
+export const createIframeSrc = (relativeURL: string): string => baseURL + relativeURL;
 
 export const isExtensionInstalled = (): Promise<boolean> => new Promise((resolve) => {
   if (typeof chrome === 'undefined' || !chrome.runtime) resolve(false);

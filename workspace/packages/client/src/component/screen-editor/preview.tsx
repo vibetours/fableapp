@@ -13,7 +13,6 @@ import { AEP_HEIGHT } from '../../utils';
 export interface IOwnProps {
   screen: P_RespScreen;
   screenData: ScreenData;
-  divPadding: number;
   hidden?: boolean;
   innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
   onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
@@ -73,36 +72,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // 4. Now the container is visually smaller (for scale < 1) than the original one before it was scaled
     // 5. Figure out what's the new height and width with the scale applied
 
-    const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
-
-    let vpdW = this.props.screenData.vpd.w;
-    let vpdH = this.props.screenData.vpd.h;
-
-    if (vpdW === -1 && vpdH === -1) {
-      vpdW = origFrameViewPort.width;
-      vpdH = origFrameViewPort.height;
-    }
-
-    const scaleX = origFrameViewPort.width / vpdW;
-    const scaleY = origFrameViewPort.height / vpdH;
-    const scale = Math.min(scaleX, scaleY);
-    // eslint-disable-next-line react/no-unused-class-component-methods
-    this.scaleFactor = scale;
-    const divPadding = this.props.divPadding;
-    frame.style.transform = `scale(${scale})`;
-    frame.style.transformOrigin = '0 0';
-    frame.style.position = 'absolute';
-    frame.style.width = `${vpdW}px`;
-    frame.style.height = `${vpdH}px`;
-    const viewPortAfterScaling = frame.getBoundingClientRect();
-    // Bring the iframe in center
-    if (origFrameViewPort.width > viewPortAfterScaling.width) {
-      frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2 + divPadding}px`;
-    }
-    if (origFrameViewPort.height - viewPortAfterScaling.height) {
-      const padding = this.props.playMode ? divPadding : divPadding - AEP_HEIGHT - AEP_HEIGHT / 2;
-      frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2 + padding}px`;
-    }
+    this.handleScreenResponsiveness();
 
     const doc = frame?.contentDocument;
     const frameBody = doc?.body;
@@ -132,6 +102,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       throw new Error("Can't find document of embed iframe");
     }
   };
+
+  componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<{}>, snapshot?: any): void {
+    if (prevProps.screen.responsive !== this.props.screen.responsive) {
+      this.handleScreenResponsiveness();
+    }
+  }
 
   componentDidMount(): void {
     const frame = this.embedFrameRef.current;
@@ -164,10 +140,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               frameBody.style.display = this.initialFrameBodyDisplay;
               this.assetLoadingPromises.length = 0;
               if (this.props.screen.type === ScreenType.Img) {
-                const screenImage = doc.getElementById('img');
+                const screenImage = doc.getElementById('img')!;
                 if (screenImage && !screenImage.style.boxShadow) {
                   screenImage.style.boxShadow = '0 0 5px 2px rgba(0, 0, 0, 0.3)';
                 }
+                this.handleImgScreenResponsiveness();
               }
               if (this.props.isScreenPreview) {
                 scrollIframeEls(this.props.screenData.version, doc);
@@ -183,6 +160,73 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       }, this.props.hidden ? 1000 : 16);
     };
   }
+
+  handleScreenResponsiveness = (): void => {
+    const frame = this.embedFrameRef.current;
+    if (!frame) {
+      throw new Error("Can't find embed iframe");
+    }
+
+    const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
+    frame.style.position = 'absolute';
+    frame.style.transformOrigin = '0 0';
+
+    if (this.props.screen.type === ScreenType.SerDom && !this.props.screen.responsive) {
+      const vpdW = this.props.screenData.vpd.w;
+      const vpdH = this.props.screenData.vpd.h;
+
+      const scaleX = origFrameViewPort.width / vpdW;
+      const scaleY = origFrameViewPort.height / vpdH;
+      const scale = Math.min(scaleX, scaleY);
+      // eslint-disable-next-line react/no-unused-class-component-methods
+      this.scaleFactor = scale;
+
+      frame.style.transform = `scale(${scale})`;
+      frame.style.transformOrigin = '0 0';
+      frame.style.position = 'absolute';
+      frame.style.width = `${vpdW}px`;
+      frame.style.height = `${vpdH}px`;
+
+      const viewPortAfterScaling = frame.getBoundingClientRect();
+      if (origFrameViewPort.width > viewPortAfterScaling.width) {
+        frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
+      }
+      if (origFrameViewPort.height - viewPortAfterScaling.height) {
+        frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2}px`;
+      }
+      return;
+    }
+
+    frame.style.width = `${origFrameViewPort.width}px`;
+    frame.style.height = `${origFrameViewPort.height}px`;
+    frame.style.left = '0';
+    frame.style.top = '0';
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    this.scaleFactor = 1;
+    frame.style.transform = 'scale(1)';
+
+    if (this.props.screen.type === ScreenType.Img) {
+      this.handleImgScreenResponsiveness();
+    }
+  };
+
+  handleImgScreenResponsiveness = (): void => {
+    const frame = this.embedFrameRef.current!;
+    const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
+
+    const doc = frame.contentDocument!;
+    const screenImage = doc.getElementById('img');
+
+    if (screenImage) {
+      if (this.props.screen.responsive) {
+        screenImage.style.width = 'auto';
+        screenImage.style.height = `${origFrameViewPort.height}px`;
+      } else {
+        screenImage.style.width = '100%';
+        screenImage.style.height = 'auto';
+      }
+    }
+  };
 
   render(): JSX.Element {
     return (

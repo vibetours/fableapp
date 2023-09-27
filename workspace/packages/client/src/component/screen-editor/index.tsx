@@ -62,13 +62,15 @@ import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './ut
 import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { AEP_HEIGHT, ANN_EDIT_PANEL_HEIGHT, getAnnotationWithScreenAndIdx, isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
+import { AEP_HEIGHT, ANN_EDIT_PANEL_WIDTH,
+  getAnnotationWithScreenAndIdx, isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
 import CanvasScreenGuide2 from '../../user-guides/getting-to-know-the-canvas/part-2';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 import Loader from '../loader';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
+import { UpdateScreenFn } from '../../action/creator';
 
 const { confirm } = Modal;
 
@@ -116,6 +118,7 @@ interface IOwnProps {
   isScreenLoaded: boolean;
   showEntireTimeline: boolean;
   onDeleteAnnotation?: (deletedAnnRid: string) => void;
+  updateScreen: UpdateScreenFn;
 }
 
 const enum ElSelReqType {
@@ -1023,7 +1026,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
             <div style={{
               position: 'absolute',
-              width: `calc(100% - ${ANN_EDIT_PANEL_HEIGHT}px)`,
+              width: `calc(100% - ${ANN_EDIT_PANEL_WIDTH}px)`,
               height: `${AEP_HEIGHT}px`,
               bottom: '0',
               left: '0',
@@ -1092,6 +1095,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               overflow: 'hidden',
               position: 'relative',
               borderRadius: '20px',
+              height: `calc(100% - ${AEP_HEIGHT}px - 2rem)`
             }}
             ref={this.frameConRef}
           >
@@ -1100,7 +1104,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               key={this.props.screen.rid}
               screen={this.props.screen}
               screenData={this.props.screenData}
-              divPadding={18}
               navigate={this.props.navigate}
               innerRef={this.embedFrameRef}
               playMode={false}
@@ -1126,7 +1129,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             style={{
               overflowY: 'auto',
               borderTopRightRadius: '20px',
-              maxWidth: `${ANN_EDIT_PANEL_HEIGHT}px`
+              maxWidth: `${ANN_EDIT_PANEL_WIDTH}px`,
+              minWidth: `${ANN_EDIT_PANEL_WIDTH}px`,
             }}
           >
             {/* this is top menu */}
@@ -1138,17 +1142,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onClick={() => this.handleTabOnClick(TabList.Annotations)}
                 id="SE-guide-step-1"
               />
-              {
-                this.props.screen.type === ScreenType.SerDom && (
-                  <TabItem
-                    title="Edit"
-                    helpText={editTabHelpText}
-                    active={this.state.activeTab === TabList.Edits}
-                    onClick={() => this.handleTabOnClick(TabList.Edits)}
-                    id="SE-guide-step-2"
-                  />
-                )
-              }
+              <TabItem
+                title="Edit"
+                helpText={editTabHelpText}
+                active={this.state.activeTab === TabList.Edits}
+                onClick={() => this.handleTabOnClick(TabList.Edits)}
+                id="SE-guide-step-2"
+              />
             </TabBar>
 
             <div style={{}}>
@@ -1308,15 +1308,72 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 {this.state.activeTab === TabList.Edits && (
                 <>
                   <Tags.InfoText>
-                    Edits are applied on the recorded screen. Select an element to edit.
+                    Edits are applied on the recorded screen.
+                    {this.props.screen.type === ScreenType.SerDom && 'Select an element to edit.'}
                   </Tags.InfoText>
-                  <Tags.EditTabCon>
-                    {/* this show the edit controls like toggles for blur/hide
+                  {
+                    this.props.screen.type === ScreenType.SerDom && (
+                      <>
+                        <Tags.ScreenResponsiveIpCon>
+                          <GTags.Txt className="title" style={{ fontSize: '1rem' }}>Responsive Screen</GTags.Txt>
+                          <Tags.StyledSwitch
+                            style={{ backgroundColor: this.props.screen.responsive ? '#7567FF' : '#BDBDBD' }}
+                            defaultChecked={this.props.screen.responsive}
+                            onChange={(e) => this.props.updateScreen(this.props.screen, 'responsive', e)}
+                          />
+                        </Tags.ScreenResponsiveIpCon>
+                        <Tags.InfoText>
+                          A webpage can be made responsive for different viewport sizes by making
+                          use of web technologies.
+                          Turn this on to check if your application is made responsive.
+                        </Tags.InfoText>
+                      </>
+                    )
+                  }
+                  {
+                    this.props.screen.type === ScreenType.Img && (
+                      <>
+                        <Tags.ScreenResponsiveIpCon>
+                          <GTags.Txt className="title" style={{ fontSize: '1rem' }}>Fit to screen</GTags.Txt>
+                          <div style={{ padding: '0.3rem 0', display: 'flex', gap: '0.5rem' }}>
+                            <label htmlFor="default">
+                              <input
+                                id="default"
+                                type="radio"
+                                checked={!this.props.screen.responsive}
+                                onChange={(e) => {
+                                  this.props.updateScreen(this.props.screen, 'responsive', false);
+                                }}
+                              />
+                              Width
+                            </label>
+
+                            <label htmlFor="full-width">
+                              <input
+                                id="full-width"
+                                type="radio"
+                                checked={this.props.screen.responsive}
+                                onChange={(e) => {
+                                  this.props.updateScreen(this.props.screen, 'responsive', true);
+                                }}
+                              />
+                              Height
+                            </label>
+                          </div>
+                        </Tags.ScreenResponsiveIpCon>
+                      </>
+                    )
+                  }
+                  {
+                    this.props.screen.type === ScreenType.SerDom && (
+                      <>
+                        <Tags.EditTabCon style={{ margin: '0 1rem 1rem 1rem' }}>
+                          {/* this show the edit controls like toggles for blur/hide
                       and textarea for changing text content */}
-                    {this.getEditingCtrlForElType(this.state.editTargetType)}
-                  </Tags.EditTabCon>
-                  {/* this is edits list */}
-                  {this.props.screen.parentScreenId !== 0
+                          {this.getEditingCtrlForElType(this.state.editTargetType)}
+                        </Tags.EditTabCon>
+                        {/* this is edits list */}
+                        {this.props.screen.parentScreenId !== 0
                       && this.props.allEdits
                         .map((editEncoding) => (
                           <Tags.EditLIPCon
@@ -1342,6 +1399,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             )}
                           </Tags.EditLIPCon>
                         ))}
+                      </>
+                    )
+                  }
                 </>
                 )}
               </Tags.EditPanelSec>

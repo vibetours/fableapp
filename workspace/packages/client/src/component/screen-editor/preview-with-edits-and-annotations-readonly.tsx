@@ -42,7 +42,6 @@ export interface IOwnProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
-  divPadding: number;
   navigate: NavFn;
   onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
   innerRef?: React.MutableRefObject<HTMLIFrameElement | null>;
@@ -757,7 +756,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       hidden={this.props.hidden}
       screen={this.props.screen}
       screenData={this.props.screenData}
-      divPadding={this.props.divPadding}
       innerRefs={refs}
       onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
       onFrameAssetLoad={this.onFrameAssetLoad}

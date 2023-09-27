@@ -395,3 +395,10 @@ export const StyledSwitch = styled(Switch)`
     inset-inline-start: calc(100% - 18px);
   }
 `;
+
+export const ScreenResponsiveIpCon = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1rem 1rem 0 1rem;
+`;

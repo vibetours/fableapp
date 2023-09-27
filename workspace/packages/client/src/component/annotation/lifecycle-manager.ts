@@ -38,8 +38,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private rRootProbe: Root;
 
-  private vp: { w: number, h: number };
-
   private mode: AnnotationViewMode;
 
   private frameIds: number[] = [];
@@ -115,10 +113,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   ) {
     super(doc, nestedFrames, config);
     this.nav = opts.navigate;
-    this.vp = {
-      w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
-      h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
-    };
     this.annotationElMap = {};
     const [con, root] = this.createContainerRoot('');
     const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
@@ -177,6 +171,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.con.style.display = 'none';
     this.hideAllAnnotations();
     this.createFullScreenMask();
+  }
+
+  getVp(): {w: number, h: number} {
+    return {
+      w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
+      h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
+    };
   }
 
   // eslint-disable-next-line class-methods-use-this
@@ -472,6 +473,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.isAnnotationDrawingInProgress = true;
     const dim = await this.probeForAnnotationSize(config, opts);
 
+    const vp = this.getVp();
+
     const key = config.id;
     if (!this.componentDisposed) {
       this.opts = opts;
@@ -485,8 +488,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
         dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
         dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
-        windowHeight: this.vp.h,
-        windowWidth: this.vp.w,
+        windowHeight: vp.h,
+        windowWidth: vp.w,
       }];
 
       if (showImmediate) {
@@ -500,6 +503,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private prerenderVideoAnnotations(): void {
     const videoAnnotations = this.allAnnotationsForScreen.filter((config) => isVideoAnnotation(config));
 
+    const vp = this.getVp();
+
     const videoAnnsProps: IAnnProps[] = videoAnnotations.map(config => {
       const displayConf = {
         config,
@@ -511,8 +516,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         dimForSmallAnnotation: { w: 10, h: 10 },
         dimForMediumAnnotation: { w: 10, h: 10 },
         dimForLargeAnnotation: { w: 10, h: 10 },
-        windowHeight: this.vp.h,
-        windowWidth: this.vp.w,
+        windowHeight: vp.h,
+        windowWidth: vp.w,
       };
 
       let el: HTMLElement;
@@ -567,9 +572,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     dimForMediumAnnotation: { w: number, h: number },
     dimForLargeAnnotation: { w: number, h: number },
   }> {
+    const vp = this.getVp();
+
     const smallWidth = AnnotationContent.MIN_WIDTH;
-    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 3.5 | 0);
-    const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, this.vp.w / 2.5 | 0);
+    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 3.5 | 0);
+    const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 2.5 | 0);
 
     try {
       const rs: Array<(e: HTMLDivElement) => void> = [];

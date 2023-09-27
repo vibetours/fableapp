@@ -59,6 +59,7 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import LoaderEditor from '../../container/loader-editor';
 import ScreenEditor from '../screen-editor';
 import CloseIcon from '../../assets/tour/close.svg';
+import { UpdateScreenFn } from '../../action/creator';
 
 const { confirm } = Modal;
 
@@ -88,7 +89,8 @@ type CanvasProps = {
   onScreenEditFinish: () => void;
   onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
   isScreenLoaded: boolean;
-  shouldShowOnlyScreen: boolean
+  shouldShowOnlyScreen: boolean;
+  updateScreen: UpdateScreenFn;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -124,6 +126,8 @@ const TILE_STROKE_WIDTH_ON_HOVER = '6px';
 const TILE_STROKE_WIDTH_DEFAULT = '4px';
 const DROP_TARGET_PEEK_WIDTH = 40;
 const DROP_TARGET_PEEK_GUTTER = 30;
+
+const ANN_EDITOR_ANIM_DUR = 750;
 
 function isMenuModalVisible(xy: [number | null, number | null, LRPostion]): boolean {
   return !(xy[0] === null || xy[1] === null);
@@ -217,6 +221,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const annEditorModalRef = useRef<AnnEditorModal | null>(null);
   const [annWithCoords, setAnnWithCoords] = useState<AnnWithCoords[]>([]);
   const [selectedAnnId, setSelectedAnnId] = useState<string>('');
+  const [showScreenEditor, setShowSceenEditor] = useState(false);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -1232,10 +1237,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     select<SVGSVGElement, unknown>(svgRef.current!)
       .call(zoomBehaviorRef.current!.transform, currZoomTransform)
       .transition()
-      .duration(750)
+      .duration(ANN_EDITOR_ANIM_DUR)
       .call(zoomBehaviorRef.current!.transform, onlyZoomTransform)
       .transition()
-      .duration(750)
+      .duration(ANN_EDITOR_ANIM_DUR)
       .call(zoomBehaviorRef.current!.transform, finalTransform);
   };
 
@@ -1252,10 +1257,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
     select<SVGSVGElement, unknown>(svgRef.current!)
       .transition()
-      .duration(750)
+      .duration(ANN_EDITOR_ANIM_DUR)
       .call(zoomBehaviorRef.current!.transform, onlyTranslateTransform)
       .transition()
-      .duration(750)
+      .duration(ANN_EDITOR_ANIM_DUR)
       .call(zoomBehaviorRef.current!.transform, finalTransform);
   };
 
@@ -1274,7 +1279,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     select<SVGSVGElement, unknown>(svgRef.current!)
       .call(zoomBehaviorRef.current!.transform, currTransform)
       .transition()
-      .duration(750)
+      .duration(ANN_EDITOR_ANIM_DUR)
       .call(zoomBehaviorRef.current!.transform, finalTransform);
   };
 
@@ -1299,6 +1304,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         { x: x!, y: y!, k: k! }
       );
       setAnnEditorModal(null);
+      setShowSceenEditor(false);
       return;
     }
 
@@ -1348,6 +1354,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         { x: translateXWithoutZoom, y: newY * currK!, k: currK! },
         { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
       );
+      setTimeout(() => {
+        setShowSceenEditor(true);
+      }, ANN_EDITOR_ANIM_DUR * 2);
     }
 
     setAnnEditorModal(prev => ({
@@ -1612,7 +1621,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
               />
               {
-              props.isScreenLoaded && (
+              props.isScreenLoaded && showScreenEditor && (
                 <ScreenEditor
                   annotationSerialIdMap={props.annotationSerialIdMap}
                   key={props.screen!.rid}
@@ -1636,6 +1645,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   shouldShowScreenPicker={props.shouldShowScreenPicker}
                   showEntireTimeline={false}
                   isScreenLoaded={props.isScreenLoaded}
+                  updateScreen={props.updateScreen}
                 />
               )
           }
@@ -1674,7 +1684,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
                 />
                 {
-                props.isScreenLoaded && (
+                props.isScreenLoaded && showScreenEditor && (
                   <ScreenEditor
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -1699,6 +1709,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     showEntireTimeline={false}
                     isScreenLoaded={props.isScreenLoaded}
                     onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
+                    updateScreen={props.updateScreen}
                   />
                 )
               }

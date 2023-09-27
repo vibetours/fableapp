@@ -27,6 +27,7 @@ import {
   Interval as PaymentTermsInterval,
   RespSubscription,
   ReqActivateOrDeactivateUser,
+  ReqUpdateScreenProperty,
 } from '@fable/common/dist/api-contract';
 import {
   EditFile,
@@ -339,6 +340,49 @@ export function renameScreen(screen: P_RespScreen, newVal: string) {
       return frag;
     }).join('/');
     window.history.replaceState({}, '', newHref);
+  };
+}
+
+export interface TScreenUpdate {
+  type: ActionType.SCREEN_UPDATE;
+  updatedScreen: P_RespScreen,
+}
+
+export type UpdateScreenFn = (
+  screen: P_RespScreen,
+  propName: keyof P_RespScreen,
+  propValue: P_RespScreen[keyof P_RespScreen]
+) => void;
+
+export function updateScreen(
+  screen: P_RespScreen,
+  propName: keyof P_RespScreen,
+  propValue: P_RespScreen[keyof P_RespScreen]
+) {
+  return async (dispatch: Dispatch<TScreenUpdate>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.SCREEN_UPDATE,
+      updatedScreen: {
+        ...screen,
+        [propName]: propValue,
+      },
+    });
+
+    const data = await api<ReqUpdateScreenProperty, ApiResp<RespScreen>>('/updatescreenproperty', {
+      auth: true,
+      method: 'POST',
+      body: {
+        rid: screen.rid,
+        propName,
+        propValue,
+      },
+    });
+
+    const updatedScreen = processRawScreenData(data.data, getState());
+    dispatch({
+      type: ActionType.SCREEN_UPDATE,
+      updatedScreen
+    });
   };
 }
 

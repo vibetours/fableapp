@@ -355,7 +355,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 screen={config.screen}
                 hidden={config.screen.id !== this.getCurrScreenId()}
                 screenData={config.screenData}
-                divPadding={0}
                 navigate={this.navFn}
                 playMode
                 stashAnnIfAny={false}

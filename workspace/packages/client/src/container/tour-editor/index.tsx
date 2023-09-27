@@ -20,6 +20,7 @@ import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import Alert from 'antd/lib/alert';
 import {
   AnnAdd,
+  UpdateScreenFn,
   clearCurrentScreenSelection,
   clearCurrentTourSelection,
   clearRelayScreenAndAnnAdd,
@@ -31,6 +32,7 @@ import {
   saveEditChunks,
   saveTourData,
   startAutosaving,
+  updateScreen,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
@@ -91,6 +93,7 @@ interface IDispatchProps {
   clearRelayScreenAndAnnAdd: () => void;
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
   startAutoSaving: () => void;
+  updateScreen: UpdateScreenFn;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -108,6 +111,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
   clearRelayScreenAndAnnAdd: () => dispatch(clearRelayScreenAndAnnAdd()),
   startAutoSaving: () => dispatch(startAutosaving()),
+  updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue))
 });
 
 const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): ConnectedOrderedAnnGroupedByScreen => {
@@ -633,6 +637,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               shouldShowOnlyScreen={Boolean(
                 this.props.match.params.screenId && !this.props.match.params.annotationId
               )}
+              updateScreen={this.props.updateScreen}
             />
 
           </div>
