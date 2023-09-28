@@ -407,7 +407,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     >
       <ActionPanel alwaysOpen>
         <div style={{
-          background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '0 1rem 1rem 1rem' }}
+          background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '1rem' }}
         >
           <AnnotationRichTextEditor
             throttledChangeHandler={(htmlString, displayText) => {

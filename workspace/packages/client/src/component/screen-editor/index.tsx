@@ -71,6 +71,7 @@ import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFr
 import Loader from '../loader';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import { UpdateScreenFn } from '../../action/creator';
+import CaretOutlined from '../icons/caret-outlined';
 
 const { confirm } = Modal;
 
@@ -1016,13 +1017,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     const configOfParamsAnnId = getAnnotationWithScreenAndIdx(this.props.toAnnotationId, this.props.timeline);
+    const showAnnCreatorPanel = this.props.toAnnotationId === this.state.selectedAnnotationId && configOfParamsAnnId;
     // configOfSelectedAnn is required for timeline.
     // if we deprecate timeline we don't need to keep two states
     const configOfSelectedAnn = getAnnotationWithScreenAndIdx(this.state.selectedAnnotationId, this.props.timeline);
 
     return (
       <>
-        <GTags.PreviewAndActionCon style={{ borderRadius: '20px 20px 0 0' }}>
+        <GTags.PreviewAndActionCon style={{ borderRadius: '20px' }}>
           {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
             <div style={{
               position: 'absolute',
@@ -1122,48 +1124,55 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
               }}
             />}
-            {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" showAtPageCenter />}
+            {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" />}
           </GTags.EmbedCon>
           {/* this is the annotation creator panel */}
-          <GTags.EditPanelCon
-            style={{
-              overflowY: 'auto',
-              borderTopRightRadius: '20px',
-              maxWidth: `${ANN_EDIT_PANEL_WIDTH}px`,
-              minWidth: `${ANN_EDIT_PANEL_WIDTH}px`,
-            }}
+          <div style={{
+            overflow: 'hidden',
+            borderTopRightRadius: '20px',
+            borderBottomRightRadius: '20px',
+            width: `${ANN_EDIT_PANEL_WIDTH}px`,
+          }}
           >
-            {/* this is top menu */}
-            <TabBar>
-              <TabItem
-                title="Annotations"
-                helpText={annotationTabHelpText}
-                active={this.state.activeTab === TabList.Annotations}
-                onClick={() => this.handleTabOnClick(TabList.Annotations)}
-                id="SE-guide-step-1"
-              />
-              <TabItem
-                title="Edit"
-                helpText={editTabHelpText}
-                active={this.state.activeTab === TabList.Edits}
-                onClick={() => this.handleTabOnClick(TabList.Edits)}
-                id="SE-guide-step-2"
-              />
-            </TabBar>
+            <GTags.EditPanelCon
+              style={{
+                overflowY: 'auto',
+                borderTopRightRadius: '20px',
+                borderBottomRightRadius: '20px',
+                width: `${ANN_EDIT_PANEL_WIDTH}px`,
+              }}
+            >
+              {/* this is top menu */}
+              <TabBar>
+                <TabItem
+                  title="Annotation"
+                  helpText={annotationTabHelpText}
+                  active={this.state.activeTab === TabList.Annotations}
+                  onClick={() => this.handleTabOnClick(TabList.Annotations)}
+                  id="SE-guide-step-1"
+                />
+                <TabItem
+                  title="Edit"
+                  helpText={editTabHelpText}
+                  active={this.state.activeTab === TabList.Edits}
+                  onClick={() => this.handleTabOnClick(TabList.Edits)}
+                  id="SE-guide-step-2"
+                />
+              </TabBar>
 
-            <div style={{}}>
-              <Tags.EditPanelSec>
-                {/* this is annotations timeline */}
-                {this.state.activeTab === TabList.Annotations && (
-                <div>
-                  <Tags.InfoText>
-                    Select an element on the screen on the left {
+              <div style={{}}>
+                <Tags.EditPanelSec>
+                  {/* this is annotations timeline */}
+                  {this.state.activeTab === TabList.Annotations && (
+                  <div>
+                    <Tags.InfoText>
+                      Select an element on the screen on the left {
                       this.props.allAnnotationsForScreen.length
                         ? (<span>to create an annotation</span>)
                         : (<em>or</em>)
                     }
-                  </Tags.InfoText>
-                  {this.props.allAnnotationsForScreen.length === 0 && (
+                    </Tags.InfoText>
+                    {this.props.allAnnotationsForScreen.length === 0 && (
                     <Tags.CreateCoverAnnotationBtn
                       id="cover-annotation-btn"
                       onClick={() => {
@@ -1175,8 +1184,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       &nbsp;
                       Create cover annotation
                     </Tags.CreateCoverAnnotationBtn>
-                  )}
-                  {
+                    )}
+                    {
                     this.props.showEntireTimeline && (
                       <Timeline
                         shouldShowScreenPicker={this.props.shouldShowScreenPicker}
@@ -1226,8 +1235,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </Timeline>
                     )
                   }
-                  {
-                    !this.props.showEntireTimeline && this.props.toAnnotationId && (
+                    {
+                    !this.props.showEntireTimeline && this.props.toAnnotationId && configOfParamsAnnId && (
                       <TimelineTags.AnnotationLI
                         className="fable-li"
                         style={{
@@ -1239,7 +1248,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       >
                         <TimelineTags.AnotCrtPanelSecLabel
                           className="fable-label"
-                          style={{ display: 'flex' }}
+                          style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}
                           onClick={() => {
                             if (this.state.selectedAnnotationId) {
                               this.setState({ selectedAnnotationId: '', selectedEl: null });
@@ -1256,14 +1265,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                 <HomeOutlined style={{ background: 'none' }} />&nbsp;
                               </Tooltip>
                               )}
-                              {configOfParamsAnnId!.index}
+                              {configOfParamsAnnId.index}
                             </span>
                           </TimelineTags.AnnDisplayText>
-                          {configOfParamsAnnId!.syncPending && (<LoadingOutlined />)}
-                          <img src={ExpandArrowFilled} height={20} width={20} alt="" />
+                          {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
+                          {
+                            showAnnCreatorPanel ? (
+                              <CaretOutlined dir="up" />
+                            ) : (
+                              <CaretOutlined dir="down" />
+                            )
+                          }
                         </TimelineTags.AnotCrtPanelSecLabel>
                         {
-                           this.props.toAnnotationId === this.state.selectedAnnotationId && configOfParamsAnnId && (
+                           showAnnCreatorPanel && (
                            <AnnotationCreatorPanel
                              setAlertMsg={this.props.setAlert}
                              opts={this.props.tourDataOpts}
@@ -1301,17 +1316,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </TimelineTags.AnnotationLI>
                     )
                   }
-                </div>
-                )}
+                  </div>
+                  )}
 
-                {/* this is edits panel */}
-                {this.state.activeTab === TabList.Edits && (
-                <>
-                  <Tags.InfoText>
-                    Edits are applied on the recorded screen.
-                    {this.props.screen.type === ScreenType.SerDom && 'Select an element to edit.'}
-                  </Tags.InfoText>
-                  {
+                  {/* this is edits panel */}
+                  {this.state.activeTab === TabList.Edits && (
+                  <>
+                    <Tags.InfoText>
+                      Edits are applied on the recorded screen.
+                      {this.props.screen.type === ScreenType.SerDom && 'Select an element to edit.'}
+                    </Tags.InfoText>
+                    {
                     this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <Tags.ScreenResponsiveIpCon>
@@ -1330,7 +1345,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </>
                     )
                   }
-                  {
+                    {
                     this.props.screen.type === ScreenType.Img && (
                       <>
                         <Tags.ScreenResponsiveIpCon>
@@ -1364,7 +1379,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </>
                     )
                   }
-                  {
+                    {
                     this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <Tags.EditTabCon style={{ margin: '0 1rem 1rem 1rem' }}>
@@ -1402,11 +1417,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </>
                     )
                   }
-                </>
-                )}
-              </Tags.EditPanelSec>
-            </div>
-          </GTags.EditPanelCon>
+                  </>
+                  )}
+                </Tags.EditPanelSec>
+              </div>
+            </GTags.EditPanelCon>
+          </div>
           <ImageMaskUploadModal
             open={this.state.showImageMaskUploadModal}
             onCancel={this.handleImageMaskUploadModalOnCancel}

@@ -141,6 +141,7 @@ const AEPCon = styled.div`
   transition: all 0.3s ease-out;
   opacity: 1;
   font-family: IBM Plex Sans, sans-serif;
+  border-bottom-left-radius: 20px;
 
   &.disabled {
     opacity: 0.4;

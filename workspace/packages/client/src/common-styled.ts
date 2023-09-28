@@ -134,7 +134,6 @@ export const PreviewAndActionCon = styled.div`
   height: 100%;
   width: 100%;
   display: flex;
-  box-shadow: 0 0 3px 1px #ddd;
   background: #F5F5F5;
 `;
 
@@ -150,6 +149,27 @@ export const EditPanelCon = styled.div`
   flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
+  scrollbar-color: #7567FF #E5E7EB;
+  scrollbar-width: thin;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar-track {
+    padding: 2px 0;
+    background-color: #e5e7eb;
+    border-radius: 10px;
+    border: 1px solid #F3F4F6;
+  }
+
+  &::-webkit-scrollbar {
+    margin: 4px 0;
+    height: 4px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #646e82;
+  }
 `;
 
 export const PopoverMenuItemDivider = styled.div<{ color?: string }>`

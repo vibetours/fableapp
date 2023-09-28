@@ -191,7 +191,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       if (origFrameViewPort.width > viewPortAfterScaling.width) {
         frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
       }
-      if (origFrameViewPort.height - viewPortAfterScaling.height) {
+      if (origFrameViewPort.height > viewPortAfterScaling.height) {
         frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2}px`;
       }
       return;

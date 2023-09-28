@@ -17,7 +17,7 @@ export const EmbedFrame = styled.iframe`
 
 export const EditPanelSec = styled.div`
   display: flex;
-  padding: 1rem 0;
+  padding: 1rem 0 0 0;
   flex-direction: column;
 `;
 

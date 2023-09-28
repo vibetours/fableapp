@@ -351,11 +351,12 @@ export const AnnEditorModalWrapper = styled.div<{top: number}>`
   top: ${props => `${props.top}px`};
   left: 10px;
   right: 10px;
-  bottom: 0px;
+  bottom: 10px;
   width: calc(100% - 20px);
   background-color: white;
   transition: all 0.3s ease;
   border-radius: 20px;
+  box-shadow: #7567FF 0px 0px 1px 2px;
 `;
 
 export const AnnEditorModal = styled.div`

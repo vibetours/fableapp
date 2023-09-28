@@ -1621,7 +1621,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
               />
               {
-              props.isScreenLoaded && showScreenEditor && (
+              props.isScreenLoaded && (
                 <ScreenEditor
                   annotationSerialIdMap={props.annotationSerialIdMap}
                   key={props.screen!.rid}

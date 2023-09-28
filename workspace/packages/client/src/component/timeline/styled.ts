@@ -337,7 +337,6 @@ export const AnnDisplayText = styled.div`
   flex-direction: column;
   width: calc(100% - 2rem);
   margin-right: 10px;
-  margin-bottom: 0.5rem;
 
   .steps {
     font-weight: 600;
