@@ -163,6 +163,9 @@ export const createHtmlElement = (
   let attrValue;
   for ([attrKey, attrValue] of Object.entries(node.attrs)) {
     try {
+    // Since we proxy assets the link files sometimes are edited hence the integrity attribute might throw error
+    // https://stackoverflow.com/a/34429101
+      if ((attrKey || '').toLowerCase() === 'integrity') continue;
       if (props.partOfSvgEl) {
         el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
       } else if (node.name === 'iframe' && attrKey === 'src') {
