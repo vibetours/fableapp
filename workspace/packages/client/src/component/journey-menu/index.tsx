@@ -1,5 +1,5 @@
 import { Button as AntButton } from 'antd/lib';
-import { RightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
 import Dropdown from 'antd/lib/dropdown/dropdown';
 import React, { ReactElement } from 'react';
 import { CreateJourneyData, ITourDataOpts } from '@fable/common/dist/types';
@@ -41,7 +41,7 @@ const getMenu = (
               <Tags.FlowHeader2>{flow.header2}</Tags.FlowHeader2>
             </div>
             <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
-              <RightOutlined style={{ fontSize: 11, color: '#747474' }} />
+              <ArrowRightOutlined style={{ fontSize: 11, color: '#747474' }} />
             </div>
           </Tags.FLowItemCon>
         )
