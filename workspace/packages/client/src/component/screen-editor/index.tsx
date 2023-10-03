@@ -62,9 +62,13 @@ import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './ut
 import { ImgResolution, resizeImg } from './utils/resize-img';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { AEP_HEIGHT, ANN_EDIT_PANEL_WIDTH,
-  getAnnotationWithScreenAndIdx, isNavigateHotspot, isNextBtnOpensALink } from '../../utils';
-import CanvasScreenGuide2 from '../../user-guides/getting-to-know-the-canvas/part-2';
+import {
+  AEP_HEIGHT,
+  ANN_EDIT_PANEL_WIDTH,
+  getAnnotationWithScreenAndIdx,
+  isNavigateHotspot,
+  isNextBtnOpensALink
+} from '../../utils';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
@@ -72,6 +76,7 @@ import Loader from '../loader';
 import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
+import ScreenEditorGuide from '../../user-guides/screen-editor-guide';
 
 const { confirm } = Modal;
 
@@ -150,7 +155,7 @@ interface IOwnStateProps {
   isAssetLoaded: boolean;
 }
 
-const userGuides = [CanvasScreenGuide2];
+const userGuides = [ScreenEditorGuide];
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
   private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
@@ -1026,15 +1031,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       <>
         <GTags.PreviewAndActionCon style={{ borderRadius: '20px' }}>
           {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
-            <div style={{
-              position: 'absolute',
-              width: `calc(100% - ${ANN_EDIT_PANEL_WIDTH}px)`,
-              height: `${AEP_HEIGHT}px`,
-              bottom: '0',
-              left: '0',
-              borderRadius: '2px',
-              zIndex: '100'
-            }}
+            <div
+              id="AEP-wrapper"
+              style={{
+                position: 'absolute',
+                width: `calc(100% - ${ANN_EDIT_PANEL_WIDTH}px)`,
+                height: `${AEP_HEIGHT}px`,
+                bottom: '0',
+                left: '0',
+                borderRadius: '2px',
+                zIndex: '100'
+              }}
             >
               <AEP
                 selectedEl={this.state.selectedEl}
@@ -1138,6 +1145,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           }}
           >
             <GTags.EditPanelCon
+              id="ann-creator-panel"
               style={{
                 overflowY: 'auto',
                 borderTopRightRadius: '20px',
@@ -1434,10 +1442,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             isUploading={this.state.imageMaskUploadModalIsUploading}
           />
         </GTags.PreviewAndActionCon>
-        {
-          !this.props.toAnnotationId
-          && <SelectorComponent userGuides={userGuides} />
-        }
+        <SelectorComponent userGuides={userGuides} />
       </>
     );
   }

@@ -16,23 +16,16 @@ import Popover from 'antd/lib/popover';
 import Tabs from 'antd/lib/tabs';
 import Checkbox from 'antd/lib/checkbox';
 import Modal from 'antd/lib/modal';
-import Switch from 'antd/lib/switch';
 import {
   DeleteOutlined,
-  DisconnectOutlined,
-  EditOutlined,
-  EyeInvisibleOutlined,
-  EyeOutlined,
-  NodeIndexOutlined,
-  SubnodeOutlined,
   ExclamationCircleOutlined,
   VideoCameraAddOutlined,
   VideoCameraOutlined,
-  SelectOutlined,
   ColumnWidthOutlined,
   ColumnHeightOutlined,
   PlusOutlined,
   LoadingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
@@ -494,7 +487,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
       </ActionPanel>
       <ActionPanel
-        title="Theme"
+        title="Branding"
         icon={<img src={ThemeIcon} alt="" />}
         sectionActionElWhenOpen={
           <Tags.ActionPanelPopOverCon
@@ -728,7 +721,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         )}
       </ActionPanel>
       <ActionPanel
-        title="Buttons"
+        id="buttons-panel"
+        title="CTAs"
         icon={<img src={ButtonIcon} alt="" />}
       >
         {config.buttons.map(btnConf => {
@@ -993,7 +987,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <ActionPanel
             title="Hotspot"
             helpText={hotspotHelpText}
-            icon={<img src={HotspotIcon} alt="" />}
+            icon={<ThunderboltOutlined style={{ fontSize: '1.25rem' }} />}
           >
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt>Interactive element</GTags.Txt>

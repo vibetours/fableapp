@@ -232,7 +232,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>
-            <SidePanel selected="tours" subs={this.props.subs} />
+            <SidePanel
+              selected="tours"
+              tourAvailable={this.props.tours.length > 0}
+              firstTourRid={this.props.tours[0]?.rid}
+              subs={this.props.subs}
+            />
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon

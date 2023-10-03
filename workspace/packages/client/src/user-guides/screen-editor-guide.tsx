@@ -3,24 +3,26 @@ import Tour from '../component/user-guide-tour';
 import { closeUserGuide, completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
 import { Guide, GuideInfo, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
+import ReordingGif from '../assets/user-guide/reordering.gif';
+import PanningGif from '../assets/user-guide/panning.gif';
 
 export const guide: Guide = {
-  id: 'preview-and-embed-guide',
-  name: 'Share/embed a tour on your web',
-  serialId: 2,
+  id: 'screen-editor-guide',
+  name: 'Get started with editing a tour',
   desc: {
-    toursCreated: 'Open any tour to see how this works',
+    toursCreated: 'Open a tour & click on an annotation in canvas to get started',
     toursNotCreated: 'Create a tour to see this guide'
   },
+  serialId: 3,
   steps: [
     {
-      title: 'We have inferred a tour based on how you have recorded your product',
-      description: 'We have auto-stitched a tour for you based on your clicks while you recorded your product via our extension. Don’t worry you can change any and all aspect of your tour.',
-      // target: () => document.getElementsByClassName('node').item(0)! as HTMLElement,
-      target: () => document.getElementById('fab-tour-canvas-main')! as HTMLElement,
+      title: 'Edit content of your annotation',
+      description: 'You can edit and style your annotation from this section. All your edits are autosaved.',
+      target: () => document.getElementsByClassName('editor-container').item(0)! as HTMLElement,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 1);
+          document.getElementById('ann-creator-panel')!.scroll({ top: 300, behavior: 'smooth' });
         },
       },
       prevButtonProps: {
@@ -31,15 +33,16 @@ export const guide: Guide = {
         }
       },
       width: '20rem',
-      placement: 'bottom'
+      placement: 'left'
     },
     {
-      title: 'Preview',
-      description: 'Once a tour is created you can see how your users would see it by clicking this button. We call it Preview button.',
-      target: () => document.getElementById('step-1')!,
+      title: 'Adjust selected element on which annotation is applied',
+      description: 'Sometimes you need to have more control on which element to select in the screen while annotation is displayed. Fable\'s Advanced Element Picker helps you to preview and fintune selection of element.',
+      target: () => document.getElementById('AEP-wrapper')!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 2);
+          (document.getElementById('buttons-panel')! as HTMLElement).click();
         },
       },
       prevButtonProps: {
@@ -49,11 +52,12 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
+      width: '20rem',
     },
     {
-      title: 'Embed',
-      description: 'Once you are satisfied with your tour design, you can embed the it in your web or share it with others to have a look.',
-      target: () => document.getElementById('step-2')!,
+      title: 'Add custom CTA',
+      description: 'Add your custom CTA on annotation and define what should happen when user clicks on the CTA.',
+      target: () => document.getElementsByClassName('buttons-panel').item(0)! as HTMLElement,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 3);
@@ -66,14 +70,23 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
-      hotspot: true,
+      width: '20rem',
     },
     {
-      title: 'Add a new screen',
-      description: 'Add existing recorded screens or upload a brand new image to add it in this tour.',
-      target: () => document.getElementById('new-screen-btn')!,
+      title: 'Navigate tour by dragging',
+      description: (
+        <>
+          <p>
+            Drag (or pan) horizontally on the canvas area to see the whole tour
+          </p>
+
+          <img src={PanningGif} alt="" width={420} />
+        </>
+      ),
+      target: null,
       nextButtonProps: {
         onClick() {
+          (document.getElementById('advanced-creator-panel')! as HTMLElement).click();
           updateStepsTaken(guide.id, 4);
         },
       },
@@ -84,21 +97,15 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
-      placement: 'rightTop',
+      width: '480px'
     },
     {
-      title: 'Design your loader',
-      description: (
-        <>
-          <p>
-            By default Fable uses a standard loader. However you can upload your brand assets to design a loader that suits your brand. Loader is shown when your interactive tours are getting ready. Click <em>preview</em> to see how the loader looks on your tour.
-          </p>
-        </>
-      ),
-      target: () => document.getElementById('loader-btn')!,
+      title: 'Click on an annotation to edit it',
+      target: () => document.getElementsByClassName('node').item(1)! as HTMLElement,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 5);
+          document.getElementById('ann-creator-panel')!.scroll({ top: 600, behavior: 'smooth' });
         },
       },
       prevButtonProps: {
@@ -108,13 +115,13 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
-      placement: 'rightTop',
-      width: '30rem'
     },
     {
-      title: 'Create a journey',
-      description: 'Use journey to show multiple module of your product. Your user can choose which part of your product they are interested in and you get detailed analytics out of it.',
-      target: () => document.getElementById('journey-btn')!,
+      title: 'Drag annotation to reorder',
+      description: (
+        <img src={ReordingGif} alt="" width={420} />
+      ),
+      target: null,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 6);
@@ -127,14 +134,31 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
-      placement: 'rightTop',
+      width: '480px'
+    },
+    {
+      title: 'Change starting point of your tour',
+      description: 'You can decide the starting point of your tour by clicking on the checkbox. Starting point is auto assigned by Fable, but you can change it anytime.',
+      target: () => document.getElementById('entry-point-checkbox')! as HTMLElement,
+      nextButtonProps: {
+        onClick() {
+          updateStepsTaken(guide.id, 6);
+        },
+      },
+      prevButtonProps: {
+        children: 'Skip guide',
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
     },
   ]
 };
 
 const hotspotManager = new UserGuideHotspotManager(guide.steps);
 
-function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
+function ScreenEditorGuide(props: GuideProps): JSX.Element {
   const [startTour, setStartTour] = useState<boolean>(false);
 
   return (
@@ -143,10 +167,10 @@ function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
         title={
           <>
             👋🏻 <br />
-            Hey, Let’s get you started with how to embed / share the tour that you’ve created
+            Hey, let's get you started with how to edit existing annotation or create new one
           </>
         }
-        description="The very next step after creating a Fable’s tour is to share it with internal people to review or embed it on your web, once you are satisfied with the tour."
+        description="You can customize your tour by adding new annotations or editing existing ones with your branding, CTAs, custom styles etc. Our no code editor helps you get this done in minutes."
         acceptButtonProps={{
           children: 'Show me',
           onClick() {
@@ -198,4 +222,4 @@ const guideInfo: GuideInfo = {
   serialId: guide.serialId
 };
 
-export default { guideInfo, component: PreviewAndEmbedGuide };
+export default { guideInfo, component: ScreenEditorGuide };

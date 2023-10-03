@@ -19,6 +19,7 @@ import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import Alert from 'antd/lib/alert';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
   AnnAdd,
   UpdateScreenFn,
@@ -392,6 +393,14 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       );
       this.navFn(`${this.props.relayScreenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
     }
+    try {
+      if (this.props.isTourLoaded && this.props.searchParams.get('g') === '1' && this.props.timeline.length > 0) {
+        const ann = this.props.timeline[0][0][0];
+        this.props.navigate(`/tour/${this.props.tour!.rid}/${ann.screen.rid}/${ann.refId}`);
+      }
+    } catch (err) {
+      sentryCaptureException(err as Error);
+    }
   }
 
   navigateTo = (qualifiedAnnotaionUri: string): void => {
@@ -564,7 +573,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return warnings;
   }
 
-  updateShowScreenPicker = (newScreenPickerData: ScreenPickerData) : void => {
+  updateShowScreenPicker = (newScreenPickerData: ScreenPickerData): void => {
     this.setState({ showScreenPicker: true, screenPickerData: newScreenPickerData });
   };
 
@@ -604,8 +613,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Canvas
               applyAnnGrpIdMutations={
-                   (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
-                }
+                (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
+              }
               applyAnnButtonLinkMutations={this.applyAnnButtonLinkMutations}
               tourOpts={this.props.tourOpts}
               key={this.props.tour?.rid}
@@ -628,13 +637,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               onScreenEditFinish={this.onScreenEditFinish}
               onScreenEditChange={this.onScreenEditChange}
               onAnnotationCreateOrChange={
-                  (screenId, c, actionType, o, tx) => this.onTourDataChange(
-                    'annotation-and-theme',
-                    screenId,
-                    { config: c, actionType, opts: o },
-                    tx
-                  )
-                }
+                (screenId, c, actionType, o, tx) => this.onTourDataChange(
+                  'annotation-and-theme',
+                  screenId,
+                  { config: c, actionType, opts: o },
+                  tx
+                )
+              }
               isScreenLoaded={this.props.isScreenLoaded}
               shouldShowOnlyScreen={Boolean(
                 this.props.match.params.screenId && !this.props.match.params.annotationId
@@ -653,29 +662,29 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
             closable
             onClose={() => this.setState({ alertMsg: '' })}
           />}
-          { this.state.showScreenPicker
-          && <ScreenPicker
-            hideScreenPicker={() => { this.setState({ showScreenPicker: false }); }}
-            screenPickerMode={this.state.screenPickerData.screenPickerMode}
-            addCoverAnnToScreen={(screenId) => {
-              const newAnnConfig = addNewAnn(
-                this.props.allAnnotationsForTour,
-                {
-                  position: this.state.screenPickerData.position,
-                  refId: this.state.screenPickerData.annotation!.refId,
-                  screenId,
-                  grpId: this.state.screenPickerData.annotation!.grpId
-                },
-                this.props.tourOpts,
-                this.showHideAlert,
-                this.applyAnnButtonLinkMutations,
-              );
-              this.navFn(`${screenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
-            }}
-            addAnnotationData={this.state.screenPickerData.annotation}
-            showCloseButton={this.state.screenPickerData.showCloseButton}
-            position={this.state.screenPickerData.position}
-          />}
+          {this.state.showScreenPicker
+            && <ScreenPicker
+              hideScreenPicker={() => { this.setState({ showScreenPicker: false }); }}
+              screenPickerMode={this.state.screenPickerData.screenPickerMode}
+              addCoverAnnToScreen={(screenId) => {
+                const newAnnConfig = addNewAnn(
+                  this.props.allAnnotationsForTour,
+                  {
+                    position: this.state.screenPickerData.position,
+                    refId: this.state.screenPickerData.annotation!.refId,
+                    screenId,
+                    grpId: this.state.screenPickerData.annotation!.grpId
+                  },
+                  this.props.tourOpts,
+                  this.showHideAlert,
+                  this.applyAnnButtonLinkMutations,
+                );
+                this.navFn(`${screenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
+              }}
+              addAnnotationData={this.state.screenPickerData.annotation}
+              showCloseButton={this.state.screenPickerData.showCloseButton}
+              position={this.state.screenPickerData.position}
+            />}
         </GTags.BodyCon>
       </GTags.ColCon>
     );

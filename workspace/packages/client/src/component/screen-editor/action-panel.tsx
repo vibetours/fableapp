@@ -19,12 +19,12 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
   const [collapsed, setCollapsed] = useState(!props.alwaysOpen);
 
   return (
-    <Tags.ActionPanel gutter={!!props.withGutter}>
+    <Tags.ActionPanel className={props.id} gutter={!!props.withGutter}>
       {props.title && (
         <Tags.ActionPanelTitleCon
           id={props.id}
-          className={collapsed ? '' : 'selected'}
           onClick={() => setCollapsed(!collapsed)}
+          className={collapsed ? '' : 'selected'}
         >
           <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
             <div className="title">
@@ -32,14 +32,14 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
               {props.title}
             </div>
             {props.helpText && (
-            <Tooltip
-              placement="bottomRight"
-              title={
-                <GTags.Txt className="subsubhead" color="#fff">{props.helpText}</GTags.Txt>
-            }
-            >
-              <QuestionCircleOutlined className="ht-icn" />
-            </Tooltip>
+              <Tooltip
+                placement="bottomRight"
+                title={
+                  <GTags.Txt className="subsubhead" color="#fff">{props.helpText}</GTags.Txt>
+                }
+              >
+                <QuestionCircleOutlined className="ht-icn" />
+              </Tooltip>
             )}
           </div>
           <div style={{

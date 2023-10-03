@@ -66,8 +66,6 @@ import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from 
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
 import PreviewAndEmbedGuide from '../../user-guides/preview-and-embed-guide';
-import CanvasGuidePart1 from '../../user-guides/getting-to-know-the-canvas/part-1';
-import CanvasGuidePart3 from '../../user-guides/getting-to-know-the-canvas/part-3';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import LoaderEditor from '../../container/loader-editor';
@@ -79,7 +77,7 @@ import CreateJourneyIcon from '../../assets/icons/create-journey.svg';
 
 const { confirm } = Modal;
 
-const userGuides = [PreviewAndEmbedGuide, CanvasGuidePart1, CanvasGuidePart3];
+const userGuides = [PreviewAndEmbedGuide];
 
 type CanvasProps = {
   allAnnotationsForTour: AnnotationPerScreen[];
@@ -94,7 +92,7 @@ type CanvasProps = {
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
-  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
+  shouldShowScreenPicker: (screenPickerData: ScreenPickerData) => void;
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
@@ -129,7 +127,7 @@ const ANN_EDITOR_ZOOM = 0.75;
 const ANN_NODE_TOP_MARGIN_FOR_EDITOR = 20 * ANN_EDITOR_ZOOM;
 const ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR = 40 * ANN_EDITOR_ZOOM;
 const ANN_EDITOR_TOP = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM
- + ANN_NODE_TOP_MARGIN_FOR_EDITOR + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
+  + ANN_NODE_TOP_MARGIN_FOR_EDITOR + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
 
 const SVG_ZOOM_EXTENT: [number, number] = [0.5, 2];
 
@@ -238,7 +236,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [nodeMenuModalData, setNodeMenuModalData] = useState(initialAnnNodeModalData);
   const [addScreenModalData, setAddScreenModalData] = useState(initialAddScreenModal);
   const [showLoaderEditor, setShowLoaderEditor] = useState(false);
-  const zoomBehaviorRef = useRef <ZoomBehavior<SVGSVGElement, unknown>>();
+  const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown>>();
   const [annEditorModal, setAnnEditorModal] = useState<AnnEditorModal | null>(null);
   const annEditorModalRef = useRef<AnnEditorModal | null>(null);
   const [annWithCoords, setAnnWithCoords] = useState<AnnWithCoords[]>([]);
@@ -614,8 +612,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   const prevent = (e: any): void => {
     if (e.target.name !== 'screen-img'
-    && e.target.name !== 'img-submit-btn'
-    && e.target.getAttribute('for') !== 'screen-image'
+      && e.target.name !== 'img-submit-btn'
+      && e.target.getAttribute('for') !== 'screen-image'
     ) {
       e.preventDefault();
     }
@@ -1265,9 +1263,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const zoomThenPan = (
-    currZoom: {x: number, y: number, k: number},
-    intermediateZoom: {x: number, y: number, k: number},
-    newZoom: {x: number, y: number, k: number}
+    currZoom: { x: number, y: number, k: number },
+    intermediateZoom: { x: number, y: number, k: number },
+    newZoom: { x: number, y: number, k: number }
   ): void => {
     const currZoomTransform = zoomIdentity
       .translate(currZoom.x, currZoom.y)
@@ -1290,8 +1288,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const panThenZoom = (
-    intermediateZoom: {x: number, y: number, k: number},
-    newZoom: {x: number, y: number, k: number}
+    intermediateZoom: { x: number, y: number, k: number },
+    newZoom: { x: number, y: number, k: number }
   ): void => {
     const onlyTranslateTransform = zoomIdentity
       .translate(intermediateZoom.x, intermediateZoom.y)
@@ -1310,8 +1308,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const zoomAndPan = (
-    currZoom: {x: number, y: number, k: number},
-    newZoom: {x: number, y: number, k: number},
+    currZoom: { x: number, y: number, k: number },
+    newZoom: { x: number, y: number, k: number },
   ): void => {
     const currTransform = zoomIdentity
       .translate(currZoom.x, currZoom.y)
@@ -1571,7 +1569,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             onMouseUp={prevent}
             onMouseDown={prevent}
           >
-            <Tags.CanvasMenuItemCon>
+            <Tags.CanvasMenuItemCon id="new-screen-btn">
               <Tooltip
                 title="Add a new screen to this tour"
                 overlayStyle={{ fontSize: '0.75rem' }}
@@ -1586,13 +1584,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                       margin: 0,
                       border: '1px solid black',
                     }}
-                    id="IUG-1"
                   />
                 </div>
               </Tooltip>
             </Tags.CanvasMenuItemCon>
 
-            <Tags.CanvasMenuItemCon>
+            <Tags.CanvasMenuItemCon id="loader-btn">
               <Tooltip
                 title="Design your loader"
                 overlayStyle={{ fontSize: '0.75rem' }}
@@ -1612,7 +1609,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               </Tooltip>
             </Tags.CanvasMenuItemCon>
 
-            <Tags.CanvasMenuItemCon>
+            <Tags.CanvasMenuItemCon id="journey-btn">
               <Tooltip
                 title="Create a Journey"
                 overlayStyle={{ fontSize: '0.75rem' }}
@@ -1769,34 +1766,34 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
               />
               {
-              props.isScreenLoaded && (
-                <ScreenEditor
-                  annotationSerialIdMap={props.annotationSerialIdMap}
-                  key={props.screen!.rid}
-                  screen={props.screen!}
-                  tour={props.tour!}
-                  screenData={props.screenData!}
-                  allEdits={props.allEdits}
-                  toAnnotationId={selectedAnnId}
-                  navigate={props.navigate}
-                  setAlert={props.setAlert}
-                  timeline={props.timeline}
-                  allAnnotationsForScreen={props.allAnnotationsForScreen}
-                  allAnnotationsForTour={props.allAnnotationsForTour}
-                  tourDataOpts={props.tourOpts}
-                  commitTx={props.commitTx}
-                  onScreenEditStart={props.onScreenEditStart}
-                  onScreenEditFinish={props.onScreenEditFinish}
-                  onScreenEditChange={props.onScreenEditChange}
-                  onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
-                  applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                  shouldShowScreenPicker={props.shouldShowScreenPicker}
-                  showEntireTimeline={false}
-                  isScreenLoaded={props.isScreenLoaded}
-                  updateScreen={props.updateScreen}
-                />
-              )
-          }
+                props.isScreenLoaded && (
+                  <ScreenEditor
+                    annotationSerialIdMap={props.annotationSerialIdMap}
+                    key={props.screen!.rid}
+                    screen={props.screen!}
+                    tour={props.tour!}
+                    screenData={props.screenData!}
+                    allEdits={props.allEdits}
+                    toAnnotationId={selectedAnnId}
+                    navigate={props.navigate}
+                    setAlert={props.setAlert}
+                    timeline={props.timeline}
+                    allAnnotationsForScreen={props.allAnnotationsForScreen}
+                    allAnnotationsForTour={props.allAnnotationsForTour}
+                    tourDataOpts={props.tourOpts}
+                    commitTx={props.commitTx}
+                    onScreenEditStart={props.onScreenEditStart}
+                    onScreenEditFinish={props.onScreenEditFinish}
+                    onScreenEditChange={props.onScreenEditChange}
+                    onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
+                    applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                    shouldShowScreenPicker={props.shouldShowScreenPicker}
+                    showEntireTimeline={false}
+                    isScreenLoaded={props.isScreenLoaded}
+                    updateScreen={props.updateScreen}
+                  />
+                )
+              }
 
             </Tags.AnnEditorModal>
           </Tags.AnnEditorModalWrapper>
@@ -1832,35 +1829,35 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
                 />
                 {
-                props.isScreenLoaded && showScreenEditor && (
-                  <ScreenEditor
-                    annotationSerialIdMap={props.annotationSerialIdMap}
-                    key={props.screen!.rid}
-                    screen={props.screen!}
-                    tour={props.tour!}
-                    screenData={props.screenData!}
-                    allEdits={props.allEdits}
-                    toAnnotationId={selectedAnnId}
-                    navigate={props.navigate}
-                    setAlert={props.setAlert}
-                    timeline={props.timeline}
-                    allAnnotationsForScreen={props.allAnnotationsForScreen}
-                    allAnnotationsForTour={props.allAnnotationsForTour}
-                    tourDataOpts={props.tourOpts}
-                    commitTx={props.commitTx}
-                    onScreenEditStart={props.onScreenEditStart}
-                    onScreenEditFinish={props.onScreenEditFinish}
-                    onScreenEditChange={props.onScreenEditChange}
-                    onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
-                    applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                    shouldShowScreenPicker={props.shouldShowScreenPicker}
-                    showEntireTimeline={false}
-                    isScreenLoaded={props.isScreenLoaded}
-                    onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
-                    updateScreen={props.updateScreen}
-                  />
-                )
-              }
+                  props.isScreenLoaded && showScreenEditor && (
+                    <ScreenEditor
+                      annotationSerialIdMap={props.annotationSerialIdMap}
+                      key={props.screen!.rid}
+                      screen={props.screen!}
+                      tour={props.tour!}
+                      screenData={props.screenData!}
+                      allEdits={props.allEdits}
+                      toAnnotationId={selectedAnnId}
+                      navigate={props.navigate}
+                      setAlert={props.setAlert}
+                      timeline={props.timeline}
+                      allAnnotationsForScreen={props.allAnnotationsForScreen}
+                      allAnnotationsForTour={props.allAnnotationsForTour}
+                      tourDataOpts={props.tourOpts}
+                      commitTx={props.commitTx}
+                      onScreenEditStart={props.onScreenEditStart}
+                      onScreenEditFinish={props.onScreenEditFinish}
+                      onScreenEditChange={props.onScreenEditChange}
+                      onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
+                      applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                      shouldShowScreenPicker={props.shouldShowScreenPicker}
+                      showEntireTimeline={false}
+                      isScreenLoaded={props.isScreenLoaded}
+                      onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
+                      updateScreen={props.updateScreen}
+                    />
+                  )
+                }
               </Tags.AnnEditorModal>
             </Tags.AnnEditorModalWrapper>
           </Tags.AnnEditorModalCon>

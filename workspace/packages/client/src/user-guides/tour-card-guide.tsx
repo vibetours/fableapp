@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import Tour from '../component/user-guide-tour';
-import { completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
-import { Guide, GuideProps } from './types';
+import { closeUserGuide, completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
+import { Guide, GuideInfo, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
 
 export const guide: Guide = {
   id: 'tour-card-guide',
-  name: 'Get started with managing Tours',
+  name: 'Get started with managing tours',
+  desc: {
+    toursCreated: 'Open /tours to see this guide',
+    toursNotCreated: 'Create a tour to see this guide'
+  },
+  serialId: 1,
   steps: [
     {
       title: 'Preview a tour',
@@ -17,6 +22,13 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 1);
         },
       },
+      prevButtonProps: {
+        children: 'Skip guide',
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
     },
     {
       title: 'Analytics',
@@ -26,6 +38,13 @@ export const guide: Guide = {
         onClick() {
           updateStepsTaken(guide.id, 2);
         },
+      },
+      prevButtonProps: {
+        children: 'Skip guide',
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
       },
     },
     {
@@ -46,6 +65,13 @@ export const guide: Guide = {
           updateStepsTaken(guide.id, 3);
         },
       },
+      prevButtonProps: {
+        children: 'Skip guide',
+        onClick() {
+          closeUserGuide();
+          skipUserGuide(guide);
+        }
+      },
       hotspot: false,
       width: '20rem'
     },
@@ -65,7 +91,7 @@ function TourCardGuide(props: GuideProps): JSX.Element {
             👋🏻 <br />
             Hey, let's get you started on tours
           </>
-          }
+        }
         description="All your tours in Fable would be displayed in this page. You can create as many tours as you want. There is no limitation."
         acceptButtonProps={{
           children: 'Show me',
@@ -104,7 +130,7 @@ function TourCardGuide(props: GuideProps): JSX.Element {
   );
 }
 
-const guideInfo = {
+const guideInfo: GuideInfo = {
   stepsTaken: 0,
   totalSteps: guide.steps.length,
   isCompleted: false,
@@ -112,7 +138,9 @@ const guideInfo = {
   name: guide.name,
   id: guide.id,
   groupId: guide.name,
+  desc: guide.desc,
   partId: 0,
+  serialId: guide.serialId
 };
 
 export default { guideInfo, component: TourCardGuide };

@@ -219,7 +219,7 @@ interface AnotPanelSecOri {
 export const ActionPanel = styled.div<{gutter: boolean}>`
   padding: ${props => (props.gutter ? '0.75rem 1.5rem 0.75rem' : '0.75rem 1rem 0.75rem')};
   border-bottom: 1px solid #dddddd;
-  cursor: default;
+  cursor: pointer;
 `;
 
 export const ActionPanelTitleCon = styled.div`
@@ -227,7 +227,6 @@ export const ActionPanelTitleCon = styled.div`
   justify-content: space-between;
   align-items: center;
   opacity: 0.65;
-  cursor: pointer;
   font-size: 1rem;
 
   .ht-icn {

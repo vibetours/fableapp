@@ -12,10 +12,25 @@ export interface TourStepPropsWithElHotspotConfig extends TourStepProps {
 export interface Guide {
   id: string;
   name: string;
+  desc: { toursCreated: string; toursNotCreated: string; };
   steps: TourStepPropsWithElHotspotConfig[];
+  serialId: number;
 }
 
 export interface GuideProps {
   goToNextUserGuide: () => void;
   isVisible: boolean;
+}
+
+export interface GuideInfo {
+  stepsTaken: number;
+  totalSteps: number;
+  isCompleted: boolean;
+  isSkipped: boolean;
+  name: string;
+  id: string;
+  groupId: string;
+  desc: { toursCreated: string; toursNotCreated: string; };
+  partId: number;
+  serialId: number;
 }

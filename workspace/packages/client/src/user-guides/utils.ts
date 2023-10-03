@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { Guide, TourStepPropsWithElHotspotConfig, USER_GUIDE_LOCAL_STORE_KEY } from './types';
+import { Guide, GuideInfo, GuideProps, TourStepPropsWithElHotspotConfig, USER_GUIDE_LOCAL_STORE_KEY } from './types';
 
 export interface LocalStoreUserGuideProps {
   groupId: string;
@@ -10,6 +10,8 @@ export interface LocalStoreUserGuideProps {
   name: string;
   id: string;
   partId: number;
+  desc: { toursCreated: string; toursNotCreated: string; };
+  serialId: number;
 }
 
 type LocalStoreUserGuide = Record<string, LocalStoreUserGuideProps>;
@@ -23,15 +25,50 @@ const saveFableUserGuide = (userGuide: LocalStoreUserGuide): void => {
   localStorage.setItem(USER_GUIDE_LOCAL_STORE_KEY, JSON.stringify(userGuide));
 };
 
+const updateGuideProps = (
+  newGuide: LocalStoreUserGuideProps,
+  localStoreGuide: LocalStoreUserGuide
+): LocalStoreUserGuide => {
+  const updatedLocalStorageGuide: LocalStoreUserGuide = { ...localStoreGuide };
+  Object.entries(newGuide).forEach(([key, value]) => {
+    if (
+      (
+        updatedLocalStorageGuide[newGuide.id][key as keyof LocalStoreUserGuideProps] === undefined
+        || updatedLocalStorageGuide[newGuide.id][key as keyof LocalStoreUserGuideProps] !== value
+      )
+      && key !== 'isSkipped'
+      && key !== 'isCompleted'
+      && key !== 'stepsTaken'
+    ) {
+      // @ts-ignore
+      updatedLocalStorageGuide[newGuide.id][key as keyof LocalStoreUserGuideProps] = value;
+    }
+  });
+
+  return updatedLocalStorageGuide;
+};
+
+export const removeDeprecatedTours = (
+  guides: {guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element}[]
+): void => {
+  const FABLE_USER_GUIDE = getFableUserGuide();
+  const UPDATED_FABLE_USER_GUIDE: LocalStoreUserGuide = {};
+  guides.forEach(guide => UPDATED_FABLE_USER_GUIDE[guide.guideInfo.id] = FABLE_USER_GUIDE[guide.guideInfo.id]);
+  saveFableUserGuide(UPDATED_FABLE_USER_GUIDE);
+};
+
 export const upsertFableUserGuide = (
   guide: LocalStoreUserGuideProps
 ): void => {
-  const FABLE_USER_GUIDE = getFableUserGuide();
+  let FABLE_USER_GUIDE = getFableUserGuide();
 
   if (!FABLE_USER_GUIDE[guide.id]) {
     FABLE_USER_GUIDE[guide.id] = guide;
-    saveFableUserGuide(FABLE_USER_GUIDE);
+  } else {
+    FABLE_USER_GUIDE = updateGuideProps(guide, FABLE_USER_GUIDE);
   }
+
+  saveFableUserGuide(FABLE_USER_GUIDE);
 };
 
 export const shouldShowGuide = (guideId: string): boolean => {
@@ -124,7 +161,7 @@ export const getUserGuideCompletionProgressInModules = (): {
   const FABLE_USER_GUIDE = groupUserGuidesByGroupId(getFableUserGuide());
 
   return Object.values(FABLE_USER_GUIDE).reduce((acc, curr) => {
-    if (curr.isCompleted && !curr.isSkipped) {
+    if (curr.isCompleted || curr.isSkipped) {
       acc.completedModules += 1;
     }
     acc.totalmodules += 1;
@@ -137,6 +174,16 @@ export interface CategorizedUserGuides {
   remaining: LocalStoreUserGuideProps[];
   skipped: LocalStoreUserGuideProps[];
 }
+
+export const getUserGuidesInArray = (): LocalStoreUserGuideProps[] => {
+  const FABLE_USER_GUIDE = getFableUserGuide();
+  const USER_GUIDES: LocalStoreUserGuideProps[] = [];
+  for (const [_, guide] of Object.entries(FABLE_USER_GUIDE)) {
+    USER_GUIDES[guide.serialId - 1] = guide;
+  }
+
+  return USER_GUIDES;
+};
 
 const groupUserGuidesByGroupId = (guides: LocalStoreUserGuide): LocalStoreUserGuide => {
   const groupedGuides: Record<string, LocalStoreUserGuideProps[]> = {};
@@ -175,7 +222,9 @@ const groupUserGuidesByGroupId = (guides: LocalStoreUserGuide): LocalStoreUserGu
       isCompleted,
       isSkipped,
       name: groupId,
-      partId: 0
+      partId: 0,
+      desc: groupedGuide[0].desc,
+      serialId: groupedGuide[0].serialId
     };
   }
 
@@ -185,9 +234,9 @@ const groupUserGuidesByGroupId = (guides: LocalStoreUserGuide): LocalStoreUserGu
 export const getCategorizedUserGuides = (): CategorizedUserGuides => {
   const FABLE_USER_GUIDE = getFableUserGuide();
 
-  const groupedUserGuies = groupUserGuidesByGroupId(FABLE_USER_GUIDE);
+  const groupedUserGuides = groupUserGuidesByGroupId(FABLE_USER_GUIDE);
 
-  return Object.values(groupedUserGuies).reduce((acc, curr) => {
+  return Object.values(groupedUserGuides).reduce((acc, curr) => {
     if (curr.isCompleted) {
       acc.completed.push(curr);
     } else if (curr.isSkipped) {

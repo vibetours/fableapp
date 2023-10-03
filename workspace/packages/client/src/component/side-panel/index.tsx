@@ -9,6 +9,8 @@ import UserGuideDetails from './user-guide-details';
 interface Props {
   selected: 'tours' | 'user-management' | 'billing' | 'settings';
   subs: P_RespSubscription | null;
+  tourAvailable?: boolean;
+  firstTourRid?: string;
 }
 
 export default function SidePanel(props: Props): JSX.Element {
@@ -50,7 +52,12 @@ export default function SidePanel(props: Props): JSX.Element {
           </p>
         </Tags.FooterItem>
       </Tags.Footer>
-      <UserGuideDetails show={isUserGuideDetailsOpen} close={() => setIsUserGuideDetailsOpen(false)} />
+      <UserGuideDetails
+        tourAvailable={props.tourAvailable as boolean}
+        show={isUserGuideDetailsOpen}
+        close={() => setIsUserGuideDetailsOpen(false)}
+        firstTourRid={props.firstTourRid as string}
+      />
     </Tags.Con>
   );
 }

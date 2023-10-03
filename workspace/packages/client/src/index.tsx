@@ -101,7 +101,7 @@ root.render(
 type FableTheme = typeof theme;
 
 declare module 'styled-components' {
-  export interface DefaultTheme extends FableTheme {}
+  export interface DefaultTheme extends FableTheme { }
 }
 
 // If you want to start measuring performance in your app, pass a function

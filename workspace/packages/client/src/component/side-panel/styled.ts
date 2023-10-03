@@ -79,18 +79,18 @@ export const FooterItemProfileIcon = styled.img`
 
 // ~~~~~~~~~~~~~~~~~~~~~ USER GUIDE PROGRESS ~~~~~~~~~~~~~~~~~~~~~
 
-export const UserGuideProgressCon = styled.div<{selected: boolean}>`
+export const UserGuideProgressCon = styled.div<{ selected: boolean }>`
   margin-top: auto;
   display: flex;
   padding: 1rem;
   gap: 1rem;
   justify-content: center;
-  background-color: ${(props) => (props.selected ? 'lightgray' : '')};
+  background-color: ${(props) => (props.selected ? 'white' : '')};
   transition: background-color 0.2s ease-in;
   cursor: pointer;
 
   &:hover {
-    background-color: lightgray;
+    background-color: white;
   }
 
 `;
@@ -123,13 +123,39 @@ export const UserGuideDetailsCon = styled.div`
   animation: ${slideIn} 0.2s ease-out;
 `;
 
-export const UserGuideCard = styled.div`
-  border: 1px solid lightgray;
+export const UserGuideCard = styled.div<{ bgColor: string; disabled: boolean }>`
+  border: 1px solid #ddd;
   padding: 1rem;
   display: flex;
-  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1rem;
   min-width: 320px;
+  border-radius: 0.5rem;
+  background-color: ${(props) => props.bgColor};
+  cursor: pointer;
+  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
+`;
+
+export const UserGuideTextcon = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  & > * {
+    margin: 0;
+  }
+`;
+
+export const UserGuideTitle = styled.h2`
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+export const UserGuideDesc = styled.p`
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: #595959;
 `;
 
 export const StyledCloseOutlined = styled(CloseOutlined)`

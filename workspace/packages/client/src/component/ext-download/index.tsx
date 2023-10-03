@@ -21,7 +21,7 @@ export default function ExtDownloadRemainder({ extensionInstalled }: IProps): JS
       </Tags.TitleCon>
       <Tags.Features>
         <li><Tags.CheckOutlinedIcon />Craft stunning demos that converts</li>
-        <li><Tags.CheckOutlinedIcon />Deliver flawless personalised dmeo</li>
+        <li><Tags.CheckOutlinedIcon />Deliver flawless personalised demo</li>
         <li><Tags.CheckOutlinedIcon />Product stories that resonates with your buyers & delivers instant value</li>
       </Tags.Features>
       <Button
