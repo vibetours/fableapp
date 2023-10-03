@@ -163,12 +163,10 @@ export const createHtmlElement = (
   let attrValue;
   for ([attrKey, attrValue] of Object.entries(node.attrs)) {
     try {
-    // Since we proxy assets the link files sometimes are edited hence the integrity attribute might throw error
-    // https://stackoverflow.com/a/34429101
+    // Since we proxy assets, the css files sometimes are edited with proxied url;
+    // hence the integrity attribute might throw error https://stackoverflow.com/a/34429101
       if ((attrKey || '').toLowerCase() === 'integrity') continue;
-      if (props.partOfSvgEl) {
-        el.setAttributeNS(null, attrKey, attrValue === null ? 'true' : attrValue);
-      } else if (node.name === 'iframe' && attrKey === 'src') {
+      if (node.name === 'iframe' && attrKey === 'src') {
         // safari is a bitch. I'll write why if everything works
         attrValue = `/aboutblank?ts=${+new Date()}`;
         el.setAttribute(attrKey, attrValue);

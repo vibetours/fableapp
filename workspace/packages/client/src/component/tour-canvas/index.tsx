@@ -1667,7 +1667,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               style={{ verticalAlign: 'bottom' }}
             >
               <path
-                fill="#7567FF"
+                fill="#9f96fa"
                 d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
               />
             </Tags.AnnEditorModalArrow>
