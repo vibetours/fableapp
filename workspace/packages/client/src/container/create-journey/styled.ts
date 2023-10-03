@@ -7,9 +7,9 @@ export const CreateJourneyCon = styled.div`
     position: fixed;
     top: 0;
     left: 0;
-    height: 90vh;
+    height: 100%;
     background-color: white;
-    padding: 2rem;
+    padding: 2rem 1rem 2rem 2rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -23,6 +23,24 @@ export const EditorCon = styled.div`
     align-items: center;
     padding-bottom: 2rem;
     padding-top: 0.4rem;
+    padding-right: 1rem;
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: #f5f5f5;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+  }
 `;
 
 export const FieldOuterCon = styled.div`

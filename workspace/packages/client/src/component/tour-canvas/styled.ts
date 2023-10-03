@@ -67,6 +67,11 @@ export const CanvasMenuCon = styled.div`
   border-radius: 8px;
   padding: 30px 0px 0px 0px;
   box-shadow: 0 0 4px -1px #7567ff;
+
+  & > div:last-child {
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+  }
 `;
 
 export const CanvasMenuItemCon = styled.div`
@@ -76,8 +81,6 @@ export const CanvasMenuItemCon = styled.div`
   padding: 1rem;
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
-  border-bottom-right-radius: 8px;
-  border-bottom-left-radius: 8px;
 `;
 
 // ----------
