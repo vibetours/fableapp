@@ -111,8 +111,6 @@ export class AnnotationContent extends React.PureComponent<{
 
   render(): JSX.Element {
     const btns = this.props.config.buttons.filter(c => !c.exclude);
-    const serialId = this.props.annotationSerialIdMap[this.props.config.refId] + 1;
-    const totalAnnotations = Object.keys(this.props.annotationSerialIdMap).length;
 
     return (
       <Tags.AnContent
@@ -157,14 +155,14 @@ export class AnnotationContent extends React.PureComponent<{
               anPadding={this.props.opts.annotationPadding.trim()}
               className="f-button-con"
             >
-              {Boolean(serialId) && (
+              {this.props.annotationSerialIdMap[this.props.config.refId] && (
               <Tags.Progress
                 bg={this.props.opts.annotationBodyBackgroundColor}
                 fg={this.props.opts.annotationFontColor}
                 fontFamily={this.props.opts.annotationFontFamily || 'inherit'}
                 className="f-progress"
               >
-                  {serialId} of {totalAnnotations}
+                {this.props.annotationSerialIdMap[this.props.config.refId]}
               </Tags.Progress>
               )}
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
@@ -746,6 +744,9 @@ interface IConProps {
   playMode: boolean,
   tourId: number;
   applyDiffAndGoToAnn: ApplyDiffAndGoToAnn,
+  allFlows: string[],
+  currentFlowMain: string,
+  updateCurrentFlowMain: (main: string)=> void,
 }
 
 interface HotspotProps {
@@ -843,6 +844,18 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
 
         if (!btnConf.hotspot) {
+          if (this.props.playMode) {
+            const currentFlowMainIndex = this.props.allFlows.findIndex((flow) => flow === this.props.currentFlowMain);
+            if (btnConf.type === 'next' && currentFlowMainIndex < this.props.allFlows.length - 1) {
+              const nextMain = this.props.allFlows[currentFlowMainIndex + 1];
+              this.props.applyDiffAndGoToAnn(config.refId, nextMain, isNavToVideoAnn);
+              this.props.updateCurrentFlowMain(nextMain);
+            } else if (btnConf.type === 'prev' && currentFlowMainIndex > 0) {
+              const prevMain = this.props.allFlows[currentFlowMainIndex - 1];
+              this.props.applyDiffAndGoToAnn(config.refId, prevMain, isNavToVideoAnn);
+              this.props.updateCurrentFlowMain(prevMain);
+            }
+          }
           return;
         }
 

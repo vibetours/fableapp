@@ -140,16 +140,6 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function createEmptyTourDataFile(): TourData {
-  return {
-    v: SchemaVersion.V1,
-    lastUpdatedAtUtc: -1,
-    opts: getDefaultTourOpts(),
-    entities: {},
-    diagnostics: {},
-  };
-}
-
 export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
@@ -379,6 +369,9 @@ export function mergeTourData(
         newMaster.entities[entityKey] = entity;
       }
     }
+  }
+  if (incoming.journey) {
+    newMaster.journey = incoming.journey;
   }
   return newMaster;
 }

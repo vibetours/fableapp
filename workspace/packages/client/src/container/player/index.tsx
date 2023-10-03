@@ -1,6 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { IAnnotationConfig, ITourDataOpts, ITourLoaderData, LoadingStatus, ScreenData } from '@fable/common/dist/types';
+import { CreateJourneyData, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
+  LoadingStatus, ScreenData } from '@fable/common/dist/types';
 import { Link } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
@@ -11,14 +12,14 @@ import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AnnotationPerScreen, EditItem, FWin, NavFn } from '../../types';
-import HeartLoader from '../../component/loader/heart';
 import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
-import { getAnnotationSerialIdMap } from '../../component/annotation/ops';
+import { AnnotationSerialIdMap, getAnnotationSerialIdMap } from '../../component/annotation/ops';
 import Button from '../../component/button';
 import * as Tags from './styled';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
+import JourneyMenu from '../../component/journey-menu';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -43,14 +44,13 @@ interface IAppStateProps {
   editsAcrossScreens: Record<string, EditItem[]>;
   isScreenLoaded: boolean;
   allAnnotationsForTour: AnnotationPerScreen[];
-  annotationSerialIdMap: Record<string, number>;
   tourLoaderData: ITourLoaderData | null;
+  tourJourney: CreateJourneyData | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
   const tourOpts = state.default.remoteTourOpts;
   const allAnnotationsForTour = getAnnotationsPerScreen(state);
-  const annotationSerialIdMap = tourOpts ? getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour) : {};
 
   return {
     tour: state.default.currentTour,
@@ -65,7 +65,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allAnnotationAcrossScreens: state.default.remoteAnnotations,
     editsAcrossScreens: state.default.remoteEdits,
     allAnnotationsForTour,
-    annotationSerialIdMap,
+    tourJourney: state.default.tourData?.journey || null,
   };
 };
 
@@ -87,6 +87,9 @@ interface IOwnStateProps {
   initialScreenRid: string;
   initiallyPrerenderedScreens: Record<string, boolean>;
   isMinLoaderTimeDone: boolean;
+  isJourneyMenuOpen: boolean;
+  annotationSerialIdMap: AnnotationSerialIdMap;
+  currentFlowMain: string;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -107,6 +110,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       initialScreenRid: '',
       initiallyPrerenderedScreens: {},
       isMinLoaderTimeDone: false,
+      isJourneyMenuOpen: true,
+      annotationSerialIdMap: {},
+      currentFlowMain: ''
     };
   }
 
@@ -142,15 +148,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   // TODO [optimization]: get prev n next screens to prerender in one function call
-  getScreenDataPreloaded(rid: string, nextScreenPrerenderCount: number): P_RespScreen[] {
-    const screen = this.props.allScreens.find(s => s.rid === rid);
-    if (!screen) {
-      throw new Error(`No screen found for rid=${rid}`);
-    }
-
+  getScreenDataPreloaded(
+    screen: P_RespScreen,
+    nextScreenPrerenderCount: number,
+    startScreens: P_RespScreen[]
+  ): P_RespScreen[] {
     const nextScreensToPrerender = bfsTraverse(
       this.adjList!,
-      this.lastPrerenderedScreens,
+      startScreens,
       nextScreenPrerenderCount,
       'next'
     );
@@ -190,8 +195,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const opts = this.props.tourOpts;
     if (!(this.props.match.params.screenRid && this.props.match.params.annotationId)) {
       if (!(opts && opts.main)) this.setState({ isMainSet: false });
-      else this.navigateTo(opts.main);
+      else if (this.isJourneyAdded()) {
+        this.navigateTo(this.props.tourJourney!.flows[0].main);
+      } else this.navigateTo(opts.main);
     }
+  };
+
+  navigateToTour = (main: string): void => {
+    const screenId = main.split('/')[0];
+    this.navigateTo(main);
+    this.setState({ isJourneyMenuOpen: false, currentFlowMain: main });
+    this.lastPrerenderedScreens = [this.props.allScreens.find(s => s.id.toString() === screenId)!];
   };
 
   componentDidUpdate(prevProps: IProps): void {
@@ -207,11 +221,29 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     let firstTimeTourLoading = false;
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
       firstTimeTourLoading = true;
+
+      let annotationSerialIdMap: AnnotationSerialIdMap = {};
+      if (this.isJourneyAdded()) {
+        this.setState({ currentFlowMain: this.props.tourJourney!.flows[0].main });
+        this.props.tourJourney!.flows.forEach((flow, idx) => {
+          const annotationSerialIdMapForFlow = getAnnotationSerialIdMap(flow.main, this.props.allAnnotationsForTour);
+          for (const annRefId in annotationSerialIdMapForFlow) {
+            if (Object.prototype.hasOwnProperty.call(annotationSerialIdMapForFlow, annRefId)) {
+              annotationSerialIdMap[annRefId] = annotationSerialIdMapForFlow[annRefId];
+            }
+          }
+        });
+      } else {
+        annotationSerialIdMap = this.props.tourOpts
+          ? getAnnotationSerialIdMap(this.props.tourOpts.main, this.props.allAnnotationsForTour) : {};
+      }
+      this.setState({ annotationSerialIdMap });
       this.navigateToMain();
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
-        this.getScreenDataPreloaded(currScreenRId, 1);
+        const screen = this.getScreenAtId(this.state.initialScreenRid, 'rid');
+        this.getScreenDataPreloaded(screen, 1, this.lastPrerenderedScreens);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
         // in this case, we navigate to main, hence, firstTimeLoading is false
@@ -232,11 +264,34 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  getScreenAtId(id: string, key: keyof P_RespScreen): P_RespScreen {
+    const screen = this.props.allScreens.find(s => s[key]!.toString() === id);
+    if (!screen) {
+      throw new Error(`No screen found for ${key}=${id}`);
+    }
+    return screen;
+  }
+
   initialScreenLoad(screenRid: string): void {
-    this.lastPrerenderedScreens = [this.props.allScreens.find(s => s.rid === screenRid)!];
-    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(screenRid, 3);
     const obj: Record<string, boolean> = {};
-    initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
+
+    if (this.isJourneyAdded()) {
+      const startScreens : P_RespScreen[] = [];
+      this.props.tourJourney!.flows.forEach((flow) => {
+        const flowScreenId = flow.main.split('/')[0];
+        const flowScreen = this.getScreenAtId(flowScreenId, 'id');
+        startScreens.push(this.props.allScreens.find(s => s.rid === flowScreen.rid)!);
+      });
+      const flowScreenId = this.props.tourJourney!.flows[0].main.split('/')[0];
+      const flowScreen = this.getScreenAtId(flowScreenId, 'id');
+      const flowInitiallyPrerenderedScreens = this.getScreenDataPreloaded(flowScreen, 3, startScreens);
+      flowInitiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
+    } else {
+      const mainScreen = this.getScreenAtId(screenRid, 'rid');
+      const startScreen = [this.props.allScreens.find(s => s.rid === screenRid)!];
+      const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreen);
+      initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
+    }
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
   }
 
@@ -303,6 +358,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return true;
   }
 
+  isJourneyAdded = () : boolean => (!!this.props.tourJourney && this.props.tourJourney.flows.length !== 0);
+
   render(): JSX.Element {
     if (!this.state.isMainSet) {
       return (
@@ -349,7 +406,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
-                annotationSerialIdMap={this.props.annotationSerialIdMap}
+                annotationSerialIdMap={this.state.annotationSerialIdMap}
                 key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
@@ -380,9 +437,32 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 allScreensData={this.props.screenDataAcrossScreens}
                 allScreens={this.props.allScreens}
                 editsAcrossScreens={this.props.editsAcrossScreens}
-                preRenderNextScreen={(rid: string) => this.getScreenDataPreloaded(rid, 1)}
+                preRenderNextScreen={(screen: P_RespScreen) => {
+                  this.getScreenDataPreloaded(screen, 1, this.lastPrerenderedScreens);
+                }}
+                allFlows={this.props.tourJourney?.flows.map(flow => flow.main) || []}
+                currentFlowMain={this.state.currentFlowMain}
+                updateCurrentFlowMain={(main: string) => { this.setState({ currentFlowMain: main }); }}
+                closeJourneyMenu={() : void => {
+                  if (this.state.isJourneyMenuOpen) { this.setState({ isJourneyMenuOpen: false }); }
+                }}
               />
             ))
+        }
+        {
+          this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (
+            <JourneyMenu
+              tourJourney={this.props.tourJourney!}
+              isJourneyMenuOpen={this.state.isJourneyMenuOpen}
+              navigateToTour={this.navigateToTour}
+              updateJourneyMenu={(isMenuOpen: boolean) : void => {
+                this.setState({ isJourneyMenuOpen: isMenuOpen });
+              }}
+              navigateToCta={() => this.navFn(this.props.tourJourney!.cta!.navigateTo, 'abs')}
+              tourOpts={this.props.tourOpts!}
+              currentFlowMain={this.state.currentFlowMain}
+            />
+          )
         }
         {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
           && (

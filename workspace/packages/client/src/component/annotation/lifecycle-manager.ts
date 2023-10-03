@@ -64,7 +64,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private applyDiffAndGoToAnn: ApplyDiffAndGoToAnn;
 
+  private allFlows : string[];
+
+  private currentFlowMain: string = '';
+
   private undoLastAnnStyleOverride: Array<() => void> = [];
+
+  private updateCurrentFlowMain: (main: string) => void;
 
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
@@ -109,7 +115,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     tourId: number,
     annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig,
-    applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn
+    applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
+    allFlows: string[],
+    updateCurrentFlowMain: (main: string) => void,
   ) {
     super(doc, nestedFrames, config);
     this.nav = opts.navigate;
@@ -129,6 +137,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.tourId = tourId;
     this.annotationSerialIdMap = annotationSerialIdMap;
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
+    this.allFlows = allFlows;
+    this.updateCurrentFlowMain = updateCurrentFlowMain;
     this.prerenderVideoAnnotations();
   }
 
@@ -454,7 +464,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           win: this.win,
           playMode: this.isPlayMode,
           tourId: this.tourId,
-          applyDiffAndGoToAnn: this.applyDiffAndGoToAnn
+          applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
+          allFlows: this.allFlows,
+          currentFlowMain: this.currentFlowMain,
+          updateCurrentFlowMain: this.updateCurrentFlowMain
         })
       )
     );
@@ -464,12 +477,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     el: HTMLElement,
     config: IAnnotationConfig,
     opts: ITourDataOpts,
+    currentFlowMain: string,
     showImmediate = false,
   ): Promise<void> {
     if (this.isAnnotationDrawingInProgress) {
       return;
     }
-
+    this.currentFlowMain = currentFlowMain;
     this.isAnnotationDrawingInProgress = true;
     const dim = await this.probeForAnnotationSize(config, opts);
 
@@ -562,6 +576,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           playMode: this.isPlayMode,
           tourId: this.tourId,
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
+          allFlows: this.allFlows,
+          currentFlowMain: this.currentFlowMain,
+          updateCurrentFlowMain: this.updateCurrentFlowMain
         })
       )
     );

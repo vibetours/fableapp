@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 import Modal from 'antd/lib/modal';
+import { AnnotationButtonSize, AnnotationButtonStyle } from '@fable/common/dist/types';
+import { getColorContrast } from './utils';
 
 export const ColCon = styled.div`
   display: flex;
@@ -237,3 +239,28 @@ export const BorderedModal = styled(Modal)`
       margin: 1.5rem 1rem 1.5rem 1rem;
     }
 `;
+
+export const CTABtn = styled.button`
+  font-size: 12px;
+  font-weight: 500;
+  font-family: "IBM Plex Sans", sans-serif;
+  color: ${(p: CTABtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')};
+  background: ${(p: CTABtnConf) => (p.color)};
+  border-radius: ${(p: CTABtnConf) => (p.borderRadius)}px;
+  border: none;
+  cursor: pointer;
+  padding: ${(p: CTABtnConf) => {
+    if (p.size === AnnotationButtonSize.Large) {
+      return '12px 22px';
+    } if (p.size === AnnotationButtonSize.Medium) {
+      return '8px 18px';
+    }
+    return '4px 12px';
+  }};
+`;
+
+export interface CTABtnConf {
+  size: AnnotationButtonSize;
+  color: string;
+  borderRadius: number;
+}

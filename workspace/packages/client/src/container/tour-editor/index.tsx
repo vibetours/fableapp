@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid';
 import {
   CmnEvtProp,
+  CreateJourneyData,
   IAnnotationConfig,
   ITourDataOpts,
   ITourDiganostics,
@@ -68,7 +69,8 @@ import {
   setEventCommonState,
   createIframeSrc,
   generateScreenIndex,
-  assignScreenIndices
+  assignScreenIndices,
+  isBlankString
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import HeartLoader from '../../component/loader/heart';
@@ -84,7 +86,7 @@ import ScreenPicker from '../screen-picker';
 interface IDispatchProps {
   loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
-  saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => void;
+  saveTourData: (tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate?: boolean) => void;
   flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => void;
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
@@ -103,7 +105,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
     (screen: P_RespScreen, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screen, edits)),
-  saveTourData: (tour: P_RespTour, data: TourDataWoScheme) => dispatch(saveTourData(tour, data)),
+  saveTourData: (tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate?: boolean) => dispatch(saveTourData(tour, data, isJourneyUpdate)),
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
@@ -221,7 +223,7 @@ interface IAppStateProps {
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
   isMainValid: boolean;
-  annotationSerialIdMap: Record<string, number>;
+  annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
 }
@@ -284,10 +286,10 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
   let isMainValid = false;
-  let annotationSerialIdMap: Record<string, number> = {};
+  let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
     isMainValid = isTourMainSet(tourOpts.main, allAnnotationsForTour);
-    annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts, allAnnotationsForTour);
+    annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts.main, allAnnotationsForTour);
   }
 
   return {
@@ -638,6 +640,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 this.props.match.params.screenId && !this.props.match.params.annotationId
               )}
               updateScreen={this.props.updateScreen}
+              onTourJourneyChange={this.onTourJourneyChange}
             />
 
           </div>
@@ -854,6 +857,28 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       }
     );
     this.props.saveEditChunks(this.props.screen!, mergedEditChunks!);
+  };
+
+  private onTourJourneyChange = (newJourney: CreateJourneyData, tx?: Tx): void => {
+    this.props.startAutoSaving();
+
+    const journey = { ...newJourney, flows: newJourney.flows.filter((flow) => !isBlankString(flow.main)) };
+    const partialTourData: Partial<TourDataWoScheme> = {
+      journey
+    };
+
+    const mergedData = this.chunkSyncManager!.add(
+      this.getStorageKeyForType('tour-data'),
+      partialTourData,
+      (storedEntities: TourDataWoScheme | null, e: Partial<TourDataWoScheme>) => {
+        if (storedEntities === null) {
+          return e as TourDataWoScheme;
+        }
+        return mergeTourData(storedEntities, e);
+      },
+      tx
+    );
+    if (!tx) this.props.saveTourData(this.props.tour!, mergedData!, true);
   };
 }
 

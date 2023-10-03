@@ -871,8 +871,23 @@ export interface TSaveTourEntities {
   isLocal: boolean,
 }
 
-export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
+export function saveTourData(tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate = false) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
+    if (isJourneyUpdate) {
+      const idMap = getState().default.localAnnotationsIdMap;
+      const opts = getState().default.localTourOpts!;
+      const annotations = getState().default.localAnnotations;
+      dispatch({
+        type: ActionType.SAVE_TOUR_ENTITIES,
+        tour,
+        data: getState().default.tourData,
+        annotations,
+        opts,
+        idMap,
+        isLocal: true,
+      });
+      return;
+    }
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,

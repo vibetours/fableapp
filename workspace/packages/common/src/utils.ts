@@ -2,6 +2,7 @@ import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
+  CreateJourneyPositioning,
   IAnnotationConfig,
   ITourDataOpts,
   TourData
@@ -88,6 +89,14 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   annotationSelectionColor: '#2196f3',
 });
 
+export function getSampleJourneyData() {
+  return {
+    positioning: CreateJourneyPositioning.Left_Bottom,
+    title: '',
+    flows: []
+  };
+}
+
 export function createEmptyTourDataFile(): TourData {
   return {
     v: SchemaVersion.V1,
@@ -95,6 +104,7 @@ export function createEmptyTourDataFile(): TourData {
     opts: getDefaultTourOpts(),
     entities: {},
     diagnostics: {},
+    journey: getSampleJourneyData()
   };
 }
 

@@ -123,6 +123,7 @@ export interface TourDataWoScheme {
   opts: ITourDataOpts,
   entities: Record<string, TourEntity>;
   diagnostics: ITourDiganostics;
+  journey: CreateJourneyData;
 }
 
 export interface TourData extends TourDataWoScheme {
@@ -268,4 +269,21 @@ export enum CmnEvtProp {
   LAST_NAME = 'last_name',
   EMAIL = 'email',
   TOUR_URL = 'tour_url'
+}
+
+export interface CreateJourneyData {
+  positioning: CreateJourneyPositioning;
+  title: string;
+  flows: JourneyFlow[];
+  cta?: { size: AnnotationButtonSize; text: string; navigateTo: string; };
+}
+export interface JourneyFlow {
+  header1: string;
+  header2: string;
+  main: string;
+}
+
+export enum CreateJourneyPositioning {
+  Left_Bottom= 'leftbottom',
+  Right_Bottom= 'rightbottom'
 }

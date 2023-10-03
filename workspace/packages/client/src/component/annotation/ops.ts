@@ -409,23 +409,30 @@ export const getAnnotationBtn = (
 ): IAnnotationButton => config.buttons.find(btn => btn.type === type)!;
 
 // TODO why create custom type for a simple type
-export type AnnotationSerialIdMap = Record<string, number>
+export type AnnotationSerialIdMap = Record<string, string>
 export const getAnnotationSerialIdMap = (
-  tourOpts: ITourDataOpts,
+  main: string,
   allAnnotationsForTour: AnnotationPerScreen[]
-): Record<string, number> => {
-  const annotationSerialIdMap: Record<string, number> = {};
-  let refId = tourOpts.main.split('/')[1];
+): Record<string, string> => {
+  const annotationSerialIdMap: Record<string, string> = {};
+  let refId = main.split('/')[1];
   let idx = 0;
   while (true) {
     const annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
     if (!annotation) break; // sometime main would not point to proper annotation
-    annotationSerialIdMap[refId] = idx;
+    annotationSerialIdMap[refId] = `${idx + 1}`;
     const nextBtn = getAnnotationBtn(annotation!, 'next');
     if (!isNavigateHotspot(nextBtn.hotspot)) break;
     idx += 1;
     refId = nextBtn.hotspot!.actionValue.split('/')[1];
   }
+
+  for (const annRefId in annotationSerialIdMap) {
+    if (Object.prototype.hasOwnProperty.call(annotationSerialIdMap, annRefId)) {
+      annotationSerialIdMap[annRefId] += ` of ${idx + 1}`;
+    }
+  }
+
   return annotationSerialIdMap;
 };
 

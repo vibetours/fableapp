@@ -1,7 +1,20 @@
 /* eslint-disable react/no-this-in-sfc */
 import { nanoid } from 'nanoid';
-import { DeleteOutlined, DisconnectOutlined, HourglassOutlined, SisternodeOutlined } from '@ant-design/icons';
-import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, ITourEntityHotspot, ScreenData } from '@fable/common/dist/types';
+import {
+  DeleteOutlined,
+  DisconnectOutlined,
+  HourglassOutlined,
+  SisternodeOutlined,
+  BranchesOutlined
+} from '@ant-design/icons';
+import {
+  CmnEvtProp,
+  CreateJourneyData,
+  IAnnotationConfig,
+  ITourDataOpts,
+  ITourEntityHotspot,
+  ScreenData
+} from '@fable/common/dist/types';
 import Modal from 'antd/lib/modal';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
@@ -31,6 +44,7 @@ import {
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
+  IAnnotationConfigWithScreen,
   NavFn,
   ScreenPickerData,
   TourDataChangeFn,
@@ -60,6 +74,8 @@ import LoaderEditor from '../../container/loader-editor';
 import ScreenEditor from '../screen-editor';
 import CloseIcon from '../../assets/tour/close.svg';
 import { UpdateScreenFn } from '../../action/creator';
+import CreateJourney from '../../container/create-journey';
+import CreateJourneyIcon from '../../assets/icons/create-journey.svg';
 
 const { confirm } = Modal;
 
@@ -91,6 +107,7 @@ type CanvasProps = {
   isScreenLoaded: boolean;
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;
+  onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -126,6 +143,7 @@ const TILE_STROKE_WIDTH_ON_HOVER = '6px';
 const TILE_STROKE_WIDTH_DEFAULT = '4px';
 const DROP_TARGET_PEEK_WIDTH = 40;
 const DROP_TARGET_PEEK_GUTTER = 30;
+const CREATE_JOURNEY_MODAL_WIDTH = 360;
 
 const ANN_EDITOR_ANIM_DUR = 750;
 
@@ -206,6 +224,10 @@ interface AnnWithCoords {
   height: number,
 }
 
+interface CreateJourneyModal {
+  newSvgZoom: { x: number, y: number, k: number, centerX: number },
+}
+
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
@@ -222,6 +244,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [annWithCoords, setAnnWithCoords] = useState<AnnWithCoords[]>([]);
   const [selectedAnnId, setSelectedAnnId] = useState<string>('');
   const [showScreenEditor, setShowSceenEditor] = useState(false);
+  const [showJourneyEditor, setShowJourneyEditor] = useState(false);
+  const [firstAnnotations, setFirstAnnotations] = useState<IAnnotationConfigWithScreen[]>([]);
+  const [createJourneyModal, setCreateJourneyModal] = useState<CreateJourneyModal | null>(null);
+  const createJourneyModalRef = useRef<CreateJourneyModal | null>(null);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -288,6 +314,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('start', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
       ) {
+        if (createJourneyModalRef.current) return;
+
         const [eventX, eventY] = fromPointer(event, rootGRef.current);
 
         const selectedScreen = select<SVGForeignObjectElement, AnnotationNode<dagre.Node>>(this);
@@ -319,6 +347,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         d: any
       ) {
         prevent(event.sourceEvent);
+        if (createJourneyModalRef.current) return;
 
         const [x, y] = fromPointer(event, rootGRef.current);
         newX = x - relX;
@@ -387,6 +416,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         }, 200) as unknown as number;
       })
       .on('end', () => {
+        if (createJourneyModalRef.current) return;
+
         const allNodesParentParent = select('g#fab-tour-canvas-main');
         allNodesParentParent.selectAll('rect.tg-show')
           .classed('tg-show', false)
@@ -657,9 +688,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             return;
           }
 
+          const isMouseZoomWhenCreateJourneyShown = createJourneyModalRef.current && e.sourceEvent;
+          if (isMouseZoomWhenCreateJourneyShown) {
+            const x = e.transform.x;
+            const y = e.transform.y;
+            const k = e.transform.k;
+            setCreateJourneyModal(prev => ({ ...prev!,
+              newSvgZoom: { ...prev!.newSvgZoom, x, y, k },
+              applyTransitionToArrow: false }));
+          }
+
           // don't save zoom value if zoom is triggered when ann editor is shown
-          const isProgrammaticZoomTriggeredWhenAnnEditorIsShown = annEditorModalRef.current;
-          if (!isProgrammaticZoomTriggeredWhenAnnEditorIsShown) {
+          if (!restrictCanvasActions()) {
             zoomPanState.set(e.transform.k, e.transform.x, e.transform.y);
           }
 
@@ -684,7 +724,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         .on('mousemove', null)
         .on('mousemove', (e: MouseEvent) => {
           if (isGuideArrowDrawing.current !== 0) {
-            if (annEditorModalRef.current) return;
+            if (restrictCanvasActions()) return;
             const relativeCoord = fromPointer(e, rootG);
             svgSel.select<SVGGElement>('g.connectors')
               .selectAll<SVGPathElement, SVGGElement>('path.guide-arr')
@@ -730,6 +770,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseup', prevent)
       .on('click', function (e, d) {
         prevent(e);
+        if (createJourneyModalRef.current) return;
         const con = svgRef.current!.parentNode as HTMLDivElement;
         const sel = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
         const relCoord = fromPointer(e, con);
@@ -868,7 +909,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('cursor', 'pointer')
           .attr('d', attr => lines(attr.points as any))
           .on('mouseover', function () {
-            if (annEditorModalRef.current) return;
+            if (restrictCanvasActions()) return;
             // eslint-disable-next-line react/no-this-in-sfc
             const gEl = select<SVGGElement, EdgeWithData>(this.parentElement as unknown as SVGGElement);
             gEl.select('path.edgeconn').attr('stroke', CONNECTOR_COLOR_HOVERED);
@@ -881,7 +922,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             gEl.select('path.edgehotspot').attr('stroke', CONNECTOR_HOTSPOT_COLOR_NON_HOVERED);
           })
           .on('click', function (e: MouseEvent) {
-            if (annEditorModalRef.current) return;
+            if (restrictCanvasActions()) return;
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
             const d = select<SVGGElement, EdgeWithData>(this).datum();
@@ -913,12 +954,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseover', null)
       .on('mouseover', function () {
         const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
-        if (annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId) return;
+        if ((annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId)
+        || createJourneyModalRef.current) return;
         setAnnNodeSelectionStyle(gEl, Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
       .on('mousedown', function (e: MouseEvent) {
         prevent(e);
+        if (createJourneyModalRef.current) return;
         connectorG
           .selectAll('path.guide-arr')
           .data([this])
@@ -935,6 +978,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseup', null)
       .on('mouseup', function (e: MouseEvent) {
         prevent(e);
+        if (createJourneyModalRef.current) return;
         const toEl = this;
         const fromEl = connectorG.selectAll<SVGPathElement, SVGGElement>('path.guide-arr').datum();
         const fromElSel = select<SVGGElement, AnnotationNode<dagre.Node>>(fromEl);
@@ -1026,6 +1070,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .on('mouseup', prevent)
           .on('click', function (e) {
             prevent(e);
+            if (createJourneyModalRef.current) return;
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
             const d = select<SVGGElement, AnnotationNode<dagre.Node>>(this).datum();
@@ -1284,6 +1329,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   useEffect(() => {
+    createJourneyModalRef.current = createJourneyModal;
+  }, [createJourneyModal]);
+
+  useEffect(() => {
     // reset previously selected ann's selection marker
     const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
     resetAnnNodeSelectionStyle(annNodes);
@@ -1410,6 +1459,85 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   const isAnnSelected = selectedAnnId && annEditorModal;
 
+  const getFirstAnnotations = () : IAnnotationConfigWithScreen[] => {
+    if (firstAnnotations.length !== 0) {
+      zoomAnnInView(firstAnnotations[0].refId);
+      return firstAnnotations;
+    }
+    const firstScreens : IAnnotationConfigWithScreen[] = [];
+    props.timeline.forEach((flow) => {
+      firstScreens.push(flow[0][0]);
+    });
+    zoomAnnInView(firstScreens[0].refId);
+    setFirstAnnotations(firstScreens);
+    return firstScreens;
+  };
+
+  const zoomAnnInView = (annRefId: string) : void => {
+    const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    resetAnnNodeSelectionStyle(annNodes);
+
+    const annCoords = annWithCoords.find(ann => ann.annId === annRefId)!;
+    const [currK] = zoomPanState.get();
+    const rowHeight = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM + ANN_NODE_SEP * ANN_EDITOR_ZOOM;
+    const row = Math.floor((annCoords.y * ANN_EDITOR_ZOOM) / rowHeight);
+    const newY = -(row * rowHeight) + ANN_NODE_TOP_MARGIN_FOR_EDITOR;
+    const newX = annCoords.x * ANN_EDITOR_ZOOM + CREATE_JOURNEY_MODAL_WIDTH;
+
+    if (createJourneyModal) {
+      const { x: zoomAfterAnnModalShownX, y: zoomAfterAnnModalShownY } = createJourneyModal.newSvgZoom;
+      const startY = zoomAfterAnnModalShownY + annCoords.y * ANN_EDITOR_ZOOM - (annCoords.height * ANN_EDITOR_ZOOM) / 2;
+      const endY = zoomAfterAnnModalShownY + annCoords.y * ANN_EDITOR_ZOOM + (annCoords.height * ANN_EDITOR_ZOOM) / 2;
+
+      const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
+      const isAnnNodeYInViewPort = startY > 0 && endY * ANN_EDITOR_ZOOM < window.innerHeight * ANN_EDITOR_ZOOM;
+      const isAnnNodeXInViewPort = startX > window.innerWidth * ANN_EDITOR_ZOOM
+      && startX * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
+
+      const annNode = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+        .filter((d) => d.annotation.refId === annRefId);
+      setAnnNodeSelectionStyle(annNode, Tags.TILE_STROKE_COLOR_ON_HOVER);
+      if (isAnnNodeYInViewPort && isAnnNodeXInViewPort) {
+        return;
+      }
+      const newSvgZoom = createJourneyModal.newSvgZoom;
+
+      zoomAndPan(
+        { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
+        { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
+      );
+      setCreateJourneyModal({ newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: annCoords.x } });
+      return;
+    }
+
+    panThenZoom(
+      { x: newX, y: newY * currK!, k: currK! },
+      { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
+    );
+    setCreateJourneyModal({ newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: annCoords.x } });
+    setTimeout(() => {
+      setShowJourneyEditor(true);
+    }, ANN_EDITOR_ANIM_DUR * 2);
+  };
+
+  const resetCreateJourneyZoom = () : void => {
+    const [k, x, y,] = zoomPanState.get();
+    const centerX = createJourneyModal!.newSvgZoom.centerX;
+
+    const translateXWithoutZoom = CREATE_JOURNEY_MODAL_WIDTH + (centerX * k!);
+
+    const newSvgZoom = createJourneyModal!.newSvgZoom;
+    // while closing
+    zoomThenPan(
+      { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
+      { x: translateXWithoutZoom, y: newSvgZoom.y * k!, k: k! },
+      { x: x!, y: y!, k: k! }
+    );
+    setCreateJourneyModal(null);
+  };
+
+  const restrictCanvasActions = () : boolean => Boolean(annEditorModalRef.current || createJourneyModalRef.current);
+
   return (
     <>
       <Tags.SVGCanvas
@@ -1474,6 +1602,26 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   <Button
                     onClick={() => setShowLoaderEditor(true)}
                     icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500 }} />}
+                    size="middle"
+                    style={{
+                      margin: 0,
+                      border: '1px solid black',
+                    }}
+                  />
+                </div>
+              </Tooltip>
+            </Tags.CanvasMenuItemCon>
+
+            <Tags.CanvasMenuItemCon>
+              <Tooltip
+                title="Create a Journey"
+                overlayStyle={{ fontSize: '0.75rem' }}
+                placement="right"
+              >
+                <div>
+                  <Button
+                    onClick={() => getFirstAnnotations()}
+                    icon={<img src={CreateJourneyIcon} alt="create journey" />}
                     size="middle"
                     style={{
                       margin: 0,
@@ -1719,6 +1867,19 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         )
       }
       <SelectorComponent userGuides={userGuides} />
+      {
+        showJourneyEditor && <CreateJourney
+          closeEditor={() => { setShowJourneyEditor(false); resetCreateJourneyZoom(); setFirstAnnotations([]); }}
+          firstAnnotations={firstAnnotations}
+          getAnnInView={zoomAnnInView}
+          resetHoveredNode={() => {
+            const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+            resetAnnNodeSelectionStyle(annNodes);
+          }}
+          onTourJourneyChange={props.onTourJourneyChange}
+          tourOpts={props.tourOpts}
+        />
+      }
     </>
   );
 }

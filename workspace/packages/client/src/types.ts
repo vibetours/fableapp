@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { AnnotationButtonSize, AnnotationButtonStyle, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen } from './entity-processor';
 

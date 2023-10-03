@@ -1,10 +1,9 @@
-import { EditFile, IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
 import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
 import {
-  AllEdits,
   AnnotationPerScreen,
   EditItem, ElEditType,
   EncodingTypeBlur,
@@ -23,7 +22,7 @@ import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
-import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
+import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserFrame, deserIframeEl } from './utils/deser';
 import { getAddDiffs, getDelDiffs, getReorderDiffs, getReplaceDiffs, getUpdateDiffs } from './utils/diffs/get-diffs';
 import {
@@ -58,8 +57,12 @@ export interface IOwnProps {
   allScreensData?: Record<string, ScreenData>;
   allScreens?: P_RespScreen[];
   editsAcrossScreens?: Record<string, EditItem[]>;
-  preRenderNextScreen?: (rid: string) => void;
+  preRenderNextScreen?: (screen: P_RespScreen) => void;
   onDispose?: () => void;
+  allFlows: string[];
+  currentFlowMain: string;
+  updateCurrentFlowMain: (main: string)=> void;
+  closeJourneyMenu? : ()=> void;
 }
 
 interface IOwnStateProps {
@@ -255,6 +258,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.annotationSerialIdMap,
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
+          this.props.allFlows,
+          this.props.updateCurrentFlowMain
         );
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.
@@ -310,8 +315,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       targetEl as HTMLElement,
       conf,
       opts,
+      this.props.currentFlowMain,
       true,
-
     );
   }
 
@@ -604,6 +609,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     this.reachAnnotation('');
 
+    this.props.closeJourneyMenu!();
     /**
      * If the annotation is on the same screen,
      * no diffs will be required to apply.
@@ -652,7 +658,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       return;
     }
 
-    this.props.preRenderNextScreen!(goToScreen.rid);
+    this.props.preRenderNextScreen!(goToScreen);
 
     /**
      * If either of the screen type doesn't support screen diff version,
