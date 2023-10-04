@@ -73,7 +73,6 @@ import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 import Loader from '../loader';
-import ExpandArrowFilled from '../../assets/creator-panel/expand-arrow-filled.svg';
 import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
 import ScreenEditorGuide from '../../user-guides/screen-editor-guide';
@@ -1277,7 +1276,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                 <HomeOutlined style={{ background: 'none' }} />&nbsp;
                               </Tooltip>
                               )}
-                              {configOfParamsAnnId.index}
+                              Step {configOfParamsAnnId.index}
                             </span>
                           </TimelineTags.AnnDisplayText>
                           {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}

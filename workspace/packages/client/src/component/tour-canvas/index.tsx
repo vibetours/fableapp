@@ -25,6 +25,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
+import * as GTags from '../../common-styled';
 import {
   updateGrpIdForTimelineTillEnd,
   deleteAnnotation,
@@ -74,6 +75,8 @@ import CloseIcon from '../../assets/tour/close.svg';
 import { UpdateScreenFn } from '../../action/creator';
 import CreateJourney from '../../container/create-journey';
 import CreateJourneyIcon from '../../assets/icons/create-journey.svg';
+import Header, { HeaderProps } from '../header';
+import DeleteIcon from '../../assets/icons/canvas-delete.svg';
 
 const { confirm } = Modal;
 
@@ -106,6 +109,7 @@ type CanvasProps = {
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;
   onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
+  headerProps: HeaderProps,
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -120,9 +124,12 @@ const canvasGrid: CanvasGrid = {
   }
 };
 
-const ANN_NODE_HEIGHT = canvasGrid.gridSize * 4;
-const ANN_NODE_WIDTH = canvasGrid.gridSize * 6;
-const ANN_NODE_SEP = canvasGrid.gridSize * 3;
+const ANN_NODE_HEIGHT_WIDTH_RATIO = 1.77765625;
+const ANN_NODE_WIDTH = canvasGrid.gridSize * 5;
+const ANN_NODE_HEIGHT = ANN_NODE_WIDTH / ANN_NODE_HEIGHT_WIDTH_RATIO;
+const ANN_NODE_BORDER_RADIUS = 16;
+const ANN_NODE_PADDING = 0;
+const ANN_NODE_SEP = canvasGrid.gridSize * 2;
 const ANN_EDITOR_ZOOM = 0.75;
 const ANN_NODE_TOP_MARGIN_FOR_EDITOR = 20 * ANN_EDITOR_ZOOM;
 const ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR = 40 * ANN_EDITOR_ZOOM;
@@ -133,14 +140,14 @@ const SVG_ZOOM_EXTENT: [number, number] = [0.5, 2];
 
 let dragTimer = 0;
 
-const CONNECTOR_COLOR_NON_HOVERED = '#9e9e9e';
+const CONNECTOR_COLOR_NON_HOVERED = '#bdbdbd';
 const CONNECTOR_COLOR_HOVERED = '#000000';
 const CONNECTOR_HOTSPOT_COLOR_NON_HOVERED = 'transparent';
 const CONNECTOR_HOTSPOT_COLOR_HOVERED = '#1503450a';
 const TILE_STROKE_WIDTH_ON_HOVER = '6px';
 const TILE_STROKE_WIDTH_DEFAULT = '4px';
-const DROP_TARGET_PEEK_WIDTH = 40;
-const DROP_TARGET_PEEK_GUTTER = 30;
+const DROP_TARGET_PEEK_WIDTH = ANN_NODE_SEP / 2;
+const DROP_TARGET_PEEK_GUTTER = ANN_NODE_SEP / 4;
 const CREATE_JOURNEY_MODAL_WIDTH = 360;
 
 const ANN_EDITOR_ANIM_DUR = 750;
@@ -246,6 +253,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [firstAnnotations, setFirstAnnotations] = useState<IAnnotationConfigWithScreen[]>([]);
   const [createJourneyModal, setCreateJourneyModal] = useState<CreateJourneyModal | null>(null);
   const createJourneyModalRef = useRef<CreateJourneyModal | null>(null);
+  const [showAnnText, setShowAnnText] = useState(false);
+  const screenColorMap = useRef<Record<number, string>>({});
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -256,7 +265,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       return;
     }
     const svg = select('svg#fab-tour-canvas');
-    svg
+    const pattern = svg
       .selectAll('pattern')
       .data([1])
       .enter()
@@ -266,13 +275,24 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('x', 0)
       .attr('y', 0)
       .attr('width', canvasGrid.gridSize)
-      .attr('height', canvasGrid.gridSize)
-      .append('rect')
-      .attr('width', canvasGrid.gridDotSize)
-      .attr('height', canvasGrid.gridDotSize)
-      .attr('fill', '#a4a4a4')
-      .attr('x', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2))
-      .attr('y', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2));
+      .attr('height', canvasGrid.gridSize);
+
+    pattern
+      .append('line')
+      .attr('x1', 0)
+      .attr('x2', 100)
+      .attr('stroke', '#E0E0E0');
+    pattern
+      .append('line')
+      .attr('y1', 0)
+      .attr('y2', 100)
+      .attr('stroke', '#E0E0E0');
+    // .append('rect')
+    // .attr('width', canvasGrid.gridDotSize)
+    // .attr('height', canvasGrid.gridDotSize)
+    // .attr('fill', '#a4a4a4')
+    // .attr('x', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2))
+    // .attr('y', (canvasGrid.gridSize / 2) - (canvasGrid.gridDotSize / 2));
 
     // Append a "backdrop" rect to your svg, and fill it with your pattern.
     // You shouldn't need to touch this again after adding it.
@@ -298,7 +318,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const nodeDraggable = (): DragBehavior<
-    SVGForeignObjectElement,
+    SVGGElement,
     AnnotationNode<dagre.Node>,
     AnnotationNode<dagre.Node> | SubjectPosition
   > => {
@@ -307,38 +327,21 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     let newX = 0;
     let newY = 0;
     let id = '';
+    let startPoints: [x: number, y: number] = [0, 0];
+    let hasDraggingStarted = false;
+    const clickThreshold = 5;
 
-    return drag<SVGForeignObjectElement, AnnotationNode<dagre.Node>>()
+    return drag<SVGGElement, AnnotationNode<dagre.Node>>()
       .on('start', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
       ) {
         if (createJourneyModalRef.current) return;
 
         const [eventX, eventY] = fromPointer(event, rootGRef.current);
-
-        const selectedScreen = select<SVGForeignObjectElement, AnnotationNode<dagre.Node>>(this);
+        startPoints = [eventX, eventY];
+        const selectedScreen = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         const data = selectedScreen.datum();
-        // Find out where in the box the mousedown for drag is fired relative to the current box.
-        relX = eventX - (data.storedData!.x - data.storedData!.width / 2);
-        relY = eventY - (data.storedData!.y - data.storedData!.height / 2);
         id = data.id;
-        reorderPropsRef.current.currentDraggedAnnotationId = id;
-
-        const nodeParent = selectedScreen.select(function () { return this.closest('g.node'); });
-        nodeParent.raise(); // moves the dragged element to the end simulating higher zindex
-        nodeParent.selectAll('rect.tg-hide')
-          .classed('rev', true);
-
-        const allNodesParentParent = select('g#fab-tour-canvas-main');
-        allNodesParentParent.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.tg-hide')
-          .classed('tg-show', function (datum) {
-            return shouldShowRepositionMarker(this, datum, data);
-          })
-          .classed('tg-hide', function (datum) {
-            return !shouldShowRepositionMarker(this, datum, data);
-          });
-
-        select('g.connectors').classed('fade', true);
       })
       .on('drag', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
@@ -347,12 +350,46 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         prevent(event.sourceEvent);
         if (createJourneyModalRef.current) return;
 
+        if (!hasDraggingStarted) {
+          const [eventX, eventY] = fromPointer(event, rootGRef.current);
+          const [startX, startY] = startPoints;
+
+          const isDraggingStarted = Math.abs(startX - eventX) > clickThreshold
+          || Math.abs(startY - eventY) > clickThreshold;
+
+          if (!isDraggingStarted) return;
+
+          hasDraggingStarted = true;
+          const selectedScreen = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
+          const data = selectedScreen.datum();
+          // Find out where in the box the mousedown for drag is fired relative to the current box.
+          relX = eventX - (data.storedData!.x - data.storedData!.width / 2);
+          relY = eventY - (data.storedData!.y - data.storedData!.height / 2);
+          id = data.id;
+          reorderPropsRef.current.currentDraggedAnnotationId = id;
+
+          selectedScreen.raise(); // moves the dragged element to the end simulating higher zindex
+          selectedScreen.selectAll('rect.tg-hide')
+            .classed('rev', true);
+
+          const allNodesParentParent = select('g#fab-tour-canvas-main');
+          allNodesParentParent.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.tg-hide')
+            .classed('tg-show', function (datum) {
+              return shouldShowRepositionMarker(this, datum, data);
+            })
+            .classed('tg-hide', function (datum) {
+              return !shouldShowRepositionMarker(this, datum, data);
+            });
+
+          select('g.connectors').classed('fade', true);
+        }
+
         const [x, y] = fromPointer(event, rootGRef.current);
         newX = x - relX;
         newY = y - relY;
 
         // eslint-disable-next-line react/no-this-in-sfc
-        const el = select<SVGGElement, AnnotationNode<dagre.Node>>(this.parentNode as SVGGElement);
+        const el = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         el.attr('transform', `translate(${newX}, ${newY})`);
 
         const fromEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp').filter((data) => data.srcId === d.id);
@@ -413,7 +450,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           reorderPropsRef.current.isCursorOnDropTarget = true;
         }, 200) as unknown as number;
       })
-      .on('end', () => {
+      .on('end', (
+        event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
+      ) => {
         if (createJourneyModalRef.current) return;
 
         const allNodesParentParent = select('g#fab-tour-canvas-main');
@@ -424,6 +463,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .classed('sel', false);
 
         select('g.connectors').classed('fade', false);
+
+        hasDraggingStarted = false;
+
+        const [eventX, eventY] = fromPointer(event, rootGRef.current);
+        const [startX, startY] = startPoints;
+
+        const isClick = Math.abs(startX - eventX) < clickThreshold || Math.abs(startY - eventY) < clickThreshold;
+        if (isClick) {
+          resetNodePos();
+          selectAnn(id);
+          return;
+        }
 
         if (reorderPropsRef.current.isCursorOnDropTarget) {
           confirm({
@@ -729,7 +780,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .attr('d', pEl => {
                 const d = select<SVGGElement, AnnotationNode<dagre.Node>>(pEl).datum();
                 return formPathUsingPoints([{
-                  x: d.storedData!.x,
+                  x: d.storedData!.x + d.storedData!.width / 2,
                   y: d.storedData!.y,
                 }, {
                   x: relativeCoord[0],
@@ -949,6 +1000,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .enter()
       .append('g')
       .attr('class', 'node')
+      .style('filter', 'drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4))')
+      .style('cursor', 'pointer')
       .on('mouseover', null)
       .on('mouseover', function () {
         const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
@@ -957,22 +1010,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         setAnnNodeSelectionStyle(gEl, Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
-      .on('mousedown', function (e: MouseEvent) {
-        prevent(e);
-        if (createJourneyModalRef.current) return;
-        connectorG
-          .selectAll('path.guide-arr')
-          .data([this])
-          .enter()
-          .append('path')
-          .attr('class', 'guide-arr')
-          .style('fill', 'none')
-          .style('stroke', 'black')
-          .style('stroke-width', '2px')
-          .style('marker-end', 'url(#triangle-arrowhead)')
-          .attr('d', '');
-        isGuideArrowDrawing.current = 1;
-      })
       .on('mouseup', null)
       .on('mouseup', function (e: MouseEvent) {
         prevent(e);
@@ -984,13 +1021,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const toElData = select<SVGGElement, AnnotationNode<dagre.Node>>(toEl).datum();
 
         isGuideArrowDrawing.current = 0;
-        if (fromElData.id === toElData.id) {
-          // self loop, treat this as click
-          resetNodePos();
-          selectAnn(toElData.id);
-          return;
-        }
-
+        if (fromElData.id === toElData.id) return;
         if (annEditorModalRef.current) return;
         const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
         const lookupMap = getAnnotationLookupMap(allAnns);
@@ -1005,24 +1036,29 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         resetAnnNodeSelectionStyle(gEl);
       })
       .call(p => {
+        // background rect which covers the entire annotation node
         p.append('rect')
+          .attr('class', 'bg')
+          .attr('rx', ANN_NODE_BORDER_RADIUS)
+          .attr('ry', ANN_NODE_BORDER_RADIUS)
           .attr('x', '0')
           .attr('y', '0')
-          .attr('class', 'poh')
-          .attr('width', '20')
-          .attr('height', '24');
+          .attr('width', d => d.width)
+          .attr('height', d => d.height);
 
         p
           .append('image')
-          .attr('x', 0)
           .attr('preserveAspectRatio', 'xMidYMid meet')
-          .attr('clip-path', 'url(#fit-rect)')
-          .attr('y', 24);
+          .attr('clip-path', 'url(#fit-rect)');
 
         p.append('foreignObject')
-          .attr('class', 'screen-info')
+          .attr('class', 'step-num')
           .call(fo => {
-            fo.append('xhtml:p');
+            fo
+              .append('xhtml:div')
+              .call(div => {
+                div.append('xhtml:p');
+              });
           });
 
         p.append('foreignObject')
@@ -1048,11 +1084,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         p.append('rect')
           .attr('x', 0)
           .attr('y', 0)
-          .attr('rx', 4)
-          .attr('ry', 4)
+          .attr('rx', ANN_NODE_BORDER_RADIUS)
+          .attr('ry', ANN_NODE_BORDER_RADIUS)
           .attr('class', 'interaction-marker')
           .style('fill', 'none')
-          .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+          .style('stroke', 'transparent')
           .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
 
         const leftPlusG = p.append<SVGGElement>('g');
@@ -1060,9 +1096,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const rightPlusG = p.append<SVGGElement>('g');
         createPlusIconGroup(rightPlusG, 'next');
 
+        const MENU_ICON_WIDTH = 24;
+        const MENU_ICON_PADDING = 7.5;
         const menug = p
           .append('g')
-          .attr('transform', 'translate(4, 4) scale(0.04)')
+          .attr('transform', d => `translate(${d.width - MENU_ICON_WIDTH - MENU_ICON_PADDING}, ${MENU_ICON_PADDING})`)
           .style('cursor', 'pointer')
           .on('mousedown', prevent)
           .on('mouseup', prevent)
@@ -1077,30 +1115,55 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               annId: d.id
             });
           });
-        menug
-          .append('path')
-          .attr('class', 'menuicn')
-          .attr('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
-          .attr('fill', Tags.TILE_STROKE_COLOR_DEFAULT)
-          // eslint-disable-next-line max-len
-          .attr('d', 'M165,0C74.019,0,0,74.019,0,165s74.019,165,165,165s165-74.019,165-165S255.981,0,165,0z M85,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S98.785,190,85,190z M165,190c-13.785,0-25-11.215-25-25s11.215-25,25-25s25,11.215,25,25S178.785,190,165,190z M245,190c-13.785,0-25-11.215-25-25s11.215-25,25-25c13.785,0,25,11.215,25,25S258.785,190,245,190z');
 
         menug
           .append('rect')
-          .attr('x', -50)
-          .attr('y', -50)
-          .attr('height', 400)
-          .attr('width', 550)
+          .attr('x', 0)
+          .attr('y', 0)
+          .attr('height', MENU_ICON_WIDTH)
+          .attr('width', MENU_ICON_WIDTH)
+          .attr('rx', MENU_ICON_WIDTH / 2)
           .attr('class', 'menuicnovrly')
           .attr('fill', 'transparent');
+
+        menug
+          .append('path')
+          .attr('class', 'menuicn')
+          .attr('fill', Tags.MENU_ICN_DOTS_COLOR)
+          // eslint-disable-next-line max-len
+          .attr('d', 'M11.997 17.3333C11.7212 17.3333 11.4861 17.2351 11.2917 17.0387C11.0972 16.8423 11 16.6062 11 16.3304C11 16.0546 11.0982 15.8194 11.2946 15.625C11.491 15.4306 11.7271 15.3333 12.003 15.3333C12.2788 15.3333 12.5139 15.4315 12.7083 15.628C12.9028 15.8244 13 16.0605 13 16.3363C13 16.6121 12.9018 16.8472 12.7054 17.0417C12.509 17.2361 12.2729 17.3333 11.997 17.3333ZM11.997 12.6667C11.7212 12.6667 11.4861 12.5685 11.2917 12.372C11.0972 12.1756 11 11.9395 11 11.6637C11 11.3879 11.0982 11.1528 11.2946 10.9583C11.491 10.7639 11.7271 10.6667 12.003 10.6667C12.2788 10.6667 12.5139 10.7649 12.7083 10.9613C12.9028 11.1577 13 11.3938 13 11.6696C13 11.9454 12.9018 12.1806 12.7054 12.375C12.509 12.5694 12.2729 12.6667 11.997 12.6667ZM11.997 8C11.7212 8 11.4861 7.90179 11.2917 7.70537C11.0972 7.50897 11 7.27286 11 6.99704C11 6.72124 11.0982 6.48611 11.2946 6.29167C11.491 6.09722 11.7271 6 12.003 6C12.2788 6 12.5139 6.09821 12.7083 6.29463C12.9028 6.49103 13 6.72714 13 7.00296C13 7.27876 12.9018 7.51389 12.7054 7.70833C12.509 7.90278 12.2729 8 11.997 8Z');
+
+        const connectorCircleG = p
+          .append('g')
+          .attr('transform', d => `translate(${d.width}, ${d.height / 2})`)
+          .style('cursor', 'pointer');
+
+        connectorCircleG
+          .append('circle')
+          .attr('class', 'connector-indicator')
+          .attr('cx', '0')
+          .attr('cy', '0')
+          .attr('r', '5')
+          .attr('fill', 'transparent')
+          .attr('stroke-width', '2px');
       })
       .merge(nodeG)
       .call(updateNodePos)
+      .call(nodeDraggable())
       .call(p => {
+        const bgEl = p.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.bg')
+          .data(p.data(), d => d.id);
+
+        bgEl
+          .merge(bgEl)
+          .style('fill', '#e1e1e1');
+
         p.selectAll<SVGImageElement, AnnotationNode<dagre.Node>>('image')
           .data(p.data(), d => d.id)
           .attr('href', d => d.imageUrl)
-          .attr('width', d => d.width);
+          .attr('x', ANN_NODE_PADDING)
+          .attr('width', d => d.width - ANN_NODE_PADDING * 2)
+          .attr('y', ANN_NODE_PADDING);
 
         p.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.droptg.r')
           .data(p.data(), d => d.id);
@@ -1114,45 +1177,89 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-next').data(p.data(), d => d.id);
         p.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.actnicngrp-prev').data(p.data(), d => d.id);
 
-        const titleBar = p
-          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.screen-info')
+        const connectorIndicator = p
+          .selectAll<SVGCircleElement, AnnotationNode<dagre.Node>>('circle.connector-indicator')
           .data(p.data(), d => d.id);
 
-        titleBar.merge(titleBar)
-          .style('cursor', 'grab')
-          .attr('width', d => d.width - 20)
-          .attr('height', 24)
-          .attr('x', 20)
-          .attr('y', 0)
-          .call(nodeDraggable())
+        connectorIndicator
+          .merge(connectorIndicator)
+          .on('mouseover', function (e: MouseEvent) {
+            const el = select<SVGCircleElement, AnnotationNode<dagre.Node>>(this);
+            el.attr('r', 8);
+          })
+          .on('mouseout', function (e: MouseEvent) {
+            const el = select<SVGCircleElement, AnnotationNode<dagre.Node>>(this);
+            el.attr('r', 5);
+          })
+          .on('mousedown', function (e: MouseEvent) {
+            prevent(e);
+            if (createJourneyModalRef.current) return;
+            connectorG
+              .selectAll('path.guide-arr')
+              .data([this])
+              .enter()
+              .append('path')
+              .attr('class', 'guide-arr')
+              .style('fill', 'none')
+              .style('stroke', 'black')
+              .style('stroke-width', '2px')
+              .style('marker-end', 'url(#triangle-arrowhead)')
+              .attr('d', '');
+            isGuideArrowDrawing.current = 1;
+          });
+
+        const stepNumCon = p
+          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.step-num')
+          .data(p.data(), d => d.id);
+
+        stepNumCon.merge(stepNumCon)
+          .attr('width', d => d.width)
+          .attr('height', 45)
+          .attr('x', 0)
+          .attr('y', d => d.height - 45)
+          .style('border-radius', `${ANN_NODE_BORDER_RADIUS}px`)
           .call(fo => {
-            const screentitle = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+            const stepNumWrapper = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('div')
               .data(p.data(), d => d.id);
 
-            screentitle.merge(screentitle)
+            stepNumWrapper
+              .merge(stepNumWrapper)
+              .style('display', 'flex')
+              .style('align-items', 'flex-end')
+              .style('padding-right', '15px')
+              .style('height', '100%')
+              .style('width', 'fit-content')
+              .style('background', 'radial-gradient(100% 120% at 0px 120%, rgba(13, 18, 22, 0.7), rgba(0, 0, 0, 0))');
+
+            const stepNumber = stepNumWrapper.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .data(p.data(), d => d.id);
+
+            stepNumber.merge(stepNumber)
               .style('width', d => d.width)
               .style('height', '24px')
-              .style('display', 'block')
-              .style('text-align', 'center')
+              .style('display', 'inline-block')
+              .style('text-align', 'left')
+              .style('font-weight', 600)
               .style('margin', 0)
               .style('font-size', '16px')
-              .attr('class', 'poh')
-              .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
-              .style('color', 'black')
-              .style('padding', '2px')
+              .style('text-shadow', 'rgba(0, 0, 0, 1) 2px 0px 15px, rgb(0, 0, 0) 2px 0px 20px')
+              .style('color', 'white')
+              .style('padding', '2px 8px')
               .text(d => `${d.screenTitle.substring(0, 30)}${d.screenTitle.length > 30 ? '...' : ''}`);
           });
 
-        const annTextBar = p
+        const annTextCon = p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
           .data(p.data(), d => d.id);
 
-        annTextBar
-          .merge(annTextBar)
+        annTextCon
+          .merge(annTextCon)
+          .style('display', () => (showAnnText ? 'block' : 'none'))
           .attr('width', d => d.width)
-          .attr('height', 46)
+          .attr('height', d => d.height)
+          .style('border-radius', `${ANN_NODE_BORDER_RADIUS}px`)
           .attr('x', 0)
-          .attr('y', d => d.height - 46)
+          .attr('y', 0)
           .call(fo => {
             const annText = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
               .data(p.data(), d => d.id);
@@ -1164,14 +1271,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .style('height', '100%')
               .style('margin', 0)
               .style('font-size', '16px')
-              .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
               .style('color', 'black')
               .style('padding', '2px')
               .style('display', 'flex')
               .style('align-items', 'center')
               .style('justify-content', 'center')
               .style('cursor', 'pointer')
-              .text(d => `${d.text!.substring(0, 51)}${d.text!.length > 51 ? '...' : ''}`);
+              .style('text-align', 'center')
+              .style('background', 'rgba(0, 0, 0, 0.2)')
+              .style('color', 'black')
+              .text(d => `${d.text!.substring(0, 80)}${d.text!.length > 80 ? '...' : ''}`);
           });
 
         p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect.interaction-marker')
@@ -1183,77 +1292,89 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     nodeG
       .exit()
       .remove();
+  }, [props.allAnnotationsForTour, showAnnText]);
 
-    function resetNodePos(): void {
-      g
-        .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
-        .transition()
-        .attr(
-          'transform',
-          d => {
-            const pos = d.origStoredData!;
-            const x = pos.x - pos.width / 2;
-            const y = pos.y - pos.height / 2;
-            return `translate(${x}, ${y})`;
-          }
-        );
+  function resetNodePos(): void {
+    const g = select(rootGRef.current);
+    g
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+      .transition()
+      .attr(
+        'transform',
+        d => {
+          const pos = d.origStoredData!;
+          const x = pos.x - pos.width / 2;
+          const y = pos.y - pos.height / 2;
+          return `translate(${x}, ${y})`;
+        }
+      );
 
-      connectorG
-        .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
-        .call(p => {
-          ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
-            p.selectAll<SVGPathElement, EdgeWithData>(sel)
-              .data(p.data(), d => `${d.srcId}:${d.destId}`)
-              .attr('d', attr => lines(attr.points as any));
-          });
+    const lines = line<EdgeWithData>()
+      .curve(curveBasis)
+      .x(d => d.x)
+      .y(d => d.y);
+
+    g
+      .selectAll('rect.connectors')
+      .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+      .call(p => {
+        ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
+          p.selectAll<SVGPathElement, EdgeWithData>(sel)
+            .data(p.data(), d => `${d.srcId}:${d.destId}`)
+            .attr('d', attr => lines(attr.points as any));
         });
-    }
-  }, [props.allAnnotationsForTour]);
-
+      });
+  }
   const setAnnNodeSelectionStyle = (
     node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>,
     color: string,
   ): void => {
-    node.select('rect.interaction-marker')
+    node.selectAll('rect.interaction-marker')
       .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
       .style('stroke', color);
 
     node.selectAll('circle.plusicnbase')
       .style('fill', color);
 
+    node.selectAll('path.menuicn')
+      .style('fill', Tags.TILE_STROKE_COLOR_DEFAULT);
+
+    node.selectAll('rect.menuicnovrly')
+      .style('fill', color);
+
     node.selectAll('path.plusicn')
       .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
 
-    node.selectAll('rect.poh')
-      .style('stroke', color)
-      .style('fill', color)
-      .style('color', 'white');
-
-    node.selectAll('p.poh')
-      .style('background', color)
-      .style('color', 'white');
+    if (!annEditorModalRef.current) {
+      node
+        .selectAll('circle.connector-indicator')
+        .style('stroke', color)
+        .style('fill', 'white');
+    }
   };
 
   const resetAnnNodeSelectionStyle = (
     node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>
   ): void => {
-    node.select('rect.interaction-marker')
-      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
-      .style('stroke-width', TILE_STROKE_WIDTH_DEFAULT);
+    node.selectAll('rect.interaction-marker')
+      .style('stroke', 'transparent');
 
     node.selectAll('circle.plusicnbase')
+      .style('fill', 'transparent');
+
+    node.selectAll('path.menuicn')
+      .style('fill', 'transparent');
+
+    node.selectAll('rect.menuicnovrly')
       .style('fill', 'transparent');
 
     node.selectAll('path.plusicn')
       .style('stroke', 'transparent');
 
-    node.selectAll('rect.poh')
-      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
-      .style('fill', Tags.TILE_STROKE_COLOR_DEFAULT);
-
-    node.selectAll('p.poh')
-      .style('background', Tags.TILE_STROKE_COLOR_DEFAULT)
-      .style('color', 'black');
+    node
+      .selectAll('circle.connector-indicator')
+      .style('stroke', 'transparent')
+      .style('fill', 'transparent');
   };
 
   const getAnnModalArrowLeftPos = (): number => {
@@ -1538,31 +1659,69 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   return (
     <>
-      <Tags.SVGCanvas
-        id="fab-tour-canvas"
-        viewBox={viewBox}
-        ref={svgRef}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <clipPath id="fit-rect">
-            <rect x="0" y="0" width={canvasGrid.gridSize * 6} height={canvasGrid.gridSize * 4} />
-          </clipPath>
-          <marker
-            id="triangle-arrowhead"
-            markerWidth="5"
-            markerHeight="10"
-            refX="5"
-            refY="5"
-            orient="auto"
+      <GTags.ColCon>
+        <GTags.HeaderCon>
+          <Header
+            {...props.headerProps}
+            canvasOptions={{
+              resetZoom: () => {
+                if (annEditorModal) return;
+                const transform = zoomIdentity
+                  .translate(canvasGrid.initial.tx, canvasGrid.initial.ty)
+                  .scale(canvasGrid.initial.scale);
+
+                select<SVGSVGElement, unknown>(svgRef.current!)
+                  .transition()
+                  .duration(ANN_EDITOR_ANIM_DUR)
+                  .call(zoomBehaviorRef.current!.transform, transform);
+              },
+              showAnnText,
+              setShowAnnText
+            }}
+          />
+        </GTags.HeaderCon>
+        <GTags.BodyCon
+          style={{
+            height: '100%',
+            background: '#fff',
+            overflowY: 'hidden',
+            position: 'relative',
+          }}
+        >
+          <Tags.SVGCanvas
+            id="fab-tour-canvas"
+            viewBox={viewBox}
+            ref={svgRef}
+            xmlns="http://www.w3.org/2000/svg"
           >
-            <path d="M 0 0 5 5 0 10 Z" style={{ fill: 'black' }} />
-          </marker>
-        </defs>
-        <rect id="pattern-fill" width="100%" height="100%" />
-        <g id="fab-tour-canvas-main" ref={rootGRef} />
-      </Tags.SVGCanvas>
-      {
+            <defs>
+              <clipPath id="fit-rect">
+                <rect
+                  x={ANN_NODE_PADDING}
+                  y={ANN_NODE_PADDING}
+                  rx={ANN_NODE_BORDER_RADIUS}
+                  ry={ANN_NODE_BORDER_RADIUS}
+                  width={ANN_NODE_WIDTH - 2 * ANN_NODE_PADDING}
+                  height={ANN_NODE_HEIGHT - 2 * ANN_NODE_PADDING}
+                />
+              </clipPath>
+              <marker
+                id="triangle-arrowhead"
+                markerWidth="5"
+                markerHeight="10"
+                refX="5"
+                refY="5"
+                orient="auto"
+              >
+                <path d="M 0 0 5 5 0 10 Z" style={{ fill: CONNECTOR_COLOR_NON_HOVERED }} />
+              </marker>
+            </defs>
+            <rect width="100%" height="100%" fill="#FAFAFA" />
+            <rect id="pattern-fill" width="100%" height="100%" />
+            <g id="fab-tour-canvas-main" ref={rootGRef} />
+          </Tags.SVGCanvas>
+
+          {
         !annEditorModal && (
           <Tags.CanvasMenuCon
             onClick={prevent}
@@ -1631,142 +1790,149 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           </Tags.CanvasMenuCon>
         )
       }
-      {
+          {
         showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
       }
-      {isMenuModalVisible(connectorMenuModalData.position) && (
-        <Tags.MenuModalMask onClick={() => {
-          ctxData.current = null;
-          setConnectorMenuModalData(initialConnectorModalData);
-        }}
-        >
-          <Tags.MenuModal xy={connectorMenuModalData.position} onClick={prevent}>
-            <div
-              className="menu-item danger"
-              onClick={() => {
-                confirm({
-                  title: 'Are you sure you want to delete the connector?',
-                  content: `This connector will get deleted and previous 
-                  annotation and next annotation will get separated`,
-                  okText: 'Delete',
-                  okType: 'danger',
-                  onOk() {
-                    traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                    const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
-                    const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
-                    const result = deleteConnection(
-                      fromAnnId,
-                      toAnnId,
-                      props.allAnnotationsForTour
-                    );
-                    props.applyAnnButtonLinkMutations(result);
-                    setConnectorMenuModalData(initialConnectorModalData);
-                  },
-                  onCancel() { },
-                });
-              }}
-            >
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                <DisconnectOutlined style={{ marginTop: '2px' }} />
-                <div>
-                  Delete this connector
-                  <div className="subtext">This action will break the flow in two parts</div>
-                </div>
-              </div>
-            </div>
-          </Tags.MenuModal>
-        </Tags.MenuModalMask>
-      )}
-      {isMenuModalVisible(nodeMenuModalData.position) && (
-        <Tags.MenuModalMask onClick={() => {
-          ctxData.current = null;
-          setNodeMenuModalData(initialAnnNodeModalData);
-        }}
-        >
-          <Tags.MenuModal xy={nodeMenuModalData.position} onClick={prevent}>
-            <div
-              className="menu-item danger"
-              onClick={() => {
-                confirm({
-                  title: 'Are you sure you want to delete this annotation?',
-                  content: 'This annotation will be deleted and the previous annotation will get connected to the next',
-                  okText: 'Delete',
-                  okType: 'danger',
-                  onOk() {
-                    traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
-                      annotation_op_location: 'canvas'
-                    }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                    const [screenId, annId] = nodeMenuModalData.annId.split('/');
-
-                    handleReselectionOfPrevAnnWhenCurAnnIsDeleted(annId);
-
-                    const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
-                    const main = props.tourOpts.main;
-                    const result = deleteAnnotation(
-                      { ...currentAnn, screenId: +screenId },
-                      props.allAnnotationsForTour,
-                      main,
-                      true
-                    );
-
-                    props.applyAnnButtonLinkMutations(result);
-                    setNodeMenuModalData(initialAnnNodeModalData);
-                  },
-                  onCancel() { }
-                });
-              }}
-            >
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                <DeleteOutlined style={{ marginTop: '2px' }} />
-                <div>
-                  Delete this annotation
-                  <div className="subtext">Prev and next annotation will be connected</div>
-                </div>
-              </div>
-            </div>
-          </Tags.MenuModal>
-        </Tags.MenuModalMask>
-      )}
-      {isMenuModalVisible(addScreenModalData.position) && addScreenModalData.screenAnnotation && (
-        <Tags.MenuModalMask onClick={() => {
-          setAddScreenModalData(initialAddScreenModal);
-        }}
-        >
-          <Tags.MenuModal xy={addScreenModalData.position} onClick={prevent}>
-            <NewAnnotationPopup
-              position={addScreenModalData.annotationPosition === 'next'
-                ? DestinationAnnotationPosition.next : DestinationAnnotationPosition.prev}
-              allAnnotationsForTour={props.allAnnotationsForTour}
-              annotation={addScreenModalData.screenAnnotation}
-              tourDataOpts={props.tourOpts}
-              hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
-              raiseAlertIfOpsDenied={props.setAlert}
-              applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-              shouldShowScreenPicker={props.shouldShowScreenPicker}
-              calledFrom="canvas"
-              onCoverAnnAdded={(annRefId: string, screenRefId: number) => {
-                props.navigate(`${screenRefId}/${annRefId}`, 'annotation-hotspot');
-              }}
-            />
-          </Tags.MenuModal>
-        </Tags.MenuModalMask>
-      )}
-      {
-        props.shouldShowOnlyScreen && (
-          <Tags.AnnEditorModalWrapper
-            top={20}
+          {isMenuModalVisible(connectorMenuModalData.position) && (
+          <Tags.MenuModalMask onClick={() => {
+            ctxData.current = null;
+            setConnectorMenuModalData(initialConnectorModalData);
+          }}
           >
-            <Tags.AnnEditorModal style={{ position: 'relative' }}>
-              <Tags.CloseIcon
-                alt=""
-                src={CloseIcon}
-                role="button"
-                tabIndex={0}
-                onClick={resetSelectedAnn}
-                style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+            <Tags.MenuModal xy={connectorMenuModalData.position} onClick={prevent}>
+              <div
+                className="menu-item danger"
+                onClick={() => {
+                  confirm({
+                    title: 'Are you sure you want to delete the connector?',
+                    content: `This connector will get deleted and previous 
+                  annotation and next annotation will get separated`,
+                    okText: 'Delete',
+                    okType: 'danger',
+                    onOk() {
+                      traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                      const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
+                      const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
+                      const result = deleteConnection(
+                        fromAnnId,
+                        toAnnId,
+                        props.allAnnotationsForTour
+                      );
+                      props.applyAnnButtonLinkMutations(result);
+                      setConnectorMenuModalData(initialConnectorModalData);
+                    },
+                    onCancel() { },
+                  });
+                }}
+              >
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <DisconnectOutlined style={{ marginTop: '2px' }} />
+                  <div>
+                    Delete this connector
+                    <div className="subtext">This action will break the flow in two parts</div>
+                  </div>
+                </div>
+              </div>
+            </Tags.MenuModal>
+          </Tags.MenuModalMask>
+          )}
+          {isMenuModalVisible(nodeMenuModalData.position) && (
+          <Tags.MenuModalMask onClick={() => {
+            ctxData.current = null;
+            setNodeMenuModalData(initialAnnNodeModalData);
+          }}
+          >
+            <Tags.MenuModal xy={nodeMenuModalData.position} onClick={prevent}>
+              <div
+                className="menu-item"
+                onClick={() => {
+                  confirm({
+                    title: 'Are you sure you want to delete this annotation?',
+                    content: `This annotation will be deleted and the previous annotation 
+                    will get connected to the next`,
+                    okText: 'Delete',
+                    okType: 'danger',
+                    onOk() {
+                      traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
+                        annotation_op_location: 'canvas'
+                      }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                      const [screenId, annId] = nodeMenuModalData.annId.split('/');
+
+                      handleReselectionOfPrevAnnWhenCurAnnIsDeleted(annId);
+
+                      const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
+                      const main = props.tourOpts.main;
+                      const result = deleteAnnotation(
+                        { ...currentAnn, screenId: +screenId },
+                        props.allAnnotationsForTour,
+                        main,
+                        true
+                      );
+
+                      props.applyAnnButtonLinkMutations(result);
+                      setNodeMenuModalData(initialAnnNodeModalData);
+                    },
+                    onCancel() { }
+                  });
+                }}
+              >
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <img
+                    src={DeleteIcon}
+                    width="24px"
+                    height="24px"
+                    alt="delete annotation"
+                    style={{ width: '1.5rem' }}
+                  />
+                  <div>
+                    Delete this annotation
+                    <div className="subtext">Prev and next annotation will be connected</div>
+                  </div>
+                </div>
+              </div>
+            </Tags.MenuModal>
+          </Tags.MenuModalMask>
+          )}
+          {isMenuModalVisible(addScreenModalData.position) && addScreenModalData.screenAnnotation && (
+          <Tags.MenuModalMask onClick={() => {
+            setAddScreenModalData(initialAddScreenModal);
+          }}
+          >
+            <Tags.MenuModal xy={addScreenModalData.position} onClick={prevent}>
+              <NewAnnotationPopup
+                position={addScreenModalData.annotationPosition === 'next'
+                  ? DestinationAnnotationPosition.next : DestinationAnnotationPosition.prev}
+                allAnnotationsForTour={props.allAnnotationsForTour}
+                annotation={addScreenModalData.screenAnnotation}
+                tourDataOpts={props.tourOpts}
+                hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
+                raiseAlertIfOpsDenied={props.setAlert}
+                applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                shouldShowScreenPicker={props.shouldShowScreenPicker}
+                calledFrom="canvas"
+                onCoverAnnAdded={(annRefId: string, screenRefId: number) => {
+                  props.navigate(`${screenRefId}/${annRefId}`, 'annotation-hotspot');
+                }}
               />
-              {
-                props.isScreenLoaded && (
+            </Tags.MenuModal>
+          </Tags.MenuModalMask>
+          )}
+          {
+            props.shouldShowOnlyScreen && (
+            <Tags.AnnEditorModalWrapper
+              top={20}
+            >
+              <Tags.AnnEditorModal style={{ position: 'relative' }}>
+                <Tags.CloseIcon
+                  alt=""
+                  src={CloseIcon}
+                  role="button"
+                  tabIndex={0}
+                  onClick={resetSelectedAnn}
+                  style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+                />
+                {
+                  props.isScreenLoaded && (
                   <ScreenEditor
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -1792,91 +1958,92 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     isScreenLoaded={props.isScreenLoaded}
                     updateScreen={props.updateScreen}
                   />
-                )
-              }
-
-            </Tags.AnnEditorModal>
-          </Tags.AnnEditorModalWrapper>
-        )
-      }
-      {
-        isAnnSelected && (
-          <Tags.AnnEditorModalCon>
-            <Tags.AnnEditorModalArrow
-              top={ANN_EDITOR_TOP - 12}
-              left={getAnnModalArrowLeftPos()}
-              applyTransition={annEditorModal.applyTransitionToArrow}
-              width={`${15}px`}
-              height={`${12}px`}
-              viewBox="-50 0 100 80"
-              style={{ verticalAlign: 'bottom' }}
-            >
-              <path
-                fill="#9f96fa"
-                d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
-              />
-            </Tags.AnnEditorModalArrow>
-            <Tags.AnnEditorModalWrapper
-              top={ANN_EDITOR_TOP}
-            >
-              <Tags.AnnEditorModal style={{ position: 'relative' }}>
-                <Tags.CloseIcon
-                  alt=""
-                  src={CloseIcon}
-                  role="button"
-                  tabIndex={0}
-                  onClick={resetSelectedAnn}
-                  style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
-                />
-                {
-                  props.isScreenLoaded && showScreenEditor && (
-                    <ScreenEditor
-                      annotationSerialIdMap={props.annotationSerialIdMap}
-                      key={props.screen!.rid}
-                      screen={props.screen!}
-                      tour={props.tour!}
-                      screenData={props.screenData!}
-                      allEdits={props.allEdits}
-                      toAnnotationId={selectedAnnId}
-                      navigate={props.navigate}
-                      setAlert={props.setAlert}
-                      timeline={props.timeline}
-                      allAnnotationsForScreen={props.allAnnotationsForScreen}
-                      allAnnotationsForTour={props.allAnnotationsForTour}
-                      tourDataOpts={props.tourOpts}
-                      commitTx={props.commitTx}
-                      onScreenEditStart={props.onScreenEditStart}
-                      onScreenEditFinish={props.onScreenEditFinish}
-                      onScreenEditChange={props.onScreenEditChange}
-                      onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
-                      applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                      shouldShowScreenPicker={props.shouldShowScreenPicker}
-                      showEntireTimeline={false}
-                      isScreenLoaded={props.isScreenLoaded}
-                      onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
-                      updateScreen={props.updateScreen}
-                    />
                   )
                 }
               </Tags.AnnEditorModal>
             </Tags.AnnEditorModalWrapper>
-          </Tags.AnnEditorModalCon>
-        )
-      }
-      <SelectorComponent userGuides={userGuides} />
-      {
-        showJourneyEditor && <CreateJourney
-          closeEditor={() => { setShowJourneyEditor(false); resetCreateJourneyZoom(); setFirstAnnotations([]); }}
-          firstAnnotations={firstAnnotations}
-          getAnnInView={zoomAnnInView}
-          resetHoveredNode={() => {
-            const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
-            resetAnnNodeSelectionStyle(annNodes);
-          }}
-          onTourJourneyChange={props.onTourJourneyChange}
-          tourOpts={props.tourOpts}
-        />
-      }
+            )
+          }
+          {
+            isAnnSelected && (
+            <Tags.AnnEditorModalCon>
+              <Tags.AnnEditorModalArrow
+                top={ANN_EDITOR_TOP - 12}
+                left={getAnnModalArrowLeftPos()}
+                applyTransition={annEditorModal.applyTransitionToArrow}
+                width={`${15}px`}
+                height={`${12}px`}
+                viewBox="-50 0 100 80"
+                style={{ verticalAlign: 'bottom' }}
+              >
+                <path
+                  fill="#9f96fa"
+                  d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
+                />
+              </Tags.AnnEditorModalArrow>
+              <Tags.AnnEditorModalWrapper
+                top={ANN_EDITOR_TOP}
+              >
+                <Tags.AnnEditorModal style={{ position: 'relative' }}>
+                  <Tags.CloseIcon
+                    alt=""
+                    src={CloseIcon}
+                    role="button"
+                    tabIndex={0}
+                    onClick={resetSelectedAnn}
+                    style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+                  />
+                  {
+                props.isScreenLoaded && showScreenEditor && (
+                  <ScreenEditor
+                    annotationSerialIdMap={props.annotationSerialIdMap}
+                    key={props.screen!.rid}
+                    screen={props.screen!}
+                    tour={props.tour!}
+                    screenData={props.screenData!}
+                    allEdits={props.allEdits}
+                    toAnnotationId={selectedAnnId}
+                    navigate={props.navigate}
+                    setAlert={props.setAlert}
+                    timeline={props.timeline}
+                    allAnnotationsForScreen={props.allAnnotationsForScreen}
+                    allAnnotationsForTour={props.allAnnotationsForTour}
+                    tourDataOpts={props.tourOpts}
+                    commitTx={props.commitTx}
+                    onScreenEditStart={props.onScreenEditStart}
+                    onScreenEditFinish={props.onScreenEditFinish}
+                    onScreenEditChange={props.onScreenEditChange}
+                    onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
+                    applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
+                    shouldShowScreenPicker={props.shouldShowScreenPicker}
+                    showEntireTimeline={false}
+                    isScreenLoaded={props.isScreenLoaded}
+                    onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
+                    updateScreen={props.updateScreen}
+                  />
+                )
+              }
+                </Tags.AnnEditorModal>
+              </Tags.AnnEditorModalWrapper>
+            </Tags.AnnEditorModalCon>
+            )
+          }
+          {
+            showJourneyEditor && <CreateJourney
+              closeEditor={() => { setShowJourneyEditor(false); resetCreateJourneyZoom(); setFirstAnnotations([]); }}
+              firstAnnotations={firstAnnotations}
+              getAnnInView={zoomAnnInView}
+              resetHoveredNode={() => {
+                const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+                resetAnnNodeSelectionStyle(annNodes);
+              }}
+              onTourJourneyChange={props.onTourJourneyChange}
+              tourOpts={props.tourOpts}
+            />
+          }
+          <SelectorComponent userGuides={userGuides} />
+        </GTags.BodyCon>
+      </GTags.ColCon>
     </>
   );
 }

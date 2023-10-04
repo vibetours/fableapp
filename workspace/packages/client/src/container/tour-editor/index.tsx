@@ -106,7 +106,11 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
     (screen: P_RespScreen, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screen, edits)),
-  saveTourData: (tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate?: boolean) => dispatch(saveTourData(tour, data, isJourneyUpdate)),
+  saveTourData: (
+    tour: P_RespTour,
+    data: TourDataWoScheme,
+    isJourneyUpdate?: boolean
+  ) => dispatch(saveTourData(tour, data, isJourneyUpdate)),
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
@@ -588,22 +592,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <GTags.ColCon>
-        <GTags.HeaderCon>
-          <Header
-            navigateToWhenLogoIsClicked="/tours"
-            subs={this.props.subs}
-            titleElOnLeft={this.getHeaderTxtEl()}
-            leftElGroups={this.getHeaderLeftGroup()}
-            principal={this.props.principal}
-            titleText={this.props.screen?.displayName}
-            renameScreen={(newVal: string) => this.props.renameScreen(this.props.screen!, newVal)}
-            showRenameIcon={this.isInCanvas()}
-            showPreview={`/p/tour/${this.props.tour?.rid}`}
-            isTourMainSet={this.props.isMainValid}
-            isAutoSaving={this.props.isAutoSaving}
-            warnings={this.getTourWarnings()}
-          />
-        </GTags.HeaderCon>
         <GTags.BodyCon style={{
           height: '100%',
           background: '#fff',
@@ -650,6 +638,20 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               )}
               updateScreen={this.props.updateScreen}
               onTourJourneyChange={this.onTourJourneyChange}
+              headerProps={{
+                navigateToWhenLogoIsClicked: '/tours',
+                subs: this.props.subs,
+                titleElOnLeft: this.getHeaderTxtEl(),
+                leftElGroups: this.getHeaderLeftGroup(),
+                principal: this.props.principal,
+                titleText: this.props.screen?.displayName,
+                renameScreen: (newVal: string) => this.props.renameScreen(this.props.screen!, newVal),
+                showRenameIcon: this.isInCanvas(),
+                showPreview: `/p/tour/${this.props.tour?.rid}`,
+                isTourMainSet: this.props.isMainValid,
+                isAutoSaving: this.props.isAutoSaving,
+                warnings: this.getTourWarnings(),
+              }}
             />
 
           </div>

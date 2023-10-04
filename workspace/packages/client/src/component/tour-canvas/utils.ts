@@ -1,5 +1,5 @@
 import { getRandomId } from '@fable/common/dist/utils';
-import { AnnotationNode, Box, CanvasGrid, Edge, Point } from './types';
+import { AnnotationNode, Box, Edge, Point } from './types';
 import { ConnectedOrderedAnnGroupedByScreen } from '../../types';
 import { getAnnotationBtn } from '../annotation/ops';
 

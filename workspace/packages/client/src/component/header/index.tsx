@@ -1,4 +1,4 @@
-import React, { ReactElement, useState } from 'react';
+import React, { Dispatch, ReactElement, SetStateAction, useState } from 'react';
 import { Button as AntButton, message } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser, Status } from '@fable/common/dist/api-contract';
@@ -7,6 +7,7 @@ import {
   CaretRightOutlined,
   EditOutlined,
   LogoutOutlined,
+  MoreOutlined,
   SaveOutlined,
   ShareAltOutlined,
   WarningOutlined
@@ -40,10 +41,15 @@ interface IOwnProps {
   renameScreen?: (newVal: string) => void;
   isTourMainSet?: boolean;
   isAutoSaving?: boolean;
-  warnings?: string[]
+  warnings?: string[];
+  canvasOptions?: {
+    resetZoom: () => void;
+    showAnnText: boolean;
+    setShowAnnText: Dispatch<SetStateAction<boolean>>;
+  }
 }
 
-type IProps = IOwnProps;
+export type HeaderProps = IOwnProps;
 
 const CMN_HEADER_GRP_STYLE = {
   display: 'flex',
@@ -63,7 +69,7 @@ function Header(props: IOwnProps): JSX.Element {
   const [showRenameScreenModal, setShowRenameScreenModal] = useState(false);
   const [screenName, setScreenName] = useState(props.titleText || '');
 
-  const handleRenameScreenModalOk = () => {
+  const handleRenameScreenModalOk = (): void => {
     const newVal = screenName.trim().replace(/\s+/, ' ');
     if (newVal.toLowerCase() === props.titleText!.toLowerCase()) {
       setShowRenameScreenModal(false);
@@ -73,7 +79,7 @@ function Header(props: IOwnProps): JSX.Element {
     setShowRenameScreenModal(false);
   };
 
-  const handleRenameScreenModalCancel = () => {
+  const handleRenameScreenModalCancel = (): void => {
     setShowRenameScreenModal(false);
   };
 
@@ -155,21 +161,25 @@ function Header(props: IOwnProps): JSX.Element {
         >
           <SaveOutlined style={{ color: 'white' }} />
         </div>
-        {props.showPreview && (
-          <div style={{
-            display: 'flex',
-            marginRight: '1rem',
-            paddingRight: '1rem',
-            borderRight: '1px solid #ffffff42'
-          }}
-          >
+
+        <div style={{
+          display: 'flex',
+          marginRight: '1rem',
+          paddingRight: '1rem',
+          borderRight: '1px solid #ffffff42'
+        }}
+        >
+          {props.showPreview && (
+          <>
             {
               props.warnings && props.warnings.length > 0 && (
                 <Tags.MenuItem>
                   <Tooltip
                     title={(
                       <>
-                        { props.warnings.map((warning, i) => <div style={{ marginBottom: '1rem' }} key={i}>- {warning}</div>)}
+                        { props.warnings.map((warning, i) => (
+                          <div style={{ marginBottom: '1rem' }} key={i}>- {warning}</div>
+                        ))}
                       </>)}
                     overlayStyle={{ fontSize: '0.8rem' }}
                     overlayInnerStyle={{ padding: '1rem' }}
@@ -230,8 +240,59 @@ function Header(props: IOwnProps): JSX.Element {
                 </>
               )
             }
-          </div>
-        )}
+          </>
+          )}
+          {
+            props.canvasOptions && (
+              <Tags.MenuItem>
+                <Tags.StyledPopover
+                  trigger="click"
+                  content={
+                    <Tags.CanvasOptionsCon>
+                      <Tags.CanvasOption
+                        type="button"
+                        onClick={() => props.canvasOptions!.setShowAnnText((prev) => !prev)}
+                      >
+                        {props.canvasOptions.showAnnText ? 'Hide ' : 'Show '}
+                        annotation text
+                      </Tags.CanvasOption>
+                      <Tags.CanvasOption
+                        type="button"
+                        onClick={props.canvasOptions.resetZoom}
+                        style={{ borderBottom: 'none' }}
+                      >
+                        Reset canvas position
+                      </Tags.CanvasOption>
+                    </Tags.CanvasOptionsCon>
+              }
+                >
+                  <div
+                    style={{
+                      color: 'white',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer'
+                    }}
+                    id="step-3"
+                  >
+                    <AntButton
+                      size="small"
+                      shape="circle"
+                      type="text"
+                      icon={<MoreOutlined
+                        style={{ color: 'white' }}
+                      />}
+                      onClick={(e) => {
+                      }}
+                    />
+                  </div>
+                </Tags.StyledPopover>
+              </Tags.MenuItem>
+            )
+        }
+        </div>
         {props.rBtnTxt && (
           <Tags.MenuItem>
             <AntButton shape="round" size="middle">
@@ -241,7 +302,7 @@ function Header(props: IOwnProps): JSX.Element {
         )}
         {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
-            <Popover
+            <Tags.StyledPopover
               trigger="click"
               placement="bottomRight"
               content={
@@ -278,7 +339,7 @@ function Header(props: IOwnProps): JSX.Element {
                 <GTags.Avatar glow sl src={props.principal?.avatar} alt="pic" referrerPolicy="no-referrer" />
                 <CaretDownOutlined />
               </div>
-            </Popover>
+            </Tags.StyledPopover>
           </Tags.MenuItem>
         )}
       </Tags.RMenuCon>

@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import Button from 'antd/lib/button';
+import { Popover } from 'antd';
 
 export const ConLogoImg = styled.img`
   height: 2.5rem;
@@ -116,7 +117,7 @@ export const TrialBadgeCon = styled.div`
   align-items: center;
   font-size: 0.85rem;
   font-weight: 600;
-  jlex-direction: row;
+  flex-direction: row;
   transition: transform 0.2s ease-out;
   transform: translate(0, 0);
 
@@ -151,5 +152,34 @@ export const CodeCon = styled.code`
     cursor: pointer;
     position: absolute;
     right: 0.5rem;
+  }
+`;
+
+export const CanvasOptionsCon = styled.div`
+  width: 180px;
+`;
+
+export const StyledPopover = styled(Popover)`
+  .ant-popover-inner {
+    border-radius: 16px !important;
+    border: 1px solid #EAEAEA !important;
+    background: var(--White, #FFF) !important;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.08) !important;
+  }
+`;
+
+export const CanvasOption = styled.button`
+  display: block;
+  background-color: white;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #16023E;
+
+  &:hover {
+    background-color: #F8F8F8;
   }
 `;

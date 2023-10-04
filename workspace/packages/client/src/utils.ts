@@ -170,11 +170,11 @@ const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 export const generateScreenIndex = (timelineCount: number, timelineIdx: number, annIdx: number): string => {
   if (timelineCount > 1) {
-    const screenIdx = `Step ${String.fromCharCode(65 + timelineIdx)}-${annIdx}`;
+    const screenIdx = `${String.fromCharCode(65 + timelineIdx)}-${annIdx}`;
     return screenIdx;
   }
 
-  return `Step ${annIdx.toString()}`;
+  return `${annIdx.toString()}`;
 };
 
 export const assignScreenIndices = (

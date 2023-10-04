@@ -4,6 +4,8 @@ import { ModalPosition } from './types';
 export const TILE_STROKE_COLOR_ON_HOVER = '#7566ff';
 export const TILE_STROKE_COLOR_DEFAULT = '#E0E0E0';
 export const TILE_STROKE_COLORON_SELECT = '#9f96fa';
+export const MENU_ICN_DOTS_COLOR = '#16023E';
+export const MENU_ICN_BG_COLOR = '#E6E6E6';
 
 export const SVGCanvas = styled.svg`
   position: absolute;
@@ -284,24 +286,28 @@ export const MenuModal = styled.div<{xy: ModalPosition}>`
   right: ${props => (props.xy[2] === 'r' ? props.xy[0] : 'auto')}px;
   top: ${props => props.xy[1]}px;
   position: absolute;
-  background: #FAFAFA;
-  padding: 0.5rem 0.55rem;
-  border-radius: 2px;
-  box-shadow: 0 0 3px -1px black;
   font-size: 0.9rem;
   z-index: 2;
+  border-radius: 16px;  
+  border: 1px solid #EAEAEA;
+  background: var(--White, #FFF);
+  box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.08);
+  color: #16023E;
+  padding: 1rem 0.5rem;
 
   div.menu-item {
-    padding: 0.25rem 0.45rem;
-    border-radius: 2px;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 1rem;
+    line-height: 20px; 
 
     .subtext {
       font-size: 0.75rem;
-      color: gray;
+      color: #747474;
     }
 
     &:hover {
-      background: #EEEEEE;
+      background: #F8F8F8;
       cursor: pointer;
     }
   }
