@@ -63,6 +63,7 @@ export interface IOwnProps {
   currentFlowMain: string;
   updateCurrentFlowMain: (main: string)=> void;
   closeJourneyMenu? : ()=> void;
+  screenRidOnWhichDiffsAreApplied?: string;
 }
 
 interface IOwnStateProps {
@@ -626,6 +627,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const goToScreen = this.getScreenById(+goToScreenId)!;
     const currScreen = this.getScreenById(+currScreenId)!;
 
+    const areDiffsAppliedToCurrIframe = currScreen.type === ScreenType.SerDom
+    && currScreen.rid !== this.props.screenRidOnWhichDiffsAreApplied!;
+
     /**
      * If either of the screen type is image,
      * OR
@@ -635,6 +639,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if ((goToScreen.type === ScreenType.Img || currScreen.type === ScreenType.Img)
     || (goToScreen.urlStructured.host !== currScreen.urlStructured.host)
     ) {
+      if (areDiffsAppliedToCurrIframe) {
+        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+      }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
     }
@@ -654,6 +661,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      *  TODO:// Wait until data is present instead of using navigate
      */
     if (!currScreenData || !goToScreenData) {
+      if (areDiffsAppliedToCurrIframe) {
+        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+      }
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       return;
     }
@@ -666,6 +676,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      */
     if (currScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION
       || goToScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION) {
+      if (areDiffsAppliedToCurrIframe) {
+        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+      }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
     }
@@ -730,6 +743,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }, 300);
     } catch (err) {
       captureException(err);
+      this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       deserFrame(
         currScreenData.docTree,
@@ -751,6 +765,33 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       playVideoAnn(goToScreenId, goToAnnId);
     }
   };
+
+  resetIframe = (rid: string): Promise<void> => new Promise((res, rej) => {
+    setTimeout(() => {
+      const screenonwhichDiffsWereApplied = this.props.allScreens!
+        .find(s => s.rid === rid)!;
+      const currScreenData = this.props.allScreensData![screenonwhichDiffsWereApplied.id];
+
+      const htmlEl = this.annotationLCM!.elFromPath('1')!;
+
+      const replacedNode = this.deserElOrIframeEl(
+        currScreenData.docTree,
+          this.annotationLCM!.getDoc(),
+          currScreenData.version,
+          {
+            partOfSvgEl: 0,
+            shadowParent: null
+          }
+      )!;
+
+      htmlEl.replaceWith(replacedNode);
+
+      this.annotationLCM!.resetCons();
+      this.addFont();
+      scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
+      res();
+    }, 0);
+  });
 
   render(): JSX.Element {
     const refs = [this.embedFrameRef];

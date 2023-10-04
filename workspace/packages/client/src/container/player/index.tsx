@@ -407,6 +407,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             .map(config => (
               <PreviewWithEditsAndAnRO
                 annotationSerialIdMap={this.state.annotationSerialIdMap}
+                screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
                 key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
