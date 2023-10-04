@@ -8,7 +8,7 @@ import {
   DeleteOutlined,
   MoreOutlined
 } from '@ant-design/icons';
-import { Tooltip, Popover, Button, notification, Modal } from 'antd';
+import { Tooltip, Popover, Button, message } from 'antd';
 import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { P_RespTour } from '../../entity-processor';
@@ -27,21 +27,20 @@ interface Props {
 }
 
 export default function TourCard({ tour, handleShowModal, handleDelete }: Props): JSX.Element {
+  const [messageApi, contextHolder] = message.useMessage();
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
 
   const copyHandler = async (): Promise<void> => {
     const text = createIframe(`/p/tour/${tour?.rid}`);
     await copyToClipboard(text);
-    setIsShareModalVisible(false);
-    notificationApi.success({
-      message: 'Copied to clipboard',
-      duration: 1.5,
+    messageApi.open({
+      type: 'success',
+      content: 'Copied to clipboard',
     });
   };
   return (
     <>
-      {notificationContextHolder}
+      {contextHolder}
       <Tags.TourCardCon to={`/tour/${tour.rid}`}>
         <Tags.TourThumbnail />
         <Tags.CardDataCon>

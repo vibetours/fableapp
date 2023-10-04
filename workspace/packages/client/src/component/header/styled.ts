@@ -134,3 +134,22 @@ export const TrialBadgeCon = styled.div`
     cursor: pointer;
   }
 `;
+
+export const CodeCon = styled.code`
+  display: block;
+  border: 1px solid lightgray;
+  padding: 0.5rem;
+  border-radius: 12px;
+  position: relative;
+
+  .copy-outline {
+    background-color: #ebebeb;
+    color: #7a7a7a;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    position: absolute;
+    right: 0.5rem;
+  }
+`;

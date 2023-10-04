@@ -1,5 +1,5 @@
 import React, { ReactElement, useState } from 'react';
-import { Button as AntButton, notification } from 'antd';
+import { Button as AntButton, message } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser, Status } from '@fable/common/dist/api-contract';
 import {
@@ -56,7 +56,7 @@ const CMN_HEADER_GRP_DIVISION = {
 };
 
 function Header(props: IOwnProps): JSX.Element {
-  const [notificationApi, notificationContextHolder] = notification.useNotification();
+  const [messageApi, contextHolder] = message.useMessage();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -93,16 +93,15 @@ function Header(props: IOwnProps): JSX.Element {
   const copyHandler = async (): Promise<void> => {
     const text = createIframe(props.showPreview);
     await copyToClipboard(text);
-    closeModal();
-    notificationApi.success({
-      message: 'Copied to clipboard',
-      duration: 1.5,
+    messageApi.open({
+      type: 'success',
+      content: 'Copied to clipboard',
     });
   };
 
   return (
     <Tags.Con style={{ color: '#fff' }}>
-      {notificationContextHolder}
+      {contextHolder}
       <Tags.LMenuCon style={CMN_HEADER_GRP_STYLE}>
         <div style={{ ...CMN_HEADER_GRP_STYLE, gap: '0.5rem' }}>
           {props.shouldShowFullLogo ? (

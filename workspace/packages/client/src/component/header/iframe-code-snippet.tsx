@@ -1,7 +1,11 @@
 import React from 'react';
+import { Tooltip } from 'antd/lib';
+import { CopyOutlined } from '@ant-design/icons';
+import * as Tags from './styled';
 
 interface Props {
-    src: string,
+    src: string;
+    copyHandler: () => void;
 }
 
 const pMargin = '0.25rem 0.25rem 0.25rem 1.5rem';
@@ -11,7 +15,14 @@ const attrValStyle = { color: '#50a14f' };
 
 export default function IframeCodeSnippet(props: Props): JSX.Element {
   return (
-    <code>
+    <Tags.CodeCon>
+      <Tooltip title="Copy to clipboard">
+        <CopyOutlined
+          className="copy-outline"
+          onClick={props.copyHandler}
+        />
+      </Tooltip>
+
       <p style={{ margin: '0 0.25rem', ...tagStyle }}>{'<iframe'}</p>
       <p style={{ margin: pMargin }}>
         <span style={{ ...attrKeyStyle }}>style="</span>
@@ -31,6 +42,6 @@ export default function IframeCodeSnippet(props: Props): JSX.Element {
         <span style={{ ...attrKeyStyle }}>allowfullscreen</span>
       </p>
       <p style={{ margin: '0 0.25rem', ...tagStyle }}>{'</iframe>'}</p>
-    </code>
+    </Tags.CodeCon>
   );
 }

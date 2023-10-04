@@ -226,3 +226,53 @@ export const ModalButtonsContainer = styled.div`
         border: 1px solid #16023E;
     }
 `;
+
+// ~~~~~~~~~~~~~~~~~~~~~~ MODAL BODY ~~~~~~~~~~~~~~~~~~~~~~
+
+export const ModalBodyCon = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex-direction: column;
+
+  .section-con {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+  }
+
+  .section-heading {
+    color: #16023e;
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .section-subheading {
+    color: #16023e;
+    font-size: 14px;
+    font-weight: 400;
+    margin: 0
+  }
+
+  .url-con {
+    border: 1px solid lightgray;
+    border-radius: 12px;
+    padding: 0.5rem;
+    display: flex;
+  }
+
+  .ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .copy-outline {
+    background-color: #ebebeb;
+    color: #7a7a7a;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+`;
