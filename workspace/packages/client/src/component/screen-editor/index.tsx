@@ -614,8 +614,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           elJustSelected = true;
           const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
           this.setState((state) => {
-            const annId = this.getAnnotatonIdForEl(state.selectedEl!);
+            let annId = '';
             if (state.activeTab === TabList.Annotations) {
+              annId = this.getAnnotatonIdForEl(state.selectedEl!);
               this.navigateToAnnotation(`${this.props.screen.id}/${annId}`);
             }
             return {
