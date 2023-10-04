@@ -274,24 +274,22 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   initialScreenLoad(screenRid: string): void {
     const obj: Record<string, boolean> = {};
+    const startScreens : P_RespScreen[] = [];
+
+    const mainScreen = this.getScreenAtId(screenRid, 'rid');
+    startScreens.push(mainScreen);
 
     if (this.isJourneyAdded()) {
-      const startScreens : P_RespScreen[] = [];
       this.props.tourJourney!.flows.forEach((flow) => {
         const flowScreenId = flow.main.split('/')[0];
         const flowScreen = this.getScreenAtId(flowScreenId, 'id');
         startScreens.push(this.props.allScreens.find(s => s.rid === flowScreen.rid)!);
       });
-      const flowScreenId = this.props.tourJourney!.flows[0].main.split('/')[0];
-      const flowScreen = this.getScreenAtId(flowScreenId, 'id');
-      const flowInitiallyPrerenderedScreens = this.getScreenDataPreloaded(flowScreen, 3, startScreens);
-      flowInitiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
-    } else {
-      const mainScreen = this.getScreenAtId(screenRid, 'rid');
-      const startScreen = [this.props.allScreens.find(s => s.rid === screenRid)!];
-      const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreen);
-      initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
     }
+
+    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreens);
+    initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
+
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
   }
 
