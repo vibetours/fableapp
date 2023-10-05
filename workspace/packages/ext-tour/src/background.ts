@@ -391,6 +391,13 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       await processStyleInfo(tMsg.data.screenStyle);
       break;
     }
+
+    case Msg.RESET_STATE: {
+      await chrome.storage.local.clear();
+      await chrome.storage.local.set({ ONBOARDING_STATE: 1 });
+      break;
+    }
+
     case Msg.START_RECORDING: {
       await resetAppState();
       await chrome.storage.local.set({
@@ -518,65 +525,39 @@ async function injectContentScriptInCrossOriginFrames(tab: { id: number, url: st
   const framesInTab = (await chrome.storage.local.get(FRAMES_IN_TAB))[FRAMES_IN_TAB] || {};
   framesInTab[`${tab.id}`] = crossOriginFrameIds;
   await chrome.storage.local.set({ [FRAMES_IN_TAB]: framesInTab });
-  await chrome.scripting.executeScript<Array<any>, SerDoc>({
-    target: { tabId: tab.id, frameIds: crossOriginFrameIds },
-    files: ["content.js"],
-  });
+  if (crossOriginFrameIds.length) {
+    await chrome.scripting.executeScript<Array<any>, SerDoc>({
+      target: { tabId: tab.id, frameIds: crossOriginFrameIds },
+      files: ["content.js"],
+    });
+  }
 }
 
 async function onTabStateUpdate(tabId: number, info: chrome.tabs.TabChangeInfo) {
   const tabsToLookFor = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};
   if (info.status === "complete" && tabId in tabsToLookFor) {
-    const urlStats = await getTabUrlStats(tabId);
-    tabsToLookFor[tabId] = urlStats.url;
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab) return;
+    tabsToLookFor[tabId] = tab.url;
     await chrome.storage.local.set({
       [TABS_TO_TRACK]: tabsToLookFor
     });
-    if (urlStats.isValid) {
-      await injectContentScriptInCrossOriginFrames({ id: tabId, url: urlStats.url });
-    }
+    await injectContentScriptInCrossOriginFrames({ id: tabId, url: tab.url || "" });
   }
-}
-
-async function getTabUrlStats(tabId: number) {
-  const stats = {
-    isValid: false,
-    url: "",
-  };
-
-  const tab = await chrome.tabs.get(tabId);
-  if (!tab) return stats;
-
-  const url = tab.url;
-  if (!url) return stats;
-
-  const u = new URL(url);
-  if (u.protocol !== "https:") {
-    stats.url = url;
-    return stats;
-  }
-
-  stats.isValid = true;
-  stats.url = url;
-  return stats;
 }
 
 async function onTabActive(activeInfo: chrome.tabs.TabActiveInfo) {
   const tabsToLookFor = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};
-  if (activeInfo.tabId in tabsToLookFor) {
-    return;
-  }
+  if (activeInfo.tabId in tabsToLookFor) return;
 
-  const urlStats = await getTabUrlStats(activeInfo.tabId);
-  tabsToLookFor[activeInfo.tabId] = urlStats.url;
+  const tab = await chrome.tabs.get(activeInfo.tabId);
+  if (!tab) return;
 
+  tabsToLookFor[activeInfo.tabId] = tab.url;
   await chrome.storage.local.set({
     [TABS_TO_TRACK]: tabsToLookFor
   });
-
-  if (urlStats.isValid) {
-    await injectContentScriptInCrossOriginFrames({ id: activeInfo.tabId, url: urlStats.url });
-  }
+  await injectContentScriptInCrossOriginFrames({ id: activeInfo.tabId, url: tab.url || "" });
 }
 
 async function startRecording(): Promise<void> {

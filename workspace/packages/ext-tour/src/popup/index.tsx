@@ -56,9 +56,17 @@ class Root extends Component<Props, State> {
     }, 300);
   };
 
-  stopRecording = async () => {
+  stopRecording = () => {
     this.setState({ isRecordingStarted: false });
     chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
+  };
+
+  resetState = () => {
+    this.setState({ isRecordingStarted: false });
+    chrome.runtime.sendMessage({ type: Msg.RESET_STATE });
+    setTimeout(() => {
+      window.close();
+    }, 300);
   };
 
   // eslint-disable-next-line class-methods-use-this
@@ -70,7 +78,13 @@ class Root extends Component<Props, State> {
     return (
       <div className="p-con">
         <div style={{ position: "absolute", top: "5px", right: "5px", color: "gray", fontSize: "0.75rem" }}>
-          v{version}
+          <span>
+            v{version}
+          </span>
+          &nbsp;&nbsp;
+          <span style={{ cursor: "pointer", paddingTop: "4px" }} title="Reset extension state" onClick={this.resetState}>
+            ◼︎
+          </span>
         </div>
         {!this.state.inited && (
           <div style={{ display: "flex", flexDirection: "column" }}>

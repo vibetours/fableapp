@@ -24,6 +24,7 @@ import Select from 'antd/lib/select';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { getAllTours } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
@@ -245,8 +246,19 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   processScreens = async (): Promise<void> => {
     this.sentryTransaction = startTransaction({ name: 'saveCreateTour' });
-    const frameDataToBeProcessed = JSON.parse(this.data!.screensData) as FrameDataToBeProcessed[][];
-    this.frameDataToBeProcessed = frameDataToBeProcessed;
+    let frameDataToBeProcessed = JSON.parse(this.data!.screensData) as FrameDataToBeProcessed[][];
+    this.frameDataToBeProcessed = frameDataToBeProcessed = frameDataToBeProcessed.filter(screenFrames => {
+      if (screenFrames.length === 0) return false;
+      if (screenFrames.length === 1 && screenFrames[0].type === 'sigstop') return false;
+      return true;
+    });
+
+    if (!frameDataToBeProcessed.length) {
+      raiseDeferredError(new Error('No data to create tour. Data might have been recorded but filtered out'));
+      this.setState({ notDataFound: true });
+      return;
+    }
+
     const cookieData = JSON.parse(this.data!.cookies);
 
     for (let i = 0; i < frameDataToBeProcessed.length; i++) {
@@ -389,7 +401,12 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
             }}
           >
             <Tags.HeaderText>A little quiet here today</Tags.HeaderText>
-            <Tags.SubheaderText>No tours to be created. Use Fable's extension to record a tour.</Tags.SubheaderText>
+            <Tags.SubheaderText>
+              No tours to be created. Use Fable's extension to record a tour.
+              <div style={{ fontStyle: 'italic' }}>
+                If you've just recorded a tour and this screen is shown, then you might have only recorded empty chrome tabs.
+              </div>
+            </Tags.SubheaderText>
             <Button
               style={{
                 width: '240px'
