@@ -1,5 +1,7 @@
 /* eslint-disable class-methods-use-this */
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { Guide, GuideInfo, GuideProps, TourStepPropsWithElHotspotConfig, USER_GUIDE_LOCAL_STORE_KEY } from './types';
+import { insertAllUserGuides } from '.';
 
 export interface LocalStoreUserGuideProps {
   groupId: string;
@@ -16,9 +18,15 @@ export interface LocalStoreUserGuideProps {
 
 type LocalStoreUserGuide = Record<string, LocalStoreUserGuideProps>;
 
+const reinitializeLocalStorage = (): LocalStoreUserGuide => {
+  insertAllUserGuides();
+  const FABLE_USER_GUIDE = localStorage.getItem(USER_GUIDE_LOCAL_STORE_KEY);
+  return JSON.parse(FABLE_USER_GUIDE!);
+};
+
 const getFableUserGuide = (): LocalStoreUserGuide => {
   const FABLE_USER_GUIDE = localStorage.getItem(USER_GUIDE_LOCAL_STORE_KEY);
-  return FABLE_USER_GUIDE ? JSON.parse(FABLE_USER_GUIDE) as LocalStoreUserGuide : {};
+  return FABLE_USER_GUIDE ? JSON.parse(FABLE_USER_GUIDE) as LocalStoreUserGuide : reinitializeLocalStorage();
 };
 
 const saveFableUserGuide = (userGuide: LocalStoreUserGuide): void => {
@@ -71,12 +79,20 @@ export const upsertFableUserGuide = (
   saveFableUserGuide(FABLE_USER_GUIDE);
 };
 
+export const insertFableUserGuide = (
+  guides: {guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element}[]
+): void => {
+  const FABLE_USER_GUIDE: LocalStoreUserGuide = {};
+  guides.forEach(guide => FABLE_USER_GUIDE[guide.guideInfo.id] = guide.guideInfo);
+  saveFableUserGuide(FABLE_USER_GUIDE);
+};
+
 export const shouldShowGuide = (guideId: string): boolean => {
   const FABLE_USER_GUIDE = getFableUserGuide();
-
   const guide = FABLE_USER_GUIDE[guideId];
+  if (!guide) return false;
 
-  const isCurrGuideDone = !FABLE_USER_GUIDE[guideId].isSkipped && !FABLE_USER_GUIDE[guideId].isCompleted;
+  const isCurrGuideDone = !guide.isSkipped && !guide.isCompleted;
 
   if (guide.partId === 0) {
     return isCurrGuideDone;
@@ -95,9 +111,11 @@ export const shouldShowGuide = (guideId: string): boolean => {
 
 export const updateStepsTaken = (guideId: string, stepsTaken: number): void => {
   const FABLE_USER_GUIDE = getFableUserGuide();
+  const guide = FABLE_USER_GUIDE[guideId];
+  if (!guide) return;
 
-  if (FABLE_USER_GUIDE[guideId].stepsTaken < stepsTaken) {
-    FABLE_USER_GUIDE[guideId].stepsTaken = stepsTaken;
+  if (guide.stepsTaken < stepsTaken) {
+    guide.stepsTaken = stepsTaken;
     saveFableUserGuide(FABLE_USER_GUIDE);
   }
 };
@@ -136,22 +154,13 @@ export const resetSkippedOrCompletedStatus = (groupId: string): void => {
 export const completeUserGuide = (guideId: string): void => {
   const FABLE_USER_GUIDE = getFableUserGuide();
 
-  FABLE_USER_GUIDE[guideId].isCompleted = true;
+  const guide = FABLE_USER_GUIDE[guideId];
+
+  if (!guide) return;
+
+  guide.isCompleted = true;
 
   saveFableUserGuide(FABLE_USER_GUIDE);
-};
-
-export const getUserGuideCompletionProgress = (): {
-  stepsTaken: number;
-  totalSteps: number;
-} => {
-  const FABLE_USER_GUIDE = getFableUserGuide();
-
-  return Object.values(FABLE_USER_GUIDE).reduce((acc, curr) => {
-    acc.stepsTaken += curr.stepsTaken;
-    acc.totalSteps += curr.totalSteps;
-    return acc;
-  }, { stepsTaken: 0, totalSteps: 0 });
 };
 
 export const getUserGuideCompletionProgressInModules = (): {
@@ -231,23 +240,6 @@ const groupUserGuidesByGroupId = (guides: LocalStoreUserGuide): LocalStoreUserGu
   return compositeGuide;
 };
 
-export const getCategorizedUserGuides = (): CategorizedUserGuides => {
-  const FABLE_USER_GUIDE = getFableUserGuide();
-
-  const groupedUserGuides = groupUserGuidesByGroupId(FABLE_USER_GUIDE);
-
-  return Object.values(groupedUserGuides).reduce((acc, curr) => {
-    if (curr.isCompleted) {
-      acc.completed.push(curr);
-    } else if (curr.isSkipped) {
-      acc.skipped.push(curr);
-    } else {
-      acc.remaining.push(curr);
-    }
-    return acc;
-  }, { completed: [], remaining: [], skipped: [] } as CategorizedUserGuides);
-};
-
 export const emulateHotspotClick = (target: HTMLElement): void => {
   if (!target.getAttribute('clicked')) {
     target.click();
@@ -258,8 +250,6 @@ export const emulateHotspotClick = (target: HTMLElement): void => {
 
 export class UserGuideHotspotManager {
   public hotspotEl: HTMLElement | null = null;
-
-  public dontPropagate: boolean = false;
 
   private steps: TourStepPropsWithElHotspotConfig[];
 

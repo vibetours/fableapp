@@ -11,7 +11,7 @@ import reportWebVitals from './reportWebVitals';
 import config from './store-config';
 import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
-import { upsertAllUserGuides } from './user-guides';
+import { removeOldGuides, upsertAllUserGuides } from './user-guides';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -39,6 +39,7 @@ if (document.location.pathname !== '/aboutblank') {
 
   sentryInit('client', packageJSON.version);
   initAmplitude();
+  removeOldGuides();
   upsertAllUserGuides();
   addChargebeeScript();
   addReditusTrackingScript();

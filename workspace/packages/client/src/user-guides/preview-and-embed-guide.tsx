@@ -132,10 +132,10 @@ export const guide: Guide = {
   ]
 };
 
-const hotspotManager = new UserGuideHotspotManager(guide.steps);
-
 function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
   const [startTour, setStartTour] = useState<boolean>(false);
+
+  const hotspotManager = new UserGuideHotspotManager(guide.steps);
 
   return (
     <>

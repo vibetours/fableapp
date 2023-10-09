@@ -78,10 +78,10 @@ export const guide: Guide = {
   ]
 };
 
-const hotspotManager = new UserGuideHotspotManager(guide.steps);
-
 function TourCardGuide(props: GuideProps): JSX.Element {
   const [startTour, setStartTour] = useState<boolean>(false);
+
+  const hotspotManager = new UserGuideHotspotManager(guide.steps);
 
   return (
     <>
