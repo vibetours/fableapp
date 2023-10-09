@@ -1,4 +1,4 @@
-import { AnnotationButtonSize, AnnotationButtonStyle, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen } from './entity-processor';
 
@@ -166,3 +166,11 @@ export type ScreenPickerData = {
 }
 
 export const STORAGE_PREFIX_KEY_QUERY_PARAMS = 'fable/qp';
+
+export interface FlowProgress {
+  main: string;
+  totalSteps: number;
+  completedSteps: number;
+}
+
+export const JOURNEY_PROGRESS_LOCAL_STORE_KEY = 'fable/journey';

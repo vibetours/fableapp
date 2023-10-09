@@ -93,7 +93,8 @@ export function getSampleJourneyData() {
   return {
     positioning: CreateJourneyPositioning.Left_Bottom,
     title: '',
-    flows: []
+    flows: [],
+    primaryColor: '#7567FF'
   };
 }
 

@@ -11,6 +11,7 @@
     "@lexical/react": "^0.8.0",
     "@lottiefiles/react-lottie-player": "^3.5.3",
     "@sentry/react": "^7.49.0",
+    "@types/react-beautiful-dnd": "^13.1.5",
     "antd": "^5.8.2",
     "d3-array": "^3.2.4",
     "d3-drag": "^3.0.0",
@@ -28,6 +29,7 @@
     "metrics-graphics": "^3.0.0-beta1",
     "nanoid": "^4.0.2",
     "react-animated-css": "^1.2.1",
+    "react-beautiful-dnd": "^13.1.1",
     "scroll-into-view": "^1.16.2",
     "uuid": "^9.0.0"
   },

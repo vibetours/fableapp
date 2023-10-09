@@ -276,6 +276,7 @@ export interface CreateJourneyData {
   title: string;
   flows: JourneyFlow[];
   cta?: { size: AnnotationButtonSize; text: string; navigateTo: string; };
+  primaryColor: string;
 }
 export interface JourneyFlow {
   header1: string;

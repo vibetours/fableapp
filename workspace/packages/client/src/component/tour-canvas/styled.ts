@@ -390,3 +390,14 @@ export const CloseIcon = styled.img`
     background: #ffffff;
   }
 `;
+
+export const JourneyAddedIcon = styled.div`
+  position: absolute;
+  background-color: #160245;
+  width: 5px;
+  height: 5px;
+  z-index: 100;
+  border-radius: 50%;
+  top: 3px;
+  right: 4px;
+`;

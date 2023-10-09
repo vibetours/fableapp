@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
   CreateJourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
@@ -8,6 +8,7 @@ import Tooltip from 'antd/lib/tooltip';
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { getSampleJourneyData } from '@fable/common/dist/utils';
 import { Divider } from 'antd/lib';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import * as Tags from './styled';
@@ -17,6 +18,7 @@ import Input from '../../component/input';
 import { IAnnotationConfigWithScreen } from '../../types';
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
+import Focus from '../../assets/icons/focus.svg';
 
 interface IDispatchProps {
 }
@@ -25,20 +27,18 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 });
 
 interface IAppStateProps {
-  tourJourney: CreateJourneyData;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
-  tourJourney: state.default.tourData?.journey || getSampleJourneyData()
 });
 
 interface IOwnProps {
     closeEditor: () => void;
     firstAnnotations: IAnnotationConfigWithScreen[];
     getAnnInView: (refId: string) => void;
-    resetHoveredNode: ()=> void;
     onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
     tourOpts: ITourDataOpts;
+    tourJourney: CreateJourneyData;
 }
 
 type IProps = IOwnProps &
@@ -52,25 +52,17 @@ type IProps = IOwnProps &
 
 interface IOwnStateProps {
   journeyData: CreateJourneyData;
-  dragHoveredIndex: number;
-  draggedIndex: number;
 }
 
 const { Option } = Select;
 
 class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
-  private containerRef: RefObject<HTMLDivElement> = React.createRef();
-
-  private objectRef: RefObject<HTMLDivElement> = React.createRef();
-
   private selectTimer : NodeJS.Timeout | null = null;
 
   constructor(props: IProps) {
     super(props);
     this.state = {
       journeyData: this.props.tourJourney,
-      dragHoveredIndex: -10,
-      draggedIndex: -10,
     };
   }
 
@@ -91,7 +83,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     });
   };
 
-  deleteJourney = (idx: number) : void => {
+  deleteFlow = (idx: number) : void => {
     this.setState((prevState) => {
       const updatedJourneyData = { ...prevState.journeyData };
       const updatedFlows = [...updatedJourneyData.flows];
@@ -112,22 +104,23 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
       journeyData: { ...prevState.journeyData, flows: [...prevState.journeyData.flows, flow] } }));
   };
 
-  repositionFlows = () : void => {
+  repositionFlows = (sourceIndex: number, targetIndex: number) : void => {
     this.setState((prevState) => {
       const updatedJourneyData = { ...prevState.journeyData };
       const updatedFlows = [...updatedJourneyData.flows];
-      const isDroppedOutsideOfDroppableArea = prevState.dragHoveredIndex === -10;
-      if (isDroppedOutsideOfDroppableArea) {
-        return { journeyData: updatedJourneyData };
-      }
-      const [movedFlow] = updatedFlows.splice(prevState.draggedIndex, 1);
-      updatedFlows.splice(prevState.dragHoveredIndex, 0, movedFlow);
+
+      const [movedFlow] = updatedFlows.splice(sourceIndex, 1);
+      updatedFlows.splice(targetIndex, 0, movedFlow);
       updatedJourneyData.flows = updatedFlows;
 
       return { journeyData: updatedJourneyData };
     });
-    this.setState({ dragHoveredIndex: -10, draggedIndex: -10 });
   };
+
+  handleOnDragEnd(result: DropResult) : void {
+    if (!result.destination) return;
+    this.repositionFlows(result.source.index, result.destination.index);
+  }
 
   render():JSX.Element {
     return (
@@ -156,7 +149,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
               </AntdButton>
             </Tags.NoJourneyCon>
           ) : (
-            <Tags.EditorCon ref={this.objectRef}>
+            <Tags.EditorCon>
               <Tags.JourneyInnerCon>
                 <Input
                   label="Journey name"
@@ -167,114 +160,128 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 />
               </Tags.JourneyInnerCon>
               <Tags.JourneyInnerCon>
-                <Tags.FlowCon ref={this.containerRef}>
-                  {this.state.journeyData.flows.map((flow, idx) => (
-                    <Tags.FieldOuterCon
-                      key={flow.header1 + idx}
-                      style={{
-                        marginTop: idx === this.state.dragHoveredIndex + 1 ? '0' : '1rem',
-                        marginBottom: idx === this.state.dragHoveredIndex ? '5px' : '0',
-                        paddingBottom: idx === this.state.dragHoveredIndex ? '5px' : '0',
-                      }}
-                      onDragStart={(e) => {
-                        this.setState({ draggedIndex: idx });
-                      }}
-                      onDragOver={(e) => {
-                        this.setState({ dragHoveredIndex: idx });
-                        e.preventDefault();
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                      }}
-                      onDragEnd={(e) => {
-                        e.preventDefault();
-                        this.repositionFlows();
-                      }}
-                    >
-                      <Tags.FieldCon
-                        key={flow.header1 + idx}
-                        draggable="true"
-                        onMouseEnter={() => {
-                          if (!flow.main || this.state.draggedIndex !== -10) return;
-                          if (this.selectTimer) {
-                            clearTimeout(this.selectTimer);
-                          }
-                          this.selectTimer = setTimeout(() => {
-                            this.selectTimer = null;
-                            this.props.getAnnInView(flow.main.split('/')[1]);
-                          }, 300);
-                        }}
-                        onMouseLeave={() => {
-                          if (!flow.main || this.state.draggedIndex !== -10) return;
-                          this.props.resetHoveredNode();
-                        }}
+                <DragDropContext onDragEnd={(r) => this.handleOnDragEnd(r)}>
+                  <Droppable droppableId="droppable">
+                    {(provided, snapshot) => (
+                      <Tags.FlowCon
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Tooltip
-                            placement="left"
-                            title={<span>Drag to reorder.</span>}
-                            overlayStyle={{ fontSize: '0.75rem' }}
-                          >
-                            <AntdButton
-                              type="text"
-                              size="small"
-                              icon={<HolderOutlined style={{ opacity: '0.65', fontSize: '18px', rotate: '90deg' }} />}
-                            />
-                          </Tooltip>
-                          <Tooltip
-                            placement="right"
-                            title={<span>delete this flow.</span>}
-                            overlayStyle={{ fontSize: '0.75rem' }}
-                          >
-                            <AntdButton
-                              type="text"
-                              size="small"
-                              icon={<DeleteOutlined style={{ opacity: '0.65', fontSize: '18px' }} />}
-                              onClick={() => { this.deleteJourney(idx); }}
-                            />
-                          </Tooltip>
-                        </div>
-                        <Tags.FieldInputCon>
-                          <Input
-                            label="Heading 1"
-                            defaultValue={flow.header1}
-                            onBlur={(e) => { this.updateFlowAtIndex(idx, 'header1', e.target.value); }}
-                          />
-                          <Input
-                            label="Heading 2"
-                            defaultValue={flow.header2}
-                            onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
-                          />
-                          <Tags.FlowSelect
-                            size="large"
-                            defaultValue={flow.main || undefined}
-                            style={{ width: '100%', borderRadius: '8px' }}
-                            onSelect={(value) => { this.updateFlowAtIndex(idx, 'main', value as string); }}
-                            placeholder="Choose a flow"
-                          >
-                            {this.props.firstAnnotations.map((ann => ((
-                              <Option
-                                key={`${ann.screen.id}/${ann.refId}`}
-                                value={`${ann.screen.id}/${ann.refId}`}
-                                onMouseEnter={() => {
-                                  if (this.selectTimer) {
-                                    clearTimeout(this.selectTimer);
-                                  }
-                                  this.selectTimer = setTimeout(() => {
-                                    this.selectTimer = null;
-                                    this.props.getAnnInView(ann.refId);
-                                  }, 300);
-                                }}
+                        {this.state.journeyData.flows.map((flow, idx) => (
+                          <Draggable key={flow.header1 + idx} draggableId={flow.header1 + idx} index={idx}>
+                            {(providedInner, snapshotInner) => (
+                              <Tags.FieldOuterCon
+                                key={flow.header1 + idx}
+                                {...providedInner.draggableProps}
+                                ref={providedInner.innerRef}
                               >
-                                <b>{ann.index}</b>: {ann.displayText}
-                              </Option>
-                            ))))}
-                          </Tags.FlowSelect>
-                        </Tags.FieldInputCon>
-                      </Tags.FieldCon>
-                    </Tags.FieldOuterCon>
-                  ))}
-                </Tags.FlowCon>
+                                <Tags.FieldCon
+                                  key={flow.header1 + idx}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Tooltip
+                                      placement="left"
+                                      title={<span>Drag to reorder.</span>}
+                                      overlayStyle={{ fontSize: '0.75rem' }}
+                                    >
+                                      <AntdButton
+                                        type="text"
+                                        size="small"
+                                        icon={<HolderOutlined
+                                          style={{ opacity: '0.65', fontSize: '18px', rotate: '90deg' }}
+                                        />}
+                                        {...providedInner.dragHandleProps}
+                                      />
+                                    </Tooltip>
+                                    <div style={{ display: 'flex' }}>
+                                      <Tooltip
+                                        placement="right"
+                                        title={<span>focus this flow.</span>}
+                                        overlayStyle={{ fontSize: '0.75rem' }}
+                                      >
+                                        <AntdButton
+                                          type="text"
+                                          size="small"
+                                          onClick={() => {
+                                            if (!flow.main) return;
+                                            if (this.selectTimer) {
+                                              clearTimeout(this.selectTimer);
+                                            }
+                                            this.selectTimer = setTimeout(() => {
+                                              this.selectTimer = null;
+                                              this.props.getAnnInView(flow.main.split('/')[1]);
+                                            }, 300);
+                                          }}
+                                        >
+                                          <img
+                                            src={Focus}
+                                            alt="focus"
+                                            style={{ height: '18px' }}
+                                          />
+                                        </AntdButton>
+                                      </Tooltip>
+                                      <Tooltip
+                                        placement="right"
+                                        title={<span>delete this flow.</span>}
+                                        overlayStyle={{ fontSize: '0.75rem' }}
+                                      >
+                                        <AntdButton
+                                          type="text"
+                                          size="small"
+                                          icon={<DeleteOutlined style={{ opacity: '0.65', fontSize: '18px' }} />}
+                                          onClick={() => { this.deleteFlow(idx); }}
+                                        />
+                                      </Tooltip>
+                                    </div>
+                                  </div>
+                                  <Tags.FieldInputCon>
+                                    <Input
+                                      label="Heading 1"
+                                      defaultValue={flow.header1}
+                                      onBlur={(e) => { this.updateFlowAtIndex(idx, 'header1', e.target.value); }}
+                                    />
+                                    <Input
+                                      label="Heading 2"
+                                      defaultValue={flow.header2}
+                                      onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
+                                    />
+                                    <Tags.FlowSelect
+                                      size="large"
+                                      defaultValue={flow.main || undefined}
+                                      style={{ width: '100%', borderRadius: '8px' }}
+                                      onSelect={(value) => { this.updateFlowAtIndex(idx, 'main', value as string); }}
+                                      placeholder="Choose a flow"
+                                      optionLabelProp="children"
+                                    >
+                                      {this.props.firstAnnotations.map((ann => ((
+                                        <Option
+                                          key={`${ann.screen.id}/${ann.refId}`}
+                                          value={`${ann.screen.id}/${ann.refId}`}
+                                          onMouseEnter={() => {
+                                            if (this.selectTimer) {
+                                              clearTimeout(this.selectTimer);
+                                            }
+                                            this.selectTimer = setTimeout(() => {
+                                              this.selectTimer = null;
+                                              this.props.getAnnInView(ann.refId);
+                                            }, 300);
+                                          }}
+                                        >
+                                          <b>{ann.index}</b>: {ann.displayText}
+                                        </Option>
+                                      ))))}
+                                    </Tags.FlowSelect>
+                                  </Tags.FieldInputCon>
+                                </Tags.FieldCon>
+                              </Tags.FieldOuterCon>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </Tags.FlowCon>
+                    )}
+                  </Droppable>
+                </DragDropContext>
                 <Tags.CTAInputCon>
                   <Tags.OutlineButton icon={<PlusOutlined />} onClick={this.addNewFlow}>
                     Add another flow
@@ -306,7 +313,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         <GTags.CTABtn
                           style={{ width: '50%' }}
                           size={this.state.journeyData.cta.size}
-                          color={this.props.tourOpts.primaryColor}
+                          color={this.state.journeyData.primaryColor || this.props.tourOpts.primaryColor}
                           borderRadius={this.props.tourOpts.borderRadius}
                         >
                           {this.state.journeyData.cta.text}
@@ -408,6 +415,21 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                     </label>
                   </Tags.CTAInputCon>
                 </Tags.JourneyInnerCon>
+                <Divider style={{ margin: '24px 0' }} />
+                <Tags.JourneyInnerCon>
+                  <Tags.CTAText>Branding</Tags.CTAText>
+                  <Tags.CTAInputCon>
+                    <GTags.Txt style={{ fontWeight: 500 }}>Primary color</GTags.Txt>
+                    <Tags.ColorPicker
+                      showText={(color) => color.toHexString()}
+                      onChangeComplete={e => {
+                        this.setState(prevState => ({ journeyData: {
+                          ...prevState.journeyData, primaryColor: e.toHexString() } }));
+                      }}
+                      defaultValue={this.state.journeyData.primaryColor || this.props.tourOpts.primaryColor}
+                    />
+                  </Tags.CTAInputCon>
+                </Tags.JourneyInnerCon>
               </Tags.JourneyConfigCon>
               <Tags.OutlineButton
                 color="red"
@@ -419,6 +441,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
               > Delete journey
               </Tags.OutlineButton>
             </Tags.EditorCon>
+
           )
         }
 

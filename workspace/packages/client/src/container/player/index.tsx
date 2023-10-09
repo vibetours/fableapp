@@ -11,10 +11,21 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AnnotationPerScreen, EditItem, FWin, NavFn } from '../../types';
-import { openTourExternalLink, getAnnotationsPerScreen } from '../../utils';
+import { AnnotationPerScreen, EditItem, FWin, NavFn, FlowProgress } from '../../types';
+import {
+  openTourExternalLink,
+  getAnnotationsPerScreen,
+  getJourneyProgress,
+  saveJourneyProgress,
+  isNavigateHotspot
+} from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
-import { AnnotationSerialIdMap, getAnnotationSerialIdMap } from '../../component/annotation/ops';
+import {
+  AnnotationSerialIdMap,
+  getAnnotationBtn,
+  getAnnotationByRefId,
+  getAnnotationSerialIdMap
+} from '../../component/annotation/ops';
 import Button from '../../component/button';
 import * as Tags from './styled';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
@@ -99,9 +110,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
 
-  private lastPrerenderedScreens: P_RespScreen[] = [];
-
   private loadedScreenRids: Set<string> = new Set<string>();
+
+  private localJourneyProgress: Record<string, FlowProgress[]> = getJourneyProgress();
 
   constructor(props: IProps) {
     super(props);
@@ -112,7 +123,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isMinLoaderTimeDone: false,
       isJourneyMenuOpen: true,
       annotationSerialIdMap: {},
-      currentFlowMain: ''
+      currentFlowMain: '',
     };
   }
 
@@ -159,7 +170,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       nextScreenPrerenderCount,
       'next'
     );
-    this.lastPrerenderedScreens = nextScreensToPrerender.lastLevelNodes;
 
     const prevScreensToPrerender = bfsTraverse(this.adjList!, [screen], 1, 'prev');
 
@@ -194,18 +204,94 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     this.preRender();
     const opts = this.props.tourOpts;
     if (!(this.props.match.params.screenRid && this.props.match.params.annotationId)) {
-      if (!(opts && opts.main)) this.setState({ isMainSet: false });
+      if (!(opts && opts.main) && !this.isJourneyAdded()) this.setState({ isMainSet: false });
       else if (this.isJourneyAdded()) {
         this.navigateTo(this.props.tourJourney!.flows[0].main);
-      } else this.navigateTo(opts.main);
+      } else this.navigateTo(opts!.main);
     }
   };
 
   navigateToTour = (main: string): void => {
-    const screenId = main.split('/')[0];
     this.navigateTo(main);
     this.setState({ isJourneyMenuOpen: false, currentFlowMain: main });
-    this.lastPrerenderedScreens = [this.props.allScreens.find(s => s.id.toString() === screenId)!];
+  };
+
+  initJourneyProgress = (
+    main: string,
+    totalSteps: number,
+    currentTourId: number
+  ) : void => {
+    const flowProgress : FlowProgress = {
+      main,
+      completedSteps: 0,
+      totalSteps
+    };
+
+    if (this.localJourneyProgress[currentTourId]) {
+      // if the flow is already saved in local store we are updating total steps if its less than new total steps.
+      let flowExistInJourney = false;
+      this.localJourneyProgress[currentTourId].forEach((storeFlow) => {
+        if (storeFlow.main === flowProgress.main) {
+          flowExistInJourney = true;
+          if (storeFlow.totalSteps < flowProgress.totalSteps) {
+            storeFlow.totalSteps = flowProgress.totalSteps;
+          }
+        }
+      });
+      if (!flowExistInJourney) { this.localJourneyProgress[currentTourId].push(flowProgress); }
+    } else this.localJourneyProgress[currentTourId] = [flowProgress];
+  };
+
+  updateJourneyProgress = (stepNumber: number): void => {
+    const tourId = this.props.tour!.id;
+    const currentFlowIdx = this.localJourneyProgress[tourId].findIndex(
+      (tour) => tour.main === this.state.currentFlowMain
+    );
+
+    const currentFlowProgress = this.localJourneyProgress[tourId];
+    if (currentFlowIdx !== -1) {
+      currentFlowProgress[currentFlowIdx].completedSteps = Math.max(
+        stepNumber,
+        currentFlowProgress[currentFlowIdx].completedSteps
+      );
+      this.localJourneyProgress[tourId] = currentFlowProgress;
+      saveJourneyProgress(this.localJourneyProgress);
+    }
+  };
+
+  setCurrentFlowMain = () : void => {
+    let refId = this.props.match.params.annotationId;
+    while (refId) {
+      const annotation = getAnnotationByRefId(refId, this.props.allAnnotationsForTour);
+      const prevBtn = getAnnotationBtn(annotation!, 'prev');
+
+      if (!prevBtn.hotspot) {
+        const main = `${annotation!.screenId}/${refId}`;
+        const flowIndex = this.props.tourJourney!.flows.findIndex((flow) => flow.main === main);
+        if (flowIndex !== -1) {
+          this.setState({ currentFlowMain: main });
+        }
+        break;
+      }
+      if (!isNavigateHotspot(prevBtn.hotspot)) break;
+      refId = prevBtn.hotspot!.actionValue.split('/')[1];
+    }
+  };
+
+  setSerialMapAndJoruneyProgress = (annotationSerialIdMap: AnnotationSerialIdMap) : AnnotationSerialIdMap => {
+    this.props.tourJourney!.flows.forEach((flow) => {
+      const annotationSerialIdMapForFlow = getAnnotationSerialIdMap(flow.main, this.props.allAnnotationsForTour);
+      for (const annRefId in annotationSerialIdMapForFlow) {
+        if (Object.prototype.hasOwnProperty.call(annotationSerialIdMapForFlow, annRefId)) {
+          annotationSerialIdMap[annRefId] = annotationSerialIdMapForFlow[annRefId];
+        }
+      }
+      const totalSteps = Object.keys(annotationSerialIdMapForFlow).length;
+      this.initJourneyProgress(flow.main, totalSteps, this.props.tour!.id);
+    });
+
+    saveJourneyProgress(this.localJourneyProgress);
+    return annotationSerialIdMap;
   };
 
   componentDidUpdate(prevProps: IProps): void {
@@ -224,15 +310,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
       if (this.isJourneyAdded()) {
-        this.setState({ currentFlowMain: this.props.tourJourney!.flows[0].main });
-        this.props.tourJourney!.flows.forEach((flow, idx) => {
-          const annotationSerialIdMapForFlow = getAnnotationSerialIdMap(flow.main, this.props.allAnnotationsForTour);
-          for (const annRefId in annotationSerialIdMapForFlow) {
-            if (Object.prototype.hasOwnProperty.call(annotationSerialIdMapForFlow, annRefId)) {
-              annotationSerialIdMap[annRefId] = annotationSerialIdMapForFlow[annRefId];
-            }
-          }
-        });
+        this.setCurrentFlowMain();
+        annotationSerialIdMap = this.setSerialMapAndJoruneyProgress(annotationSerialIdMap);
       } else {
         annotationSerialIdMap = this.props.tourOpts
           ? getAnnotationSerialIdMap(this.props.tourOpts.main, this.props.allAnnotationsForTour) : {};
@@ -242,19 +321,22 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
-        const screen = this.getScreenAtId(this.state.initialScreenRid, 'rid');
-        this.getScreenDataPreloaded(screen, 1, this.lastPrerenderedScreens);
+        const screen = this.getScreenAtId(currScreenRId, 'rid');
+        const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
+        this.getScreenDataPreloaded(screen, 1, startScreens);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
         // in this case, we navigate to main, hence, firstTimeLoading is false
         // but still we are rendering the screens for the first time
         this.initialScreenLoad(currScreenRId);
+        this.setCurrentFlowMain();
       }
     }
 
     // this happens when the user uses the tourUrl as /tour/tourid/screenid
     if (currScreenRId && firstTimeTourLoading) {
       this.initialScreenLoad(currScreenRId);
+      this.setCurrentFlowMain();
     }
 
     if (this.props.tourLoaderData !== prevProps.tourLoaderData && this.props.tourLoaderData) {
@@ -437,13 +519,18 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 allScreens={this.props.allScreens}
                 editsAcrossScreens={this.props.editsAcrossScreens}
                 preRenderNextScreen={(screen: P_RespScreen) => {
-                  this.getScreenDataPreloaded(screen, 1, this.lastPrerenderedScreens);
+                  const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
+                  this.getScreenDataPreloaded(screen, 1, startScreens);
                 }}
                 allFlows={this.props.tourJourney?.flows.map(flow => flow.main) || []}
                 currentFlowMain={this.state.currentFlowMain}
                 updateCurrentFlowMain={(main: string) => { this.setState({ currentFlowMain: main }); }}
                 closeJourneyMenu={() : void => {
                   if (this.state.isJourneyMenuOpen) { this.setState({ isJourneyMenuOpen: false }); }
+                }}
+                updateJourneyProgress={(annRefId: string) => {
+                  const currentStepNumber = this.state.annotationSerialIdMap[annRefId].split(' ')[0];
+                  this.updateJourneyProgress(parseInt(currentStepNumber, 10));
                 }}
               />
             ))
@@ -460,6 +547,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
               navigateToCta={() => this.navFn(this.props.tourJourney!.cta!.navigateTo, 'abs')}
               tourOpts={this.props.tourOpts!}
               currentFlowMain={this.state.currentFlowMain}
+              journeyProgress={this.localJourneyProgress[this.props.tour!.id]}
             />
           )
         }

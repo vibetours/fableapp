@@ -1,11 +1,10 @@
 /* eslint-disable react/no-this-in-sfc */
 import { nanoid } from 'nanoid';
 import {
-  DeleteOutlined,
+  BarsOutlined,
   DisconnectOutlined,
   HourglassOutlined,
   SisternodeOutlined,
-  BranchesOutlined
 } from '@ant-design/icons';
 import {
   CmnEvtProp,
@@ -74,7 +73,6 @@ import ScreenEditor from '../screen-editor';
 import CloseIcon from '../../assets/tour/close.svg';
 import { UpdateScreenFn } from '../../action/creator';
 import CreateJourney from '../../container/create-journey';
-import CreateJourneyIcon from '../../assets/icons/create-journey.svg';
 import Header, { HeaderProps } from '../header';
 import DeleteIcon from '../../assets/icons/canvas-delete.svg';
 
@@ -110,6 +108,7 @@ type CanvasProps = {
   updateScreen: UpdateScreenFn;
   onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
   headerProps: HeaderProps,
+  tourJourney: CreateJourneyData
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -1096,8 +1095,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const rightPlusG = p.append<SVGGElement>('g');
         createPlusIconGroup(rightPlusG, 'next');
 
-        const MENU_ICON_WIDTH = 24;
-        const MENU_ICON_PADDING = 7.5;
+        const MENU_ICON_WIDTH = 20;
+        const MENU_ICON_PADDING = 10.5;
         const menug = p
           .append('g')
           .attr('transform', d => `translate(${d.width - MENU_ICON_WIDTH - MENU_ICON_PADDING}, ${MENU_ICON_PADDING})`)
@@ -1130,6 +1129,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .append('path')
           .attr('class', 'menuicn')
           .attr('fill', Tags.MENU_ICN_DOTS_COLOR)
+          .attr('transform', d => 'translate(-2, -2)')
           // eslint-disable-next-line max-len
           .attr('d', 'M11.997 17.3333C11.7212 17.3333 11.4861 17.2351 11.2917 17.0387C11.0972 16.8423 11 16.6062 11 16.3304C11 16.0546 11.0982 15.8194 11.2946 15.625C11.491 15.4306 11.7271 15.3333 12.003 15.3333C12.2788 15.3333 12.5139 15.4315 12.7083 15.628C12.9028 15.8244 13 16.0605 13 16.3363C13 16.6121 12.9018 16.8472 12.7054 17.0417C12.509 17.2361 12.2729 17.3333 11.997 17.3333ZM11.997 12.6667C11.7212 12.6667 11.4861 12.5685 11.2917 12.372C11.0972 12.1756 11 11.9395 11 11.6637C11 11.3879 11.0982 11.1528 11.2946 10.9583C11.491 10.7639 11.7271 10.6667 12.003 10.6667C12.2788 10.6667 12.5139 10.7649 12.7083 10.9613C12.9028 11.1577 13 11.3938 13 11.6696C13 11.9454 12.9018 12.1806 12.7054 12.375C12.509 12.5694 12.2729 12.6667 11.997 12.6667ZM11.997 8C11.7212 8 11.4861 7.90179 11.2917 7.70537C11.0972 7.50897 11 7.27286 11 6.99704C11 6.72124 11.0982 6.48611 11.2946 6.29167C11.491 6.09722 11.7271 6 12.003 6C12.2788 6 12.5139 6.09821 12.7083 6.29463C12.9028 6.49103 13 6.72714 13 7.00296C13 7.27876 12.9018 7.51389 12.7054 7.70833C12.509 7.90278 12.2729 8 11.997 8Z');
 
@@ -1640,6 +1640,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const resetCreateJourneyZoom = () : void => {
+    const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    resetAnnNodeSelectionStyle(annNodes);
+
     const [k, x, y,] = zoomPanState.get();
     const centerX = createJourneyModal!.newSvgZoom.centerX;
 
@@ -1757,7 +1760,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 <div>
                   <Button
                     onClick={() => setShowLoaderEditor(true)}
-                    icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500 }} />}
+                    icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
                     size="middle"
                     style={{
                       margin: 0,
@@ -1770,14 +1773,15 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
             <Tags.CanvasMenuItemCon id="journey-btn">
               <Tooltip
-                title="Create a Journey"
+                title={props.tourJourney.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
                 overlayStyle={{ fontSize: '0.75rem' }}
                 placement="right"
               >
-                <div>
+                <div style={{ position: 'relative' }}>
+                  {props.tourJourney.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
                   <Button
                     onClick={() => getFirstAnnotations()}
-                    icon={<img src={CreateJourneyIcon} alt="create journey" />}
+                    icon={<BarsOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
                     size="middle"
                     style={{
                       margin: 0,
@@ -2033,12 +2037,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               closeEditor={() => { setShowJourneyEditor(false); resetCreateJourneyZoom(); setFirstAnnotations([]); }}
               firstAnnotations={firstAnnotations}
               getAnnInView={zoomAnnInView}
-              resetHoveredNode={() => {
-                const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
-                resetAnnNodeSelectionStyle(annNodes);
-              }}
               onTourJourneyChange={props.onTourJourneyChange}
               tourOpts={props.tourOpts}
+              tourJourney={props.tourJourney}
             />
           }
           <SelectorComponent userGuides={userGuides} />

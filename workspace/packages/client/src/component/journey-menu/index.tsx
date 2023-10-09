@@ -1,4 +1,3 @@
-import { Button as AntButton } from 'antd/lib';
 import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
 import Dropdown from 'antd/lib/dropdown/dropdown';
 import React, { ReactElement } from 'react';
@@ -6,6 +5,8 @@ import { CreateJourneyData, ITourDataOpts } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import { getColorContrast, isBlankString } from '../../utils';
+import { FlowProgress } from '../../types';
+import { ProgressCircle } from '../progress-circle';
 
 interface Props {
     tourJourney: CreateJourneyData;
@@ -15,6 +16,7 @@ interface Props {
     navigateToCta: ()=> void;
     tourOpts: ITourDataOpts;
     currentFlowMain: string;
+    journeyProgress: FlowProgress[];
 }
 
 const getMenu = (
@@ -22,53 +24,79 @@ const getMenu = (
   navigateToTour: (main: string)=> void,
   navigateToCta: ()=> void,
   tourOpts: ITourDataOpts,
-  currentFlowMain: string
-) : ReactElement => (
-  <Tags.JourneyCon>
-    <Tags.FLowTitle>
-      {journey.title}
-    </Tags.FLowTitle>
-    <div>
-      {journey.flows.map((flow) => (!isBlankString(flow.main)
-        ? (
-          <Tags.FLowItemCon
-            key={flow.header1}
-            onClick={() => { navigateToTour(flow.main); }}
-            isCurrentFlow={flow.main === currentFlowMain}
-          >
-            <div>
-              <Tags.FlowHeader1> {flow.header1} </Tags.FlowHeader1>
-              <Tags.FlowHeader2>{flow.header2}</Tags.FlowHeader2>
-            </div>
-            <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
-              <ArrowRightOutlined style={{ fontSize: 11, color: '#747474' }} />
-            </div>
-          </Tags.FLowItemCon>
-        )
-        : null))}
-    </div>
-    {journey.cta && (
+  currentFlowMain: string,
+  journeyProgress: FlowProgress[]
+) : ReactElement => {
+  const getFlowProgress = (main: string) : FlowProgress => {
+    const currenFlowProgress = journeyProgress.find(
+      (flow) => flow.main === main
+    ) || { completedSteps: 0, totalSteps: 10, main };
+
+    return currenFlowProgress;
+  };
+
+  return (
+    <Tags.JourneyCon>
+      <Tags.FLowTitle>
+        {journey.title}
+      </Tags.FLowTitle>
+      <div>
+        {journey.flows.map((flow) => (!isBlankString(flow.main)
+          ? (
+            <Tags.FLowItemCon
+              key={flow.header1}
+              onClick={() => { navigateToTour(flow.main); }}
+              isCurrentFlow={flow.main === currentFlowMain}
+            >
+              <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
+                <ProgressCircle
+                  totalmodules={getFlowProgress(flow.main).totalSteps}
+                  completedModules={getFlowProgress(flow.main).completedSteps}
+                  progressCircleSize={16}
+                />
+              </div>
+              <div style={{ marginLeft: '32px' }}>
+                <Tags.FlowHeader1> {flow.header1} </Tags.FlowHeader1>
+                <Tags.FlowHeader2>{flow.header2}</Tags.FlowHeader2>
+              </div>
+              <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
+                <ArrowRightOutlined style={{ fontSize: 11, color: '#747474' }} />
+              </div>
+            </Tags.FLowItemCon>
+          )
+          : null))}
+      </div>
+      {journey.cta && (
       <div style={{ margin: '24px 16px 0 16px' }}>
         <GTags.CTABtn
           size={journey.cta.size}
           onClick={navigateToCta}
           style={{ width: '100%' }}
-          color={tourOpts.primaryColor}
+          color={journey.primaryColor || tourOpts.primaryColor}
           borderRadius={tourOpts.borderRadius}
         >
           {journey.cta.text}
         </GTags.CTABtn>
       </div>
-    )}
-  </Tags.JourneyCon>
-);
+      )}
+    </Tags.JourneyCon>
+  );
+};
 
 function JourneyMenu(props: Props): JSX.Element {
+  const primaryColor = props.tourJourney.primaryColor || props.tourOpts.primaryColor;
   return (
     <Tags.DropdownCon positioning={props.tourJourney.positioning}>
       <Dropdown
         open={props.isJourneyMenuOpen}
-        dropdownRender={() => getMenu(props.tourJourney!, props.navigateToTour, props.navigateToCta, props.tourOpts, props.currentFlowMain)}
+        dropdownRender={() => getMenu(
+          props.tourJourney!,
+          props.navigateToTour,
+          props.navigateToCta,
+          props.tourOpts,
+          props.currentFlowMain,
+          props.journeyProgress
+        )}
         trigger={['click']}
         onOpenChange={(e) => { props.updateJourneyMenu(e); }}
       >
@@ -76,18 +104,18 @@ function JourneyMenu(props: Props): JSX.Element {
           <Tags.IndexButton
             type="primary"
             shape="circle"
-            color={props.tourOpts.primaryColor}
+            color={primaryColor}
             applywidth="true"
             icon={<CloseOutlined />}
           />
         ) : (
           <Tags.IndexButton
-            color={props.tourOpts.primaryColor}
+            color={primaryColor}
             type="primary"
             applywidth="false"
           >
             {props.tourJourney.title}
-            <BarsOutlined />
+            <BarsOutlined style={{ color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000' }} />
           </Tags.IndexButton>
         )}
       </Dropdown>

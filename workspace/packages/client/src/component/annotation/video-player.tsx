@@ -43,10 +43,6 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
   private hls: Hls | null = null;
 
-  private serialId = this.props.annotationSerialIdMap[this.props.conf.config.refId] + 1;
-
-  private totalAnnotations = Object.keys(this.props.annotationSerialIdMap).length;
-
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -297,7 +293,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               <Tags.NavButtonCon
                 pcolor={this.props.conf.opts.primaryColor}
               >
-                <div className="serial-num">{this.serialId} of {this.totalAnnotations}</div>
+                <div className="serial-num">{this.props.annotationSerialIdMap[this.props.conf.config.refId]}</div>
                 {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                   <Tags.ABtn
                     bg={generateShadeColor(this.props.conf.opts.primaryColor,)}

@@ -17,7 +17,7 @@ import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { getDefaultTourOpts } from '@fable/common/dist/utils';
+import { getDefaultTourOpts, getSampleJourneyData } from '@fable/common/dist/utils';
 import Alert from 'antd/lib/alert';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
@@ -201,7 +201,7 @@ const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Connecte
   return indexedOrderedAnns;
 };
 
-const isTourMainSet = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
+const isTourMainValid = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
   if (main) {
     const annId = main.split('/')[1];
     if (getAnnotationByRefId(annId, allAnns)) {
@@ -231,6 +231,7 @@ interface IAppStateProps {
   annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
+  tourJourney: CreateJourneyData;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -293,7 +294,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   let isMainValid = false;
   let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
-    isMainValid = isTourMainSet(tourOpts.main, allAnnotationsForTour);
+    if (state.default.tourData!.journey && state.default.tourData!.journey.flows.length !== 0) {
+      isMainValid = isTourMainValid(state.default.tourData!.journey.flows[0].main, allAnnotationsForTour);
+    } else isMainValid = isTourMainValid(tourOpts.main, allAnnotationsForTour);
     annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts.main, allAnnotationsForTour);
   }
 
@@ -317,6 +320,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     annotationSerialIdMap,
     isAutoSaving: state.default.isAutoSaving,
     tourDiagnostics: state.default.tourData?.diagnostics || {},
+    tourJourney: state.default.tourData?.journey || getSampleJourneyData()
   };
 };
 
@@ -652,6 +656,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isAutoSaving: this.props.isAutoSaving,
                 warnings: this.getTourWarnings(),
               }}
+              tourJourney={this.props.tourJourney}
             />
 
           </div>

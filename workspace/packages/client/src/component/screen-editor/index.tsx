@@ -1133,6 +1133,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               allFlows={[]}
               currentFlowMain=""
               updateCurrentFlowMain={(main: string) => {}}
+              updateJourneyProgress={(annRefid: string) => {}}
             />}
             {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" />}
           </GTags.EmbedCon>

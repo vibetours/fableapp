@@ -34,9 +34,8 @@ export const FLowItemCon = styled.div`
   align-items: center;
   margin: 0px;
   padding: 15px;
-  justify-content: space-between;
   position: relative;
-  background-color:${(p: FLowItemConf) => (p.isCurrentFlow ? '#dfdee8' : 'none')};
+  background-color:${(p: FLowItemConf) => (p.isCurrentFlow ? '#dfdee8' : 'inherit')};
 
   &:hover {
     background-color: #F6F5FF;
@@ -56,6 +55,7 @@ export const FlowHeader1 = styled.p`
   font-weight: 500;
   font-size: 14px;
   font-family: "IBM Plex Sans", sans-serif;
+  margin-bottom: 4px;
 `;
 
 export const FlowHeader2 = styled.p`
@@ -75,7 +75,7 @@ export const IndexButton = styled(Button)`
   display: flex;
   justify-content: center;
   align-items: center;
-
+  box-shadow: 2px 2px 0 rgba(72, 5, 255, 0.06);
   &:hover{
     color: ${(p: IndexBtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')} !important;
   }

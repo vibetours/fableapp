@@ -1,9 +1,8 @@
 import React from 'react';
-import { Progress } from 'antd';
 import { getUserGuideCompletionProgressInModules } from '../../user-guides/utils';
 import * as Tags from './styled';
 import openBookIcons from '../../assets/icons/open-book.svg';
-import CircleGreenFilledIcon from '../../assets/icons/circle-check-green.svg';
+import { ProgressCircle } from '../progress-circle';
 
 interface Props {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -13,12 +12,12 @@ interface Props {
 export default function UserGuideProgress(props: Props): JSX.Element {
   return (
     <Tags.UserGuideProgressCon selected={props.selected} onClick={props.onClick}>
-      <ProgressCircle />
+      <UserGuideProgressCircle />
     </Tags.UserGuideProgressCon>
   );
 }
 
-function ProgressCircle(): JSX.Element {
+function UserGuideProgressCircle(): JSX.Element {
   const { completedModules, totalmodules } = getUserGuideCompletionProgressInModules();
 
   return (
@@ -37,28 +36,13 @@ function ProgressCircle(): JSX.Element {
           </div>
         </div>
       </div>
-      {completedModules === totalmodules ? (
-        <img
-          src={CircleGreenFilledIcon}
-          alt="Green checked outline"
-          style={{ aspectRatio: '1/1', width: 28 }}
+      <div>
+        <ProgressCircle
+          totalmodules={totalmodules}
+          completedModules={completedModules}
+          progressCircleSize={28}
         />
-      ) : (
-        <Progress
-          type="circle"
-          percent={(completedModules / totalmodules) * 100}
-          size={28}
-          strokeWidth={14}
-          format={() => `${completedModules}`}
-          strokeColor="#2bd46f"
-          trailColor="#D9D9D9"
-          showInfo={false}
-          strokeLinecap="square"
-          style={{
-            transform: 'scaleX(-1)',
-          }}
-        />
-      )}
+      </div>
     </div>
   );
 }

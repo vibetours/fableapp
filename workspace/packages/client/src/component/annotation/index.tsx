@@ -10,7 +10,7 @@ import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
-import { generateShadeColor, getFableRtUmbrlDiv } from './utils';
+import { generateShadeColor } from './utils';
 import { isVideoAnnotation as isVideoAnn } from '../../utils';
 import { logEvent } from '../../analytics/utils';
 import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
@@ -747,6 +747,7 @@ interface IConProps {
   allFlows: string[],
   currentFlowMain: string,
   updateCurrentFlowMain: (main: string)=> void,
+  updateJourneyProgress: (annRefId: string)=>void,
 }
 
 interface HotspotProps {
@@ -842,6 +843,10 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           ? config.buttons.filter(button => button.id === btnId)[0]
           : config.buttons.filter(button => button.type === type)[0];
         const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
+
+        if (btnConf.type === 'next' && this.props.currentFlowMain) {
+          this.props.updateJourneyProgress(p.conf.config.refId);
+        }
 
         if (!btnConf.hotspot) {
           if (this.props.playMode) {

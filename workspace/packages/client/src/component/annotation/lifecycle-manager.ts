@@ -72,6 +72,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private updateCurrentFlowMain: (main: string) => void;
 
+  private updateJourneyProgress: (annRefId: string)=> void;
+
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
   }
@@ -118,6 +120,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
     allFlows: string[],
     updateCurrentFlowMain: (main: string) => void,
+    updateJourneyProgress: (annRefId: string) => void
   ) {
     super(doc, nestedFrames, config);
     this.nav = opts.navigate;
@@ -139,6 +142,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.allFlows = allFlows;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
+    this.updateJourneyProgress = updateJourneyProgress;
     this.prerenderVideoAnnotations();
   }
 
@@ -467,7 +471,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
           allFlows: this.allFlows,
           currentFlowMain: this.currentFlowMain,
-          updateCurrentFlowMain: this.updateCurrentFlowMain
+          updateCurrentFlowMain: this.updateCurrentFlowMain,
+          updateJourneyProgress: this.updateJourneyProgress,
         })
       )
     );
@@ -578,7 +583,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
           allFlows: this.allFlows,
           currentFlowMain: this.currentFlowMain,
-          updateCurrentFlowMain: this.updateCurrentFlowMain
+          updateCurrentFlowMain: this.updateCurrentFlowMain,
+          updateJourneyProgress: this.updateJourneyProgress
         })
       )
     );

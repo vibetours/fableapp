@@ -64,6 +64,7 @@ export interface IOwnProps {
   updateCurrentFlowMain: (main: string)=> void;
   closeJourneyMenu? : ()=> void;
   screenRidOnWhichDiffsAreApplied?: string;
+  updateJourneyProgress: (annRefId: string)=> void;
 }
 
 interface IOwnStateProps {
@@ -260,7 +261,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
           this.props.allFlows,
-          this.props.updateCurrentFlowMain
+          this.props.updateCurrentFlowMain,
+          this.props.updateJourneyProgress!
         );
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.

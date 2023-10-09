@@ -2,7 +2,13 @@ import { useEffect, useRef } from 'react';
 import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
-import { AnnotationPerScreen, ConnectedOrderedAnnGroupedByScreen, IAnnotationConfigWithScreen } from './types';
+import {
+  AnnotationPerScreen,
+  ConnectedOrderedAnnGroupedByScreen,
+  IAnnotationConfigWithScreen,
+  JOURNEY_PROGRESS_LOCAL_STORE_KEY,
+  FlowProgress
+} from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -221,4 +227,13 @@ export const getAnnotationWithScreenAndIdx = (
     });
   });
   return ann;
+};
+
+export const getJourneyProgress = (): Record<string, FlowProgress[]> => {
+  const FABLE_JOURNEY_PROGRESS = localStorage.getItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY);
+  return FABLE_JOURNEY_PROGRESS ? JSON.parse(FABLE_JOURNEY_PROGRESS) as Record<string, FlowProgress[]> : {};
+};
+
+export const saveJourneyProgress = (journeyProgress: Record<string, FlowProgress[]>): void => {
+  localStorage.setItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY, JSON.stringify(journeyProgress));
 };

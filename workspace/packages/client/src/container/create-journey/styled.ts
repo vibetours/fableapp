@@ -1,6 +1,7 @@
 import { Button } from 'antd';
 import styled from 'styled-components';
 import Select from 'antd/lib/select';
+import { ColorPicker as AntColorPicker } from 'antd/lib';
 
 export const CreateJourneyCon = styled.div`
     width: 360px;
@@ -45,6 +46,7 @@ export const EditorCon = styled.div`
 
 export const FieldOuterCon = styled.div`
     width: 100%;
+    margin-top: 1rem;
 `;
 
 export const FieldCon = styled.div`
@@ -105,7 +107,8 @@ export const OutlineButton = styled(Button)`
 
     &:hover {
       color: ${(props: OutlineButtonProp) => (props.color ? `${props.color} !important` : '#7567FF !important')};
-      border-color: ${(props: OutlineButtonProp) => (props.color ? `${props.color} !important` : '#7567FF !important')};  
+      border-color: ${(props: OutlineButtonProp) => (props.color
+    ? `${props.color} !important` : '#7567FF !important')};  
     }
 `;
 
@@ -202,4 +205,28 @@ export const CTAText = styled.p`
   font-style: normal;
   font-weight: 600;
   line-height: normal;
+`;
+
+export const ColorPicker = styled(AntColorPicker)`
+  border: 1px solid #E8E8E8;
+  background: white;
+  min-width: 140px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: flex-start;
+  height: 100%;
+  font-weight: 400;
+  height: 44px;
+  position: relative;
+  .ant-color-picker-color-block{ 
+    border-radius: 50% !important;
+    position: absolute;
+    right: 12px;
+  }
+  .ant-color-picker-color-block-inner,
+  .ant-color-picker-color-block {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
 `;
