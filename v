@@ -1,16 +1,20 @@
 #!/bin/bash
 
+# Usage
+# ./v -l 1      to list all the versions from package.json
+# ./v -u *.*.*  to upgrade to a version 
+
 echo "Checking if required toolchain is installed"
 if ! [ -x "$(command -v jq)" ]; then
   echo 'Error: jq is not installed.' >&2
   exit 1
 fi
 
-while getopts "v:c:" flag
+while getopts "l:u:" flag
 do
   case "${flag}" in
-    v) VERSION=${OPTARG};;
-    c) CURRENT=1;;
+    u) VERSION=${OPTARG};;
+    l) CURRENT=1;;
   esac
 done
 

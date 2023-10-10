@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Fable",
   "author": "fable",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Craft stunning demos that convert",
   "icons": {
     "16": "logo_16.png",
