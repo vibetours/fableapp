@@ -172,12 +172,14 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
       case VideoAnnotationPositions.Center:
         styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
         break;
-      case VideoAnnotationPositions.Follow: {
+      case VideoAnnotationPositions.Follow:
+      default: {
         if (isCover) {
           styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
         } else {
           styles = {
             ...styles,
+            position: 'absolute',
             top: `${this.props.annFollowPositions.top}px`,
             left: `${this.props.annFollowPositions.left}px`
           };
@@ -193,11 +195,9 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         }
         break;
       }
-      default:
-        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
-        break;
     }
     return {
+      position: 'fixed',
       ...styles,
       width: `${this.props.width}px`,
       height: `${this.props.height}px`,

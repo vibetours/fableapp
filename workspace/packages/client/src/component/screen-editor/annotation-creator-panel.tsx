@@ -5,6 +5,7 @@ import {
   AnnotationButtonStyle,
   AnnotationPositions,
   CmnEvtProp,
+  CustomAnnotationPosition,
   EAnnotationBoxSize,
   IAnnotationConfig,
   ITourDataOpts,
@@ -55,6 +56,9 @@ import {
   updateAnnotationTypeToCover,
   updateAnnotationButtonLayout,
   updateAnnCssStyle,
+  updateAnnotationCustomDims,
+  isAnnCustomPosition,
+  getAnnPositioningOptions,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen, onAnnCreateOrChangeFn, } from '../../types';
@@ -89,6 +93,7 @@ import ResetIcon from '../../assets/icons/reset.svg';
 import InvisibilityIcon from '../../assets/icons/invisibility.svg';
 import LinkInActiveIcon from '../../assets/icons/link-inactive.svg';
 import SettingsIcon from '../../assets/icons/settings.svg';
+import AnnPositioningInput from './ann-positioning-input';
 
 const { confirm } = Modal;
 
@@ -183,6 +188,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [showBrandingOptionsPopup, setShowBrandingOptionsPopup] = useState(false);
   const [showCssEditorForElOnScreen, setShowCssEditorForElOnScreen] = useState(false);
   const [showCssEditorForAnnOnScreen, setShowCssEditorForAnnOnScreen] = useState(false);
+  const [showCustomPositioningOption, setShowCustomPositioningOption] = useState(false);
   const unsubFn = useRef(() => { });
 
   const prevConfig = usePrevious(config);
@@ -450,23 +456,47 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         <div style={commonActionPanelItemStyle}>
           <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
           <Tags.ActionPaneSelect
-            defaultValue={config.positioning}
+            defaultValue={isAnnCustomPosition(config.positioning) ? 'custom' : config.positioning}
             size="small"
             bordered={false}
-            options={isVideoAnnotation(config) ? Object.values(VideoAnnotationPositions).map(v => ({
+            options={getAnnPositioningOptions(config).map(v => ({
               value: v,
               label: v,
-            })) : Object.values(AnnotationPositions).map(v => ({
-              value: v,
-              label: `${v} ${v === AnnotationPositions.Auto ? '' : '(not yet supported)'}`,
-              disabled: v !== AnnotationPositions.Auto
             }))}
-            onChange={(e) => (
-              setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)))
-            )}
+            onChange={(e) => {
+              if (e === 'custom') {
+                setShowCustomPositioningOption(true);
+                return;
+              }
+              setShowCustomPositioningOption(false);
+              setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)));
+            }}
             suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
+        {
+          (isAnnCustomPosition(config.positioning) || showCustomPositioningOption) && (
+            <div style={{ ...commonActionPanelItemStyle, minHeight: '64px', height: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', width: '70%' }}>
+                <GTags.Txt>
+                  Custom Positioning
+                </GTags.Txt>
+                <GTags.Txt style={{ fontWeight: 400, fontStyle: 'italic', fontSize: '10px' }}>
+                  This choice won't be regarded if there is no space for the annotation to be rendered.
+                  We would fallback to auto positioning in that case.
+                </GTags.Txt>
+              </div>
+              <AnnPositioningInput
+                fullWidth={64}
+                panelWidth={18}
+                onChange={(e) => {
+                  setConfig(c => updateAnnotationPositioning(c, e));
+                }}
+                selectedPos={config.positioning as CustomAnnotationPosition}
+              />
+            </div>
+          )
+        }
         <div style={commonActionPanelItemStyle}>
           <GTags.Txt style={{}}>Box sizing</GTags.Txt>
           <Tags.ActionPaneSelect
@@ -474,8 +504,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             size="small"
             bordered={false}
             options={Object.values(isVideoAnnotation(config)
-              ? ['medium', 'large']
-              : ['small', 'medium', 'large'])
+              ? ['medium', 'large', 'custom']
+              : ['small', 'medium', 'large', 'custom'])
               .map(v => ({
                 value: v,
                 label: `${v}`
@@ -484,6 +514,22 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
+        {
+          config.size === 'custom' && (
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={{}}>Custom width</GTags.Txt>
+              <Tags.InputNumberBorderRadius
+                min={0}
+                defaultValue={config.customDims.width}
+                addonAfter="px"
+                onChange={(e) => {
+                  const width = e ? +e : 0;
+                  setConfig(c => updateAnnotationCustomDims(c, { ...c.customDims, width }));
+                }}
+              />
+            </div>
+          )
+        }
 
       </ActionPanel>
       <ActionPanel

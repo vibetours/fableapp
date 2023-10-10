@@ -105,6 +105,8 @@ export const isVideoAnnotation = (config: IAnnotationConfig): boolean => !isBlan
     || !isBlankString(config.videoUrlWebm)
     || !isBlankString(config.videoUrlHls));
 
+export const isCoverAnnotation = (config: IAnnotationConfig): boolean => config.type === 'cover';
+
 export function flatten<T>(arr: Array<T[]>): T[] {
   const flatArr: T[] = [];
   for (const item of arr) {

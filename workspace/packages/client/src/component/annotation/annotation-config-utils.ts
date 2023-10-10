@@ -9,10 +9,13 @@ import {
   ITourDataOpts,
   EAnnotationBoxSize,
   VideoAnnotationPositions,
-  AnnotationButtonLayoutType
+  AnnotationButtonLayoutType,
+  CustomAnnDims,
+  CustomAnnotationPosition
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
+import { isVideoAnnotation } from '../../utils';
 
 export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
   screenId: number
@@ -53,9 +56,15 @@ export function updateAnnotationBoxSize<T extends IAnnotationConfig>(config: T, 
   return newConfig;
 }
 
+export function updateAnnotationCustomDims<T extends IAnnotationConfig>(config: T, customDims: CustomAnnDims): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.customDims = customDims;
+  return newConfig;
+}
+
 export function updateAnnotationPositioning<T extends IAnnotationConfig>(
   config: T,
-  positioning: AnnotationPositions | VideoAnnotationPositions
+  positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition
 ): T {
   const newConfig = newConfigFrom(config);
   newConfig.positioning = positioning;
@@ -269,3 +278,34 @@ export function shallowCloneAnnotation(elPath: string, from: IAnnotationConfig):
 export function isCoverAnnotation(annId: string): boolean {
   return annId.split('#')[0] === '$';
 }
+
+export const isAnnCustomPosition = (
+  pos: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition
+): boolean => {
+  let isCustomPos = false;
+
+  Object.values(CustomAnnotationPosition).forEach(p => {
+    if (p === pos) isCustomPos = true;
+  });
+
+  return isCustomPos;
+};
+
+type PositioningOptions = Array<AnnotationPositions | VideoAnnotationPositions | 'custom'>;
+
+export const getAnnPositioningOptions = (config: IAnnotationConfig)
+: PositioningOptions => {
+  const positions: PositioningOptions = [];
+
+  if (isVideoAnnotation(config)) {
+    positions.push(...Object.values(VideoAnnotationPositions));
+  } else {
+    positions.push(...Object.values(AnnotationPositions));
+  }
+
+  if (config.type === 'default') {
+    positions.push('custom');
+  }
+
+  return positions;
+};

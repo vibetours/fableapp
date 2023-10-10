@@ -1,5 +1,5 @@
-import { RespScreen, RespSubscription, RespTour, RespTourWithScreens, RespUser, SchemaVersion } from '@fable/common/dist/api-contract';
-import { deepcopy, getDefaultTourOpts, getDisplayableTime } from '@fable/common/dist/utils';
+import { RespScreen, RespSubscription, RespTour, RespTourWithScreens } from '@fable/common/dist/api-contract';
+import { DEFAULT_ANN_DIMS, deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
   IAnnotationConfig,
@@ -243,6 +243,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     buttonLayout: lc.buttonLayout,
     targetElCssStyle: lc.targetElCssStyle,
     annCSSStyle: lc.annCSSStyle,
+    customDims: lc.customDims,
   };
 }
 
@@ -302,6 +303,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.annCSSStyle === undefined || an.annCSSStyle === null) {
     an.annCSSStyle = '';
+  }
+
+  if (an.customDims === undefined || an.customDims === null) {
+    an.customDims = DEFAULT_ANN_DIMS;
   }
 
   const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);

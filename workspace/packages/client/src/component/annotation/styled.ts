@@ -246,7 +246,6 @@ const slideOut = keyframes`
 `;
 
 export const AnVideoContainer = styled.div<{ out: 'slidein' | 'slideout' }>`
-  position: fixed;
   border-radius: 8px;
   animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.2s ease-out;
 `;

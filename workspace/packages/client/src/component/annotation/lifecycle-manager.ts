@@ -507,6 +507,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
         dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
         dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
+        dimForCustomAnnotation: { ...dim.dimForCustomAnnotation },
         windowHeight: vp.h,
         windowWidth: vp.w,
       }];
@@ -535,6 +536,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         dimForSmallAnnotation: { w: 10, h: 10 },
         dimForMediumAnnotation: { w: 10, h: 10 },
         dimForLargeAnnotation: { w: 10, h: 10 },
+        dimForCustomAnnotation: { w: 10, h: 10 },
         windowHeight: vp.h,
         windowWidth: vp.w,
       };
@@ -594,17 +596,22 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     dimForSmallAnnotation: { w: number, h: number },
     dimForMediumAnnotation: { w: number, h: number },
     dimForLargeAnnotation: { w: number, h: number },
+    dimForCustomAnnotation: { w: number, h: number },
   }> {
     const vp = this.getVp();
 
     const smallWidth = AnnotationContent.MIN_WIDTH;
     const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 3.5 | 0);
     const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 2.5 | 0);
+    const customWidth = config.customDims.width;
 
     try {
       const rs: Array<(e: HTMLDivElement) => void> = [];
       const ps = Promise.all([
         new Promise((resolve: (e: HTMLDivElement) => void, re) => {
+          rs.push(resolve);
+        }),
+        new Promise((resolve: (e: HTMLDivElement) => void) => {
           rs.push(resolve);
         }),
         new Promise((resolve: (e: HTMLDivElement) => void) => {
@@ -667,20 +674,37 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc
+            }),
+            React.createElement(AnnotationContent, {
+              onRender: rs[3],
+              isInDisplay: true,
+              config,
+              opts,
+              dir: 't',
+              width: customWidth,
+              top: -9999,
+              left: -9999,
+              key: `${config.refId}-custom-${r}`,
+              tourId: this.tourId,
+              annotationSerialIdMap: this.annotationSerialIdMap,
+              navigateToAdjacentAnn: () => {},
+              doc: this.doc
             })
           )
         )
       );
 
-      const [elSmall, elMedium, elLarge] = await ps;
+      const [elSmall, elMedium, elLarge, elCustom] = await ps;
       const smallDim = elSmall.getBoundingClientRect();
       const mediumDim = elMedium.getBoundingClientRect();
       const largeDim = elLarge.getBoundingClientRect();
+      const customDim = elCustom.getBoundingClientRect();
 
       return {
         dimForSmallAnnotation: { w: smallDim.width, h: smallDim.height },
         dimForMediumAnnotation: { w: mediumDim.width, h: mediumDim.height },
         dimForLargeAnnotation: { w: largeDim.width, h: largeDim.height },
+        dimForCustomAnnotation: { w: customDim.width, h: customDim.height },
       };
     } catch (e) {
       if (!this.componentDisposed) {
@@ -694,6 +718,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       dimForSmallAnnotation: { w: 0, h: 0 },
       dimForMediumAnnotation: { w: 0, h: 0 },
       dimForLargeAnnotation: { w: 0, h: 0 },
+      dimForCustomAnnotation: { w: 0, h: 0 },
     };
   }
 

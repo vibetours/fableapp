@@ -3,6 +3,7 @@ import {
   AnnotationButtonStyle,
   AnnotationPositions,
   CreateJourneyPositioning,
+  CustomAnnDims,
   IAnnotationConfig,
   ITourDataOpts,
   TourData
@@ -109,6 +110,10 @@ export function createEmptyTourDataFile(): TourData {
   };
 }
 
+export const DEFAULT_ANN_DIMS: CustomAnnDims = {
+  width: 320,
+};
+
 export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfig => {
   const isCoverAnn = elPath === '$';
   const id = getRandomId();
@@ -126,6 +131,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     syncPending: true,
     type: isCoverAnn ? 'cover' : 'default',
     size: isCoverAnn ? 'medium' : 'small',
+    customDims: DEFAULT_ANN_DIMS,
     isHotspot: false,
     hideAnnotation: false,
     videoUrl: '', // legacy

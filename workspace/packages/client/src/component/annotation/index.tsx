@@ -5,19 +5,20 @@ import {
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import React from 'react';
-import { sleep } from '@fable/common/dist/utils';
+import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
 import { NavFn } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
 import { generateShadeColor } from './utils';
-import { isVideoAnnotation as isVideoAnn } from '../../utils';
+import { isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
 import { logEvent } from '../../analytics/utils';
 import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
+import { isAnnCustomPosition } from './annotation-config-utils';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -48,7 +49,7 @@ export class AnnotationContent extends React.PureComponent<{
   isThemeAnnotation?: boolean,
   doc?: Document
 }> {
-  static readonly MIN_WIDTH = 360;
+  static readonly MIN_WIDTH = DEFAULT_ANN_DIMS.width;
 
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -80,7 +81,8 @@ export class AnnotationContent extends React.PureComponent<{
           });
         }
 
-        const els: Array<HTMLImageElement | HTMLLinkElement> = Array.from(this.contentRef.current?.getElementsByTagName('img'));
+        const els: Array<HTMLImageElement | HTMLLinkElement> = Array
+          .from(this.contentRef.current?.getElementsByTagName('img'));
 
         Promise.all(els.map(img => new Promise(resolve => {
           img.onload = resolve;
@@ -117,7 +119,7 @@ export class AnnotationContent extends React.PureComponent<{
         key={this.props.config.refId}
         ref={this.conRef}
         style={{
-          minWidth: `${AnnotationContent.MIN_WIDTH}px`,
+          minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,
           width: `${this.props.width}px`,
           display: this.props.isInDisplay ? 'flex' : 'none',
           visibility: 'visible',
@@ -214,32 +216,324 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }, 48);
   }
 
-  getYAxisCoordWrtWinInnerHeight(top: number): number {
-    const winH = this.props.win.innerHeight;
-    return Math.round(top / winH + (top % winH));
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
+    const prevConfig = prevProps.annotationDisplayConfig.config;
+    const currConfig = this.props.annotationDisplayConfig.config;
+    if (prevConfig.positioning !== currConfig.positioning) {
+      setTimeout(() => {
+        if (this.conRef.current) {
+          this.conRef.current.style.transform = 'translate(0px, 0px)';
+        }
+      }, 0);
+    }
   }
 
-  getXAxisCoordWrtWinInnerWidth(left: number): number {
-    const winW = this.props.win.innerWidth;
-    return Math.round(left / winW + (left % winW));
-  }
+  getAnnWidthHeight = ():{
+    w: number,
+    h: number,
+  } => {
+    const displayConfig = this.props.annotationDisplayConfig;
+    const config = displayConfig.config;
+    const isVideoAnnotation = isVideoAnn(config);
+    const isCoverAnnotation = isCoverAnn(config);
+
+    const boxSize = this.props.annotationDisplayConfig.config.size;
+
+    let w = displayConfig.prerender ? this.props.box.width : 0;
+    let h = displayConfig.prerender ? this.props.box.height : 0;
+
+    if (boxSize === 'small') {
+      w = this.props.annotationDisplayConfig.dimForSmallAnnotation.w;
+      h = this.props.annotationDisplayConfig.dimForSmallAnnotation.h;
+    }
+
+    if (boxSize === 'medium') {
+      if (isVideoAnnotation) {
+        if (isCoverAnnotation) {
+          switch (this.props.annotationDisplayConfig.config.positioning) {
+            case VideoAnnotationPositions.BottomLeft:
+            case VideoAnnotationPositions.BottomRight:
+              w = VIDEO_ANN.COVER_MED_WIDTH;
+              h = VIDEO_ANN.COVER_MED_HEIGHT;
+              break;
+            case VideoAnnotationPositions.Center:
+            case VideoAnnotationPositions.Follow:
+            default:
+              w = VIDEO_ANN.COVER_MED_WIDTH_CENTER;
+              h = VIDEO_ANN.COVER_MED_HEIGHT_CENTER;
+              break;
+          }
+        }
+
+        if (!isCoverAnnotation) {
+          w = VIDEO_ANN.DEFAULT_MED_WIDTH;
+          h = VIDEO_ANN.DEFAULT_MED_HEIGHT;
+        }
+      }
+
+      if (!isVideoAnnotation) {
+        w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
+        h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
+      }
+    }
+
+    if (boxSize === 'large') {
+      if (isVideoAnnotation) {
+        if (isCoverAnnotation) {
+          switch (this.props.annotationDisplayConfig.config.positioning) {
+            case VideoAnnotationPositions.BottomLeft:
+            case VideoAnnotationPositions.BottomRight:
+              w = VIDEO_ANN.COVER_LARGE_WIDTH;
+              h = VIDEO_ANN.COVER_LARGE_HEIGHT;
+              break;
+            case VideoAnnotationPositions.Center:
+            case VideoAnnotationPositions.Follow:
+            default:
+              w = VIDEO_ANN.COVER_LARGE_WIDTH_CENTER;
+              h = VIDEO_ANN.COVER_LARGE_HEIGHT_CENTER;
+              break;
+          }
+        }
+
+        if (!isCoverAnnotation) {
+          w = VIDEO_ANN.DEFAULT_LARGE_WIDTH;
+          h = VIDEO_ANN.DEFAULT_LARGE_HEIGHT;
+        }
+      }
+
+      if (!isVideoAnnotation) {
+        w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
+        h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
+      }
+    }
+
+    if (boxSize === 'custom') {
+      w = this.props.annotationDisplayConfig.dimForCustomAnnotation.w;
+      h = this.props.annotationDisplayConfig.dimForCustomAnnotation.h;
+      if (isVideoAnnotation) {
+        h = VIDEO_ANN.getHeightForConstWidth(w);
+      }
+    }
+    return {
+      w, h
+    };
+  };
+
+  getAutoAnnRenderingData = (w: number, h: number,): {
+    l: number,
+    t: number,
+    dir: AnimEntryDir,
+    isUltrawideBox: boolean
+  } => {
+    const displayConfig = this.props.annotationDisplayConfig;
+    const elBox = this.props.box;
+    const winW = this.props.annotationDisplayConfig.windowWidth;
+    const winH = this.props.annotationDisplayConfig.windowHeight;
+
+    let l = -9999;
+    let t = -9999;
+    let dir: AnimEntryDir = 't';
+    let isUltrawideBox = false;
+
+    if (!displayConfig.isInViewPort) return { l, t, dir, isUltrawideBox };
+
+    if (this.props.annotationDisplayConfig.config.type === 'cover') {
+      t = winH / 2 - h / 2;
+      l = winW / 2 - w / 2;
+      return { l, t, dir, isUltrawideBox };
+    }
+
+    const maskBoxPadding = this.props.maskBox
+      ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
+      : { left: 0, right: 0, top: 0, bottom: 0 };
+
+    const LEFT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.left;
+    const RIGHT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.right;
+    const TOP_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.top;
+    const BOTTOM_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.bottom;
+
+    const leftSpace = elBox.left;
+    const rightSpace = winW - elBox.right;
+    const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
+    const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
+    let p: 'l' | 'r' | 't' | 'b' | undefined;
+    if (ml > 1 || mr > 1) {
+      p = ml > mr ? 'l' : 'r';
+    }
+    if (p === 'l' || p === 'r') {
+      t = elBox.top + elBox.height / 2 - (h / 2);
+      if (t <= TOP_ANN_EL_MARGIN) {
+        // If the top of the annotation is outside the viewport
+        t = Math.max(elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.top);
+      }
+      if (t + h + TOP_ANN_EL_MARGIN >= winH) {
+        // If the bottom of the annotation is outside the viewport
+        t = Math.min(elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.bottom - h);
+      }
+
+      if (p === 'l') {
+        l = elBox.left - w - LEFT_ANN_EL_MARGIN;
+      } else {
+        l = elBox.right + RIGHT_ANN_EL_MARGIN;
+      }
+    } else {
+      const topSpace = elBox.top;
+      const bottomSpace = winH - elBox.bottom;
+      const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
+      const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
+      if (mb > 1 || mt > 1) {
+        p = mb > mt ? 'b' : 't';
+      }
+      if (p === 't' || p === 'b') {
+        l = elBox.left + elBox.width / 2 - (w / 2);
+        if (p === 't') {
+          t = elBox.top - h - TOP_ANN_EL_MARGIN;
+        } else {
+          t = elBox.bottom + BOTTOM_ANN_EL_MARGIN;
+        }
+      }
+    }
+
+    if (!p) {
+      isUltrawideBox = true;
+      l = elBox.right - w - LEFT_ANN_EL_MARGIN;
+      t = elBox.bottom - h - TOP_ANN_EL_MARGIN;
+    } else {
+      dir = p || 't';
+    }
+
+    return {
+      l, t, dir, isUltrawideBox
+    };
+  };
+
+  getCustomAnnPosDir = (): AnimEntryDir => {
+    const pos = this.props.annotationDisplayConfig.config.positioning;
+    const side = pos.split('-')[1];
+
+    let dir: AnimEntryDir = 't';
+
+    if (side === 'top') { dir = 't'; }
+    if (side === 'right') { dir = 'r'; }
+    if (side === 'bottom') { dir = 'b'; }
+    if (side === 'left') { dir = 'l'; }
+
+    return dir;
+  };
+
+  /** *
+   *  If custom position is c-top-left
+   *  top -> position
+   *  left -> subposition
+   */
+  getCustomAnnPosLeft = (w: number, h: number): number => {
+    const pos = this.props.annotationDisplayConfig.config.positioning;
+    const dir = this.getCustomAnnPosDir();
+    const elBox = this.props.box;
+    const maskBoxPadding = this.props.maskBox
+      ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
+      : { left: 0, right: 0, top: 0, bottom: 0 };
+
+    const LEFT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.left;
+    const RIGHT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.right;
+
+    if (dir === 'l') { return elBox.left - w - LEFT_ANN_EL_MARGIN; }
+    if (dir === 'r') { return elBox.right + RIGHT_ANN_EL_MARGIN; }
+
+    const subPosition = pos.split('-').at(-1);
+    if (subPosition === 'left') { return elBox.left - maskBoxPadding.left; }
+    if (subPosition === 'right') { return elBox.right - w + maskBoxPadding.right; }
+    if (subPosition === 'center') { return (elBox.left + elBox.width / 2) - (w / 2); }
+
+    return 0;
+  };
+
+  getCustomAnnPosTop = (w: number, h: number): number => {
+    const pos = this.props.annotationDisplayConfig.config.positioning;
+    const dir = this.getCustomAnnPosDir();
+    const elBox = this.props.box;
+
+    const maskBoxPadding = this.props.maskBox
+      ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
+      : { left: 0, right: 0, top: 0, bottom: 0 };
+
+    const TOP_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.top;
+    const BOTTOM_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.bottom;
+
+    if (dir === 't') { return elBox.top - h - TOP_ANN_EL_MARGIN; }
+    if (dir === 'b') { return elBox.bottom + BOTTOM_ANN_EL_MARGIN; }
+
+    const subPosition = pos.split('-').at(-1);
+    if (subPosition === 'top') { return elBox.top - maskBoxPadding.top; }
+    if (subPosition === 'bottom') { return elBox.bottom - h + maskBoxPadding.bottom; }
+    if (subPosition === 'center') { return (elBox.top + elBox.height / 2) - (h / 2); }
+
+    return 0;
+  };
+
+  isAnnOutSideOfViewPort = (l: number, t: number, w: number, h: number): boolean => {
+    const winW = this.props.annotationDisplayConfig.windowWidth;
+    const winH = this.props.annotationDisplayConfig.windowHeight;
+
+    if (l < 0) return true;
+    if (t < 0) return true;
+    if (l + w > winW) return true;
+    if (t + h > winH) return true;
+
+    return false;
+  };
+
+  shouldShowArrowHead = (): boolean => {
+    const config = this.props.annotationDisplayConfig.config;
+    const pos = config.positioning;
+    const isVideoAnnotation = isVideoAnn(config);
+    const isCoverAnnotation = isCoverAnn(config);
+
+    if (isCoverAnnotation) return false;
+
+    if (isVideoAnnotation) {
+      return (pos === 'follow' || isAnnCustomPosition(pos)) && !this.props.annotationDisplayConfig.prerender;
+    }
+
+    return true;
+  };
 
   // TODO[refactor]
   //  Multiple branching besed render happens leading to similar configuration of same component. Make a single render
   //  by calculating the variables / configs via branching and applying those variables / config on the singular
   //  rendered component
   render(): JSX.Element {
+    const { w, h } = this.getAnnWidthHeight();
+
+    let showAutoPositioning = !isAnnCustomPosition(this.props.annotationDisplayConfig.config.positioning);
+    let t: number = 0;
+    let l: number = 0;
+    let dir: AnimEntryDir = 't';
+    let isUltrawideBox: boolean = false;
+
+    if (!showAutoPositioning) {
+      l = this.getCustomAnnPosLeft(w, h);
+      t = this.getCustomAnnPosTop(w, h);
+      dir = this.getCustomAnnPosDir();
+
+      const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
+
+      if (annOutsideOfViewport) { showAutoPositioning = true; }
+    }
+
+    if (showAutoPositioning) {
+      const renderingData = this.getAutoAnnRenderingData(w, h);
+      t = renderingData.t;
+      l = renderingData.l;
+      dir = renderingData.dir;
+      isUltrawideBox = renderingData.isUltrawideBox;
+    }
+
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
     const isVideoAnnotation = isVideoAnn(config);
-    const isCoverAnn = config.type === 'cover';
+    const isCoverAnnotation = isCoverAnn(config);
 
-    let l = -9999;
-    let t = -9999;
-    let w = displayConfig.prerender ? this.props.box.width : 0;
-    let h = displayConfig.prerender ? this.props.box.height : 0;
-    let dir: AnimEntryDir = 't';
-    let isUltrawideBox = false;
     const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
     const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy);
     let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
@@ -253,277 +547,92 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let tx = 0;
     let ty = 0;
 
-    if (displayConfig.isInViewPort) {
-      const elBox = this.props.box;
-      const winW = this.props.annotationDisplayConfig.windowWidth;
-      const winH = this.props.annotationDisplayConfig.windowHeight;
-
-      const boxSize = this.props.annotationDisplayConfig.config.size;
-
-      // TODO this is very complex. measurement calculation and rendering is intertwined. Fix this.
-      if (boxSize === 'small') {
-        w = this.props.annotationDisplayConfig.dimForSmallAnnotation.w;
-        h = this.props.annotationDisplayConfig.dimForSmallAnnotation.h;
+    if (!isCoverAnnotation) {
+      if (dir === 'l') {
+        tx -= d;
+      } else if (dir === 'r') {
+        tx += d;
+      } else if (dir === 't') {
+        ty -= d;
+      } else if (dir === 'b') {
+        ty += d;
       }
-
-      if (boxSize === 'medium') {
-        if (isVideoAnnotation) {
-          if (isCoverAnn) {
-            switch (this.props.annotationDisplayConfig.config.positioning) {
-              case VideoAnnotationPositions.BottomLeft:
-              case VideoAnnotationPositions.BottomRight:
-                w = VIDEO_ANN.COVER_MED_WIDTH;
-                h = VIDEO_ANN.COVER_MED_HEIGHT;
-                break;
-              case VideoAnnotationPositions.Center:
-              case VideoAnnotationPositions.Follow:
-              default:
-                w = VIDEO_ANN.COVER_MED_WIDTH_CENTER;
-                h = VIDEO_ANN.COVER_MED_HEIGHT_CENTER;
-                break;
-            }
-          }
-
-          if (!isCoverAnn) {
-            w = VIDEO_ANN.DEFAULT_MED_WIDTH;
-            h = VIDEO_ANN.DEFAULT_MED_HEIGHT;
-          }
-        }
-
-        if (!isVideoAnnotation) {
-          w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
-          h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
-        }
-      }
-
-      if (boxSize === 'large') {
-        if (isVideoAnnotation) {
-          if (isCoverAnn) {
-            switch (this.props.annotationDisplayConfig.config.positioning) {
-              case VideoAnnotationPositions.BottomLeft:
-              case VideoAnnotationPositions.BottomRight:
-                w = VIDEO_ANN.COVER_LARGE_WIDTH;
-                h = VIDEO_ANN.COVER_LARGE_HEIGHT;
-                break;
-              case VideoAnnotationPositions.Center:
-              case VideoAnnotationPositions.Follow:
-              default:
-                w = VIDEO_ANN.COVER_LARGE_WIDTH_CENTER;
-                h = VIDEO_ANN.COVER_LARGE_HEIGHT_CENTER;
-                break;
-            }
-          }
-
-          if (!isCoverAnn) {
-            w = VIDEO_ANN.DEFAULT_LARGE_WIDTH;
-            h = VIDEO_ANN.DEFAULT_LARGE_HEIGHT;
-          }
-        }
-
-        if (!isVideoAnnotation) {
-          w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
-          h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
-        }
-      }
-
-      if (this.props.annotationDisplayConfig.config.type === 'cover') {
-        const top = winH / 2 - h / 2;
-        const left = winW / 2 - w / 2;
-        if (isVideoAnnotation) {
-          return <AnnotationVideo
-            conf={this.props.annotationDisplayConfig}
-            playMode={this.props.playMode}
-            annFollowPositions={{ top, left, dir }}
-            width={w}
-            height={h}
-            tourId={this.props.tourId}
-            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-            annotationSerialIdMap={this.props.annotationSerialIdMap}
-          />;
-        }
-        return (
-          <div
-            ref={this.conRef}
-            style={{
-              transition: 'transform 0.3s ease-out',
-              transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty - d}px)`,
-            }}
-          >
-            <AnnotationContent
-              annotationSerialIdMap={this.props.annotationSerialIdMap}
-              config={this.props.annotationDisplayConfig.config}
-              opts={this.props.annotationDisplayConfig.opts}
-              isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-              width={w}
-              top={top}
-              left={left}
-              dir={dir}
-              tourId={this.props.tourId}
-              navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-            />
-          </div>
-        );
-      }
-
-      const maskBoxPadding = this.props.maskBox
-        ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
-        : { left: 0, right: 0, top: 0, bottom: 0 };
-
-      const LEFT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.left;
-      const RIGHT_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.right;
-      const TOP_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.top;
-      const BOTTOM_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.bottom;
-
-      const leftSpace = elBox.left;
-      const rightSpace = winW - elBox.right;
-      const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
-      const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
-      let p: 'l' | 'r' | 't' | 'b' | undefined;
-      if (ml > 1 || mr > 1) {
-        p = ml > mr ? 'l' : 'r';
-      }
-      if (p === 'l' || p === 'r') {
-        t = elBox.top + elBox.height / 2 - (h / 2);
-        if (t <= TOP_ANN_EL_MARGIN) {
-          // If the top of the annotation is outside the viewport
-          t = Math.max(elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.top);
-        }
-        if (t + h + TOP_ANN_EL_MARGIN >= winH) {
-          // If the bottom of the annotation is outside the viewport
-          t = Math.min(elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.bottom - h);
-        }
-
-        if (p === 'l') {
-          l = elBox.left - w - LEFT_ANN_EL_MARGIN;
-        } else {
-          l = elBox.right + RIGHT_ANN_EL_MARGIN;
-        }
-      } else {
-        const topSpace = elBox.top;
-        const bottomSpace = winH - elBox.bottom;
-        const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
-        const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
-        if (mb > 1 || mt > 1) {
-          p = mb > mt ? 'b' : 't';
-        }
-        if (p === 't' || p === 'b') {
-          l = elBox.left + elBox.width / 2 - (w / 2);
-          if (p === 't') {
-            t = elBox.top - h - TOP_ANN_EL_MARGIN;
-          } else {
-            t = elBox.bottom + BOTTOM_ANN_EL_MARGIN;
-          }
-        }
-      }
-
-      if (!p) {
-        isUltrawideBox = true;
-        l = elBox.right - w - LEFT_ANN_EL_MARGIN;
-        t = elBox.bottom - h - TOP_ANN_EL_MARGIN;
-      } else {
-        dir = p || 't';
-      }
+    } else {
+      ty -= d;
     }
 
-    if (isVideoAnnotation) {
-      return (
-        <>
-          {
-          !isUltrawideBox
-           && this.props.annotationDisplayConfig.config.positioning === 'follow'
-           && !this.props.annotationDisplayConfig.prerender
-           && (
-           <AnnotationArrowHead
-             box={{
-               ...this.props.box,
-               top: this.props.box.top + this.props.win.scrollY,
-               left: this.props.box.left + this.props.win.scrollX,
-             }}
-             pos={dir}
-             maskBoxRect={maskBoxRect}
-             arrowColor={arrowColor}
-             annBox={{
-               top: t + this.props.win.scrollY,
-               left: l + this.props.win.scrollX,
-               width: w,
-               height: h
-             }}
-             isBorderColorDefault={isBorderColorDefault}
-             annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
-           />
-           )
-        }
+    if (!isCoverAnnotation) {
+      t += this.props.win.scrollY;
+      l += this.props.win.scrollX;
+    }
+
+    return (
+      <>
+        {
+          isVideoAnnotation && (
           <AnnotationVideo
-            annotationSerialIdMap={this.props.annotationSerialIdMap}
             conf={this.props.annotationDisplayConfig}
             playMode={this.props.playMode}
             annFollowPositions={{
-              top: this.getYAxisCoordWrtWinInnerHeight(t),
-              left: this.getXAxisCoordWrtWinInnerWidth(l),
+              top: t,
+              left: l,
               dir,
             }}
             width={w}
             height={h}
             tourId={this.props.tourId}
             navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+            annotationSerialIdMap={this.props.annotationSerialIdMap}
           />
-        </>
-      );
-    }
-
-    if (dir === 'l') {
-      tx -= d;
-    } else if (dir === 'r') {
-      tx += d;
-    } else if (dir === 't') {
-      ty -= d;
-    } else if (dir === 'b') {
-      ty += d;
-    }
-    // This container should never have padding ever
-    return (
-      <div
-        ref={this.conRef}
-        style={{
-          transition: 'transform 0.3s ease-out',
-          transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
-        }}
-      >
-        {
-          !isUltrawideBox && (
-            <AnnotationArrowHead
-              box={{
-                ...this.props.box,
-                top: this.props.box.top + this.props.win.scrollY,
-                left: this.props.box.left + this.props.win.scrollX,
-              }}
-              pos={dir}
-              maskBoxRect={maskBoxRect}
-              arrowColor={arrowColor}
-              annBox={{
-                top: t + this.props.win.scrollY,
-                left: l + this.props.win.scrollX,
-                width: w,
-                height: h
-              }}
-              isBorderColorDefault={isBorderColorDefault}
-              annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
-            />
           )
         }
-        <AnnotationContent
-          annotationSerialIdMap={this.props.annotationSerialIdMap}
-          config={this.props.annotationDisplayConfig.config}
-          opts={this.props.annotationDisplayConfig.opts}
-          isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
-          width={w}
-          dir={dir}
-          top={t + this.props.win.scrollY}
-          left={l + this.props.win.scrollX}
-          tourId={this.props.tourId}
-          navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-        />
-      </div>
+        <div
+          ref={this.conRef}
+          style={{
+            transition: 'transform 0.3s ease-out',
+            transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
+          }}
+        >
+          {
+            this.shouldShowArrowHead() && !isUltrawideBox && (
+              <AnnotationArrowHead
+                box={{
+                  ...this.props.box,
+                  top: this.props.box.top + this.props.win.scrollY,
+                  left: this.props.box.left + this.props.win.scrollX,
+                }}
+                pos={dir}
+                maskBoxRect={maskBoxRect}
+                arrowColor={arrowColor}
+                annBox={{
+                  top: t,
+                  left: l,
+                  width: w,
+                  height: h
+                }}
+                isBorderColorDefault={isBorderColorDefault}
+                annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+              />
+            )
+            }
+          {
+            !isVideoAnnotation && (
+              <AnnotationContent
+                annotationSerialIdMap={this.props.annotationSerialIdMap}
+                config={this.props.annotationDisplayConfig.config}
+                opts={this.props.annotationDisplayConfig.opts}
+                isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
+                width={w}
+                top={t}
+                left={l}
+                tourId={this.props.tourId}
+                dir={dir}
+                navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+              />
+            )
+          }
+        </div>
+      </>
     );
   }
 }
@@ -723,6 +832,7 @@ export interface IAnnoationDisplayConfig {
   dimForSmallAnnotation: { w: number, h: number };
   dimForMediumAnnotation: { w: number, h: number };
   dimForLargeAnnotation: { w: number, h: number };
+  dimForCustomAnnotation: { w: number, h: number };
   windowHeight: number;
   windowWidth: number;
 }

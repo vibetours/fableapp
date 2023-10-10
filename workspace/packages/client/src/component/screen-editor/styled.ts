@@ -401,3 +401,90 @@ export const ScreenResponsiveIpCon = styled.div`
   align-items: center;
   margin: 1rem 1rem 0 1rem;
 `;
+
+export const AnnPositioningInput = styled.div<{
+  fullWidth: number,
+  panelWidth: number,
+  panelHeight: number,
+}>`
+  position: relative;
+  width: ${(props) => `${props.fullWidth}px`};
+  height: ${(props) => `${props.fullWidth}px`};
+  background-color: #EEEEEE;
+  border: 1px solid #9E9E9E;
+  border-radius: 4px;
+}
+  cursor: default;
+
+  .ann-pos-panel {
+    position: absolute;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .ann-pos-panel-left {
+    flex-direction: column;
+    top: ${props => `${props.panelWidth}px`};
+    left: 0;
+    width: ${props => `${props.panelWidth}px`};
+    height: ${props => `${props.panelHeight}px`};
+  }
+
+  .ann-pos-panel-right {
+    flex-direction: column;
+    top: ${props => `${props.panelWidth}px`};
+    right: 0;
+    width: ${props => `${props.panelWidth}px`};
+    height: ${props => `${props.panelHeight}px`};
+  }
+
+  .ann-pos-panel-top {
+    top: 0;
+    left: ${props => `${props.panelWidth}px`};
+    height: ${props => `${props.panelWidth}px`};
+    width: ${props => `${props.panelHeight}px`};
+  }
+
+  .ann-pos-panel-bottom {
+    bottom: 0;
+    left: ${props => `${props.panelWidth}px`};
+    height: ${props => `${props.panelWidth}px`};
+    width: ${props => `${props.panelHeight}px`};
+  }
+
+  .ann-pos-center {
+    position: absolute;
+    left: ${props => `${props.panelWidth}px`};
+    top: ${props => `${props.panelWidth}px`};
+    width: ${props => `${props.panelHeight}px`};
+    height: ${props => `${props.panelHeight}px`};
+    background-color: #6d6d6d;
+    background: #eeeeee;
+    border: 1px solid grey;
+    border-radius: 4px;
+  }
+`;
+
+export const AnnPositionInputBox = styled.div<{isSelected: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  background-color: ${props => `${props.isSelected ? '#7567ff' : 'none'}`};
+  cursor: pointer;
+
+  div {
+    width: 50%;
+    height: 50%;
+    background-color: ${props => (props.isSelected ? 'white' : '#9e96fa')};
+    border-radius: 2px;
+  }
+
+  &:hover {
+    background-color: ${props => `${props.isSelected ? '#7567ff' : '#9f96fa'}`};
+
+    div {
+      background-color: ${props => `${props.isSelected ? 'white' : 'black'}`};
+    }
+  }
+`;

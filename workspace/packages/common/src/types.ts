@@ -139,10 +139,23 @@ export enum LoadingStatus {
 
 // ---- types for Annotation ----
 
+export enum CustomAnnotationPosition {
+  TOP_LEFT = 'c-top-left',
+  TOP_CENTER = 'c-top-center',
+  TOP_RIGHT = 'c-top-right',
+  RIGHT_TOP = 'c-right-top',
+  RIGHT_CENTER = 'c-right-center',
+  RIGHT_BOTTOM = 'c-right-bottom',
+  BOTTOM_RIGHT = 'c-bottom-right',
+  BOTTOM_CENTER = 'c-bottom-center',
+  BOTTOM_LEFT = 'c-bottom-left',
+  LEFT_BOTTOM = 'c-left-bottom',
+  LEFT_CENTER = 'c-left-center',
+  LEFT_TOP = 'c-left-top'
+}
+
 export enum AnnotationPositions {
   Auto = 'auto',
-  AboveOrBelow = 'above-or-below',
-  LeftOrRight = 'left-or-right',
 }
 
 export enum VideoAnnotationPositions {
@@ -195,21 +208,25 @@ export interface ITourEntityHotspot {
   actionValue: string;
 }
 
-export type EAnnotationBoxSize = 'small' | 'medium' | 'large';
+export type EAnnotationBoxSize = 'small' | 'medium' | 'large' | 'custom';
 
 export const AnnotationButtonLayout = ['default', 'full-width'] as const;
 export declare type AnnotationButtonLayoutType = typeof AnnotationButtonLayout[number];
 
+export type CustomAnnDims = {
+  width: number,
+}
 export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
   grpId: string;
   bodyContent: string;
   displayText: string;
-  positioning: AnnotationPositions | VideoAnnotationPositions,
+  positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition,
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',
   size: EAnnotationBoxSize,
+  customDims: CustomAnnDims,
   isHotspot: boolean,
   hideAnnotation: boolean,
   videoUrl: string;
