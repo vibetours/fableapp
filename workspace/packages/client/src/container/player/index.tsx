@@ -329,14 +329,18 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         // in this case, we navigate to main, hence, firstTimeLoading is false
         // but still we are rendering the screens for the first time
         this.initialScreenLoad(currScreenRId);
-        this.setCurrentFlowMain();
+        if (this.isJourneyAdded()) {
+          this.setCurrentFlowMain();
+        }
       }
     }
 
     // this happens when the user uses the tourUrl as /tour/tourid/screenid
     if (currScreenRId && firstTimeTourLoading) {
       this.initialScreenLoad(currScreenRId);
-      this.setCurrentFlowMain();
+      if (this.isJourneyAdded()) {
+        this.setCurrentFlowMain();
+      }
     }
 
     if (this.props.tourLoaderData !== prevProps.tourLoaderData && this.props.tourLoaderData) {
