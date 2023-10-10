@@ -61,8 +61,8 @@ export class AnnotationContent extends React.PureComponent<{
     this.annotationEntered = Date.now();
     if (this.props.onRender) {
       if (this.contentRef.current) {
-        const annTextP = this.contentRef.current.querySelector('p')!;
-        const defaultFontFamily = this.props.opts.annotationFontFamily || getComputedStyle(annTextP).fontFamily;
+        const annTextP = this.contentRef.current.querySelector('p') || this.contentRef.current;
+        const defaultFontFamily = this.props.opts.annotationFontFamily || getComputedStyle(annTextP!).fontFamily;
 
         let fontLoadingPromise: Promise<unknown> = Promise.resolve();
         if (defaultFontFamily && this.props.doc) {
