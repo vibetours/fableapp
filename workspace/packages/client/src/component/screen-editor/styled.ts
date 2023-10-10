@@ -383,7 +383,7 @@ export const InputNumberBorderRadius = styled(InputNumber)`
 
 export const StyledSwitch = styled(Switch)`
   height: 20px;
-  width: 46px;
+  width: 32px;
  
   .ant-switch-handle {
     height: 16px ;
@@ -470,13 +470,13 @@ export const AnnPositionInputBox = styled.div<{isSelected: boolean}>`
   align-items: center;
   justify-content: center;
   flex-grow: 1;
-  background-color: ${props => `${props.isSelected ? '#7567ff' : 'none'}`};
+  background-color: transparent;
   cursor: pointer;
 
   div {
     width: 50%;
     height: 50%;
-    background-color: ${props => (props.isSelected ? 'white' : '#9e96fa')};
+    background-color: ${props => (props.isSelected ? '#160245' : '#bbb4fa')};
     border-radius: 2px;
   }
 
@@ -484,7 +484,7 @@ export const AnnPositionInputBox = styled.div<{isSelected: boolean}>`
     background-color: ${props => `${props.isSelected ? '#7567ff' : '#9f96fa'}`};
 
     div {
-      background-color: ${props => `${props.isSelected ? 'white' : 'black'}`};
+      background-color: ${props => `${props.isSelected ? '#160245' : 'black'}`};
     }
   }
 `;

@@ -1035,9 +1035,16 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             helpText={hotspotHelpText}
             icon={<ThunderboltOutlined style={{ fontSize: '1.25rem' }} />}
           >
-            <div style={commonActionPanelItemStyle}>
+            <div style={{
+              ...commonActionPanelItemStyle,
+              height: 'auto',
+              marginTop: '0.5rem',
+              marginBottom: '10px',
+            }}
+            >
               <GTags.Txt>Interactive element</GTags.Txt>
               <Tags.StyledSwitch
+                size="small"
                 style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
                 defaultChecked={config.isHotspot}
                 onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
@@ -1045,10 +1052,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </div>
             {config.isHotspot && config.type !== 'cover' && (
               <>
-                <div style={{ ...commonActionPanelItemStyle, marginTop: '0.25rem' }}>
+                <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
                   <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
                     <GTags.Txt>Hide annotation</GTags.Txt>
                     <Tags.StyledSwitch
+                      size="small"
                       style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
                       defaultChecked={config.hideAnnotation}
                       onChange={(e) => setConfig(c => updateAnnotationHideAnnotation(c, e))}
@@ -1127,7 +1135,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         title="Advanced"
         icon={<img src={SettingsIcon} alt="" />}
       >
-        <div id="entry-point-checkbox" style={commonActionPanelItemStyle}>
+        <div
+          id="entry-point-checkbox"
+          style={{
+            ...commonActionPanelItemStyle,
+            height: 'auto',
+            marginTop: '0.5rem'
+          }}
+        >
           <GTags.Txt>Entry point</GTags.Txt>
           <Checkbox
             style={{ marginLeft: '0.75rem' }}
@@ -1144,9 +1159,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             }}
           />
         </div>
-        <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem' }}>
+        <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
           <GTags.Txt>Overlay</GTags.Txt>
           <Tags.StyledSwitch
+            size="small"
             style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
             defaultChecked={config.showOverlay}
             onChange={(e) => setConfig(c => updateOverlay(c, e))}
