@@ -33,17 +33,7 @@ export const getSessionId = (): string => {
   return sid;
 };
 
-export const getUtcUnixTimestamp = (date: Date): number => {
-  const utcNow = new Date(
-    date.getUTCFullYear(),
-    date.getUTCMonth(),
-    date.getUTCDate(),
-    date.getUTCHours(),
-    date.getUTCMinutes(),
-    date.getUTCSeconds()
-  );
-  return (+utcNow / 1000) | 0;
-};
+export const getUtcUnixTimestamp = (date: Date): number => (+date / 1000) | 0;
 
 export const getTimezoneOffset = (date: Date): string => `${date.getTimezoneOffset()}`;
 
