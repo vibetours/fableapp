@@ -19,6 +19,7 @@ import { IAnnotationConfigWithScreen } from '../../types';
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
 import Focus from '../../assets/icons/focus.svg';
+import { getValidUrl } from '../../utils';
 
 interface IDispatchProps {
 }
@@ -52,6 +53,7 @@ type IProps = IOwnProps &
 
 interface IOwnStateProps {
   journeyData: CreateJourneyData;
+  isUrlValid: boolean;
 }
 
 const { Option } = Select;
@@ -63,6 +65,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       journeyData: this.props.tourJourney,
+      isUrlValid: true
     };
   }
 
@@ -359,27 +362,39 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                           }}
                         />
                       </Tags.CTAInputCon>
-                      <Tags.CTAInputCon>
-                        <GTags.Txt style={{ fontWeight: 500 }}>Navigate to</GTags.Txt>
-                        <CTAInput
-                          defaultValue={this.state.journeyData.cta.navigateTo}
-                          size="small"
-                          style={{
-                            width: '50%',
-                            background: '#fff',
-                            padding: '10px 14px',
-                            borderRadius: '8px'
-                          }}
-                          placeholder="Open Url when clicked"
-                          onBlur={e => {
-                            const newCta = {
-                              ...this.state.journeyData.cta!,
-                              navigateTo: e.target.value
-                            };
-                            this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
-                          }}
-                        />
-                      </Tags.CTAInputCon>
+                      <div>
+                        <Tags.CTAInputCon>
+                          <GTags.Txt style={{ fontWeight: 500 }}>Navigate to</GTags.Txt>
+                          <CTAInput
+                            defaultValue={this.state.journeyData.cta.navigateTo}
+                            size="small"
+                            style={{
+                              width: '50%',
+                              background: '#fff',
+                              padding: '10px 14px',
+                              borderRadius: '8px'
+                            }}
+                            placeholder="Open Url when clicked"
+                            onBlur={e => {
+                              const uri = e.target.value;
+                              const validUrl = getValidUrl(uri);
+                              this.setState({ isUrlValid: Boolean(validUrl) });
+                              if (!validUrl) return;
+                              const newCta = {
+                                ...this.state.journeyData.cta!,
+                                navigateTo: validUrl
+                              };
+                              this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
+                            }}
+                          />
+                        </Tags.CTAInputCon>
+                        {!this.state.isUrlValid && (
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: 'red', textAlign: 'end' }}>
+                          The url you have entered appears to be malformed. A correctly formed url would look like
+                          &nbsp; <em>https://acme.com</em>
+                        </p>
+                        )}
+                      </div>
                     </Tags.JourneyInnerCon>
                   )
                 }

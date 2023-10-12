@@ -239,3 +239,25 @@ export const getJourneyProgress = (): Record<string, FlowProgress[]> => {
 export const saveJourneyProgress = (journeyProgress: Record<string, FlowProgress[]>): void => {
   localStorage.setItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY, JSON.stringify(journeyProgress));
 };
+
+const isValidUrl = (url: string) : boolean => {
+  try {
+    const constructedUrl = new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const getValidUrl = (url: string): string => {
+  const isUrlValid = isValidUrl(url);
+  if (!isUrlValid) {
+    let inputUrl = url;
+    if (!(inputUrl.startsWith('http://') || inputUrl.startsWith('https://'))) {
+      inputUrl = `https://${inputUrl}`;
+    }
+    return isValidUrl(inputUrl) ? inputUrl : '';
+  }
+
+  return url;
+};

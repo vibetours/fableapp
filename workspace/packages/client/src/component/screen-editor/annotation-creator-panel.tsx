@@ -7,6 +7,7 @@ import {
   CmnEvtProp,
   CustomAnnotationPosition,
   EAnnotationBoxSize,
+  IAnnotationButton,
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot,
@@ -68,7 +69,7 @@ import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { hotspotHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation, usePrevious } from '../../utils';
+import { isVideoAnnotation, usePrevious, getValidUrl } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../timeline/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
@@ -81,7 +82,6 @@ import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
 import ButtonIcon from '../../assets/icons/buttons.svg';
 import SizingIcon from '../../assets/icons/sizing-positioning.svg';
-import HotspotIcon from '../../assets/icons/hotspot.svg';
 import ThemeIcon from '../../assets/icons/theme.svg';
 import LinkIcon from '../../assets/icons/link.svg';
 import VisibilityIcon from '../../assets/icons/visible.svg';
@@ -122,11 +122,6 @@ interface IProps {
   setAlertMsg: (alertMsg: string) => void;
 }
 
-interface IState {
-  config?: IAnnotationConfig;
-  btnEditing: string;
-}
-
 const commonInputStyles: React.CSSProperties = {
   border: '1px solid #DDDDDD',
   backgroundColor: '#f9f9f9',
@@ -144,10 +139,6 @@ const commonActionPanelItemStyle: React.CSSProperties = {
   color: '#212121',
 };
 
-const commonIconStyle: React.CSSProperties = {
-  fontSize: '0.8rem',
-  color: '#16023E',
-};
 const buttonSecStyle: React.CSSProperties = {
   padding: '1rem',
   display: 'flex',
@@ -173,11 +164,14 @@ const CSSEditorInfoText = (
   </span>
 );
 
+function canAddExternalLinkToBtn(btnConf: IAnnotationButton): boolean {
+  return !(btnConf.type === 'prev' || (!!btnConf.hotspot && btnConf.hotspot.actionType === 'navigate'));
+}
+
 export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [config, setConfig] = useState<IAnnotationConfig>(props.config);
   const [opts, setTourDataOpts] = useState<ITourDataOpts>(props.opts);
   const [btnEditing, setBtnEditing] = useState<string>('');
-  const [showHotspotAdvancedElPicker, setShowHotspotAdvancedElPicker] = useState(false);
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
   const [newHotspotSelected, setNewHotspotSelected] = useState<boolean>(false);
   const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
@@ -189,6 +183,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [showCssEditorForElOnScreen, setShowCssEditorForElOnScreen] = useState(false);
   const [showCssEditorForAnnOnScreen, setShowCssEditorForAnnOnScreen] = useState(false);
   const [showCustomPositioningOption, setShowCustomPositioningOption] = useState(false);
+  const [isUrlValid, setIsUrlValid] = useState<boolean>(true);
   const unsubFn = useRef(() => { });
 
   const prevConfig = usePrevious(config);
@@ -791,109 +786,132 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </ATags.ABtn>
                 </div>
                 <Tags.ButtonSecCon>
-                  <Tooltip
+                  <Popover
+                    open={openConnectionPopover === btnConf.id}
+                    onOpenChange={(newOpen: boolean) => {
+                      setIsUrlValid(true);
+                      if (newOpen) {
+                        setOpenConnectionPopover(btnConf.id);
+                      } else {
+                        setOpenConnectionPopover('');
+                      }
+                    }}
+                    trigger="click"
                     placement="topRight"
-                    title={
-                      <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
-                        {
-                          btnConf.hotspot
-                            ? 'Click to configure'
-                            : 'No action defined for what would happen if user clicks this button'
-                        }
-                      </GTags.Txt>
+                    content={
+                      <div style={{ fontSize: '1rem', width: '500px' }}>
+                        <GTags.Txt className="title2">
+                          Describe what will happen when the button is clicked
+                        </GTags.Txt>
+                        <Tabs
+                          defaultActiveKey="open"
+                          style={{ fontSize: '0.95rem' }}
+                          size="small"
+                          items={[{
+                            key: 'open',
+                            label: 'Open a link',
+                            children: (
+                              <div>
+                                <Tags.CTALinkInputCont>
+                                  <div
+                                    style={{ width: '100%' }}
+                                  >
+                                    <FableInput
+                                      label="Enter a link that would open in new tab"
+                                      defaultValue={
+                                        btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                          ? btnConf.hotspot.actionValue
+                                          : ''
+                                      }
+                                      onBlur={(e) => {
+                                        setIsUrlValid(true);
+                                        if (!canAddExternalLinkToBtn(btnConf)) {
+                                          props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
+                                          return;
+                                        }
+                                        const trimmedValue = (e.target.value || '').trim();
+                                        let hostspotConfig: ITourEntityHotspot | null = null;
+                                        // If user has entered an empty string then we delete the hotspot
+                                        if (trimmedValue) {
+                                          const validUrl = getValidUrl(trimmedValue);
+                                          setIsUrlValid(Boolean(validUrl));
+                                          if (validUrl) {
+                                            hostspotConfig = {
+                                              type: 'an-btn',
+                                              on: 'click',
+                                              target: '$this',
+                                              actionType: 'open',
+                                              actionValue: validUrl,
+                                            };
+                                          }
+                                        }
+                                        const thisAntn = updateButtonProp(
+                                          config,
+                                          btnConf.id,
+                                          'hotspot',
+                                          hostspotConfig
+                                        );
+                                        setConfig(thisAntn);
+                                        amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
+                                      }}
+                                      style={{ marginRight: '1rem' }}
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    intent="primary"
+                                    onClick={() => {
+                                      if (!isUrlValid) return;
+                                      setOpenConnectionPopover('');
+                                    }}
+                                    style={{ borderRadius: '8px' }}
+                                  >Submit
+                                  </Button>
+                                </Tags.CTALinkInputCont>
+                                {!isUrlValid && (
+                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
+                                    The url you have entered appears to be malformed. A correctly formed url would look like
+                                    &nbsp; <em>https://acme.com</em>
+                                  </p>
+                                )}
+                              </div>
+                            )
+                          },
+                          {
+                            key: 'navigate',
+                            label: 'Navigate to',
+                            children: (
+                              <div>
+                                <GTags.Txt className="title">
+                                  Use the canvas to make connection between annotations
+                                </GTags.Txt>
+                              </div>
+                            )
+                          }]}
+                        />
+                      </div>
                     }
                   >
                     <div>
-                      <Popover
-                        open={openConnectionPopover === btnConf.id}
-                        onOpenChange={(newOpen: boolean) => {
-                          if (newOpen) {
-                            setOpenConnectionPopover(btnConf.id);
-                          } else {
-                            setOpenConnectionPopover('');
-                          }
-                        }}
-                        trigger="click"
+                      <Tooltip
                         placement="topRight"
-                        content={
-                          <div style={{ fontSize: '1rem', width: '500px' }}>
-                            <GTags.Txt className="title2">
-                              Describe what will happen when the button is clicked
-                            </GTags.Txt>
-                            <Tabs
-                              defaultActiveKey="open"
-                              style={{ fontSize: '0.95rem' }}
-                              size="small"
-                              items={[{
-                                key: 'open',
-                                label: 'Open a link',
-                                children: (
-                                  <div>
-                                    <Tags.CTALinkInputCont>
-                                      <div style={{ width: '100%' }}>
-                                        <FableInput
-                                          label="Enter a link that would open in new tab"
-                                          defaultValue={
-                                            btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                              ? btnConf.hotspot.actionValue
-                                              : ''
-                                          }
-                                          onBlur={(e) => {
-                                            const trimmedValue = (e.target.value || '').trim();
-                                            let hostspotConfig: ITourEntityHotspot | null = null;
-                                            if (trimmedValue) {
-                                              hostspotConfig = {
-                                                type: 'an-btn',
-                                                on: 'click',
-                                                target: '$this',
-                                                actionType: 'open',
-                                                actionValue: e.target.value,
-                                              };
-                                            }
-                                            if (btnConf.hotspot?.actionType === 'navigate') {
-                                              props.setAlertMsg(`Cannot add link as this button
-                                               is already connected to an annotation`);
-                                            } else {
-                                              const thisAntn = updateButtonProp(
-                                                config,
-                                                btnConf.id,
-                                                'hotspot',
-                                                hostspotConfig
-                                              );
-                                              setConfig(thisAntn);
-                                              amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
-                                            }
-                                          }}
-                                          style={{ marginRight: '1rem' }}
-                                        />
-                                      </div>
-                                      <Button
-                                        type="button"
-                                        intent="primary"
-                                        onClick={() => setOpenConnectionPopover('')}
-                                        style={{ borderRadius: '8px' }}
-                                      >Submit
-                                      </Button>
-                                    </Tags.CTALinkInputCont>
-                                  </div>
-                                )
-                              },
-                              {
-                                key: 'navigate',
-                                label: 'Navigate to',
-                                children: (
-                                  <div>
-                                    <GTags.Txt className="title">
-                                      Use the canvas to make connection between annotations
-                                    </GTags.Txt>
-                                  </div>
-                                )
-                              }]}
-                            />
-                          </div>
+                        title={
+                          <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
+                            {
+                              btnConf.hotspot && btnConf.hotspot.actionType === 'navigate'
+                                ? 'Already connected to an annotation'
+                                : 'No action defined for what would happen if user clicks this button'
+                            }
+                          </GTags.Txt>
                         }
                       >
                         <AntButton
+                          style={{
+                            pointerEvents: canAddExternalLinkToBtn(btnConf) ? 'all' : 'none',
+                            opacity: canAddExternalLinkToBtn(btnConf) ? '1' : '0.55',
+                            color: btnConf.hotspot ? '#7567FF' : '#FF7450',
+                            ...buttonSecStyle
+                          }}
                           icon={
                           btnConf.hotspot
                             ? <img src={LinkIcon} alt="" />
@@ -901,11 +919,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         }
                           type="text"
                           size="small"
-                          style={{ color: btnConf.hotspot ? '#7567FF' : '#FF7450', ...buttonSecStyle }}
                         />
-                      </Popover>
+                      </Tooltip>
                     </div>
-                  </Tooltip>
+                  </Popover>
                   {
                     btnConf.type === 'custom' ? (
                       <AntButton
