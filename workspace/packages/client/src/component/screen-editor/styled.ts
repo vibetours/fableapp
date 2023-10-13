@@ -195,7 +195,7 @@ export const InputContainer = styled.div`
 
 export const InfoText = styled.p`
   padding: 0 1rem;
-  margin: 0;
+  margin: 2px 0 0 1.5rem;
   line-height: 1.25rem;
   font-size: 0.875rem;
   font-weight: 400;

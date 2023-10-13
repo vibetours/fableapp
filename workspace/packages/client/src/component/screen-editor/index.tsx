@@ -1296,7 +1296,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             <>
                               <FocusBubble />
                               <Tags.AnimatedInfoText animate={this.animateHelpText ? 3 : 0} key="de">
-                                Select an element from the screen on left
+                                Select an element from the screen on left to create
                               </Tags.AnimatedInfoText>
                             </>
                           )}
@@ -1308,7 +1308,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         onClick={this.createDefaultAnnotation}
                       >
                         <img src={NewAnnotation} alt="new default annotation" />
-                        Annotation
+                        New Guide Annotation
                       </Tags.CreateNewAnnotationBtn>)}
                       {!this.state.selectedAnnotationId && (
                       <Tags.CreateNewAnnotationBtn
@@ -1319,7 +1319,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         }}
                       >
                         <img src={NewCoverAnnotation} alt="new default annotation" style={{ height: '57px !important', width: '57px' }} />
-                        Cover annotation
+                        New Cover Annotation
                       </Tags.CreateNewAnnotationBtn>
                       )}
                     </Tags.AnnotationBtnCtn>
@@ -1458,10 +1458,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   {/* this is edits panel */}
                   {this.state.activeTab === TabList.Edits && (
                   <>
-                    <Tags.InfoText>
-                      Edits are applied on the recorded screen.
-                      {this.props.screen.type === ScreenType.SerDom && 'Select an element to edit.'}
-                    </Tags.InfoText>
+                    {this.props.screen.type === ScreenType.SerDom && (
+                      <>
+                        <FocusBubble />
+                        <Tags.InfoText>
+                          Click on an element to edit. Click again to reselect.
+                        </Tags.InfoText>
+                      </>
+                    )}
                     {
                     this.props.screen.type === ScreenType.SerDom && (
                       <>
