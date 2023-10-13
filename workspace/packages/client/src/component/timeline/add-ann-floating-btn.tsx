@@ -43,14 +43,9 @@ export default function AddAnnFloatingBtn({
       content={
         <NewAnnotationPopup
           position={position}
-          allAnnotationsForTour={allAnnotationsForTour}
           annotation={annotation}
-          tourDataOpts={tourDataOpts}
           hidePopup={hidePopup}
-          applyAnnButtonLinkMutations={applyAnnButtonLinkMutations}
-          raiseAlertIfOpsDenied={setAlertMsg}
           shouldShowScreenPicker={shouldShowScreenPicker}
-          calledFrom="timeline"
         />
     }
       open={open}

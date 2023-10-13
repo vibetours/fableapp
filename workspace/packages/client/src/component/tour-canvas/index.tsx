@@ -253,6 +253,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [createJourneyModal, setCreateJourneyModal] = useState<CreateJourneyModal | null>(null);
   const createJourneyModalRef = useRef<CreateJourneyModal | null>(null);
   const [showAnnText, setShowAnnText] = useState(false);
+  const [newAnnPos, setNewAnnPos] = useState<null | DestinationAnnotationPosition>(null);
   const screenColorMap = useRef<Record<number, string>>({});
 
   const [init] = useState(1);
@@ -1546,6 +1547,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   const selectAnn = (annQualificationUri: string): void => {
     props.navigate(annQualificationUri, 'annotation-hotspot');
+    setNewAnnPos(null);
     setSelectedAnnId(annQualificationUri.split('/')[1]);
   };
 
@@ -1906,17 +1908,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               <NewAnnotationPopup
                 position={addScreenModalData.annotationPosition === 'next'
                   ? DestinationAnnotationPosition.next : DestinationAnnotationPosition.prev}
-                allAnnotationsForTour={props.allAnnotationsForTour}
                 annotation={addScreenModalData.screenAnnotation}
-                tourDataOpts={props.tourOpts}
                 hidePopup={() => setAddScreenModalData(initialAddScreenModal)}
-                raiseAlertIfOpsDenied={props.setAlert}
-                applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                shouldShowScreenPicker={props.shouldShowScreenPicker}
-                calledFrom="canvas"
-                onCoverAnnAdded={(annRefId: string, screenRefId: number) => {
-                  props.navigate(`${screenRefId}/${annRefId}`, 'annotation-hotspot');
+                updateOriginAnnPos={(position) => {
+                  const annotation = addScreenModalData.screenAnnotation;
+                  props.navigate(`${annotation!.screen.id}/${annotation!.refId}`, 'annotation-hotspot');
+                  setNewAnnPos(position);
                 }}
+                shouldShowScreenPicker={props.shouldShowScreenPicker}
               />
             </Tags.MenuModal>
           </Tags.MenuModalMask>
@@ -1961,6 +1960,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     showEntireTimeline={false}
                     isScreenLoaded={props.isScreenLoaded}
                     updateScreen={props.updateScreen}
+                    newAnnPos={newAnnPos}
+                    resetNewAnnPos={() => setNewAnnPos(null)}
                   />
                   )
                 }
@@ -2024,6 +2025,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     isScreenLoaded={props.isScreenLoaded}
                     onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
                     updateScreen={props.updateScreen}
+                    newAnnPos={newAnnPos}
+                    resetNewAnnPos={() => setNewAnnPos(null)}
                   />
                 )
               }

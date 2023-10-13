@@ -8,7 +8,7 @@ const scrollIntoView = require('scroll-into-view');
 interface IProps {
     selectedEl: HTMLElement;
     disabled: boolean;
-    onElSelect: (newSelEl: HTMLElement, prevSelEl: HTMLElement) => void;
+    onElSelect: (newSelEl: HTMLElement, prevSelEl: HTMLElement, selectedOnClick? : boolean) => void;
     onOverElPicker?:(selEl: HTMLElement) => void;
     domElPicker: DomElPicker;
     boundEl?: HTMLElement;
@@ -89,7 +89,7 @@ export default function AdvanceElementPicker(props: IProps): JSX.Element {
                   const i = getDataIdxFromEvtTarget(e);
                   if (i !== -1) {
                     const el = elsInPath[i];
-                    props.onElSelect(el[0] as HTMLElement, props.selectedEl);
+                    props.onElSelect(el[0] as HTMLElement, props.selectedEl, true);
                   }
                 }}
               >

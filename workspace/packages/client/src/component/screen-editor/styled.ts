@@ -157,19 +157,33 @@ export const ButtonSecCon = styled.div`
   }
 `;
 
-export const CreateCoverAnnotationBtn = styled.div`
-  margin: 0.5rem 1rem;
-  background: #f7f7f7;
-  border-radius: 2px;
-  color: #16023E;
-  padding: 0.8rem 1rem;
-  text-align: center;
+export const CreateNewAnnotationBtn = styled.div`
+  color: #9393F0;
   cursor: pointer;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 400;
+
+  img {
+    transition: transform 0.2s ease-out;
+  }
 
   &:hover {
-    box-shadow: 0 0 0 1px #747474 !important;
-    transition: none !important;
+    img {
+      transform: translate(2px, 2px);
+    }
   }
+`;
+
+export const AnnotationBtnCtn = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
 `;
 
 export const InputContainer = styled.div`
@@ -188,6 +202,18 @@ export const InfoText = styled.p`
   color: #333333;
   text-align: left;
   font-size: 12px;
+`;
+
+export const AnimatedInfoText = styled.p<{animate: number}>`
+  padding: 0 1rem;
+  margin: 0 0 0 1.5rem;
+  line-height: 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #333333;
+  text-align: left;
+  font-size: 12px;
+  display: inline-block;
 `;
 
 export const AnnTimelineCon = styled.div`

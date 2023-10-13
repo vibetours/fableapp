@@ -267,6 +267,15 @@ export default class DomElementPicker extends HighlighterBase {
     this.selectElementInDoc(anchorEl, doc);
   };
 
+  isElInBoundedEl = (el: HTMLElement) : boolean => {
+    if (this.selectedBoundedEl) {
+      if (this.selectedBoundedEl.contains(el)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   selectElementInDoc(el: HTMLElement, doc: Document, mode = HighlightMode.__NOOP__, ghost = false): void {
     !ghost && super.selectElementInDoc(el, doc);
     if (mode === HighlightMode.Pinned) {

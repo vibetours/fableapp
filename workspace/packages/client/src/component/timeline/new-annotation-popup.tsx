@@ -3,26 +3,17 @@ import {
   FullscreenOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
-import { ITourDataOpts } from '@fable/common/dist/types';
 import * as GTags from '../../common-styled';
-import { AnnUpdateType } from './types';
 import {
-  AnnotationPerScreen,
   DestinationAnnotationPosition, IAnnotationConfigWithScreen, ScreenPickerData } from '../../types';
-import { addNewAnn } from '../annotation/ops';
 import { amplitudeNewAnnotationCreated, propertyCreatedFromWithType } from '../../amplitude';
 
 type Props = {
   position: DestinationAnnotationPosition,
-  allAnnotationsForTour: AnnotationPerScreen[],
   annotation: IAnnotationConfigWithScreen
-  tourDataOpts: ITourDataOpts,
   hidePopup: () => void;
-  raiseAlertIfOpsDenied: (msg?: string) => void;
-  applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
-  calledFrom: 'canvas' | 'timeline';
-  onCoverAnnAdded?: (annRefId: string, screenRefId: number) => void;
+  updateOriginAnnPos?: (position: DestinationAnnotationPosition)=> void;
 }
 
 export default function NewAnnotationPopup(props: Props): ReactElement {
@@ -43,27 +34,14 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
           >
             <GTags.PopoverMenuItem onClick={() => {
               amplitudeNewAnnotationCreated(
-                props.calledFrom === 'canvas' ? propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
-                  : propertyCreatedFromWithType.TIMELINE_PLUS_ICON_COVER_SAME_SCREEN
+                propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
               );
-              const newAnnConfig = addNewAnn(
-                props.allAnnotationsForTour,
-                {
-                  position: props.position,
-                  grpId: props.annotation.grpId,
-                  screenId: props.annotation.screen.id,
-                  refId: props.annotation.refId
-                },
-                props.tourDataOpts,
-                props.raiseAlertIfOpsDenied,
-                props.applyAnnButtonLinkMutations
-              );
-              props.onCoverAnnAdded && props.onCoverAnnAdded(newAnnConfig.refId, props.annotation.screen.id);
+              props.updateOriginAnnPos && props.updateOriginAnnPos(props.position);
               props.hidePopup();
             }}
 
             >
-              <FullscreenOutlined />&nbsp;&nbsp;&nbsp;Of type cover
+              <FullscreenOutlined />&nbsp;&nbsp;&nbsp;On this screen
             </GTags.PopoverMenuItem>
             <GTags.PopoverMenuItem onClick={() => {
               props.shouldShowScreenPicker({

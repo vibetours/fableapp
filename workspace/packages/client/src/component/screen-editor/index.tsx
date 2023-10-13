@@ -17,8 +17,11 @@ import React from 'react';
 import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { Tooltip } from 'antd';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
+import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
+import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
 import * as GTags from '../../common-styled';
 import * as TimelineTags from '../timeline/styled';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
@@ -76,6 +79,7 @@ import Loader from '../loader';
 import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
 import ScreenEditorGuide from '../../user-guides/screen-editor-guide';
+import FocusBubble from './focus-bubble';
 
 const { confirm } = Modal;
 
@@ -124,6 +128,8 @@ interface IOwnProps {
   showEntireTimeline: boolean;
   onDeleteAnnotation?: (deletedAnnRid: string) => void;
   updateScreen: UpdateScreenFn;
+  newAnnPos: null | DestinationAnnotationPosition;
+  resetNewAnnPos: ()=>void;
 }
 
 const enum ElSelReqType {
@@ -152,6 +158,7 @@ interface IOwnStateProps {
   imageMaskUploadModalIsUploading: boolean;
   selectedAnnotationCoords: string | null;
   isAssetLoaded: boolean;
+  selectedCoords: string | null;
 }
 
 const userGuides = [ScreenEditorGuide];
@@ -168,6 +175,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   private microEdits: AllEdits<ElEditType>;
 
   private lastSelectedAnnId = '';
+
+  private animateHelpText = false;
 
   constructor(props: IOwnProps) {
     super(props);
@@ -194,6 +203,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imageMaskUploadModalError: '',
       imageMaskUploadModalIsUploading: false,
       isAssetLoaded: false,
+      selectedCoords: null,
     };
   }
 
@@ -549,14 +559,22 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   componentDidMount(): void {
+    this.animateHelpText = true;
     if (this.frameConRef.current) {
       this.frameConRef.current.addEventListener('click', this.goToSelectionMode);
     }
     document.addEventListener('keydown', this.onKeyDownHandler);
-    this.setState({ selectedAnnotationId: this.props.toAnnotationId });
+    this.setState(() => {
+      let selectedAnnotationId = this.props.toAnnotationId;
+      if (this.props.newAnnPos !== null) {
+        selectedAnnotationId = '';
+        this.lastSelectedAnnId = this.props.toAnnotationId;
+      }
+      return { selectedAnnotationId };
+    });
   }
 
-  findPositionToAddAnnotation(): [IAnnotationConfig, DestinationAnnotationPosition] {
+  findPositionToAddAnnotation(): [IAnnotationConfig, DestinationAnnotationPosition, boolean] {
     const lastAnnId = this.lastSelectedAnnId;
     let validAnn = null;
     if (lastAnnId) {
@@ -565,35 +583,39 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     if (validAnn) {
       if (isNextBtnOpensALink(validAnn)) {
-        // If the annotation's next button open a new url on click of next, the new annotation needs to be placed before
-        // the selecedAnnotation.
-        return [validAnn, DestinationAnnotationPosition.prev];
+        // If the annotation's next button open a new url on click of next
+        return [validAnn, DestinationAnnotationPosition.prev, false];
       }
-      const nextBtn = getAnnotationBtn(validAnn, 'next');
-      // If the last selected annotation (say `t`) is connected to other annotations, then
-      //  - if `t` is not connected to any other annotation then the new annotaiton is placed after
-      //  - if `t` is connected to other annotation in same screen then the new annotation is placed after
-      //  - if `t` is connected to other annotation in different screen then the new annotation is placed before
-      if (isNavigateHotspot(nextBtn.hotspot)) {
-        const [nextScreenId] = nextBtn.hotspot!.actionValue.split('/');
-        if (+nextScreenId === this.props.screen.id) {
-          return [validAnn, DestinationAnnotationPosition.next];
-        }
-        return [validAnn, DestinationAnnotationPosition.prev];
-      }
-      return [validAnn, DestinationAnnotationPosition.next];
+      return [validAnn, DestinationAnnotationPosition.next, true];
     }
 
     const ann = this.props.allAnnotationsForScreen.slice(0).reverse().at(-1)!;
     if (isNextBtnOpensALink(ann)) {
-      return [ann, DestinationAnnotationPosition.prev];
+      return [ann, DestinationAnnotationPosition.prev, false];
     }
-    return [ann, DestinationAnnotationPosition.next];
+    return [ann, DestinationAnnotationPosition.next, true];
   }
 
   async componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<IOwnStateProps>): Promise<void> {
-    if (prevProps.toAnnotationId !== this.props.toAnnotationId) {
-      this.setState({ selectedAnnotationId: this.props.toAnnotationId });
+    if (prevProps.toAnnotationId !== this.props.toAnnotationId || prevProps.newAnnPos !== this.props.newAnnPos) {
+      // Clear any previous left over mask
+      this.iframeElManager?.clearMask();
+      this.setState(() => {
+        let selectedAnnotationId = this.props.toAnnotationId;
+        if (this.props.newAnnPos !== null) {
+          selectedAnnotationId = '';
+          this.lastSelectedAnnId = this.props.toAnnotationId;
+        }
+        return { selectedAnnotationId, activeTab: TabList.Annotations };
+      });
+      setTimeout(() => {
+        this.animateHelpText = false;
+      }, 3000);
+
+      if (this.props.newAnnPos !== null) {
+        this.setState({ selectedEl: null });
+        this.goToSelectionMode()();
+      }
     }
 
     if (prevState.isInElSelectionMode !== this.state.isInElSelectionMode) {
@@ -606,74 +628,40 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
     }
 
-    let elJustSelected = false;
-    if (prevState.selectedEl !== this.state.selectedEl) {
-      if (this.state.selectedEl) {
-        if (!this.isFullPageAnnotation(this.state.selectedEl)) {
-          elJustSelected = true;
-          const editTargetType = ScreenEditor.getEditTargetType(this.state.selectedEl);
-          this.setState((state) => {
-            let annId = '';
-            if (state.activeTab === TabList.Annotations) {
-              annId = this.getAnnotatonIdForEl(state.selectedEl!);
-              this.navigateToAnnotation(`${this.props.screen.id}/${annId}`);
-            }
-            return {
-              editTargetType: editTargetType.targetType,
-              targetEl: editTargetType.target || state.selectedEl,
-              selectedAnnotationId: annId
-            };
-          });
+    if (this.state.activeTab === TabList.Annotations) {
+      if (!this.state.selectedAnnotationId
+        && prevState.selectedEl !== this.state.selectedEl
+        && this.state.selectedEl
+        && !this.isFullPageAnnotation(this.state.selectedEl)
+      ) {
+        // If an element from screen is selected an no selectedAnnotationId is in state i.e. element is selected by
+        // clicking on screen; probable intent is to create a new annotaiton or edit element
+        const annId = this.getAnnotatonIdForEl(this.state.selectedEl!);
+        if (annId) {
+          // Check if an existing annotation is attached to the element, if yes then don't create new annotation,
+          // instead navigate to already created annotation. As we don't support adding multiple annotation to same
+          // element
+          this.navigateToAnnotation(`${this.props.screen.id}/${annId}`);
+          this.setState({ selectedAnnotationId: annId });
         }
-      } else {
-        this.setState(() => ({
-          editTargetType: EditTargetType.None,
-          targetEl: null,
-          selectedAnnotationId: '',
-        }));
       }
-    } else {
-      // TODO same el is set twice???
-    }
 
-    if ((this.state.selectedEl
-      && prevState.elSelRequestedBy !== this.state.elSelRequestedBy
-      && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-      && !this.isFullPageAnnotation(this.state.selectedEl)
-      // If elment is already selected and user just clicked on the "Add an annotaiton" button after
-      // the element is slected. This happens when user clicks on "Edit an element" first >> select
-      // the element >> click on "Add an annotaiton" button
-    ) || (
-      elJustSelected
-        && this.state.selectedEl !== this.getIframeBody() // for default annotation (not full page annotatons)
-        && this.state.elSelRequestedBy === ElSelReqType.AnnotateEl
-        // this happens when user clicks on "Add an annotation" first
-    )) {
-      this.setState(state => {
-        if (state.elSelRequestedBy === ElSelReqType.ElPicker) {
-          return { selectedAnnotationId: state.selectedAnnotationId, elSelRequestedBy: ElSelReqType.NA };
-        }
-
-        let conf = this.getAnnnotationFromEl(state.selectedEl!);
-        let selectedAnnotationId;
-        if (!conf) {
-          amplitudeNewAnnotationCreated(propertyCreatedFromWithType.DOM_EL_PICKER);
-          const path = this.iframeElManager!.elPath(state.selectedEl!);
-          conf = this.createNewDefaultAnnotation(path);
-          selectedAnnotationId = conf!.refId;
+      if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId) {
+        if (this.state.selectedAnnotationId) {
+          this.selectElementIfAnnoted();
+          this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
+          if (this.props.newAnnPos) this.props.resetNewAnnPos();
         } else {
-          selectedAnnotationId = conf.refId;
+          this.animateHelpText = true;
         }
-        return { selectedAnnotationId, elSelRequestedBy: state.elSelRequestedBy };
-      });
+        this.lastSelectedAnnId = this.state.selectedAnnotationId || prevState.selectedAnnotationId;
+      }
     }
 
-    if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId) {
-      if (this.state.selectedAnnotationId) {
-        this.selectElementIfAnnoted();
-        this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
-      }
-      this.lastSelectedAnnId = this.state.selectedAnnotationId || prevState.selectedAnnotationId;
+    if (this.state.activeTab === TabList.Edits
+      && this.state.selectedEl !== prevState.selectedEl
+      && this.state.selectedEl) {
+      this.highlightEditElIfSelected(this.state.selectedEl);
     }
 
     if (prevProps.tourDataOpts.annotationSelectionColor !== this.props.tourDataOpts.annotationSelectionColor) {
@@ -681,6 +669,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     if (prevState.activeTab !== this.state.activeTab) {
+      this.animateHelpText = false;
       traceEvent(
         AMPLITUDE_EVENTS.SCREEN_TAB_SELECTED,
         { screen_tab: this.state.activeTab === 0 ? 'annotation' : 'edit' },
@@ -689,30 +678,65 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
   }
 
-  createNewDefaultAnnotation(id: string): IAnnotationConfig {
-    let conf;
+  createNewDefaultAnnotation(id: string): IAnnotationConfig | null {
+    let conf = null;
     const opts: ITourDataOpts = this.props.tourDataOpts;
     if (this.props.allAnnotationsForScreen.length) {
-      const [destAnn, pos] = this.findPositionToAddAnnotation();
-      conf = addNewAnn(
-        this.props.allAnnotationsForTour,
-        {
-          position: pos,
-          refId: destAnn.refId,
-          screenId: this.props.screen.id,
-          grpId: destAnn.grpId
-        },
-        opts,
-        this.props.setAlert,
-        this.props.applyAnnButtonLinkMutations,
-        id
-      );
+      const [destAnn, pos, shouldAddAnn] = this.findPositionToAddAnnotation();
+      if (shouldAddAnn) {
+        conf = addNewAnn(
+          this.props.allAnnotationsForTour,
+          {
+            position: this.props.newAnnPos || pos,
+            refId: destAnn.refId,
+            screenId: this.props.screen.id,
+            grpId: destAnn.grpId
+          },
+          opts,
+          this.props.setAlert,
+          this.props.applyAnnButtonLinkMutations,
+          id
+        );
+        this.props.resetNewAnnPos();
+      } else {
+        this.props.setAlert('Cannot add annotation as link is present');
+      }
     } else {
       conf = getSampleConfig(id, nanoid());
       this.createAnnotationForTheFirstTime(conf);
     }
-    this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
+    if (conf) this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
     return conf;
+  }
+
+  createNewCoverAnnotation(): void {
+    let conf;
+    if (this.props.allAnnotationsForScreen.length) {
+      // check if position is present, if yes create new ann wrt that position
+      const currentAnn = getAnnotationByRefId(this.props.toAnnotationId, this.props.allAnnotationsForTour);
+
+      if (isNextBtnOpensALink(currentAnn!)) {
+        this.props.setAlert('Cannot add annotation as this annotaiton contains a link');
+        return;
+      }
+      conf = addNewAnn(
+        this.props.allAnnotationsForTour,
+        {
+          position: this.props.newAnnPos || DestinationAnnotationPosition.next,
+          grpId: currentAnn!.grpId,
+          screenId: this.props.screen.id,
+          refId: currentAnn!.refId
+        },
+        this.props.tourDataOpts,
+        this.props.setAlert,
+        this.props.applyAnnButtonLinkMutations
+      );
+      this.props.resetNewAnnPos();
+    } else {
+      conf = getSampleConfig('$', nanoid());
+      this.createCoverAnnotationForTheFirstTime(conf);
+    }
+    this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
   }
 
   getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
@@ -974,11 +998,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.props.onAnnotationCreateOrChange(null, ann, 'upsert', opts);
   };
 
-  createCoverAnnotationForTheFirstTime = (): void => {
-    const conf = getSampleConfig('$', nanoid());
+  createCoverAnnotationForTheFirstTime = (conf: IAnnotationConfig): void => {
     this.createAnnotationForTheFirstTime(conf);
     this.setState({ selectedAnnotationId: conf.refId });
-    this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
   };
 
   handleTabOnClick = (tab: TabList): void => {
@@ -996,7 +1018,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           elSelRequestedBy: ElSelReqType.EditEl,
           isInElSelectionMode: true,
           activeTab: tab,
-          selectedAnnotationId: ''
+          selectedAnnotationId: '',
+          editItemSelected: ''
         }));
         break;
       default:
@@ -1014,6 +1037,130 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   isScreenAndAssetLoaded = (): boolean => this.state.isAssetLoaded && this.props.isScreenLoaded;
+
+  showCreateDefaultAnnButton = (): boolean => {
+    if (this.props.screen.type === ScreenType.Img) {
+      return Boolean(!this.state.selectedAnnotationId && this.state.selectedCoords);
+    }
+    return Boolean(!this.state.selectedAnnotationId && this.state.selectedEl);
+  };
+
+  createDefaultAnnotation = () : void => {
+    if (this.props.screen.type === ScreenType.Img) {
+      amplitudeNewAnnotationCreated(propertyCreatedFromWithType.IMG_DRAG_RECT);
+      this.setState(state => {
+        const conf = this.createNewDefaultAnnotation(state.selectedCoords!);
+        if (conf) { return { selectedAnnotationId: conf.refId }; }
+        return { selectedAnnotationId: state.selectedAnnotationId };
+      });
+    } else {
+      this.setState(state => {
+        let conf = this.getAnnnotationFromEl(state.selectedEl!);
+        let selectedAnnotationId = state.selectedAnnotationId;
+        if (!conf) {
+          amplitudeNewAnnotationCreated(propertyCreatedFromWithType.DOM_EL_PICKER);
+          try {
+            const path = this.iframeElManager!.elPath(state.selectedEl!);
+            conf = this.createNewDefaultAnnotation(path);
+          } catch (e) {
+            sentryCaptureException(e as Error);
+            throw e;
+          }
+          if (conf) selectedAnnotationId = conf.refId;
+        }
+        return { selectedAnnotationId };
+      });
+    }
+  };
+
+  highlightEditElIfSelected = (selectedEl: HTMLElement | null) : void => {
+    if (selectedEl && !this.isFullPageAnnotation(selectedEl)) {
+      this.iframeElManager!.selectElement(selectedEl, HighlightMode.Pinned);
+      const editTargetType = ScreenEditor.getEditTargetType(selectedEl);
+      this.setState({
+        editTargetType: editTargetType.targetType,
+        targetEl: editTargetType.target || selectedEl,
+      });
+    }
+  };
+
+  editExistOnEl(el: HTMLElement): boolean {
+    const path = this.iframeElManager?.elPath(el);
+    const existingEdit = this.props.allEdits.filter(edit => edit[IdxEditItem.PATH] === path);
+    return existingEdit.length !== 0;
+  }
+
+  aepElSelect(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick: boolean): void {
+    // don't call when in edits tab or while using AEP during creating new ann
+    if (!selectedOnClick || this.state.selectedAnnotationId) {
+      this.iframeElManager!.clearMask(HighlightMode.Pinned);
+    }
+    if (newSelEl === oldSelEl) {
+      if (!this.state.selectedAnnotationId || this.state.activeTab === TabList.Edits) {
+        this.highlightEditElIfSelected(newSelEl);
+      }
+      this.setState({ stashAnnIfAny: false });
+      return;
+    }
+
+    if (this.state.activeTab === TabList.Annotations) {
+      const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
+      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+      // If there is annotation on top of new element then don't do anything
+      if (!annOnNewEl) {
+        traceEvent(AMPLITUDE_EVENTS.ADVANCED_EL_PICKER_USED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+
+        if (annOnOldEl) {
+          const newElPath = this.iframeElManager!.elPath(newSelEl)!;
+          const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
+          const tx = new Tx();
+          tx.start();
+          const updates: Array<
+          [
+            screenId: number | null,
+            config: IAnnotationConfig,
+            actionType: 'upsert' | 'delete'
+          ]
+        > = [
+          [this.props.screen.id, annOnOldEl, 'delete'],
+          [this.props.screen.id, replaceWithAnn, 'upsert']
+        ];
+          this.setState({ aepSyncing: true });
+          updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
+          this.props.commitTx(tx);
+          setTimeout(() => {
+          // TODO From the time something is selected via aep to the time view update happens,
+          // it takes few moment.
+          // This is just a temporary guard for user to wait while the view gets updated.
+          // The proper fix would
+          // be create a unidirectional flow via reducer (not local state)
+            this.setState({ aepSyncing: false });
+          }, 1500);
+        }
+      } else if (annOnNewEl) {
+        this.navigateToAnnotation(`${this.props.screen.id}/${annOnNewEl.refId}`);
+      }
+    } else {
+      const editOnOldEl = this.editExistOnEl(oldSelEl);
+      const editOnNewEl = this.editExistOnEl(newSelEl);
+      if (editOnNewEl || editOnOldEl) {
+        return;
+      }
+    }
+    this.setState({
+      stashAnnIfAny: false,
+      selectedEl: newSelEl,
+      elSelRequestedBy: ElSelReqType.ElPicker
+    });
+  }
+
+  resetSelectedAnnotation(): void {
+    this.setState({ selectedAnnotationId: '', selectedEl: null });
+  }
+
+  resetSelectedEdits(): void {
+    this.setState({ editItemSelected: '', targetEl: null, editTargetType: EditTargetType.None });
+  }
 
   render(): React.ReactNode {
     let startAnnotaitonId = '';
@@ -1050,51 +1197,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 onOverElPicker={() => {
                   this.setState({ stashAnnIfAny: true });
                 }}
-                onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement) => {
-                  this.iframeElManager!.clearMask(HighlightMode.Pinned);
-                  if (newSelEl === oldSelEl) {
-                    this.setState({ stashAnnIfAny: false });
-                    return;
-                  }
-
-                  const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
-                  // If there is annotation on top of new element then don't do anything
-                  if (!annOnNewEl) {
-                    traceEvent(AMPLITUDE_EVENTS.ADVANCED_EL_PICKER_USED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                    const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-                    if (annOnOldEl) {
-                      const newElPath = this.iframeElManager!.elPath(newSelEl)!;
-                      const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
-                      const tx = new Tx();
-                      tx.start();
-                      const updates: Array<
-                        [
-                          screenId: number | null,
-                          config: IAnnotationConfig,
-                          actionType: 'upsert' | 'delete'
-                        ]
-                      > = [
-                        [this.props.screen.id, annOnOldEl, 'delete'],
-                        [this.props.screen.id, replaceWithAnn, 'upsert']
-                      ];
-                      this.setState({ aepSyncing: true });
-                      updates.forEach(update => this.props.onAnnotationCreateOrChange(...update, null, tx));
-                      this.props.commitTx(tx);
-                      setTimeout(() => {
-                        // TODO From the time something is selected via aep to the time view update happens,
-                        // it takes few moment.
-                        // This is just a temporary guard for user to wait while the view gets updated.
-                        // The proper fix would
-                        // be create a unidirectional flow via reducer (not local state)
-                        this.setState({ aepSyncing: false });
-                      }, 1500);
-                    }
-                  }
-                  this.setState({
-                    stashAnnIfAny: false,
-                    selectedEl: newSelEl,
-                    elSelRequestedBy: ElSelReqType.ElPicker
-                  });
+                onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick?: boolean) => {
+                  this.aepElSelect(newSelEl, oldSelEl, selectedOnClick || false);
                 }}
               />
             </div>
@@ -1177,26 +1281,48 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   {/* this is annotations timeline */}
                   {this.state.activeTab === TabList.Annotations && (
                   <div>
-                    <Tags.InfoText>
-                      Select an element on the screen on the left {
-                      this.props.allAnnotationsForScreen.length
-                        ? (<span>to create an annotation</span>)
-                        : (<em>or</em>)
-                    }
-                    </Tags.InfoText>
-                    {this.props.allAnnotationsForScreen.length === 0 && (
-                    <Tags.CreateCoverAnnotationBtn
-                      id="cover-annotation-btn"
-                      onClick={() => {
-                        amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
-                        this.createCoverAnnotationForTheFirstTime();
-                      }}
-                    >
-                      <PlusOutlined />
-                      &nbsp;
-                      Create cover annotation
-                    </Tags.CreateCoverAnnotationBtn>
-                    )}
+                    <div>
+                      <div style={{ position: 'relative', overflow: 'hidden' }}>
+                        {this.state.selectedAnnotationId
+                          ? (
+                            <>
+                              <FocusBubble />
+                              <Tags.AnimatedInfoText animate={this.animateHelpText ? 3 : 0} key="info">
+                                Click on the screen on left to select an element
+                              </Tags.AnimatedInfoText>
+                            </>
+                          )
+                          : (
+                            <>
+                              <FocusBubble />
+                              <Tags.AnimatedInfoText animate={this.animateHelpText ? 3 : 0} key="de">
+                                Select an element from the screen on left
+                              </Tags.AnimatedInfoText>
+                            </>
+                          )}
+                      </div>
+                    </div>
+                    <Tags.AnnotationBtnCtn>
+                      {this.showCreateDefaultAnnButton() && (
+                      <Tags.CreateNewAnnotationBtn
+                        onClick={this.createDefaultAnnotation}
+                      >
+                        <img src={NewAnnotation} alt="new default annotation" />
+                        Annotation
+                      </Tags.CreateNewAnnotationBtn>)}
+                      {!this.state.selectedAnnotationId && (
+                      <Tags.CreateNewAnnotationBtn
+                        id="cover-annotation-btn"
+                        onClick={() => {
+                          amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
+                          this.createNewCoverAnnotation();
+                        }}
+                      >
+                        <img src={NewCoverAnnotation} alt="new default annotation" style={{ height: '57px !important', width: '57px' }} />
+                        Cover annotation
+                      </Tags.CreateNewAnnotationBtn>
+                      )}
+                    </Tags.AnnotationBtnCtn>
                     {
                     this.props.showEntireTimeline && (
                       <Timeline
@@ -1208,7 +1334,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         allAnnotationsForTour={this.props.allAnnotationsForTour}
                         tourDataOpts={this.props.tourDataOpts}
                         setSelectedAnnotationId={(annId: string) => this.setState({ selectedAnnotationId: annId })}
-                        resetSelectedAnnotationId={() => this.setState({ selectedAnnotationId: '', selectedEl: null })}
+                        resetSelectedAnnotationId={this.resetSelectedAnnotation}
                         selectedAnnotationId={this.state.selectedAnnotationId}
                         goToSelectionMode={this.goToSelectionMode}
                         setAlertMsg={this.props.setAlert}
@@ -1237,9 +1363,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             }
                             this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
                           }}
-                          onDeleteAnnotation={() => {
-                            this.setState({ selectedAnnotationId: '', selectedEl: null });
-                          }}
+                          onDeleteAnnotation={this.resetSelectedAnnotation}
                           resetSelectedAnnotationElements={() => {
                             this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
                           }}
@@ -1263,7 +1387,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}
                           onClick={() => {
                             if (this.state.selectedAnnotationId) {
-                              this.setState({ selectedAnnotationId: '', selectedEl: null });
+                              this.resetSelectedAnnotation();
                               this.goToSelectionMode()();
                             } else {
                               this.setState({ selectedAnnotationId: this.props.toAnnotationId });
@@ -1530,10 +1654,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   private onElSelect = (el: HTMLElement): void => {
-    this.iframeElManager!.elPath(el);
-
     if (this.state.selectionMode === 'hotspot') {
-      this.setState({ selectedHotspotEl: el, selectionMode: 'annotation' });
+      if (this.iframeElManager!.isElInBoundedEl(el)) {
+        this.setState({ selectedHotspotEl: el, selectionMode: 'annotation' });
+      }
       return;
     }
 
@@ -1541,13 +1665,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.setState({ selectedAnnReplaceEl: el, selectionMode: 'annotation' });
       return;
     }
-
     this.setState({ selectedEl: el });
   };
 
   private onElDeSelect = (_: HTMLElement): void => {
     this.flushMicroEdits();
-    this.setState({ selectedEl: null });
+    this.resetSelectedAnnotation();
+    if (this.state.editItemSelected || this.state.targetEl) {
+      this.resetSelectedEdits();
+    }
   };
 
   private onBoxSelect = (coordsStr: string): void => {
@@ -1555,13 +1681,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.setState({ selectedAnnotationCoords: coordsStr, selectionMode: 'annotation' });
       return;
     }
-    amplitudeNewAnnotationCreated(propertyCreatedFromWithType.IMG_DRAG_RECT);
-    const conf = this.createNewDefaultAnnotation(coordsStr);
-    this.setState({ selectedAnnotationId: conf.refId });
+    this.setState({ selectedCoords: coordsStr });
   };
 
   private onBoxDeSelect = (): void => {
-    this.setState({ selectedAnnotationId: '' });
+    this.setState({ selectedAnnotationId: '', selectedCoords: '' });
   };
 
   private initDomPicker(nestedFrames: HTMLIFrameElement[]): void {
