@@ -232,12 +232,12 @@ export const getAnnotationWithScreenAndIdx = (
 };
 
 export const getJourneyProgress = (): Record<string, FlowProgress[]> => {
-  const FABLE_JOURNEY_PROGRESS = localStorage.getItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY);
+  const FABLE_JOURNEY_PROGRESS = sessionStorage.getItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY);
   return FABLE_JOURNEY_PROGRESS ? JSON.parse(FABLE_JOURNEY_PROGRESS) as Record<string, FlowProgress[]> : {};
 };
 
 export const saveJourneyProgress = (journeyProgress: Record<string, FlowProgress[]>): void => {
-  localStorage.setItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY, JSON.stringify(journeyProgress));
+  sessionStorage.setItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY, JSON.stringify(journeyProgress));
 };
 
 const isValidUrl = (url: string) : boolean => {
