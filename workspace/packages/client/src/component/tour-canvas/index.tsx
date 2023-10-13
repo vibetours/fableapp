@@ -254,7 +254,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const createJourneyModalRef = useRef<CreateJourneyModal | null>(null);
   const [showAnnText, setShowAnnText] = useState(false);
   const [newAnnPos, setNewAnnPos] = useState<null | DestinationAnnotationPosition>(null);
-  const screenColorMap = useRef<Record<number, string>>({});
+  const [screenEditorArrowLeft, setScreenEditorArrowLeft] = useState(0);
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
@@ -1378,9 +1378,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .style('fill', 'transparent');
   };
 
-  const getAnnModalArrowLeftPos = (): number => {
-    const annCoords = annWithCoords.find(ann => ann.annId === annEditorModal!.annId)!;
-    const left = annEditorModal!.newSvgZoom.x + (annCoords.x * ANN_EDITOR_ZOOM);
+  const getAnnModalArrowLeftPos = (annCoordsX: number, newSvgZoomX: number): number => {
+    const left = newSvgZoomX + (annCoordsX * ANN_EDITOR_ZOOM);
     return left;
   };
 
@@ -1484,7 +1483,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .filter((d) => d.annotation.refId === selectedAnnId);
     setAnnNodeSelectionStyle(annNode, Tags.TILE_STROKE_COLORON_SELECT);
 
-    const annCoords = annWithCoords.find(ann => ann.annId === selectedAnnId)!;
+    const annCoords = annWithCoords.find(ann => ann.annId === selectedAnnId);
+
+    if (!annCoords) return;
 
     if (annEditorModal) {
       const { x: zoomAfterAnnModalShownX } = annEditorModal.newSvgZoom;
@@ -1499,6 +1500,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           applyTransitionToArrow: true,
           prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
         }));
+        setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, zoomAfterAnnModalShownX));
         return;
       }
     }
@@ -1534,6 +1536,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       applyTransitionToArrow: true,
       prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
     }));
+    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, newX));
   }, [selectedAnnId, annWithCoords]);
 
   useEffect(() => {
@@ -1974,7 +1977,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             <Tags.AnnEditorModalCon>
               <Tags.AnnEditorModalArrow
                 top={ANN_EDITOR_TOP - 12}
-                left={getAnnModalArrowLeftPos()}
+                left={screenEditorArrowLeft}
                 applyTransition={annEditorModal.applyTransitionToArrow}
                 width={`${15}px`}
                 height={`${12}px`}
