@@ -1174,6 +1174,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     // if we deprecate timeline we don't need to keep two states
     const configOfSelectedAnn = getAnnotationWithScreenAndIdx(this.state.selectedAnnotationId, this.props.timeline);
 
+    let helpText = '';
+    if (this.state.selectedAnnotationId) {
+      helpText = 'Click on the screen on left to select an element';
+    } else if ((this.props.screen.type === ScreenType.SerDom && this.state.selectedEl)
+      || (this.props.screen.type === ScreenType.Img && this.state.selectedCoords)) {
+      helpText = 'Click again to reselect. Or else create';
+    } else {
+      helpText = this.props.screen.type === ScreenType.Img
+        ? 'Drag to select an area on the image or create'
+        : 'Select an element from the screen on left or create';
+    }
+
     return (
       <>
         <GTags.PreviewAndActionCon style={{ borderRadius: '20px' }}>
@@ -1276,55 +1288,49 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 />
               </TabBar>
 
-              <div style={{}}>
-                <Tags.EditPanelSec>
+              <div style={{ height: '100%' }}>
+                <Tags.EditPanelSec style={{ height: '100%' }}>
                   {/* this is annotations timeline */}
                   {this.state.activeTab === TabList.Annotations && (
-                  <div>
-                    <div>
-                      <div style={{ position: 'relative', overflow: 'hidden' }}>
-                        {this.state.selectedAnnotationId
-                          ? (
-                            <>
-                              <FocusBubble />
-                              <Tags.AnimatedInfoText animate={this.animateHelpText ? 3 : 0} key="info">
-                                Click on the screen on left to select an element
-                              </Tags.AnimatedInfoText>
-                            </>
-                          )
-                          : (
-                            <>
-                              <FocusBubble />
-                              <Tags.AnimatedInfoText animate={this.animateHelpText ? 3 : 0} key="de">
-                                Select an element from the screen on left to create
-                              </Tags.AnimatedInfoText>
-                            </>
-                          )}
+                  <div
+                    style={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                    className="t1"
+                  >
+                    <div style={{ paddingTop: '1rem' }}>
+                      <div>
+                        <div style={{ position: 'relative', overflow: 'hidden' }}>
+                          <FocusBubble />
+                          <Tags.AnimatedInfoText key="info">{helpText}</Tags.AnimatedInfoText>
+                        </div>
                       </div>
+                      <Tags.AnnotationBtnCtn>
+                        {this.showCreateDefaultAnnButton() && (
+                        <Tags.CreateNewAnnotationBtn
+                          onClick={this.createDefaultAnnotation}
+                        >
+                          <img src={NewAnnotation} alt="new default annotation" />
+                          New Guide Annotation
+                        </Tags.CreateNewAnnotationBtn>)}
+                        {!this.state.selectedAnnotationId && (
+                        <Tags.CreateNewAnnotationBtn
+                          id="cover-annotation-btn"
+                          onClick={() => {
+                            amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
+                            this.createNewCoverAnnotation();
+                          }}
+                        >
+                          <img src={NewCoverAnnotation} alt="new default annotation" style={{ height: '57px !important', width: '57px' }} />
+                          New Cover Annotation
+                        </Tags.CreateNewAnnotationBtn>
+                        )}
+                      </Tags.AnnotationBtnCtn>
                     </div>
-                    <Tags.AnnotationBtnCtn>
-                      {this.showCreateDefaultAnnButton() && (
-                      <Tags.CreateNewAnnotationBtn
-                        onClick={this.createDefaultAnnotation}
-                      >
-                        <img src={NewAnnotation} alt="new default annotation" />
-                        New Guide Annotation
-                      </Tags.CreateNewAnnotationBtn>)}
-                      {!this.state.selectedAnnotationId && (
-                      <Tags.CreateNewAnnotationBtn
-                        id="cover-annotation-btn"
-                        onClick={() => {
-                          amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
-                          this.createNewCoverAnnotation();
-                        }}
-                      >
-                        <img src={NewCoverAnnotation} alt="new default annotation" style={{ height: '57px !important', width: '57px' }} />
-                        New Cover Annotation
-                      </Tags.CreateNewAnnotationBtn>
-                      )}
-                    </Tags.AnnotationBtnCtn>
-                    {
-                    this.props.showEntireTimeline && (
+                    {this.props.showEntireTimeline && (
                       <Timeline
                         shouldShowScreenPicker={this.props.shouldShowScreenPicker}
                         timeline={this.props.timeline}
@@ -1369,8 +1375,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           }}
                         />
                       </Timeline>
-                    )
-                  }
+                    )}
                     {
                     !this.props.showEntireTimeline && this.props.toAnnotationId && configOfParamsAnnId && (
                       <TimelineTags.AnnotationLI
@@ -1407,9 +1412,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
                           {
                             showAnnCreatorPanel ? (
-                              <CaretOutlined dir="up" />
-                            ) : (
                               <CaretOutlined dir="down" />
+                            ) : (
+                              <CaretOutlined dir="up" />
                             )
                           }
                         </TimelineTags.AnotCrtPanelSecLabel>

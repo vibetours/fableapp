@@ -313,7 +313,6 @@ export const AnnotationLI = styled.div`
   display: flex;
   flex-direction: column;
   width: 90%;
-  flex-grow: 1;
   border-top: 1px solid #DDD;
   border-bottom: 1px solid #DDD;
 

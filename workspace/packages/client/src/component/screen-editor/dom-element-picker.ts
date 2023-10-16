@@ -1,5 +1,6 @@
 import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ScreenType } from '@fable/common/dist/api-contract';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig } from '../base/hightligher-base';
 import { ROOT_EMBED_IFRAME_ID } from './preview';
 
@@ -302,7 +303,13 @@ export default class DomElementPicker extends HighlighterBase {
         ) {
           break;
         } else {
-          temp = tEl.defaultView!.frameElement!;
+          try {
+            temp = tEl.defaultView!.frameElement!;
+          } catch (e) {
+            console.log('defaultView.frameElement must be present', tEl);
+            raiseDeferredError(e as Error);
+            break;
+          }
         }
       }
       res.push(temp);

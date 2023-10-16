@@ -17,7 +17,7 @@ export const EmbedFrame = styled.iframe`
 
 export const EditPanelSec = styled.div`
   display: flex;
-  padding: 1rem 0 0 0;
+  padding: 0;
   flex-direction: column;
 `;
 
@@ -204,7 +204,7 @@ export const InfoText = styled.p`
   font-size: 12px;
 `;
 
-export const AnimatedInfoText = styled.p<{animate: number}>`
+export const AnimatedInfoText = styled.p`
   padding: 0 1rem;
   margin: 0 0 0 1.5rem;
   line-height: 1.25rem;
@@ -436,8 +436,8 @@ export const AnnPositioningInput = styled.div<{
   position: relative;
   width: ${(props) => `${props.fullWidth}px`};
   height: ${(props) => `${props.fullWidth}px`};
-  background-color: #EEEEEE;
-  border: 1px solid #9E9E9E;
+  background-color: #fff;
+  border: 1px solid #bdbdbd;
   border-radius: 4px;
 }
   cursor: default;
@@ -485,8 +485,8 @@ export const AnnPositioningInput = styled.div<{
     width: ${props => `${props.panelHeight}px`};
     height: ${props => `${props.panelHeight}px`};
     background-color: #6d6d6d;
-    background: #eeeeee;
-    border: 1px solid grey;
+    background: #fff;
+    border: 1px solid #bdbdbd;
     border-radius: 4px;
   }
 `;
