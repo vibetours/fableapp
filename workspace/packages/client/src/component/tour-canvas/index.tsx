@@ -246,6 +246,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [annEditorModal, setAnnEditorModal] = useState<AnnEditorModal | null>(null);
   const annEditorModalRef = useRef<AnnEditorModal | null>(null);
   const [annWithCoords, setAnnWithCoords] = useState<AnnWithCoords[]>([]);
+  const annWithCoordsRef = useRef<AnnWithCoords[]>([]);
   const [selectedAnnId, setSelectedAnnId] = useState<string>('');
   const [showScreenEditor, setShowSceenEditor] = useState(false);
   const [showJourneyEditor, setShowJourneyEditor] = useState(false);
@@ -258,6 +259,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   const [init] = useState(1);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
+
+  useEffect(() => {
+    annWithCoordsRef.current = annWithCoords;
+  }, [annWithCoords]);
 
   const drawGrid = (): void => {
     const svgEl = svgRef.current;
@@ -694,6 +699,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     updateGrid(x, currZoomY, ANN_EDITOR_ZOOM);
     select(rootGRef.current!).attr('transform', `translate(${x}, ${currZoomY}) scale(${ANN_EDITOR_ZOOM})`);
     setAnnEditorModal(prev => ({ ...prev!, newSvgZoom: { ...prev!.newSvgZoom, x, }, applyTransitionToArrow: false }));
+    const annCoords = annWithCoordsRef.current.find(ann => ann.annId === annEditorModalRef.current!.annId);
+    if (!annCoords) return;
+    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, x));
   };
 
   useEffect(() => {
