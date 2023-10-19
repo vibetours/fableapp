@@ -221,33 +221,8 @@ export const AnHotspot = styled.div`
   height: ${(p: AnHotspotProps) => `${p.box.height + 8}px`};
 `;
 
-interface AnVideoProps {
-  border: string;
-}
-
-const slideIn = keyframes`
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-`;
-
-const slideOut = keyframes`
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-  }
-`;
-
-export const AnVideoContainer = styled.div<{ out: 'slidein' | 'slideout' }>`
+export const AnVideoContainer = styled.div`
   border-radius: 8px;
-  animation: ${props => (props.out === 'slidein' ? slideIn : slideOut)} 0.2s ease-out;
 `;
 
 export const AnVideo = styled.video<{ border: string }>`
@@ -267,7 +242,7 @@ export const AnVideoControls = styled.div<{showOverlay: boolean}>`
   width: 100%;
 `;
 
-export const AnVideoCtrlBtn = styled.button<{ pcolor: string }>`
+export const AnVideoCtrlBtn = styled.button<{ showButton: boolean }>`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -277,7 +252,7 @@ export const AnVideoCtrlBtn = styled.button<{ pcolor: string }>`
   background-color: transparent;
   font-size: 2rem;
   border: none;
-  display: flex;
+  display: ${p => (p.showButton ? 'flex' : 'none')};
   cursor: pointer;
   align-items: center;
   justify-content: center;

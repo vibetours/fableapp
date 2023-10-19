@@ -209,11 +209,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
   componentDidMount(): void {
-    setTimeout(() => {
-      if (this.conRef.current) {
-        this.conRef.current.style.transform = 'translate(0px, 0px)';
-      }
-    }, 48);
+    if (this.conRef.current && !this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
@@ -226,7 +222,19 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         }
       }, 0);
     }
+
+    if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized
+       && this.props.annotationDisplayConfig.isMaximized) {
+      if (this.conRef.current && this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
+    }
   }
+
+  resetAnnPos = (): void => {
+    setTimeout(() => {
+        this.conRef.current!.style.transition = 'transform 0.3s ease-out';
+        this.conRef.current!.style.transform = 'translate(0px, 0px)';
+    }, 48);
+  };
 
   getAnnWidthHeight = ():{
     w: number,
@@ -327,8 +335,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   } => {
     const displayConfig = this.props.annotationDisplayConfig;
     const elBox = this.props.box;
-    const winW = this.props.annotationDisplayConfig.windowWidth;
-    const winH = this.props.annotationDisplayConfig.windowHeight;
+    const winW = displayConfig.windowWidth;
+    const winH = displayConfig.windowHeight;
 
     let l = -9999;
     let t = -9999;
@@ -336,10 +344,22 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let isUltrawideBox = false;
 
     if (!displayConfig.isInViewPort) return { l, t, dir, isUltrawideBox };
-
-    if (this.props.annotationDisplayConfig.config.type === 'cover') {
+    if (displayConfig.config.type === 'cover'
+    || (displayConfig.isVideoAnnotation && displayConfig.config.positioning === 'center')) {
       t = winH / 2 - h / 2;
       l = winW / 2 - w / 2;
+      return { l, t, dir, isUltrawideBox };
+    }
+
+    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomLeft) {
+      t = winH - h - 20;
+      l = 20;
+      return { l, t, dir, isUltrawideBox };
+    }
+
+    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomRight) {
+      t = winH - h - 20;
+      l = winW - w - 20;
       return { l, t, dir, isUltrawideBox };
     }
 
@@ -547,7 +567,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let tx = 0;
     let ty = 0;
 
-    if (!isCoverAnnotation) {
+    if (!isCoverAnnotation && !(
+      this.props.annotationDisplayConfig.config.positioning === VideoAnnotationPositions.BottomLeft
+      || this.props.annotationDisplayConfig.config.positioning === VideoAnnotationPositions.BottomRight)) {
       if (dir === 'l') {
         tx -= d;
       } else if (dir === 'r') {
@@ -568,29 +590,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     return (
       <>
-        {
-          isVideoAnnotation && (
-          <AnnotationVideo
-            conf={this.props.annotationDisplayConfig}
-            playMode={this.props.playMode}
-            annFollowPositions={{
-              top: t,
-              left: l,
-              dir,
-            }}
-            width={w}
-            height={h}
-            tourId={this.props.tourId}
-            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-            annotationSerialIdMap={this.props.annotationSerialIdMap}
-          />
-          )
-        }
         <div
           ref={this.conRef}
           style={{
-            transition: 'transform 0.3s ease-out',
-            transform: this.props.isThemeAnnotation ? 'none' : `translate(${tx}px, ${ty}px)`,
+            transform: this.props.isThemeAnnotation || this.props.annotationDisplayConfig.prerender
+              ? 'none' : `translate(${tx}px, ${ty}px)`,
           }}
         >
           {
@@ -615,6 +619,23 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
             }
+          {
+          isVideoAnnotation && (
+          <AnnotationVideo
+            conf={this.props.annotationDisplayConfig}
+            playMode={this.props.playMode}
+            annFollowPositions={{
+              top: t,
+              left: l,
+              dir,
+            }}
+            width={w}
+            height={h}
+            tourId={this.props.tourId}
+            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+          />
+          )
+        }
           {
             !isVideoAnnotation && (
               <AnnotationContent

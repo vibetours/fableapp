@@ -2,8 +2,6 @@ import React, { RefObject, ReactElement } from 'react';
 import Hls from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
-  AudioMutedOutlined,
-  AudioOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
@@ -17,8 +15,9 @@ import {
   TimeSpentInAnnotationPayload,
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
-import { AnnotationSerialIdMap } from './ops';
 import { generateShadeColor } from './utils';
+import MuteIcon from '../../assets/mute.png';
+import UnmuteIcon from '../../assets/unmute.png';
 
 interface IProps {
   conf: IAnnoationDisplayConfig;
@@ -28,7 +27,6 @@ interface IProps {
   height: number;
   tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
-  annotationSerialIdMap: AnnotationSerialIdMap;
 }
 
 interface IOwnStateProps {
@@ -164,24 +162,35 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     let styles: Record<string, string> = {};
     switch (position) {
       case VideoAnnotationPositions.BottomRight:
-        styles = { ...styles, bottom: offsetPosition, right: offsetPosition };
+        styles = { ...styles,
+          top: `${this.props.annFollowPositions.top}px`,
+          left: `${this.props.annFollowPositions.left}px`
+        };
         break;
       case VideoAnnotationPositions.BottomLeft:
-        styles = { ...styles, bottom: offsetPosition, left: offsetPosition };
+        styles = { ...styles,
+          top: `${this.props.annFollowPositions.top}px`,
+          left: `${this.props.annFollowPositions.left}px`
+        };
         break;
       case VideoAnnotationPositions.Center:
-        styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
+        styles = { ...styles,
+          top: `${this.props.annFollowPositions.top}px`,
+          left: `${this.props.annFollowPositions.left}px`
+        };
         break;
       case VideoAnnotationPositions.Follow:
       default: {
         if (isCover) {
-          styles = { ...styles, bottom: '50%', right: '50%', transform: 'translate(50%, 50%)' };
+          styles = { ...styles,
+            top: `${this.props.annFollowPositions.top}px`,
+            left: `${this.props.annFollowPositions.left}px`
+          };
         } else {
           styles = {
             ...styles,
-            position: 'absolute',
             top: `${this.props.annFollowPositions.top}px`,
-            left: `${this.props.annFollowPositions.left}px`
+            left: `${this.props.annFollowPositions.left}px`,
           };
           const annDir = this.props.annFollowPositions.dir;
           styles.display = 'flex';
@@ -197,7 +206,6 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
       }
     }
     return {
-      position: 'fixed',
       ...styles,
       width: `${this.props.width}px`,
       height: `${this.props.height}px`,
@@ -219,10 +227,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
     return (
       <Tags.AnVideoContainer
-        out={this.props.conf.isMaximized ? 'slidein' : 'slideout'}
         style={{
           ...this.getPositioningAndSizingStyles(),
           visibility: this.props.conf.isMaximized ? 'visible' : 'hidden',
+          position: this.props.conf.isMaximized ? 'absolute' : 'fixed',
         }}
         onMouseOver={() => this.setState({ showControls: true })}
         onMouseOut={() => {
@@ -232,7 +240,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         }}
       >
 
-        <div style={{ position: 'relative', display: 'flex', width: 'calc(100% - 2px)' }}>
+        <div style={{ position: 'relative', display: 'flex' }}>
           <Tags.AnVideo
             loop={this.state.firstTimeClick}
             autoPlay
@@ -258,11 +266,11 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           <Tags.AnVideoControls
             showOverlay={this.state.showControls}
           >
-            {!this.props.conf.prerender && this.state.showControls && (
+            {!this.props.conf.prerender && (
             <>
               {this.state.videoState !== 'ended' && (
                 <Tags.AnVideoCtrlBtn
-                  pcolor={this.props.conf.opts.primaryColor}
+                  showButton={this.state.isMuted || this.state.showControls}
                   type="button"
                   onClick={() => {
                     if (this.state.firstTimeClick) {
@@ -274,10 +282,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                   }}
                 >
                   {/* TODO: Change this icon */}
-                  {this.state.isMuted ? <AudioMutedOutlined /> : <AudioOutlined />}
+                  {this.state.isMuted ? <img src={MuteIcon} alt="mute" style={{ width: '46px', height: '46px' }} />
+                    : <img src={UnmuteIcon} alt="unmute" style={{ width: '46px', height: '46px' }} />}
                 </Tags.AnVideoCtrlBtn>
               )}
-
               {
                 this.state.videoState === 'ended' && (
                   <Tags.ReplayButton
@@ -289,11 +297,11 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                   </Tags.ReplayButton>
                 )
               }
-
+              { this.state.showControls
+              && (
               <Tags.NavButtonCon
                 pcolor={this.props.conf.opts.primaryColor}
               >
-                <div className="serial-num">{this.props.annotationSerialIdMap[this.props.conf.config.refId]}</div>
                 {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                   <Tags.ABtn
                     bg={generateShadeColor(this.props.conf.opts.primaryColor,)}
@@ -319,6 +327,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                   </Tags.ABtn>
                 ))}
               </Tags.NavButtonCon>
+              )}
             </>
             )}
           </Tags.AnVideoControls>
