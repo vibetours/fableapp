@@ -178,8 +178,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private lastSelectedAnnId = '';
 
-  private animateHelpText = false;
-
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
@@ -569,7 +567,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   componentDidMount(): void {
     window.addEventListener('message', this.receiveMessage, false);
 
-    this.animateHelpText = true;
     if (this.frameConRef.current) {
       this.frameConRef.current.addEventListener('click', this.goToSelectionMode);
     }
@@ -618,9 +615,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }
         return { selectedAnnotationId, activeTab: TabList.Annotations };
       });
-      setTimeout(() => {
-        this.animateHelpText = false;
-      }, 3000);
 
       if (this.props.newAnnPos !== null) {
         this.setState({ selectedEl: null });
@@ -661,8 +655,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           this.selectElementIfAnnoted();
           this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
           if (this.props.newAnnPos) this.props.resetNewAnnPos();
-        } else {
-          this.animateHelpText = true;
         }
         this.lastSelectedAnnId = this.state.selectedAnnotationId || prevState.selectedAnnotationId;
       }
@@ -679,7 +671,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     if (prevState.activeTab !== this.state.activeTab) {
-      this.animateHelpText = false;
       traceEvent(
         AMPLITUDE_EVENTS.SCREEN_TAB_SELECTED,
         { screen_tab: this.state.activeTab === 0 ? 'annotation' : 'edit' },
