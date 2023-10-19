@@ -107,7 +107,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   render(): JSX.Element {
     const displaySize = this.props.searchParams.get('s') || '0';
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
-
     return (
       <Tags.Con>
         <BackgroundGradient />

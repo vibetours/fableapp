@@ -126,6 +126,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/create-interactive-demo" element={<CreateTour title="Create interactive demo | Fable" />} />
               <Route path="/login" element={<Login title="Fable - Login" />} />
               <Route path="/logout" element={<Logout title="Fable - Logout" />} />
+              <Route path="/pp/demo/:tourId" element={<PublishPreview title="Fable" />} />
             </Route>
             <Route path="/form/:formId" element={<Form />} />
             <Route path="/p/tour/:tourId" element={<Player staging={staging} title="Fable" />} />
@@ -139,7 +140,6 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               element={<Player staging={staging} title="Fable" />}
             />
             <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
-            <Route path="/pp/demo/:tourId" element={<PublishPreview title="Fable" />} />
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
           </Routes>
         </div>
