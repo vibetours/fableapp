@@ -228,7 +228,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon className="tour-con">
         <SkipLink />
         <div style={{ height: '48px' }}>
-          <Header subs={this.props.subs} shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
+          <Header tour={null} subs={this.props.subs} shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>

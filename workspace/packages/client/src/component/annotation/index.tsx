@@ -158,14 +158,14 @@ export class AnnotationContent extends React.PureComponent<{
               className="f-button-con"
             >
               {this.props.annotationSerialIdMap[this.props.config.refId] && (
-              <Tags.Progress
-                bg={this.props.opts.annotationBodyBackgroundColor}
-                fg={this.props.opts.annotationFontColor}
-                fontFamily={this.props.opts.annotationFontFamily || 'inherit'}
-                className="f-progress"
-              >
-                {this.props.annotationSerialIdMap[this.props.config.refId]}
-              </Tags.Progress>
+                <Tags.Progress
+                  bg={this.props.opts.annotationBodyBackgroundColor}
+                  fg={this.props.opts.annotationFontColor}
+                  fontFamily={this.props.opts.annotationFontFamily || 'inherit'}
+                  className="f-progress"
+                >
+                  {this.props.annotationSerialIdMap[this.props.config.refId]}
+                </Tags.Progress>
               )}
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
@@ -618,7 +618,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
               />
             )
-            }
+          }
           {
           isVideoAnnotation && (
           <AnnotationVideo
@@ -982,6 +982,9 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         if (!btnConf.hotspot) {
           if (this.props.playMode) {
             const currentFlowMainIndex = this.props.allFlows.findIndex((flow) => flow === this.props.currentFlowMain);
+            if (currentFlowMainIndex === this.props.allFlows.length - 1) {
+              window.parent.postMessage({ type: 'lastAnnotation' }, '*');
+            }
             if (btnConf.type === 'next' && currentFlowMainIndex < this.props.allFlows.length - 1) {
               const nextMain = this.props.allFlows[currentFlowMainIndex + 1];
               this.props.applyDiffAndGoToAnn(config.refId, nextMain, isNavToVideoAnn);

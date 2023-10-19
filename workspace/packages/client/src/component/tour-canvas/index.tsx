@@ -81,6 +81,7 @@ const { confirm } = Modal;
 const userGuides = [PreviewAndEmbedGuide];
 
 type CanvasProps = {
+  publishTour: (tour: P_RespTour) => Promise<boolean>;
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: NavFn;
   navigateBackToTour: () => void;
@@ -1679,6 +1680,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         <GTags.HeaderCon>
           <Header
             {...props.headerProps}
+            publishTour={props.publishTour}
             canvasOptions={{
               resetZoom: () => {
                 if (annEditorModal) return;

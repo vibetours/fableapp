@@ -1,5 +1,16 @@
-import { RespScreen, RespSubscription, RespTour, RespTourWithScreens } from '@fable/common/dist/api-contract';
-import { DEFAULT_ANN_DIMS, deepcopy, getDisplayableTime } from '@fable/common/dist/utils';
+import {
+  RespScreen,
+  RespSubscription,
+  RespTour,
+  RespTourWithScreens,
+  SchemaVersion
+} from '@fable/common/dist/api-contract';
+import {
+  DEFAULT_ANN_DIMS,
+  deepcopy,
+  getDefaultTourOpts,
+  getDisplayableTime
+} from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
   IAnnotationConfig,
@@ -63,8 +74,28 @@ export interface P_RespScreen extends RespScreen {
   isRootScreen: boolean;
 }
 
-export function processRawScreenData(screen: RespScreen, state: TState): P_RespScreen {
+function getFileUris(
+  screen: RespScreen,
+  state: TState,
+  loadPublishedData = false
+): {editFileUri: URL, dataFileUri: URL} {
+  const screenAssetPath = state.default.commonConfig!.screenAssetPath;
+  const assetPrefixHash = screen.assetPrefixHash;
+  const editFileName = loadPublishedData
+    ? state.default.commonConfig!.pubEditFileName
+    : state.default.commonConfig!.editFileName;
+  const dataFileName = state.default.commonConfig!.dataFileName;
+
+  const dataFileUri = new URL(`${screenAssetPath}${assetPrefixHash}/${dataFileName}`);
+  const editFileUri = new URL(`${screenAssetPath}${assetPrefixHash}/${editFileName}?ts=${+new Date()}`);
+
+  return { editFileUri, dataFileUri };
+}
+
+export function processRawScreenData(screen: RespScreen, state: TState, loadPublishedData = false): P_RespScreen {
   const d = new Date(screen.updatedAt);
+  const { editFileUri, dataFileUri } = getFileUris(screen, state, loadPublishedData);
+
   return {
     ...screen,
     createdAt: new Date(screen.createdAt),
@@ -75,10 +106,8 @@ export function processRawScreenData(screen: RespScreen, state: TState): P_RespS
       ? new URL(`https://${screen.displayName.toLowerCase().trim().replace(/\W+/g, '-')}}.img.flbk.sharefable.com`)
       : new URL(screen.url),
     thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
-    dataFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-    }/${state.default.commonConfig?.dataFileName}`),
-    editFileUri: new URL(`${state.default.commonConfig?.screenAssetPath}${screen.assetPrefixHash
-    }/${state.default.commonConfig?.editFileName}?ts=${+new Date()}`),
+    dataFileUri,
+    editFileUri,
     related: [],
     numUsedInTours: 0,
   };
@@ -118,24 +147,54 @@ export interface P_RespTour extends RespTour {
   loaderFileUri: URL;
 }
 
+function getDataFileUri(tour: RespTour | RespTourWithScreens, state: TState, loadPublishedData = false): URL {
+  const tourAssetPath = state.default.commonConfig!.tourAssetPath;
+  const assetPrefixHash = tour.assetPrefixHash;
+  const dataFileName = loadPublishedData
+    ? state.default.commonConfig!.pubDataFileName
+    : state.default.commonConfig!.dataFileName;
+
+  const dataFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${dataFileName}?ts=${+new Date()}`);
+
+  return dataFileUri;
+}
+
+function getLoaderFileUri(tour: RespTour | RespTourWithScreens, state: TState, loadPublishedData = false): URL {
+  const tourAssetPath = state.default.commonConfig!.tourAssetPath;
+  const assetPrefixHash = tour.assetPrefixHash;
+  const loaderFileName = loadPublishedData
+    ? state.default.commonConfig!.pubLoaderFileName
+    : state.default.commonConfig!.loaderFileName;
+
+  const loaderFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${loaderFileName}?ts=${+new Date()}`);
+
+  return loaderFileUri;
+}
+
 export function processRawTourData(
   tour: RespTour | RespTourWithScreens,
   state: TState,
-  isPlaceholder = false
+  isPlaceholder = false,
+  loadPublishedData = false
 ): P_RespTour {
   const d = new Date(tour.updatedAt);
 
   let tTour;
   if ((tTour = (tour as RespTourWithScreens)).screens) {
-    tTour.screens = tTour.screens.map(s => processRawScreenData(s, state));
+    tTour.screens = tTour.screens.map(s => processRawScreenData(s, state, loadPublishedData));
   }
+
+  const dataFileUri = getDataFileUri(tour, state, loadPublishedData);
+  const loaderFileUri = getLoaderFileUri(tour, state, loadPublishedData);
+
   return {
     ...tour,
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
+    lastPublishedDate: tour.lastPublishedDate && new Date(tour.lastPublishedDate),
     displayableUpdatedAt: getDisplayableTime(d),
-    dataFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.dataFileName}?ts=${+new Date()}`),
-    loaderFileUri: new URL(`${state.default.commonConfig?.tourAssetPath}${tour.assetPrefixHash}/${state.default.commonConfig?.loaderFileName}?ts=${+new Date()}`),
+    dataFileUri,
+    loaderFileUri,
     isPlaceholder,
   } as P_RespTour;
 }
@@ -316,7 +375,7 @@ export function normalizeBackwardCompatibility(
 
   if (an.showOverlay === undefined || an.showOverlay === null) {
     // showOverlay was present in tour opts previous versions and now this config is moved to annotation cofnig
-    const tOpts = opts as ITourDataOpts & { showOverlay? : boolean};
+    const tOpts = opts as ITourDataOpts & { showOverlay?: boolean };
     if (!(tOpts.showOverlay === undefined || tOpts.showOverlay === null)) {
       an.showOverlay = !!tOpts.showOverlay;
     } else {
@@ -334,7 +393,7 @@ export function mergeTourData(
   master: TourDataWoScheme,
   incoming: Partial<TourDataWoScheme>,
   convertLocalToRemote = false
-) : TourDataWoScheme {
+): TourDataWoScheme {
   const newMaster = deepcopy(master);
   if (incoming.opts) {
     newMaster.opts = incoming.opts;

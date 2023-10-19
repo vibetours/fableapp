@@ -177,6 +177,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
+            tour={this.props.tour}
             subs={this.props.subs}
             navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={
@@ -187,7 +188,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             }
             leftElGroups={[]}
             principal={this.props.principal}
-            showPreview={`/p/tour/${this.props.tour?.rid}`}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

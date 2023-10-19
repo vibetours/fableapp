@@ -35,13 +35,13 @@ import JourneyMenu from '../../component/journey-menu';
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
 interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
-  loadScreenAndData: (rid: string, isPreloading: boolean) => void,
+  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
+  loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedData: boolean) => void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
-  loadScreenAndData: (rid: string, isPreloading: boolean) => dispatch(loadScreenAndData(rid, true, isPreloading)),
+  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData) => dispatch(loadTourAndData(rid, true, true, loadPublishedData)),
+  loadScreenAndData: (rid, isPreloading, loadPublishedData) => dispatch(loadScreenAndData(rid, true, isPreloading, loadPublishedData)),
 });
 
 interface IAppStateProps {
@@ -82,6 +82,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
 interface IOwnProps {
   title: string;
+  staging: boolean;
 }
 
 type IProps = IOwnProps &
@@ -135,7 +136,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         shouldLogEvent: true
       };
     }
-    this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
+    this.props.loadTourWithDataAndCorrespondingScreens(
+      this.props.match.params.tourId,
+      this.props.staging
+    );
     window.addEventListener('beforeunload', removeSessionId);
   }
 
@@ -178,7 +182,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       ...prevScreensToPrerender.traversedNodes,
     ]).filter(s => !this.loadedScreenRids.has(s.rid));
 
-    prerenderList.map(s => this.props.loadScreenAndData(s.rid, s.id !== screen.id));
+    prerenderList.map(s => this.props.loadScreenAndData(
+      s.rid,
+      s.id !== screen.id,
+      this.props.staging
+    ));
 
     prerenderList.forEach(s => this.loadedScreenRids.add(s.rid));
 

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-08-31 04:38:40.
+// Generated using typescript-generator version 2.35.1025 on 2023-10-05 19:15:48.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -140,9 +140,14 @@ export interface RespCommonConfig extends ResponseBase {
     commonAssetPath: string;
     screenAssetPath: string;
     tourAssetPath: string;
+    pubTourAssetPath: string;
     dataFileName: string;
-    editFileName: string;
     loaderFileName: string;
+    editFileName: string;
+    pubDataFileName: string;
+    pubLoaderFileName: string;
+    pubEditFileName: string;
+    pubTourEntityFileName: string;
     latestSchemaVersion: SchemaVersion;
 }
 
@@ -198,6 +203,7 @@ export interface RespTour extends ResponseBase {
     assetPrefixHash: string;
     displayName: string;
     description: string;
+    lastPublishedDate: Date;
     createdBy: RespUser;
 }
 

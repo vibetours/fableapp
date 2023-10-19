@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   MoreOutlined,
   SaveOutlined,
+  SendOutlined,
   ShareAltOutlined,
   WarningOutlined
 } from '@ant-design/icons';
@@ -20,12 +21,14 @@ import * as Tags from './styled';
 import FableQuill from '../../assets/fable-quill.svg';
 import * as GTags from '../../common-styled';
 import FableLogo from '../../assets/fableLogo.svg';
-import { copyToClipboard, createIframe } from './utils';
+import { copyToClipboard, getIframeShareCode } from './utils';
 import Input from '../input';
-import ShareTourModal from '../tour/share-tour-modal';
-import { P_RespSubscription } from '../../entity-processor';
+// import ShareTourModal from '../tour/share-tour-modal';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { PlanBadge } from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import PublishButton from '../publish-preview/publish-button';
+import ShareTourModal from '../publish-preview/share-modal';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -34,7 +37,6 @@ interface IOwnProps {
   titleElOnLeft?: ReactElement;
   subs: P_RespSubscription | null;
   leftElGroups: ReactElement[];
-  showPreview?: string;
   principal?: RespUser | null;
   titleText?: string;
   showRenameIcon?: boolean;
@@ -47,6 +49,10 @@ interface IOwnProps {
     showAnnText: boolean;
     setShowAnnText: Dispatch<SetStateAction<boolean>>;
   }
+  publishOptions?: ReactElement;
+  publishTour?: (tour: P_RespTour) => Promise<boolean>;
+  tour: P_RespTour | null;
+  onLogoClicked?: () => void;
 }
 
 export type HeaderProps = IOwnProps;
@@ -63,9 +69,9 @@ const CMN_HEADER_GRP_DIVISION = {
 
 function Header(props: IOwnProps): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
-
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishFailed, setIsPublishFailed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
-
   const [showRenameScreenModal, setShowRenameScreenModal] = useState(false);
   const [screenName, setScreenName] = useState(props.titleText || '');
 
@@ -97,7 +103,7 @@ function Header(props: IOwnProps): JSX.Element {
   };
 
   const copyHandler = async (): Promise<void> => {
-    const text = createIframe(props.showPreview);
+    const text = getIframeShareCode('100%', '100%', `/p/tour/${props.tour?.rid}`);
     await copyToClipboard(text);
     messageApi.open({
       type: 'success',
@@ -113,7 +119,7 @@ function Header(props: IOwnProps): JSX.Element {
           {props.shouldShowFullLogo ? (
             <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
           ) : (
-            <Link to={props.navigateToWhenLogoIsClicked!}>
+            <Link onClick={() => props.onLogoClicked && props.onLogoClicked()} to={props.navigateToWhenLogoIsClicked!}>
               <Tags.ConLogoImg
                 id="fable-logo-screen-editor"
                 src={FableQuill}
@@ -147,7 +153,7 @@ function Header(props: IOwnProps): JSX.Element {
       </Tags.LMenuCon>
       <div>
         {props.subs && props.subs.status === Status.IN_TRIAL && (
-        <PlanBadge subs={props.subs} />
+          <PlanBadge subs={props.subs} />
         )}
       </div>
       <Tags.RMenuCon>
@@ -162,22 +168,22 @@ function Header(props: IOwnProps): JSX.Element {
           <SaveOutlined style={{ color: 'white' }} />
         </div>
 
-        <div style={{
-          display: 'flex',
-          marginRight: '1rem',
-          paddingRight: '1rem',
-          borderRight: '1px solid #ffffff42'
-        }}
-        >
-          {props.showPreview && (
-          <>
+        {props.tour && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginRight: '1rem',
+            paddingRight: '1rem',
+            borderRight: '1px solid #ffffff42'
+          }}
+          >
             {
               props.warnings && props.warnings.length > 0 && (
                 <Tags.MenuItem>
                   <Tooltip
                     title={(
                       <>
-                        { props.warnings.map((warning, i) => (
+                        {props.warnings.map((warning, i) => (
                           <div style={{ marginBottom: '1rem' }} key={i}>- {warning}</div>
                         ))}
                       </>)}
@@ -216,7 +222,7 @@ function Header(props: IOwnProps): JSX.Element {
                           traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
                             preview_clicked_from: 'header'
                           }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                          window.open(props.showPreview)?.focus();
+                          window.open(`/pp/tour/${props.tour?.rid}`)?.focus();
                         }}
                       />
                     </Tooltip>
@@ -237,62 +243,74 @@ function Header(props: IOwnProps): JSX.Element {
                       />
                     </Tooltip>
                   </Tags.MenuItem>
+
                 </>
               )
             }
-          </>
-          )}
-          {
-            props.canvasOptions && (
-              <Tags.MenuItem>
-                <Tags.StyledPopover
-                  trigger="click"
-                  content={
-                    <Tags.CanvasOptionsCon>
-                      <Tags.CanvasOption
-                        type="button"
-                        onClick={() => props.canvasOptions!.setShowAnnText((prev) => !prev)}
-                      >
-                        {props.canvasOptions.showAnnText ? 'Hide ' : 'Show '}
-                        annotation text
-                      </Tags.CanvasOption>
-                      <Tags.CanvasOption
-                        type="button"
-                        onClick={props.canvasOptions.resetZoom}
-                        style={{ borderBottom: 'none' }}
-                      >
-                        Reset canvas position
-                      </Tags.CanvasOption>
-                    </Tags.CanvasOptionsCon>
-              }
-                >
-                  <div
-                    style={{
-                      color: 'white',
-                      fontSize: '0.7rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      cursor: 'pointer'
-                    }}
-                    id="step-3"
+            {
+              props.canvasOptions && (
+                <Tags.MenuItem>
+                  <Tags.StyledPopover
+                    trigger="click"
+                    content={
+                      <Tags.CanvasOptionsCon>
+                        <Tags.CanvasOption
+                          type="button"
+                          onClick={() => props.canvasOptions!.setShowAnnText((prev) => !prev)}
+                        >
+                          {props.canvasOptions.showAnnText ? 'Hide ' : 'Show '}
+                          annotation text
+                        </Tags.CanvasOption>
+                        <Tags.CanvasOption
+                          type="button"
+                          onClick={props.canvasOptions.resetZoom}
+                          style={{ borderBottom: 'none' }}
+                        >
+                          Reset canvas position
+                        </Tags.CanvasOption>
+                      </Tags.CanvasOptionsCon>
+                    }
                   >
-                    <AntButton
-                      size="small"
-                      shape="circle"
-                      type="text"
-                      icon={<MoreOutlined
-                        style={{ color: 'white' }}
-                      />}
-                      onClick={(e) => {
+                    <div
+                      style={{
+                        color: 'white',
+                        fontSize: '0.7rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
                       }}
-                    />
-                  </div>
-                </Tags.StyledPopover>
-              </Tags.MenuItem>
-            )
-        }
-        </div>
+                      id="step-3"
+                    >
+                      <AntButton
+                        size="small"
+                        shape="circle"
+                        type="text"
+                        icon={<MoreOutlined
+                          style={{ color: 'white' }}
+                        />}
+                        onClick={(e) => {
+                        }}
+                      />
+                    </div>
+                  </Tags.StyledPopover>
+                </Tags.MenuItem>
+              )
+            }
+            {props.publishOptions && (props.publishOptions)}
+            {props.publishTour && (
+              <PublishButton
+                setIsPublishFailed={setIsPublishFailed}
+                setIsPublishing={setIsPublishing}
+                publishTour={props.publishTour}
+                tour={props.tour}
+                size="medium"
+                openShareModal={() => setIsModalVisible(true)}
+              />
+            )}
+          </div>
+        )}
+
         {props.rBtnTxt && (
           <Tags.MenuItem>
             <AntButton shape="round" size="middle">
@@ -343,17 +361,23 @@ function Header(props: IOwnProps): JSX.Element {
           </Tags.MenuItem>
         )}
       </Tags.RMenuCon>
-      {
-        props.showPreview && (
-          <ShareTourModal
-            relativeUrl={props.showPreview}
-            isModalVisible={isModalVisible}
-            closeModal={closeModal}
-            copyHandler={copyHandler}
-            embedClickedFrom="header"
-          />
-        )
-      }
+
+      {props.tour && props.publishTour && <ShareTourModal
+        setIsPublishFailed={setIsPublishFailed}
+        isPublishFailed={isPublishFailed}
+        publishTour={props.publishTour}
+        setIsPublishing={setIsPublishing}
+        isPublishing={isPublishing}
+        tour={props.tour!}
+        height="100%"
+        width="100%"
+        relativeUrl={`/p/tour/${props.tour?.rid}`}
+        isModalVisible={isModalVisible}
+        closeModal={closeModal}
+        openShareModal={() => setIsModalVisible(true)}
+        copyHandler={copyHandler}
+        embedClickedFrom="header"
+      />}
       <GTags.BorderedModal
         style={{ height: '10px' }}
         title="Rename Screen"

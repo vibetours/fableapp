@@ -43,6 +43,7 @@ import {
 import { deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
   convertEditsToLineItems,
   getThemeAndAnnotationFromDataFile,
@@ -70,12 +71,12 @@ import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
-      | ActionType.SCREEN_LOADING
-      | ActionType.ALL_TOURS_LOADING
-      | ActionType.USER_LOADING
-      | ActionType.TOUR_LOADING
-      | ActionType.ORG_LOADING
-      | ActionType.ALL_USERS_FOR_ORG_LOADING;
+  | ActionType.SCREEN_LOADING
+  | ActionType.ALL_TOURS_LOADING
+  | ActionType.USER_LOADING
+  | ActionType.TOUR_LOADING
+  | ActionType.ORG_LOADING
+  | ActionType.ALL_USERS_FOR_ORG_LOADING;
   shouldCache?: boolean;
 }
 
@@ -386,7 +387,12 @@ export function updateScreen(
   };
 }
 
-export function loadScreenAndData(screenRid: string, shouldUseCache = false, preloading = false) {
+export function loadScreenAndData(
+  screenRid: string,
+  shouldUseCache = false,
+  preloading = false,
+  loadPublishedData = false,
+) {
   return async (dispatch: Dispatch<TScreenWithData | TGenericLoading>, getState: () => TState) => {
     if (!preloading) {
       // Only for screens that are not preloading (the current loading) set this true
@@ -408,7 +414,7 @@ export function loadScreenAndData(screenRid: string, shouldUseCache = false, pre
     if (!isScreenFound) {
       try {
         const data = await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
-        screen = processRawScreenData(data.data, state);
+        screen = processRawScreenData(data.data, state, loadPublishedData);
       } catch (e) {
         const err = e as Error;
         throw new Error(`Error encountered while getting screen with id=${screenRid} with message ${err.message}`);
@@ -440,7 +446,7 @@ export function loadScreenAndData(screenRid: string, shouldUseCache = false, pre
       screenData: data,
       screenEdits: edits,
       remoteEdits,
-      screen: processRawScreenData(screen!, getState()),
+      screen: processRawScreenData(screen!, getState(), loadPublishedData),
       preloading
     });
   };
@@ -455,7 +461,7 @@ export function clearCurrentScreenSelection() {
 }
 
 export function clearRelayScreenAndAnnAdd() {
-  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_RELAY_SCREEN_ANN_ADD}>, getState: () => TState) => {
+  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_RELAY_SCREEN_ANN_ADD }>, getState: () => TState) => {
     dispatch({
       type: ActionType.CLEAR_RELAY_SCREEN_ANN_ADD,
     });
@@ -590,7 +596,7 @@ export function getAllTours(shouldRefreshIfPresent = true) {
 
 /* ************************************************************************* */
 
-type SupportedPerformedAction = 'new' | 'get' | 'rename' | 'replace';
+type SupportedPerformedAction = 'new' | 'get' | 'rename' | 'replace' | 'publish' | 'edit';
 export interface TTour {
   type: ActionType.TOUR;
   tour: P_RespTour;
@@ -761,7 +767,12 @@ export interface TTourWithLoader {
   loader: ITourLoaderData;
 }
 
-export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFreshLoading = true) {
+export function loadTourAndData(
+  tourRid: string,
+  shouldGetScreens = false,
+  isFreshLoading = true,
+  loadPublishedData = false
+) {
   return async (dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading>, getState: () => TState) => {
     const state = getState();
     if (isFreshLoading) {
@@ -772,8 +783,11 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFre
 
     let tour: P_RespTour;
     try {
-      const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
-      tour = processRawTourData(data.data, state);
+      const data = loadPublishedData
+        ? await api<null, ApiResp<RespTour>>(`${state.default.commonConfig!.pubTourAssetPath}${tourRid}/${state.default.commonConfig!.pubTourEntityFileName}`)
+        : await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
+
+      tour = processRawTourData(data.data, state, false, loadPublishedData);
     } catch (e) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
@@ -791,11 +805,39 @@ export function loadTourAndData(tourRid: string, shouldGetScreens = false, isFre
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
-      tour: processRawTourData(tour!, getState()),
+      tour: processRawTourData(tour!, getState(), false, loadPublishedData),
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,
     });
+  };
+}
+
+export function publishTour(tour: P_RespTour) {
+  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
+    const state = getState();
+    let publishSuccessful: boolean;
+    try {
+      const data = await api<any, ApiResp<RespTour>>('/tpub', {
+        auth: true,
+        body: { tourRid: tour.rid }
+      });
+
+      tour = processRawTourData(data.data, state, false, false);
+      publishSuccessful = true;
+    } catch (e) {
+      sentryCaptureException(new Error(`Error while loading tour and corresponding data ${(e as Error).message}`));
+      publishSuccessful = false;
+    }
+
+    dispatch({
+      type: ActionType.TOUR,
+      tour,
+      oldTourRid: tour.rid,
+      performedAction: 'publish'
+    });
+
+    return Promise.resolve(publishSuccessful);
   };
 }
 
@@ -908,15 +950,24 @@ export interface TSaveTourLoader {
 }
 
 export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) {
-  return async (dispatch: Dispatch<TSaveTourLoader>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TSaveTourLoader | TTour>, getState: () => TState) => {
+    const state = getState();
     loaderData.lastUpdatedAtUTC = getCurrentUtcUnixTime();
-    const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtrloaderedit', {
+    const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtrloaderedit', {
       auth: true,
       body: {
         rid: tour.rid,
         editData: JSON.stringify(loaderData),
       },
     });
+
+    dispatch({
+      type: ActionType.TOUR,
+      tour: processRawTourData(data.data, state, false, false),
+      oldTourRid: tour.rid,
+      performedAction: 'edit'
+    });
+
     dispatch({
       type: ActionType.SAVE_TOUR_LOADER,
       tour,
@@ -926,8 +977,9 @@ export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) 
 }
 
 export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<TourDataWoScheme>) {
-  return async (dispatch: Dispatch<TSaveTourEntities | TAutosaving>, getState: () => TState) => {
-    const savedData = getState().default.tourData;
+  return async (dispatch: Dispatch<TSaveTourEntities | TAutosaving | TTour>, getState: () => TState) => {
+    const state = getState();
+    const savedData = state.default.tourData;
     if (savedData) {
       savedData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
       const mergedMasterData = mergeTourData(savedData, localEdits, true);
@@ -946,12 +998,19 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         opts: annotationAndOpts.opts,
         isLocal: false,
       });
-      await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+      const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
         auth: true,
         body: {
           rid: tour.rid,
           editData: JSON.stringify(mergedData),
         },
+      });
+
+      dispatch({
+        type: ActionType.TOUR,
+        tour: processRawTourData(data.data, state, false, false),
+        oldTourRid: tour.rid,
+        performedAction: 'edit'
       });
     }
 

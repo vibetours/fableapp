@@ -15,6 +15,8 @@ interface Props {
   closeModal: () => void;
   copyHandler: () => Promise<void>;
   embedClickedFrom: 'tours' | 'header';
+  height: string;
+  width: string;
 }
 
 export default function ShareTourModal(props: Props): JSX.Element {
@@ -58,7 +60,12 @@ export default function ShareTourModal(props: Props): JSX.Element {
               </p>
             </div>
 
-            <IframeCodeSnippet copyHandler={iframeEmbedCopyHandler} src={createIframeSrc(props.relativeUrl)} />
+            <IframeCodeSnippet
+              height={props.height}
+              width={props.width}
+              copyHandler={iframeEmbedCopyHandler}
+              src={createIframeSrc(props.relativeUrl)}
+            />
           </div>
 
           <div className="section-con">

@@ -238,7 +238,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         className={`fable-iframe-${this.props.screen.id}`}
         style={{
           visibility: this.props.hidden ? 'hidden' : 'visible',
-          borderRadius: `${this.props.playMode ? 'none' : '20px'}`
+          borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
         }}
         ref={ref => {
           this.embedFrameRef.current = ref;

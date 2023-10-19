@@ -261,3 +261,22 @@ export const getValidUrl = (url: string): string => {
 
   return url;
 };
+
+export const enum DisplaySize {
+  FIT_TO_SCREEN = 0,
+  MEDIUM,
+  SMALL,
+}
+
+export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { height: string; width: string } => {
+  switch (displaySize) {
+    case DisplaySize.FIT_TO_SCREEN:
+      return { height: '100%', width: '100%' };
+    case DisplaySize.MEDIUM:
+      return { height: '563px', width: '1000px' };
+    case DisplaySize.SMALL:
+      return { height: '450px', width: '800px' };
+    default:
+      return { height: '100%', width: '100%' };
+  }
+};

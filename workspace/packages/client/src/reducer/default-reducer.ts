@@ -34,7 +34,7 @@ import {
   TTourWithLoader,
   TSaveTourLoader,
   TAutosavingLoader,
-  TScreenUpdate
+  TScreenUpdate,
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -276,6 +276,13 @@ export default function projectReducer(state = initialState, action: Action) {
         }
         tours.unshift(tAction.tour);
         newState.tours = tours;
+      } else if (tAction.performedAction === 'publish' || tAction.performedAction === 'edit') {
+        const updatedTour = {
+          ...tAction.tour,
+          screens: state.currentTour!.screens!.slice(0)
+        };
+        newState.currentTour = updatedTour;
+        newState.tours = state.tours.map(tour => (tour.rid === updatedTour.rid ? updatedTour : tour));
       }
       newState.opsInProgress = Ops.None;
       return newState;

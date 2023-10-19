@@ -16,7 +16,7 @@ import * as Tags from './styled';
 import { CtxAction } from '../../container/tours';
 import * as GTags from '../../common-styled';
 import ShareTourModal from './share-tour-modal';
-import { createIframe, copyToClipboard } from '../header/utils';
+import { getIframeShareCode, copyToClipboard } from '../header/utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { createIframeSrc } from '../../utils';
 
@@ -31,7 +31,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
   const copyHandler = async (): Promise<void> => {
-    const text = createIframe(`/p/tour/${tour?.rid}`);
+    const text = getIframeShareCode('100%', '100%', `/p/tour/${tour?.rid}`);
     await copyToClipboard(text);
     messageApi.open({
       type: 'success',
@@ -72,7 +72,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
                   preview_clicked_from: 'tours',
                   tour_url: createIframeSrc(`/tour/${tour.rid}`)
                 }, [CmnEvtProp.EMAIL]);
-                window.open(`/p/tour/${tour.rid}`)?.focus();
+                window.open(`/pp/tour/${tour.rid}`)?.focus();
               }}
             />
           </Tooltip>
@@ -143,6 +143,8 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
         </Tags.TourActionBtnCon>
       </Tags.TourCardCon>
       <ShareTourModal
+        height="100%"
+        width="100%"
         isModalVisible={isShareModalVisible}
         relativeUrl={`/p/tour/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}

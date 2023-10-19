@@ -2,6 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import PublishPreview from '../publish-preview';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
 import Tours from '../tours';
@@ -79,6 +80,9 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
       return <div />;
     }
 
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    const staging = !urlSearchParams.get('staging');
+
     return (
       <Router>
         <div className="app" style={{ overflow: 'hidden' }}>
@@ -92,6 +96,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             </Route>
 
             <Route path="/" element={<ProtectedRoutes />}>
+              <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
               <Route path="/healthcheck" element={<Healthcheck />} />
               <Route path="/cb/auth" element={<AuthCB />} />
               <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
@@ -114,8 +119,12 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/logout" element={<Logout title="Fable - Logout" />} />
             </Route>
             <Route path="/form/:formId" element={<Form />} />
-            <Route path="/p/tour/:tourId" element={<Player title="Fable" />} />
-            <Route path="/p/tour/:tourId/:screenRid/:annotationId" element={<Player title="Fable" />} />
+            <Route path="/p/tour/:tourId" element={<Player staging={staging} title="Fable" />} />
+            <Route
+              path="/p/tour/:tourId/:screenRid/:annotationId"
+              element={<Player staging={staging} title="Fable" />}
+            />
+
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
             <Route path="/hubilojourney" element={<HubiloJourney title="Fable | Hubilo Journey" />} />
           </Routes>

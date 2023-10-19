@@ -30,6 +30,7 @@ import {
   flushTourDataToMasterFile,
   loadScreenAndData,
   loadTourAndData,
+  publishTour,
   renameScreen,
   saveEditChunks,
   saveTourData,
@@ -85,6 +86,7 @@ import Loader from '../../component/loader';
 import ScreenPicker from '../screen-picker';
 
 interface IDispatchProps {
+  publishTour: (tour: P_RespTour) => Promise<boolean>,
   loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   saveTourData: (tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate?: boolean) => void;
@@ -100,6 +102,7 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
+  publishTour: (tour) => dispatch(publishTour(tour)),
   loadScreenAndData: (rid: string) => dispatch(loadScreenAndData(rid, true)),
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
   saveEditChunks:
@@ -604,6 +607,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         >
           <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Canvas
+              publishTour={this.props.publishTour}
               applyAnnGrpIdMutations={
                 (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
               }
@@ -651,10 +655,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 titleText: this.props.screen?.displayName,
                 renameScreen: (newVal: string) => this.props.renameScreen(this.props.screen!, newVal),
                 showRenameIcon: this.isInCanvas(),
-                showPreview: `/p/tour/${this.props.tour?.rid}`,
                 isTourMainSet: this.props.isMainValid,
                 isAutoSaving: this.props.isAutoSaving,
                 warnings: this.getTourWarnings(),
+                tour: this.props.tour
               }}
               tourJourney={this.props.tourJourney}
             />

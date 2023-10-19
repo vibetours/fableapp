@@ -160,7 +160,7 @@ export const CanvasOptionsCon = styled.div`
 `;
 
 export const StyledPopover = styled(Popover)`
-  .ant-popover-inner {
+.ant-popover-inner {
     border-radius: 16px !important;
     border: 1px solid #EAEAEA !important;
     background: var(--White, #FFF) !important;

@@ -4,8 +4,10 @@ import { CopyOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 
 interface Props {
-    src: string;
-    copyHandler: () => void;
+  src: string;
+  copyHandler: () => void;
+  height: string;
+  width: string;
 }
 
 const pMargin = '0.25rem 0.25rem 0.25rem 1.5rem';
@@ -30,9 +32,9 @@ export default function IframeCodeSnippet(props: Props): JSX.Element {
       </p>
       <p style={{ margin: pMargin }}>
         <span style={{ ...attrKeyStyle }}>width=</span>
-        <span style={{ ...attrValStyle }}>"800"</span>
+        <span style={{ ...attrValStyle }}>"{props.width}"</span>
         <span style={{ ...attrKeyStyle }}>   height=</span>
-        <span style={{ ...attrValStyle }}>"450"</span>
+        <span style={{ ...attrValStyle }}>"{props.height}"</span>
       </p>
       <p style={{ margin: pMargin }}>
         <span style={{ ...attrKeyStyle }}>src=</span>
