@@ -397,7 +397,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.allScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `/p/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
+      const url = `/p/demo/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
       this.props.navigate(url);
     } else {
       raiseDeferredError(new Error(`Can't navigate because screenId ${screenId} is not found`));
@@ -478,7 +478,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             </ol>
           </div>
           <Link
-            to={`/tour/${this.props.tour!.rid}`}
+            to={`/demo/${this.props.tour!.rid}`}
             className="link-to-canvas"
           >
             <Button style={{ width: '100%' }}>Go to Canvas</Button>

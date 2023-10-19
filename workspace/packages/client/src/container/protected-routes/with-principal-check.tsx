@@ -103,8 +103,8 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (!this.props.principal.firstName) {
       // If user details are not yet completed
-      if (!document.location.pathname.startsWith('/iamdetails')) {
-        window.location.replace('/iamdetails');
+      if (!document.location.pathname.startsWith('/user-details')) {
+        window.location.replace('/user-details');
         return <HeartLoader />;
       }
     } else if (this.props.principal.orgAssociation !== UserOrgAssociation.Explicit) {
@@ -115,9 +115,9 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
         raiseDeferredError(new Error('User not defined for Reditus logging'));
       }
       // If org creation is not yet done then create org first
-      if (!document.location.pathname.startsWith('/org/')) {
+      if (!document.location.pathname.startsWith('/organization-')) {
         window.location.replace(
-          this.props.principal.orgAssociation === UserOrgAssociation.Implicit ? '/org/assign' : '/org/create'
+          this.props.principal.orgAssociation === UserOrgAssociation.Implicit ? '/organization-join' : '/organization-details'
         );
       }
     }

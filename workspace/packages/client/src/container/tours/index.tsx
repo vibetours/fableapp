@@ -137,7 +137,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       onOk: () => {
         traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
           tour_action_type: 'delete',
-          tour_url: createIframeSrc(`/tour/${tour!.rid}`)
+          tour_url: createIframeSrc(`/demo/${tour!.rid}`)
         }, [CmnEvtProp.EMAIL]);
         this.props.deleteTour(tour!.rid);
       },
@@ -153,14 +153,14 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       }
       traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
         tour_action_type: 'rename',
-        tour_url: createIframeSrc(`/tour/${this.state.selectedTour!.rid}`)
+        tour_url: createIframeSrc(`/demo/${this.state.selectedTour!.rid}`)
       }, [CmnEvtProp.EMAIL]);
       this.props.renameTour(this.state.selectedTour!, newVal);
       this.state.selectedTour!.displayName = newVal;
     } else if (this.state.ctxAction === CtxAction.Duplicate) {
       traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
         tour_action_type: 'duplicate',
-        tour_url: createIframeSrc(`/tour/${this.state.selectedTour!.rid}`)
+        tour_url: createIframeSrc(`/demo/${this.state.selectedTour!.rid}`)
       }, [CmnEvtProp.EMAIL]);
       this.props.duplicateTour(this.state.selectedTour!, newVal);
     } else if (this.state.ctxAction === CtxAction.Create) {
@@ -248,7 +248,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 <>
                   {
                     this.props.tours.length === 0 ? (
-                      <EmptyTourState extensionInstalled={this.state.isExtInstalled} />
+                      <EmptyTourState principal={this.props.principal} extensionInstalled={this.state.isExtInstalled} />
                     ) : (
                       <>
                         <div style={{ width: '45%', minWidth: '43.5rem' }}>

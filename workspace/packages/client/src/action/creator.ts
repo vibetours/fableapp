@@ -616,7 +616,7 @@ export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mod
     const tour = processRawTourData(data.data, getState());
 
     if (shouldNavigate) {
-      window.location.replace(`/tour/${tour.rid}`);
+      window.location.replace(`/demo/${tour.rid}`);
     }
     dispatch({
       type: ActionType.TOUR,

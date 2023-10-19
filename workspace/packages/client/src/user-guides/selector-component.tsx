@@ -15,7 +15,6 @@ export default function SelectorComponent({ userGuides }: Props): JSX.Element {
 
   return (
     <>
-
       {userGuides.map(({ guideInfo, component: Component }) => (
         <React.Fragment key={guideInfo.id}>
           <Component

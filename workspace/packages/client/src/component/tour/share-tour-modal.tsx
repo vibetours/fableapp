@@ -53,10 +53,10 @@ export default function ShareTourModal(props: Props): JSX.Element {
           <div className="section-con">
             <div>
               <p className="section-heading">
-                Iframe Embed
+                Iframe embed
               </p>
               <p className="section-subheading">
-                Copy and paste the following code in your frontend application to embed Fable
+                Copy & paste the following code in the webpage where you want to embed the interactive demo as an iframe
               </p>
             </div>
 
@@ -71,10 +71,10 @@ export default function ShareTourModal(props: Props): JSX.Element {
           <div className="section-con">
             <div>
               <p className="section-heading">
-                Copy Tour URL
+                Unique URL
               </p>
               <p className="section-subheading">
-                Copy this Tour URL and share with your prospects over any communication channel
+                You can share the following URL with anyone and they will be able to experience the interactive demo
               </p>
             </div>
 

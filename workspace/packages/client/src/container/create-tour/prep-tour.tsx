@@ -102,7 +102,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
           }
           this.db.close();
           setTimeout(() => {
-            window.location.replace('/createtour');
+            window.location.replace('/create-interactive-demo');
           }, 500);
         }
       }

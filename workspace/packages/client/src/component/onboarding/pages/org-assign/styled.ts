@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { Avatar } from 'antd';
 
 export const CardCon = styled.div`
   display: flex;
@@ -15,4 +16,11 @@ export const CardCon = styled.div`
 export const CardTitle = styled.div`
   font-weight: 600;
   font-size: 1.125rem;
+`;
+
+export const CardIcon = styled(Avatar)`
+  background-color: #FBECB2;
+  color: black;
+  font-size: 1.125rem;
+  font-weight: 600;
 `;

@@ -31,7 +31,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
   const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode('100%', '100%', `/p/tour/${tour?.rid}`);
+    const text = getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`);
     await copyToClipboard(text);
     messageApi.open({
       type: 'success',
@@ -41,7 +41,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
   return (
     <>
       {contextHolder}
-      <Tags.TourCardCon to={`/tour/${tour.rid}`}>
+      <Tags.TourCardCon to={`/demo/${tour.rid}`}>
         <Tags.TourThumbnail />
         <Tags.CardDataCon>
           <Tags.DisplayName>
@@ -70,9 +70,9 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
                 e.preventDefault();
                 traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
                   preview_clicked_from: 'tours',
-                  tour_url: createIframeSrc(`/tour/${tour.rid}`)
+                  tour_url: createIframeSrc(`/demo/${tour.rid}`)
                 }, [CmnEvtProp.EMAIL]);
-                window.open(`/pp/tour/${tour.rid}`)?.focus();
+                window.open(`/pp/demo/${tour.rid}`)?.focus();
               }}
             />
           </Tooltip>
@@ -87,7 +87,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
               onClick={e => {
                 e.stopPropagation();
                 e.preventDefault();
-                window.open(`/a/tour/${tour.rid}`, '_blank')?.focus();
+                window.open(`/a/demo/${tour.rid}`, '_blank')?.focus();
               }}
             />
           </Tooltip>
@@ -146,7 +146,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
         height="100%"
         width="100%"
         isModalVisible={isShareModalVisible}
-        relativeUrl={`/p/tour/${tour?.rid}`}
+        relativeUrl={`/p/demo/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}
         copyHandler={copyHandler}
         embedClickedFrom="tours"

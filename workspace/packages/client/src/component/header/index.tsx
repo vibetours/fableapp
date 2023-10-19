@@ -23,7 +23,6 @@ import * as GTags from '../../common-styled';
 import FableLogo from '../../assets/fableLogo.svg';
 import { copyToClipboard, getIframeShareCode } from './utils';
 import Input from '../input';
-// import ShareTourModal from '../tour/share-tour-modal';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { PlanBadge } from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -103,7 +102,7 @@ function Header(props: IOwnProps): JSX.Element {
   };
 
   const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode('100%', '100%', `/p/tour/${props.tour?.rid}`);
+    const text = getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`);
     await copyToClipboard(text);
     messageApi.open({
       type: 'success',
@@ -222,7 +221,7 @@ function Header(props: IOwnProps): JSX.Element {
                           traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
                             preview_clicked_from: 'header'
                           }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                          window.open(`/pp/tour/${props.tour?.rid}`)?.focus();
+                          window.open(`/pp/demo/${props.tour?.rid}`)?.focus();
                         }}
                       />
                     </Tooltip>
@@ -371,7 +370,7 @@ function Header(props: IOwnProps): JSX.Element {
         tour={props.tour!}
         height="100%"
         width="100%"
-        relativeUrl={`/p/tour/${props.tour?.rid}`}
+        relativeUrl={`/p/demo/${props.tour?.rid}`}
         isModalVisible={isModalVisible}
         closeModal={closeModal}
         openShareModal={() => setIsModalVisible(true)}

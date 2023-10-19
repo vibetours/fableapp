@@ -47,10 +47,12 @@ export default function OrgCreate(): JSX.Element {
               display: 'block'
             }}
           />
-          <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
+          <CTags.Header>
+            <CTags.SpanBlock>Let&apos;s get your account</CTags.SpanBlock>up and running, shall we?
+          </CTags.Header>
           <CTags.Subtitle>
-            Create an org to invite your team members.
-            All the tours that you and your team creates would be linked to your org.
+            Create an account with your organization's name and invite your team members to be a part of it.
+            You can collaborate with your team on all your interative demos.
           </CTags.Subtitle>
 
           <form onSubmit={handleSubmit} style={{ width: '27rem' }}>
@@ -70,7 +72,7 @@ export default function OrgCreate(): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://calendly.com/vikaspotta-fable/30min"
+            href="https://www.sharefable.com/get-a-demo"
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChromeOutlined } from '@ant-design/icons';
+import { RespUser } from '@fable/common/dist/api-contract';
 import * as Tags from './styled';
 import Browser1 from '../../assets/tour/browser-1.png';
 import Browser3 from '../../assets/tour/browser-3.png';
@@ -8,9 +9,10 @@ import Button from '../button';
 
 interface IProps {
   extensionInstalled: boolean;
+  principal: RespUser | null;
 }
 
-function EmptyTourState({ extensionInstalled }: IProps): JSX.Element {
+function EmptyTourState({ extensionInstalled, principal }: IProps): JSX.Element {
   return (
     <Tags.EmptyToursContainer>
       {!extensionInstalled && (
@@ -22,21 +24,24 @@ function EmptyTourState({ extensionInstalled }: IProps): JSX.Element {
           iconPlacement="left"
           size="large"
         >
-          Download Fable's Chrome Extension
+          Install Fable's Chrome Extension
         </Button>
       )}
 
       <Tags.HeaderMsgCon>
-        <h1>Hey 👋, looks like you haven't created a tour yet</h1>
-        <p>You can create an interactive tour of your product in just 3 steps</p>
+        <h1>
+          Hey {principal?.firstName || ''} 👋, you can create your first interactive demo as soon as you install Fable's
+          Chrome Extension
+        </h1>
+        <p>You can create an interactive demo of your product in 3 easy steps</p>
       </Tags.HeaderMsgCon>
       <Tags.CardWrapper>
 
         <Tags.EmptyStateCardCon>
           <Tags.CardIdx>1</Tags.CardIdx>
           <Tags.CardMsgCon>
-            <h2>Open your product's webpage in chrome</h2>
-            <p>If your product's webpage gets loaded in browser, be assured we can create an interactive demo.</p>
+            <h2>Open your product in a new tab</h2>
+            <p>Navigate to your product page where you want to start the interactive demo.</p>
           </Tags.CardMsgCon>
           <Tags.CardImg src={Browser1} />
         </Tags.EmptyStateCardCon>
@@ -44,9 +49,10 @@ function EmptyTourState({ extensionInstalled }: IProps): JSX.Element {
         <Tags.EmptyStateCardCon>
           <Tags.CardIdx>2</Tags.CardIdx>
           <Tags.CardMsgCon>
-            <h2>Click on “Start Recording“ in Fable extension</h2>
+            <h2>Click on 'Start Recording' in Fable's extension</h2>
             <p>
-              Tap “Fable” extension & click on “Start Recording“. Click through your product to create the tour. Don't worry, it's not a video recording, if you've made a mistake you can edit every aspect of your tour.
+              Tap on the Fable extension you installed and click on 'Start Recording'. Click through the product that
+              you want to show in the interactive demo and let Fable handle the rest.
             </p>
           </Tags.CardMsgCon>
           <Tags.CardImg src={Browser3} />
@@ -55,8 +61,11 @@ function EmptyTourState({ extensionInstalled }: IProps): JSX.Element {
         <Tags.EmptyStateCardCon>
           <Tags.CardIdx>3</Tags.CardIdx>
           <Tags.CardMsgCon>
-            <h2>Click on "Stop Recording" once you are done</h2>
-            <p>Once you think you are done, click on "Stop Recording" from the control pill or from the extension menu.</p>
+            <h2>Once you are done, click on 'Stop Recording'</h2>
+            <p>
+              After you have carried out all the actions you want captured in the interactive demo, click on
+              'Stop Recording' or the ✅ that you see in the bottom right corner.
+            </p>
           </Tags.CardMsgCon>
           <Tags.CardImg src={ControlPill} />
         </Tags.EmptyStateCardCon>

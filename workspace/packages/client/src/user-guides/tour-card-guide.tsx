@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import Tour from '../component/user-guide-tour';
-import { closeUserGuide, completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
+import { closeUserGuide, completeUserGuide, getDOMElement, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
 import { Guide, GuideInfo, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
+import { useUserNickname } from '../hooks/useUserNickname';
 
 export const guide: Guide = {
   id: 'tour-card-guide',
-  name: 'Get started with managing tours',
+  name: 'Managing your interactive demos',
   desc: {
-    toursCreated: 'Open /tours to see this guide',
+    toursCreated: 'Tips on how to manage your entire library of interactive demos',
     toursNotCreated: 'Create a tour to see this guide'
   },
-  serialId: 1,
+  serialId: 5,
   steps: [
     {
-      title: 'Preview a tour',
-      description: 'Once a tour is created you can see how your users would see it by clicking this button. We call it Preview button.',
-      target: () => document.getElementById('TG-1')!,
+      title: 'Preview of an interactive demo',
+      description: 'You can check out the preview of the interactive demo that you have created by clicking on the preview button. This essentially shows you the final output that your buyers will experience.',
+      target: () => getDOMElement(guide, () => document.getElementById('TG-1'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 1);
@@ -31,9 +32,9 @@ export const guide: Guide = {
       },
     },
     {
-      title: 'Analytics',
-      description: 'You can click the analytics button to check how your tours are performing. Analytics is refreshed every hour.',
-      target: () => document.getElementById('TG-2')!,
+      title: 'Analytics of an interactive demo',
+      description: 'You can dig into the analytics of the demo you have created by clicking on the analytics icon. You can find all the details of how an interactive demo has performed here.',
+      target: () => getDOMElement(guide, () => document.getElementById('TG-2'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 2);
@@ -48,18 +49,9 @@ export const guide: Guide = {
       },
     },
     {
-      title: 'More actions',
-      description: (
-        <>
-          There are plenty more things you can do to manage the tours
-          <ul>
-            <li>Renaming a tour - for organization purpose in case you have created many tours and having difficult time managing those</li>
-            <li>Duplicating a tour - Sometimes you wanna run experiment on a tour by changing an existing tour</li>
-            <li>Deleting a tour</li>
-          </ul>
-        </>
-      ),
-      target: () => document.getElementById('TG-3')!,
+      title: 'Additional actions available here',
+      description: 'You can rename, duplicate, or delete a demo by using the options available under this icon. These options will help you manage your library of interactive demos the way you want.',
+      target: () => getDOMElement(guide, () => document.getElementById('TG-3'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 3);
@@ -80,7 +72,7 @@ export const guide: Guide = {
 
 function TourCardGuide(props: GuideProps): JSX.Element {
   const [startTour, setStartTour] = useState<boolean>(false);
-
+  const nickname = useUserNickname();
   const hotspotManager = new UserGuideHotspotManager(guide.steps);
 
   return (
@@ -88,26 +80,27 @@ function TourCardGuide(props: GuideProps): JSX.Element {
       <IntroCard
         title={
           <>
-            👋🏻 <br />
-            Hey, let's get you started on tours
+            Hey{nickname} 👋🏻 <br />
+            In this guide, we’ll see how you can manage all your interactive demos in the library
           </>
         }
-        description="All your tours in Fable would be displayed in this page. You can create as many tours as you want. There is no limitation."
+        description="All your interactive demos will be displayed under the ‘Interactive demos’ tab. You can create as many interactive demos as you want and find them all here."
         acceptButtonProps={{
-          children: 'Show me',
+          children: 'Let\'s go',
           onClick() {
             setStartTour(true);
             hotspotManager.updateHotspot(0);
           },
         }}
         rejectButtonProps={{
-          children: 'Nah! I\'m too smart',
+          children: 'I’ll figure this out on my own',
           onClick() {
             skipUserGuide(guide);
             props.goToNextUserGuide();
           },
         }}
         show={props.isVisible && !startTour}
+        width="25rem"
       />
 
       <Tour

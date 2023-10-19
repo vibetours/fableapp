@@ -2,6 +2,11 @@ import { TourStepProps } from 'antd';
 
 export const USER_GUIDE_LOCAL_STORE_KEY = 'fable/user_guide';
 
+export enum UserGuideMsg {
+  OPEN_ANNOTATION = 'fable-guide-open-annotation',
+  RESET_ZOOM = 'fable-guide-reset-zoom'
+}
+
 export interface TourStepPropsWithElHotspotConfig extends TourStepProps {
   hotspot?: boolean;
   hideNavButtons?: boolean;

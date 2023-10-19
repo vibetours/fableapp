@@ -1,12 +1,16 @@
-import PreviewAndEmbedGuide from './preview-and-embed-guide';
 import TourCardGuide from './tour-card-guide';
-import ScreenEditorGuide from './screen-editor-guide';
+import ShareEmbedDemoGuide from './share-embed-demo-guide';
+import ExploringCanvasGuide from './exploring-canvas-guide';
+import EditingInteractiveDemoGuidePart1 from './editing-interactive-demo-guide/part-1';
+import EditingInteractiveDemoGuidePart2 from './editing-interactive-demo-guide/part-2';
 import { insertFableUserGuide, removeDeprecatedTours, upsertFableUserGuide } from './utils';
 
 const allUserGuides = [
-  PreviewAndEmbedGuide,
   TourCardGuide,
-  ScreenEditorGuide,
+  ShareEmbedDemoGuide,
+  ExploringCanvasGuide,
+  EditingInteractiveDemoGuidePart1,
+  EditingInteractiveDemoGuidePart2
 ];
 
 export const removeOldGuides = (): void => removeDeprecatedTours(allUserGuides);

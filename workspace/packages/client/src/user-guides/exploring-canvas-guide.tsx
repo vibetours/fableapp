@@ -1,23 +1,31 @@
 import React, { useState } from 'react';
 import Tour from '../component/user-guide-tour';
-import { closeUserGuide, completeUserGuide, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
+import {
+  closeUserGuide,
+  completeUserGuide,
+  getDOMElement,
+  skipUserGuide,
+  updateStepsTaken,
+  UserGuideHotspotManager
+} from './utils';
 import { Guide, GuideInfo, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
+import { useUserNickname } from '../hooks/useUserNickname';
+import ReordingGif from '../assets/user-guide/reordering-2.gif';
 
 export const guide: Guide = {
-  id: 'preview-and-embed-guide',
-  name: 'Share/embed a tour on your web',
-  serialId: 2,
+  id: 'exploring-canvas-guide',
+  name: 'Exploring Fable’s canvas',
+  serialId: 1,
   desc: {
-    toursCreated: 'Open any tour to see how this works',
+    toursCreated: 'Fable’s canvas is the playground where the magic sauce is added to an interactive demo after capturing it.',
     toursNotCreated: 'Create a tour to see this guide'
   },
   steps: [
     {
-      title: 'We have inferred a tour based on how you have recorded your product',
-      description: 'We have auto-stitched a tour for you based on your clicks while you recorded your product via our extension. Don’t worry you can change any and all aspect of your tour.',
-      // target: () => document.getElementsByClassName('node').item(0)! as HTMLElement,
-      target: () => document.getElementById('fab-tour-canvas-main')! as HTMLElement,
+      title: 'The auto-stitched flow of your interactive demo',
+      description: 'Fable auto-magically stitches together the entire flow of your interactive demo based on the actions carried out by you at the time of capture and presents it in the canvas as shown.',
+      target: () => getDOMElement(guide, () => document.getElementById('fab-tour-canvas-main'))! as HTMLElement,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 1);
@@ -34,9 +42,16 @@ export const guide: Guide = {
       placement: 'bottom'
     },
     {
-      title: 'Preview',
-      description: 'Once a tour is created you can see how your users would see it by clicking this button. We call it Preview button.',
-      target: () => document.getElementById('step-1')!,
+      title: 'Drag annotation to reorder',
+      description: (
+        <>
+          <p>
+            You can change the flow of an interactive demo by dragging and dropping the annotation box to reorder.
+          </p>
+          <img src={ReordingGif} alt="" width={420} />
+        </>
+      ),
+      target: null,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 2);
@@ -49,29 +64,12 @@ export const guide: Guide = {
           skipUserGuide(guide);
         }
       },
-    },
-    {
-      title: 'Embed',
-      description: 'Once you are satisfied with your tour design, you can embed the it in your web or share it with others to have a look.',
-      target: () => document.getElementById('step-2')!,
-      nextButtonProps: {
-        onClick() {
-          updateStepsTaken(guide.id, 3);
-        },
-      },
-      prevButtonProps: {
-        children: 'Skip guide',
-        onClick() {
-          closeUserGuide();
-          skipUserGuide(guide);
-        }
-      },
-      hotspot: true,
+      width: '480px'
     },
     {
       title: 'Add a new screen',
-      description: 'Add existing recorded screens or upload a brand new image to add it in this tour.',
-      target: () => document.getElementById('new-screen-btn')!,
+      description: 'You can add an existing screen that was captured as a part of a different interactive demo or upload an image to add it to this interactive demo.',
+      target: () => getDOMElement(guide, () => document.getElementById('new-screen-btn'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 4);
@@ -91,11 +89,11 @@ export const guide: Guide = {
       description: (
         <>
           <p>
-            By default Fable uses a standard loader. However you can upload your brand assets to design a loader that suits your brand. Loader is shown when your interactive tours are getting ready. Click <em>preview</em> to see how the loader looks on your tour.
+            A loader is shown when an interactive demo is being readied to display. You can upload your brand assets to customize the loader.
           </p>
         </>
       ),
-      target: () => document.getElementById('loader-btn')!,
+      target: () => getDOMElement(guide, () => document.getElementById('loader-btn'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 5);
@@ -109,12 +107,12 @@ export const guide: Guide = {
         }
       },
       placement: 'rightTop',
-      width: '30rem'
+      width: '20rem'
     },
     {
       title: 'Create a journey',
-      description: 'Use journey to show multiple module of your product. Your user can choose which part of your product they are interested in and you get detailed analytics out of it.',
-      target: () => document.getElementById('journey-btn')!,
+      description: 'When you have multiple flows within the same interactive demo to showcase different modules, you can use the journey feature so that your buyers can navigate between different flows/modules very easily. Think of it like the index of a book where there are multiple chapters. 😉',
+      target: () => getDOMElement(guide, () => document.getElementById('journey-btn'))!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 6);
@@ -134,7 +132,7 @@ export const guide: Guide = {
 
 function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
   const [startTour, setStartTour] = useState<boolean>(false);
-
+  const nickname = useUserNickname();
   const hotspotManager = new UserGuideHotspotManager(guide.steps);
 
   return (
@@ -142,20 +140,20 @@ function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
       <IntroCard
         title={
           <>
-            👋🏻 <br />
-            Hey, Let’s get you started with how to embed / share the tour that you’ve created
+            Hey{nickname} 👋🏻 <br />
+            In this guide, we’ll see what Fable’s playground is all about
           </>
         }
-        description="The very next step after creating a Fable’s tour is to share it with internal people to review or embed it on your web, once you are satisfied with the tour."
+        description="Fable’s canvas is where you can sprinkle the magic sauce that will make your interactive demo awesome. Let’s dive into this guide to see what the canvas is all about."
         acceptButtonProps={{
-          children: 'Show me',
+          children: 'Let’s go',
           onClick() {
             setStartTour(true);
             hotspotManager.updateHotspot(0);
           },
         }}
         rejectButtonProps={{
-          children: 'Nah! I\'m too smart',
+          children: 'I’ll figure this out on my own',
           onClick() {
             skipUserGuide(guide);
             props.goToNextUserGuide();
@@ -165,10 +163,11 @@ function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
         width="20rem"
       />
 
-      <Tour
+      {startTour && <Tour
         open={startTour}
         steps={guide.steps}
         onClose={() => {
+          hotspotManager.cleanupHotspot();
           completeUserGuide(guide.id);
           setStartTour(false);
           props.goToNextUserGuide();
@@ -180,7 +179,8 @@ function PreviewAndEmbedGuide(props: GuideProps): JSX.Element {
         indicatorsRender={(current, total) => `${current + 1}/${total}`}
         arrow={false}
         onChange={(current) => hotspotManager.updateHotspot(current)}
-      />
+        scrollIntoViewOptions={false}
+      />}
     </>
   );
 }

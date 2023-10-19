@@ -399,7 +399,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         setShowBrandingOptionsPopup(false);
       }}
     >
-      <ActionPanel alwaysOpen>
+      <ActionPanel id="annotation-rte" alwaysOpen>
         <div style={{
           background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '1rem' }}
         >
@@ -528,6 +528,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
       </ActionPanel>
       <ActionPanel
+        id="branding-tab"
         title="Branding"
         icon={<img src={ThemeIcon} alt="" />}
         sectionActionElWhenOpen={
@@ -1048,6 +1049,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       {
         props.screen.type === ScreenType.SerDom && (
           <ActionPanel
+            id="hotspot-panel"
             title="Hotspot"
             helpText={hotspotHelpText}
             icon={<ThunderboltOutlined style={{ fontSize: '1.25rem' }} />}

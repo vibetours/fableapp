@@ -32,7 +32,7 @@ function UserGuideProgressCircle(): JSX.Element {
             User guides
           </div>
           <div style={{ fontSize: '0.8rem', color: '#6a6a6a' }}>
-            Learn how to use features
+            Learn how to use Fable
           </div>
         </div>
       </div>

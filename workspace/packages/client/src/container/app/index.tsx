@@ -25,7 +25,6 @@ import PrepTour from '../create-tour/prep-tour';
 import ToursPage from '../../component/onboarding/pages/tours';
 import ProductTours from '../../component/onboarding/pages/product-tours';
 import ProtectedRoutes from '../protected-routes';
-import HubiloJourney from '../hubilo-journey';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
@@ -87,34 +86,44 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
       <Router>
         <div className="app" style={{ overflow: 'hidden' }}>
           <Routes>
-            <Route path="/" element={<Navigate to="/tours" />} />
+            <Route path="/" element={<Navigate to="/demos" />} />
+            <Route path="/tours" element={<Navigate to="/demos" />} />
             <Route path="/aboutblank" element={<div />} />
             <Route path="/onboarding" element={<Onboarding />}>
-              <Route path="pin-ext" element={<PinExt title="Fable - Onboarding" />} />
-              <Route path="create-amazing-product-tours" element={<ToursPage title="Fable - Onboarding" />} />
-              <Route path="go-to-app" element={<ProductTours title="Fable - Onboarding" />} />
+              <Route path="extension-installed" element={<PinExt title="Onboarding - Extension installed | Fable" />} />
+              <Route
+                path="create-interactive-demos"
+                element={<ToursPage title="Onboarding - Create stunning interactive demos | Fable" />}
+              />
+              <Route path="go-to-app" element={<ProductTours title="Onboarding - Go to the app | Fable" />} />
             </Route>
 
             <Route path="/" element={<ProtectedRoutes />}>
-              <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
               <Route path="/healthcheck" element={<Healthcheck />} />
               <Route path="/cb/auth" element={<AuthCB />} />
-              <Route path="/iamdetails" element={<IamDetails title="Fable - Onboarding" />} />
-              <Route path="/org/create" element={<NewOrgCreation title="Fable - Create organization" />} />
-              <Route path="/org/assign" element={<DefaultOrgAssignment title="Fable - Select Organization" />} />
-              <Route path="/tours" element={<Tours title="Fable - Tours" />} />
+              <Route path="/user-details" element={<IamDetails title="User details | Fable" />} />
+              <Route path="/organization-details" element={<NewOrgCreation title="Organization details | Fable" />} />
+              <Route
+                path="/organization-join"
+                element={<DefaultOrgAssignment title="Organization available | Fable" />}
+              />
+              <Route path="/demos" element={<Tours title="Interactive demos | Fable" />} />
               <Route path="/users" element={<UserManagement title="Fable - User Management" />} />
               <Route path="/billing" element={<Billing title="Fable - Billing & Subscription" />} />
               <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
               <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
-              <Route path="/a/tour/:tourId" element={<Analytics />} />
+              <Route path="/demo/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route path="/demo/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route path="/a/demo/:tourId" element={<Analytics />} />
               <Route
                 path="/tour/:tourId/:screenId/:annotationId"
-                element={<TourEditor
-                  title="Fable - Tour editor"
-                />}
+                element={<TourEditor title="Fable - Tour editor" />}
               />
-              <Route path="/createtour" element={<CreateTour title="Fable" />} />
+              <Route
+                path="/demo/:tourId/:screenId/:annotationId"
+                element={<TourEditor title="Fable - Tour editor" />}
+              />
+              <Route path="/create-interactive-demo" element={<CreateTour title="Create interactive demo | Fable" />} />
               <Route path="/login" element={<Login title="Fable - Login" />} />
               <Route path="/logout" element={<Logout title="Fable - Logout" />} />
             </Route>
@@ -124,9 +133,14 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               path="/p/tour/:tourId/:screenRid/:annotationId"
               element={<Player staging={staging} title="Fable" />}
             />
-
+            <Route path="/p/demo/:tourId" element={<Player staging={staging} title="Fable" />} />
+            <Route
+              path="/p/demo/:tourId/:screenRid/:annotationId"
+              element={<Player staging={staging} title="Fable" />}
+            />
+            <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
+            <Route path="/pp/demo/:tourId" element={<PublishPreview title="Fable" />} />
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
-            <Route path="/hubilojourney" element={<HubiloJourney title="Fable | Hubilo Journey" />} />
           </Routes>
         </div>
       </Router>

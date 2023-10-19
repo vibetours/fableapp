@@ -5,7 +5,7 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import RootLayout from '../../component/onboarding/root-layout';
 
-export const ONBOARDING_PAGE_ROUTES = ['/onboarding/pin-ext', '/onboarding/create-amazing-product-tours'];
+export const ONBOARDING_PAGE_ROUTES = ['/onboarding/extension-installed', '/onboarding/create-interactive-demos'];
 
 interface IDispatchProps {}
 
@@ -34,7 +34,7 @@ class Screens extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     if (window.location.pathname === '/onboarding' || window.location.pathname === '/onboarding/') {
-      window.location.replace('onboarding/pin-ext');
+      window.location.replace('onboarding/extension-installed');
     }
   }
 

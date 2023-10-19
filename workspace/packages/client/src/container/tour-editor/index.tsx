@@ -371,7 +371,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
-    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/tour/${this.props.match.params.tourId}`));
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/demo/${this.props.match.params.tourId}`));
     this.chunkSyncManager = new ChunkSyncManager(SyncTarget.LocalStorage, TourEditor.LOCAL_STORAGE_KEY_PREFIX, {
       onSyncNeeded: this.flushEdits,
     });
@@ -407,7 +407,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     try {
       if (this.props.isTourLoaded && this.props.searchParams.get('g') === '1' && this.props.timeline.length > 0) {
         const ann = this.props.timeline[0][0][0];
-        this.props.navigate(`/tour/${this.props.tour!.rid}/${ann.screen.rid}/${ann.refId}`);
+        this.props.navigate(`/demo/${this.props.tour!.rid}/${ann.screen.rid}/${ann.refId}`);
       }
     } catch (err) {
       sentryCaptureException(err as Error);
@@ -418,7 +418,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.flattenedScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `/tour/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
+      const url = `/demo/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}`;
       this.props.navigate(url);
     } else {
       throw new Error(`Can't navigate because screenId ${screenId} is not found`);
@@ -426,7 +426,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   navigateBackToTour = (): void => {
-    this.props.navigate(`/tour/${this.props.tour!.rid}`);
+    this.props.navigate(`/demo/${this.props.tour!.rid}`);
   };
 
   onLocalEditsLeft = (key: string, edits: AllEdits<ElEditType>): void => {
@@ -492,12 +492,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.match.params.tourId && this.props.match.params.screenId) {
       firstLine = (
         <>
-          For tour <span className="emph">{this.props.tour?.displayName}</span> edit screen
+          For interactive demo <span className="emph">{this.props.tour?.displayName}</span> edit screen
         </>
       );
       secondLine = this.props.screen?.displayName;
     } else if (this.props.match.params.tourId) {
-      firstLine = <>Edit tour</>;
+      firstLine = <>Edit demo</>;
       secondLine = this.props.tour?.displayName;
     } else {
       firstLine = <>Edit screen</>;
@@ -543,7 +543,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               onClick={e => {
                 e.stopPropagation();
                 e.preventDefault();
-                this.props.navigate(`/tour/${this.props.tour?.rid}`);
+                this.props.navigate(`/demo/${this.props.tour?.rid}`);
               }}
             />
           </Tooltip>
@@ -647,7 +647,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               updateScreen={this.props.updateScreen}
               onTourJourneyChange={this.onTourJourneyChange}
               headerProps={{
-                navigateToWhenLogoIsClicked: '/tours',
+                navigateToWhenLogoIsClicked: '/demos',
                 subs: this.props.subs,
                 titleElOnLeft: this.getHeaderTxtEl(),
                 leftElGroups: this.getHeaderLeftGroup(),

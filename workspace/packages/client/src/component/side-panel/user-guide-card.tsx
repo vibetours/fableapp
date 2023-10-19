@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BulbOutlined } from '@ant-design/icons';
 import { Tooltip, Progress } from 'antd';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,9 @@ import { LocalStoreUserGuideProps } from '../../user-guides/utils';
 import { GuideStatus } from './user-guide-details';
 import { Link } from '../create-tour/styled';
 import CircleGreenFilledIcon from '../../assets/icons/circle-check-green.svg';
+import * as GTags from '../../common-styled';
+import { useUserNickname } from '../../hooks/useUserNickname';
+import Button from '../button';
 
 interface Props {
   type: GuideStatus;
@@ -18,36 +21,33 @@ interface Props {
 }
 
 export default function UserGuideCard(props: Props): JSX.Element {
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
-  const formatLinkPresentString = (text: string): JSX.Element => {
-    const regexPattern = /(.*?)\/(\S+)(.*)/;
-    const match = regexPattern.exec(text);
+  const nickname = useUserNickname();
 
-    if (match) {
-      const leftPart = match[1];
-      const route = match[2];
-      const rightPart = match[3];
-      const formattedText = (
-        <>
-          {leftPart} <Link href={`/${route}`} style={{ color: '#7567ff', cursor: 'pointer' }}> /{route} </Link> {rightPart}
-        </>
-      );
-      return formattedText;
-    }
-    return <>{text}</>;
+  const closeModal = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>): void => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowModal(false);
   };
 
   const navigateToUserGuide = (serialId: number): void => {
     if (!props.tourAvailable) return;
     switch (serialId) {
       case 1:
-        navigate('/');
+        navigate(`/demo/${props.firstTourRid}`);
         break;
       case 2:
-        navigate(`/tour/${props.firstTourRid}`);
+        navigate(`/demo/${props.firstTourRid}`);
         break;
       case 3:
-        navigate(`/tour/${props.firstTourRid}?g=1`);
+        navigate(`/demo/${props.firstTourRid}`);
+        break;
+      case 4:
+        navigate(`/demo/${props.firstTourRid}`);
+        break;
+      case 5:
+        navigate('/');
         break;
       default:
         break;
@@ -58,10 +58,13 @@ export default function UserGuideCard(props: Props): JSX.Element {
     <Tags.UserGuideCard
       bgColor={props.tourAvailable ? props.bgColor : '#f5f5f5'}
       onClick={() => {
-        props.resetStatus && props.resetStatus(props.guide.groupId, props.type);
-        navigateToUserGuide(props.guide.serialId);
+        if (props.tourAvailable) {
+          props.resetStatus && props.resetStatus(props.guide.groupId, props.type);
+          navigateToUserGuide(props.guide.serialId);
+        } else {
+          setShowModal(true);
+        }
       }}
-      disabled={!props.tourAvailable}
     >
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
         <div
@@ -83,11 +86,7 @@ export default function UserGuideCard(props: Props): JSX.Element {
             {props.guide.name}
           </Tags.UserGuideTitle>
           <Tags.UserGuideDesc>
-            {
-              props.tourAvailable
-                ? formatLinkPresentString(props.guide.desc.toursCreated)
-                : props.guide.desc.toursNotCreated
-            }
+            {props.guide.desc.toursCreated}
           </Tags.UserGuideDesc>
         </Tags.UserGuideTextcon>
       </div>
@@ -118,6 +117,34 @@ export default function UserGuideCard(props: Props): JSX.Element {
           />
         )}
       </Tooltip>
+      <GTags.BorderedModal
+        open={showModal}
+        centered
+        onCancel={closeModal}
+        title={`Hey${nickname}, we know you are super excited to explore Fable & how it all works. 😉`}
+        footer={[
+          <Button
+            key={1}
+            style={{ marginLeft: 'auto', padding: '8px 24px' }}
+            onClick={closeModal}
+          >
+            Ok
+          </Button>
+        ]}
+      >
+        <div style={{ lineHeight: '36px', fontSize: '1rem' }}>
+          Recording a new interactive demo has 3 simple steps:
+          <br />
+          Step 1: Open your product's webpage in Chrome
+          <br />
+          Step 2: Click on <strong>Start Recording</strong> in Fable extension
+          <br />
+          Step 3: Click on <strong>Stop Recording</strong> once you are done
+          <br />
+          Let's get cracking now, shall we?
+        </div>
+
+      </GTags.BorderedModal>
     </Tags.UserGuideCard>
   );
 }

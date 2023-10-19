@@ -19,7 +19,7 @@ export default function Tours(props: Props): JSX.Element {
 
   return (
     <>
-      <CTags.ContentWrapper>
+      <CTags.ContentWrapper style={{ width: '33rem' }}>
         <CTags.MotionDivWrapper
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
@@ -34,9 +34,9 @@ export default function Tours(props: Props): JSX.Element {
                 display: 'block'
               }}
             />
-            <CTags.Header><CTags.SpanBlock>Create amazing</CTags.SpanBlock>product tours</CTags.Header>
+            <CTags.Header><CTags.SpanBlock>Create stunning</CTags.SpanBlock>interactive demos</CTags.Header>
             <CTags.Subtitle>
-              We make sure your prospect / customers experience best possible version of your product by creating a controlled but interactive version of your product. You build the narrative, we take care of product experience.
+              With Fable, you can let your buyers experience the power of your product with personalized interactive demos. Time to get that buyer ❤️!
             </CTags.Subtitle>
           </CTags.FlexColContainer>
           <Link to="/login?redirect=onboarding/go-to-app" style={{ textDecoration: 'none' }}>

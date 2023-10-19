@@ -37,8 +37,12 @@ import { isVideoAnnotation as isVideoAnn } from './utils';
 
 function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
-  const days = Math.ceil(msDiffs / (1000 * 60 * 60 * 24)) - 1;
-  if (days >= 2) return [`in ${days} days`, days];
+  const days = Math.floor(msDiffs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((msDiffs / (1000 * 60 * 60)) % 24);
+  let res = `in ${days}`;
+  if (hours > 0) res += ` and ${hours} hours`;
+
+  if (days >= 2) return [res, days];
   if (days >= 1) return ['Tomorrow', days];
   if (days >= 0) return ['Today', days];
   return ['', days];

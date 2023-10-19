@@ -37,9 +37,9 @@ export default function IamDetails({ principal }: Props): JSX.Element {
       && principal.orgAssociation !== UserOrgAssociation.Explicit
     ) {
       // If org creation is not yet done then create org first
-      if (!document.location.pathname.startsWith('/org/')) {
+      if (!document.location.pathname.startsWith('/organization-')) {
         window.location.replace(
-          principal.orgAssociation === UserOrgAssociation.Implicit ? '/org/assign' : '/org/create'
+          principal.orgAssociation === UserOrgAssociation.Implicit ? '/organization-join' : '/organization-details'
         );
       }
     }
@@ -56,9 +56,11 @@ export default function IamDetails({ principal }: Props): JSX.Element {
             display: 'block'
           }}
         />
-        <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
+        <CTags.Header>
+          <CTags.SpanBlock>Welcome to the world</CTags.SpanBlock>of stunning interactive demos!
+        </CTags.Header>
         <CTags.Subtitle>
-          <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
+          <CTags.SpanBlock>Before we get started, please tell us a little bit about yourself.</CTags.SpanBlock>
         </CTags.Subtitle>
 
         <form onSubmit={handleSubmit} style={{ width: '27rem' }}>
@@ -84,7 +86,7 @@ export default function IamDetails({ principal }: Props): JSX.Element {
       <CTags.StepDotsWrapper>
         Need help?
         <CTags.Link
-          href="https://calendly.com/vikaspotta-fable/30min"
+          href="https:www.sharefable.com/get-a-demo"
           target="_blank"
           rel="noopener noreferrer"
         >

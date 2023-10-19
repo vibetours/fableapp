@@ -85,11 +85,12 @@ export const DangerButton = styled.button`
   background: transparent;
   border: none;
   display: block;
-  width: 80%;
+  width: 90%;
   padding: 0rem 0;
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease-out;
+  text-align: left;
 
   .target {
     color: #ff7350;

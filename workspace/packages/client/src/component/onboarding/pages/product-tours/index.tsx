@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Tick from '../../../../assets/onboarding/tick.svg';
+import GreenTick from '../../../../assets/onboarding/green-tick.png';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
 import * as CTags from '../../styled';
 import * as Tags from './styled';
-import HeartEmoji from '../../../../assets/onboarding/heart.png';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/go-to-app-browser.png';
 
@@ -22,7 +22,7 @@ export default function ProductTours(props: Props): JSX.Element {
       <CTags.ContentWrapper>
         <CTags.FlexColContainer>
           <img
-            src={HeartEmoji}
+            src={GreenTick}
             alt=""
             width={48}
             style={{
@@ -30,10 +30,10 @@ export default function ProductTours(props: Props): JSX.Element {
             }}
           />
           <CTags.Header>
-            You're all set!!!
+            You are all set!
           </CTags.Header>
           <CTags.Subtitle>
-            You have finished the most difficult part. Let's get you started.
+            Head to the Fable app and start creating your first interactive demo.
           </CTags.Subtitle>
           <CTags.FlexColContainer>
             <Tags.CardCon>
@@ -75,7 +75,7 @@ export default function ProductTours(props: Props): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://calendly.com/vikaspotta-fable/30min"
+            href="https://www.sharefable.com/get-a-demo"
             target="_blank"
             rel="noopener noreferrer"
           >

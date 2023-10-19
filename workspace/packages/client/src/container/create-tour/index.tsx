@@ -298,7 +298,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.selectedColor,
       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
     );
-    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/tour/${tour.data.rid}`));
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/demo/${tour.data.rid}`));
 
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
@@ -333,7 +333,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
     }
 
-    this.props.navigate(`/tour/${tour.data.rid}`);
+    this.props.navigate(`/demo/${tour.data.rid}`);
   };
 
   saveInExistingTour = async (value: string | null): Promise<void> => {
@@ -349,7 +349,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     amplitudeAddScreensToTour(this.state.screens.length, 'ext');
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
-    this.props.navigate(`/tour/${tour.data.rid}`);
+    this.props.navigate(`/demo/${tour.data.rid}`);
   };
 
   componentDidMount(): void {
@@ -402,9 +402,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           >
             <Tags.HeaderText>A little quiet here today</Tags.HeaderText>
             <Tags.SubheaderText>
-              No tours to be created. Use Fable's extension to record a tour.
+              No tours to be created. Use Fable's extension to record an interactive demo.
               <div style={{ fontStyle: 'italic' }}>
-                If you've just recorded a tour and this screen is shown, then you might have only recorded empty chrome tabs.
+                If you've just recorded an interactive demo and this screen is shown, then you might have only recorded empty chrome tabs.
               </div>
             </Tags.SubheaderText>
             <Button
@@ -412,7 +412,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 width: '240px'
               }}
               onClick={() => {
-                this.props.navigate('/tours');
+                this.props.navigate('/demos');
               }}
             >
               See all Tours
@@ -424,7 +424,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     let heading = '';
     let subheading = '';
-    let contentWidth = '40%';
+    let contentWidth = '45%';
     let step = 0;
     let fullheight = false;
     const totalSteps = 3;
@@ -432,23 +432,23 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     switch (this.state.currentDisplayState) {
       case DisplayState.ShowTourCreationOptions:
-        heading = 'Create your tour';
-        subheading = 'We have captured everything required to create the interactive tour of your product. We even capture your product\'s animation.';
+        heading = 'Your interactive demo is on its way!';
+        subheading = 'Fable has captured all the actions you just undertook on your product including the animations and transition. Let us know where you want these captures to be added. 😄';
         break;
 
       case DisplayState.ShowAddExistingTourOptions:
-        heading = 'Select an existing tour';
-        subheading = 'Your current recording would be added to the selected tour.';
+        heading = 'Select an existing interactive demo';
+        subheading = 'Your current recording would be added to the selected interactive demo.';
         break;
 
       case DisplayState.ShowNewTourOptions:
-        heading = 'New tour name';
-        subheading = 'Give your tour a name so that it\'s easy to find. You can always change this later from inside the app.';
+        heading = 'New interactive demo name';
+        subheading = 'Give your interactive demo a name so that it\'s easy to find. You can always change this later from inside the app.';
         break;
 
       case DisplayState.ShowColorThemeChoices:
-        heading = 'Choose color';
-        subheading = 'We have curated couple of themes for you based on your product\'s colorscheme. You can always change these from inside the app.';
+        heading = 'Pick a color for the annotation box';
+        subheading = 'We have curated a few themes based on your product’s color scheme. You can always edit this from inside the app after the interactive demo is created.';
         contentWidth = 'calc(100% - 26rem)';
         step = 1;
         fableColorBorderRight = '0%';
@@ -456,8 +456,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         break;
 
       case DisplayState.ShowBorderChoices:
-        heading = 'Choose shape';
-        subheading = 'We have suggested couple of variations of annotations that we think you would like. You can always change these from inside the app.';
+        heading = 'Pick a shape for the annotation box';
+        subheading = 'We have created a couple of variations of annotation boxes for your interactive demo. You can always edit this from inside the app after the interactive demo is created.';
         contentWidth = 'calc(100% - 26rem)';
         step = 2;
         fableColorBorderRight = '0%';
@@ -465,8 +465,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         break;
 
       case DisplayState.ShowReview:
-        heading = 'Review';
-        subheading = 'This is how your annotations would look like on the interactive tour. You can change any or all aspect of this from inside the app.';
+        heading = 'Review your selections';
+        subheading = 'This is how the annotations would look in the interactive demo. You can always edit this from inside the app after the interactive demo is created.';
         step = 3;
         fullheight = true;
         break;
@@ -544,7 +544,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     icon={<PlusOutlined />}
                     style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >
-                    Create a new tour
+                    Create a new interactive demo
                   </Button>
 
                   <Button
@@ -559,7 +559,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     icon={<DownOutlined />}
                     style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >
-                    Save in existing tour
+                    Save in an existing interactive demo
                   </Button>
 
                   <Tags.DangerButton
@@ -569,14 +569,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         icon: <DeleteOutlined />,
                         onOk: async () => {
                           if (this.db) await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
-                          this.props.navigate('/tours');
+                          this.props.navigate('/demos');
                         },
                         onCancel() { }
                       });
                     }}
                   >
-                    I have created this by mistake, &nbsp;
-                    <span className="target">delete this!</span>
+                    I've created this by mistake, let's&nbsp;
+                    <span className="target">not save this.</span>
                   </Tags.DangerButton>
                 </div>
               </reactanimated.Animated>
@@ -677,7 +677,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     value={this.state.tourName}
                     onChange={(e) => this.setState({ tourName: e.target.value })}
                     innerRef={this.nameTourRef}
-                    label="Give a tour name"
+                    label="Give an interactive demo name"
                     icon={<EditFilled />}
                   />
                   <Tags.ModalButtonsContainer>
@@ -844,7 +844,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   marginBottom: '2rem'
                 }}
                 >
-                  Tour name
+                  Interactive demo name
                   <span style={{ fontWeight: 500, marginLeft: '0.5rem' }}>
                     {this.state.tourName}
                   </span>
@@ -892,7 +892,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     icon={<CheckOutlined />}
                     iconPlacement="left"
                   >
-                    Create Tour
+                    Create Interactive Demo
                   </Button>
                 </Tags.ModalButtonsContainer>
               </reactanimated.Animated>
@@ -914,10 +914,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           <Tags.SkeletonCon style={{ transform: 'translateY(10rem)' }}>
             <Tags.HeaderText
               style={{ marginBottom: '0rem' }}
-            >Creating the tour...
+            >Creating the interactive demo...
             </Tags.HeaderText>
             <Tags.SubheaderText>
-              We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time. <i>Please keep this tab open while we create your tour.</i>
+              We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time. <i>Please keep this tab open while we create your interactive demo.</i>
             </Tags.SubheaderText>
             <Tags.SkeletonGrid>
               {this.frameDataToBeProcessed.map((frameData, idx) => (

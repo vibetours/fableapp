@@ -24,6 +24,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Button, Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import * as GTags from '../../common-styled';
 import {
   updateGrpIdForTimelineTillEnd,
@@ -65,7 +66,7 @@ import {
 import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from '../timeline/new-annotation-popup';
-import PreviewAndEmbedGuide from '../../user-guides/preview-and-embed-guide';
+import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import LoaderEditor from '../../container/loader-editor';
@@ -75,10 +76,13 @@ import { UpdateScreenFn } from '../../action/creator';
 import CreateJourney from '../../container/create-journey';
 import Header, { HeaderProps } from '../header';
 import DeleteIcon from '../../assets/icons/canvas-delete.svg';
+import EditingInteractiveDemoGuidePart1 from '../../user-guides/editing-interactive-demo-guide/part-1';
+import ExploringCanvasGuide from '../../user-guides/exploring-canvas-guide';
+import { UserGuideMsg } from '../../user-guides/types';
 
 const { confirm } = Modal;
 
-const userGuides = [PreviewAndEmbedGuide];
+const userGuides = [ExploringCanvasGuide, ShareEmbedDemoGuide, EditingInteractiveDemoGuidePart1];
 
 type CanvasProps = {
   publishTour: (tour: P_RespTour) => Promise<boolean>;
@@ -361,7 +365,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           const [startX, startY] = startPoints;
 
           const isDraggingStarted = Math.abs(startX - eventX) > clickThreshold
-          || Math.abs(startY - eventY) > clickThreshold;
+            || Math.abs(startY - eventY) > clickThreshold;
 
           if (!isDraggingStarted) return;
 
@@ -706,9 +710,34 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   useEffect(() => {
+    const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
+      if (e.data.type === UserGuideMsg.OPEN_ANNOTATION) {
+        try {
+          const ann = props.timeline[0][0][0];
+          resetNodePos();
+          selectAnn(`${ann.screen.id}/${ann.refId}`);
+        } catch (err) {
+          sentryCaptureException(err as Error);
+        }
+      }
+
+      if (e.data.type === UserGuideMsg.RESET_ZOOM) {
+        if (annEditorModal) {
+          resetSelectedAnn();
+          setTimeout(() => {
+            resetZoom();
+          }, ANN_EDITOR_ANIM_DUR);
+        } else {
+          resetZoom();
+        }
+      }
+    };
+
+    window.addEventListener('message', receiveMessage, false);
+
     annEditorModalRef.current = annEditorModal;
 
-    if (!zoomBehaviorRef.current) return;
+    if (!zoomBehaviorRef.current) return undefined;
 
     if (annEditorModal) {
       zoomBehaviorRef.current.scaleExtent([ANN_EDITOR_ZOOM, ANN_EDITOR_ZOOM]);
@@ -717,6 +746,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       zoomBehaviorRef.current.scaleExtent(SVG_ZOOM_EXTENT);
       select(svgRef.current).attr('cursor', 'move');
     }
+
+    return () => window.removeEventListener('message', receiveMessage, false);
   }, [annEditorModal]);
 
   useEffect(() => {
@@ -1015,7 +1046,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseover', function () {
         const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         if ((annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId)
-        || createJourneyModalRef.current) return;
+          || createJourneyModalRef.current) return;
         setAnnNodeSelectionStyle(gEl, Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
@@ -1625,7 +1656,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
       const isAnnNodeYInViewPort = startY > 0 && endY * ANN_EDITOR_ZOOM < window.innerHeight * ANN_EDITOR_ZOOM;
       const isAnnNodeXInViewPort = startX > window.innerWidth * ANN_EDITOR_ZOOM
-      && startX * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
+        && startX * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
 
       const annNode = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
         .filter((d) => d.annotation.refId === annRefId);
@@ -1672,6 +1703,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     setCreateJourneyModal(null);
   };
 
+  const resetZoom = (): void => {
+    const transform = zoomIdentity
+      .translate(canvasGrid.initial.tx, canvasGrid.initial.ty)
+      .scale(canvasGrid.initial.scale);
+
+    select<SVGSVGElement, unknown>(svgRef.current!)
+      .transition()
+      .duration(ANN_EDITOR_ANIM_DUR)
+      .call(zoomBehaviorRef.current!.transform, transform);
+  };
+
   const restrictCanvasActions = () : boolean => Boolean(annEditorModalRef.current || createJourneyModalRef.current);
 
   return (
@@ -1684,14 +1726,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             canvasOptions={{
               resetZoom: () => {
                 if (annEditorModal) return;
-                const transform = zoomIdentity
-                  .translate(canvasGrid.initial.tx, canvasGrid.initial.ty)
-                  .scale(canvasGrid.initial.scale);
-
-                select<SVGSVGElement, unknown>(svgRef.current!)
-                  .transition()
-                  .duration(ANN_EDITOR_ANIM_DUR)
-                  .call(zoomBehaviorRef.current!.transform, transform);
+                resetZoom();
               },
               showAnnText,
               setShowAnnText
@@ -1740,177 +1775,177 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           </Tags.SVGCanvas>
 
           {
-        !annEditorModal && (
-          <Tags.CanvasMenuCon
-            onClick={prevent}
-            onMouseUp={prevent}
-            onMouseDown={prevent}
-          >
-            <Tags.CanvasMenuItemCon id="new-screen-btn">
-              <Tooltip
-                title="Add a new screen to this tour"
-                overlayStyle={{ fontSize: '0.75rem' }}
-                placement="right"
+            !annEditorModal && (
+              <Tags.CanvasMenuCon
+                onClick={prevent}
+                onMouseUp={prevent}
+                onMouseDown={prevent}
               >
-                <div>
-                  <Button
-                    onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
-                    icon={<img src={newScreenDark} alt="new screen" />}
-                    size="middle"
-                    style={{
-                      margin: 0,
-                      border: '1px solid black',
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            </Tags.CanvasMenuItemCon>
+                <Tags.CanvasMenuItemCon id="new-screen-btn">
+                  <Tooltip
+                    title="Add a new screen to this tour"
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <div>
+                      <Button
+                        onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
+                        icon={<img src={newScreenDark} alt="new screen" />}
+                        size="middle"
+                        style={{
+                          margin: 0,
+                          border: '1px solid black',
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
 
-            <Tags.CanvasMenuItemCon id="loader-btn">
-              <Tooltip
-                title="Design your loader"
-                overlayStyle={{ fontSize: '0.75rem' }}
-                placement="right"
-              >
-                <div>
-                  <Button
-                    onClick={() => setShowLoaderEditor(true)}
-                    icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
-                    size="middle"
-                    style={{
-                      margin: 0,
-                      border: '1px solid black',
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            </Tags.CanvasMenuItemCon>
+                <Tags.CanvasMenuItemCon id="loader-btn">
+                  <Tooltip
+                    title="Design your loader"
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <div>
+                      <Button
+                        onClick={() => setShowLoaderEditor(true)}
+                        icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
+                        size="middle"
+                        style={{
+                          margin: 0,
+                          border: '1px solid black',
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
 
-            <Tags.CanvasMenuItemCon id="journey-btn">
-              <Tooltip
-                title={props.tourJourney.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
-                overlayStyle={{ fontSize: '0.75rem' }}
-                placement="right"
-              >
-                <div style={{ position: 'relative' }}>
-                  {props.tourJourney.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
-                  <Button
-                    onClick={() => getFirstAnnotations()}
-                    icon={<BarsOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
-                    size="middle"
-                    style={{
-                      margin: 0,
-                      border: '1px solid black',
-                    }}
-                  />
-                </div>
-              </Tooltip>
-            </Tags.CanvasMenuItemCon>
-          </Tags.CanvasMenuCon>
-        )
-      }
+                <Tags.CanvasMenuItemCon id="journey-btn">
+                  <Tooltip
+                    title={props.tourJourney.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <div style={{ position: 'relative' }}>
+                      {props.tourJourney.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
+                      <Button
+                        onClick={() => getFirstAnnotations()}
+                        icon={<BarsOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
+                        size="middle"
+                        style={{
+                          margin: 0,
+                          border: '1px solid black',
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
+              </Tags.CanvasMenuCon>
+            )
+          }
           {
-        showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
-      }
+            showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
+          }
           {isMenuModalVisible(connectorMenuModalData.position) && (
-          <Tags.MenuModalMask onClick={() => {
-            ctxData.current = null;
-            setConnectorMenuModalData(initialConnectorModalData);
-          }}
-          >
-            <Tags.MenuModal xy={connectorMenuModalData.position} onClick={prevent}>
-              <div
-                className="menu-item danger"
-                onClick={() => {
-                  confirm({
-                    title: 'Are you sure you want to delete the connector?',
-                    content: `This connector will get deleted and previous 
+            <Tags.MenuModalMask onClick={() => {
+              ctxData.current = null;
+              setConnectorMenuModalData(initialConnectorModalData);
+            }}
+            >
+              <Tags.MenuModal xy={connectorMenuModalData.position} onClick={prevent}>
+                <div
+                  className="menu-item danger"
+                  onClick={() => {
+                    confirm({
+                      title: 'Are you sure you want to delete the connector?',
+                      content: `This connector will get deleted and previous 
                   annotation and next annotation will get separated`,
-                    okText: 'Delete',
-                    okType: 'danger',
-                    onOk() {
-                      traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                      const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
-                      const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
-                      const result = deleteConnection(
-                        fromAnnId,
-                        toAnnId,
-                        props.allAnnotationsForTour
-                      );
-                      props.applyAnnButtonLinkMutations(result);
-                      setConnectorMenuModalData(initialConnectorModalData);
-                    },
-                    onCancel() { },
-                  });
-                }}
-              >
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <DisconnectOutlined style={{ marginTop: '2px' }} />
-                  <div>
-                    Delete this connector
-                    <div className="subtext">This action will break the flow in two parts</div>
+                      okText: 'Delete',
+                      okType: 'danger',
+                      onOk() {
+                        traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
+                        const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
+                        const result = deleteConnection(
+                          fromAnnId,
+                          toAnnId,
+                          props.allAnnotationsForTour
+                        );
+                        props.applyAnnButtonLinkMutations(result);
+                        setConnectorMenuModalData(initialConnectorModalData);
+                      },
+                      onCancel() { },
+                    });
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <DisconnectOutlined style={{ marginTop: '2px' }} />
+                    <div>
+                      Delete this connector
+                      <div className="subtext">This action will break the flow in two parts</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Tags.MenuModal>
-          </Tags.MenuModalMask>
+              </Tags.MenuModal>
+            </Tags.MenuModalMask>
           )}
           {isMenuModalVisible(nodeMenuModalData.position) && (
-          <Tags.MenuModalMask onClick={() => {
-            ctxData.current = null;
-            setNodeMenuModalData(initialAnnNodeModalData);
-          }}
-          >
-            <Tags.MenuModal xy={nodeMenuModalData.position} onClick={prevent}>
-              <div
-                className="menu-item"
-                onClick={() => {
-                  confirm({
-                    title: 'Are you sure you want to delete this annotation?',
-                    content: `This annotation will be deleted and the previous annotation 
+            <Tags.MenuModalMask onClick={() => {
+              ctxData.current = null;
+              setNodeMenuModalData(initialAnnNodeModalData);
+            }}
+            >
+              <Tags.MenuModal xy={nodeMenuModalData.position} onClick={prevent}>
+                <div
+                  className="menu-item"
+                  onClick={() => {
+                    confirm({
+                      title: 'Are you sure you want to delete this annotation?',
+                      content: `This annotation will be deleted and the previous annotation 
                     will get connected to the next`,
-                    okText: 'Delete',
-                    okType: 'danger',
-                    onOk() {
-                      traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
-                        annotation_op_location: 'canvas'
-                      }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                      const [screenId, annId] = nodeMenuModalData.annId.split('/');
+                      okText: 'Delete',
+                      okType: 'danger',
+                      onOk() {
+                        traceEvent(AMPLITUDE_EVENTS.ANNOTATION_DELETED, {
+                          annotation_op_location: 'canvas'
+                        }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        const [screenId, annId] = nodeMenuModalData.annId.split('/');
 
-                      handleReselectionOfPrevAnnWhenCurAnnIsDeleted(annId);
+                        handleReselectionOfPrevAnnWhenCurAnnIsDeleted(annId);
 
-                      const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
-                      const main = props.tourOpts.main;
-                      const result = deleteAnnotation(
-                        { ...currentAnn, screenId: +screenId },
-                        props.allAnnotationsForTour,
-                        main,
-                        true
-                      );
+                        const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
+                        const main = props.tourOpts.main;
+                        const result = deleteAnnotation(
+                          { ...currentAnn, screenId: +screenId },
+                          props.allAnnotationsForTour,
+                          main,
+                          true
+                        );
 
-                      props.applyAnnButtonLinkMutations(result);
-                      setNodeMenuModalData(initialAnnNodeModalData);
-                    },
-                    onCancel() { }
-                  });
-                }}
-              >
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                  <img
-                    src={DeleteIcon}
-                    width="24px"
-                    height="24px"
-                    alt="delete annotation"
-                    style={{ width: '1.5rem' }}
-                  />
-                  <div>
-                    Delete this annotation
-                    <div className="subtext">Prev and next annotation will be connected</div>
+                        props.applyAnnButtonLinkMutations(result);
+                        setNodeMenuModalData(initialAnnNodeModalData);
+                      },
+                      onCancel() { }
+                    });
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <img
+                      src={DeleteIcon}
+                      width="24px"
+                      height="24px"
+                      alt="delete annotation"
+                      style={{ width: '1.5rem' }}
+                    />
+                    <div>
+                      Delete this annotation
+                      <div className="subtext">Prev and next annotation will be connected</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Tags.MenuModal>
-          </Tags.MenuModalMask>
+              </Tags.MenuModal>
+            </Tags.MenuModalMask>
           )}
           {isMenuModalVisible(addScreenModalData.position) && addScreenModalData.screenAnnotation && (
           <Tags.MenuModalMask onClick={() => {
@@ -2058,7 +2093,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               tourJourney={props.tourJourney}
             />
           }
-          <SelectorComponent userGuides={userGuides} />
+          {props.timeline.length && <SelectorComponent userGuides={userGuides} />}
         </GTags.BodyCon>
       </GTags.ColCon>
     </>

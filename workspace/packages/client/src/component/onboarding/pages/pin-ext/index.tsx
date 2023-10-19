@@ -54,11 +54,10 @@ export default function PinExt(props: Props): JSX.Element {
 
             </CTags.Header>
             <CTags.Subtitle>
-              <CTags.SpanBlock>Once you pin your extension in chrome,</CTags.SpanBlock>
-              you can start creating tour with just few clicks.
+              Pinning your Fable extension will keep it handy when you want to create your interactive demos.😄
             </CTags.Subtitle>
           </CTags.FlexColContainer>
-          <Link to="/onboarding/create-amazing-product-tours" style={{ textDecoration: 'none' }}>
+          <Link to="/onboarding/create-interactive-demos" style={{ textDecoration: 'none' }}>
             <Button icon={<img src={ArrowRight} alt="" />} iconPlacement="right">Next</Button>
           </Link>
         </CTags.MotionDivWrapper>

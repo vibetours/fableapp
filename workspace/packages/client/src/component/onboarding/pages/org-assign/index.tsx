@@ -5,7 +5,6 @@ import { CmnEvtProp } from '@fable/common/dist/types';
 import Plus from '../../../../assets/onboarding/plus.svg';
 import * as CTags from '../../styled';
 import * as Tags from './styled';
-import PlaceholderPicture from '../../../../assets/onboarding/placeholder-picture.svg';
 import RocketEmoji from '../../../../assets/onboarding/rocket.png';
 import { assignImplicitOrgToUser } from './utils';
 import Button from '../../../button';
@@ -49,10 +48,11 @@ export default function OrgAssign({ org }: Props): JSX.Element {
               display: 'block'
             }}
           />
-          <CTags.Header><CTags.SpanBlock>Start creating</CTags.SpanBlock>amazing product tours</CTags.Header>
+          <CTags.Header>
+            <CTags.SpanBlock>Good news! Your</CTags.SpanBlock>account is already set up.
+          </CTags.Header>
           <CTags.Subtitle>
-            <CTags.SpanBlock>Get ready to create amazing product or feature tours for your users.</CTags.SpanBlock>
-            These tours are easy to create
+            Please join your organization's account and get started with Fable.
           </CTags.Subtitle>
 
           <CTags.FlexColContainer>
@@ -63,12 +63,7 @@ export default function OrgAssign({ org }: Props): JSX.Element {
                 gap: '1.5rem'
               }}
               >
-                <img
-                  src={PlaceholderPicture}
-                  alt="avatar"
-                  style={{ width: '3rem', borderRadius: '50%', aspectRatio: 1 }}
-                />
-
+                <Tags.CardIcon shape="circle" size="large">{org.displayName[0].toUpperCase()}</Tags.CardIcon>
                 <Tags.CardTitle>
                   {org.displayName}
                 </Tags.CardTitle>
@@ -96,7 +91,7 @@ export default function OrgAssign({ org }: Props): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://calendly.com/vikaspotta-fable/30min"
+            href="https://www.sharefable.com/get-a-demo"
             target="_blank"
             rel="noopener noreferrer"
           >

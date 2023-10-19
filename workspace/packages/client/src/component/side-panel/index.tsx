@@ -20,9 +20,9 @@ export default function SidePanel(props: Props): JSX.Element {
     <Tags.Con>
       <Tags.ConNav>
 
-        <Tags.ConNavBtn className={props.selected === 'tours' ? 'selected' : ''} to="/tours">
+        <Tags.ConNavBtn className={props.selected === 'tours' ? 'selected' : ''} to="/demos">
           <NodeIndexOutlined />
-          <p>Tours</p>
+          <p>Interactive demos</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users">
           <UsergroupAddOutlined />
@@ -41,14 +41,14 @@ export default function SidePanel(props: Props): JSX.Element {
       </Tags.ConNav>
       <Tags.Footer style={{ marginBottom: '1.8rem' }}>
         <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>
-          <p style={{ fontSize: '0.85rem', color: '#747474' }}>
+          <p style={{ fontSize: '0.85rem', color: '#747474', opacity: '0.6' }}>
             {props.subs && (
               <>
                 <WalletFilled />&nbsp;
                 {props.subs.paymentPlan[0] + props.subs.paymentPlan.substring(1).toLowerCase()}
               </>
             )}
-            <span style={{ fontSize: '0.85rem', color: '#BDBDBD' }}> - v{packageJSON.version}</span>
+            <span style={{ fontSize: '0.85rem', color: '#BDBDBD', opacity: '1' }}> - v{packageJSON.version}</span>
           </p>
         </Tags.FooterItem>
       </Tags.Footer>

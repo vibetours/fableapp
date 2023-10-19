@@ -179,7 +179,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           <Header
             tour={this.props.tour}
             subs={this.props.subs}
-            navigateToWhenLogoIsClicked="/tours"
+            navigateToWhenLogoIsClicked="/demos"
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <GTags.Txt className="subsubhead">Insight for</GTags.Txt>

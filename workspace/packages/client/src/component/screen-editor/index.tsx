@@ -72,14 +72,17 @@ import {
   isNavigateHotspot,
   isNextBtnOpensALink
 } from '../../utils';
-import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 import Loader from '../loader';
 import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
-import ScreenEditorGuide from '../../user-guides/screen-editor-guide';
 import FocusBubble from './focus-bubble';
+import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interactive-demo-guide/part-2';
+import SelectorComponent from '../../user-guides/selector-component';
+import { UserGuideMsg } from '../../user-guides/types';
+
+const userGuides = [EditingInteractiveDemoGuidePart2];
 
 const { confirm } = Modal;
 
@@ -140,6 +143,7 @@ const enum ElSelReqType {
 }
 
 interface IOwnStateProps {
+  selectorComponentKey: number;
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
   selectedEl: HTMLElement | null;
@@ -160,8 +164,6 @@ interface IOwnStateProps {
   isAssetLoaded: boolean;
   selectedCoords: string | null;
 }
-
-const userGuides = [ScreenEditorGuide];
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
   private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
@@ -185,6 +187,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.microEdits = {};
 
     this.state = {
+      selectorComponentKey: 0,
       isInElSelectionMode: true,
       elSelRequestedBy: ElSelReqType.AnnotateEl,
       selectedEl: null,
@@ -553,12 +556,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   componentWillUnmount(): void {
     this.disposeDomPicker();
     document.removeEventListener('keydown', this.onKeyDownHandler);
+    window.removeEventListener('message', this.receiveMessage, false);
     if (this.frameConRef.current) {
       this.frameConRef.current.removeEventListener('click', this.goToSelectionMode);
     }
   }
 
+  receiveMessage = (e: MessageEvent<{ type: UserGuideMsg.OPEN_ANNOTATION }>): void => {
+    this.setState({ selectorComponentKey: Math.random() });
+  };
+
   componentDidMount(): void {
+    window.addEventListener('message', this.receiveMessage, false);
+
     this.animateHelpText = true;
     if (this.frameConRef.current) {
       this.frameConRef.current.addEventListener('click', this.goToSelectionMode);
@@ -1331,50 +1341,50 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </Tags.AnnotationBtnCtn>
                     </div>
                     {this.props.showEntireTimeline && (
-                      <Timeline
-                        shouldShowScreenPicker={this.props.shouldShowScreenPicker}
-                        timeline={this.props.timeline}
-                        navigate={this.navigateToAnnotation}
-                        screen={this.props.screen}
-                        applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                        allAnnotationsForTour={this.props.allAnnotationsForTour}
-                        tourDataOpts={this.props.tourDataOpts}
-                        setSelectedAnnotationId={(annId: string) => this.setState({ selectedAnnotationId: annId })}
-                        resetSelectedAnnotationId={this.resetSelectedAnnotation}
-                        selectedAnnotationId={this.state.selectedAnnotationId}
-                        goToSelectionMode={this.goToSelectionMode}
+                    <Timeline
+                      shouldShowScreenPicker={this.props.shouldShowScreenPicker}
+                      timeline={this.props.timeline}
+                      navigate={this.navigateToAnnotation}
+                      screen={this.props.screen}
+                      applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                      allAnnotationsForTour={this.props.allAnnotationsForTour}
+                      tourDataOpts={this.props.tourDataOpts}
+                      setSelectedAnnotationId={(annId: string) => this.setState({ selectedAnnotationId: annId })}
+                      resetSelectedAnnotationId={this.resetSelectedAnnotation}
+                      selectedAnnotationId={this.state.selectedAnnotationId}
+                      goToSelectionMode={this.goToSelectionMode}
+                      setAlertMsg={this.props.setAlert}
+                    >
+                      <AnnotationCreatorPanel
                         setAlertMsg={this.props.setAlert}
-                      >
-                        <AnnotationCreatorPanel
-                          setAlertMsg={this.props.setAlert}
-                          opts={this.props.tourDataOpts}
-                          selectedEl={this.state.selectedEl}
-                          allAnnotationsForTour={this.props.allAnnotationsForTour}
-                          screen={this.props.screen}
-                          onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
-                          config={configOfSelectedAnn!}
-                          busy={!this.props.isScreenLoaded}
-                          tour={this.props.tour}
-                          applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                          selectedHotspotEl={this.state.selectedHotspotEl}
-                          selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
-                          selectedAnnotationCoords={this.state.selectedAnnotationCoords}
-                          setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
-                            this.setState({ selectionMode: mode });
-                          }}
-                          domElPicker={this.iframeElManager}
-                          onConfigChange={async (conf, actionType, opts) => {
-                            if (actionType === 'upsert') {
-                              this.setState({ selectedAnnotationId: conf.refId });
-                            }
-                            this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                          }}
-                          onDeleteAnnotation={this.resetSelectedAnnotation}
-                          resetSelectedAnnotationElements={() => {
-                            this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
-                          }}
-                        />
-                      </Timeline>
+                        opts={this.props.tourDataOpts}
+                        selectedEl={this.state.selectedEl}
+                        allAnnotationsForTour={this.props.allAnnotationsForTour}
+                        screen={this.props.screen}
+                        onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
+                        config={configOfSelectedAnn!}
+                        busy={!this.props.isScreenLoaded}
+                        tour={this.props.tour}
+                        applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                        selectedHotspotEl={this.state.selectedHotspotEl}
+                        selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
+                        selectedAnnotationCoords={this.state.selectedAnnotationCoords}
+                        setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
+                          this.setState({ selectionMode: mode });
+                        }}
+                        domElPicker={this.iframeElManager}
+                        onConfigChange={async (conf, actionType, opts) => {
+                          if (actionType === 'upsert') {
+                            this.setState({ selectedAnnotationId: conf.refId });
+                          }
+                          this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                        }}
+                        onDeleteAnnotation={this.resetSelectedAnnotation}
+                        resetSelectedAnnotationElements={() => {
+                          this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
+                        }}
+                      />
+                    </Timeline>
                     )}
                     {
                     !this.props.showEntireTimeline && this.props.toAnnotationId && configOfParamsAnnId && (
@@ -1420,37 +1430,40 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         </TimelineTags.AnotCrtPanelSecLabel>
                         {
                            showAnnCreatorPanel && (
-                           <AnnotationCreatorPanel
-                             setAlertMsg={this.props.setAlert}
-                             opts={this.props.tourDataOpts}
-                             selectedEl={this.state.selectedEl}
-                             busy={!this.props.isScreenLoaded}
-                             allAnnotationsForTour={this.props.allAnnotationsForTour}
-                             screen={this.props.screen}
-                             onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
-                             config={configOfParamsAnnId}
-                             tour={this.props.tour}
-                             applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                             selectedHotspotEl={this.state.selectedHotspotEl}
-                             selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
-                             selectedAnnotationCoords={this.state.selectedAnnotationCoords}
-                             setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
-                               this.setState({ selectionMode: mode });
-                             }}
-                             domElPicker={this.iframeElManager}
-                             onConfigChange={async (conf, actionType, opts) => {
-                               if (actionType === 'upsert') {
-                                 this.setState({ selectedAnnotationId: conf.refId });
-                               }
-                               this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                             }}
-                             onDeleteAnnotation={(deletedAnnRid: string) => {
-                               this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
-                             }}
-                             resetSelectedAnnotationElements={() => {
-                               this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
-                             }}
-                           />
+                           <>
+                             <AnnotationCreatorPanel
+                               setAlertMsg={this.props.setAlert}
+                               opts={this.props.tourDataOpts}
+                               selectedEl={this.state.selectedEl}
+                               busy={!this.props.isScreenLoaded}
+                               allAnnotationsForTour={this.props.allAnnotationsForTour}
+                               screen={this.props.screen}
+                               onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
+                               config={configOfParamsAnnId}
+                               tour={this.props.tour}
+                               applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                               selectedHotspotEl={this.state.selectedHotspotEl}
+                               selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
+                               selectedAnnotationCoords={this.state.selectedAnnotationCoords}
+                               setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
+                                 this.setState({ selectionMode: mode });
+                               }}
+                               domElPicker={this.iframeElManager}
+                               onConfigChange={async (conf, actionType, opts) => {
+                                 if (actionType === 'upsert') {
+                                   this.setState({ selectedAnnotationId: conf.refId });
+                                 }
+                                 this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                               }}
+                               onDeleteAnnotation={(deletedAnnRid: string) => {
+                                 this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
+                               }}
+                               resetSelectedAnnotationElements={() => {
+                                 this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
+                               }}
+                             />
+                             <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
+                           </>
                            )
                         }
 
@@ -1576,7 +1589,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             isUploading={this.state.imageMaskUploadModalIsUploading}
           />
         </GTags.PreviewAndActionCon>
-        <SelectorComponent userGuides={userGuides} />
       </>
     );
   }

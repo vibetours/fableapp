@@ -57,7 +57,7 @@ const updateGuideProps = (
 };
 
 export const removeDeprecatedTours = (
-  guides: {guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element}[]
+  guides: { guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element }[]
 ): void => {
   const FABLE_USER_GUIDE = getFableUserGuide();
   const UPDATED_FABLE_USER_GUIDE: LocalStoreUserGuide = {};
@@ -80,7 +80,7 @@ export const upsertFableUserGuide = (
 };
 
 export const insertFableUserGuide = (
-  guides: {guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element}[]
+  guides: { guideInfo: GuideInfo; component: (props: GuideProps) => JSX.Element }[]
 ): void => {
   const FABLE_USER_GUIDE: LocalStoreUserGuide = {};
   guides.forEach(guide => FABLE_USER_GUIDE[guide.guideInfo.id] = guide.guideInfo);
@@ -118,6 +118,20 @@ export const updateStepsTaken = (guideId: string, stepsTaken: number): void => {
     guide.stepsTaken = stepsTaken;
     saveFableUserGuide(FABLE_USER_GUIDE);
   }
+};
+
+export const getDOMElement = (guide: Guide, domQuery: () => HTMLElement | null): HTMLElement | null => {
+  try {
+    const el = domQuery();
+    if (el) return el;
+    throw new Error('El not found');
+  } catch (e) {
+    console.error(e);
+    closeUserGuide();
+    skipUserGuide(guide);
+    sentryCaptureException(e as Error);
+  }
+  return null;
 };
 
 export const closeUserGuide = (): void => {
@@ -177,12 +191,6 @@ export const getUserGuideCompletionProgressInModules = (): {
     return acc;
   }, { completedModules: 0, totalmodules: 0 });
 };
-
-export interface CategorizedUserGuides {
-  completed: LocalStoreUserGuideProps[];
-  remaining: LocalStoreUserGuideProps[];
-  skipped: LocalStoreUserGuideProps[];
-}
 
 export const getUserGuidesInArray = (): LocalStoreUserGuideProps[] => {
   const FABLE_USER_GUIDE = getFableUserGuide();

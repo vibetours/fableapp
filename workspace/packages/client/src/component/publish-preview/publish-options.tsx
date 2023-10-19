@@ -28,7 +28,7 @@ export default function PublishOptions(props: Props): JSX.Element {
   const { height, width } = getDimensionsBasedOnDisplaySize(props.selectedDisplaySize);
 
   const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode(height, width, `/p/tour/${props.tour?.rid}`);
+    const text = getIframeShareCode(height, width, `/p/demo/${props.tour?.rid}`);
     await copyToClipboard(text);
     messageApi.open({
       type: 'success',
@@ -86,7 +86,7 @@ export default function PublishOptions(props: Props): JSX.Element {
           tour={props.tour!}
           height={height}
           width={width}
-          relativeUrl={`/p/tour/${props.tour?.rid}`}
+          relativeUrl={`/p/demo/${props.tour?.rid}`}
           isModalVisible={props.showShareModal}
           closeModal={() => props.setShowShareModal(false)}
           openShareModal={() => props.setShowShareModal(true)}

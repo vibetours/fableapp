@@ -61,7 +61,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
       .then((screenRid: string) => {
         if (navigateTo) {
           closeScreenPicker!();
-          navigateTo(`/tour/${tourRid}/${screenRid}`);
+          navigateTo(`/demo/${tourRid}/${screenRid}`);
         }
       });
   },
@@ -229,7 +229,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.hideScreenPicker();
     } else {
       this.props.hideScreenPicker();
-      const url = `/tour/${this.props.tour!.rid}/${screenRid}`;
+      const url = `/demo/${this.props.tour!.rid}/${screenRid}`;
       this.props.navigate(url);
     }
   };

@@ -107,7 +107,8 @@ const slideIn = keyframes`
   }
 `;
 
-export const UserGuideDetailsCon = styled.div`  
+export const UserGuideDetailsCon = styled.div` 
+  width: 375px;
   position: absolute;
   height: calc(100% - 50px - 2rem);
   left: 260px;
@@ -123,7 +124,7 @@ export const UserGuideDetailsCon = styled.div`
   animation: ${slideIn} 0.2s ease-out;
 `;
 
-export const UserGuideCard = styled.div<{ bgColor: string; disabled: boolean }>`
+export const UserGuideCard = styled.div<{ bgColor: string }>`
   border: 1px solid #ddd;
   padding: 1rem;
   display: flex;
@@ -135,7 +136,6 @@ export const UserGuideCard = styled.div<{ bgColor: string; disabled: boolean }>`
   border-radius: 0.5rem;
   background-color: ${(props) => props.bgColor};
   cursor: pointer;
-  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
 `;
 
 export const UserGuideTextcon = styled.div`

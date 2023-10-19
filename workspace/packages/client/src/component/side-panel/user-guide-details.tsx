@@ -61,7 +61,7 @@ export default function UserGuideDetails(props: Props): JSX.Element {
             <div
               style={{ color: '#6a6a6a', fontSize: '0.875rem', marginTop: '2px' }}
             >
-              Learn how to use Fable's features
+              Learn how to use Fable
             </div>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function UserGuideDetails(props: Props): JSX.Element {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
-          {userGuides.map((userGuide, idx) => (
+          {userGuides.filter(Boolean).map((userGuide, idx) => (
             <UserGuideCard
               key={userGuide.id}
               type={getUserGuideType(userGuide)}

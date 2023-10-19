@@ -36,10 +36,10 @@ class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
       this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
       const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
       if (dbData) {
-        window.location.replace('/createtour');
+        window.location.replace('/create-interactive-demo');
         return;
       }
-      window.location.replace('/tours');
+      window.location.replace('/demos');
     }, 2000);
   }
 

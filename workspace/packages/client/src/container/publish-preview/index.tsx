@@ -120,7 +120,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
             leftElGroups={[(
               <Tooltip title="Go to Canvas" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-                <Link to={`/tour/${this.props.tour?.rid}`} style={{ color: 'white' }}>
+                <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
                   <ArrowLeftOutlined className="left-arrow" />
                 </Link>
               </Tooltip>
@@ -152,7 +152,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                 intent="secondary"
                 icon={<EditOutlined />}
                 iconPlacement="left"
-                onClick={() => this.props.navigate(`/tour/${this.props.tour?.rid}`)}
+                onClick={() => this.props.navigate(`/demo/${this.props.tour?.rid}`)}
               >
                 Edit
               </Button>
@@ -176,7 +176,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={`${baseURL}/p/tour/${this.props.tour?.rid}?staging=true`}
+              src={`${baseURL}/p/demo/${this.props.tour?.rid}?staging=true`}
               title="hello"
             />
           )}
