@@ -531,7 +531,6 @@ async function postProcessSerDocs(
     return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
   } else {
     const screenImgFile = dataURLtoFile(imageData, 'img.png');
-
     const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
       method: 'POST',
       body: {
@@ -543,16 +542,13 @@ async function postProcessSerDocs(
     });
 
     data = resp.data;
-
     await uploadImageAsBinary(screenImgFile, data.uploadUrl!);
-
     await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
       method: 'POST',
       body: {
         screenRid: data.rid
       },
     });
-
     elPath = '$';
     replacedWithImgScreen = true;
   }

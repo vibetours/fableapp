@@ -164,7 +164,11 @@ function clearFinishTimer() {
   }
 }
 
-function finishAppRecording(storageKey: string, tVal: Object, sessionFinishedType: TSessionFinish): () => Promise<void> {
+function finishAppRecording(
+  storageKey: string,
+  tVal: Object,
+  sessionFinishedType: TSessionFinish
+): () => Promise<void> {
   return async (): Promise<void> => {
     const finishedScreens = (await chrome.storage.local.get(SCREEN_DATA_FINISHED))[SCREEN_DATA_FINISHED] || [];
     const allRecordedScreenKeys: string[] = (await chrome.storage.local.get(FRAMES_TO_PROCESS_ORDER))[FRAMES_TO_PROCESS_ORDER] || [];

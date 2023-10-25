@@ -2,6 +2,7 @@ import React from 'react';
 import { SerDoc } from '@fable/common/dist/types';
 import { useAuth0 } from '@auth0/auth0-react';
 import { getDisplayableTime } from '@fable/common/dist/utils';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import * as Tags from './styled';
 import ArrowTopRight from '../../assets/create-tour/top-right-arrow-purple.svg';
 import { FrameDataToBeProcessed } from '../../container/create-tour/types';
@@ -12,8 +13,16 @@ interface Props {
 }
 
 export default function ScreenCard({ frameData, favicon }: Props) {
-  const thumbnailFrameData = frameData.find(frame => frame.type === 'thumbnail')!.data as string;
-  const serDomFrameData = frameData.find(frame => frame.type === 'serdom')!.data as SerDoc;
+  const thumbnailFrameData = (frameData.find(frame => frame.type === 'thumbnail') || { data: '' }).data as string;
+  const serDomFrameData = (frameData.find(frame => frame.type === 'serdom') || { data: null }).data as SerDoc;
+  if (!thumbnailFrameData || !serDomFrameData) {
+    sentryCaptureException(
+      new Error('Something wrong with screen data'),
+      JSON.stringify(frameData),
+      'screendata.txt'
+    );
+    return <></>;
+  }
   const { user } = useAuth0();
 
   return (
