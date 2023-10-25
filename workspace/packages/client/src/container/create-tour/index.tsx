@@ -588,7 +588,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 animateOnMount={false}
                 isVisible={this.state.currentDisplayState === DisplayState.ShowAddExistingTourOptions}
               >
-                <div style={{ width: '80%', position: 'absolute' }}>
+                <div style={{ width: '80%', position: 'absolute', maxWidth: '30rem' }}>
                   {this.props.allToursLoaded ? (
                     <div>
                       <style>{`
@@ -652,7 +652,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           iconPlacement="left"
                           style={{ width: '100%', paddingBlock: '12.4px' }}
                         >
-                          Add to Tour
+                          Add to Demo
                         </Button>
                         )}
                       </Tags.ModalButtonsContainer>
