@@ -12,6 +12,7 @@ import {
   renameTour,
   duplicateTour,
   deleteTour,
+  publishTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -41,6 +42,7 @@ interface IDispatchProps {
   renameTour: (tour: P_RespTour, newVal: string) => void;
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
+  publishTour: (tour: P_RespTour) => Promise<boolean>,
 }
 
 export enum CtxAction {
@@ -51,6 +53,7 @@ export enum CtxAction {
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
+  publishTour: (tour) => dispatch(publishTour(tour)),
   getAllTours: () => dispatch(getAllTours(false)),
   createNewTour: (tourName: string) => dispatch(createNewTour(true, tourName)),
   renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
@@ -271,6 +274,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           <Tags.BottomPanel style={{ overflow: 'auto' }}>
                             {this.props.tours.map((tour) => (
                               <TourCard
+                                publishTour={this.props.publishTour}
                                 key={tour.rid}
                                 tour={tour}
                                 handleShowModal={this.handleShowModal}

@@ -65,6 +65,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
     <>
       {contextHolder}
       <GTags.BorderedModal
+        focusTriggerAfterClose={false}
         className="share-modal"
         open={props.isModalVisible}
         onCancel={props.closeModal}

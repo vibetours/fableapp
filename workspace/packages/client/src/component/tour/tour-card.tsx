@@ -9,13 +9,13 @@ import {
   MoreOutlined
 } from '@ant-design/icons';
 import { Tooltip, Popover, Button, message } from 'antd';
-import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 import { CtxAction } from '../../container/tours';
 import * as GTags from '../../common-styled';
-import ShareTourModal from './share-tour-modal';
+import ShareTourModal from '../publish-preview/share-modal';
 import { getIframeShareCode, copyToClipboard } from '../header/utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { createIframeSrc } from '../../utils';
@@ -24,11 +24,14 @@ interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
+  publishTour: (tour: P_RespTour) => Promise<boolean>;
 }
 
-export default function TourCard({ tour, handleShowModal, handleDelete }: Props): JSX.Element {
+export default function TourCard({ tour, handleShowModal, handleDelete, publishTour }: Props): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishFailed, setIsPublishFailed] = useState(false);
 
   const copyHandler = async (): Promise<void> => {
     const text = getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`);
@@ -150,6 +153,13 @@ export default function TourCard({ tour, handleShowModal, handleDelete }: Props)
         closeModal={() => setIsShareModalVisible(false)}
         copyHandler={copyHandler}
         embedClickedFrom="tours"
+        isPublishing={isPublishing}
+        setIsPublishing={setIsPublishing}
+        setIsPublishFailed={setIsPublishFailed}
+        isPublishFailed={isPublishFailed}
+        publishTour={publishTour}
+        openShareModal={() => setIsShareModalVisible(true)}
+        tour={tour}
       />
     </>
   );
