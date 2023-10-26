@@ -1,4 +1,5 @@
 import { fsec } from './fsec';
+import { LogoutType } from './constants';
 
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
 const API_VERSION = '/v1';
@@ -37,15 +38,16 @@ export default async function api<T, M>(
     } catch (e) {
       // TODO
       console.log('>> login again. msg', (e as Error).message);
-      window.location.replace('/logout');
+      window.location.replace(`/logout?t=${LogoutType.AccessTokenInvalidated}`);
     }
   }
 
   let path = '';
+  const apiPath = API_ENDPOINT + API_VERSION + (auth ? BEHIND_AUTH : '');
   try {
     const _ = new URL(url);
   } catch (e) {
-    path = API_ENDPOINT + API_VERSION + (auth ? BEHIND_AUTH : '');
+    path = apiPath;
   }
 
   let resp;
@@ -61,6 +63,11 @@ export default async function api<T, M>(
       headers,
       body,
     });
+  }
+
+  if (resp.status >= 400 && resp.status < 500 && path.startsWith(apiPath)) {
+    // take user to logout page
+    window.location.replace(`/logout?t=${LogoutType.APINotAutorized}`);
   }
 
   if (payload?.noRespExpected) {

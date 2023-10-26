@@ -2,7 +2,6 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { CreateJourneyData, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
   LoadingStatus, ScreenData } from '@fable/common/dist/types';
-import { Link } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
 import * as GTags from '../../common-styled';
@@ -26,11 +25,9 @@ import {
   getAnnotationByRefId,
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
-import Button from '../../component/button';
-import * as Tags from './styled';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import FableLogo from '../../assets/fable_logo_light_bg.png';
 import JourneyMenu from '../../component/journey-menu';
+import InfoCon from '../../component/info-con';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -455,35 +452,26 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   render(): JSX.Element {
     if (!this.state.isMainSet) {
       return (
-        <Tags.InfoCon>
-          <img
-            src={FableLogo}
-            alt="fable-logo"
-            style={{
-              height: '2rem',
-              marginBottom: '2rem',
-            }}
-          />
-          <div className="title">
-            Entry point is not set for this tour
-          </div>
-          <div className="description-con">
-            <p>
-              Entry point is the annotation where the tour starts. You can set an annotation as entry point by
-            </p>
-            <ol>
-              <li>Clicking on the annotation</li>
-              <li>Expanding <em>Advanced</em> section</li>
-              <li><em>Checking </em> Entry Point</li>
-            </ol>
-          </div>
-          <Link
-            to={`/demo/${this.props.tour!.rid}`}
-            className="link-to-canvas"
-          >
-            <Button style={{ width: '100%' }}>Go to Canvas</Button>
-          </Link>
-        </Tags.InfoCon>
+        <InfoCon
+          heading="Entry point is not set for this tour"
+          body={(
+            <>
+              <p>
+                Entry point is the annotation where the tour starts. You can set an annotation as entry point by
+              </p>
+              <ol>
+                <li>Clicking on the annotation</li>
+                <li>Expanding <em>Advanced</em> section</li>
+                <li><em>Checking </em> Entry Point</li>
+              </ol>
+            </>
+          )}
+          btns={[{
+            type: 'primary',
+            linkTo: `/demo/${this.props.tour!.rid}`,
+            text: 'Go to canvas'
+          }]}
+        />
       );
     }
 

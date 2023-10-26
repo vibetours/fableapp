@@ -15,3 +15,8 @@ export interface FrameParentMsg<T> {
 }
 
 export const EmptyMsg = {};
+
+export enum LogoutType {
+  AccessTokenInvalidated = 1,
+  APINotAutorized
+}
