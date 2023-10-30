@@ -181,3 +181,11 @@ export function sanitizeUrlsInCssStr(urls: string[]) {
   return urls
     .map(match => match.replace(/url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/, "$1$2$3"));
 }
+
+export function getUrlsFromSrcset(srcset: string): string[] {
+  return srcset
+    .split(",")
+    .map(src => src.trim())
+    .map(src => src.split(" ")[0]) // [url, width/density descriptor (2x OR 400w)] <- get url
+    .filter(Boolean);
+}

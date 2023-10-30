@@ -9,10 +9,9 @@ import {
   TourData,
   TourScreenEntity,
   NODE_NAME,
-  ThemeStats,
   ThemeBorderRadiusCandidatePerNode,
-  ThemeColorCandidatPerNode
-
+  ThemeColorCandidatPerNode,
+  ProxyAttrs
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import {
@@ -266,8 +265,7 @@ async function processScreen(
   frames: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
   onProgress: (doneProcessing: number, totalProcessing: number) => void,
-):
-  Promise<ScreenInfo> {
+): Promise<ScreenInfo> {
   for (const frame of frames) {
     if (frame.type === 'serdom') {
       const serDoc = frame.data as SerDoc;
@@ -397,8 +395,9 @@ async function postProcessSerDocs(
             type: 10,
             name: 'html',
             attrs: {},
-            props: {},
-            chldrn: []
+            props: { proxyUrlMap: {} },
+            chldrn: [],
+            sv: node.sv,
           });
           node.chldrn.push(subFrameData.docTree!);
           await process(
@@ -422,12 +421,19 @@ async function postProcessSerDocs(
         // While the old extension is not released by chromestore we have to support proxyUrl
         // being both string & string[]
         // FIXME Delete this once extension is released
-        if (!(node.props.proxyUrl instanceof Array) && node.props.proxyUrl !== undefined) {
-          node.props.proxyUrl = [node.props.proxyUrl as string];
+        if (!node.sv) node.sv = 0;
+        if (node.sv < 2) {
+          const props = node.props as any;
+          const proxyUrl = props.proxyUrl as string[];
+          const attr = props.proxyAttr as keyof typeof ProxyAttrs;
+          node.props.proxyUrlMap = {};
+          if (proxyUrl && proxyUrl.length) {
+            node.props.proxyUrlMap[attr] = proxyUrl;
+          }
         }
 
         if (node.props.base64Img) {
-          const originalBlobUrl = node.props.proxyUrl![0];
+          const originalBlobUrl = node.props.proxyUrlMap.src![0];
 
           try {
             const binaryData = atob(node.props.base64Img);
@@ -442,11 +448,11 @@ async function postProcessSerDocs(
             const file = new File([blob], 'image.png', { type: 'image/png' });
             const urlString = await uploadFileToAws(file);
 
-            node.attrs[node.props.proxyAttr || ''] = urlString;
+            node.attrs.src = urlString;
             node.props.base64Img = '';
           } catch (e) {
             raiseDeferredError(e as Error);
-            node.attrs[node.props.proxyAttr || ''] = getAbsoluteUrl(
+            node.attrs.src = getAbsoluteUrl(
               originalBlobUrl,
               frame.baseURI,
               frame.frameUrl
@@ -454,40 +460,41 @@ async function postProcessSerDocs(
           } finally {
             node.props.origHref = originalBlobUrl;
           }
-        } else if (node.props.proxyUrl && node.props.proxyUrl.length) {
-          for (const proxyUrl of node.props.proxyUrl) {
-            const assetUrlStr = getAbsoluteUrl(proxyUrl, frame.baseURI, frame.frameUrl);
-            const assetUrl = new URL(assetUrlStr);
+        } else {
+          for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
+            for (const pUrl of proxyUrls) {
+              const assetUrlStr = getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
+              const assetUrl = new URL(assetUrlStr);
 
-            if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
+              if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
 
-            try {
-              const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
-                method: 'POST',
-                body: {
-                  origin: assetUrlStr,
-                  clientInfo,
-                },
-              });
-
-              if (node.props.proxyAttr === 'style') {
-                node.attrs.style = getAllPossibleCssUrlReplace(node.attrs.style!, proxyUrl, data.data.proxyUri);
-              } else if (node.props.proxyAttr === 'cssRules') {
-                node.props.cssRules = getAllPossibleCssUrlReplace(node.props.cssRules!, proxyUrl, data.data.proxyUri);
-              } else {
-                node.props.origHref = node.props.proxyUrl[0];
-                node.attrs[node.props.proxyAttr || ''] = data.data.proxyUri || assetUrlStr;
+              let proxyiedUrl = assetUrlStr;
+              try {
+                const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
+                  method: 'POST',
+                  body: {
+                    origin: assetUrlStr,
+                    clientInfo,
+                  },
+                });
+                proxyiedUrl = data.data.proxyUri;
+              } catch (e) {
+                raiseDeferredError(e as Error);
               }
-            } catch (e) {
-              if (node.props.proxyAttr === 'style') {
-                node.attrs.style = getAllPossibleCssUrlReplace(node.attrs.style!, proxyUrl, assetUrlStr);
-              } else if (node.props.proxyAttr === 'cssRules') {
-                node.props.cssRules = getAllPossibleCssUrlReplace(node.props.cssRules!, proxyUrl, assetUrlStr);
-              } else {
-                node.props.origHref = node.props.proxyUrl[0];
-                node.attrs[node.props.proxyAttr || ''] = assetUrlStr;
+
+              try {
+                if (proxyAttr === 'style' || proxyAttr === 'cssRules') {
+                  const attrVal = node.attrs[proxyAttr];
+                  if (attrVal) node.attrs[proxyAttr] = getAllPossibleCssUrlReplace(attrVal, pUrl, proxyiedUrl);
+                } else if (proxyAttr === 'href' || proxyAttr === 'src') {
+                  node.props.origHref = pUrl;
+                  node.attrs[proxyAttr] = proxyiedUrl;
+                } else if (proxyAttr === 'srcset') {
+                  node.attrs.srcset = replaceSrcsetUrl(node.attrs.srcset!, pUrl, proxyiedUrl);
+                }
+              } catch (e) {
+                raiseDeferredError(e as Error);
               }
-              raiseDeferredError(e as Error);
             }
           }
         }
@@ -563,6 +570,10 @@ function getAllPossibleCssUrlReplace(str: string, replaceThisUrl: string, replac
     .replaceAll(`url('${replaceThisUrl}')`, `url('${replaceWithUrl}')`)
     .replaceAll(`url("${replaceThisUrl}")`, `url("${replaceWithUrl}")`)
     .replaceAll(`url(${replaceThisUrl})`, `url(${replaceWithUrl})`);
+}
+
+function replaceSrcsetUrl(origSrcset: string, origUrl: string, proxyUri: string): string {
+  return origSrcset.replace(origUrl, proxyUri);
 }
 
 function dataURLtoFile(dataurl: string, filename: string): File {

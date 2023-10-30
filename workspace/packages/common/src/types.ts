@@ -1,5 +1,17 @@
 import { RespScreen, SchemaVersion } from './api-contract';
 
+export enum ProxyAttrs {
+  href = 'href',
+  src = 'src',
+  style = 'style',
+  cssRules = 'cssRules',
+  srcset = 'srcset'
+}
+
+export type ProxyUrlMap = {
+  [key in ProxyAttrs]?: string[];
+};
+
 export interface SerNode {
   type: number;
   name: string;
@@ -11,8 +23,7 @@ export interface SerNode {
       checked?: boolean;
     };
     cssRules?: string;
-    proxyUrl?: string[];
-    proxyAttr?: 'href' | 'src' | 'style' | 'cssRules';
+    proxyUrlMap: ProxyUrlMap;
     isStylesheet?: boolean;
     textContent?: string | null;
     isHidden?: boolean;
@@ -26,6 +37,7 @@ export interface SerNode {
     };
   };
   chldrn: SerNode[];
+  sv: number;
 }
 
 export interface SerNodeWithPath extends SerNode {

@@ -83,5 +83,4 @@ export type ReorderDiff = Diff & {
     isPartOfSVG: boolean,
 }
 
-export type Prop = 'nodeProps' | 'cssRules' | 'proxyUrl' | 'proxyAttr'
-    | 'isStylesheet' | 'textContent' | 'isHidden' | 'isShadowHost' | 'isShadowRoot' | 'origHref' | 'rect'
+export type Prop = keyof SerNode['props']

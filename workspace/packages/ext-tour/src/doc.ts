@@ -16,8 +16,11 @@ import {
   hslToHex,
   isShadeOfWhiteOrBlack,
   getNormalizedBorderRadius,
-  sanitizeUrlsInCssStr
+  sanitizeUrlsInCssStr,
+  getUrlsFromSrcset
 } from "./utils";
+
+const SER_DOC_SCHEMA_VERSION = 2;
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -100,8 +103,11 @@ export function getSearializedDom(
       type: node.nodeType,
       name: "",
       attrs: {},
-      props: {},
+      props: {
+        proxyUrlMap: {}
+      },
       chldrn: [],
+      sv: SER_DOC_SCHEMA_VERSION,
     };
 
     let shouldPostProcess: boolean = false;
@@ -116,8 +122,15 @@ export function getSearializedDom(
           if (attrValue && name.toLowerCase() === "style") {
             const urls = attrValue.match(URL_MATCHER);
             if (urls) {
-              sNode.props.proxyUrl = sanitizeUrlsInCssStr(urls);
-              sNode.props.proxyAttr = "style";
+              sNode.props.proxyUrlMap.style = sanitizeUrlsInCssStr(urls);
+              shouldPostProcess = true;
+            }
+          }
+
+          if (attrValue && name.toLowerCase() === "srcset") {
+            const urls = getUrlsFromSrcset(attrValue);
+            if (urls.length) {
+              sNode.props.proxyUrlMap.srcset = urls;
               shouldPostProcess = true;
             }
           }
@@ -166,15 +179,13 @@ export function getSearializedDom(
     if (sNode.name === "link") {
       const tNode = node as HTMLLinkElement;
       if (tNode.sheet) {
-        sNode.props.proxyUrl = tNode.sheet.href ? [tNode.sheet.href] : undefined;
-        sNode.props.proxyAttr = "href";
+        sNode.props.proxyUrlMap.href = tNode.sheet.href ? [tNode.sheet.href] : undefined;
         sNode.props.isStylesheet = true;
         return { serNode: sNode, postProcess: true };
       }
       const rel = (tNode.getAttribute("rel") || "").toLowerCase();
       if (ICON_MATCHER.exec(rel) !== null) {
-        sNode.props.proxyUrl = sNode.attrs.href ? [sNode.attrs.href] : undefined;
-        sNode.props.proxyAttr = "href";
+        sNode.props.proxyUrlMap.href = sNode.attrs.href ? [sNode.attrs.href] : undefined;
         return { serNode: sNode, postProcess: true, isIcon: true };
       }
       return { serNode: sNode, shouldSkip: true };
@@ -182,7 +193,7 @@ export function getSearializedDom(
 
     if (sNode.name === "img") {
       const tNode = node as HTMLImageElement;
-      const src = tNode.src;
+      const src = tNode.src || "";
 
       let base64: string = "";
       if (src.startsWith("blob:")) {
@@ -197,10 +208,8 @@ export function getSearializedDom(
       }
 
       sNode.props.base64Img = base64;
-
-      sNode.props.proxyUrl = [src];
-      sNode.props.proxyAttr = "src";
       if (src) {
+        sNode.props.proxyUrlMap.src = [src];
         return { serNode: sNode, postProcess: true };
       }
     }
@@ -216,9 +225,7 @@ export function getSearializedDom(
         cssText += `${cssRules[i].cssText} `;
       }
       sNode.props.cssRules = cssText;
-      sNode.props.proxyUrl = sanitizeUrlsInCssStr(proxyUrls);
-
-      sNode.props.proxyAttr = "cssRules";
+      sNode.props.proxyUrlMap.cssRules = sanitizeUrlsInCssStr(proxyUrls);
       return { serNode: sNode, postProcess: Boolean(proxyUrls.length) };
     }
 
@@ -298,8 +305,9 @@ export function getSearializedDom(
               type: 10,
               name: "html",
               attrs: {},
-              props: {},
-              chldrn: []
+              props: { proxyUrlMap: {} },
+              chldrn: [],
+              sv: SER_DOC_SCHEMA_VERSION,
             });
           }
           for (let i = 0; i < chldrn.length; i++) {
@@ -310,8 +318,9 @@ export function getSearializedDom(
                 type: chldrn[i].nodeType,
                 name: chldrn[i].nodeName,
                 attrs: {},
-                props: {},
-                chldrn: []
+                props: { proxyUrlMap: {} },
+                chldrn: [],
+                sv: SER_DOC_SCHEMA_VERSION,
               });
             }
           }
@@ -345,7 +354,6 @@ export function getSearializedDom(
         traversalPath.pop();
         if (rep.shouldSkip) {
           rep.serNode.type = 8;
-          // continue;
         }
         ii++;
         if (rep.postProcess) {
@@ -449,8 +457,9 @@ export function addFableIdsToAllEls(
       type: node.nodeType,
       name: "",
       attrs: {},
-      props: {},
+      props: { proxyUrlMap: {} },
       chldrn: [],
+      sv: SER_DOC_SCHEMA_VERSION,
     };
 
     switch (node.nodeType) {

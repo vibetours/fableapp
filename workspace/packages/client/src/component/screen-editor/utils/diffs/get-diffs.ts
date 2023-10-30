@@ -257,12 +257,12 @@ export const getUpdateDiffs = (tree1: SerNode, tree2: SerNode): UpdateDiff[] => 
   const queue: [SerNodeWithElPathAndIsShadow, SerNodeWithElPathAndIsShadow][] = [];
   queue.push([
     {
-      node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree1] },
+      node: { name: 'root', type: -1, props: { proxyUrlMap: {} }, attrs: {}, chldrn: [tree1], sv: tree1.sv },
       elPath: '-1',
       isPartOfShadowHost: false,
     },
     {
-      node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree2] },
+      node: { name: 'root', type: -1, props: { proxyUrlMap: {} }, attrs: {}, chldrn: [tree2], sv: tree1.sv },
       elPath: '-1',
       isPartOfShadowHost: false,
     }]);
@@ -406,13 +406,13 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
 
   queue.push([
     {
-      node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree1] },
+      node: { name: 'root', type: -1, props: { proxyUrlMap: {} }, attrs: {}, chldrn: [tree1], sv: tree1.sv },
       elPath: '-1',
       isPartOfShadowHost: false,
       isPartOfSVG: false,
     },
     {
-      node: { name: 'root', type: -1, props: {}, attrs: {}, chldrn: [tree2] },
+      node: { name: 'root', type: -1, props: { proxyUrlMap: {} }, attrs: {}, chldrn: [tree2], sv: tree2.sv },
       elPath: '-1',
       isPartOfShadowHost: false,
       isPartOfSVG: false,
