@@ -1,4 +1,4 @@
-import { calculatePathFromEl, getRandomId, snowflake } from "@fable/common/dist/utils";
+import { getRandomId, sleep, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "./msg";
 import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
@@ -18,6 +18,40 @@ sentryInit("extension", version);
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
+
+const isDocHtml4P1 = (el: Node): boolean => {
+  const res = !!((el.nodeName || "").toLowerCase() === "html"
+    && el.parentNode
+    && (el.parentNode.nodeName || "").toLowerCase() === "#document"
+    && (el.parentNode.childNodes[0] || { nodeType: -1 }).nodeType !== 10);
+
+  return res;
+};
+
+const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
+  if (el.nodeName === "#document") {
+    const tEl = el as Document;
+    if (tEl.defaultView && tEl.defaultView.frameElement) {
+      return calculatePathFromEl(tEl.defaultView.frameElement, loc);
+    }
+    return loc.reverse();
+  }
+  const siblings = el.parentNode!.childNodes;
+  for (let i = 0, l = siblings.length; i < l; i++) {
+    if (el === siblings[i]) {
+      // For html5 documents the first element is doctype, and for html4.1 documents the doctype is not present, first
+      // element is html element
+      // [a] -> However during ser-deser we add an extra element of node type 10 irrespective of html5 or html4.1 documents to
+      // have a consistent behaviour across both document type.
+      // But while resolving the path of click from the original document, for html4.1 document we calculate the path
+      // erronously if we don't adjust the path for behaviour [a]. Hence we update the path here
+      if (isDocHtml4P1(el)) loc.push(i + 1);
+      else loc.push(i);
+      return calculatePathFromEl(el.parentNode!, loc);
+    }
+  }
+  return loc;
+};
 
 function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null) {
   chrome.runtime.sendMessage<MsgPayload<ReqScreenshotData>>({
@@ -80,11 +114,17 @@ function installListener(doc: Document) {
         }
       }
       if (frames.length > 0) {
-        await Promise.all(
-          frames.map(f => new Promise(resolve => {
-            f.onload = resolve;
-          }))
-        );
+        await Promise.race([
+          Promise.all(
+            frames.map(f => new Promise(resolve => {
+              f.onload = resolve;
+            }))
+          ),
+          // In case the onload is already fired on the mounted frames, then f.onload won't be fired,
+          // we use a timeout of 3s before we say the frame is loaded or not
+          // to w
+          sleep(3000),
+        ]);
 
         const crossOriginFrameOccurances = frames
           .map(f => f.contentDocument)

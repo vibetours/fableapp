@@ -292,42 +292,45 @@ export function getSearializedDom(
         try {
           const frameDoc = tNode.contentDocument || tNode.contentWindow?.document;
           if (!frameDoc) {
-            throw new Error(`Iframe with origin ${url} is same origin but document access is not possible`);
-          }
-
-          // WARN[#doctypenode] search with this
-          let idx = 0;
-          let offset = 0;
-          const chldrn = frameDoc.childNodes;
-          if (chldrn[0].nodeType !== 10) {
-            offset = 1;
-            sNode.chldrn.push({
-              type: 10,
-              name: "html",
-              attrs: {},
-              props: { proxyUrlMap: {} },
-              chldrn: [],
-              sv: SER_DOC_SCHEMA_VERSION,
-            });
-          }
-          for (let i = 0; i < chldrn.length; i++) {
-            if (chldrn[i] === frameDoc.documentElement) {
-              idx = i;
-            } else {
+            setTimeout(() => {
+              throw new Error(`Iframe with origin ${url} is same origin but document access is not possible`);
+            }, 0);
+          } else {
+            let idx = 0;
+            let offset = 0;
+            const chldrn = frameDoc.childNodes;
+            if (chldrn[0].nodeType !== 10) {
+              offset = 1;
               sNode.chldrn.push({
-                type: chldrn[i].nodeType,
-                name: chldrn[i].nodeName,
+                type: 10,
+                name: "html",
                 attrs: {},
                 props: { proxyUrlMap: {} },
                 chldrn: [],
                 sv: SER_DOC_SCHEMA_VERSION,
               });
             }
+            for (let i = 0; i < chldrn.length; i++) {
+              if (chldrn[i] === frameDoc.documentElement) {
+                idx = i;
+              } else {
+                sNode.chldrn.push({
+                  type: chldrn[i].nodeType,
+                  name: chldrn[i].nodeName,
+                  attrs: {},
+                  props: { proxyUrlMap: {} },
+                  chldrn: [],
+                  sv: SER_DOC_SCHEMA_VERSION,
+                });
+              }
+            }
+            traversalPath.push(idx + offset);
+            const rep = getRep(frameDoc.documentElement, origin, traversalPath);
+            sNode.chldrn.push(rep.serNode);
+            traversalPath.pop();
           }
-          traversalPath.push(idx + offset);
-          const rep = getRep(frameDoc.documentElement, origin, traversalPath);
-          sNode.chldrn.push(rep.serNode);
-          traversalPath.pop();
+
+          // WARN[#doctypenode] search with this
           return { serNode: sNode, postProcess: false };
         } catch {
           // Sometimes a frame would have "about:blank" set but then would have a cross-origin

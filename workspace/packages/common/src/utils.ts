@@ -166,25 +166,6 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
   };
 };
 
-const ROOT_EMBED_IFRAME_ID = `fab-reifi-${Math.random() * (10 ** 4) | 0}`;
-export const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
-  if (el.nodeName === '#document') {
-    const tEl = el as Document;
-    if (tEl.defaultView && tEl.defaultView.frameElement && tEl.defaultView.frameElement.id !== ROOT_EMBED_IFRAME_ID) {
-      return calculatePathFromEl(tEl.defaultView.frameElement, loc);
-    }
-    return loc.reverse();
-  }
-  const siblings = el.parentNode!.childNodes;
-  for (let i = 0, l = siblings.length; i < l; i++) {
-    if (el === siblings[i]) {
-      loc.push(i);
-      return calculatePathFromEl(el.parentNode!, loc);
-    }
-  }
-  return loc;
-};
-
 export const isProdEnv = () => {
   const isProd = (process.env.REACT_APP_ENVIRONMENT === 'prod') || (process.env.REACT_APP_ENVIRONMENT === 'staging');
   return isProd;

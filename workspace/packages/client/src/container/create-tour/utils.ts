@@ -477,7 +477,7 @@ async function postProcessSerDocs(
                     clientInfo,
                   },
                 });
-                proxyiedUrl = data.data.proxyUri;
+                if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
               } catch (e) {
                 raiseDeferredError(e as Error);
               }

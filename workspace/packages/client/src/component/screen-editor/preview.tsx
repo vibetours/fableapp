@@ -45,8 +45,6 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
   private frameLoadingPromises: Promise<unknown>[] = [];
 
-  private initialFrameBodyDisplay: DisplayCSSPropValue = 'block';
-
   deserDomIntoFrame = async (frame: HTMLIFrameElement): Promise<void> => {
     /*
      * FIXME By default assume all pages are responsive via css
@@ -88,9 +86,6 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           this.nestedFrames,
           this.props.screen.type === ScreenType.Img,
         );
-        const deserFrameBody = frame.contentDocument.body;
-        this.initialFrameBodyDisplay = getComputedStyle(frame.contentDocument.body).display as DisplayCSSPropValue;
-        deserFrameBody.style.display = 'none';
         while (this.frameLoadingPromises.length) {
           await this.frameLoadingPromises.shift();
         }
@@ -137,7 +132,6 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,
               });
-              frameBody.style.display = this.initialFrameBodyDisplay;
               this.assetLoadingPromises.length = 0;
               if (this.props.screen.type === ScreenType.Img) {
                 const screenImage = doc.getElementById('img')!;
