@@ -109,7 +109,7 @@ function installListener(doc: Document) {
           for (const node of Array.from(mutation.addedNodes)) {
             if (node.nodeName && (node.nodeName.toLowerCase() === "iframe" || node.nodeName.toLowerCase() === "object")) {
               frames.push(node as HTMLIFrameElement);
-            } else {
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
               const iframes = (node as HTMLElement).querySelectorAll("iframe");
               iframes.forEach(frame => frames.push(frame as HTMLIFrameElement));
             }
