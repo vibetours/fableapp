@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Fable",
+  "name": "Fable: Create interactive demos in 5 minutes",
   "author": "fable",
   "version": "1.4.1",
-  "description": "Craft stunning demos that convert",
+  "description": "Craft stunning interactive demos in less than 5 minutes.",
   "icons": {
     "16": "logo_16.png",
     "24": "logo_24.png",

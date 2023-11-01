@@ -99,12 +99,14 @@ class Root extends Component<Props, State> {
           <div className="action-con">
             <img alt="illustration" style={{ margin: "0.5rem 0" }} width={100} src="./illustration-extension.png" />
             <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
-              <div className="as-p title">Fable helps you create tour of your product in matter of minutes.</div>
+              <div className="as-p title">Fable helps you create an interactive demo in 5 minutes</div>
               <div className="as-p description">
                 <ol>
                   <li>Click on “Start Recording”</li>
-                  <li>Click through your product to create the tour. Don't worry, it's not a video recording, if you've made a mistake you can edit / augment / trim every aspect of your tour.</li>
-                  <li>Once you are done, click on the tick sign from the control pill or click on "Stop Recording" from the extension menu.</li>
+                  <li>You can now click through your product to create a demo. Fable will record all the screens & capture all the interactions that you perform to create a guided demo.</li>
+                  <li>Do not worry if you’ve made a mistake while recording the demo. You can edit / delete any of these items later on from our demo editor.</li>
+                  <li>Once you are done with the recording, click on “Stop Recording” from the extension menu here or click on the “tick sign” from the control pill that you see on the screen.</li>
+                  <li>You’ll then be redirected to your dashboard from where you can edit your recorded interactive demo and publish it to go live.</li>
                 </ol>
               </div>
             </div>
@@ -121,8 +123,8 @@ class Root extends Component<Props, State> {
                 </button>
               )}
 
-            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("tours")}>
-              See all Tours
+            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("demos")}>
+              See all demos
             </button>
           </div>
         )}
