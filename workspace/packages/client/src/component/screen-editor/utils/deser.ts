@@ -1,6 +1,8 @@
 import { SerNode } from '@fable/common/dist/types';
 import { DeSerProps } from '../preview';
 
+const FABLE_CUSTOM_NODE = -1;
+
 export const deser = (
   serNode: SerNode,
   doc: Document,
@@ -46,6 +48,13 @@ export const deser = (
     case Node.DOCUMENT_FRAGMENT_NODE:
       node = newProps.shadowParent;
       break;
+
+    case FABLE_CUSTOM_NODE: {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = serNode.props.content!;
+      node = wrapper.children[0];
+      break;
+    }
 
     default:
       break;

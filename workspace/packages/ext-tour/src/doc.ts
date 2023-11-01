@@ -20,6 +20,19 @@ import {
   getUrlsFromSrcset
 } from "./utils";
 
+export function getPostProcessType(serNode: SerNode): PostProcess["type"] {
+  switch (serNode.name) {
+    case "iframe":
+      return "iframe";
+    case "object":
+      return "object";
+    case "use":
+      return "inline-sprite";
+    default:
+      return "asset";
+  }
+}
+
 const SER_DOC_SCHEMA_VERSION = 2;
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -174,6 +187,29 @@ export function getSearializedDom(
 
     if (sNode.attrs.class?.includes(FABLE_CONTROL_PILL)) {
       return { serNode: sNode, shouldSkip: true };
+    }
+
+    if (sNode.name === "use") {
+      let hrefValue: string = "";
+      let hrefKey: "href" | "xlink:href" = "href";
+
+      if ("xlink:href" in sNode.attrs) {
+        hrefValue = sNode.attrs["xlink:href"]!;
+        hrefKey = "xlink:href";
+      }
+
+      if ("href" in sNode.attrs) {
+        hrefValue = sNode.attrs.href!;
+        hrefKey = "href";
+      }
+
+      const url = new URL(hrefValue, doc.baseURI);
+
+      if (url.hash) {
+        sNode.props.isInlineSprite = true;
+        sNode.props.proxyUrlMap[hrefKey] = [hrefValue];
+        return { serNode: sNode, postProcess: true };
+      }
     }
 
     if (sNode.name === "link") {
@@ -361,9 +397,7 @@ export function getSearializedDom(
         ii++;
         if (rep.postProcess) {
           const postProcess = {} as PostProcess;
-          postProcess.type = rep.serNode.name === "iframe"
-            ? "iframe"
-            : (rep.serNode.name === "object" ? "object" : "asset");
+          postProcess.type = getPostProcessType(rep.serNode);
           postProcess.path = traversalPathStr;
           postProcesses.push(postProcess);
         }

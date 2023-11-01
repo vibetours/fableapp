@@ -95,6 +95,7 @@ export interface ReqNfHook {
 export interface ReqProxyAsset {
     origin: string;
     clientInfo: string;
+    body?: boolean;
 }
 
 export interface ReqRecordEdit {
@@ -172,6 +173,7 @@ export interface RespOrg extends ResponseBase {
 
 export interface RespProxyAsset extends ResponseBase {
     proxyUri: string;
+    content?: string;
 }
 
 export interface RespScreen extends ResponseBase {

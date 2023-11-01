@@ -5,7 +5,8 @@ export enum ProxyAttrs {
   src = 'src',
   style = 'style',
   cssRules = 'cssRules',
-  srcset = 'srcset'
+  srcset = 'srcset',
+  'xlink:href' = 'xlink:href',
 }
 
 export type ProxyUrlMap = {
@@ -17,6 +18,7 @@ export interface SerNode {
   name: string;
   attrs: Record<string, string | null>;
   props: {
+    content?: string;
     nodeProps?: {
       type?: string;
       value?: string | boolean | number;
@@ -26,6 +28,7 @@ export interface SerNode {
     proxyUrlMap: ProxyUrlMap;
     isStylesheet?: boolean;
     textContent?: string | null;
+    isInlineSprite?: boolean;
     isHidden?: boolean;
     isShadowHost?: boolean;
     isShadowRoot?: boolean;
@@ -45,7 +48,7 @@ export interface SerNodeWithPath extends SerNode {
 }
 
 export interface PostProcess {
-  type: 'asset' | 'iframe' | 'elpath' | 'object';
+  type: 'asset' | 'iframe' | 'elpath' | 'object' | 'inline-sprite';
   path: string;
 }
 

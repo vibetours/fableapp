@@ -45,6 +45,24 @@ import { P_RespTour } from '../../entity-processor';
 import { getColorContrast } from '../../utils';
 import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 
+export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
+  const queue: SerNode[] = [docTree];
+
+  while (queue.length > 0) {
+    const currNode = queue.shift()!;
+
+    if (currNode.name.toLowerCase() === nodeName.toLowerCase()) {
+      return currNode;
+    }
+
+    for (let i = 0; i < currNode.chldrn.length; i++) {
+      queue.push(currNode.chldrn[i]);
+    }
+  }
+
+  return null;
+}
+
 export async function saveScreen(
   frames: FrameDataToBeProcessed[],
   cookies: chrome.cookies.Cookie[],
@@ -358,6 +376,7 @@ async function postProcessSerDocs(
     traversePath: string,
     numberOfProcessingDone: number
   ): Promise<void> {
+    const svgSpriteUrls: Record<string, number> = {};
     for (const postProcess of frame.postProcesses) {
       numberOfProcessingDone++;
       if (postProcess.type === 'elpath') {
@@ -461,6 +480,7 @@ async function postProcessSerDocs(
             node.props.origHref = originalBlobUrl;
           }
         } else {
+          const headNode = getNodeFromDocTree(frame.docTree!, 'head');
           for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
             for (const pUrl of proxyUrls) {
               const assetUrlStr = getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
@@ -469,26 +489,47 @@ async function postProcessSerDocs(
               if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
 
               let proxyiedUrl = assetUrlStr;
-              try {
-                const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
-                  method: 'POST',
-                  body: {
-                    origin: assetUrlStr,
-                    clientInfo,
-                  },
-                });
-                if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
-              } catch (e) {
-                raiseDeferredError(e as Error);
+              let proxyiedContent: string = '';
+              if (!(`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls)) {
+                try {
+                  const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
+                    method: 'POST',
+                    body: {
+                      origin: assetUrlStr,
+                      clientInfo,
+                      body: node.props.isInlineSprite || false
+                    },
+                  });
+                  if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
+                  proxyiedContent = data.data.content ?? '';
+                } catch (e) {
+                  raiseDeferredError(e as Error);
+                }
               }
 
               try {
                 if (proxyAttr === 'style' || proxyAttr === 'cssRules') {
                   const attrVal = node.attrs[proxyAttr];
                   if (attrVal) node.attrs[proxyAttr] = getAllPossibleCssUrlReplace(attrVal, pUrl, proxyiedUrl);
-                } else if (proxyAttr === 'href' || proxyAttr === 'src') {
+                } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
                   node.props.origHref = pUrl;
-                  node.attrs[proxyAttr] = proxyiedUrl;
+                  if (node.props.isInlineSprite) {
+                    svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
+                    node.attrs.href = assetUrl.hash;
+                    headNode?.chldrn.push({
+                      type: -1,
+                      name: '-data-f-sprite',
+                      attrs: {},
+                      props: {
+                        proxyUrlMap: {},
+                        content: proxyiedContent,
+                      },
+                      chldrn: [],
+                      sv: 2
+                    });
+                  } else {
+                    node.attrs[proxyAttr] = proxyiedUrl;
+                  }
                 } else if (proxyAttr === 'srcset') {
                   node.attrs.srcset = replaceSrcsetUrl(node.attrs.srcset!, pUrl, proxyiedUrl);
                 }
