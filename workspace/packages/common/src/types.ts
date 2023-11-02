@@ -29,6 +29,8 @@ export interface SerNode {
     isStylesheet?: boolean;
     textContent?: string | null;
     isInlineSprite?: boolean;
+    absoluteUrl?: string;
+    spriteId?: string;
     isHidden?: boolean;
     isShadowHost?: boolean;
     isShadowRoot?: boolean;

@@ -206,6 +206,12 @@ export function getSearializedDom(
       const url = new URL(hrefValue, doc.baseURI);
 
       if (url.hash) {
+        const relativesprite = url.pathname + url.search;
+        const spriteEl = doc.querySelectorAll(`[href$="${relativesprite}"]`).item(0);
+        const spriteHref = spriteEl && spriteEl.getAttribute("href");
+
+        sNode.props.absoluteUrl = spriteHref ?? undefined;
+        sNode.props.spriteId = url.hash;
         sNode.props.isInlineSprite = true;
         sNode.props.proxyUrlMap[hrefKey] = [hrefValue];
         return { serNode: sNode, postProcess: true };

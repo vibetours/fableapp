@@ -483,7 +483,7 @@ async function postProcessSerDocs(
           const headNode = getNodeFromDocTree(frame.docTree!, 'head');
           for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
             for (const pUrl of proxyUrls) {
-              const assetUrlStr = getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
+              const assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
               const assetUrl = new URL(assetUrlStr);
 
               if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
@@ -515,7 +515,7 @@ async function postProcessSerDocs(
                   node.props.origHref = pUrl;
                   if (node.props.isInlineSprite) {
                     svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
-                    node.attrs.href = assetUrl.hash;
+                    node.attrs.href = node.props.spriteId ?? assetUrl.hash;
                     headNode?.chldrn.push({
                       type: -1,
                       name: '-data-f-sprite',
