@@ -44,6 +44,10 @@ export const getDelDiffs = (tree1: SerNode, tree2: SerNode): DelDiff[] => {
       isPartOfShadowHost: isNode2PartOfShadow,
     } = currTree[1];
 
+    if (node1.name.toLowerCase() === 'head') {
+      continue;
+    }
+
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
 
@@ -161,6 +165,10 @@ export const getAddDiffs = (tree1: SerNode, tree2: SerNode): AddDiff[] => {
       isPartOfSVG: isNode2PartOfSvg,
       isPartOfShadowHost: isNode2PartOfShadow,
     } = currTree[1];
+
+    if (node1.name.toLowerCase() === 'head') {
+      continue;
+    }
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
@@ -281,6 +289,10 @@ export const getUpdateDiffs = (tree1: SerNode, tree2: SerNode): UpdateDiff[] => 
       isPartOfShadowHost:
       isNode2PartOfShadow,
     } = currTree[1];
+
+    if (node1.name.toLowerCase() === 'head') {
+      continue;
+    }
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
@@ -492,6 +504,10 @@ export const getReplaceDiffs = (tree1: SerNode, tree2: SerNode): ReplaceDiff[] =
             isPropsDiff = true;
           }
 
+          if (childOfNode1.name.toLowerCase() === 'head') {
+            isPropsDiff = true;
+          }
+
           if (isPropsDiff) {
             toBeReplacedNodes.push({
               fid,
@@ -592,6 +608,10 @@ export const getReorderDiffs = (tree1: SerNode, tree2: SerNode): ReorderDiff[] =
       isPartOfShadowHost: isNode2PartOfShadow,
       isPartOfSVG: isNode2PartOfSvg,
     } = currTree[1];
+
+    if (node1.name.toLowerCase() === 'head') {
+      continue;
+    }
 
     const node1Chldrn = node1.chldrn;
     const node2Chldrn = node2.chldrn;
