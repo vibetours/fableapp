@@ -1,13 +1,12 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
-import { Plan, RespUser, Status } from '@fable/common/dist/api-contract';
-import { LoadingStatus } from '@fable/common/dist/types';
-import { ArrowRightOutlined, CreditCardFilled, HeartFilled, HeartOutlined, InfoCircleOutlined, PlusOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
+import { Plan, RespUser } from '@fable/common/dist/api-contract';
+import { ArrowRightOutlined,
+  CreditCardFilled,
+  HeartFilled,
+  InfoCircleOutlined
+} from '@ant-design/icons';
 import Modal from 'antd/lib/modal';
-import AntBtn from 'antd/lib/button';
-import { getDisplayableTime, SHORT_MONTHS } from '@fable/common/dist/utils';
-import Tooltip from 'antd/lib/tooltip';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
@@ -30,7 +29,7 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
-  checkout: (chosenPlan: 'pro' | 'business', chosenInterval: 'annual' | 'monthly') => dispatch(checkout(chosenPlan, chosenInterval)),
+  checkout: (chosenPlan: 'startup' | 'business', chosenInterval: 'annual' | 'monthly') => dispatch(checkout(chosenPlan, chosenInterval)),
 });
 
 interface IAppStateProps {
@@ -78,7 +77,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     let currentPlan = '';
     if (this.props.subs) {
       isSameInterval = this.props.subs.paymentInterval === this.state.tabSelected.toUpperCase();
-      currentPlan = this.props.subs.paymentPlan === Plan.PRO ? 'pro' : 'business';
+      currentPlan = this.props.subs.paymentPlan === Plan.STARTUP ? 'startup' : 'business';
     }
     return (
       <GTags.ColCon>
@@ -179,7 +178,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                           alignItems: 'center',
                           gap: '0.5rem'
                         }}
-                        className={`${this.state.tabSelected === 'Yearly' ? 'active ' : ''}tab-item`}
+                        className={`${this.state.tabSelected === 'Yearly' ? 'active ' : ''} tab-item`}
                         onClick={() => this.setState({ tabSelected: 'Yearly' })}
                       >
                         Annually
@@ -198,12 +197,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                       >Monthly
                       </div>
                     </Tags.TabCon>
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'row',
-                      gap: '4rem'
-                    }}
-                    >
+                    <Tags.PriceCon>
                       {PriceDetailsData.map((plan: IPriceDetails) => (
                         <div
                           style={{
@@ -218,26 +212,18 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                           }}
                           >{plan.planName}
                           </div>
-                          <div style={{
-                            fontWeight: 600,
-                            fontSize: '4rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '1rem'
-                          }}
-                          >{plan[priceFor] ? (
+                          <Tags.PlanPrice>{plan[priceFor] ? (
                             <>
                               ${plan[priceFor]}
                               <span style={{
-                                fontSize: '0.8rem'
+                                fontSize: '0.8rem',
                               }}
                               >
-                                <div>per user</div>
-                                <div>per month</div>
+                                <div style={{ marginBottom: '1rem', opacity: '0.6' }}>per month </div>
                               </span>
                             </>
                           ) : "Let's talk"}
-                          </div>
+                          </Tags.PlanPrice>
                           <div>
                             <Button
                               intent="secondary"
@@ -256,38 +242,23 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                               {plan.planId === currentPlan && isSameInterval ? 'Subscribed' : 'Choose'}
                             </Button>
                           </div>
-                          <div style={{
-                            marginTop: '1rem',
-                            filter: 'saturate(0.5)',
-                            opacity: 0.8
-                          }}
-                          >
-                            <div style={{
-                              fontSize: '1.2rem',
-                              fontWeight: '600',
-                              marginBottom: '0.5rem',
-                            }}
-                            >
+                          <Tags.FeatCon>
+                            <Tags.FeatTitle>
                               {plan.featTitle}
-                            </div>
-                            <div>
+                            </Tags.FeatTitle>
+                            <Tags.FeatList>
                               {plan.featList.map((f, i) => (
-                                <div
-                                  key={i}
-                                >
-                                  <>
-                                    <HeartFilled style={{ color: '#7567FF' }} /> {f.feat}
-                                  </>
-                                </div>
+                                <li key={i}>
+                                  <HeartFilled style={{ color: '#7567FF', marginRight: '0.5rem' }} /> {f.feat}
+                                </li>
                               ))}
-                            </div>
-                          </div>
+                            </Tags.FeatList>
+                          </Tags.FeatCon>
                         </div>
                       ))}
-                    </div>
+                    </Tags.PriceCon>
                   </div>
                 </div>
-
               ) : (
                 <div>
                   <Loader width="80px" txtBefore="Loading subscription information" showAtPageCenter />

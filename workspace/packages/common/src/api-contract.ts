@@ -296,7 +296,7 @@ export const enum NfEvents {
 }
 
 export const enum Plan {
-    PRO = "PRO",
+    STARTUP = "STARTUP",
     BUSINESS = "BUSINESS",
 }
 

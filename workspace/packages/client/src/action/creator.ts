@@ -195,12 +195,12 @@ export interface TSubs {
   subs: P_RespSubscription;
 }
 
-export function checkout(chosenPlan: 'pro' | 'business', chosenInterval: 'annual' | 'monthly') {
+export function checkout(chosenPlan: 'startup' | 'business', chosenInterval: 'annual' | 'monthly') {
   return async (dispatch: Dispatch<TSubs>, getState: () => TState) => {
     let plan: PaymentTermsPlan | null = null;
     switch (chosenPlan.toUpperCase()) {
-      case 'PRO':
-        plan = PaymentTermsPlan.PRO;
+      case 'STARTUP':
+        plan = PaymentTermsPlan.STARTUP;
         break;
 
       case 'BUSINESS':
