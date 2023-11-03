@@ -78,7 +78,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     const urlSearchParams = new URLSearchParams(window.location.search);
-    const staging = !urlSearchParams.get('staging');
+    const staging = !!urlSearchParams.get('staging');
 
     return (
       <Router>

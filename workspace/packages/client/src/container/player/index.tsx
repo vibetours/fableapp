@@ -130,12 +130,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
         ...((window as FWin).__fable_global_settings__ || {}),
-        shouldLogEvent: true
+        shouldLogEvent: !this.props.staging
       };
     }
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
-      this.props.staging
+      !this.props.staging
     );
     window.addEventListener('beforeunload', removeSessionId);
   }
@@ -182,7 +182,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     prerenderList.map(s => this.props.loadScreenAndData(
       s.rid,
       s.id !== screen.id,
-      this.props.staging
+      !this.props.staging
     ));
 
     prerenderList.forEach(s => this.loadedScreenRids.add(s.rid));
