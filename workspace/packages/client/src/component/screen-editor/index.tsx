@@ -561,7 +561,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   receiveMessage = (e: MessageEvent<{ type: UserGuideMsg.OPEN_ANNOTATION }>): void => {
-    this.setState({ selectorComponentKey: Math.random() });
+    if (e.data.type === UserGuideMsg.OPEN_ANNOTATION) this.setState({ selectorComponentKey: Math.random() });
   };
 
   componentDidMount(): void {
