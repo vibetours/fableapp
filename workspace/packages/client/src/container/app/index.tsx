@@ -11,7 +11,6 @@ import Billing from '../billing';
 import TourEditor from '../tour-editor';
 import Player from '../player';
 import Form from '../form';
-import HeartLoader from '../../component/loader/heart';
 import CreateTour from '../create-tour';
 import AuthCB from '../auth-cb';
 import NewOrgCreation from '../org/new-org-creation';
@@ -28,7 +27,6 @@ import ProtectedRoutes from '../protected-routes';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
-import { upsertAllUserGuides } from '../../user-guides';
 
 interface IDispatchProps {
   init: () => void;

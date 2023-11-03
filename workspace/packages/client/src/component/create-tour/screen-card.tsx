@@ -14,7 +14,8 @@ interface Props {
 
 export default function ScreenCard({ frameData, favicon }: Props) {
   const thumbnailFrameData = (frameData.find(frame => frame.type === 'thumbnail') || { data: '' }).data as string;
-  const serDomFrameData = (frameData.find(frame => frame.type === 'serdom') || { data: null }).data as SerDoc;
+  const serDomFrameData = (frameData
+    .find(frame => frame.type === 'serdom' && frame.frameId === 0) || { data: null }).data as SerDoc;
   if (!thumbnailFrameData || !serDomFrameData) {
     sentryCaptureException(
       new Error('Something wrong with screen data'),

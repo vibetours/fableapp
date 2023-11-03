@@ -25,9 +25,10 @@ interface Props {
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
+  manifestPath: string;
 }
 
-export default function TourCard({ tour, handleShowModal, handleDelete, publishTour }: Props): JSX.Element {
+export default function TourCard({ tour, handleShowModal, handleDelete, publishTour, manifestPath }: Props): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -154,6 +155,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
         copyHandler={copyHandler}
         embedClickedFrom="tours"
         isPublishing={isPublishing}
+        manifestPath={manifestPath}
         setIsPublishing={setIsPublishing}
         setIsPublishFailed={setIsPublishFailed}
         isPublishFailed={isPublishFailed}

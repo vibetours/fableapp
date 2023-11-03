@@ -120,6 +120,7 @@ export const ModalBodyCon = styled.div`
     border-radius: 12px;
     padding: 0.5rem;
     display: flex;
+    justify-content: space-between;
   }
 
   .ellipsis {

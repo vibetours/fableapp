@@ -43,6 +43,7 @@ interface IAppStateProps {
   principal: RespUser | null;
   usersLoaded: boolean;
   users: RespUser[];
+  manifestPath: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -50,6 +51,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   usersLoaded: state.default.allUsersLoadingStatus === LoadingStatus.Done,
   users: state.default.users,
+  manifestPath: state.default.commonConfig
+    ? state.default.commonConfig.pubTourAssetPath + state.default.commonConfig.manifestFileName
+    : '',
 });
 
 interface IOwnProps {
@@ -72,7 +76,14 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     return (
       <GTags.ColCon>
         <div style={{ height: '48px' }}>
-          <Header tour={null} subs={this.props.subs} shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
+          <Header
+            tour={null}
+            subs={this.props.subs}
+            shouldShowFullLogo
+            principal={this.props.principal}
+            leftElGroups={[]}
+            manifestPath={this.props.manifestPath}
+          />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>

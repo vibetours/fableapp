@@ -203,11 +203,14 @@ export function getSearializedDom(
         hrefKey = "href";
       }
 
+      if (hrefValue.startsWith("#")) {
+        return { serNode: sNode, postProcess: false };
+      }
       const url = new URL(hrefValue, doc.baseURI);
 
       if (url.hash) {
         const relativesprite = url.pathname + url.search;
-        const spriteEl = doc.querySelectorAll(`[href$="${relativesprite}"]`).item(0);
+        const spriteEl = doc.querySelectorAll(`link[href$="${relativesprite}"]`).item(0);
         const spriteHref = spriteEl && spriteEl.getAttribute("href");
 
         sNode.props.absoluteUrl = spriteHref ?? undefined;

@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
-import { CopyOutlined } from '@ant-design/icons';
+import { CodeOutlined, CodepenOutlined, CopyOutlined, FileImageOutlined, FileMarkdownOutlined, LinkOutlined } from '@ant-design/icons';
 import { Tooltip, message } from 'antd';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
@@ -10,6 +10,11 @@ import { createIframeSrc } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { P_RespTour } from '../../entity-processor';
 import PublishButton from './publish-button';
+import Tabs from '../tabs';
+import InlineLinkExpand from '../inline-link-expand';
+import UtmParamsHelper, { ParamType } from './utm-params-helper';
+import BuyersEmailHelper from './buyers-email-helper';
+import UrlCodeShare from './url-code-share';
 
 enum PublicationState {
   UNPUBLISHED,
@@ -33,6 +38,7 @@ interface Props {
   copyHandler: () => Promise<void>;
   embedClickedFrom: 'tours' | 'header';
   height: string;
+  manifestPath: string;
   width: string;
   tour: P_RespTour;
   isPublishing: boolean;
@@ -42,8 +48,25 @@ interface Props {
   isPublishFailed: boolean;
 }
 
+const enum SearchParamBy{
+  UtmParam,
+  UserParam
+}
+
 export default function ShareTourModal(props: Props): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
+  const [searchParams, setSearchParams] = useState<Record<SearchParamBy, ParamType>>({
+    [SearchParamBy.UserParam]: [],
+    [SearchParamBy.UtmParam]: []
+  });
+  const [searchParamsStr, setSearchParamsStr] = useState('');
+  const [defValue, setDefValue] = useState('');
+
+  useEffect(() => {
+    const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
+    if (allParams.length) setSearchParamsStr(`?${allParams.map(p => `${p.mapping}=${p.value}`).join('&')}`);
+    else setSearchParamsStr('');
+  }, [searchParams]);
 
   const success = (): void => {
     messageApi.open({
@@ -70,7 +93,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
         open={props.isModalVisible}
         onCancel={props.closeModal}
         centered
-        width={486}
+        width={560}
         footer={null}
       >
         <Tags.ModalBodyCon>
@@ -89,8 +112,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                     You haven't published this tour yet!
                   </div>
                   <div className="section-subheading" style={{ marginBottom: '0.5rem' }}>
-                    Your tour is not available for public to experience until you publish this tour.
-                    Click on Publish button once you are done with editing this tour.
+                    For a demo to go live, you’ll need to publish it. Please click on <em>publish</em> below once you are done making all changes.
                   </div>
                   <PublishButton
                     setIsPublishFailed={props.setIsPublishFailed}
@@ -107,8 +129,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 && getPublicationState(props.tour) === PublicationState.PUBLISHED
                 && (
                   <>
-                    <div className="section-heading">You're all set!</div>
-                    <div>Your tour is published and ready to be shared.</div>
+                    <div className="section-heading">Your demo is now ready to be shared!</div>
+                    <div>Please choose from one of the options below.</div>
                   </>
                 )}
 
@@ -136,57 +158,128 @@ export default function ShareTourModal(props: Props): JSX.Element {
             && props.tour
             && (getPublicationState(props.tour) !== PublicationState.UNPUBLISHED)
             && (
-              <>
-                <div className="section-con">
+            <Tabs
+              items={[{
+                head: (
                   <div>
-                    <p className="section-heading">
-                      Iframe embed
-                    </p>
-                    <p className="section-subheading">
-                      Copy & paste the following code in the webpage where you want to embed the interactive demo as an iframe
-                    </p>
+                    <CodeOutlined />
+                  &nbsp;
+                    <span>IFrame</span>
                   </div>
-
-                  <IframeCodeSnippet
-                    height={props.height}
-                    width={props.width}
-                    copyHandler={iframeEmbedCopyHandler}
-                    src={createIframeSrc(props.relativeUrl)}
-                  />
-                </div>
-
-                <div className="section-con">
+                ),
+                body: (
+                  <>
+                    <p>
+                      Copy & paste the following code in the webpage where you want to embed the interactive demo as an iframe.
+                    </p>
+                    <IframeCodeSnippet
+                      height={props.height}
+                      width={props.width}
+                      copyHandler={iframeEmbedCopyHandler}
+                      src={createIframeSrc(props.relativeUrl + searchParamsStr)}
+                    />
+                    <InlineLinkExpand
+                      gap="1rem"
+                      title={(
+                        <>Learn how to forward UTM parameters and track conversions from this demo.</>
+                      )}
+                      body={(
+                        <UtmParamsHelper
+                          defVal={defValue}
+                          onParamsAdd={(params, v) => {
+                            setDefValue(v || '');
+                            setSearchParams({
+                              ...searchParams,
+                              [SearchParamBy.UtmParam]: params
+                            });
+                          }}
+                        />)}
+                    />
+                  </>
+                ),
+                key: 0
+              }, {
+                head: (
                   <div>
-                    <p className="section-heading">
-                      Unique URL
-                    </p>
-                    <p className="section-subheading">
-                      You can share the following URL with anyone and they will be able to experience the interactive demo
-                    </p>
+                    <LinkOutlined />
+                  &nbsp;
+                    <span>URL</span>
                   </div>
+                ),
+                body: (
+                  <>
+                    <p>
+                      You can share the following URL with your buyers and they will be able to experience the interactive demo
+                    </p>
+                    <UrlCodeShare url={createIframeSrc(props.relativeUrl + searchParamsStr)} />
+                    <InlineLinkExpand
+                      gap="1rem"
+                      title={(
+                        <>Learn how to forward UTM parameters and track conversions from this demo.</>
+                      )}
+                      body={(
+                        <UtmParamsHelper
+                          defVal={defValue}
+                          onParamsAdd={(params, v) => {
+                            setDefValue(v || '');
+                            setSearchParams({
+                              ...searchParams,
+                              [SearchParamBy.UtmParam]: params
+                            });
+                          }}
+                        />)}
+                    />
 
-                  <div className="url-con">
-                    <div className="ellipsis">
-                      <code>
-                        {createIframeSrc(props.relativeUrl)}
-                      </code>
-                    </div>
-
-                    <Tooltip title="Copy to clipboard">
-                      <CopyOutlined
-                        className="copy-outline"
-                        onClick={() => {
-                          success();
-                          navigator.clipboard.writeText(createIframeSrc(props.relativeUrl));
-                        }}
-                      />
-                    </Tooltip>
+                  </>
+                ),
+                key: 2
+              },
+              {
+                head: (
+                  <div>
+                    <FileImageOutlined />
+                    &nbsp;
+                    <span>Thumbnail</span>
                   </div>
-                </div>
-              </>
+                ),
+                body: (
+                  <>
+                    <p>
+                      Your frontend engineering team can use Fable's interactive demo's manifest to retrieve all the images that are used in the demo.
+                      <br />
+                      Copy the following code & paste it in
+                      <a
+                        target="_blank"
+                        href="https://codepen.io/sharefable/embed/YzBGrmz?default-tab=result&theme-id=light"
+                        rel="noreferrer"
+                      > &nbsp;this example <CodepenOutlined /> Codepen.
+                      </a>
+                    </p>
+                    <UrlCodeShare url={props.manifestPath} />
+                  </>
+                ),
+                key: 1
+              }]}
+              defaultActiveKey={0}
+            />
             )}
         </Tags.ModalBodyCon>
       </GTags.BorderedModal>
     </>
   );
 }
+
+// <InlineLinkExpand
+//   gap="0.25rem"
+//   title="Track demo usage by buyer's email id"
+//   body={(
+//     <BuyersEmailHelper
+//       onParamsAdd={(params) => {
+//         setSearchParams({
+//           ...searchParams,
+//           [SearchParamBy.UserParam]: searchParams[SearchParamBy.UserParam].length ? [] : params
+//         });
+//       }}
+//     />
+//   )}
+// />

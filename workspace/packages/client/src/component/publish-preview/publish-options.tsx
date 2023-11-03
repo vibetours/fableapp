@@ -18,6 +18,7 @@ interface Props {
   handleReplayClick: () => void;
   showShareModal: boolean;
   setShowShareModal: (showShareModal: boolean) => void;
+  manifestPath: string;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -83,6 +84,7 @@ export default function PublishOptions(props: Props): JSX.Element {
           publishTour={props.publishTour}
           setIsPublishing={setIsPublishing}
           isPublishing={isPublishing}
+          manifestPath={props.manifestPath}
           tour={props.tour!}
           height={height}
           width={width}

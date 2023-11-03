@@ -67,6 +67,8 @@ interface IAppStateProps {
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
   opsInProgress: Ops;
+  pubTourAssetPath: string;
+  manifestFileName: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -75,6 +77,8 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
+  pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
+  manifestFileName: state.default.commonConfig?.manifestFileName || '',
 });
 
 interface IOwnProps {
@@ -231,7 +235,14 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon className="tour-con">
         <SkipLink />
         <div style={{ height: '48px' }}>
-          <Header tour={null} subs={this.props.subs} shouldShowFullLogo principal={this.props.principal} leftElGroups={[]} />
+          <Header
+            tour={null}
+            subs={this.props.subs}
+            shouldShowFullLogo
+            principal={this.props.principal}
+            leftElGroups={[]}
+            manifestPath=""
+          />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>
@@ -279,6 +290,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 tour={tour}
                                 handleShowModal={this.handleShowModal}
                                 handleDelete={this.handleDelete}
+                                manifestPath={`${this.props.pubTourAssetPath}${tour.rid}/${this.props.manifestFileName}`}
                               />
                             ))}
                           </Tags.BottomPanel>

@@ -9,11 +9,9 @@ import {
   LogoutOutlined,
   MoreOutlined,
   SaveOutlined,
-  SendOutlined,
   ShareAltOutlined,
   WarningOutlined
 } from '@ant-design/icons';
-import Popover from 'antd/lib/popover';
 import Tooltip from 'antd/lib/tooltip';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
@@ -37,6 +35,7 @@ interface IOwnProps {
   subs: P_RespSubscription | null;
   leftElGroups: ReactElement[];
   principal?: RespUser | null;
+  manifestPath: string;
   titleText?: string;
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
@@ -369,6 +368,7 @@ function Header(props: IOwnProps): JSX.Element {
         isPublishing={isPublishing}
         tour={props.tour!}
         height="100%"
+        manifestPath={props.manifestPath}
         width="100%"
         relativeUrl={`/p/demo/${props.tour?.rid}`}
         isModalVisible={isModalVisible}

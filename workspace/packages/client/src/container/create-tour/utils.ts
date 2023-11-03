@@ -484,7 +484,13 @@ async function postProcessSerDocs(
           for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
             for (const pUrl of proxyUrls) {
               const assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
-              const assetUrl = new URL(assetUrlStr);
+              let assetUrl;
+              try {
+                assetUrl = new URL(assetUrlStr);
+              } catch (e) {
+                raiseDeferredError(e as Error);
+                assetUrl = new URL(getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl));
+              }
 
               if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
 

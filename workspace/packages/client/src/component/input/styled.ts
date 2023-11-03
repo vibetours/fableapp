@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 
-export const InputContainer = styled.div`
+export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
   position: relative;
 
   input {
-    height: 48px;
+    height: ${props => (props.size === 'large' ? 48 : 42)}px;
     width: 100%;
     border: 1px solid #D9D9D9;
     border-radius: 8px;
@@ -55,7 +55,7 @@ export const InputContainer = styled.div`
   input:focus+.label .text,
   input:not(input:placeholder-shown)+.label .text {
     font-size: 12px;
-    transform: translate(0, -150%);
+    transform: translate(0, -148%);
     background-color: white;
     padding-left: 4px;
     padding-right: 4px;

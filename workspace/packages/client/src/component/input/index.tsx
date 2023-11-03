@@ -3,13 +3,14 @@ import * as Tags from './styled';
 
 export interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
+  sz?: 'large' | 'medium';
   innerRef?: RefObject<HTMLInputElement>;
   icon?: React.ReactNode;
 }
 
-export default function Input({ label, id, innerRef, icon, ...rest }: Props): JSX.Element {
+export default function Input({ label, sz = 'large', id, innerRef, icon, ...rest }: Props): JSX.Element {
   return (
-    <Tags.InputContainer>
+    <Tags.InputContainer size={sz}>
       {icon && (
         <Tags.IconWrapper>
           {icon}

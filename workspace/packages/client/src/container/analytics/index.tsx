@@ -40,6 +40,7 @@ interface IAppStateProps {
   orderedAnnotationsForTour: TOrderedAnnWithMetrics;
   principal: RespUser | null;
   conversion: number;
+  manifestPath: string
 }
 
 const enum EmptyStateType {
@@ -132,6 +133,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     subs: state.default.subs,
     isTourLoaded: state.default.tourLoaded,
     conversion,
+    manifestPath: (state.default.commonConfig && state.default.currentTour)
+      ? `${state.default.commonConfig.pubTourAssetPath + state.default.currentTour}/${state.default.commonConfig.manifestFileName}`
+      : '',
     orderedAnnotationsForTour: orderedAnnotationsForTour(
       state.default.remoteAnnotations,
       state.default.remoteTourOpts,
@@ -180,6 +184,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             tour={this.props.tour}
             subs={this.props.subs}
             navigateToWhenLogoIsClicked="/demos"
+            manifestPath={this.props.manifestPath}
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <GTags.Txt className="subsubhead">Insight for</GTags.Txt>

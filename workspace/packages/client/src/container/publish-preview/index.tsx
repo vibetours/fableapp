@@ -34,6 +34,7 @@ interface IAppStateProps {
   principal: RespUser | null;
   isTourLoaded: boolean;
   subs: P_RespSubscription | null;
+  manifestPath: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -41,6 +42,9 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
   subs: state.default.subs,
+  manifestPath: (state.default.commonConfig && state.default.currentTour)
+    ? `${state.default.commonConfig.pubTourAssetPath + state.default.currentTour.rid}/${state.default.commonConfig.manifestFileName}`
+    : '',
 });
 
 interface IOwnProps {
@@ -113,6 +117,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
         <Tags.HeaderCon>
           <Header
+            manifestPath={this.props.manifestPath}
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"
             subs={this.props.subs}
@@ -127,6 +132,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             principal={this.props.principal}
             tour={this.props.tour}
             publishOptions={<PublishOptions
+              manifestPath={this.props.manifestPath}
               showShareModal={this.state.showShareModal}
               setShowShareModal={(showShareModal: boolean) => this.setState({ showShareModal })}
               handleReplayClick={this.handleReplayClick}

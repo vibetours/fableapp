@@ -23,7 +23,7 @@ export default function PublishButton(props: Props): JSX.Element {
 
     const res = await props.publishTour(props.tour!);
     props.setIsPublishing(false);
-    setButtonTitle('Publish');
+    setButtonTitle('Publish the demo now!');
 
     if (!res) {
       props.setIsPublishFailed(true);

@@ -70,12 +70,10 @@ import {
   saveFableTimelineOrder,
   setEventCommonState,
   createIframeSrc,
-  generateScreenIndex,
   assignScreenIndices,
   isBlankString
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
-import HeartLoader from '../../component/loader/heart';
 import {
   getAnnotationSerialIdMap,
   getAnnotationByRefId,
@@ -235,6 +233,8 @@ interface IAppStateProps {
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
   tourJourney: CreateJourneyData;
+  pubTourAssetPath: string;
+  manifestFileName: string;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -323,7 +323,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     annotationSerialIdMap,
     isAutoSaving: state.default.isAutoSaving,
     tourDiagnostics: state.default.tourData?.diagnostics || {},
-    tourJourney: state.default.tourData?.journey || getSampleJourneyData()
+    tourJourney: state.default.tourData?.journey || getSampleJourneyData(),
+    pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
+    manifestFileName: state.default.commonConfig?.manifestFileName || '',
   };
 };
 
@@ -649,6 +651,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               headerProps={{
                 navigateToWhenLogoIsClicked: '/demos',
                 subs: this.props.subs,
+                manifestPath: `${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`,
                 titleElOnLeft: this.getHeaderTxtEl(),
                 leftElGroups: this.getHeaderLeftGroup(),
                 principal: this.props.principal,
