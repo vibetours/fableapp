@@ -568,43 +568,52 @@ async function postProcessSerDocs(
       docTree: mainFrameData.docTree!,
     };
 
-    const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-      method: 'POST',
-      body: {
-        name: mainFrameData.title,
-        url: mainFrameData.frameUrl,
-        thumbnail: imageData,
-        body: JSON.stringify(screenBody),
-        favIcon: iconPath,
-        type: ScreenType.SerDom,
-      },
-    });
-
-    data = resp.data;
+    try {
+      const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+        method: 'POST',
+        body: {
+          name: mainFrameData.title.substring(180),
+          url: mainFrameData.frameUrl,
+          thumbnail: imageData,
+          body: JSON.stringify(screenBody),
+          favIcon: iconPath,
+          type: ScreenType.SerDom,
+        },
+      });
+      data = resp.data;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+    }
   } else if (!imageData) {
     return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
   } else {
-    const screenImgFile = dataURLtoFile(imageData, 'img.png');
-    const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-      method: 'POST',
-      body: {
-        name: 'Untitled',
-        type: ScreenType.Img,
-        body: JSON.stringify(getImgScreenData()),
-        contentType: screenImgFile.type
-      },
-    });
+    try {
+      const screenImgFile = dataURLtoFile(imageData, 'img.png');
+      const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+        method: 'POST',
+        body: {
+          name: 'Untitled',
+          type: ScreenType.Img,
+          body: JSON.stringify(getImgScreenData()),
+          contentType: screenImgFile.type
+        },
+      });
 
-    data = resp.data;
-    await uploadImageAsBinary(screenImgFile, data.uploadUrl!);
-    await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
-      method: 'POST',
-      body: {
-        screenRid: data.rid
-      },
-    });
-    elPath = '$';
-    replacedWithImgScreen = true;
+      data = resp.data;
+      await uploadImageAsBinary(screenImgFile, data.uploadUrl!);
+      await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
+        method: 'POST',
+        body: {
+          screenRid: data.rid
+        },
+      });
+      elPath = '$';
+      replacedWithImgScreen = true;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+    }
   }
 
   // TODO error handling with data
