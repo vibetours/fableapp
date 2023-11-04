@@ -572,7 +572,7 @@ async function postProcessSerDocs(
       const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
         method: 'POST',
         body: {
-          name: mainFrameData.title.substring(0, 48),
+          name: (mainFrameData.title || '').substring(0, 48),
           url: mainFrameData.frameUrl,
           thumbnail: imageData,
           body: JSON.stringify(screenBody),

@@ -23,7 +23,7 @@ export default function PublishButton(props: Props): JSX.Element {
 
     const res = await props.publishTour(props.tour!);
     props.setIsPublishing(false);
-    setButtonTitle('Publish the demo now!');
+    setButtonTitle('Publish');
 
     if (!res) {
       props.setIsPublishFailed(true);
@@ -32,7 +32,7 @@ export default function PublishButton(props: Props): JSX.Element {
 
   return (
     <Tooltip
-      title="Just click publish and your tour will be published and ready to share."
+      title="Publish your demo for your buyers to experience."
       overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}
       placement="bottom"
     >
@@ -40,7 +40,7 @@ export default function PublishButton(props: Props): JSX.Element {
         size={props.size || 'large'}
         disabled={!props.tour}
         style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem' }}
-        onClick={handleClick}
+        onMouseUp={handleClick}
       >
         {buttonTitle}
       </Button>

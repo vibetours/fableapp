@@ -176,7 +176,7 @@ export const CanvasOption = styled.button`
   text-align: left;
   padding: 0.5rem;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: #16023E;
 
   &:hover {

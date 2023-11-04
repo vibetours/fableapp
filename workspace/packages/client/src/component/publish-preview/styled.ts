@@ -59,7 +59,7 @@ export const Header = styled.div`
   .right-section {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 0.5rem;
 
     .publish-btn {
       padding-left: 16px;

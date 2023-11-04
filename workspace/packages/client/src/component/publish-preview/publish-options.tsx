@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Popover, Tooltip, message } from 'antd';
-import { UndoOutlined } from '@ant-design/icons';
+import { Popover, Tooltip, message, Button as AntButton } from 'antd';
+import { BarChartOutlined, UndoOutlined } from '@ant-design/icons';
+import { Link } from 'react-router-dom';
 import * as Tags from './styled';
 import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
 import ShareIcon from '../../assets/icons/share.svg';
@@ -65,7 +66,18 @@ export default function PublishOptions(props: Props): JSX.Element {
               <img className="action-icon" src={ShareIcon} alt="" />
             </div>
           </Tooltip>
-
+          <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
+            <Link to={props.tour ? `/a/demo/${props.tour.rid}` : ''}>
+              <AntButton
+                size="small"
+                shape="circle"
+                type="text"
+                icon={<BarChartOutlined
+                  style={{ color: 'white' }}
+                />}
+              />
+            </Link>
+          </Tooltip>
           <div className="publish-btn">
             <PublishButton
               setIsPublishFailed={setIsPublishFailed}
@@ -79,11 +91,7 @@ export default function PublishOptions(props: Props): JSX.Element {
         </div>
 
         {props.tour && <ShareTourModal
-          setIsPublishFailed={setIsPublishFailed}
-          isPublishFailed={isPublishFailed}
           publishTour={props.publishTour}
-          setIsPublishing={setIsPublishing}
-          isPublishing={isPublishing}
           manifestPath={props.manifestPath}
           tour={props.tour!}
           height={height}

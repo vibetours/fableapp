@@ -31,7 +31,7 @@ export default function ScreenCard({ frameData, favicon }: Props) {
       <Tags.Thumbnail src={thumbnailFrameData} alt="thumbnail" />
       <Tags.TitleCon>
         {favicon ? <Tags.Avatar src={favicon} alt="favicon" /> : <div style={{ width: '1rem', height: '1rem' }} />}
-        <Tags.CardTitle>{serDomFrameData.title}</Tags.CardTitle>
+        <Tags.CardTitle>{(serDomFrameData.title || '').substring(0, 48)}</Tags.CardTitle>
       </Tags.TitleCon>
       <Tags.LinkCon>
         <img src={ArrowTopRight} alt="" />

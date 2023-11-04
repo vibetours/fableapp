@@ -226,6 +226,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.allToursLoadingStatus = LoadingStatus.InProgress;
       newState.currentTour = null;
+      newState.tourLoaded = false;
       return newState;
     }
 
@@ -279,7 +280,7 @@ export default function projectReducer(state = initialState, action: Action) {
       } else if (tAction.performedAction === 'publish' || tAction.performedAction === 'edit') {
         const updatedTour = {
           ...tAction.tour,
-          screens: state.currentTour?.screens!.slice(0)
+          screens: state.currentTour?.screens?.slice(0)
         };
         newState.currentTour = updatedTour;
         newState.tours = state.tours.map(tour => (tour.rid === updatedTour.rid ? updatedTour : tour));

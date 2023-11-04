@@ -31,8 +31,6 @@ interface Props {
 export default function TourCard({ tour, handleShowModal, handleDelete, publishTour, manifestPath }: Props): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublishFailed, setIsPublishFailed] = useState(false);
 
   const copyHandler = async (): Promise<void> => {
     const text = getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`);
@@ -154,11 +152,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
         closeModal={() => setIsShareModalVisible(false)}
         copyHandler={copyHandler}
         embedClickedFrom="tours"
-        isPublishing={isPublishing}
         manifestPath={manifestPath}
-        setIsPublishing={setIsPublishing}
-        setIsPublishFailed={setIsPublishFailed}
-        isPublishFailed={isPublishFailed}
         publishTour={publishTour}
         openShareModal={() => setIsShareModalVisible(true)}
         tour={tour}

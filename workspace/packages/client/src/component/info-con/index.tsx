@@ -5,7 +5,8 @@ import FableLogo from '../../assets/fable_logo_light_bg.png';
 import Button from '../button';
 
 export interface InfoBtn {
-  linkTo: string;
+  linkTo?: string;
+  onClick?: () => void;
   text: string;
   type: 'primary' | 'secondary';
 }
@@ -32,15 +33,30 @@ export default function infoCon(props: IOwnProps): JSX.Element {
       <div className="btn-con">
         {props.btns.map((btn, i) => {
           if (!btn) return <></>;
-          return (
-            <Link
-              key={i}
-              to={btn.linkTo}
-              className="link"
-            >
-              <Button style={{ width: '100%' }} intent={btn.type}>{btn.text}</Button>
-            </Link>
-          );
+          if (btn.linkTo) {
+            return (
+              <Link
+                key={i}
+                to={btn.linkTo}
+                className="link"
+              >
+                <Button style={{ width: '100%' }} intent={btn.type}>{btn.text}</Button>
+              </Link>
+            );
+          }
+          if (btn.onClick) {
+            return (
+              <Button
+                key={i}
+                style={{ width: '100%' }}
+                intent={btn.type}
+                onMouseUp={btn.onClick}
+              >
+                {btn.text}
+              </Button>
+            );
+          }
+          return <></>;
         })}
       </div>
     </InfoCon>

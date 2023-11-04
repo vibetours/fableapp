@@ -41,11 +41,7 @@ interface Props {
   manifestPath: string;
   width: string;
   tour: P_RespTour;
-  isPublishing: boolean;
   openShareModal: () => void;
-  setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsPublishFailed: React.Dispatch<React.SetStateAction<boolean>>;
-  isPublishFailed: boolean;
 }
 
 const enum SearchParamBy{
@@ -55,6 +51,8 @@ const enum SearchParamBy{
 
 export default function ShareTourModal(props: Props): JSX.Element {
   const [messageApi, contextHolder] = message.useMessage();
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishFailed, setIsPublishFailed] = useState(false);
   const [searchParams, setSearchParams] = useState<Record<SearchParamBy, ParamType>>({
     [SearchParamBy.UserParam]: [],
     [SearchParamBy.UtmParam]: []
@@ -97,11 +95,11 @@ export default function ShareTourModal(props: Props): JSX.Element {
         footer={null}
       >
         <Tags.ModalBodyCon>
-          {props.isPublishing ? (
+          {isPublishing ? (
             <div className="section-heading">Publishing</div>
           ) : (
             <div className="section-con">
-              {props.isPublishFailed && (
+              {isPublishFailed && (
                 <>
                   <div className="section-heading">Failed to publish the tour</div>
                 </>
@@ -115,16 +113,16 @@ export default function ShareTourModal(props: Props): JSX.Element {
                     For a demo to go live, you’ll need to publish it. Please click on <em>publish</em> below once you are done making all changes.
                   </div>
                   <PublishButton
-                    setIsPublishFailed={props.setIsPublishFailed}
+                    setIsPublishFailed={setIsPublishFailed}
                     tour={props.tour}
                     publishTour={props.publishTour}
                     openShareModal={props.openShareModal}
-                    setIsPublishing={props.setIsPublishing}
+                    setIsPublishing={setIsPublishing}
                   />
                 </>
               )}
 
-              {!props.isPublishFailed
+              {!isPublishFailed
                 && props.tour
                 && getPublicationState(props.tour) === PublicationState.PUBLISHED
                 && (
@@ -143,18 +141,18 @@ export default function ShareTourModal(props: Props): JSX.Element {
                     <em>Last publish date: <span style={{ fontWeight: 500 }}>{props.tour.lastPublishedDate.toString()}</span></em>
                   </div>
                   <PublishButton
-                    setIsPublishFailed={props.setIsPublishFailed}
+                    setIsPublishFailed={setIsPublishFailed}
                     tour={props.tour}
                     publishTour={props.publishTour}
                     openShareModal={props.openShareModal}
-                    setIsPublishing={props.setIsPublishing}
+                    setIsPublishing={setIsPublishing}
                   />
                 </>
               )}
             </div>
           )}
 
-          {!props.isPublishFailed
+          {!isPublishFailed
             && props.tour
             && (getPublicationState(props.tour) !== PublicationState.UNPUBLISHED)
             && (

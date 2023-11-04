@@ -917,7 +917,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
             >Creating the interactive demo...
             </Tags.HeaderText>
             <Tags.SubheaderText>
-              We are linking your product's colorscheme, styling, animations etc... so that your prouct's experiences could be showcased with highest fidelity. It might take a little bit of time based on how your app is engineered. <i>Please keep this tab open while we create your interactive demo. You will be automatically redirected to the demo once we are done.</i>
+              We are linking your product's colorscheme, styling, animations etc... so that your product's experiences could be showcased with highest fidelity. It might take a little bit of time based on how your app is engineered. <i>Please keep this tab open while we create your interactive demo. You will be automatically redirected to the demo once we are done.</i>
             </Tags.SubheaderText>
             <Tags.SkeletonGrid>
               {this.frameDataToBeProcessed.map((frameData, idx) => (

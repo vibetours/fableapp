@@ -3,6 +3,7 @@ import { Button as AntButton, message } from 'antd';
 import { Link } from 'react-router-dom';
 import { RespUser, Status } from '@fable/common/dist/api-contract';
 import {
+  BarChartOutlined,
   CaretDownOutlined,
   CaretRightOutlined,
   EditOutlined,
@@ -226,7 +227,7 @@ function Header(props: IOwnProps): JSX.Element {
                     </Tooltip>
                   </Tags.MenuItem>
                   <Tags.MenuItem>
-                    <Tooltip title="Embed" overlayStyle={{ fontSize: '0.75rem' }}>
+                    <Tooltip title="Embed demo" overlayStyle={{ fontSize: '0.75rem' }}>
                       <AntButton
                         id="step-2"
                         size="small"
@@ -241,7 +242,20 @@ function Header(props: IOwnProps): JSX.Element {
                       />
                     </Tooltip>
                   </Tags.MenuItem>
-
+                  <Tags.MenuItem>
+                    <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
+                      <Link to={`/a/demo/${props.tour.rid}`}>
+                        <AntButton
+                          size="small"
+                          shape="circle"
+                          type="text"
+                          icon={<BarChartOutlined
+                            style={{ color: 'white' }}
+                          />}
+                        />
+                      </Link>
+                    </Tooltip>
+                  </Tags.MenuItem>
                 </>
               )
             }
@@ -297,6 +311,13 @@ function Header(props: IOwnProps): JSX.Element {
             }
             {props.publishOptions && (props.publishOptions)}
             {props.publishTour && (
+            <div
+              className="publish-btn"
+              style={{
+                borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
+                paddingLeft: '16px'
+              }}
+            >
               <PublishButton
                 setIsPublishFailed={setIsPublishFailed}
                 setIsPublishing={setIsPublishing}
@@ -305,6 +326,7 @@ function Header(props: IOwnProps): JSX.Element {
                 size="medium"
                 openShareModal={() => setIsModalVisible(true)}
               />
+            </div>
             )}
           </div>
         )}
@@ -361,11 +383,7 @@ function Header(props: IOwnProps): JSX.Element {
       </Tags.RMenuCon>
 
       {props.tour && props.publishTour && <ShareTourModal
-        setIsPublishFailed={setIsPublishFailed}
-        isPublishFailed={isPublishFailed}
         publishTour={props.publishTour}
-        setIsPublishing={setIsPublishing}
-        isPublishing={isPublishing}
         tour={props.tour!}
         height="100%"
         manifestPath={props.manifestPath}
