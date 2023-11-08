@@ -525,7 +525,9 @@ async function postProcessSerDocs(
                     headNode?.chldrn.push({
                       type: -1,
                       name: '-data-f-sprite',
-                      attrs: {},
+                      attrs: {
+                        'f-id': nanoid(),
+                      },
                       props: {
                         proxyUrlMap: {},
                         content: proxyiedContent,

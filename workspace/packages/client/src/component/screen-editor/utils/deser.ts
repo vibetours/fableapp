@@ -1,4 +1,5 @@
 import { SerNode } from '@fable/common/dist/types';
+import { nanoid } from 'nanoid';
 import { DeSerProps } from '../preview';
 
 const FABLE_CUSTOM_NODE = -1;
@@ -51,8 +52,15 @@ export const deser = (
 
     case FABLE_CUSTOM_NODE: {
       const wrapper = document.createElement('div');
-      wrapper.innerHTML = serNode.props.content!;
-      node = wrapper.children[0];
+      if (serNode.props.content) {
+        wrapper.innerHTML = serNode.props.content;
+        node = wrapper.children[0];
+      } else {
+        node = document.createElement('div');
+      }
+      if (!serNode.attrs['f-id']) {
+        node.setAttribute('f-id', nanoid());
+      }
       break;
     }
 
