@@ -52,15 +52,9 @@ export const deser = (
 
     case FABLE_CUSTOM_NODE: {
       const wrapper = document.createElement('div');
-      if (serNode.props.content) {
-        wrapper.innerHTML = serNode.props.content;
-        node = wrapper.children[0];
-      } else {
-        node = document.createElement('div');
-      }
-      if (!serNode.attrs['f-id']) {
-        node.setAttribute('f-id', nanoid());
-      }
+      wrapper.innerHTML = serNode.props.content!;
+      node = wrapper.children[0];
+      node.setAttribute('f-id', serNode.attrs['f-id'] || nanoid());
       break;
     }
 
@@ -200,7 +194,7 @@ export const createHtmlElement = (
         el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
       }
     } catch (e) {
-      console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
+      // console.info(`[Stage=Deser] can't set attr key=${attrKey} value=${attrValue}`);
     }
   }
 

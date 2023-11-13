@@ -520,21 +520,23 @@ async function postProcessSerDocs(
                 } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
                   node.props.origHref = pUrl;
                   if (node.props.isInlineSprite) {
-                    svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
                     node.attrs.href = node.props.spriteId ?? assetUrl.hash;
-                    headNode?.chldrn.push({
-                      type: -1,
-                      name: '-data-f-sprite',
-                      attrs: {
-                        'f-id': nanoid(),
-                      },
-                      props: {
-                        proxyUrlMap: {},
-                        content: proxyiedContent,
-                      },
-                      chldrn: [],
-                      sv: 2
-                    });
+                    if (!(`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls)) {
+                      headNode?.chldrn.push({
+                        type: -1,
+                        name: '-data-f-sprite',
+                        attrs: {
+                          'f-id': nanoid(),
+                        },
+                        props: {
+                          proxyUrlMap: {},
+                          content: proxyiedContent,
+                        },
+                        chldrn: [],
+                        sv: 2
+                      });
+                    }
+                    svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
                   } else {
                     node.attrs[proxyAttr] = proxyiedUrl;
                   }
