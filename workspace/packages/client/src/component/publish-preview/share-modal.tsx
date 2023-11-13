@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
-import { CodeOutlined, CodepenOutlined, CopyOutlined, FileImageOutlined, FileMarkdownOutlined, LinkOutlined } from '@ant-design/icons';
-import { Tooltip, message } from 'antd';
+import { CodeOutlined, CodepenOutlined, FileImageOutlined, LinkOutlined } from '@ant-design/icons';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
@@ -35,7 +34,7 @@ interface Props {
   relativeUrl: string;
   isModalVisible: boolean;
   closeModal: () => void;
-  copyHandler: () => Promise<void>;
+  copyUrl: string;
   embedClickedFrom: 'tours' | 'header';
   height: string;
   manifestPath: string;
@@ -50,7 +49,6 @@ const enum SearchParamBy{
 }
 
 export default function ShareTourModal(props: Props): JSX.Element {
-  const [messageApi, contextHolder] = message.useMessage();
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublishFailed, setIsPublishFailed] = useState(false);
   const [searchParams, setSearchParams] = useState<Record<SearchParamBy, ParamType>>({
@@ -66,25 +64,16 @@ export default function ShareTourModal(props: Props): JSX.Element {
     else setSearchParamsStr('');
   }, [searchParams]);
 
-  const success = (): void => {
-    messageApi.open({
-      type: 'success',
-      content: 'Copied to clipboard',
-    });
-  };
-
   const iframeEmbedCopyHandler = (): void => {
     traceEvent(AMPLITUDE_EVENTS.EMBED_TOUR, {
       embed_type: 'ifame_html',
       embed_clicked_from: props.embedClickedFrom,
       tour_url: createIframeSrc(props.relativeUrl.slice(2))
     }, [CmnEvtProp.EMAIL]);
-    props.copyHandler();
   };
 
   return (
     <>
-      {contextHolder}
       <GTags.BorderedModal
         focusTriggerAfterClose={false}
         className="share-modal"
@@ -175,6 +164,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       width={props.width}
                       copyHandler={iframeEmbedCopyHandler}
                       src={createIframeSrc(props.relativeUrl + searchParamsStr)}
+                      copyUrl={props.copyUrl}
                     />
                     <InlineLinkExpand
                       gap="1rem"
@@ -209,7 +199,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                     <p>
                       You can share the following URL with your buyers and they will be able to experience the interactive demo
                     </p>
-                    <UrlCodeShare url={createIframeSrc(props.relativeUrl + searchParamsStr)} />
+                    <UrlCodeShare url={createIframeSrc(props.relativeUrl + searchParamsStr)} showOpenLinkButton />
                     <InlineLinkExpand
                       gap="1rem"
                       title={(

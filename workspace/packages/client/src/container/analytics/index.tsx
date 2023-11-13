@@ -240,8 +240,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           isModalVisible={this.state.showShareModal}
           closeModal={() => this.setState({ showShareModal: false })}
           openShareModal={() => this.setState({ showShareModal: true })}
-          copyHandler={async () => {
-          }}
+          copyUrl=""
           embedClickedFrom="header"
         />}
       </>

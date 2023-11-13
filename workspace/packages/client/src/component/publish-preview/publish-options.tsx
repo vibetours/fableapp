@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Popover, Tooltip, message, Button as AntButton } from 'antd';
+import { Popover, Tooltip, Button as AntButton } from 'antd';
 import { BarChartOutlined, UndoOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import * as Tags from './styled';
@@ -8,7 +8,7 @@ import ShareIcon from '../../assets/icons/share.svg';
 import PublishButton from './publish-button';
 import { P_RespTour } from '../../entity-processor';
 import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
-import { copyToClipboard, getIframeShareCode } from '../header/utils';
+import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from './share-modal';
 
 interface Props {
@@ -26,21 +26,10 @@ export default function PublishOptions(props: Props): JSX.Element {
   const [openPopover, setOpenPopover] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublishFailed, setIsPublishFailed] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
   const { height, width } = getDimensionsBasedOnDisplaySize(props.selectedDisplaySize);
-
-  const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode(height, width, `/p/demo/${props.tour?.rid}`);
-    await copyToClipboard(text);
-    messageApi.open({
-      type: 'success',
-      content: 'Copied to clipboard',
-    });
-  };
 
   return (
     <>
-      {contextHolder}
       <Tags.Header>
         <div className="right-section">
           <Tooltip title="Replay" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
@@ -100,7 +89,7 @@ export default function PublishOptions(props: Props): JSX.Element {
           isModalVisible={props.showShareModal}
           closeModal={() => props.setShowShareModal(false)}
           openShareModal={() => props.setShowShareModal(true)}
-          copyHandler={copyHandler}
+          copyUrl={getIframeShareCode(height, width, `/p/demo/${props.tour?.rid}`)}
           embedClickedFrom="header"
         />}
       </Tags.Header>

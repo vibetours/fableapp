@@ -5,5 +5,3 @@ export const getIframeShareCode = (height: string, width: string, relativeURL = 
   const iframe = `<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);" width="${width}" height="${height}" src="${iframeSrc}" allowfullscreen></iframe>`;
   return iframe;
 };
-
-export const copyToClipboard = (text: string): Promise<void> => navigator.clipboard.writeText(text);

@@ -1,7 +1,3 @@
-import React, { Dispatch, ReactElement, SetStateAction, useState } from 'react';
-import { Button as AntButton, message } from 'antd';
-import { Link } from 'react-router-dom';
-import { RespUser, Status } from '@fable/common/dist/api-contract';
 import {
   BarChartOutlined,
   CaretDownOutlined,
@@ -13,20 +9,24 @@ import {
   ShareAltOutlined,
   WarningOutlined
 } from '@ant-design/icons';
-import Tooltip from 'antd/lib/tooltip';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import { RespUser, Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
-import * as Tags from './styled';
-import FableQuill from '../../assets/fable-quill.svg';
-import * as GTags from '../../common-styled';
-import FableLogo from '../../assets/fableLogo.svg';
-import { copyToClipboard, getIframeShareCode } from './utils';
-import Input from '../input';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
-import { PlanBadge } from './plan-badge';
+import { Button as AntButton } from 'antd';
+import Tooltip from 'antd/lib/tooltip';
+import React, { Dispatch, ReactElement, SetStateAction, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import FableQuill from '../../assets/fable-quill.svg';
+import FableLogo from '../../assets/fableLogo.svg';
+import * as GTags from '../../common-styled';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import Input from '../input';
 import PublishButton from '../publish-preview/publish-button';
 import ShareTourModal from '../publish-preview/share-modal';
+import { PlanBadge } from './plan-badge';
+import * as Tags from './styled';
+import { getIframeShareCode } from './utils';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -67,7 +67,6 @@ const CMN_HEADER_GRP_DIVISION = {
 };
 
 function Header(props: IOwnProps): JSX.Element {
-  const [messageApi, contextHolder] = message.useMessage();
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublishFailed, setIsPublishFailed] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -101,18 +100,8 @@ function Header(props: IOwnProps): JSX.Element {
     setIsModalVisible(false);
   };
 
-  const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`);
-    await copyToClipboard(text);
-    messageApi.open({
-      type: 'success',
-      content: 'Copied to clipboard',
-    });
-  };
-
   return (
     <Tags.Con style={{ color: '#fff' }}>
-      {contextHolder}
       <Tags.LMenuCon style={CMN_HEADER_GRP_STYLE}>
         <div style={{ ...CMN_HEADER_GRP_STYLE, gap: '0.5rem' }}>
           {props.shouldShowFullLogo ? (
@@ -392,7 +381,7 @@ function Header(props: IOwnProps): JSX.Element {
         isModalVisible={isModalVisible}
         closeModal={closeModal}
         openShareModal={() => setIsModalVisible(true)}
-        copyHandler={copyHandler}
+        copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`)}
         embedClickedFrom="header"
       />}
       <GTags.BorderedModal

@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
 import {
-  CaretRightOutlined,
   BarChartOutlined,
-  ShareAltOutlined,
-  EditOutlined,
+  CaretRightOutlined,
   CopyOutlined,
   DeleteOutlined,
-  MoreOutlined
+  EditOutlined,
+  MoreOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons';
-import { Tooltip, Popover, Button, message } from 'antd';
-import { CmnEvtProp } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { P_RespTour } from '../../entity-processor';
-import * as Tags from './styled';
-import { CtxAction } from '../../container/tours';
-import * as GTags from '../../common-styled';
-import ShareTourModal from '../publish-preview/share-modal';
-import { getIframeShareCode, copyToClipboard } from '../header/utils';
+import { CmnEvtProp } from '@fable/common/dist/types';
+import { Button, Popover, Tooltip } from 'antd';
+import React, { useState } from 'react';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import * as GTags from '../../common-styled';
+import { CtxAction } from '../../container/tours';
+import { P_RespTour } from '../../entity-processor';
 import { createIframeSrc } from '../../utils';
+import { getIframeShareCode } from '../header/utils';
+import ShareTourModal from '../publish-preview/share-modal';
+import * as Tags from './styled';
 
 interface Props {
   tour: P_RespTour;
@@ -29,20 +29,10 @@ interface Props {
 }
 
 export default function TourCard({ tour, handleShowModal, handleDelete, publishTour, manifestPath }: Props): JSX.Element {
-  const [messageApi, contextHolder] = message.useMessage();
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
-  const copyHandler = async (): Promise<void> => {
-    const text = getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`);
-    await copyToClipboard(text);
-    messageApi.open({
-      type: 'success',
-      content: 'Copied to clipboard',
-    });
-  };
   return (
     <>
-      {contextHolder}
       <Tags.TourCardCon to={`/demo/${tour.rid}`}>
         <Tags.TourThumbnail />
         <Tags.CardDataCon>
@@ -150,12 +140,12 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
         isModalVisible={isShareModalVisible}
         relativeUrl={`/p/demo/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}
-        copyHandler={copyHandler}
         embedClickedFrom="tours"
         manifestPath={manifestPath}
         publishTour={publishTour}
         openShareModal={() => setIsShareModalVisible(true)}
         tour={tour}
+        copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`)}
       />
     </>
   );

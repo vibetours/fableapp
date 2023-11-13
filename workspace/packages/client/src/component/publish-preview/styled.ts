@@ -115,14 +115,6 @@ export const ModalBodyCon = styled.div`
     margin: 0
   }
 
-  .url-con {
-    border: 1px solid lightgray;
-    border-radius: 12px;
-    padding: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-  }
-
   .ellipsis {
     white-space: nowrap;
     overflow: hidden;
@@ -136,6 +128,21 @@ export const ModalBodyCon = styled.div`
     margin-left: 0.2rem;
     border-radius: 4px;
     cursor: pointer;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .check-outline {
+    background-color: #ebebeb;
+    color: #3fb950;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
   }
 `;
 
@@ -172,4 +179,40 @@ export const BackgroundGradientImg = styled.img`
   width: 100vw;
   z-index: -1;
   object-fit: cover;  
+`;
+
+export const URLCon = styled.div`
+  border: 1px solid lightgray;
+  border-radius: 12px;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+
+  .url-content {
+    white-space: nowrap;
+
+    scrollbar-color: #7567FF #E5E7EB;
+    scrollbar-width: thin;
+    overflow-y: hidden;
+    overflow-x: auto;
+  
+    &::-webkit-scrollbar-track {
+      padding: 2px 0;
+      background-color: #e5e7eb;
+      border-radius: 10px;
+      border: 1px solid #F3F4F6;
+    }
+  
+    &::-webkit-scrollbar {
+      margin: 4px 0;
+      height: 4px;
+      width: 6px;
+    }
+  
+    &::-webkit-scrollbar-thumb {
+      border-radius: 10px;
+      background-color: #646e82;
+    } 
+  }
 `;

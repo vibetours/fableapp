@@ -1,40 +1,52 @@
-import React from 'react';
-import { Tooltip, message } from 'antd';
-import { CopyOutlined } from '@ant-design/icons';
+import React, { useEffect } from 'react';
+import { Tooltip } from 'antd';
+import { ArrowRightOutlined } from '@ant-design/icons';
+import CopyHandler from './copy-handler';
+import * as Tags from './styled';
 
 interface IProps {
   url: string;
+  showOpenLinkButton?: boolean;
 }
 
 export default function (props: IProps): JSX.Element {
-  const [messageApi, contextHolder] = message.useMessage();
+  const scrollLeft = (): void => {
+    const targetNode = document.getElementsByClassName('url-content');
+    const element = targetNode[0];
+    if (!element) return;
 
-  const success = (): void => {
-    messageApi.open({
-      type: 'success',
-      content: 'Copied to clipboard',
-    });
+    element.scrollLeft = element.scrollWidth;
   };
 
+  useEffect(() => {
+    scrollLeft();
+  }, []);
+
   return (
-    <div className="url-con">
-      <div>
+    <Tags.URLCon>
+      <div className="url-content" style={{ marginRight: props.showOpenLinkButton ? '60px' : '30px' }}>
         <code>
           <span>
             {props.url}
           </span>
         </code>
       </div>
-
-      <Tooltip title="Copy to clipboard">
-        <CopyOutlined
+      {props.showOpenLinkButton && (
+      <Tooltip title="Open url">
+        <div
           className="copy-outline"
-          onClick={() => {
-            success();
-            navigator.clipboard.writeText(props.url);
-          }}
-        />
+          style={{ position: 'absolute', right: '40px' }}
+        >
+          <ArrowRightOutlined
+            onClick={() => {
+              window.open(props.url, '_blank');
+            }}
+            style={{ transform: 'rotate(-45deg)' }}
+          />
+        </div>
       </Tooltip>
-    </div>
+      )}
+      <CopyHandler copyUrl={props.url} />
+    </Tags.URLCon>
   );
 }
