@@ -1,65 +1,21 @@
 import { SerNode } from '@fable/common/dist/types';
+import { DeSerProps } from '../../preview';
 
-type Diff = {
-    parentFid: string,
-    parentElPath: string,
-    parentSerNode: SerNode,
-    isPartOfShadowHost: boolean,
+export type AddDiff = {
+    addedNode: SerNode,
+    nextFid: string,
+    textNode: SerNode | null,
+    props: DeSerProps,
 }
 
-export type DelDiff = Diff & {
-    toBeDeletedNodes: ToBeDeletedNodes[];
-}
-
-export type ToBeDeletedNodes = {
+export type DelDiff = {
     fid: string,
-    idx: number,
-    type: 'textcomment' | 'element',
+    isTextComment: boolean,
 }
 
-export type SerNodeWithElPath = {
-    node: SerNode,
-    elPath: string,
-}
-
-export type SerNodeWithElPathAndIsSVG = {
-    node: SerNode,
-    elPath: string,
-    isPartOfSVG: boolean,
-}
-
-export type SerNodeWithElPathAndIsShadow = {
-    node: SerNode,
-    elPath: string,
-    isPartOfShadowHost: boolean,
-}
-
-export type SerNodeWithElPathAndIsSVGAndIsShadow = {
-    node: SerNode,
-    elPath: string,
-    isPartOfSVG: boolean,
-    isPartOfShadowHost: boolean,
-}
-
-export type AddDiff = Diff & {
-    toBeAddedNodes: ToBeAddedNode[],
-}
-
-export type ToBeAddedNode = {
+export type UpdateDiff = {
     fid: string,
-    idx: number,
-    type: 'textcomment' | 'element',
-    isPartOfSVG: boolean,
-}
-
-export type UpdateDiff = Diff & {
-    toBeUpdatedNodes: ToBeUpdatedNode[];
-}
-
-export type ToBeUpdatedNode = {
-    fid: string,
-    idx: number,
-    updates: Update[]
+    updates: Update[],
 }
 
 export type Update = {
@@ -68,19 +24,30 @@ export type Update = {
     attrNewVal: string,
 }
 
-export type ReplaceDiff = Diff & {
-    toBeReplacedNodes: ToBeReplacedNode[];
+export type CommonNode = {
+    serNodeOfTree1: SerNode,
+    serNodeOfTree2: SerNode,
 }
 
-export type ToBeReplacedNode = {
+export type ReplaceDiff = {
     fid: string,
-    idx: number,
-    replaceNodeIdx: number,
-    isPartOfSVG: boolean,
+    serNode: SerNode,
+    props: DeSerProps,
 }
 
-export type ReorderDiff = Diff & {
-    isPartOfSVG: boolean,
+export type DiffsSerNode = {
+    addedNodes: AddDiff[],
+    deletedNodes: DelDiff[],
+    updatedNodes: UpdateDiff[],
+    commonNodes: CommonNode[],
+    replaceNodes: ReplaceDiff[],
+    shouldReplaceNode: boolean,
+    nodeProps: DeSerProps,
 }
 
-export type Prop = keyof SerNode['props']
+export type QueueNode = {
+    serNodeOfTree1: SerNode,
+    node1: HTMLElement,
+    serNodeOfTree2: SerNode,
+    props: DeSerProps,
+}

@@ -3,12 +3,13 @@ import { connect } from 'react-redux';
 import { CreateJourneyData, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
   LoadingStatus, ScreenData } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
-import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse } from '../../screen-adjacency-list';
+import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse, QueueNode } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { AnnotationPerScreen, EditItem, FWin, NavFn, FlowProgress } from '../../types';
 import {
@@ -28,6 +29,7 @@ import {
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
 import JourneyMenu from '../../component/journey-menu';
 import InfoCon from '../../component/info-con';
+import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -37,8 +39,12 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData) => dispatch(loadTourAndData(rid, true, true, loadPublishedData)),
-  loadScreenAndData: (rid, isPreloading, loadPublishedData) => dispatch(loadScreenAndData(rid, true, isPreloading, loadPublishedData)),
+  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData) => dispatch(
+    loadTourAndData(rid, true, true, loadPublishedData)
+  ),
+  loadScreenAndData: (rid, isPreloading, loadPublishedData) => dispatch(
+    loadScreenAndData(rid, true, isPreloading, loadPublishedData)
+  ),
 });
 
 interface IAppStateProps {
@@ -110,7 +116,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private loadedScreenRids: Set<string> = new Set<string>();
 
+  private iframesToPrerenderIds: Set<number> = new Set<number>();
+
   private localJourneyProgress: Record<string, FlowProgress[]> = getJourneyProgress();
+
+  private loadedScreenHosts: Set<string> = new Set<string>();
 
   constructor(props: IProps) {
     super(props);
@@ -163,7 +173,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   getScreenDataPreloaded(
     screen: P_RespScreen,
     nextScreenPrerenderCount: number,
-    startScreens: P_RespScreen[]
+    startScreens: P_RespScreen[],
+    initalScreenLoad: boolean,
   ): P_RespScreen[] {
     const nextScreensToPrerender = bfsTraverse(
       this.adjList!,
@@ -177,28 +188,73 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const prerenderList = this.removeDuplicateScreens([
       ...nextScreensToPrerender.traversedNodes,
       ...prevScreensToPrerender.traversedNodes,
-    ]).filter(s => !this.loadedScreenRids.has(s.rid));
+    ]).filter(({ screen: s }) => !this.loadedScreenRids.has(s.rid));
 
-    prerenderList.map(s => this.props.loadScreenAndData(
+    prerenderList.map(({ screen: s }) => this.props.loadScreenAndData(
       s.rid,
       s.id !== screen.id,
       !this.props.staging
     ));
 
-    prerenderList.forEach(s => this.loadedScreenRids.add(s.rid));
+    prerenderList.forEach(({ screen: s }) => this.loadedScreenRids.add(s.rid));
 
-    return prerenderList;
+    return this.handleIframesToPrerender(prerenderList, initalScreenLoad);
   }
 
+  handleIframesToPrerender = (initialPrerenderList: QueueNode[], initalScreenLoad: boolean): P_RespScreen[] => {
+    initialPrerenderList
+      .sort((a, b) => a.level - b.level);
+
+    const filteredPrerenderList: P_RespScreen[] = [];
+
+    if (initalScreenLoad) {
+      const prerenderListGroupedByScreen: Record<number, P_RespScreen[]> = {};
+      initialPrerenderList.forEach(node => {
+        const key = node.startScreenId;
+        if (prerenderListGroupedByScreen[key]) {
+          prerenderListGroupedByScreen[key].push(node.screen);
+        } else {
+          prerenderListGroupedByScreen[key] = [node.screen];
+        }
+      });
+
+      Object.entries(prerenderListGroupedByScreen).forEach(([key, screens]) => {
+        const loadedScreenHosts: Set<string> = new Set<string>();
+
+        screens.forEach(currScreen => {
+          const currScreenHost = currScreen.urlStructured.host;
+
+          if (!loadedScreenHosts.has(currScreenHost)) {
+            filteredPrerenderList.push(currScreen);
+            loadedScreenHosts.add(currScreenHost);
+            this.loadedScreenHosts.add(currScreenHost);
+          }
+        });
+      });
+    } else {
+      initialPrerenderList.forEach(node => {
+        const currScreenHost = node.screen.urlStructured.host;
+        if (!this.loadedScreenHosts.has(currScreenHost)) {
+          filteredPrerenderList.push(node.screen);
+          this.loadedScreenHosts.add(currScreenHost);
+        }
+      });
+    }
+
+    filteredPrerenderList.forEach(screen => this.iframesToPrerenderIds.add(screen.id));
+
+    return filteredPrerenderList;
+  };
+
   // eslint-disable-next-line class-methods-use-this
-  removeDuplicateScreens(screens: P_RespScreen[]): P_RespScreen[] {
-    const uniqueScreens: P_RespScreen[] = [];
+  removeDuplicateScreens(nodes: QueueNode[]): QueueNode[] {
+    const uniqueScreens: QueueNode[] = [];
     const traversedScreenIds: Record<string, boolean> = {};
 
-    screens.forEach(screen => {
-      if (!traversedScreenIds[screen.id]) {
-        uniqueScreens.push(screen);
-        traversedScreenIds[screen.id] = true;
+    nodes.forEach(node => {
+      if (!traversedScreenIds[node.screen.id]) {
+        uniqueScreens.push(node);
+        traversedScreenIds[node.screen.id] = true;
       }
     });
 
@@ -328,7 +384,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       if (this.state.initialScreenRid) {
         const screen = this.getScreenAtId(currScreenRId, 'rid');
         const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
-        this.getScreenDataPreloaded(screen, 1, startScreens);
+        this.getScreenDataPreloaded(screen, 1, startScreens, false);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
         // in this case, we navigate to main, hence, firstTimeLoading is false
@@ -340,7 +396,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    // this happens when the user uses the tourUrl as /tour/tourid/screenid
+    // this happens when the user uses the tourUrl as /tour/tourid/screenid/annid
     if (currScreenRId && firstTimeTourLoading) {
       this.initialScreenLoad(currScreenRId);
       if (this.isJourneyAdded()) {
@@ -378,7 +434,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
 
-    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreens);
+    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreens, true);
     initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
 
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
@@ -428,8 +484,54 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         screenData,
         screenEdits
       };
+    }).filter(slot => {
+      const shouldPrerenderIframe = this.iframesToPrerenderIds.has(slot.screen.id);
+      if (shouldPrerenderIframe) return true;
+
+      const isNavigatedToCurrScreen = slot.screen.id === this.getCurrScreenId();
+      if (isNavigatedToCurrScreen) return true;
+
+      if (!slot.isRenderReady || !this.adjList) return false;
+
+      const adjListEntries = this.adjList[slot.screen.id];
+
+      const willDiffsApply = this.shouldDiffApply(
+        {
+          screen: slot.screen,
+          data: slot.screenData,
+        },
+        [...adjListEntries[1], ...adjListEntries[2]].map(screen => ({
+          screen,
+          data: this.props.screenDataAcrossScreens[screen.id]
+        }))
+      );
+
+      return !willDiffsApply;
     });
     return v;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  shouldDiffApply(
+    screen1Slot: {
+    screen: P_RespScreen,
+    data: ScreenData
+  },
+    screen2Slot: {
+    screen: P_RespScreen,
+    data: ScreenData
+  }[]
+  ): boolean {
+    const isAnyOfThemScreenImg = screen1Slot.screen.type === ScreenType.Img
+    || screen2Slot.find(slot => slot.screen.type === ScreenType.Img);
+    const isCurrScreenOldVersioned = screen1Slot.data?.version !== SCREEN_DIFFS_SUPPORTED_VERSION;
+    const isAdjacentScreensOldVersioned = screen2Slot
+      .filter(slot => slot.data)
+      .find(slot => slot.data.version !== SCREEN_DIFFS_SUPPORTED_VERSION);
+    const isHostDifferent = screen2Slot.find(slot => screen1Slot.screen.urlStructured.host
+      !== slot.screen.urlStructured.host);
+
+    return !(isAnyOfThemScreenImg || isCurrScreenOldVersioned || isAdjacentScreensOldVersioned || isHostDifferent);
   }
 
   getCurrScreenId(): number {
@@ -520,7 +622,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 editsAcrossScreens={this.props.editsAcrossScreens}
                 preRenderNextScreen={(screen: P_RespScreen) => {
                   const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
-                  this.getScreenDataPreloaded(screen, 1, startScreens);
+                  this.getScreenDataPreloaded(screen, 1, startScreens, false);
                 }}
                 allFlows={this.props.tourJourney?.flows.map(flow => flow.main) || []}
                 currentFlowMain={this.state.currentFlowMain}

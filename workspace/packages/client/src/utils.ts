@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { IAnnotationConfig, ITourEntityHotspot } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourEntityHotspot, SerNode } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
 import {
@@ -279,4 +279,106 @@ export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { hei
     default:
       return { height: '100%', width: '100%' };
   }
+};
+
+export function isDeepEqual<T>(obj1: T, obj2: T): boolean {
+  const stack1: T[] = [obj1];
+  const stack2: T[] = [obj2];
+
+  while (stack1.length > 0 && stack2.length > 0) {
+    const currentObj1 = stack1.pop();
+    const currentObj2 = stack2.pop();
+
+    if (typeof currentObj1 !== typeof currentObj2) {
+      return false;
+    }
+
+    if (typeof currentObj1 === 'object'
+    && currentObj1 !== null
+    && typeof currentObj2 === 'object'
+    && currentObj2 !== null
+    ) {
+      const keys1 = Object.keys(currentObj1);
+      const keys2 = Object.keys(currentObj2);
+
+      if (keys1.length !== keys2.length) {
+        return false;
+      }
+
+      keys1.forEach(key => {
+        stack1.push((currentObj1 as any)[key]);
+      });
+
+      keys2.forEach(key => {
+        stack2.push((currentObj2 as any)[key]);
+      });
+    } else if (currentObj1 !== currentObj2) {
+      return false;
+    }
+  }
+
+  return stack1.length === 0 && stack2.length === 0;
+}
+
+export function removeDuplicatesOfStrArr(arr: string[]): string[] {
+  const obj: Record<string, boolean> = {};
+
+  for (const el of arr) {
+    obj[el] = true;
+  }
+
+  return Object.keys(obj);
+}
+
+export function getFidOfSerNode(node: SerNode): string {
+  if (!node) return '-1';
+  let fid: string;
+  if (node.type === 8 && node.name === '#comment') {
+    const sub = node.props.textContent!.split('==')[0];
+    fid = sub.split('/')[1];
+  } else {
+    fid = node.attrs['f-id']!;
+  }
+  return fid;
+}
+
+export function getFidOfNode(node: Node): string {
+  if (!node) return '-1';
+  let fid: string = '-1';
+  if (node.nodeType === Node.COMMENT_NODE) {
+    const sub = node.textContent!.split('==')[0];
+    fid = sub.split('/')[1];
+  } else if (node.nodeType === Node.TEXT_NODE) {
+    node = node.previousSibling as Node;
+    if (!node) return fid;
+    const sub = node.textContent!.split('==')[0];
+    fid = sub.split('/')[1];
+  } else if (node.nodeType === Node.ELEMENT_NODE) {
+    fid = (node as HTMLElement).getAttribute('f-id')!;
+  }
+  return fid;
+}
+
+export const getChildElementByFid = (node: Node, fid: string): HTMLElement | null => {
+  for (let i = 0; i < node.childNodes.length; i++) {
+    const child = node.childNodes[i] as HTMLElement;
+    switch (child.nodeType) {
+      case Node.TEXT_NODE:
+      case Node.COMMENT_NODE: {
+        const sub = child.textContent?.split('==')[0] || '';
+        const currFid = sub.split('/')[1];
+        if (currFid === fid) { return child as HTMLElement; }
+        break;
+      }
+      case Node.ELEMENT_NODE: {
+        const currFid = child.getAttribute('f-id') || '';
+        if (currFid === fid) return child as HTMLElement;
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  return null;
 };

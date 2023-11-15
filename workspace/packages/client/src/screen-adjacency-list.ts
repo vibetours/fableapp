@@ -60,9 +60,10 @@ export default function create(
   return adjList;
 }
 
-interface QueueNode {
+export interface QueueNode {
   screen: P_RespScreen;
   level: number;
+  startScreenId: number;
 }
 
 export const bfsTraverse = (
@@ -71,20 +72,20 @@ export const bfsTraverse = (
   nLevels: number,
   dir: 'prev' | 'next',
 ): {
-  traversedNodes: P_RespScreen[],
+  traversedNodes: QueueNode[],
   lastLevelNodes: P_RespScreen[],
 } => {
   const visited = new Set<number>();
   const queue: QueueNode[] = [];
-  const traversedNodes: P_RespScreen[] = [];
+  const traversedNodes: QueueNode[] = [];
   const lastLevelNodes: P_RespScreen[] = [];
 
   for (const startScreen of startScreens) {
-    queue.push({ screen: startScreen, level: 0 });
+    queue.push({ screen: startScreen, level: 0, startScreenId: startScreen.id });
   }
 
   while (queue.length > 0) {
-    const { screen, level } = queue.shift()!;
+    const { screen, level, startScreenId } = queue.shift()!;
 
     if (level > nLevels) {
       break;
@@ -95,14 +96,18 @@ export const bfsTraverse = (
     }
 
     if (!visited.has(screen.id)) {
-      traversedNodes.push(screen);
+      traversedNodes.push({
+        screen,
+        level,
+        startScreenId
+      });
       visited.add(screen.id);
 
       const neighbors = dir === 'prev' ? graph[screen.id][2] : graph[screen.id][1];
 
       for (const neighbor of neighbors) {
         if (!visited.has(neighbor.id)) {
-          queue.push({ screen: neighbor, level: level + 1 });
+          queue.push({ screen: neighbor, level: level + 1, startScreenId });
         }
       }
     }

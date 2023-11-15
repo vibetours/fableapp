@@ -2,6 +2,7 @@ import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/co
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
 import {
   AnnotationPerScreen,
@@ -24,18 +25,13 @@ import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserFrame, deserIframeEl } from './utils/deser';
-import { getAddDiffs, getDelDiffs, getReorderDiffs, getReplaceDiffs, getUpdateDiffs } from './utils/diffs/get-diffs';
-import {
-  applyAddDiffsToSerDom,
-  applyDelDiffsToSerDom,
-  applyReplaceDiffsToSerDom,
-  applyUpdateDiffsToSerDom
-} from './utils/diffs/apply-diffs-to-serdom';
-import { applyFadeInTransitionToNode } from './utils/diffs/utils';
-import { AddDiff, DelDiff, ReorderDiff, ReplaceDiff, ToBeUpdatedNode, UpdateDiff } from './utils/diffs/types';
 import { showOrHideEditsFromEl } from './utils/edits';
 import { getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import { areSerNodePropsDifferent, getDiffsOfImmediateChildren, getSerNodesAttrUpdates } from './utils/diffs/get-diffs';
+import { DiffsSerNode, QueueNode, Update } from './utils/diffs/types';
+import { getChildElementByFid, getFidOfNode, getFidOfSerNode } from '../../utils';
+import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 
 export interface IOwnProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
@@ -358,216 +354,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   getScreenById = (id: number): P_RespScreen | undefined => this.props.allScreens!.find(screen => screen.id === id);
 
-  applyDiffToDOM = (
-    diffs: ReplaceDiff[] | DelDiff[] | UpdateDiff[] | AddDiff[] | ReorderDiff[],
-    diffType: 'replace' | 'delete' | 'update' | 'add' | 'reorder',
-    screenDataVersion: string,
-  ): void => {
-    const doc = this.annotationLCM!.getDoc();
-
-    diffs.forEach(diff => {
-      if (diff.parentElPath === '-1') {
-        const htmlEl = this.annotationLCM!.elFromPath('1')!;
-
-        switch (diffType) {
-          case 'update': {
-            const updateDiff = diff as UpdateDiff;
-            updateDiff.toBeUpdatedNodes.forEach(toBeUpdatedNode => {
-              applyUpdateDiff(toBeUpdatedNode, htmlEl);
-            });
-            break;
-          }
-          case 'replace': {
-            const replaceDiff = diff as ReplaceDiff;
-
-            replaceDiff.toBeReplacedNodes.forEach(toBeReplacedNode => {
-              const replacedNode = this.deserElOrIframeEl(
-                diff.parentSerNode.chldrn[toBeReplacedNode.replaceNodeIdx],
-                doc,
-                screenDataVersion,
-                {
-                  partOfSvgEl: toBeReplacedNode.isPartOfSVG ? 1 : 0,
-                  shadowParent: null
-                }
-              )!;
-              const originalOpacity = getOriginalOpacity(replacedNode);
-              setOpacityOfNode(replacedNode, '0');
-
-              htmlEl.replaceWith(replacedNode);
-
-              applyFadeInTransitionToNode(replacedNode, originalOpacity);
-            });
-            break;
-          }
-          default:
-            break;
-        }
-
-        return;
-      }
-
-      const isParentShadowRoot: boolean = diff.parentSerNode.props.isShadowRoot || false;
-      let parentEl = this.annotationLCM!.elFromPath(diff.parentElPath) as Node;
-
-      if (parentEl?.nodeName.toLowerCase() === 'head') {
-        deletePrependStylesFromHead(parentEl);
-      }
-
-      if (parentEl!.nodeName.toLowerCase() === 'iframe' || parentEl!.nodeName.toLowerCase() === 'object') {
-        parentEl = (parentEl as HTMLIFrameElement).contentDocument as Node;
-      }
-
-      if (diffType === 'reorder') {
-        diff = diff as ReorderDiff;
-        const newParentEl = this.deserElOrIframeEl(
-          diff.parentSerNode,
-          parentEl.ownerDocument! || doc,
-          screenDataVersion,
-          {
-            partOfSvgEl: diff.isPartOfSVG ? 1 : 0,
-            /**
-           * TODO: Confirm what should be here for shadow root
-           */
-            shadowParent: (parentEl as HTMLElement).shadowRoot,
-          }
-        )!;
-        (parentEl as HTMLElement).replaceWith(newParentEl);
-      } else {
-        switch (diffType) {
-          case 'replace': {
-            const replaceDiff = diff as ReplaceDiff;
-            replaceDiff.toBeReplacedNodes.forEach(toBeReplacedNode => {
-              const replacedNode = this.deserElOrIframeEl(
-                diff.parentSerNode.chldrn[toBeReplacedNode.replaceNodeIdx],
-                parentEl.ownerDocument! || doc,
-                screenDataVersion,
-                {
-                  partOfSvgEl: toBeReplacedNode.isPartOfSVG ? 1 : 0,
-                  shadowParent: null
-                }
-              )!;
-              parentEl!.replaceChild(replacedNode, parentEl!.childNodes[toBeReplacedNode.idx]);
-
-              const originalOpacity = getOriginalOpacity(replacedNode);
-              setOpacityOfNode(replacedNode, '0');
-
-              applyFadeInTransitionToNode(replacedNode, originalOpacity);
-            });
-            break;
-          }
-
-          case 'delete': {
-            const delDiff = diff as DelDiff;
-
-            delDiff.toBeDeletedNodes.forEach(toBeDeletedNode => {
-              if (toBeDeletedNode.type === 'textcomment') {
-                parentEl!.childNodes[toBeDeletedNode.idx + 1]?.remove();
-              }
-              const node = parentEl!.childNodes[toBeDeletedNode.idx];
-              node?.remove();
-            });
-            break;
-          }
-
-          case 'update': {
-            const updateDiff = diff as UpdateDiff;
-
-            updateDiff.toBeUpdatedNodes.forEach(toBeUpdatedNode => {
-              const el = parentEl!.childNodes[toBeUpdatedNode.idx];
-              applyUpdateDiff(toBeUpdatedNode, el);
-            });
-            break;
-          }
-
-          case 'add': {
-            const addDiff = diff as AddDiff;
-
-            addDiff.toBeAddedNodes.forEach(toBeAddedNode => {
-              const addedNode = this.deserElOrIframeEl(
-                diff.parentSerNode.chldrn[toBeAddedNode.idx],
-                parentEl.ownerDocument! || doc,
-                screenDataVersion,
-                {
-                  partOfSvgEl: toBeAddedNode.isPartOfSVG ? 1 : 0,
-                  shadowParent: null
-                }
-              );
-
-              const originalOpacity = getOriginalOpacity(addedNode);
-              setOpacityOfNode(addedNode, '0');
-
-              const pivotEl = parentEl!.childNodes[toBeAddedNode.idx];
-
-              parentEl!.insertBefore(addedNode, pivotEl);
-
-              if (toBeAddedNode.type === 'textcomment') {
-                const addedTextNode = deser(
-                  diff.parentSerNode.chldrn[toBeAddedNode.idx + 1],
-                  parentEl.ownerDocument! || doc,
-                  screenDataVersion,
-                  this.frameLoadingPromises,
-                  this.assetLoadingPromises,
-                  this.nestedFrames,
-                  {
-                    partOfSvgEl: toBeAddedNode.isPartOfSVG ? 1 : 0,
-                    shadowParent: null
-                  }
-                )!;
-
-                parentEl!.insertBefore(addedTextNode, pivotEl);
-              }
-
-              applyFadeInTransitionToNode(addedNode, originalOpacity);
-            });
-            break;
-          }
-
-          default:
-            break;
-        }
-      }
-    });
-
-    function deletePrependStylesFromHead(head: Node): void {
-      for (let i = head.childNodes.length - 1; i >= 0; i--) {
-        const node = head.childNodes[i] as Element;
-        if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.COMMENT_NODE
-          && !node.getAttribute('f-id')
-          && node.getAttribute('data-rc-order') === 'prependQueue'
-        ) {
-          node.remove();
-        }
-      }
-    }
-
-    function applyUpdateDiff(toBeUpdatedNode: ToBeUpdatedNode, el: Node): void {
-      if (el?.nodeType !== Node.TEXT_NODE && el?.nodeType !== Node.COMMENT_NODE) {
-        toBeUpdatedNode.updates.forEach(update => {
-          if (update.attrKey === 'style') {
-            const allStyles = update.attrNewVal.split(';').filter(prop => !prop.match(/\s*transition/));
-            update.attrNewVal = allStyles.join(' ; ');
-          }
-          (el as Element).setAttribute(update.attrKey, update.attrNewVal);
-        });
-        (el as HTMLElement).style.transition = 'all 0.3s ease-out';
-      }
-    }
-
-    function getOriginalOpacity(node: Node): string {
-      let originalOpacity = '1';
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        originalOpacity = getComputedStyle(node as Element).opacity;
-      }
-      return originalOpacity;
-    }
-
-    function setOpacityOfNode(node: Node, opacity: string): void {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        (node as HTMLElement).style.opacity = opacity;
-      }
-    }
-  };
-
   deserElOrIframeEl = (
     serNode: SerNode,
     doc: Document,
@@ -599,6 +385,180 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
 
     return deserNode;
+  };
+
+  getAndApplyDiffs = (tree1: SerNode, tree2: SerNode, doc: Document, version: string): boolean => {
+    try {
+      /**
+       * Check if the entire html needs to replaced or updated
+       */
+      const htmlEl = this.annotationLCM!.elFromPath('1')!;
+      if (tree1.attrs['f-id'] !== tree2.attrs['f-id'] || areSerNodePropsDifferent(tree1, tree2)) {
+        const newNode = this.deserElOrIframeEl(tree2, doc, version, {
+          partOfSvgEl: 0,
+          shadowParent: null,
+        })!;
+        (htmlEl as HTMLElement).replaceWith(newNode);
+        return true;
+      }
+
+      const updates = getSerNodesAttrUpdates(tree1, tree2);
+      applyUpdateDiff(updates, htmlEl);
+
+      /**
+       * Checking diffs from html as parentElement
+       */
+      const queue: QueueNode[] = [{
+        serNodeOfTree1: tree1,
+        node1: doc.documentElement,
+        serNodeOfTree2: tree2,
+        props: {
+          partOfSvgEl: 0,
+          shadowParent: null,
+        }
+      }];
+
+      while (queue.length > 0) {
+        const { serNodeOfTree1, node1, serNodeOfTree2, props } = queue.shift()!;
+
+        // get diffs of only the node1's immediate children
+        const diffs = getDiffsOfImmediateChildren(
+          { serNode: serNodeOfTree1, props },
+          { serNode: serNodeOfTree2, props }
+        );
+
+        // apply diffs to only node1's immediate children or replace node1
+        this.applyDiffsToDom(node1, serNodeOfTree2, diffs, doc, version, props);
+
+        // traverse its children
+        const commonNodes = diffs.commonNodes;
+        for (let i = 0; i <= commonNodes.length - 1; i++) {
+          const commonNode = commonNodes[i];
+
+          let parentNode = node1 as Node;
+          if (node1.nodeName.toLowerCase() === 'iframe') {
+            parentNode = (node1 as HTMLIFrameElement).contentDocument as Node;
+          }
+
+          const node = getChildElementByFid(parentNode, getFidOfSerNode(commonNode.serNodeOfTree1));
+          if (node) {
+            queue.push({
+              serNodeOfTree1: commonNode.serNodeOfTree1,
+              serNodeOfTree2: commonNode.serNodeOfTree2,
+              node1: node!,
+              props: {
+                partOfSvgEl: props.partOfSvgEl || commonNode.serNodeOfTree1.name.toLowerCase() === 'svg' ? 1 : 0,
+                shadowParent: null,
+              }
+            });
+          }
+        }
+      }
+
+      return true;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      return false;
+    }
+  };
+
+  applyDiffsToDom = (
+    node: Node,
+    serNodeInTree2: SerNode,
+    diffs: DiffsSerNode,
+    doc: Document,
+    version: string,
+    props: DeSerProps,
+  ): void => {
+    if (node.nodeName.toLowerCase() === 'head') {
+      deletePrependStylesFromHead(node);
+    }
+
+    // replace node if required
+    if (diffs.shouldReplaceNode) {
+      const newNode = this.deserElOrIframeEl(serNodeInTree2, doc, version, props)!;
+      (node as HTMLElement).replaceWith(newNode);
+      return;
+    }
+
+    /**
+     * apply diffs to node's immediate children
+     */
+    let parentNode = node;
+    if (node.nodeName.toLowerCase() === 'iframe') {
+      parentNode = (node as HTMLIFrameElement).contentDocument as Node;
+    }
+
+    diffs.deletedNodes.forEach(diff => {
+      const el = getChildElementByFid(parentNode, diff.fid)!;
+      if (diff.isTextComment) {
+        const nextSibling = el.nextSibling!;
+        nextSibling.remove();
+      }
+      el.remove();
+    });
+
+    diffs.addedNodes.forEach(diff => {
+      const addedNode = this.deserElOrIframeEl(diff.addedNode, doc, version, diff.props)!;
+      const originalOpacity = getOriginalOpacity(addedNode);
+      setOpacityOfNode(addedNode, '0');
+      let nextEl = getChildElementByFid(parentNode, diff.nextFid) as Node;
+      if (!nextEl && parentNode.nodeName.toLowerCase() === 'body') {
+        const lastEl = node.childNodes[parentNode.childNodes.length - 1];
+        const fid = getFidOfNode(lastEl);
+        const umbrellaDiv = (node as HTMLElement).querySelector('.fable-rt-umbrl');
+        if (!fid && umbrellaDiv) {
+          nextEl = umbrellaDiv;
+        }
+      }
+      if (diff.textNode) {
+        const textNode = this.deserElOrIframeEl(diff.textNode, doc, version, diff.props);
+        parentNode.insertBefore(textNode, nextEl);
+        nextEl = textNode;
+      }
+      parentNode.insertBefore(addedNode, nextEl);
+      applyFadeInTransitionToNode(addedNode, originalOpacity);
+    });
+
+    diffs.updatedNodes.forEach(diff => {
+      const el = getChildElementByFid(parentNode, diff.fid)!;
+      applyUpdateDiff(diff.updates, el);
+    });
+
+    diffs.replaceNodes.forEach(diff => {
+      const nodeToReplace = getChildElementByFid(parentNode, diff.fid) as HTMLElement;
+      const newNode = this.deserElOrIframeEl(diff.serNode, doc, version, diff.props)!;
+      nodeToReplace.replaceWith(newNode);
+    });
+
+    /**
+     * Helper functions for the above applying diffs logic
+     */
+    function getOriginalOpacity(htmlNode: Node): string {
+      let originalOpacity = '1';
+      if (htmlNode.nodeType === Node.ELEMENT_NODE) {
+        originalOpacity = getComputedStyle(htmlNode as Element).opacity;
+      }
+      return originalOpacity;
+    }
+
+    function setOpacityOfNode(htmlNode: Node, opacity: string): void {
+      if (htmlNode.nodeType === Node.ELEMENT_NODE) {
+        (htmlNode as HTMLElement).style.opacity = opacity;
+      }
+    }
+
+    function deletePrependStylesFromHead(head: Node): void {
+      for (let i = head.childNodes.length - 1; i >= 0; i--) {
+        const currNode = head.childNodes[i] as Element;
+        if (currNode.nodeType !== Node.TEXT_NODE && currNode.nodeType !== Node.COMMENT_NODE
+          && !currNode.getAttribute('f-id')
+          && currNode.getAttribute('data-rc-order') === 'prependQueue'
+        ) {
+          currNode.remove();
+        }
+      }
+    }
   };
 
   applyDiffAndGoToAnn = async (
@@ -702,28 +662,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
-      const replaceDiffs = getReplaceDiffs(currScreenData.docTree, goToScreenData.docTree);
-      const afterReplaceSerDom = applyReplaceDiffsToSerDom(replaceDiffs, currScreenData.docTree);
+      const res = this.getAndApplyDiffs(currScreenData.docTree, goToScreenData.docTree, doc, goToScreenData.version);
 
-      this.applyDiffToDOM(replaceDiffs, 'replace', goToScreenData.version);
-
-      const delDiffs = getDelDiffs(afterReplaceSerDom, goToScreenData.docTree);
-      const afterDelSerDom = applyDelDiffsToSerDom(delDiffs, afterReplaceSerDom);
-
-      this.applyDiffToDOM(delDiffs, 'delete', goToScreenData.version);
-
-      const updateDiffs = getUpdateDiffs(afterDelSerDom, goToScreenData.docTree);
-      const afterUpdateSerDom = applyUpdateDiffsToSerDom(updateDiffs, afterDelSerDom);
-
-      this.applyDiffToDOM(updateDiffs, 'update', goToScreenData.version);
-
-      const addDiffs = getAddDiffs(afterUpdateSerDom, goToScreenData.docTree);
-      const afterAddSerDom = applyAddDiffsToSerDom(addDiffs, afterUpdateSerDom);
-
-      this.applyDiffToDOM(addDiffs, 'add', goToScreenData.version);
-
-      const reorderDiffs = getReorderDiffs(afterAddSerDom, goToScreenData.docTree);
-      this.applyDiffToDOM(reorderDiffs, 'reorder', goToScreenData.version);
+      if (!res) {
+        throw Error(`Animation failed between ${currScreen.id} and ${goToScreen.id}`);
+      }
 
       while (this.frameLoadingPromises.length) {
         await this.frameLoadingPromises.shift();

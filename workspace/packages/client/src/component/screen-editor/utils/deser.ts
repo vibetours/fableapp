@@ -2,7 +2,7 @@ import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import { DeSerProps } from '../preview';
 
-const FABLE_CUSTOM_NODE = -1;
+export const FABLE_CUSTOM_NODE = -1;
 
 export const deser = (
   serNode: SerNode,
@@ -28,7 +28,7 @@ export const deser = (
       break;
     case Node.ELEMENT_NODE:
       if (serNode.name === 'meta') {
-        node = doc.createComment('meta');
+        node = doc.createComment(`metafid/${serNode.attrs['f-id']}`);
       } else {
         node = createHtmlElement(
           serNode,
@@ -42,9 +42,14 @@ export const deser = (
       }
       break;
 
-    case Node.COMMENT_NODE:
-      node = doc.createComment(serNode.props.textContent || '');
+    case Node.COMMENT_NODE: {
+      let commentText = serNode.props.textContent;
+      if (!commentText || serNode.name !== '#comment') {
+        commentText = `elfid/${serNode.attrs['f-id']}`;
+      }
+      node = doc.createComment(commentText);
       break;
+    }
 
     case Node.DOCUMENT_FRAGMENT_NODE:
       node = newProps.shadowParent;
