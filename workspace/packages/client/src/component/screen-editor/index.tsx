@@ -18,6 +18,7 @@ import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { Tooltip } from 'antd';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
+import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
@@ -77,7 +78,7 @@ import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFr
 import Loader from '../loader';
 import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
-import FocusBubble from './focus-bubble';
+import FocusBubble from '../annotation/focus-bubble';
 import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interactive-demo-guide/part-2';
 import SelectorComponent from '../../user-guides/selector-component';
 import { UserGuideMsg } from '../../user-guides/types';
@@ -666,8 +667,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.highlightEditElIfSelected(this.state.selectedEl);
     }
 
-    if (prevProps.tourDataOpts.annotationSelectionColor !== this.props.tourDataOpts.annotationSelectionColor) {
-      this.iframeElManager?.updateConfig('selectionColor', this.props.tourDataOpts.annotationSelectionColor);
+    if (prevProps.allAnnotationsForTour !== this.props.allAnnotationsForTour) {
+      const prevConfig = getAnnotationByRefId(this.state.selectedAnnotationId, prevProps.allAnnotationsForTour);
+      const currConfig = getAnnotationByRefId(this.state.selectedAnnotationId, this.props.allAnnotationsForTour);
+
+      if (currConfig && prevConfig?.annotationSelectionColor !== currConfig.annotationSelectionColor) {
+        this.iframeElManager?.updateConfig('selectionColor', currConfig.annotationSelectionColor);
+      }
     }
 
     if (prevState.activeTab !== this.state.activeTab) {
@@ -1305,7 +1311,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     <div style={{ paddingTop: '1rem' }}>
                       <div>
                         <div style={{ position: 'relative', overflow: 'hidden' }}>
-                          <FocusBubble />
+                          <FocusBubble style={{ marginLeft: '12px', marginTop: '4px' }} />
                           <Tags.AnimatedInfoText key="info">{helpText}</Tags.AnimatedInfoText>
                         </div>
                       </div>
@@ -1469,7 +1475,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   <>
                     {this.props.screen.type === ScreenType.SerDom && (
                       <>
-                        <FocusBubble />
+                        <FocusBubble style={{ marginLeft: '12px', marginTop: '4px' }} />
                         <Tags.InfoText>
                           Click on an element to edit. Click again to reselect.
                         </Tags.InfoText>
@@ -1705,7 +1711,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
     const highlighterBaseConfig = {
-      selectionColor: this.props.tourDataOpts.annotationSelectionColor,
+      selectionColor: an ? an.annotationSelectionColor : DEFAULT_BLUE_BORDER_COLOR,
       showOverlay: an?.showOverlay || true
     };
 

@@ -152,6 +152,7 @@ async function addAnnotationConfigs(
   annotationBodyBackgroundColor: string,
   annotationBorderRadius: number
 ): Promise<{ tourDataFile: TourData, tourRid: string }> {
+  const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
   let tourDataFile: TourData;
   let tourRid: string;
 
@@ -225,6 +226,7 @@ async function addAnnotationConfigs(
   for (let i = 0; i < screenInfo.length; i++) {
     const screen = screenInfo[i];
     const annotationConfig = annConfigs[i];
+    annotationConfig.annotationSelectionColor = relevantColors.selection;
     if (!(i === 0 && i === screenInfo.length - 1)) {
       // If there is only one annotation in the tour then there is no point in connection, as both next and prev
       // will be empty
@@ -259,10 +261,8 @@ async function addAnnotationConfigs(
   // If we are adding annotations to existing tour then don't change anything from the theme
   if (!existingTour) {
     tourDataFile.opts.annotationBodyBackgroundColor = annotationBodyBackgroundColor;
-    const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
     tourDataFile.opts.primaryColor = relevantColors.primary;
     tourDataFile.opts.borderRadius = annotationBorderRadius;
-    tourDataFile.opts.annotationSelectionColor = relevantColors.selection;
     tourDataFile.opts.annotationFontColor = relevantColors.font;
   }
   return { tourDataFile, tourRid };

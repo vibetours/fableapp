@@ -2,6 +2,7 @@ import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/co
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
+import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
 import {
@@ -233,7 +234,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
 
     const highlighterBaseConfig = {
-      selectionColor: this.props.tourDataOpts.annotationSelectionColor,
+      selectionColor: an ? an.annotationSelectionColor : DEFAULT_BLUE_BORDER_COLOR,
       showOverlay: !!an?.showOverlay
     };
 

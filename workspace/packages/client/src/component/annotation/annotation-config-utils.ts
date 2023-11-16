@@ -11,7 +11,8 @@ import {
   VideoAnnotationPositions,
   AnnotationButtonLayoutType,
   CustomAnnDims,
-  CustomAnnotationPosition
+  CustomAnnotationPosition,
+  AnnotationSelectionShapeType
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -161,9 +162,24 @@ export function updateAnnotationButtonLayout<T extends IAnnotationConfig>(
   return newConfig;
 }
 
+export function updateAnnotationSelectionShape<T extends IAnnotationConfig>(
+  config: T,
+  selectionShape: AnnotationSelectionShapeType
+): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.selectionShape = selectionShape;
+  return newConfig;
+}
+
 export function updateOverlay<T extends IAnnotationConfig>(config: T, showOverlay: boolean): T {
   const newConfig = newConfigFrom(config);
   newConfig.showOverlay = showOverlay;
+  return newConfig;
+}
+
+export function updateSelectionColor<T extends IAnnotationConfig>(config: T, selectionColor: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.annotationSelectionColor = selectionColor;
   return newConfig;
 }
 

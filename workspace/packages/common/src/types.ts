@@ -109,7 +109,6 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationBodyBorderColor: string;
   annotationFontFamily: string | null;
   annotationFontColor: string;
-  annotationSelectionColor: string;
   main: string;
   borderRadius: number;
   annotationPadding: string;
@@ -230,6 +229,9 @@ export type EAnnotationBoxSize = 'small' | 'medium' | 'large' | 'custom';
 export const AnnotationButtonLayout = ['default', 'full-width'] as const;
 export declare type AnnotationButtonLayoutType = typeof AnnotationButtonLayout[number];
 
+export const AnnotationSelectionShape = ['box', 'pulse'] as const;
+export declare type AnnotationSelectionShapeType = typeof AnnotationSelectionShape[number];
+
 export type CustomAnnDims = {
   width: number,
 }
@@ -253,8 +255,10 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   videoUrlWebm: string;
   showOverlay: boolean;
   buttonLayout: AnnotationButtonLayoutType;
+  selectionShape: AnnotationSelectionShapeType;
   targetElCssStyle: string;
   annCSSStyle: string;
+  annotationSelectionColor: string;
 }
 
 // TODO perform this conversion, client side

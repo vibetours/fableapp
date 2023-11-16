@@ -19,6 +19,7 @@ import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import { isAnnCustomPosition } from './annotation-config-utils';
+import FocusBubble from './focus-bubble';
 
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
@@ -201,10 +202,14 @@ export class AnnotationContent extends React.PureComponent<{
 }
 
 export type AnimEntryDir = 'l' | 't' | 'r' | 'b';
+
+export const BUBBLE_RADIUS = 12;
 export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly BREATHING_SPACE_RATIO = 30;
 
   static readonly ANNOTAITON_EL_MARGIN = 20;
+
+  static readonly MIN_SPACE = 4;
 
   conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
@@ -363,6 +368,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       return { l, t, dir, isUltrawideBox };
     }
 
+    const extraSpace = displayConfig.opts.borderRadius;
+
     const maskBoxPadding = this.props.maskBox
       ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
       : { left: 0, right: 0, top: 0, bottom: 0 };
@@ -374,14 +381,17 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     const leftSpace = elBox.left;
     const rightSpace = winW - elBox.right;
-    const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
-    const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO);
+    const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO + extraSpace);
+    const mr = rightSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO + extraSpace);
     let p: 'l' | 'r' | 't' | 'b' | undefined;
+    let isHorDir = false;
     if (ml > 1 || mr > 1) {
       p = ml > mr ? 'l' : 'r';
+      isHorDir = true;
     }
-    if (p === 'l' || p === 'r') {
+    if (isHorDir) {
       t = elBox.top + elBox.height / 2 - (h / 2);
+
       if (t <= TOP_ANN_EL_MARGIN) {
         // If the top of the annotation is outside the viewport
         t = Math.max(elBox.top - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.top);
@@ -391,16 +401,22 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         t = Math.min(elBox.bottom - h + HighlighterBase.ANNOTATION_PADDING_ONE_SIDE, elBox.bottom - h);
       }
 
+      if (t - extraSpace <= AnnotationCard.MIN_SPACE || t + h + extraSpace >= winH) {
+        isHorDir = false;
+      }
+
       if (p === 'l') {
         l = elBox.left - w - LEFT_ANN_EL_MARGIN;
       } else {
         l = elBox.right + RIGHT_ANN_EL_MARGIN;
       }
-    } else {
+    }
+
+    if (!isHorDir) {
       const topSpace = elBox.top;
       const bottomSpace = winH - elBox.bottom;
-      const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
-      const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO);
+      const mt = topSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO + extraSpace);
+      const mb = bottomSpace / (h + AnnotationCard.BREATHING_SPACE_RATIO + extraSpace);
       if (mb > 1 || mt > 1) {
         p = mb > mt ? 'b' : 't';
       }
@@ -425,6 +441,67 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return {
       l, t, dir, isUltrawideBox
     };
+  };
+
+  adjustTopLeftOfAnn = (
+    l: number,
+    t: number,
+    w: number,
+    h: number,
+    dir: AnimEntryDir,
+  ): { l: number, t: number } => {
+    const displayConfig = this.props.annotationDisplayConfig;
+    const elBox = this.props.box;
+
+    const annBox = {
+      top: t,
+      left: l,
+      width: w,
+      height: h,
+    };
+
+    const borderRadius = displayConfig.opts.borderRadius;
+    const arrowWidth = 30;
+    const arrowHeight = arrowWidth;
+
+    if (dir === 'l' || dir === 'r') {
+      let arrowTop = elBox.top + elBox.height / 2 - arrowWidth / 2;
+      if (arrowTop + arrowHeight > annBox.top + annBox.height - borderRadius) {
+        const diff = (arrowTop + arrowHeight) - (annBox.top + annBox.height);
+        arrowTop -= diff;
+      } else if (arrowTop < annBox.top + borderRadius) {
+        const diff = annBox.top - arrowTop;
+        arrowTop += diff;
+      }
+      if (elBox.height < annBox.height) {
+        if (arrowTop < t + borderRadius) {
+          t -= borderRadius;
+        } else if (arrowTop + arrowWidth > t + h - borderRadius) {
+          t += borderRadius;
+        }
+      }
+    }
+
+    if (dir === 't' || dir === 'b') {
+      // debugger;
+      let arrowLeft = elBox.left + elBox.width / 2 - arrowWidth / 2;
+      if (arrowLeft + arrowWidth >= annBox.left + annBox.width - borderRadius) {
+        const diff = (arrowLeft + arrowWidth) - (annBox.left + annBox.width);
+        arrowLeft -= diff;
+      } else if (arrowLeft < annBox.left + borderRadius) {
+        const diff = annBox.left - arrowLeft;
+        arrowLeft += diff;
+      }
+      if (elBox.width < annBox.width) {
+        if (arrowLeft <= l + borderRadius) {
+          l -= borderRadius;
+        } else if (arrowLeft + arrowWidth >= l + w - borderRadius) {
+          l += borderRadius;
+        }
+      }
+    }
+
+    return { t, l };
   };
 
   getCustomAnnPosDir = (): AnimEntryDir => {
@@ -495,8 +572,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const winW = this.props.annotationDisplayConfig.windowWidth;
     const winH = this.props.annotationDisplayConfig.windowHeight;
 
-    if (l < 0) return true;
-    if (t < 0) return true;
+    if (l < AnnotationCard.MIN_SPACE) return true;
+    if (t < AnnotationCard.MIN_SPACE) return true;
     if (l + w > winW) return true;
     if (t + h > winH) return true;
 
@@ -536,6 +613,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       t = this.getCustomAnnPosTop(w, h);
       dir = this.getCustomAnnPosDir();
 
+      const adjustedPos = this.adjustTopLeftOfAnn(l, t, w, h, dir);
+      l = adjustedPos.l;
+      t = adjustedPos.t;
+
       const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
 
       if (annOutsideOfViewport) { showAutoPositioning = true; }
@@ -547,6 +628,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       l = renderingData.l;
       dir = renderingData.dir;
       isUltrawideBox = renderingData.isUltrawideBox;
+
+      if (!isUltrawideBox) {
+        const adjustedPos = this.adjustTopLeftOfAnn(l, t, w, h, dir);
+        l = adjustedPos.l;
+        t = adjustedPos.t;
+      }
     }
 
     const displayConfig = this.props.annotationDisplayConfig;
@@ -680,9 +767,9 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
 
   static ARROW_SPACE = AnnotationCard.ANNOTAITON_EL_MARGIN - AnnotationArrowHead.ARROW_PADDING;
 
-  private TRIANGLE_BASE_SIDE_LENGTH = 100;
+  private TRIANGLE_BASE_SIDE_LENGTH = 200;
 
-  private TRIANGLE_POINTING_SIDE_LENGTH = 80;
+  private TRIANGLE_POINTING_SIDE_LENGTH = 100;
 
   getArrowWidthHeight(): {arrowWidth: number, arrowHeight: number} {
     const arrowSpace = AnnotationArrowHead.ARROW_SPACE;
@@ -723,10 +810,10 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
       }
       if (top + arrowHeight > this.props.annBox.top + this.props.annBox.height - this.props.annBorderRadius / 2) {
         const diff = (top + arrowHeight) - (this.props.annBox.top + this.props.annBox.height);
-        top -= diff + this.props.annBorderRadius / 2;
+        top -= diff + this.props.annBorderRadius;
       } else if (top < this.props.annBox.top + this.props.annBorderRadius / 2) {
         const diff = this.props.annBox.top - top;
-        top += diff + this.props.annBorderRadius / 2;
+        top += diff + this.props.annBorderRadius;
       }
       styles.top = `${top}px`;
     } else {
@@ -738,10 +825,10 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
       }
       if (left + arrowWidth >= this.props.annBox.left + this.props.annBox.width - this.props.annBorderRadius / 2) {
         const diff = (left + arrowWidth) - (this.props.annBox.left + this.props.annBox.width);
-        left -= diff + this.props.annBorderRadius / 2;
+        left -= diff + this.props.annBorderRadius;
       } else if (left < this.props.annBox.left + this.props.annBorderRadius / 2) {
         const diff = this.props.annBox.left - left;
-        left += diff + this.props.annBorderRadius / 2;
+        left += diff + this.props.annBorderRadius;
       }
       styles.left = `${left}px`;
     }
@@ -933,7 +1020,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
           <Tags.AnHotspot
             key={p.conf.id}
             box={p.box}
-            selColor={p.opts.annotationSelectionColor}
+            selColor={p.conf.annotationSelectionColor}
             scrollX={p.scrollX}
             scrollY={p.scrollY}
             isGranularHotspot={p.isGranularHotspot}
@@ -1015,6 +1102,10 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         }
       };
 
+      const maskBoxPadding = p.maskBox
+        ? HighlighterBase.getMaskPaddingWithBox(p.box, p.maskBox)
+        : { left: 0, right: 0, top: 0, bottom: 0 };
+
       return (
         <div key={p.conf.config.id}>
           {
@@ -1043,6 +1134,16 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
           />}
+
+          {p.conf.config.selectionShape === 'pulse' && <FocusBubble
+            style={{
+              position: 'absolute',
+              top: `${p.box.top - maskBoxPadding.top - BUBBLE_RADIUS / 2}px`,
+              left: `${p.box.left - maskBoxPadding.left - BUBBLE_RADIUS / 2}px`
+            }}
+            selColor={p.conf.config.annotationSelectionColor}
+          />}
+
         </div>
       );
     }).filter(el => el) as JSX.Element[];

@@ -9,6 +9,7 @@ import {
   TourData
 } from './types';
 import { SchemaVersion } from './api-contract';
+import { DEFAULT_BLUE_BORDER_COLOR } from './constants';
 
 export function isSameOrigin(origin1: string, origin2: string): boolean {
   const url1 = new URL(origin1);
@@ -87,7 +88,6 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   annotationFontFamily: null,
   borderRadius: 4,
   annotationPadding: '14 14',
-  annotationSelectionColor: '#2196f3',
 });
 
 export function getSampleJourneyData() {
@@ -119,6 +119,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
   const id = getRandomId();
 
   return {
+    annotationSelectionColor: DEFAULT_BLUE_BORDER_COLOR,
     id: isCoverAnn ? `$#${id}` : elPath,
     refId: id,
     grpId,
@@ -163,6 +164,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
       hotspot: null
     }],
     buttonLayout: 'default',
+    selectionShape: 'box',
   };
 };
 

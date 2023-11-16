@@ -266,7 +266,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return `
 :root {
   --fable-primary-color: ${this.tourDataOpts.primaryColor};
-  --fable-selection-color: ${this.tourDataOpts.annotationSelectionColor};
+  --fable-selection-color: ${this.config.selectionColor};
   --fable-annotation-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor};
   --fable-annotation-border-color: ${this.tourDataOpts.annotationBodyBorderColor};
   --fable-annotation-font-color: ${this.tourDataOpts.annotationFontColor};
@@ -294,7 +294,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return () => {
       if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar();
       this.updateConfig('showOverlay', config.showOverlay);
-      this.updateConfig('selectionColor', this.tourDataOpts.annotationSelectionColor);
+      this.updateConfig('selectionColor', this.config.selectionColor);
       !this.isPlayMode && this.render();
     };
   }
@@ -431,7 +431,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
           this.updateConfig('selectionColor', '#ffffff00');
         } else {
-          this.updateConfig('selectionColor', this.opts.annotationSelectionColor);
+          this.updateConfig('selectionColor', annotationDisplayConfig.config.annotationSelectionColor);
         }
         if (annotationDisplayConfig.config.type === 'cover') {
           this.createFullScreenMask();
@@ -441,6 +441,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         } else {
           this.selectElementInDoc(el, el.ownerDocument);
         }
+      }
+
+      if (annotationDisplayConfig.config.selectionShape === 'pulse') {
+        this.updateConfig('selectionColor', 'transparent');
       }
 
       if (this.maskEl) {

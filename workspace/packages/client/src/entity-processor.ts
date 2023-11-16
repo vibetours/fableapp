@@ -21,6 +21,7 @@ import {
   TourScreenEntity,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
+import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import { TState } from './reducer';
 import {
   AllEdits,
@@ -303,9 +304,11 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     videoUrlWebm: lc.videoUrlWebm,
     showOverlay: lc.showOverlay,
     buttonLayout: lc.buttonLayout,
+    selectionShape: lc.selectionShape,
     targetElCssStyle: lc.targetElCssStyle,
     annCSSStyle: lc.annCSSStyle,
     customDims: lc.customDims,
+    annotationSelectionColor: lc.annotationSelectionColor,
   };
 }
 
@@ -331,6 +334,12 @@ export function normalizeBackwardCompatibility(
   an: IAnnotationOriginConfig,
   opts: ITourDataOpts
 ): IAnnotationOriginConfig {
+  if (an.annotationSelectionColor === undefined || an.annotationSelectionColor === null) {
+    // annotationSelectionColor was present in tour opts previous versions and now this config is moved to annotation cofnig
+    const tOpts = opts as ITourDataOpts & { annotationSelectionColor?: string };
+    an.annotationSelectionColor = tOpts.annotationSelectionColor || DEFAULT_BLUE_BORDER_COLOR;
+  }
+
   if (an.isHotspot === undefined || an.isHotspot === null) {
     an.isHotspot = false;
   }
@@ -357,6 +366,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.buttonLayout === undefined || an.buttonLayout === null) {
     an.buttonLayout = 'default';
+  }
+
+  if (an.selectionShape === undefined || an.selectionShape === null) {
+    an.selectionShape = 'box';
   }
 
   if (an.targetElCssStyle === undefined || an.targetElCssStyle === null) {
@@ -472,10 +485,6 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
 
   if (newOpts.annotationPadding === undefined || newOpts.annotationPadding === null) {
     newOpts.annotationPadding = '14 14';
-  }
-
-  if (newOpts.annotationSelectionColor === undefined || newOpts.annotationSelectionColor === null) {
-    newOpts.annotationSelectionColor = '#2196f3';
   }
 
   return newOpts;

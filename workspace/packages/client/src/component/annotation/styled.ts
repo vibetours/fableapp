@@ -8,6 +8,7 @@ import {
 import { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
 import { getColorContrast } from '../../utils';
+import { BUBBLE_RADIUS } from '.';
 
 export const BubbleCon = styled.div`
   position: absolute;
@@ -346,4 +347,87 @@ export const NavButtonCon = styled.div<{ pcolor: string }>`
       opacity: 1;
     }
   }
+`;
+
+const helpBubblePulse = keyframes`
+  0% {
+    transform: scale(1);
+    opacity: .75;
+  }
+  25% {
+    transform:scale(1);
+    opacity:.75;
+  }
+  100% {
+    transform:scale(2.5);
+    opacity:0
+  }
+`;
+
+export const HelpBubble = styled.a<{selColor?: string}>`
+  display: block;
+  position: absolute;
+  z-index: 2;
+  cursor: pointer;
+  left: 0px;
+  top: 0px;
+
+  &:after {
+    content: "";
+    background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
+    width: ${BUBBLE_RADIUS}px;
+    height: ${BUBBLE_RADIUS}px;
+    border-radius: 50%;
+    position: absolute;
+    display: block;
+    top: 1px;
+    left: 1px;
+  }
+`;
+
+export const HelpBubbleOuterDot = styled.span<{ selColor?: string }>`
+  margin: 1px;
+  display: block;
+  text-align: center;
+  opacity: 1;
+  background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
+  width: ${BUBBLE_RADIUS}px;
+  height: ${BUBBLE_RADIUS}px;
+  border-radius: 50%;
+  animation: ${helpBubblePulse} 1.5s linear infinite;
+`;
+
+export const HelpBubbleInnerDot = styled.span<{ selColor?: string }>`
+  background-position: absolute;
+  display: block;
+  text-align: center;
+  opacity: 1;
+  background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
+  width: ${BUBBLE_RADIUS}px;
+  height: ${BUBBLE_RADIUS}px;
+  border-radius: 50%;
+  -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
+  -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
+  -o-animation: ${helpBubblePulse} 1.5s linear infinite;
+  animation: ${helpBubblePulse} 1.5s linear infinite;
+
+  &:after {
+  content: "";
+  background-position: absolute;
+  display: block;
+  text-align: center;
+  opacity: 1;
+  background-color: ${({ selColor }) => selColor || 'rgba(117,103,255, 0.5)'};
+  width: ${BUBBLE_RADIUS}px;
+  height: ${BUBBLE_RADIUS}px;
+  border-radius: 50%;
+  -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
+  -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
+  -o-animation: ${helpBubblePulse} 1.5s linear infinite;
+  animation: ${helpBubblePulse} 1.5s linear infinite;
+  }
+`;
+
+export const Con = styled.div`
+  position: fixed;
 `;

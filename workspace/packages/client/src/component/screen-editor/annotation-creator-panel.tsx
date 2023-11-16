@@ -4,6 +4,8 @@ import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
+  AnnotationSelectionShape,
+  AnnotationSelectionShapeType,
   CmnEvtProp,
   CustomAnnotationPosition,
   EAnnotationBoxSize,
@@ -60,6 +62,8 @@ import {
   updateAnnotationCustomDims,
   isAnnCustomPosition,
   getAnnPositioningOptions,
+  updateAnnotationSelectionShape,
+  updateSelectionColor,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen, onAnnCreateOrChangeFn, } from '../../types';
@@ -221,8 +225,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       if (prevOpts.annotationFontColor !== opts.annotationFontColor) {
         amplitudeAnnotationEdited('branding-font_color', opts.annotationFontColor);
       }
-      if (prevOpts.annotationSelectionColor !== opts.annotationSelectionColor) {
-        amplitudeAnnotationEdited('branding-selection_color', opts.annotationSelectionColor);
+      if (prevConfig.annotationSelectionColor !== config.annotationSelectionColor) {
+        amplitudeAnnotationEdited('branding-selection_color', config.annotationSelectionColor);
       }
       if (prevConfig.buttonLayout !== config.buttonLayout) {
         amplitudeAnnotationEdited('branding-button_layout', config.buttonLayout);
@@ -620,7 +624,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.toHexString()));
                 }}
-                disabled={isVideoAnnotation(config)}
                 defaultValue={opts.primaryColor}
               />
             </div>
@@ -642,7 +645,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 onChangeComplete={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
                 }}
-                disabled={isVideoAnnotation(config)}
                 defaultValue={opts.annotationBodyBorderColor}
               />
             </div>
@@ -662,10 +664,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <Tags.ColorPicker
                 showText={(color) => color.toHexString()}
                 onChangeComplete={e => {
-                  setTourDataOpts(t => updateTourDataOpts(t, 'annotationSelectionColor', e.toHexString()));
+                  setConfig(c => updateSelectionColor(c, e.toHexString()));
                 }}
-                disabled={isVideoAnnotation(config)}
-                defaultValue={opts.annotationSelectionColor}
+                defaultValue={config.annotationSelectionColor}
               />
             </div>
             <div style={commonActionPanelItemStyle}>
@@ -725,6 +726,26 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               </div>
             </div>
             <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
+              <div style={{ padding: '0.3rem 0' }}>
+                {AnnotationSelectionShape.map(selectionShape => (
+                  <label htmlFor={selectionShape} key={selectionShape}>
+                    {selectionShape.charAt(0).toLocaleUpperCase() + selectionShape.slice(1)}
+                    <input
+                      id={selectionShape}
+                      type="radio"
+                      value={selectionShape}
+                      checked={config.selectionShape === selectionShape}
+                      onChange={(e) => {
+                        setConfig(c => updateAnnotationSelectionShape(c, e.target.value as AnnotationSelectionShapeType));
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div style={commonActionPanelItemStyle}>
               <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
               <Tags.InputText
                 placeholder="Enter padding"
@@ -753,7 +774,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 // bordered={false} // looks ugly
                 defaultValue={opts.borderRadius}
                 addonAfter="px"
-                disabled={isVideoAnnotation(config)}
                 onChange={e => {
                   setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
                 }}
