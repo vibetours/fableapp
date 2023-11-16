@@ -4,6 +4,7 @@ import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
 import {
   AnnotationPerScreen,
@@ -308,7 +309,18 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } else if (this.props.screen.type === ScreenType.Img) {
       targetEl = this.embedFrameRef?.current?.contentDocument?.body.querySelector('img')!;
     } else {
-      targetEl = this.annotationLCM.elFromPath(conf.id);
+      try {
+        targetEl = this.annotationLCM.elFromPath(conf.id);
+      } catch (err) {
+        if (this.props.playMode) {
+          const { screenId } = getAnnotationByRefId(conf.refId, this.props.allAnnotationsForTour)!;
+          const { rid: screenRid } = this.getScreenById(screenId)!;
+          this.resetIframe(screenRid);
+          targetEl = this.annotationLCM.elFromPath(conf.id);
+          sentryCaptureException(new Error(`Element not found while showing ann for ann
+          ${conf.refId} the route screen is rid: ${this.props.screen.rid} & ann is on ${screenRid}`));
+        }
+      }
     }
     this.annotationLCM!.show();
     await this.annotationLCM!.addOrReplaceAnnotation(
@@ -499,7 +511,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       el.remove();
     });
 
-    diffs.addedNodes.forEach(diff => {
+    diffs.addedNodes.reverse().forEach(diff => {
       const addedNode = this.deserElOrIframeEl(diff.addedNode, doc, version, diff.props)!;
       const originalOpacity = getOriginalOpacity(addedNode);
       setOpacityOfNode(addedNode, '0');
@@ -603,7 +615,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     || (goToScreen.urlStructured.host !== currScreen.urlStructured.host)
     ) {
       if (areDiffsAppliedToCurrIframe) {
-        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
       }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
@@ -625,7 +637,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      */
     if (!currScreenData || !goToScreenData) {
       if (areDiffsAppliedToCurrIframe) {
-        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
       }
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       return;
@@ -640,7 +652,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (currScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION
       || goToScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION) {
       if (areDiffsAppliedToCurrIframe) {
-        this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
       }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
@@ -689,7 +701,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }, 300);
     } catch (err) {
       captureException(err);
-      this.resetIframe(this.props.screenRidOnWhichDiffsAreApplied!);
+      this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       deserFrame(
         currScreenData.docTree,
@@ -712,32 +724,36 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   };
 
-  resetIframe = (rid: string): Promise<void> => new Promise((res, rej) => {
+  resetIframeAsync = (rid: string): Promise<void> => new Promise((res, rej) => {
     setTimeout(() => {
-      const screenonwhichDiffsWereApplied = this.props.allScreens!
-        .find(s => s.rid === rid)!;
-      const currScreenData = this.props.allScreensData![screenonwhichDiffsWereApplied.id];
-
-      const htmlEl = this.annotationLCM!.elFromPath('1')!;
-
-      const replacedNode = this.deserElOrIframeEl(
-        currScreenData.docTree,
-          this.annotationLCM!.getDoc(),
-          currScreenData.version,
-          {
-            partOfSvgEl: 0,
-            shadowParent: null
-          }
-      )!;
-
-      htmlEl.replaceWith(replacedNode);
-
-      this.annotationLCM!.resetCons();
-      this.addFont();
-      scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
       res();
     }, 0);
+    this.resetIframe(rid);
   });
+
+  resetIframe = (rid: string): void => {
+    const screen = this.props.allScreens!
+      .find(s => s.rid === rid)!;
+    const currScreenData = this.props.allScreensData![screen.id];
+
+    const htmlEl = this.annotationLCM!.elFromPath('1')!;
+
+    const replacedNode = this.deserElOrIframeEl(
+      currScreenData.docTree,
+      this.annotationLCM!.getDoc(),
+      currScreenData.version,
+      {
+        partOfSvgEl: 0,
+        shadowParent: null
+      }
+    )!;
+
+    htmlEl.replaceWith(replacedNode);
+
+    this.annotationLCM!.resetCons();
+    this.addFont();
+    scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
+  };
 
   render(): JSX.Element {
     const refs = [this.embedFrameRef];
