@@ -128,7 +128,7 @@ export function getSearializedDom(
     switch (node.nodeType) {
       case Node.ELEMENT_NODE:
         const tNode = node as HTMLElement;
-        sNode.name = tNode.tagName.toLowerCase();
+        sNode.name = tNode instanceof SVGElement ? tNode.tagName : tNode.tagName.toLowerCase();
         const attrNames = tNode.getAttributeNames();
         for (const name of attrNames) {
           const attrValue = tNode.getAttribute(name);
