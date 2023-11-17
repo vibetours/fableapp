@@ -8,7 +8,6 @@ import {
 import { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
 import { getColorContrast } from '../../utils';
-import { BUBBLE_RADIUS } from '.';
 
 export const BubbleCon = styled.div`
   position: absolute;
@@ -364,7 +363,7 @@ const helpBubblePulse = keyframes`
   }
 `;
 
-export const HelpBubble = styled.a<{selColor?: string}>`
+export const HelpBubble = styled.a<{selColor?: string, bubbleDiameter: number}>`
   display: block;
   position: absolute;
   z-index: 2;
@@ -375,8 +374,8 @@ export const HelpBubble = styled.a<{selColor?: string}>`
   &:after {
     content: "";
     background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-    width: ${BUBBLE_RADIUS}px;
-    height: ${BUBBLE_RADIUS}px;
+    width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+    height: ${({ bubbleDiameter }) => bubbleDiameter}px;
     border-radius: 50%;
     position: absolute;
     display: block;
@@ -385,26 +384,26 @@ export const HelpBubble = styled.a<{selColor?: string}>`
   }
 `;
 
-export const HelpBubbleOuterDot = styled.span<{ selColor?: string }>`
+export const HelpBubbleOuterDot = styled.span<{ selColor?: string, bubbleDiameter: number }>`
   margin: 1px;
   display: block;
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${BUBBLE_RADIUS}px;
-  height: ${BUBBLE_RADIUS}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   animation: ${helpBubblePulse} 1.5s linear infinite;
 `;
 
-export const HelpBubbleInnerDot = styled.span<{ selColor?: string }>`
+export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiameter: number }>`
   background-position: absolute;
   display: block;
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${BUBBLE_RADIUS}px;
-  height: ${BUBBLE_RADIUS}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
@@ -418,8 +417,8 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string }>`
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255, 0.5)'};
-  width: ${BUBBLE_RADIUS}px;
-  height: ${BUBBLE_RADIUS}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;

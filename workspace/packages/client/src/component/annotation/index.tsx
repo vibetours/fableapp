@@ -1,4 +1,5 @@
 import {
+  AnnotationSelectionShapeType,
   IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
@@ -203,7 +204,6 @@ export class AnnotationContent extends React.PureComponent<{
 
 export type AnimEntryDir = 'l' | 't' | 'r' | 'b';
 
-export const BUBBLE_RADIUS = 12;
 export class AnnotationCard extends React.PureComponent<IProps> {
   static readonly BREATHING_SPACE_RATIO = 30;
 
@@ -686,7 +686,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         >
           {
             this.shouldShowArrowHead() && !isUltrawideBox && (
-              <AnnotationArrowHead
+              <AnnotationIndicator
+                selectionShape={config.selectionShape}
+                selectionColor={config.annotationSelectionColor}
                 box={{
                   ...this.props.box,
                   top: this.props.box.top + this.props.win.scrollY,
@@ -758,21 +760,23 @@ interface AnnotationArrowHeadProps {
   }
   isBorderColorDefault: boolean;
   annBorderRadius: number;
+  selectionColor: string;
+  selectionShape: AnnotationSelectionShapeType;
 }
 
-export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHeadProps> {
+export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHeadProps> {
   conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
   static ARROW_PADDING = 5;
 
-  static ARROW_SPACE = AnnotationCard.ANNOTAITON_EL_MARGIN - AnnotationArrowHead.ARROW_PADDING;
+  static ARROW_SPACE = AnnotationCard.ANNOTAITON_EL_MARGIN - AnnotationIndicator.ARROW_PADDING;
 
   private TRIANGLE_BASE_SIDE_LENGTH = 200;
 
   private TRIANGLE_POINTING_SIDE_LENGTH = 100;
 
   getArrowWidthHeight(): {arrowWidth: number, arrowHeight: number} {
-    const arrowSpace = AnnotationArrowHead.ARROW_SPACE;
+    const arrowSpace = AnnotationIndicator.ARROW_SPACE;
     const ratio = this.TRIANGLE_BASE_SIDE_LENGTH / this.TRIANGLE_POINTING_SIDE_LENGTH;
 
     const isAnnPosVertical = this.isAnnPosVertical();
@@ -793,7 +797,7 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
       height: maskBoxHeight
     } = this.props.maskBoxRect;
 
-    const arrowPadding = AnnotationArrowHead.ARROW_PADDING;
+    const arrowPadding = AnnotationIndicator.ARROW_PADDING;
 
     const arrowLeftOffset = this.props.isBorderColorDefault ? 1 : 0;
 
@@ -902,8 +906,30 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
     `;
   };
 
+  getFocusBubbleStyles = (
+    arrowWidth: number,
+    arrowHeight: number,
+    gap: number,
+    bubbleDiameter: number
+  ): React.CSSProperties => {
+    switch (this.props.pos) {
+      case 'b':
+        return { top: `-${gap}px`, left: `${arrowWidth / 2}px`, transform: `translateX(-${bubbleDiameter / 2}px)` };
+      case 'l':
+        return { top: `${arrowHeight / 2}px`, left: `${gap}px`, transform: `translateY(-${bubbleDiameter / 2}px)` };
+      case 'r':
+        return { top: `${arrowHeight / 2}px`, left: `-${gap}px`, transform: `translateY(-${bubbleDiameter / 2}px)` };
+      case 't':
+        return { top: `${gap}px`, left: `${arrowWidth / 2}px`, transform: `translateX(-${bubbleDiameter / 2}px)` };
+      default:
+        return { top: `${arrowHeight / 4}px`, left: `${arrowWidth / 4}px` };
+    }
+  };
+
   render(): JSX.Element {
     const { arrowWidth, arrowHeight } = this.getArrowWidthHeight();
+    const BUBBLE_DIAMETER = 18;
+    const GAP = 28;
 
     return (
       <div
@@ -914,6 +940,15 @@ export class AnnotationArrowHead extends React.PureComponent<AnnotationArrowHead
         }}
         ref={this.conRef}
       >
+        {this.props.selectionShape === 'pulse' && <FocusBubble
+          diameter={BUBBLE_DIAMETER}
+          style={{
+            position: 'absolute',
+            ...this.getFocusBubbleStyles(arrowWidth, arrowHeight, GAP, BUBBLE_DIAMETER),
+          }}
+          selColor={this.props.selectionColor}
+        />}
+
         <svg
           width={`${arrowWidth}px`}
           height={`${arrowHeight}px`}
@@ -995,7 +1030,6 @@ function handleEventLogging(
   const time_in_sec = Math.ceil((Date.now() - tsAnnEntered) / 1000);
   const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = { tour_id, ann_id, time_in_sec };
   logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
-  // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
@@ -1134,16 +1168,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
           />}
-
-          {p.conf.config.selectionShape === 'pulse' && <FocusBubble
-            style={{
-              position: 'absolute',
-              top: `${p.box.top - maskBoxPadding.top - BUBBLE_RADIUS / 2}px`,
-              left: `${p.box.left - maskBoxPadding.left - BUBBLE_RADIUS / 2}px`
-            }}
-            selColor={p.conf.config.annotationSelectionColor}
-          />}
-
         </div>
       );
     }).filter(el => el) as JSX.Element[];

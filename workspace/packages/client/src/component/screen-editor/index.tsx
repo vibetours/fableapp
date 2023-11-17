@@ -1311,7 +1311,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     <div style={{ paddingTop: '1rem' }}>
                       <div>
                         <div style={{ position: 'relative', overflow: 'hidden' }}>
-                          <FocusBubble style={{ marginLeft: '12px', marginTop: '4px' }} />
+                          <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
                           <Tags.AnimatedInfoText key="info">{helpText}</Tags.AnimatedInfoText>
                         </div>
                       </div>
@@ -1475,7 +1475,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   <>
                     {this.props.screen.type === ScreenType.SerDom && (
                       <>
-                        <FocusBubble style={{ marginLeft: '12px', marginTop: '4px' }} />
+                        <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
                         <Tags.InfoText>
                           Click on an element to edit. Click again to reselect.
                         </Tags.InfoText>
