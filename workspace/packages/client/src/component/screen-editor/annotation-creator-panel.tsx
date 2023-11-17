@@ -727,22 +727,19 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </div>
             <div style={commonActionPanelItemStyle}>
               <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
-              <div style={{ padding: '0.3rem 0' }}>
-                {AnnotationSelectionShape.map(selectionShape => (
-                  <label htmlFor={selectionShape} key={selectionShape}>
-                    {selectionShape.charAt(0).toLocaleUpperCase() + selectionShape.slice(1)}
-                    <input
-                      id={selectionShape}
-                      type="radio"
-                      value={selectionShape}
-                      checked={config.selectionShape === selectionShape}
-                      onChange={(e) => {
-                        setConfig(c => updateAnnotationSelectionShape(c, e.target.value as AnnotationSelectionShapeType));
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
+              <Tags.ActionPaneSelect
+                defaultValue={config.selectionShape}
+                size="small"
+                bordered={false}
+                options={AnnotationSelectionShape.map(v => ({
+                  value: v,
+                  label: v.charAt(0).toUpperCase() + v.slice(1),
+                }))}
+                onChange={(value) => {
+                  setConfig(c => updateAnnotationSelectionShape(c, value as AnnotationSelectionShapeType));
+                }}
+                suffixIcon={<CaretOutlined dir="down" />}
+              />
             </div>
 
             <div style={commonActionPanelItemStyle}>
