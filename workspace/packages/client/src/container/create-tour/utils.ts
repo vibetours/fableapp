@@ -64,11 +64,12 @@ export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode 
 }
 
 export async function saveScreen(
+  proxyCache: Map<string, RespProxyAsset>,
   frames: FrameDataToBeProcessed[],
   cookies: chrome.cookies.Cookie[],
   onProgress: (doneProcessing: number, totalProcessing: number) => void,
 ): Promise<ScreenInfo> {
-  const screenInfo = await processScreen(frames, cookies, onProgress);
+  const screenInfo = await processScreen(proxyCache, frames, cookies, onProgress);
   return screenInfo;
 }
 
@@ -280,6 +281,7 @@ async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<Re
 }
 
 async function processScreen(
+  proxyCache: Map<string, RespProxyAsset>,
   frames: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
   onProgress: (doneProcessing: number, totalProcessing: number) => void,
@@ -290,7 +292,7 @@ async function processScreen(
       serDoc.docTree = JSON.parse(serDoc.docTreeStr);
     }
   }
-  const res = await postProcessSerDocs(frames, cookies, onProgress);
+  const res = await postProcessSerDocs(proxyCache, frames, cookies, onProgress);
   if (res.skipped) {
     return { info: null, skipped: true };
   }
@@ -317,6 +319,22 @@ function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
   return node;
 }
 
+function shouldProxyAsset(
+  assetUrl: URL,
+  svgSpriteUrls: Record<string, number>,
+  proxyCache: Map<string, RespProxyAsset>,
+): boolean {
+  if (`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls) {
+    return false;
+  }
+
+  if (proxyCache.has(assetUrl.href)) {
+    return false;
+  }
+
+  return true;
+}
+
 interface PostProcessSerDocsReturnType {
   data: RespScreen | null;
   elPath: string;
@@ -325,6 +343,7 @@ interface PostProcessSerDocsReturnType {
 }
 
 async function postProcessSerDocs(
+  proxyCache: Map<string, RespProxyAsset>,
   results: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
   onProgress: (doneProcessing: number, totalProcessing: number) => void,
@@ -496,7 +515,7 @@ async function postProcessSerDocs(
 
               let proxyiedUrl = assetUrlStr;
               let proxyiedContent: string = '';
-              if (!(`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls)) {
+              if (shouldProxyAsset(assetUrl, svgSpriteUrls, proxyCache)) {
                 try {
                   const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
                     method: 'POST',
@@ -508,8 +527,15 @@ async function postProcessSerDocs(
                   });
                   if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
                   proxyiedContent = data.data.content ?? '';
+                  proxyCache.set(assetUrlStr, data.data);
                 } catch (e) {
                   raiseDeferredError(e as Error);
+                }
+              } else {
+                const possibleCachedResp = proxyCache.get(assetUrlStr);
+                if (possibleCachedResp) {
+                  proxyiedUrl = possibleCachedResp.proxyUri;
+                  proxyiedContent = possibleCachedResp.content ?? '';
                 }
               }
 

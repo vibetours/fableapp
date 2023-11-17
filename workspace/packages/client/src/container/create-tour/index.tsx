@@ -25,6 +25,7 @@ import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { RespProxyAsset } from '@fable/common/dist/api-contract';
 import { getAllTours } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
@@ -133,6 +134,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   private startTime: number | null;
 
   private defaultColorsInList: string[] = [];
+
+  private proxyCache = new Map<string, RespProxyAsset>();
 
   constructor(props: IProps) {
     super(props);
@@ -263,7 +266,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     for (let i = 0; i < frameDataToBeProcessed.length; i++) {
       const frames = frameDataToBeProcessed[i];
-      const screen = await saveScreen(frames, cookieData, (m, t) => {
+      const screen = await saveScreen(this.proxyCache, frames, cookieData, (m, t) => {
         // eslint-disable-next-line no-mixed-operators
         const percentageProgress = Math.min(Math.ceil(m / t * 100), 100);
         this.setState(s => ({
