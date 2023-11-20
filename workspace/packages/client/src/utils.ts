@@ -387,10 +387,18 @@ export const getChildElementByFid = (node: Node, fid: string): HTMLElement | nul
   return null;
 };
 
-export const getAnnotationIndex = (annotationString: string): number[] => {
+export const getAnnotationIndex = (annotationString: string, type: 'prev'|'next'|'custom'): number[] => {
   const numberRegex = /\d+/g;
   const matchResult = annotationString.match(numberRegex);
   const result = matchResult ? matchResult.map(Number) : [0, 0];
+  const currentIndex = result[0];
+  const totalIndex = result[1];
+  if (type === 'prev' && currentIndex > 0) {
+    return [currentIndex - 1, totalIndex];
+  }
+  if (type === 'next' && currentIndex < totalIndex) {
+    return [currentIndex + 1, totalIndex];
+  }
   return result;
 };
 

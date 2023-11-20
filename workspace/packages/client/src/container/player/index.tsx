@@ -48,10 +48,6 @@ import { emitEvent } from '../../internal-events';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
-interface NavigateToAnnMessage<T> extends MessageEvent{
-  data: Msg<T>
-}
-
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedData: boolean) => void,
@@ -158,27 +154,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
 
-  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
-    if (e.data.sender !== 'sharefable.com') return;
-    if (e.data.type === ExtMsg.NavToAnnotation) {
-      if (e.data.payload.refId) {
-        const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
-        if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
-      } else if (e.data.payload.action && this.props.match.params.annotationId) {
-        const refId = this.props.match.params.annotationId;
-        const annotation = getAnnotationByRefId(refId, this.props.allAnnotationsForTour);
-        if (!annotation) return;
-        const btn = getAnnotationBtn(annotation, e.data.payload.action);
-        if (isNavigateHotspot(btn.hotspot)) {
-          this.navigateTo(btn.hotspot!.actionValue);
-        }
-      }
-    }
-  };
-
   componentDidMount(): void {
-    window.addEventListener('message', this.receiveMessage, false);
-
     document.title = this.props.title;
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
@@ -501,7 +477,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentWillUnmount(): void {
     window.removeEventListener('beforeunload', removeSessionId);
-    window.removeEventListener('message', this.receiveMessage, false);
   }
 
   isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;

@@ -7,7 +7,7 @@ import {
 } from '@fable/common/dist/types';
 import React from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
-import { InternalEvents, NavFn, Payload_AnnotationNav } from '../../types';
+import { ExtMsg, InternalEvents, Msg, NavFn, Payload_AnnotationNav, Payload_NavToAnnotation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
@@ -22,6 +22,9 @@ import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 
+interface NavigateToAnnMessage<T> extends MessageEvent{
+  data: Msg<T>
+}
 interface IProps {
   annotationDisplayConfig: IAnnoationDisplayConfig;
   box: Rect,
@@ -57,10 +60,8 @@ export class AnnotationContent extends React.PureComponent<{
 
   private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
-  private annotationEntered: number = Date.now();
-
   componentDidMount(): void {
-    this.annotationEntered = Date.now();
+    window.addEventListener('message', this.receiveMessage, false);
     if (this.props.onRender) {
       if (this.contentRef.current) {
         const annTextP = this.contentRef.current.querySelector('p') || this.contentRef.current;
@@ -99,6 +100,18 @@ export class AnnotationContent extends React.PureComponent<{
     }
   }
 
+  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+    if (e.data.sender !== 'sharefable.com') return;
+    if (e.data.type === ExtMsg.NavToAnnotation) {
+      if (e.data.payload.refId) {
+        // const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
+        // if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
+      } else if (e.data.payload.action) {
+        this.props.navigateToAdjacentAnn(e.data.payload.action, '');
+      }
+    }
+  };
+
   getAnnotationBorder(hasOverlay: boolean): string {
     const borderColor = this.props.opts.annotationBodyBorderColor;
     const defaultBorderColor = '#BDBDBD';
@@ -111,6 +124,7 @@ export class AnnotationContent extends React.PureComponent<{
 
   componentWillUnmount(): void {
     this.conRef.current && (this.conRef.current.style.visibility = 'hidden');
+    window.removeEventListener('message', this.receiveMessage, false);
   }
 
   render(): JSX.Element {
@@ -182,14 +196,6 @@ export class AnnotationContent extends React.PureComponent<{
                   btnLayout={this.props.config.buttonLayout}
                   borderRadius={this.props.opts.borderRadius}
                   onClick={() => {
-                    handleEventLogging(
-                      btnConf.id,
-                      btnConf.type,
-                      this.props.tourId,
-                      this.annotationEntered,
-                      this.props.annotationSerialIdMap[this.props.config.refId],
-                      this.props.config
-                    );
                     this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                   }}
                 > {btnConf.text}
@@ -1016,7 +1022,6 @@ interface HotspotProps {
     annotationIndexString: string
   }>,
   playMode: boolean,
-  tourId: number,
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
 }
 
@@ -1024,20 +1029,15 @@ function handleEventLogging(
   btn_id: string,
   btn_type: IAnnotationButtonType,
   tour_id: number,
-  tsAnnEntered: number,
   annotatonIndexString: string,
   annotationConfig: IAnnotationConfig
 ): void {
   setTimeout(() => {
     // TODO annotationIndex would be a structured data like an array [currentIndex, totalLength]
-    const annIndexArr = getAnnotationIndex(annotatonIndexString);
+    const annIndexArr = getAnnotationIndex(annotatonIndexString, btn_type);
 
     const btnClickedpayload: AnnotationBtnClickedPayload = {
       tour_id, ann_id: annotationConfig.refId, btn_id, btn_type
-    };
-    const time_in_sec = Math.ceil((Date.now() - tsAnnEntered) / 1000);
-    const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = {
-      tour_id, ann_id: annotationConfig.refId, time_in_sec
     };
 
     emitEvent<Partial<Payload_AnnotationNav>>(InternalEvents.OnAnnotationNav, {
@@ -1046,18 +1046,11 @@ function handleEventLogging(
       annotationConfig,
       ...btnClickedpayload
     });
-
   // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
   }, 0);
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
-  private annotationEntered: number = Date.now();
-
-  componentDidMount(): void {
-    this.annotationEntered = Date.now();
-  }
-
   render(): (JSX.Element | null)[] {
     return this.props.data.map((p, idx) => {
       const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
@@ -1079,14 +1072,6 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             isGranularHotspot={p.isGranularHotspot}
             className="fable-hotspot"
             onClick={() => {
-              handleEventLogging(
-                btnConf.id,
-                btnConf.type,
-                this.props.tourId,
-                this.annotationEntered,
-                p.annotationIndexString,
-                p.conf
-              );
               this.props.navigateToAdjacentAnn('next', btnConf.id);
             }}
           />
@@ -1121,6 +1106,14 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           ? config.buttons.filter(button => button.id === btnId)[0]
           : config.buttons.filter(button => button.type === type)[0];
         const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
+
+        handleEventLogging(
+          btnId,
+          type,
+          this.props.tourId,
+          p.annotationSerialIdMap[p.conf.config.refId],
+          p.conf.config
+        );
 
         if (btnConf.type === 'next' && this.props.currentFlowMain) {
           this.props.updateJourneyProgress(p.conf.config.refId);
@@ -1181,7 +1174,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 annotationIndexString: p.annotationSerialIdMap[p.conf.config.refId]
               }]}
               playMode={this.props.playMode}
-              tourId={this.props.tourId}
               navigateToAdjacentAnn={navigateToAdjacentAnn}
             />
           }
