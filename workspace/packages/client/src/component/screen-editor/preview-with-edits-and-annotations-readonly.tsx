@@ -260,7 +260,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.applyDiffAndGoToAnn,
           this.props.allFlows,
           this.props.updateCurrentFlowMain,
-          this.props.updateJourneyProgress!
+          this.props.updateJourneyProgress
         );
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.

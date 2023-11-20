@@ -7,7 +7,11 @@ import {
   ConnectedOrderedAnnGroupedByScreen,
   IAnnotationConfigWithScreen,
   JOURNEY_PROGRESS_LOCAL_STORE_KEY,
-  FlowProgress
+  FlowProgress,
+  InternalEvents,
+  GlobalAppData,
+  GlobalWin,
+  ExtMsg
 } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -382,3 +386,32 @@ export const getChildElementByFid = (node: Node, fid: string): HTMLElement | nul
 
   return null;
 };
+
+export const getAnnotationIndex = (annotationString: string): number[] => {
+  const numberRegex = /\d+/g;
+  const matchResult = annotationString.match(numberRegex);
+  const result = matchResult ? matchResult.map(Number) : [0, 0];
+  return result;
+};
+
+export function postMessageForEvent<T>(eventType: ExtMsg, payload: T): void {
+  const message = {
+    sender: 'sharefable.com',
+    type: eventType,
+    payload,
+  };
+
+  window.parent.postMessage(message, '*');
+}
+
+export function addToGlobalAppData<T>(key: keyof GlobalAppData, val: GlobalAppData[keyof GlobalAppData]) : void {
+  (window as GlobalWin).__fable_global_app_data__ = {
+    ...((window as GlobalWin).__fable_global_app_data__ || {}),
+    [key]: val
+  };
+}
+
+export function getGlobalData(key: keyof GlobalAppData): GlobalAppData[keyof GlobalAppData] {
+  const commonMessageData = (window as GlobalWin).__fable_global_app_data__ || {};
+  return commonMessageData[key];
+}

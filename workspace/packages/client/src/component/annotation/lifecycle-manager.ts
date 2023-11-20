@@ -476,7 +476,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           allFlows: this.allFlows,
           currentFlowMain: this.currentFlowMain,
           updateCurrentFlowMain: this.updateCurrentFlowMain,
-          updateJourneyProgress: this.updateJourneyProgress,
+          updateJourneyProgress: this.updateJourneyProgress
         })
       )
     );

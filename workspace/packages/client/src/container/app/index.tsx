@@ -27,6 +27,7 @@ import ProtectedRoutes from '../protected-routes';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
+import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
 
 interface IDispatchProps {
   init: () => void;
@@ -65,6 +66,12 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (this.shouldInit()) this.props.init();
+
+    initInternalEvents();
+  }
+
+  componentWillUnmount(): void {
+    disposeInternalEvents();
   }
 
   // eslint-disable-next-line class-methods-use-this

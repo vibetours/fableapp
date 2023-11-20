@@ -7,19 +7,19 @@ import {
 } from '@fable/common/dist/types';
 import React from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
-import { NavFn } from '../../types';
+import { InternalEvents, NavFn, Payload_AnnotationNav } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
 import { generateShadeColor } from './utils';
-import { isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
-import { logEvent } from '../../analytics/utils';
-import { AnalyticsEvents, AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
+import { getAnnotationIndex, isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
+import { AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import { isAnnCustomPosition } from './annotation-config-utils';
+import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 
 interface IProps {
@@ -185,9 +185,10 @@ export class AnnotationContent extends React.PureComponent<{
                     handleEventLogging(
                       btnConf.id,
                       btnConf.type,
-                      this.props.config.refId,
                       this.props.tourId,
-                      this.annotationEntered
+                      this.annotationEntered,
+                      this.props.annotationSerialIdMap[this.props.config.refId],
+                      this.props.config
                     );
                     this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                   }}
@@ -1012,6 +1013,7 @@ interface HotspotProps {
     scrollY: number,
     isGranularHotspot: boolean,
     isNextAnnVideo: boolean,
+    annotationIndexString: string
   }>,
   playMode: boolean,
   tourId: number,
@@ -1021,15 +1023,32 @@ interface HotspotProps {
 function handleEventLogging(
   btn_id: string,
   btn_type: IAnnotationButtonType,
-  ann_id: string,
   tour_id: number,
-  tsAnnEntered: number
+  tsAnnEntered: number,
+  annotatonIndexString: string,
+  annotationConfig: IAnnotationConfig
 ): void {
-  const btnClickedpayload: AnnotationBtnClickedPayload = { tour_id, ann_id, btn_id, btn_type };
+  setTimeout(() => {
+    // TODO annotationIndex would be a structured data like an array [currentIndex, totalLength]
+    const annIndexArr = getAnnotationIndex(annotatonIndexString);
 
-  const time_in_sec = Math.ceil((Date.now() - tsAnnEntered) / 1000);
-  const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = { tour_id, ann_id, time_in_sec };
-  logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
+    const btnClickedpayload: AnnotationBtnClickedPayload = {
+      tour_id, ann_id: annotationConfig.refId, btn_id, btn_type
+    };
+    const time_in_sec = Math.ceil((Date.now() - tsAnnEntered) / 1000);
+    const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = {
+      tour_id, ann_id: annotationConfig.refId, time_in_sec
+    };
+
+    emitEvent<Partial<Payload_AnnotationNav>>(InternalEvents.OnAnnotationNav, {
+      currentAnnoationIndex: annIndexArr[0],
+      totalNumberOfAnnotationsInCurrentTimeline: annIndexArr[1],
+      annotationConfig,
+      ...btnClickedpayload
+    });
+
+  // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
+  }, 0);
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
@@ -1060,7 +1079,14 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             isGranularHotspot={p.isGranularHotspot}
             className="fable-hotspot"
             onClick={() => {
-              handleEventLogging(btnConf.id, btnConf.type, p.conf.refId, this.props.tourId, this.annotationEntered);
+              handleEventLogging(
+                btnConf.id,
+                btnConf.type,
+                this.props.tourId,
+                this.annotationEntered,
+                p.annotationIndexString,
+                p.conf
+              );
               this.props.navigateToAdjacentAnn('next', btnConf.id);
             }}
           />
@@ -1152,6 +1178,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 scrollY: this.props.win.scrollY,
                 isGranularHotspot,
                 isNextAnnVideo: p.isNextAnnVideo,
+                annotationIndexString: p.annotationSerialIdMap[p.conf.config.refId]
               }]}
               playMode={this.props.playMode}
               tourId={this.props.tourId}

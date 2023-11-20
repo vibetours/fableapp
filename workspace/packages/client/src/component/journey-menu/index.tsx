@@ -11,7 +11,7 @@ import { ProgressCircle } from '../progress-circle';
 interface Props {
     tourJourney: CreateJourneyData;
     isJourneyMenuOpen: boolean;
-    navigateToTour: (main: string)=> void;
+    navigateToJourney: (main: string)=> void;
     updateJourneyMenu: (isMenuOpen: boolean)=> void;
     navigateToCta: ()=> void;
     tourOpts: ITourDataOpts;
@@ -21,7 +21,7 @@ interface Props {
 
 const getMenu = (
   journey: CreateJourneyData,
-  navigateToTour: (main: string)=> void,
+  navigateToJourney: (main: string)=> void,
   navigateToCta: ()=> void,
   tourOpts: ITourDataOpts,
   currentFlowMain: string,
@@ -31,7 +31,6 @@ const getMenu = (
     const currenFlowProgress = journeyProgress.find(
       (flow) => flow.main === main
     ) || { completedSteps: 0, totalSteps: 10, main };
-
     return currenFlowProgress;
   };
 
@@ -45,7 +44,7 @@ const getMenu = (
           ? (
             <Tags.FLowItemCon
               key={flow.header1}
-              onClick={() => { navigateToTour(flow.main); }}
+              onClick={() => { navigateToJourney(flow.main); }}
               isCurrentFlow={flow.main === currentFlowMain}
             >
               <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
@@ -91,7 +90,7 @@ function JourneyMenu(props: Props): JSX.Element {
         open={props.isJourneyMenuOpen}
         dropdownRender={() => getMenu(
           props.tourJourney!,
-          props.navigateToTour,
+          props.navigateToJourney,
           props.navigateToCta,
           props.tourOpts,
           props.currentFlowMain,

@@ -1,6 +1,6 @@
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
-import { P_RespScreen } from './entity-processor';
+import { P_RespScreen, P_RespTour } from './entity-processor';
 
 export const enum ElEditType {
   Text = 1,
@@ -174,3 +174,60 @@ export interface FlowProgress {
 }
 
 export const JOURNEY_PROGRESS_LOCAL_STORE_KEY = 'fable/journey';
+
+export enum InternalEvents {
+  DemoLoadingStarted = 'demo_loading_started',
+  DemoLoadingFinished = 'demo_loading_finished',
+  OnAnnotationNav = 'on_annotation_navigation',
+  JourneySwitch = 'journey_switch',
+}
+
+export enum ExtMsg {
+  DemoLoadingStarted = 'demo-loading-started',
+  DemoLoadingFinished = 'demo-loading-finished',
+  OnAnnotationNav = 'on-annotation-navigation',
+  JourneySwitch = 'journey-switch',
+  NavToAnnotation = 'navigate-to-annotation'
+}
+
+interface MsgBase {
+  sender: 'sharefable.com',
+  type: ExtMsg,
+}
+
+export interface Msg<T> extends MsgBase {
+  payload: T
+}
+
+export interface CommonPayloadProps {
+  demoRid: string,
+  demoDisplayName: string,
+  demoUrl: string
+}
+
+export interface Payload_DemoLoadingStarted extends CommonPayloadProps{}
+export interface Payload_DemoLoadingFinished extends CommonPayloadProps{
+  annConfigs:IAnnotationConfig[]
+}
+export interface Payload_JourneySwitch extends CommonPayloadProps{
+  fromJourney: string | null;
+  currentJourney: string;
+}
+export interface Payload_AnnotationNav extends CommonPayloadProps{
+  currentAnnoationIndex: number;
+  totalNumberOfAnnotationsInCurrentTimeline: number;
+  journeyName: string | null;
+  annotationConfig: IAnnotationConfig;
+}
+
+export interface Payload_NavToAnnotation{
+  refId?: string
+  action?: 'prev' | 'next'
+}
+
+export interface GlobalAppData {
+  demo?: P_RespTour,
+  journeyName?: string | null,
+}
+
+export type GlobalWin = Window & { __fable_global_app_data__?: GlobalAppData }

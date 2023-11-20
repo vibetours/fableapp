@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { MutableRefObject } from 'react';
 import { connect } from 'react-redux';
 import { CreateJourneyData, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
   LoadingStatus, ScreenData } from '@fable/common/dist/types';
@@ -11,13 +11,27 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import createAdjacencyList, { ScreenAdjacencyList, bfsTraverse, QueueNode } from '../../screen-adjacency-list';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { AnnotationPerScreen, EditItem, FWin, NavFn, FlowProgress } from '../../types';
+import {
+  AnnotationPerScreen,
+  EditItem,
+  FWin,
+  NavFn,
+  FlowProgress,
+  InternalEvents,
+  Msg,
+  Payload_NavToAnnotation,
+  Payload_JourneySwitch,
+  Payload_DemoLoadingStarted,
+  Payload_DemoLoadingFinished,
+  ExtMsg
+} from '../../types';
 import {
   openTourExternalLink,
   getAnnotationsPerScreen,
   getJourneyProgress,
   saveJourneyProgress,
-  isNavigateHotspot
+  isNavigateHotspot,
+  addToGlobalAppData,
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -30,8 +44,13 @@ import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
 import JourneyMenu from '../../component/journey-menu';
 import InfoCon from '../../component/info-con';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import { emitEvent } from '../../internal-events';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
+
+interface NavigateToAnnMessage<T> extends MessageEvent{
+  data: Msg<T>
+}
 
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
@@ -122,6 +141,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private loadedScreenHosts: Set<string> = new Set<string>();
 
+  private isLoadingCompleteMsgSentRef: MutableRefObject<boolean | null>;
+
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -131,11 +152,33 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isMinLoaderTimeDone: false,
       isJourneyMenuOpen: true,
       annotationSerialIdMap: {},
-      currentFlowMain: '',
+      currentFlowMain: ''
     };
+
+    this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
 
+  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+    if (e.data.sender !== 'sharefable.com') return;
+    if (e.data.type === ExtMsg.NavToAnnotation) {
+      if (e.data.payload.refId) {
+        const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
+        if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
+      } else if (e.data.payload.action && this.props.match.params.annotationId) {
+        const refId = this.props.match.params.annotationId;
+        const annotation = getAnnotationByRefId(refId, this.props.allAnnotationsForTour);
+        if (!annotation) return;
+        const btn = getAnnotationBtn(annotation, e.data.payload.action);
+        if (isNavigateHotspot(btn.hotspot)) {
+          this.navigateTo(btn.hotspot!.actionValue);
+        }
+      }
+    }
+  };
+
   componentDidMount(): void {
+    window.addEventListener('message', this.receiveMessage, false);
+
     document.title = this.props.title;
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
@@ -272,8 +315,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  navigateToTour = (main: string): void => {
+  navigateToJourney = (main: string): void => {
     this.navigateTo(main);
+
+    emitEvent<Partial<Payload_JourneySwitch>>(InternalEvents.JourneySwitch, {
+      fromJourney: this.state.currentFlowMain,
+      currentJourney: main,
+    });
+
+    this.addJourneyToGlobalData(main);
     this.setState({ isJourneyMenuOpen: false, currentFlowMain: main });
   };
 
@@ -332,6 +382,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         if (flowIndex !== -1) {
           this.setState({ currentFlowMain: main });
         }
+
+        // set initial journey name in global data
+        this.addJourneyToGlobalData(main);
+
         break;
       }
       if (!isNavigateHotspot(prevBtn.hotspot)) break;
@@ -361,6 +415,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const prevScreenRId = prevProps.match.params.screenRid;
     const currScreenRId = this.props.match.params.screenRid;
 
+    if (currTourLoaded) {
+      addToGlobalAppData('demo', this.props.tour!);
+    }
+
     if (!currScreenRId && currScreenRId !== prevScreenRId) {
       this.navigateToMain();
     }
@@ -379,6 +437,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       }
       this.setState({ annotationSerialIdMap });
       this.navigateToMain();
+      emitEvent<Partial<Payload_DemoLoadingStarted>>(InternalEvents.DemoLoadingStarted, {});
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
@@ -442,6 +501,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentWillUnmount(): void {
     window.removeEventListener('beforeunload', removeSessionId);
+    window.removeEventListener('message', this.receiveMessage, false);
   }
 
   isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;
@@ -546,10 +606,26 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     for (const isPrerendered of Object.values(this.state.initiallyPrerenderedScreens)) {
       if (!isPrerendered) return false;
     }
+
+    if (!this.isLoadingCompleteMsgSentRef.current) {
+      // not ordered ans, we can  order using index/stepnomber but its present in IAnnotationConfigWithScreen
+      const annCnfs = Object.values(this.props.allAnnotations).flat();
+      emitEvent<Partial<Payload_DemoLoadingFinished>>(InternalEvents.DemoLoadingFinished, {
+        annConfigs: annCnfs
+      });
+
+      this.isLoadingCompleteMsgSentRef.current = true;
+    }
     return true;
   }
 
   isJourneyAdded = () : boolean => (!!this.props.tourJourney && this.props.tourJourney.flows.length !== 0);
+
+  addJourneyToGlobalData = (main: string) : void => {
+    const journeyName = this.props.tourJourney?.flows
+      .find(flow => flow.main === main)?.header1 || null;
+    addToGlobalAppData('journeyName', journeyName);
+  };
 
   render(): JSX.Element {
     if (!this.state.isMainSet) {
@@ -626,7 +702,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 allFlows={this.props.tourJourney?.flows.map(flow => flow.main) || []}
                 currentFlowMain={this.state.currentFlowMain}
-                updateCurrentFlowMain={(main: string) => { this.setState({ currentFlowMain: main }); }}
+                updateCurrentFlowMain={(main: string) => {
+                  this.setState({ currentFlowMain: main });
+                  this.addJourneyToGlobalData(main);
+                  emitEvent<Partial<Payload_JourneySwitch>>(InternalEvents.JourneySwitch, {
+                    fromJourney: this.state.currentFlowMain,
+                    currentJourney: main
+                  });
+                }}
                 closeJourneyMenu={() : void => {
                   if (this.state.isJourneyMenuOpen) { this.setState({ isJourneyMenuOpen: false }); }
                 }}
@@ -642,7 +725,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             <JourneyMenu
               tourJourney={this.props.tourJourney!}
               isJourneyMenuOpen={this.state.isJourneyMenuOpen}
-              navigateToTour={this.navigateToTour}
+              navigateToJourney={this.navigateToJourney}
               updateJourneyMenu={(isMenuOpen: boolean) : void => {
                 this.setState({ isJourneyMenuOpen: isMenuOpen });
               }}
