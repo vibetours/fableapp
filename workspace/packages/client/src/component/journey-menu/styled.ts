@@ -76,6 +76,7 @@ export const IndexButton = styled(Button)`
   justify-content: center;
   align-items: center;
   box-shadow: 2px 2px 0 rgba(72, 5, 255, 0.06);
+  transition: all 0.3s;
   &:hover{
     color: ${(p: IndexBtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')} !important;
   }

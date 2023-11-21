@@ -220,8 +220,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
+  private transitionTimer : number | NodeJS.Timeout = 0;
+
   componentDidMount(): void {
     if (this.conRef.current && !this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
+  }
+
+  componentWillUnmount(): void {
+    clearTimeout(this.transitionTimer);
+    this.transitionTimer = 0;
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
@@ -242,9 +249,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   }
 
   resetAnnPos = (): void => {
-    setTimeout(() => {
-        this.conRef.current!.style.transition = 'transform 0.3s ease-out';
-        this.conRef.current!.style.transform = 'translate(0px, 0px)';
+    this.transitionTimer = setTimeout(() => {
+      this.conRef.current!.style.transition = 'transform 0.3s ease-out';
+      this.conRef.current!.style.transform = 'translate(0px, 0px)';
     }, 48);
   };
 

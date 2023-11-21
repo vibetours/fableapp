@@ -39,7 +39,7 @@ const getMenu = (
       <Tags.FLowTitle>
         {journey.title}
       </Tags.FLowTitle>
-      <div>
+      <div style={{ maxHeight: '50vh', overflow: 'auto' }}>
         {journey.flows.map((flow) => (!isBlankString(flow.main)
           ? (
             <Tags.FLowItemCon
