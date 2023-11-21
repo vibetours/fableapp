@@ -1004,9 +1004,7 @@ interface IConProps {
   playMode: boolean,
   tourId: number;
   applyDiffAndGoToAnn: ApplyDiffAndGoToAnn,
-  allFlows: string[],
-  currentFlowMain: string,
-  updateCurrentFlowMain: (main: string)=> void,
+  updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void,
   updateJourneyProgress: (annRefId: string)=>void,
 }
 
@@ -1115,25 +1113,13 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           p.conf.config
         );
 
-        if (btnConf.type === 'next' && this.props.currentFlowMain) {
+        if (btnConf.type === 'next') {
           this.props.updateJourneyProgress(p.conf.config.refId);
         }
 
         if (!btnConf.hotspot) {
           if (this.props.playMode) {
-            const currentFlowMainIndex = this.props.allFlows.findIndex((flow) => flow === this.props.currentFlowMain);
-            if (currentFlowMainIndex === this.props.allFlows.length - 1) {
-              window.parent.postMessage({ type: 'lastAnnotation' }, '*');
-            }
-            if (btnConf.type === 'next' && currentFlowMainIndex < this.props.allFlows.length - 1) {
-              const nextMain = this.props.allFlows[currentFlowMainIndex + 1];
-              this.props.applyDiffAndGoToAnn(config.refId, nextMain, isNavToVideoAnn);
-              this.props.updateCurrentFlowMain(nextMain);
-            } else if (btnConf.type === 'prev' && currentFlowMainIndex > 0) {
-              const prevMain = this.props.allFlows[currentFlowMainIndex - 1];
-              this.props.applyDiffAndGoToAnn(config.refId, prevMain, isNavToVideoAnn);
-              this.props.updateCurrentFlowMain(prevMain);
-            }
+            this.props.updateCurrentFlowMain(btnConf.type);
           }
           return;
         }

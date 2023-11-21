@@ -9,7 +9,7 @@ import { FlowProgress } from '../../types';
 import { ProgressCircle } from '../progress-circle';
 
 interface Props {
-    tourJourney: CreateJourneyData;
+    journey: CreateJourneyData;
     isJourneyMenuOpen: boolean;
     navigateToJourney: (main: string)=> void;
     updateJourneyMenu: (isMenuOpen: boolean)=> void;
@@ -71,7 +71,7 @@ const getMenu = (
           size={journey.cta.size}
           onClick={navigateToCta}
           style={{ width: '100%' }}
-          color={journey.primaryColor || tourOpts.primaryColor}
+          color={journey.primaryColor}
           borderRadius={tourOpts.borderRadius}
         >
           {journey.cta.text}
@@ -83,13 +83,13 @@ const getMenu = (
 };
 
 function JourneyMenu(props: Props): JSX.Element {
-  const primaryColor = props.tourJourney.primaryColor || props.tourOpts.primaryColor;
+  const primaryColor = props.journey.primaryColor;
   return (
-    <Tags.DropdownCon positioning={props.tourJourney.positioning}>
+    <Tags.DropdownCon positioning={props.journey.positioning}>
       <Dropdown
         open={props.isJourneyMenuOpen}
         dropdownRender={() => getMenu(
-          props.tourJourney!,
+          props.journey!,
           props.navigateToJourney,
           props.navigateToCta,
           props.tourOpts,
@@ -113,7 +113,7 @@ function JourneyMenu(props: Props): JSX.Element {
             type="primary"
             applywidth="false"
           >
-            {props.tourJourney.title}
+            {props.journey.title}
             <BarsOutlined style={{ color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000' }} />
           </Tags.IndexButton>
         )}

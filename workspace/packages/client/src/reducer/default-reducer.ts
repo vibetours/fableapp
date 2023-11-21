@@ -1,6 +1,7 @@
 import { Action } from 'redux';
 import { RespCommonConfig, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import {
+  CreateJourneyData,
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
@@ -81,6 +82,7 @@ export const initialState: {
   isAutoSaving: boolean;
   isAutoSavingLoader: boolean;
   allScreensForCurrentTourLoadingStatus: LoadingStatus;
+  journey: CreateJourneyData | null;
 } = {
   inited: false,
   commonConfig: null,
@@ -120,6 +122,7 @@ export const initialState: {
   isAutoSaving: false,
   isAutoSavingLoader: false,
   allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
+  journey: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -402,6 +405,7 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.remoteAnnotations = tAction.annotations;
       newState.remoteTourOpts = tAction.opts;
       newState.tourLoaded = true;
+      newState.journey = tAction.journey;
       if (tAction.allCorrespondingScreens && tAction.tour.screens) {
         newState.allScreens = tAction.tour.screens;
       }
@@ -434,6 +438,7 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.localTourOpts = tAction.opts;
         newState.localAnnotations = tAction.annotations;
         newState.localAnnotationsIdMap = tAction.idMap;
+        newState.journey = tAction.journey;
       } else {
         newState.localTourOpts = null;
         newState.localAnnotations = {};
@@ -441,6 +446,7 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.remoteAnnotations = tAction.annotations;
         newState.remoteTourOpts = tAction.opts;
         newState.tourData = tAction.data;
+        newState.journey = tAction.journey;
       }
       return newState;
     }

@@ -17,7 +17,7 @@ import Tooltip from 'antd/lib/tooltip';
 import Button from 'antd/lib/button';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { getDefaultTourOpts, getSampleJourneyData } from '@fable/common/dist/utils';
+import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import Alert from 'antd/lib/alert';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
@@ -42,8 +42,6 @@ import {
   updateButtonProp,
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
-import Header from '../../component/header';
-import ScreenEditor from '../../component/screen-editor';
 import Canvas from '../../component/tour-canvas';
 import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -110,8 +108,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   saveTourData: (
     tour: P_RespTour,
     data: TourDataWoScheme,
-    isJourneyUpdate?: boolean
-  ) => dispatch(saveTourData(tour, data, isJourneyUpdate)),
+  ) => dispatch(saveTourData(tour, data)),
   flushTourDataToMasterFile:
     (tour: P_RespTour, edits: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, edits)),
   clearCurrentScreenSelection: () => dispatch(clearCurrentScreenSelection()),
@@ -232,7 +229,7 @@ interface IAppStateProps {
   annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
-  tourJourney: CreateJourneyData;
+  journey: CreateJourneyData | null;
   pubTourAssetPath: string;
   manifestFileName: string;
 }
@@ -297,8 +294,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   let isMainValid = false;
   let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
-    if (state.default.tourData!.journey && state.default.tourData!.journey.flows.length !== 0) {
-      isMainValid = isTourMainValid(state.default.tourData!.journey.flows[0].main, allAnnotationsForTour);
+    if (state.default.journey && state.default.journey.flows.length !== 0) {
+      isMainValid = isTourMainValid(state.default.journey.flows[0].main, allAnnotationsForTour);
     } else isMainValid = isTourMainValid(tourOpts.main, allAnnotationsForTour);
     annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts.main, allAnnotationsForTour);
   }
@@ -323,7 +320,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     annotationSerialIdMap,
     isAutoSaving: state.default.isAutoSaving,
     tourDiagnostics: state.default.tourData?.diagnostics || {},
-    tourJourney: state.default.tourData?.journey || getSampleJourneyData(),
+    journey: state.default.journey,
     pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
     manifestFileName: state.default.commonConfig?.manifestFileName || '',
   };
@@ -663,7 +660,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 warnings: this.getTourWarnings(),
                 tour: this.props.tour
               }}
-              tourJourney={this.props.tourJourney}
+              journey={this.props.journey!}
             />
 
           </div>
@@ -843,7 +840,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               [changeObj.config.id]: changeObj.actionType === 'upsert' ? changeObj.config : null
             }
           } as TourScreenEntity
-        }
+        },
+        journey: this.props.journey!
       };
 
       const mergedData = this.chunkSyncManager!.add(
@@ -887,7 +885,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     const journey = { ...newJourney, flows: newJourney.flows.filter((flow) => !isBlankString(flow.main)) };
     const partialTourData: Partial<TourDataWoScheme> = {
-      journey
+      journey,
+      opts: this.props.tourOpts,
+      entities: {}
     };
 
     const mergedData = this.chunkSyncManager!.add(
@@ -901,7 +901,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       },
       tx
     );
-    if (!tx) this.props.saveTourData(this.props.tour!, mergedData!, true);
+    if (!tx) this.props.saveTourData(this.props.tour!, mergedData!);
   };
 }
 

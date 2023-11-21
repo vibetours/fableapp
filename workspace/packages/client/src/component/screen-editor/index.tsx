@@ -1253,8 +1253,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
                 this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
               }}
-              allFlows={[]}
-              currentFlowMain=""
               updateCurrentFlowMain={(main: string) => {}}
               updateJourneyProgress={(annRefid: string) => {}}
             />}

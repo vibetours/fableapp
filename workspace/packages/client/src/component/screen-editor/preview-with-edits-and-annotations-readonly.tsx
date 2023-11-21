@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
+import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
@@ -57,9 +57,7 @@ export interface IOwnProps {
   editsAcrossScreens?: Record<string, EditItem[]>;
   preRenderNextScreen?: (screen: P_RespScreen) => void;
   onDispose?: () => void;
-  allFlows: string[];
-  currentFlowMain: string;
-  updateCurrentFlowMain: (main: string)=> void;
+  updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void,
   closeJourneyMenu? : ()=> void;
   screenRidOnWhichDiffsAreApplied?: string;
   updateJourneyProgress: (annRefId: string)=> void;
@@ -258,7 +256,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.annotationSerialIdMap,
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
-          this.props.allFlows,
           this.props.updateCurrentFlowMain,
           this.props.updateJourneyProgress
         );
@@ -327,7 +324,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       targetEl as HTMLElement,
       conf,
       opts,
-      this.props.currentFlowMain,
       true,
     );
   }

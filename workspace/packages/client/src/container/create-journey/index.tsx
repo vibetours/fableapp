@@ -39,7 +39,7 @@ interface IOwnProps {
     getAnnInView: (refId: string) => void;
     onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
     tourOpts: ITourDataOpts;
-    tourJourney: CreateJourneyData;
+    journey: CreateJourneyData;
 }
 
 type IProps = IOwnProps &
@@ -64,7 +64,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
     this.state = {
-      journeyData: this.props.tourJourney,
+      journeyData: this.props.journey,
       isUrlValid: true
     };
   }
@@ -316,7 +316,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         <GTags.CTABtn
                           style={{ width: '50%' }}
                           size={this.state.journeyData.cta.size}
-                          color={this.state.journeyData.primaryColor || this.props.tourOpts.primaryColor}
+                          color={this.state.journeyData.primaryColor}
                           borderRadius={this.props.tourOpts.borderRadius}
                         >
                           {this.state.journeyData.cta.text}
@@ -441,7 +441,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         this.setState(prevState => ({ journeyData: {
                           ...prevState.journeyData, primaryColor: e.toHexString() } }));
                       }}
-                      defaultValue={this.state.journeyData.primaryColor || this.props.tourOpts.primaryColor}
+                      defaultValue={this.state.journeyData.primaryColor}
                     />
                   </Tags.CTAInputCon>
                 </Tags.JourneyInnerCon>

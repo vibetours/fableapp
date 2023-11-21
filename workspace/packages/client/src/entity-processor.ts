@@ -9,10 +9,12 @@ import {
   DEFAULT_ANN_DIMS,
   deepcopy,
   getDefaultTourOpts,
-  getDisplayableTime
+  getDisplayableTime,
+  getSampleJourneyData
 } from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
+  CreateJourneyData,
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
@@ -207,6 +209,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
+  journey: CreateJourneyData
 } {
   const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
   const annotationsIdMapPerScreen: Record<string, string[]> = {};
@@ -232,6 +235,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
     ),
     annotationsIdMap: annotationsIdMapPerScreen,
     opts: isLocal ? data.opts : normalizeBackwardCompatibilityForOpts(data.opts),
+    journey: normalizeBackwardCompatibilityForJourney(data.journey, data.opts)
   };
 }
 
@@ -488,4 +492,19 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
   }
 
   return newOpts;
+}
+
+export function normalizeBackwardCompatibilityForJourney(
+  journey: CreateJourneyData,
+  opts: ITourDataOpts
+): CreateJourneyData {
+  if (journey === null || journey === undefined) {
+    return getSampleJourneyData();
+  }
+
+  if (!journey.primaryColor) {
+    journey.primaryColor = opts.primaryColor;
+  }
+
+  return journey;
 }

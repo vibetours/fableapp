@@ -113,7 +113,7 @@ type CanvasProps = {
   updateScreen: UpdateScreenFn;
   onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
   headerProps: HeaderProps,
-  tourJourney: CreateJourneyData
+  journey: CreateJourneyData
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -612,7 +612,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       allAnns[toOldScrnIdx].annotations[toOldAnnIdx] = update; // updated value push it back to the list
       updateFn('annotation-and-theme', allAnns[toOldScrnIdx].screen.id, {
         config: update,
-        actionType: 'upsert'
+        actionType: 'upsert',
       }, tx);
     }
 
@@ -1823,12 +1823,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
                 <Tags.CanvasMenuItemCon id="journey-btn">
                   <Tooltip
-                    title={props.tourJourney.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
+                    title={props.journey.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
                     <div style={{ position: 'relative' }}>
-                      {props.tourJourney.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
+                      {props.journey.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
                       <Button
                         onClick={() => getFirstAnnotations()}
                         icon={<BarsOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
@@ -1843,7 +1843,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 </Tags.CanvasMenuItemCon>
               </Tags.CanvasMenuCon>
             )
-          }
+      }
           {
             showLoaderEditor && <LoaderEditor closeEditor={() => setShowLoaderEditor(false)} />
           }
@@ -2090,7 +2090,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               getAnnInView={zoomAnnInView}
               onTourJourneyChange={props.onTourJourneyChange}
               tourOpts={props.tourOpts}
-              tourJourney={props.tourJourney}
+              journey={props.journey}
             />
           }
           {props.timeline.length && <SelectorComponent userGuides={userGuides} />}

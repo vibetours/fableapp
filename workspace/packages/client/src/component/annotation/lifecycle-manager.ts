@@ -1,5 +1,5 @@
 import ReactDOM, { Root } from 'react-dom/client';
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
@@ -64,13 +64,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private applyDiffAndGoToAnn: ApplyDiffAndGoToAnn;
 
-  private allFlows : string[];
-
-  private currentFlowMain: string = '';
-
   private undoLastAnnStyleOverride: Array<() => void> = [];
 
-  private updateCurrentFlowMain: (main: string) => void;
+  private updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void;
 
   private updateJourneyProgress: (annRefId: string)=> void;
 
@@ -118,8 +114,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig,
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
-    allFlows: string[],
-    updateCurrentFlowMain: (main: string) => void,
+    updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void,
     updateJourneyProgress: (annRefId: string) => void
   ) {
     super(doc, nestedFrames, config);
@@ -140,7 +135,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.tourId = tourId;
     this.annotationSerialIdMap = annotationSerialIdMap;
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
-    this.allFlows = allFlows;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
     this.updateJourneyProgress = updateJourneyProgress;
     this.prerenderVideoAnnotations();
@@ -473,8 +467,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           playMode: this.isPlayMode,
           tourId: this.tourId,
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
-          allFlows: this.allFlows,
-          currentFlowMain: this.currentFlowMain,
           updateCurrentFlowMain: this.updateCurrentFlowMain,
           updateJourneyProgress: this.updateJourneyProgress
         })
@@ -486,13 +478,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     el: HTMLElement,
     config: IAnnotationConfig,
     opts: ITourDataOpts,
-    currentFlowMain: string,
     showImmediate = false,
   ): Promise<void> {
     if (this.isAnnotationDrawingInProgress) {
       return;
     }
-    this.currentFlowMain = currentFlowMain;
     this.isAnnotationDrawingInProgress = true;
     const dim = await this.probeForAnnotationSize(config, opts);
 
@@ -587,8 +577,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           playMode: this.isPlayMode,
           tourId: this.tourId,
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
-          allFlows: this.allFlows,
-          currentFlowMain: this.currentFlowMain,
           updateCurrentFlowMain: this.updateCurrentFlowMain,
           updateJourneyProgress: this.updateJourneyProgress
         })

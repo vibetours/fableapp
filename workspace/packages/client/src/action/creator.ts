@@ -30,6 +30,7 @@ import {
   ReqUpdateScreenProperty,
 } from '@fable/common/dist/api-contract';
 import {
+  CreateJourneyData,
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
@@ -759,6 +760,7 @@ export interface TTourWithData {
   annotations: Record<string, IAnnotationConfig[]>;
   opts: ITourDataOpts;
   allCorrespondingScreens: boolean,
+  journey: CreateJourneyData,
 }
 
 export interface TTourWithLoader {
@@ -809,6 +811,7 @@ export function loadTourAndData(
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,
+      journey: annotationAndOpts.journey
     });
   };
 }
@@ -911,25 +914,11 @@ export interface TSaveTourEntities {
   idMap: Record<string, string[]>,
   opts: ITourDataOpts,
   isLocal: boolean,
+  journey: CreateJourneyData
 }
 
-export function saveTourData(tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate = false) {
+export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
-    if (isJourneyUpdate) {
-      const idMap = getState().default.localAnnotationsIdMap;
-      const opts = getState().default.localTourOpts!;
-      const annotations = getState().default.localAnnotations;
-      dispatch({
-        type: ActionType.SAVE_TOUR_ENTITIES,
-        tour,
-        data: getState().default.tourData,
-        annotations,
-        opts,
-        idMap,
-        isLocal: true,
-      });
-      return;
-    }
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,
@@ -939,6 +928,7 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme, isJourney
       opts: annotationAndOpts.opts,
       idMap: annotationAndOpts.annotationsIdMap,
       isLocal: true,
+      journey: annotationAndOpts.journey
     });
   };
 }
@@ -996,6 +986,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         annotations: annotationAndOpts.annotations,
         idMap: annotationAndOpts.annotationsIdMap,
         opts: annotationAndOpts.opts,
+        journey: annotationAndOpts.journey,
         isLocal: false,
       });
       const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
