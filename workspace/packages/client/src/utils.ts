@@ -388,12 +388,19 @@ export const getChildElementByFid = (node: Node, fid: string): HTMLElement | nul
 };
 
 export const getAnnotationIndex = (annotationString: string, type: 'prev'|'next'|'custom'): number[] => {
+  const fallbackAnnIndexArr = [-1, -1];
+  if (!annotationString) {
+    return fallbackAnnIndexArr;
+  }
   const numberRegex = /\d+/g;
   const matchResult = annotationString.match(numberRegex);
-  const result = matchResult ? matchResult.map(Number) : [0, 0];
+  if (matchResult && matchResult.length !== 2) {
+    return fallbackAnnIndexArr;
+  }
+  const result = matchResult ? matchResult.map(Number) : fallbackAnnIndexArr;
   const currentIndex = result[0];
   const totalIndex = result[1];
-  if (type === 'prev' && currentIndex > 0) {
+  if (type === 'prev' && currentIndex > 1) {
     return [currentIndex - 1, totalIndex];
   }
   if (type === 'next' && currentIndex < totalIndex) {

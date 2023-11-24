@@ -144,14 +144,6 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
       // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
     }
-
-    const btn = this.props.conf.config.buttons.find(b => b.type === direction)!;
-    const btn_id = btn.id;
-    const btn_type = btn.type;
-
-    const btnClickedpayload: AnnotationBtnClickedPayload = { tour_id, ann_id, btn_id, btn_type };
-
-    logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedpayload);
   };
 
   getPositioningAndSizingStyles(): Record<string, string> {

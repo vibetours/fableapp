@@ -395,10 +395,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const prevScreenRId = prevProps.match.params.screenRid;
     const currScreenRId = this.props.match.params.screenRid;
 
-    if (currTourLoaded) {
-      addToGlobalAppData('demo', this.props.tour!);
-    }
-
     if (!currScreenRId && currScreenRId !== prevScreenRId) {
       this.navigateToMain();
     }

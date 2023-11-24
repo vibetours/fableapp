@@ -1,4 +1,3 @@
-import { logEvent } from '@amplitude/analytics-browser';
 import { AnalyticsEvents, AnnotationBtnClickedPayload } from './analytics/types';
 import {
   ExtMsg,
@@ -10,6 +9,7 @@ import {
 } from './types';
 import { createIframeSrc, getGlobalData, postMessageForEvent } from './utils';
 import { P_RespTour } from './entity-processor';
+import { logEvent } from './analytics/utils';
 
 type Payload_IE_AnnotationNav = Payload_AnnotationNav & AnnotationBtnClickedPayload;
 type Payload_IE_JourneySwitch = Payload_JourneySwitch;

@@ -28,6 +28,8 @@ import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
+import { addToGlobalAppData } from '../../utils';
+import { P_RespTour } from '../../entity-processor';
 
 interface IDispatchProps {
   init: () => void;
@@ -40,10 +42,14 @@ const mapDispatchToProps = (dispatch: any) => ({
 
 interface IAppStateProps {
   isInitied: boolean;
+  isTourLoaded: boolean;
+  tour: P_RespTour | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   isInitied: state.default.inited,
+  isTourLoaded: state.default.tourLoaded,
+  tour: state.default.currentTour,
 });
 
 interface IOwnProps { }
@@ -68,6 +74,12 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.shouldInit()) this.props.init();
 
     initInternalEvents();
+  }
+
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
+    if (prevProps.isTourLoaded !== this.props.isTourLoaded) {
+      addToGlobalAppData('demo', this.props.tour!);
+    }
   }
 
   componentWillUnmount(): void {

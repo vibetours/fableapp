@@ -61,7 +61,6 @@ export class AnnotationContent extends React.PureComponent<{
   private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
 
   componentDidMount(): void {
-    window.addEventListener('message', this.receiveMessage, false);
     if (this.props.onRender) {
       if (this.contentRef.current) {
         const annTextP = this.contentRef.current.querySelector('p') || this.contentRef.current;
@@ -100,18 +99,6 @@ export class AnnotationContent extends React.PureComponent<{
     }
   }
 
-  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
-    if (e.data.sender !== 'sharefable.com') return;
-    if (e.data.type === ExtMsg.NavToAnnotation) {
-      if (e.data.payload.refId) {
-        // const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
-        // if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
-      } else if (e.data.payload.action) {
-        this.props.navigateToAdjacentAnn(e.data.payload.action, '');
-      }
-    }
-  };
-
   getAnnotationBorder(hasOverlay: boolean): string {
     const borderColor = this.props.opts.annotationBodyBorderColor;
     const defaultBorderColor = '#BDBDBD';
@@ -124,7 +111,6 @@ export class AnnotationContent extends React.PureComponent<{
 
   componentWillUnmount(): void {
     this.conRef.current && (this.conRef.current.style.visibility = 'hidden');
-    window.removeEventListener('message', this.receiveMessage, false);
   }
 
   render(): JSX.Element {
@@ -223,12 +209,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   private transitionTimer : number | NodeJS.Timeout = 0;
 
   componentDidMount(): void {
+    if (!this.props.annotationDisplayConfig.prerender) {
+      window.addEventListener('message', this.receiveMessage, false);
+    }
     if (this.conRef.current && !this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
-  }
-
-  componentWillUnmount(): void {
-    clearTimeout(this.transitionTimer);
-    this.transitionTimer = 0;
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
@@ -246,7 +230,33 @@ export class AnnotationCard extends React.PureComponent<IProps> {
        && this.props.annotationDisplayConfig.isMaximized) {
       if (this.conRef.current && this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
     }
+
+    if (!this.props.annotationDisplayConfig.prerender && prevProps.annotationDisplayConfig.prerender) {
+      window.addEventListener('message', this.receiveMessage, false);
+    }
   }
+
+  componentWillUnmount(): void {
+    window.removeEventListener('message', this.receiveMessage, false);
+
+    clearTimeout(this.transitionTimer);
+    this.transitionTimer = 0;
+  }
+
+  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+    if (e.data.sender !== 'sharefable.com') return;
+    if (e.data.type === ExtMsg.NavToAnnotation) {
+      if (e.data.payload.refId) {
+      // const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
+      // if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
+      } else if (e.data.payload.action) {
+        const btnConfig = this.props.annotationDisplayConfig.config.buttons.filter(
+          button => button.type === e.data.payload.action
+        )[0];
+        this.props.navigateToAdjacentAnn(e.data.payload.action, btnConfig.id);
+      }
+    }
+  };
 
   resetAnnPos = (): void => {
     this.transitionTimer = setTimeout(() => {
