@@ -208,6 +208,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   private transitionTimer : number | NodeJS.Timeout = 0;
 
+  private SELECTION_BUBBLE_DIAMETER = 18;
+
+  private SELECTION_BUBBLE_MARGIN = 8;
+
   componentDidMount(): void {
     if (!this.props.annotationDisplayConfig.prerender) {
       window.addEventListener('message', this.receiveMessage, false);
@@ -619,6 +623,38 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return true;
   };
 
+  getFocusBubbleStyles = (maskBoxRect: Rect, dir: AnimEntryDir) : React.CSSProperties => {
+    const {
+      top: maskBoxTop,
+      left: maskBoxLeft,
+      width: maskBoxWidth,
+      height: maskBoxHeight
+    } = maskBoxRect;
+
+    const annPos = dir;
+    const styles: Record<string, string> = {};
+
+    if (annPos === 'l' || annPos === 'r') {
+      if (annPos === 'l') {
+        styles.left = `${maskBoxLeft - this.SELECTION_BUBBLE_DIAMETER / 2 + this.SELECTION_BUBBLE_MARGIN}px`;
+      } else {
+        styles.left = `${
+          maskBoxLeft + maskBoxWidth - this.SELECTION_BUBBLE_DIAMETER / 2 - this.SELECTION_BUBBLE_MARGIN}px`;
+      }
+      styles.top = `${maskBoxTop + maskBoxHeight / 2 - this.SELECTION_BUBBLE_DIAMETER / 2}px`;
+    } else {
+      if (annPos === 't') {
+        styles.top = `${maskBoxTop - this.SELECTION_BUBBLE_DIAMETER / 2 + this.SELECTION_BUBBLE_MARGIN}px`;
+      } else {
+        styles.top = `${
+          maskBoxTop + maskBoxHeight - this.SELECTION_BUBBLE_DIAMETER / 2 - this.SELECTION_BUBBLE_MARGIN}px`;
+      }
+      styles.left = `${maskBoxLeft + maskBoxWidth / 2 - this.SELECTION_BUBBLE_DIAMETER / 2}px`;
+    }
+
+    return styles;
+  };
+
   // TODO[refactor]
   //  Multiple branching besed render happens leading to similar configuration of same component. Make a single render
   //  by calculating the variables / configs via branching and applying those variables / config on the singular
@@ -701,18 +737,17 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     return (
       <>
-        <div
-          ref={this.conRef}
-          style={{
-            transform: this.props.isThemeAnnotation || this.props.annotationDisplayConfig.prerender
-              ? 'none' : `translate(${tx}px, ${ty}px)`,
-          }}
-        >
-          {
+        { !this.props.annotationDisplayConfig.config.hideAnnotation && (
+          <div
+            ref={this.conRef}
+            style={{
+              transform: this.props.isThemeAnnotation || this.props.annotationDisplayConfig.prerender
+                ? 'none' : `translate(${tx}px, ${ty}px)`,
+            }}
+          >
+            {
             this.shouldShowArrowHead() && !isUltrawideBox && (
               <AnnotationIndicator
-                selectionShape={config.selectionShape}
-                selectionColor={config.annotationSelectionColor}
                 box={{
                   ...this.props.box,
                   top: this.props.box.top + this.props.win.scrollY,
@@ -732,7 +767,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
           }
-          {
+            {
           isVideoAnnotation && (
           <AnnotationVideo
             conf={this.props.annotationDisplayConfig}
@@ -749,7 +784,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           />
           )
         }
-          {
+            {
             !isVideoAnnotation && (
               <AnnotationContent
                 annotationSerialIdMap={this.props.annotationSerialIdMap}
@@ -765,7 +800,18 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
           }
-        </div>
+          </div>
+        )}
+        {
+          config.selectionShape === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && <FocusBubble
+            diameter={this.SELECTION_BUBBLE_DIAMETER}
+            style={{
+              position: 'absolute',
+              ...this.getFocusBubbleStyles(maskBoxRect, dir)
+            }}
+            selColor={config.annotationSelectionColor}
+          />
+        }
       </>
     );
   }
@@ -784,8 +830,6 @@ interface AnnotationArrowHeadProps {
   }
   isBorderColorDefault: boolean;
   annBorderRadius: number;
-  selectionColor: string;
-  selectionShape: AnnotationSelectionShapeType;
 }
 
 export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHeadProps> {
@@ -930,30 +974,8 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
     `;
   };
 
-  getFocusBubbleStyles = (
-    arrowWidth: number,
-    arrowHeight: number,
-    gap: number,
-    bubbleDiameter: number
-  ): React.CSSProperties => {
-    switch (this.props.pos) {
-      case 'b':
-        return { top: `-${gap}px`, left: `${arrowWidth / 2}px`, transform: `translateX(-${bubbleDiameter / 2}px)` };
-      case 'l':
-        return { top: `${arrowHeight / 2}px`, left: `${gap}px`, transform: `translateY(-${bubbleDiameter / 2}px)` };
-      case 'r':
-        return { top: `${arrowHeight / 2}px`, left: `-${gap}px`, transform: `translateY(-${bubbleDiameter / 2}px)` };
-      case 't':
-        return { top: `${gap}px`, left: `${arrowWidth / 2}px`, transform: `translateX(-${bubbleDiameter / 2}px)` };
-      default:
-        return { top: `${arrowHeight / 4}px`, left: `${arrowWidth / 4}px` };
-    }
-  };
-
   render(): JSX.Element {
     const { arrowWidth, arrowHeight } = this.getArrowWidthHeight();
-    const BUBBLE_DIAMETER = 18;
-    const GAP = 28;
 
     return (
       <div
@@ -964,15 +986,6 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
         }}
         ref={this.conRef}
       >
-        {this.props.selectionShape === 'pulse' && <FocusBubble
-          diameter={BUBBLE_DIAMETER}
-          style={{
-            position: 'absolute',
-            ...this.getFocusBubbleStyles(arrowWidth, arrowHeight, GAP, BUBBLE_DIAMETER),
-          }}
-          selColor={this.props.selectionColor}
-        />}
-
         <svg
           width={`${arrowWidth}px`}
           height={`${arrowHeight}px`}
@@ -1111,7 +1124,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         return null;
       }
 
-      const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
 
@@ -1180,7 +1192,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
               navigateToAdjacentAnn={navigateToAdjacentAnn}
             />
           }
-          {!hideAnnotation && <AnnotationCard
+          <AnnotationCard
             annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}
@@ -1189,7 +1201,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             tourId={this.props.tourId}
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
-          />}
+          />
         </div>
       );
     }).filter(el => el) as JSX.Element[];
