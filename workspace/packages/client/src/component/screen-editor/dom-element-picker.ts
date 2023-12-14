@@ -253,7 +253,12 @@ export default class DomElementPicker extends HighlighterBase {
 
   private handleMouseMove = (doc: Document) => (event: MouseEvent) => {
     if (this.highlightMode !== HighlightMode.Selection) return;
-    const els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
+    let els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
+    els.forEach(el => {
+      if (el.shadowRoot) {
+        els = el.shadowRoot.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
+      }
+    });
     if (!els.length) return;
     const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY, doc);
     const anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
@@ -311,6 +316,9 @@ export default class DomElementPicker extends HighlighterBase {
             break;
           }
         }
+      }
+      if (temp.nodeName === '#document-fragment') {
+        temp = (temp as ShadowRoot).host;
       }
       res.push(temp);
       temp = temp.parentNode!;

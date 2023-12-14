@@ -326,10 +326,16 @@ export default abstract class HighlighterBase {
       }
       return loc.reverse();
     }
-    const siblings = el.parentNode!.childNodes;
+    let parent = el.parentNode;
+    const siblings = parent!.childNodes;
     for (let i = 0, l = siblings.length; i < l; i++) {
       if (el === siblings[i]) {
         loc.push(i);
+        if (parent!.nodeName === '#document-fragment') {
+          parent = (parent as ShadowRoot).host;
+          loc.push(0);
+          return this.calculatePathFromEl(parent!, loc);
+        }
         return this.calculatePathFromEl(el.parentNode!, loc);
       }
     }
