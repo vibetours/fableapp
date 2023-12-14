@@ -449,7 +449,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
             parentNode = (node1 as HTMLIFrameElement).contentDocument as Node;
           }
 
-          const node = getChildElementByFid(parentNode, getFidOfSerNode(commonNode.serNodeOfTree1));
+          let node: HTMLElement | ShadowRoot | null = getChildElementByFid(
+            parentNode,
+            getFidOfSerNode(commonNode.serNodeOfTree1)
+          );
+
+          if (commonNode.serNodeOfTree1.type === Node.DOCUMENT_FRAGMENT_NODE) {
+            node = (parentNode as HTMLElement).shadowRoot as ShadowRoot;
+          }
+
           if (node) {
             queue.push({
               serNodeOfTree1: commonNode.serNodeOfTree1,

@@ -42,6 +42,15 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
     const serNodeInTree2 = node2.serNode.chldrn[i];
     const currFid = getFidOfSerNode(serNodeInTree2);
 
+    if (serNodeInTree2.type === Node.DOCUMENT_FRAGMENT_NODE) {
+      const shadowRootInSerNodeTree1 = node1.serNode.chldrn.find(node => node.type === Node.DOCUMENT_FRAGMENT_NODE)!;
+      diffs.commonNodes.push({
+        serNodeOfTree1: shadowRootInSerNodeTree1,
+        serNodeOfTree2: serNodeInTree2,
+      });
+      continue;
+    }
+
     if (!mapOfTree1.has(currFid)) {
       // ADD diffs
       if (serNodeInTree2.type !== Node.COMMENT_NODE && serNodeInTree2.type !== Node.ELEMENT_NODE) {
@@ -49,6 +58,7 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
           serNodeInTree2.type !== Node.TEXT_NODE
           && serNodeInTree2.type !== FABLE_CUSTOM_NODE
           && serNodeInTree2.type !== Node.DOCUMENT_TYPE_NODE
+          && serNodeInTree2.type !== Node.DOCUMENT_FRAGMENT_NODE
         ) {
           diffs.shouldReplaceNode = true;
           diffs.commonNodes = [];

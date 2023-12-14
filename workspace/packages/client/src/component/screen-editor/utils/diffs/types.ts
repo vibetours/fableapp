@@ -47,7 +47,7 @@ export type DiffsSerNode = {
 
 export type QueueNode = {
     serNodeOfTree1: SerNode,
-    node1: HTMLElement,
+    node1: HTMLElement | ShadowRoot,
     serNodeOfTree2: SerNode,
     props: DeSerProps,
 }
