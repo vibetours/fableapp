@@ -327,7 +327,11 @@ export default abstract class HighlighterBase {
       return loc.reverse();
     }
     let parent = el.parentNode;
-    const siblings = parent!.childNodes;
+    const siblings : (ChildNode | ShadowRoot)[] = Array.from(parent!.childNodes);
+    if ((parent as HTMLElement).shadowRoot) {
+      siblings.unshift((parent as HTMLElement).shadowRoot!);
+    }
+
     for (let i = 0, l = siblings.length; i < l; i++) {
       if (el === siblings[i]) {
         loc.push(i);
