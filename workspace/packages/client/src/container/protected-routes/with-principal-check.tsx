@@ -1,12 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { withAuth0, WithAuth0Props, Auth0Provider } from '@auth0/auth0-react';
-import { RespUser, UserOrgAssociation } from '@fable/common/dist/api-contract';
+import { RespUser, Status, UserOrgAssociation } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
 import { resetAmplitude, setAmplitudeUserId } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { isProdEnv } from '@fable/common/dist/utils';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import Auth0Config from '../../component/auth/auth0-config.json';
@@ -14,6 +15,7 @@ import { iam } from '../../action/creator';
 import HeartLoader from '../../component/loader/heart';
 import { LoginErrorType } from '../../component/auth/login';
 import { setEventCommonState } from '../../utils';
+import { P_RespSubscription } from '../../entity-processor';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -28,11 +30,13 @@ const mapDispatchToProps = (dispatch: any) => ({
 interface IAppStateProps {
   isPrincipalLoaded: boolean;
   principal: RespUser | null;
+  subs: P_RespSubscription | null,
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   isPrincipalLoaded: state.default.principalLoadingStatus === LoadingStatus.Done,
   principal: state.default.principal,
+  subs: state.default.subs,
 });
 
 interface IOwnProps { }
@@ -76,7 +80,20 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  render() {
+  shouldNavigateToBillingRoute = ():boolean => {
+    if (!isProdEnv()) return false;
+    if (this.props.location.pathname.includes('billing')) return false;
+    if (!this.props.subs) return false;
+
+    const currBillingStatus = this.props.subs.status;
+    if (currBillingStatus === Status.CANCELLED || currBillingStatus === Status.PAUSED) {
+      return true;
+    }
+
+    return false;
+  };
+
+  render(): JSX.Element {
     if (this.props.auth0.isLoading) {
       return <HeartLoader />;
     }
@@ -121,6 +138,11 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
         );
       }
     }
+
+    if (this.shouldNavigateToBillingRoute()) {
+      return <Navigate to="/billing" />;
+    }
+
     return (
       <Outlet />
     );
