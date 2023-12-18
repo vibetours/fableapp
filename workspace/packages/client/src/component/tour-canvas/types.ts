@@ -3,14 +3,39 @@ import { IAnnotationConfigWithScreen } from '../../types';
 
 export interface AnnotationNode<T> extends CanvasNode {
   imageUrl: string;
-  screenTitle: string;
+  stepNumber: string;
   grp: string;
   localIdx: number;
-  text?: string;
+  text: string;
+  id: string;
+  storedData: T;
+  origStoredData: T;
+  sameMultiAnnGroupAnnRids?: string[],
+  annotation: IAnnotationConfigWithScreen;
+}
+
+export interface GroupedAnns {
+  zId: string,
+  anns: IAnnotationConfigWithScreen[]
+}
+
+export interface GroupedAnnNode {
+  zId: string,
+  anns: AnnotationNode<Box>[]
+}
+
+export interface GroupEdge {
+  fromAnnId: string,
+  toAnnId: string,
+  fromZId: string,
+  toZId: string,
+}
+
+export interface MultiAnnotationNode<T> extends CanvasNode {
   id: string;
   storedData?: T;
   origStoredData?: T;
-  annotation: IAnnotationConfigWithScreen;
+  data: GroupedAnnNode;
 }
 
 export interface Box extends CanvasNode {
@@ -21,6 +46,7 @@ export interface Box extends CanvasNode {
 export interface EdgeWithData extends GraphEdge {
   srcId: string;
   destId: string;
+  data: GroupEdge;
 }
 
 export interface CanvasNode {
@@ -57,5 +83,3 @@ export type AnnAddScreenModal = {
 }
 
 export type AnnotationPosition = 'prev' | 'next';
-
-export type Edge = [srcId: string, destId: string];

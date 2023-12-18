@@ -123,6 +123,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     id: isCoverAnn ? `$#${id}` : elPath,
     refId: id,
     grpId,
+    zId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
     bodyContent: '<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">Write a brief description of what your buyer should expect from this particular module of your product.</span></p>',

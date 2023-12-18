@@ -221,6 +221,12 @@ export const AnHotspot = styled.div`
   height: ${(p: AnHotspotProps) => `${p.box.height + 8}px`};
 `;
 
+export const AnBubble = styled.div<{bubbleWidth: number}>`
+  width: ${(p) => `${p.bubbleWidth}px`}; 
+  height: ${(p) => `${p.bubbleWidth}px`}; 
+  cursor: pointer;
+`;
+
 export const AnVideoContainer = styled.div`
   border-radius: 8px;
 `;

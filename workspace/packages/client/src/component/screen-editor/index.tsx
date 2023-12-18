@@ -9,8 +9,14 @@ import {
   PictureOutlined, PlusOutlined
 } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, ScreenData } from '@fable/common/dist/types';
-import { getCurrentUtcUnixTime, getDefaultTourOpts, getSampleConfig } from '@fable/common/dist/utils';
+import {
+  CmnEvtProp,
+  IAnnotationButtonType,
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData
+} from '@fable/common/dist/types';
+import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
 import Modal from 'antd/lib/modal';
 import Switch from 'antd/lib/switch';
 import React from 'react';
@@ -24,12 +30,11 @@ import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
 import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
 import * as GTags from '../../common-styled';
-import * as TimelineTags from '../timeline/styled';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
   AnnotationPerScreen,
-  ConnectedOrderedAnnGroupedByScreen, DestinationAnnotationPosition, EditItem,
+  DestinationAnnotationPosition, EditItem,
   EditValueEncoding,
   ElEditType,
   FrameAssetLoadFn, IdxEditEncodingText,
@@ -39,17 +44,17 @@ import {
   IdxEncodingTypeImage,
   IdxEncodingTypeMask,
   NavFn,
-  ScreenPickerData,
+  Timeline,
   onAnnCreateOrChangeFn
 } from '../../types';
 import {
   shallowCloneAnnotation,
   IAnnotationConfigWithScreenId,
+  updateAnnotationZId,
 } from '../annotation/annotation-config-utils';
 import { AnnotationSerialIdMap, addNewAnn, getAnnotationBtn } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
-import Timeline from '../timeline';
-import { AnnUpdateType } from '../timeline/types';
+import { AnnUpdateType } from '../annotation/types';
 import AEP from './advanced-element-picker';
 import AnnotationCreatorPanel from './annotation-creator-panel';
 import ImageMaskUploadModal from './components/image-mask-modal';
@@ -117,7 +122,7 @@ interface IOwnProps {
   allAnnotationsForScreen: IAnnotationConfig[];
   tour: P_RespTour;
   tourDataOpts: ITourDataOpts;
-  timeline: ConnectedOrderedAnnGroupedByScreen,
+  timeline: Timeline,
   onAnnotationCreateOrChange: onAnnCreateOrChangeFn;
   onScreenEditStart: () => void;
   toAnnotationId: string;
@@ -127,9 +132,7 @@ interface IOwnProps {
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
   commitTx: (tx: Tx) => void;
   setAlert: (msg?: string) => void;
-  shouldShowScreenPicker: (screenPickerData: ScreenPickerData)=> void;
   isScreenLoaded: boolean;
-  showEntireTimeline: boolean;
   onDeleteAnnotation?: (deletedAnnRid: string) => void;
   updateScreen: UpdateScreenFn;
   newAnnPos: null | DestinationAnnotationPosition;
@@ -1052,11 +1055,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return Boolean(!this.state.selectedAnnotationId && this.state.selectedEl);
   };
 
-  createDefaultAnnotation = () : void => {
+  createDefaultAnnotation = (type: 'default' | 'multi-ann') : void => {
     if (this.props.screen.type === ScreenType.Img) {
       amplitudeNewAnnotationCreated(propertyCreatedFromWithType.IMG_DRAG_RECT);
       this.setState(state => {
-        const conf = this.createNewDefaultAnnotation(state.selectedCoords!);
+        const conf = type === 'default'
+          ? this.createNewDefaultAnnotation(state.selectedCoords!)
+          : this.createNewDefaultAnnAndAddToMultiGrp(state.selectedCoords!);
         if (conf) { return { selectedAnnotationId: conf.refId }; }
         return { selectedAnnotationId: state.selectedAnnotationId };
       });
@@ -1068,7 +1073,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           amplitudeNewAnnotationCreated(propertyCreatedFromWithType.DOM_EL_PICKER);
           try {
             const path = this.iframeElManager!.elPath(state.selectedEl!);
-            conf = this.createNewDefaultAnnotation(path);
+            conf = type === 'default'
+              ? this.createNewDefaultAnnotation(path)
+              : this.createNewDefaultAnnAndAddToMultiGrp(path);
           } catch (e) {
             sentryCaptureException(e as Error);
             throw e;
@@ -1078,6 +1085,15 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return { selectedAnnotationId };
       });
     }
+  };
+
+  createNewDefaultAnnAndAddToMultiGrp = (id: string): IAnnotationConfig => {
+    const currAnn = getAnnotationWithScreenAndIdx(this.props.toAnnotationId, this.props.timeline)!;
+    const conf = getSampleConfig(id, getRandomId());
+    const confWithZid = updateAnnotationZId(conf, currAnn.zId);
+    this.props.onAnnotationCreateOrChange(currAnn.screen.id, confWithZid, 'upsert', this.props.tourDataOpts);
+    this.navigateToAnnotation(`${currAnn.screen.id}/${confWithZid.refId}`);
+    return confWithZid;
   };
 
   highlightEditElIfSelected = (selectedEl: HTMLElement | null) : void => {
@@ -1253,8 +1269,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
                 this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
               }}
-              updateCurrentFlowMain={(main: string) => {}}
+              updateCurrentFlowMain={(btnType: IAnnotationButtonType, main?:string) => {}}
               updateJourneyProgress={(annRefid: string) => {}}
+              flows={[]}
             />}
             {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" />}
           </GTags.EmbedCon>
@@ -1316,10 +1333,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       <Tags.AnnotationBtnCtn>
                         {this.showCreateDefaultAnnButton() && (
                         <Tags.CreateNewAnnotationBtn
-                          onClick={this.createDefaultAnnotation}
+                          onClick={() => this.createDefaultAnnotation('default')}
                         >
                           <img src={NewAnnotation} alt="new default annotation" />
-                          New Guide Annotation
+                          <p>New Guide Annotation</p>
                         </Tags.CreateNewAnnotationBtn>)}
                         {!this.state.selectedAnnotationId && (
                         <Tags.CreateNewAnnotationBtn
@@ -1329,61 +1346,27 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             this.createNewCoverAnnotation();
                           }}
                         >
-                          <img src={NewCoverAnnotation} alt="new default annotation" style={{ height: '57px !important', width: '57px' }} />
-                          New Cover Annotation
+                          <img
+                            src={NewCoverAnnotation}
+                            alt="new default annotation"
+                          />
+                          <p>New Cover Annotation</p>
                         </Tags.CreateNewAnnotationBtn>
+                        )}
+                        {this.showCreateDefaultAnnButton() && this.props.toAnnotationId && (
+                          <Tags.CreateNewAnnotationBtn
+                            onClick={() => this.createDefaultAnnotation('multi-ann')}
+                          >
+                            <img src={NewAnnotation} alt="new multi annotation" />
+                            <p>New Multi Annotation</p>
+                          </Tags.CreateNewAnnotationBtn>
                         )}
                       </Tags.AnnotationBtnCtn>
                     </div>
-                    {this.props.showEntireTimeline && (
-                    <Timeline
-                      shouldShowScreenPicker={this.props.shouldShowScreenPicker}
-                      timeline={this.props.timeline}
-                      navigate={this.navigateToAnnotation}
-                      screen={this.props.screen}
-                      applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                      allAnnotationsForTour={this.props.allAnnotationsForTour}
-                      tourDataOpts={this.props.tourDataOpts}
-                      setSelectedAnnotationId={(annId: string) => this.setState({ selectedAnnotationId: annId })}
-                      resetSelectedAnnotationId={this.resetSelectedAnnotation}
-                      selectedAnnotationId={this.state.selectedAnnotationId}
-                      goToSelectionMode={this.goToSelectionMode}
-                      setAlertMsg={this.props.setAlert}
-                    >
-                      <AnnotationCreatorPanel
-                        setAlertMsg={this.props.setAlert}
-                        opts={this.props.tourDataOpts}
-                        selectedEl={this.state.selectedEl}
-                        allAnnotationsForTour={this.props.allAnnotationsForTour}
-                        screen={this.props.screen}
-                        onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
-                        config={configOfSelectedAnn!}
-                        busy={!this.props.isScreenLoaded}
-                        tour={this.props.tour}
-                        applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                        selectedHotspotEl={this.state.selectedHotspotEl}
-                        selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
-                        selectedAnnotationCoords={this.state.selectedAnnotationCoords}
-                        setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
-                          this.setState({ selectionMode: mode });
-                        }}
-                        domElPicker={this.iframeElManager}
-                        onConfigChange={async (conf, actionType, opts) => {
-                          if (actionType === 'upsert') {
-                            this.setState({ selectedAnnotationId: conf.refId });
-                          }
-                          this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                        }}
-                        onDeleteAnnotation={this.resetSelectedAnnotation}
-                        resetSelectedAnnotationElements={() => {
-                          this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
-                        }}
-                      />
-                    </Timeline>
-                    )}
+
                     {
-                    !this.props.showEntireTimeline && this.props.toAnnotationId && configOfParamsAnnId && (
-                      <TimelineTags.AnnotationLI
+                    this.props.toAnnotationId && configOfParamsAnnId && (
+                      <Tags.AnnotationLI
                         className="fable-li"
                         style={{
                           paddingBottom: '0.25rem',
@@ -1392,7 +1375,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           marginTop: '1rem',
                         }}
                       >
-                        <TimelineTags.AnotCrtPanelSecLabel
+                        <Tags.AnotCrtPanelSecLabel
                           className="fable-label"
                           style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}
                           onClick={() => {
@@ -1404,16 +1387,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             }
                           }}
                         >
-                          <TimelineTags.AnnDisplayText>
+                          <Tags.AnnDisplayText>
                             <span className="steps">
                               {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
                               <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
                                 <HomeOutlined style={{ background: 'none' }} />&nbsp;
                               </Tooltip>
                               )}
-                              Step {configOfParamsAnnId.index}
+                              Step {configOfParamsAnnId.stepNumber}
                             </span>
-                          </TimelineTags.AnnDisplayText>
+                          </Tags.AnnDisplayText>
                           {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
                           {
                             showAnnCreatorPanel ? (
@@ -1422,7 +1405,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                               <CaretOutlined dir="up" />
                             )
                           }
-                        </TimelineTags.AnotCrtPanelSecLabel>
+                        </Tags.AnotCrtPanelSecLabel>
                         {
                            showAnnCreatorPanel && (
                            <>
@@ -1462,7 +1445,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                            )
                         }
 
-                      </TimelineTags.AnnotationLI>
+                      </Tags.AnnotationLI>
                     )
                   }
                   </div>

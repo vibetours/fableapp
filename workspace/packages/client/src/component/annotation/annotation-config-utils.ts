@@ -63,6 +63,12 @@ export function updateAnnotationCustomDims<T extends IAnnotationConfig>(config: 
   return newConfig;
 }
 
+export function updateAnnotationZId<T extends IAnnotationConfig>(config: T, zId: string): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.zId = zId;
+  return newConfig;
+}
+
 export function updateAnnotationPositioning<T extends IAnnotationConfig>(
   config: T,
   positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition

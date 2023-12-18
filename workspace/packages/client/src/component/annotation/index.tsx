@@ -16,7 +16,7 @@ import { getAnnotationIndex, isCoverAnnotation as isCoverAnn, isVideoAnnotation 
 import { AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
-import { ApplyDiffAndGoToAnn } from '../screen-editor/types';
+import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
@@ -450,6 +450,13 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       }
       if (p === 't' || p === 'b') {
         l = elBox.left + elBox.width / 2 - (w / 2);
+
+        if (l + w > winW) {
+          l = winW - w - extraSpace;
+        } else if (l < 0) {
+          l = extraSpace;
+        }
+
         if (p === 't') {
           t = elBox.top - h - TOP_ANN_EL_MARGIN;
         } else {
@@ -887,6 +894,14 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
         const diff = this.props.annBox.top - top;
         top += diff + this.props.annBorderRadius;
       }
+
+      // hide the arrow if the arrow goes out of the el box
+      const verCenterOfArrow = top + arrowHeight / 2;
+      if (verCenterOfArrow < this.props.maskBoxRect.top
+        || verCenterOfArrow > this.props.maskBoxRect.top + this.props.maskBoxRect.height) {
+        styles.display = 'none';
+      }
+
       styles.top = `${top}px`;
     } else {
       let left = this.props.box.left + this.props.box.width / 2 - arrowWidth / 2;
@@ -902,6 +917,14 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
         const diff = this.props.annBox.left - left;
         left += diff + this.props.annBorderRadius;
       }
+
+      // hide the arrow if the arrow goes out of the el box
+      const horCenterOfArrow = left + arrowWidth / 2;
+      if (horCenterOfArrow < this.props.maskBoxRect.left
+        || horCenterOfArrow > this.props.maskBoxRect.left + this.props.maskBoxRect.width) {
+        styles.display = 'none';
+      }
+
       styles.left = `${left}px`;
     }
 
@@ -1007,6 +1030,7 @@ export interface IAnnoationDisplayConfig {
   opts: ITourDataOpts,
   isMaximized: boolean;
   isInViewPort: boolean;
+  isElVisible: boolean;
   prerender: boolean;
   isVideoAnnotation: boolean;
   dimForSmallAnnotation: { w: number, h: number };
@@ -1034,8 +1058,10 @@ interface IConProps {
   playMode: boolean,
   tourId: number;
   applyDiffAndGoToAnn: ApplyDiffAndGoToAnn,
-  updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void,
+  updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
   updateJourneyProgress: (annRefId: string)=>void,
+  navigateToAnnByRefIdOnSameScreen: NavToAnnByRefIdFn,
+  onCompMount: ()=>void
 }
 
 interface HotspotProps {
@@ -1111,19 +1137,69 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
   }
 }
 
+interface AnnBubbleProps {
+  conf: IAnnotationConfig,
+  box: Rect,
+  navigateToAnnByRefId: NavToAnnByRefIdFn;
+  isElVisible: boolean;
+  win: Window;
+}
+
+export class AnnotationBubble extends React.PureComponent<AnnBubbleProps> {
+  render(): (JSX.Element) {
+    const bubbleWidth = 18;
+    const midPoint = this.props.win.innerHeight / 2;
+    const left = this.props.box.left - bubbleWidth / 2;
+    let top = this.props.box.top - bubbleWidth / 2;
+    if (!this.props.isElVisible) {
+      if (top < midPoint) {
+        top = 0 - bubbleWidth / 2;
+      } else {
+        top = this.props.win.innerHeight - bubbleWidth / 2;
+      }
+    }
+    return (
+      <>
+        <Tags.AnBubble
+          style={{
+            position: 'absolute',
+            top: `${top}px`,
+            left: `${left}px`,
+          }}
+          className="fable-multi-ann-marker"
+          onClick={() => {
+            this.props.navigateToAnnByRefId(this.props.conf.refId);
+          }}
+          bubbleWidth={bubbleWidth}
+        >
+          <FocusBubble diameter={bubbleWidth} selColor={this.props.conf.annotationSelectionColor} />
+        </Tags.AnBubble>
+      </>
+    );
+  }
+}
+
 export class AnnotationCon extends React.PureComponent<IConProps> {
+  componentDidUpdate(prevProps: Readonly<IConProps>, prevState: Readonly<{}>, snapshot?: any): void {
+    this.props.onCompMount();
+  }
+
   render(): JSX.Element[] {
     return this.props.data.map((p) => {
       if (!p.conf.isMaximized && !p.conf.prerender) {
-        // return <AnnotationBubble
-        //   key={p.conf.config.id}
-        //   annotationDisplayConfig={p.conf}
-        //   box={p.box}
-        //   nav={this.props.nav}
-        // />;
-        return null;
+        return <AnnotationBubble
+          key={p.conf.config.id}
+          conf={p.conf.config}
+          box={p.box}
+          navigateToAnnByRefId={this.props.navigateToAnnByRefIdOnSameScreen}
+          isElVisible={p.conf.isElVisible}
+          win={this.props.win}
+        />;
       }
 
+      if (!p.conf.isElVisible && !p.conf.prerender) return null;
+
+      const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
 
@@ -1175,7 +1251,13 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         : { left: 0, right: 0, top: 0, bottom: 0 };
 
       return (
-        <div key={p.conf.config.id}>
+        <div
+          key={p.conf.config.id}
+          style={{
+            position: 'absolute',
+            zIndex: '2',
+          }}
+        >
           {
             isHotspot && <AnnotationHotspot
               data={[{

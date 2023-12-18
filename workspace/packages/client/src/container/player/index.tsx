@@ -32,12 +32,11 @@ import {
   saveJourneyProgress,
   isNavigateHotspot,
   addToGlobalAppData,
+  getCurrentFlowMain
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
   AnnotationSerialIdMap,
-  getAnnotationBtn,
-  getAnnotationByRefId,
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
@@ -293,7 +292,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   navigateToJourney = (main: string): void => {
     this.navigateTo(main);
+    this.updateCurrentFlowMain(main);
+  };
 
+  updateCurrentFlowMain = (main: string): void => {
     emitEvent<Partial<Payload_JourneySwitch>>(InternalEvents.JourneySwitch, {
       fromJourney: this.state.currentFlowMain,
       currentJourney: main,
@@ -343,33 +345,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       );
       this.localJourneyProgress[tourId] = currentFlowProgress;
       saveJourneyProgress(this.localJourneyProgress);
-
-      if (this.props.journey && currentFlowIdx === this.props.journey.flows.length - 1) {
-        window.parent.postMessage({ type: 'lastAnnotation' }, '*');
-      }
-    }
-  };
-
-  setCurrentFlowMain = () : void => {
-    let refId = this.props.match.params.annotationId;
-    while (refId) {
-      const annotation = getAnnotationByRefId(refId, this.props.allAnnotationsForTour);
-      const prevBtn = getAnnotationBtn(annotation!, 'prev');
-
-      if (!prevBtn.hotspot) {
-        const main = `${annotation!.screenId}/${refId}`;
-        const flowIndex = this.props.journey!.flows.findIndex((flow) => flow.main === main);
-        if (flowIndex !== -1) {
-          this.setState({ currentFlowMain: main });
-        }
-
-        // set initial journey name in global data
-        this.addJourneyToGlobalData(main);
-
-        break;
-      }
-      if (!isNavigateHotspot(prevBtn.hotspot)) break;
-      refId = prevBtn.hotspot!.actionValue.split('/')[1];
     }
   };
 
@@ -388,6 +363,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     saveJourneyProgress(this.localJourneyProgress);
     return annotationSerialIdMap;
   };
+
+  setCurrentFlowMain(): void {
+    const main = getCurrentFlowMain(
+      this.props.match.params.annotationId!,
+      this.props.allAnnotationsForTour,
+      this.props.journey!.flows
+    );
+    this.setState({ currentFlowMain: main });
+  }
 
   componentDidUpdate(prevProps: IProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
@@ -675,24 +659,26 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                   const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
                   this.getScreenDataPreloaded(screen, 1, startScreens, false);
                 }}
-                updateCurrentFlowMain={(btnConfig: IAnnotationButtonType) => {
+                updateCurrentFlowMain={(btnConfig: IAnnotationButtonType, main?: string) => {
                   const currentMain = this.state.currentFlowMain;
-                  const allFlows = this.props.journey!.flows.map(flow => flow.main) || [];
-                  const currentFlowMainIndex = allFlows.findIndex((flow) => flow === currentMain);
-                  if (btnConfig === 'next' && currentFlowMainIndex < allFlows.length - 1) {
-                    const nextMain = allFlows[currentFlowMainIndex + 1];
-                    this.setState({ currentFlowMain: nextMain });
-                    this.navFn(nextMain, 'annotation-hotspot');
-                  } else if (btnConfig === 'prev' && currentFlowMainIndex > 0) {
-                    const nextMain = allFlows[currentFlowMainIndex - 1];
-                    this.setState({ currentFlowMain: nextMain });
-                    this.navFn(nextMain, 'annotation-hotspot');
+                  let newMain = currentMain;
+                  if (main) {
+                    newMain = main;
+                  } else {
+                    const allFlows = this.props.journey!.flows.map(flow => flow.main) || [];
+                    const currentFlowMainIndex = allFlows.findIndex((flow) => flow === currentMain);
+                    if (btnConfig === 'next' && currentFlowMainIndex < allFlows.length - 1) {
+                      newMain = allFlows[currentFlowMainIndex + 1];
+                      this.navFn(newMain, 'annotation-hotspot');
+                    } else if (btnConfig === 'prev' && currentFlowMainIndex > 0) {
+                      newMain = allFlows[currentFlowMainIndex - 1];
+                      this.navFn(newMain, 'annotation-hotspot');
+                    }
+                    if (btnConfig === 'next' && currentFlowMainIndex === this.props.journey!.flows.length - 1) {
+                      window.parent.postMessage({ type: 'lastAnnotation' }, '*');
+                    }
                   }
-                  this.addJourneyToGlobalData(currentMain);
-                  emitEvent<Partial<Payload_JourneySwitch>>(InternalEvents.JourneySwitch, {
-                    fromJourney: this.state.currentFlowMain,
-                    currentJourney: currentMain
-                  });
+                  this.updateCurrentFlowMain(newMain);
                 }}
                 closeJourneyMenu={() : void => {
                   if (this.state.isJourneyMenuOpen) { this.setState({ isJourneyMenuOpen: false }); }
@@ -703,6 +689,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                     this.updateJourneyProgress(parseInt(currentStepNumber, 10));
                   }
                 }}
+                flows={this.props.journey?.flows || []}
               />
             ))
         }

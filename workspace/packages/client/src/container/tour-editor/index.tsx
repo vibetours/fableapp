@@ -55,12 +55,11 @@ import {
   TourDataChangeFn,
   NavFn,
   IAnnotationConfigWithScreen,
-  ConnectedOrderedAnnGroupedByScreen,
   DestinationAnnotationPosition,
-  ScreenPickerData
+  ScreenPickerData,
+  Timeline
 } from '../../types';
 import {
-  generateTimelineOrder,
   openTourExternalLink,
   getAnnotationsPerScreen,
   DEFAULT_ALERT_FOR_ANN_OPS,
@@ -68,16 +67,18 @@ import {
   saveFableTimelineOrder,
   setEventCommonState,
   createIframeSrc,
-  assignScreenIndices,
-  isBlankString
+  isBlankString,
+  generateTimelineOrder,
+  assignStepNumbersToAnnotations
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import {
   getAnnotationSerialIdMap,
   getAnnotationByRefId,
-  addNewAnn
+  addNewAnn,
+  getAnnotationBtn
 } from '../../component/annotation/ops';
-import { AnnUpdateType } from '../../component/timeline/types';
+import { AnnUpdateType } from '../../component/annotation/types';
 import Loader from '../../component/loader';
 import ScreenPicker from '../screen-picker';
 
@@ -119,7 +120,9 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue))
 });
 
-const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): ConnectedOrderedAnnGroupedByScreen => {
+const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline => {
+  const timeline: Timeline = [];
+
   const screenHash: Record<number, P_RespScreen> = {};
   const flatAnns: Record<string, IAnnotationConfigWithScreen> = {};
   for (const annPerScreen of allAnns) {
@@ -128,75 +131,49 @@ const getTimeLine = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Connecte
       flatAnns[ann.refId] = {
         ...ann,
         screen: annPerScreen.screen,
-        index: ''
+        stepNumber: ''
       };
     }
   }
 
-  // Every connected screen is one array
-  // inside each connected screen, each screen group is one array
-  const orderedAnns: ConnectedOrderedAnnGroupedByScreen = [];
-  while (true) {
-    const anns = Object.values(flatAnns);
-    if (!anns.length) {
-      break;
+  // get first anns
+  const firstAnns: IAnnotationConfigWithScreen[] = [];
+  Object.values(flatAnns).forEach(ann => {
+    const prevBtn = getAnnotationBtn(ann, 'prev')!;
+    if (!prevBtn.hotspot || prevBtn.hotspot.actionType === 'open') {
+      firstAnns.push(ann);
     }
-    const connectedOrderedAnn: IAnnotationConfigWithScreen[] = [];
+  });
 
-    // traverse the list to go to the very first annotation
-    let ann = anns[0];
+  firstAnns.forEach(firstAnn => {
+    const singleTimeline: IAnnotationConfigWithScreen[] = [];
+    let ann = firstAnn;
     while (true) {
-      const prevBtn = ann.buttons.find(btn => btn.type === 'prev')!;
-      if (prevBtn.hotspot && prevBtn.hotspot.actionType === 'navigate') {
-        ann = flatAnns[prevBtn.hotspot.actionValue.split('/')[1]];
-      } else {
+      singleTimeline.push(ann);
+
+      const nextBtn = getAnnotationBtn(ann, 'next')!;
+      if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
         break;
       }
+      const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+      ann = flatAnns[nextAnnRefId];
     }
-
-    while (true) {
-      connectedOrderedAnn.push(ann);
-      delete flatAnns[ann.refId];
-      const nextBtn = ann.buttons.find(btn => btn.type === 'next')!;
-      if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
-        ann = flatAnns[nextBtn.hotspot.actionValue.split('/')[1]];
-      } else {
-        break;
-      }
-    }
-
-    const connectedOrderAnnotationGroupByScreen: IAnnotationConfigWithScreen[][] = [];
-    let annotationGroupByScreen: IAnnotationConfigWithScreen[] = [];
-    let prevScreenId = -1;
-    for (let i = 0, l = connectedOrderedAnn.length; i < l; i++) {
-      const an = connectedOrderedAnn[i];
-      an.grpId = an.grpId || nanoid();
-      if (an.screen.id === prevScreenId) {
-        annotationGroupByScreen.push(an);
-      } else {
-        annotationGroupByScreen = [an];
-        prevScreenId = an.screen.id;
-        connectedOrderAnnotationGroupByScreen.push(annotationGroupByScreen);
-      }
-    }
-
-    orderedAnns.push(connectedOrderAnnotationGroupByScreen);
-  }
+    timeline.push(singleTimeline);
+  });
 
   const localStoreTimeline = getFableTimelineOrder();
 
   if (localStoreTimeline.order.length === 0 || tour.rid !== localStoreTimeline.rid) {
-    const newTimelineOrder = generateTimelineOrder(orderedAnns);
+    const newTimelineOrder = generateTimelineOrder(timeline);
     saveFableTimelineOrder({ order: newTimelineOrder, rid: tour.rid });
   } else {
-    orderedAnns.sort(
-      (a, b) => localStoreTimeline.order.indexOf(a[0][0].grpId) - localStoreTimeline.order.indexOf(b[0][0].grpId)
+    timeline.sort(
+      (a, b) => localStoreTimeline.order.indexOf(a[0].grpId) - localStoreTimeline.order.indexOf(b[0].grpId)
     );
   }
 
-  const indexedOrderedAnns = assignScreenIndices(orderedAnns);
-
-  return indexedOrderedAnns;
+  const timelineWithScreenIndices = assignStepNumbersToAnnotations(timeline);
+  return timelineWithScreenIndices;
 };
 
 const isTourMainValid = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
@@ -222,7 +199,7 @@ interface IAppStateProps {
   tourOpts: ITourDataOpts;
   allAnnotationsForTour: AnnotationPerScreen[];
   principal: RespUser | null;
-  timeline: ConnectedOrderedAnnGroupedByScreen;
+  timeline: Timeline;
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
   isMainValid: boolean;
@@ -310,7 +287,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allEdits,
     subs: state.default.subs,
     isMainValid,
-    timeline: state.default.tourLoaded ? getTimeLine(allAnnotationsForTour, state.default.currentTour!) : [],
+    timeline: state.default.tourLoaded ? getTimeline(allAnnotationsForTour, state.default.currentTour!) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
     tourOpts,
@@ -405,7 +382,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
     try {
       if (this.props.isTourLoaded && this.props.searchParams.get('g') === '1' && this.props.timeline.length > 0) {
-        const ann = this.props.timeline[0][0][0];
+        const ann = this.props.timeline[0][0];
         this.props.navigate(`/demo/${this.props.tour!.rid}/${ann.screen.rid}/${ann.refId}`);
       }
     } catch (err) {

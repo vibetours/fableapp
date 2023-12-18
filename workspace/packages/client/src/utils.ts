@@ -1,18 +1,19 @@
 import { useEffect, useRef } from 'react';
-import { IAnnotationConfig, ITourEntityHotspot, SerNode } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourEntityHotspot, SerNode, JourneyFlow } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
-  ConnectedOrderedAnnGroupedByScreen,
   IAnnotationConfigWithScreen,
   JOURNEY_PROGRESS_LOCAL_STORE_KEY,
   FlowProgress,
   InternalEvents,
   GlobalAppData,
   GlobalWin,
-  ExtMsg
+  ExtMsg,
+  Timeline
 } from './types';
+import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -119,10 +120,10 @@ export function flatten<T>(arr: Array<T[]>): T[] {
   return flatArr;
 }
 
-export const generateTimelineOrder = (timeline: ConnectedOrderedAnnGroupedByScreen): string[] => {
+export const generateTimelineOrder = (timeline: Timeline): string[] => {
   const newTimelineOrder: string[] = [];
   for (const group of timeline) {
-    newTimelineOrder.push(group[0][0].grpId);
+    newTimelineOrder.push(group[0].grpId);
   }
 
   return newTimelineOrder;
@@ -189,20 +190,15 @@ export const generateScreenIndex = (timelineCount: number, timelineIdx: number, 
   return `${annIdx.toString()}`;
 };
 
-export const assignScreenIndices = (
-  orderedAnns: ConnectedOrderedAnnGroupedByScreen
-): ConnectedOrderedAnnGroupedByScreen => {
-  for (let i = 0; i < orderedAnns.length; i++) {
-    let annIdx = 0;
-    for (const screenGroup of orderedAnns[i]) {
-      for (const annotation of screenGroup) {
-        annIdx++;
-        annotation.index = generateScreenIndex(orderedAnns.length, i, annIdx);
-      }
-    }
-  }
-
-  return orderedAnns;
+export const assignStepNumbersToAnnotations = (
+  timeline: Timeline
+): Timeline => {
+  timeline.forEach((singleTimeline, singleTimelineIdx) => {
+    singleTimeline.forEach((ann, annIdx) => {
+      ann.stepNumber = generateScreenIndex(timeline.length, singleTimelineIdx, annIdx + 1);
+    });
+  });
+  return timeline;
 };
 
 export const createIframeSrc = (relativeURL: string): string => baseURL + relativeURL;
@@ -222,14 +218,12 @@ export const isExtensionInstalled = (): Promise<boolean> => new Promise((resolve
 
 export const getAnnotationWithScreenAndIdx = (
   annRefId: string,
-  entireTimeline: ConnectedOrderedAnnGroupedByScreen
+  entireTimeline: Timeline
 ): IAnnotationConfigWithScreen | null => {
   let ann: IAnnotationConfigWithScreen | null = null;
-  entireTimeline.forEach(connectedTimeline => {
-    connectedTimeline.forEach(timeline => {
-      timeline.forEach(config => {
-        if (config.refId === annRefId) ann = config;
-      });
+  entireTimeline.forEach(timeline => {
+    timeline.forEach(config => {
+      if (config.refId === annRefId) ann = config;
     });
   });
   return ann;
@@ -430,3 +424,26 @@ export function getGlobalData(key: keyof GlobalAppData): GlobalAppData[keyof Glo
   const commonMessageData = (window as GlobalWin).__fable_global_app_data__ || {};
   return commonMessageData[key];
 }
+export const getCurrentFlowMain = (
+  id: string,
+  allAnnotationsForTour: AnnotationPerScreen[],
+  flows: JourneyFlow[]
+) : string => {
+  let refId = id;
+  while (refId) {
+    const annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
+    const prevBtn = getAnnotationBtn(annotation!, 'prev');
+
+    if (!prevBtn.hotspot) {
+      const main = `${annotation!.screenId}/${refId}`;
+      const flowIndex = flows.findIndex((flow) => flow.main === main);
+      if (flowIndex !== -1) {
+        return main;
+      }
+      break;
+    }
+    if (!isNavigateHotspot(prevBtn.hotspot)) break;
+    refId = prevBtn.hotspot!.actionValue.split('/')[1];
+  }
+  return '';
+};

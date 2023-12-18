@@ -1,47 +1,97 @@
-import { getRandomId } from '@fable/common/dist/utils';
-import { AnnotationNode, Box, Edge, Point } from './types';
-import { ConnectedOrderedAnnGroupedByScreen } from '../../types';
+import { AnnotationNode, Box, Point, MultiAnnotationNode, GroupedAnns, GroupEdge } from './types';
+import { IAnnotationConfigWithScreen, Timeline } from '../../types';
 import { getAnnotationBtn } from '../annotation/ops';
+import { getAnnotationWithScreenAndIdx } from '../../utils';
 
-export function formAnnotationNodes(data: ConnectedOrderedAnnGroupedByScreen, dim: {width: number, height: number})
-: [AnnotationNode<Box>[], Edge[]] {
-  const annotationNodes: AnnotationNode<Box>[] = [];
-  const edges: [srcId: string, destId: string][] = [];
+function getGroupedAnnNodesFromAnnNodeBoxArr(timeline: Timeline): GroupedAnns[] {
+  const groups: Record<string, IAnnotationConfigWithScreen[]> = {};
 
-  data.forEach((connectedTimelines) => {
-    let i = 0;
-    const groupId = getRandomId();
-    connectedTimelines.forEach((timeline => {
-      const screen = timeline[0].screen;
-
-      timeline.forEach((annotation) => {
-        const annId = `${screen.id}/${annotation.refId}`;
-
-        const nextBtn = getAnnotationBtn(annotation, 'next');
-
-        if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
-          const toId = nextBtn.hotspot.actionValue;
-          edges.push([annId, toId]);
-        }
-
-        annotationNodes.push({
-          id: annId,
-          localIdx: i++,
-          grp: groupId,
-          width: dim.width,
-          height: dim.height,
-          x: 0,
-          y: 0,
-          imageUrl: screen.thumbnailUri.href,
-          text: annotation.displayText,
-          screenTitle: annotation.index,
-          annotation
-        });
-      });
-    }));
+  timeline.forEach(singleTimeline => {
+    singleTimeline.forEach((annotation) => {
+      if (groups[annotation.zId]) {
+        groups[annotation.zId].push(annotation);
+      } else {
+        groups[annotation.zId] = [annotation];
+      }
+    });
   });
 
-  return [annotationNodes, edges];
+  return Object.entries(groups).map((el) => ({
+    zId: el[0],
+    anns: el[1]
+  }));
+}
+
+export function getMultiAnnNodesAndEdges(
+  data: Timeline,
+  dim: {width: number, height: number, gap: number}
+): [MultiAnnotationNode<Box>[], GroupEdge[]] {
+  const groupedAnnNodes = getGroupedAnnNodesFromAnnNodeBoxArr(data);
+  const multiAnnNodes: MultiAnnotationNode<Box>[] = [];
+  const edges: GroupEdge[] = [];
+
+  groupedAnnNodes.forEach(group => {
+    const annsWithNewDims: AnnotationNode<Box>[] = group.anns.map((annotation, annIdx) => {
+      const annId = `${annotation.screen.id}/${annotation.refId}`;
+      const newX = annIdx * dim.gap;
+      const newY = annIdx * dim.gap;
+      const width = dim.width;
+      const height = dim.height;
+      const dimData: Box = { x: newX, y: newY, width, height, cx: 0, cy: 0 };
+
+      const nextBtn = getAnnotationBtn(annotation, 'next');
+
+      if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
+        const toId = nextBtn.hotspot.actionValue;
+        const toAnnId = toId.split('/')[1];
+        const toAnn = getAnnotationWithScreenAndIdx(toAnnId, data)!;
+        edges.push({
+          fromAnnId: annId,
+          toAnnId: toId,
+          fromZId: annotation.zId,
+          toZId: toAnn.zId,
+        });
+      }
+
+      return {
+        ...annotation,
+        id: annId,
+        localIdx: annIdx,
+        grp: annotation.grpId,
+        width: dim.width,
+        height: dim.height,
+        imageUrl: annotation.screen.thumbnailUri.href,
+        text: annotation.displayText,
+        stepNumber: annotation.stepNumber,
+        annotation,
+        x: newX,
+        y: newY,
+        storedData: dimData,
+        origStoredData: dimData,
+        sameMultiAnnGroupAnnRids: group
+          .anns
+          .filter(ann => ann.refId !== annotation.refId)
+          .map(ann => ann.refId)
+      };
+    });
+
+    const groupWidth = dim.width + (annsWithNewDims.length - 1) * dim.gap;
+    const groupHeight = dim.height + (annsWithNewDims.length - 1) * dim.gap;
+
+    multiAnnNodes.push({
+      id: group.zId,
+      x: 0,
+      y: 0,
+      width: groupWidth,
+      height: groupHeight,
+      data: {
+        zId: group.zId,
+        anns: annsWithNewDims,
+      }
+    });
+  });
+
+  return [multiAnnNodes, edges];
 }
 
 export function formPathUsingPoints(points: Point[]): string {

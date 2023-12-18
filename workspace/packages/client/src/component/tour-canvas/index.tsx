@@ -25,6 +25,7 @@ import { Button, Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
+import { getRandomId } from '@fable/common/dist/utils';
 import * as GTags from '../../common-styled';
 import {
   updateGrpIdForTimelineTillEnd,
@@ -33,7 +34,8 @@ import {
   getAnnotationByRefId,
   reorderAnnotation,
   groupUpdatesByAnnotation,
-  AnnotationSerialIdMap
+  AnnotationSerialIdMap,
+  getAnnotationBtn
 } from '../annotation/ops';
 import newScreenDark from '../../assets/new-screen-dark.svg';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
@@ -41,18 +43,23 @@ import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
   AnnotationPerScreen,
-  ConnectedOrderedAnnGroupedByScreen,
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
   IAnnotationConfigWithScreen,
+  MultiNodeModalData,
   NavFn,
   ScreenPickerData,
+  Timeline,
   TourDataChangeFn,
   onAnnCreateOrChangeFn
 } from '../../types';
-import { IAnnotationConfigWithScreenId, updateButtonProp } from '../annotation/annotation-config-utils';
-import { AnnUpdateType } from '../timeline/types';
+import {
+  IAnnotationConfigWithScreenId,
+  updateAnnotationZId,
+  updateButtonProp,
+} from '../annotation/annotation-config-utils';
+import { AnnUpdateType } from '../annotation/types';
 import { dSaveZoomPanState } from './deferred-tasks';
 import * as Tags from './styled';
 import {
@@ -60,12 +67,14 @@ import {
   AnnotationNode,
   AnnotationPosition, CanvasGrid,
   EdgeWithData,
+  GroupEdge,
   LRPostion,
-  ModalPosition
+  ModalPosition,
+  MultiAnnotationNode
 } from './types';
-import { formAnnotationNodes, formPathUsingPoints, getEndPointsUsingPath } from './utils';
+import { formPathUsingPoints, getEndPointsUsingPath, getMultiAnnNodesAndEdges } from './utils';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
-import NewAnnotationPopup from '../timeline/new-annotation-popup';
+import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -92,7 +101,7 @@ type CanvasProps = {
   toAnnotationId: string;
   onTourDataChange: TourDataChangeFn;
   tour: P_RespTour;
-  timeline: ConnectedOrderedAnnGroupedByScreen,
+  timeline: Timeline,
   tourOpts: ITourDataOpts,
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void,
   applyAnnGrpIdMutations: (mutations: AnnUpdateType, tx: Tx) => void,
@@ -140,6 +149,10 @@ const ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR = 40 * ANN_EDITOR_ZOOM;
 const ANN_EDITOR_TOP = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM
   + ANN_NODE_TOP_MARGIN_FOR_EDITOR + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
 
+const MULTI_ANN_G_MARKER_MARGIN = 10;
+const MULTI_ANN_NODE_GAP = 10;
+const MULTI_NODE_MODAL_WIDTH = ANN_NODE_WIDTH * ANN_EDITOR_ZOOM + 40;
+
 const SVG_ZOOM_EXTENT: [number, number] = [0.5, 2];
 
 let dragTimer = 0;
@@ -168,6 +181,17 @@ function getLRPosition(xy: [number, number], wrt: HTMLElement): [number, number,
   return [...xy, 'l' as LRPostion];
 }
 
+function getModalPosition(n: SVGElement): number {
+  const node = n.getBoundingClientRect();
+  if (node.x + MULTI_NODE_MODAL_WIDTH > window.innerWidth) {
+    return window.innerWidth - MULTI_NODE_MODAL_WIDTH;
+  }
+  if (node.x < 0) {
+    return 0;
+  }
+  return node.x + node.width / 2 - MULTI_NODE_MODAL_WIDTH / 2;
+}
+
 interface CtxSelectionData {
   annotation: IAnnotationConfigWithScreenId;
 }
@@ -183,11 +207,15 @@ function shouldShowRepositionMarker(
   el: SVGRectElement,
   markerData: AnnotationNode<dagre.Node>,
   selectedNodeData: AnnotationNode<dagre.Node>,
+  expandedMultAnnZIds: string[]
 ): boolean {
   const isR = select(el).classed('r');
   const isSameTimelineGrp = markerData.grp === selectedNodeData.grp;
   const isPrev = markerData.localIdx === selectedNodeData.localIdx - 1;
-  return !(isSameTimelineGrp && isPrev && isR);
+  const isGrpCollapsed = markerData.sameMultiAnnGroupAnnRids!.length === 0
+  || (markerData.sameMultiAnnGroupAnnRids!.length !== 0
+     && expandedMultAnnZIds.includes(markerData.annotation.zId));
+  return !(isSameTimelineGrp && isPrev && isR) && isGrpCollapsed;
 }
 
 const initialModalPos: ModalPosition = [null, null, 'l'];
@@ -217,11 +245,18 @@ const newScreenPickerData: ScreenPickerData = {
   showCloseButton: true,
 };
 
+const initialMultiNodeModalData: MultiNodeModalData = {
+  selectedMultiNode: null,
+  leftCoord: 0,
+};
+
 interface AnnEditorModal {
   annId: string,
   newSvgZoom: { x: number, y: number, k: number, centerX: number },
   applyTransitionToArrow: boolean,
   prevAnnId: string,
+  firstSelectedAnnId: string,
+  timelineY: number
 }
 
 interface AnnWithCoords {
@@ -240,6 +275,7 @@ interface CreateJourneyModal {
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
+  const addToMultiAnnGroupRef = useRef<MultiAnnotationNode<dagre.Node> |null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const rootGRef = useRef<SVGGElement | null>(null);
   const ctxData = useRef<CtxSelectionData | null>(null);
@@ -261,13 +297,20 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [showAnnText, setShowAnnText] = useState(false);
   const [newAnnPos, setNewAnnPos] = useState<null | DestinationAnnotationPosition>(null);
   const [screenEditorArrowLeft, setScreenEditorArrowLeft] = useState(0);
+  const [multiNodeModalData, setMultiNodeModalData] = useState(initialMultiNodeModalData);
+  const dagreGraphRef = useRef<dagre.graphlib.Graph>();
 
   const [init] = useState(1);
+  const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
 
   useEffect(() => {
     annWithCoordsRef.current = annWithCoords;
   }, [annWithCoords]);
+  const lines = line<EdgeWithData>()
+    .curve(curveBasis)
+    .x(d => d.x)
+    .y(d => d.y);
 
   const drawGrid = (): void => {
     const svgEl = svgRef.current;
@@ -327,6 +370,122 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('opacity', Math.min(k, 1));
   };
 
+  const collapseSelectedMultiNode = (annotation: IAnnotationConfigWithScreen): void => {
+    // reset annotations position for the selected multiNode
+    const nodeG = select<SVGGElement, AnnotationNode<dagre.Node>>(rootGRef.current!)
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    const existingData = nodeG.data();
+    const updatedNodeData = existingData.map((singleNode) => {
+      if (annotation.zId === singleNode.annotation.zId) {
+        singleNode.storedData!.x = singleNode.origStoredData!.x;
+        singleNode.storedData!.y = singleNode.origStoredData!.y;
+      }
+      return singleNode;
+    });
+
+    const nodeGDataBound = nodeG.data<AnnotationNode<dagre.Node>>(updatedNodeData, dt => dt.id);
+    nodeGDataBound.merge(nodeGDataBound).call(updateNodePos);
+
+    // if we have dragged annotation from expanded multi-node and then collapse it, the order changes
+    // so we call raise to reset the order
+    nodeG
+      .filter(p => p.annotation.zId === annotation.zId)
+      .sort((a, b) => a.origStoredData!.x - b.origStoredData!.x)
+      .each(function () {
+        const sel = select(this);
+        sel.raise();
+      });
+
+    // reset group container height
+    const multiG = select(svgRef.current!)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node');
+    const existingMultiGData = multiG.data();
+    const updatedMultiGData = existingMultiGData.map((multiN) => {
+      if (multiN.data.zId === annotation.zId) {
+        multiN.storedData!.height = multiN.origStoredData!.height;
+        multiN.storedData!.width = multiN.origStoredData!.width;
+        multiN.width = multiN.origStoredData!.width;
+        multiN.height = multiN.origStoredData!.height;
+      }
+
+      return multiN;
+    });
+    updateMultiNodeMarkerSize(multiG, updatedMultiGData, annotation, false);
+
+    // reset connectors position
+    const g = select(rootGRef.current);
+
+    g
+      .selectAll('g.connectors')
+      .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+      .call(p => {
+        setOrignalEdgePos(p as D3Selection<SVGGElement, EdgeWithData, SVGGElement, AnnotationPerScreen[]>);
+      });
+
+    // remove collapsed multi-node zId from expandedMultAnnZIds
+    const multAnnZIds = expandedMultAnnZIds.current;
+    const index = multAnnZIds.indexOf(annotation.zId);
+    if (index > -1) {
+      multAnnZIds.splice(index, 1);
+    }
+    expandedMultAnnZIds.current = multAnnZIds;
+  };
+
+  const expandSelectedMultiNode = (data: AnnotationNode<dagre.Node>): void => {
+    // get all the annotation rid for selected multiNode
+    const ridInThisMultiGrp = [...data.sameMultiAnnGroupAnnRids!, data.annotation.refId];
+    // add selected multi-node to expandedMultAnnZIds
+    expandedMultAnnZIds.current = [...expandedMultAnnZIds.current, data.annotation.zId];
+
+    // find the selected multiNode
+    const multiG = select(svgRef.current!)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node');
+    const existingMultiGData = multiG.data();
+    const selectedMultiNode = existingMultiGData.find(
+      (multiNode) => multiNode.data.zId === data.annotation.zId
+    );
+
+    // update annotations position from the selected multiNode
+    const nodeG = select<SVGGElement, AnnotationNode<dagre.Node>>(rootGRef.current!)
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    const existingData = nodeG.data();
+    const updatedNodeData = existingData.map(node => {
+      if (ridInThisMultiGrp.includes(node.annotation.refId)) {
+        // we get the x value from multi-node
+        node.storedData!.x = selectedMultiNode!.storedData!.x - selectedMultiNode!.storedData!.width / 2;
+        const index = Math.floor(node.y / MULTI_ANN_NODE_GAP);
+        const nodeY = index * (MULTI_ANN_NODE_GAP + node.origStoredData!.height) + node.origStoredData!.y;
+        node.storedData!.y = nodeY;
+      }
+      return node;
+    });
+    const nodeGDataBound = nodeG.data<AnnotationNode<dagre.Node>>(updatedNodeData, d => d.id);
+    nodeGDataBound.merge(nodeGDataBound).call(updateNodePos);
+    nodeG.filter(e => ridInThisMultiGrp.includes(e.annotation.refId)).raise();
+
+    // update multi-node height & width
+    const updatedMultiGData = existingMultiGData.map((multiN) => {
+      if (multiN.data.zId === data.annotation.zId) {
+        const height = (data.sameMultiAnnGroupAnnRids!.length + 1)
+        * (data.storedData!.height + MULTI_ANN_NODE_GAP);
+        const width = data.storedData!.width;
+        multiN.storedData!.height = height;
+        multiN.storedData!.width = width;
+        multiN.width = width;
+        multiN.height = height;
+      }
+
+      return multiN;
+    });
+    updateMultiNodeMarkerSize(multiG, updatedMultiGData, data.annotation, true);
+
+    // update the connectors position
+    updateSelectedMultiNodeEdgesPos(updatedNodeData);
+
+    // remove the multi-node border we add on hover
+    updateMultiNodeSelectionStyle(data, false, '');
+  };
+
   const nodeDraggable = (): DragBehavior<
     SVGGElement,
     AnnotationNode<dagre.Node>,
@@ -355,7 +514,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       })
       .on('drag', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
-        d: any
+        d: AnnotationNode<dagre.Node>
       ) {
         prevent(event.sourceEvent);
         if (createJourneyModalRef.current) return;
@@ -373,8 +532,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           const selectedScreen = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
           const data = selectedScreen.datum();
           // Find out where in the box the mousedown for drag is fired relative to the current box.
-          relX = eventX - (data.storedData!.x - data.storedData!.width / 2);
-          relY = eventY - (data.storedData!.y - data.storedData!.height / 2);
+          relX = eventX - (data.storedData!.x);
+          relY = eventY - (data.storedData!.y);
           id = data.id;
           reorderPropsRef.current.currentDraggedAnnotationId = id;
 
@@ -385,13 +544,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           const allNodesParentParent = select('g#fab-tour-canvas-main');
           allNodesParentParent.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.tg-hide')
             .classed('tg-show', function (datum) {
-              return shouldShowRepositionMarker(this, datum, data);
+              return shouldShowRepositionMarker(this, datum, data, expandedMultAnnZIds.current);
             })
             .classed('tg-hide', function (datum) {
-              return !shouldShowRepositionMarker(this, datum, data);
+              return !shouldShowRepositionMarker(this, datum, data, expandedMultAnnZIds.current);
             });
 
           select('g.connectors').classed('fade', true);
+
+          if (!annEditorModalRef.current) {
+            shouldShowOrHideMultiAnnGMarker(data, true, Tags.TILE_STROKE_COLORON_SELECT);
+          }
         }
 
         const [x, y] = fromPointer(event, rootGRef.current);
@@ -402,8 +565,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const el = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         el.attr('transform', `translate(${newX}, ${newY})`);
 
-        const fromEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp').filter((data) => data.srcId === d.id);
-        const toEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp').filter((data) => data.destId === d.id);
+        const fromEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+          .filter((data) => data.data.fromAnnId === d.id);
+        const toEl = selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+          .filter((data) => data.data.toAnnId === d.id);
 
         const data = el.datum();
 
@@ -413,6 +578,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           const n = sel.node();
           if (!n) return;
           const pathD = n.getAttribute('d') ?? '';
+          if (pathD.length === 0) return;
+
           const endPoints = getEndPointsUsingPath(pathD);
           const newPoints = { x: newX + data.width, y: newY + data.height / 2 };
           sel.attr('d', formPathUsingPoints([newPoints, endPoints[1]]));
@@ -424,6 +591,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           const n = sel.node()!;
           if (!n) return;
           const pathD = n.getAttribute('d') ?? '';
+          if (pathD.length === 0) return;
+
           const endPoints = getEndPointsUsingPath(pathD);
           const newPoints = { x: newX, y: newY + data.height / 2 };
           sel.attr('d', formPathUsingPoints([endPoints[0], newPoints]));
@@ -446,7 +615,27 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             currentDraggedAnnotationId: reorderPropsRef.current.currentDraggedAnnotationId
           };
 
-          if (!dropTg) return;
+          if (!dropTg) {
+            // Check if dropped on multi ann group
+            if (addToMultiAnnGroupRef.current) {
+              shouldShowOrHideMultiAnnGMarker(data, true, Tags.TILE_STROKE_COLORON_SELECT);
+              addToMultiAnnGroupRef.current = null;
+            }
+
+            const [dropMultiAnnGrp] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('marker-el'));
+            if (!dropMultiAnnGrp) { return; }
+
+            const addToGroupDropTarget = select<SVGRectElement, MultiAnnotationNode<dagre.Node>>(
+              dropMultiAnnGrp as SVGRectElement
+            );
+            const groupData = addToGroupDropTarget.datum();
+            addToMultiAnnGroupRef.current = groupData;
+            addToGroupDropTarget
+              .style('fill', Tags.TILE_STROKE_COLOR_ON_HOVER)
+              .style('fill-opacity', 0.8);
+
+            return;
+          }
 
           const dropTarget = select<SVGRectElement, AnnotationNode<dagre.Node>>(dropTg as SVGRectElement);
           const isLeft = dropTarget.classed('l');
@@ -460,9 +649,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           reorderPropsRef.current.isCursorOnDropTarget = true;
         }, 200) as unknown as number;
       })
-      .on('end', (
+      .on('end', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
-      ) => {
+      ) {
         if (createJourneyModalRef.current) return;
 
         const allNodesParentParent = select('g#fab-tour-canvas-main');
@@ -474,17 +663,80 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
         select('g.connectors').classed('fade', false);
 
-        hasDraggingStarted = false;
+        const selectedScreen = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
+        const data = selectedScreen.datum();
+        shouldShowOrHideMultiAnnGMarker(data, false);
 
         const [eventX, eventY] = fromPointer(event, rootGRef.current);
         const [startX, startY] = startPoints;
 
-        const isClick = Math.abs(startX - eventX) < clickThreshold || Math.abs(startY - eventY) < clickThreshold;
-        if (isClick) {
+        const isClick = ((Math.abs(startX - eventX) < clickThreshold) || (Math.abs(startY - eventY) < clickThreshold));
+
+        if (isClick && !hasDraggingStarted) {
           resetNodePos();
-          selectAnn(id);
+          if (!restrictMultiGroupAction(data) || annEditorModalRef.current) {
+            updateMultiNodeCloseIconStyle(select(svgRef.current!), false, null);
+
+            const isMultiNodeClicked = selectedAnnId && data.sameMultiAnnGroupAnnRids!.length !== 0;
+            if (isMultiNodeClicked) {
+              const multiG = select(svgRef.current!)
+                .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node');
+              const existingMultiGData = multiG.data();
+              const selectedMultiNode = existingMultiGData.find(
+                (multiNode) => multiNode.data.zId === data.annotation.zId
+              );
+
+              let isSameMultiNodeClicked = false;
+              if (multiNodeModalData.selectedMultiNode !== null) {
+                isSameMultiNodeClicked = data.annotation.zId === multiNodeModalData.selectedMultiNode[0].zId;
+              }
+
+              if (!isSameMultiNodeClicked) {
+                const annotations = selectedMultiNode!.data.anns.map(node => node.annotation);
+
+                const node = selectedScreen.node();
+                setMultiNodeModalData({
+                  leftCoord: getModalPosition(node!),
+                  selectedMultiNode: annotations
+                });
+              } else {
+                setMultiNodeModalData(initialMultiNodeModalData);
+              }
+            } else {
+              selectAnn(id);
+              setMultiNodeModalData(initialMultiNodeModalData);
+            }
+          } else {
+            expandSelectedMultiNode(data);
+          }
+          hasDraggingStarted = false;
           return;
         }
+
+        hasDraggingStarted = false;
+
+        if (addToMultiAnnGroupRef.current) {
+          const groupData = addToMultiAnnGroupRef.current;
+          if (groupData.data.anns.length > 0) {
+            confirm({
+              title: 'Do you want to create multi annotation?',
+              icon: <SisternodeOutlined />,
+              onOk() {
+                const newGroupId = groupData.data.zId;
+                const toBeAddedToGroupAnn = data.annotation;
+
+                const updatedConfig = updateAnnotationZId(toBeAddedToGroupAnn, newGroupId);
+                props.onAnnotationCreateOrChange(updatedConfig.screen.id, updatedConfig, 'upsert', props.tourOpts);
+
+                addToMultiAnnGroupRef.current = null;
+              },
+              onCancel() {
+                addToMultiAnnGroupRef.current = null;
+              },
+            });
+          }
+        }
+        addToMultiAnnGroupRef.current = null;
 
         if (reorderPropsRef.current.isCursorOnDropTarget) {
           confirm({
@@ -524,13 +776,22 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const existingData = nodeG.data();
         const updatedNodeData = existingData.map(node => {
           if (node.id === id) {
-            node.storedData!.x = newX + node.storedData!.width / 2;
-            node.storedData!.y = newY + node.storedData!.height / 2;
+            node.storedData!.x = newX;
+            node.storedData!.y = newY;
           }
           return node;
         });
         const nodeGDataBound = nodeG.data<AnnotationNode<dagre.Node>>(updatedNodeData, d => d.id);
         nodeGDataBound.merge(nodeGDataBound).call(updateNodePos);
+
+        // if we drag an annotation whose group has only it as a single annotation
+        // then i also need to change its position so that the marker along with
+        // the multi-node changes positions with the ann
+        select(svgRef.current!)
+          .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+          .filter(dd => dd.data.anns.length === 1
+            && dd.data.anns[0].annotation.refId === data.annotation.refId)
+          .attr('transform', `translate(${newX} ${newY})`);
 
         relX = 0;
         relY = 0;
@@ -538,6 +799,23 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         newX = 0;
         newY = 0;
       });
+  };
+
+  const shouldShowOrHideMultiAnnGMarker = (
+    data: AnnotationNode<dagre.Node>,
+    show: boolean,
+    fill: string = 'none'
+  ): void => {
+    select(svgRef.current!)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(dd => dd.data.anns.length > 0
+            && dd.data.anns[0].annotation.screen.id === data.annotation.screen.id
+            && dd.data.anns[0].annotation.refId !== data.annotation.refId
+            && dd.id !== data.annotation.zId)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('rect')
+      .style('display', () => (show ? 'block' : 'none'))
+      .style('fill', () => (show ? fill : 'none'))
+      .style('fill-opacity', () => (show ? '0.3' : '0'));
   };
 
   const getAnnotationLookupMap = (allAnns: AnnotationPerScreen[]): AnnoationLookupMap => {
@@ -692,6 +970,22 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         'transform',
         d => {
           const pos = d.storedData!;
+          const x = pos.x;
+          const y = pos.y;
+          return `translate(${x}, ${y})`;
+        }
+      );
+  };
+
+  const updateMultiNodePos = (
+    node: D3Selection<SVGGElement, MultiAnnotationNode<dagre.Node>, SVGGElement, {}>
+  ): void => {
+    node
+      .transition()
+      .attr(
+        'transform',
+        d => {
+          const pos = d.storedData!;
           const x = pos.x - pos.width / 2;
           const y = pos.y - pos.height / 2;
           return `translate(${x}, ${y})`;
@@ -699,21 +993,30 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       );
   };
 
-  const handleUserZoomPanWhenAnnEditorIsShown = (x: number): void => {
+  const handleUserZoomPanWhenAnnEditorIsShown = (zoomX: number): void => {
     const { y: currZoomY } = annEditorModalRef.current!.newSvgZoom;
-    updateGrid(x, currZoomY, ANN_EDITOR_ZOOM);
-    select(rootGRef.current!).attr('transform', `translate(${x}, ${currZoomY}) scale(${ANN_EDITOR_ZOOM})`);
-    setAnnEditorModal(prev => ({ ...prev!, newSvgZoom: { ...prev!.newSvgZoom, x, }, applyTransitionToArrow: false }));
-    const annCoords = annWithCoordsRef.current.find(ann => ann.annId === annEditorModalRef.current!.annId);
-    if (!annCoords) return;
-    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, x));
+    updateGrid(zoomX, currZoomY, ANN_EDITOR_ZOOM);
+    select(rootGRef.current!).attr('transform', `translate(${zoomX}, ${currZoomY}) scale(${ANN_EDITOR_ZOOM})`);
+    setAnnEditorModal(prev => ({
+      ...prev!, newSvgZoom: { ...prev!.newSvgZoom, x: zoomX }, applyTransitionToArrow: false
+    }));
+    const annCoordsX = getAnnNodeCoordsCenterXForAnnModalArrow(annEditorModalRef.current!.annId);
+    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoordsX, zoomX));
+  };
+
+  const removeAnnFromGroup = (
+    currentAnn: IAnnotationConfigWithScreenId,
+    screenId: number,
+  ): void => {
+    const updatedConfig = updateAnnotationZId(currentAnn, getRandomId());
+    props.onAnnotationCreateOrChange(screenId, updatedConfig, 'upsert', props.tourOpts);
   };
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
       if (e.data.type === UserGuideMsg.OPEN_ANNOTATION) {
         try {
-          const ann = props.timeline[0][0][0];
+          const ann = props.timeline[0][0];
           resetNodePos();
           selectAnn(`${ann.screen.id}/${ann.refId}`);
         } catch (err) {
@@ -820,8 +1123,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .attr('d', pEl => {
                 const d = select<SVGGElement, AnnotationNode<dagre.Node>>(pEl).datum();
                 return formPathUsingPoints([{
-                  x: d.storedData!.x + d.storedData!.width / 2,
-                  y: d.storedData!.y,
+                  x: d.storedData!.x + d.storedData!.width,
+                  y: d.storedData!.y + d.storedData!.height / 2,
                 }, {
                   x: relativeCoord[0],
                   y: relativeCoord[1]
@@ -896,18 +1199,129 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .attr('fill', 'transparent');
   }
 
-  useEffect(() => {
+  /** *
+   *
+   * LAYOUTING
+   *
+   */
+
+  function dagreAutoLayoutTimeline(): {
+    newMultiAnnGNodesWithPositions: MultiAnnotationNode<dagre.Node>[],
+    newSingleAnnNodesWithPositions: AnnotationNode<dagre.Node>[],
+    newEdgesWithPositions: EdgeWithData[],
+    } {
+    const [nodesWithDims, edges] = getMultiAnnNodesAndEdges(
+      props.timeline,
+      {
+        width: ANN_NODE_WIDTH,
+        height: ANN_NODE_HEIGHT,
+        gap: MULTI_ANN_NODE_GAP
+      }
+    );
+
+    if (nodesWithDims.length === 0 && !props.shouldShowOnlyScreen) {
+      props.shouldShowScreenPicker({ ...newScreenPickerData, showCloseButton: false });
+    }
+
+    const nodeLookup = nodesWithDims.reduce((hm, n) => {
+      hm[n.id] = n;
+      return hm;
+    }, {} as Record<string, MultiAnnotationNode<dagre.Node>>);
+
+    const graph = new dagre.graphlib.Graph();
+    graph.setGraph({ rankdir: 'LR', ranksep: ANN_NODE_SEP, nodesep: ANN_NODE_SEP });
+    graph.setDefaultEdgeLabel(() => ({}));
+    nodesWithDims.forEach(node => graph.setNode(node.id, { label: node.id, width: node.width, height: node.height }));
+    edges.forEach(edge => graph.setEdge(edge.fromZId, edge.toZId, {
+      data: edge
+    }));
+    dagre.layout(graph);
+
+    dagreGraphRef.current = graph;
+
+    /** *
+     * These are the multiAnnNodeG nodes
+     */
+    const newMultiAnnGNodesWithPositions: MultiAnnotationNode<dagre.Node>[] = graph.nodes().map(v => {
+      const graphNode = graph.node(v);
+      const logicalNode = nodeLookup[graphNode.label!];
+      logicalNode.storedData = graphNode;
+      logicalNode.origStoredData = { ...graphNode };
+      return logicalNode;
+    });
+
+    // TODO Keep the x, y, width, height in d3 only and not in annCoords.
+    // Right now we save it as part of d3 & react. That means this map code will be part of the above map code
+    /**
+         *  newSingleAnnNodesWithPositions contains the individual annotations nodes
+         */
+    const annCoords: AnnWithCoords[] = [];
+    const newSingleAnnNodesWithPositions: AnnotationNode<dagre.Node>[] = [];
+
+    newMultiAnnGNodesWithPositions.forEach(groupNode => {
+      groupNode.data.anns.forEach(annNode => {
+        const newX = groupNode.storedData!.x + annNode.x - groupNode.width / 2;
+        const newY = groupNode.storedData!.y + annNode.y - groupNode.height / 2;
+        annCoords.push({
+          annId: annNode.annotation.refId,
+          screenId: annNode.annotation.screen.id,
+          x: newX,
+          y: newY,
+          width: annNode.width,
+          height: annNode.height,
+        });
+        const storedData = {
+          ...groupNode.storedData as dagre.Node,
+          x: newX,
+          y: newY,
+          width: annNode.width,
+          height: annNode.height
+        };
+        newSingleAnnNodesWithPositions.push({
+          ...annNode,
+          storedData: { ...storedData },
+          origStoredData: { ...storedData },
+        });
+      });
+    });
+
+    setAnnWithCoords(annCoords);
+
+    const newEdgesWithPositions: EdgeWithData[] = graph.edges().map(ed => {
+      const e = graph.edge(ed);
+      const data = e.data as GroupEdge;
+      return {
+        ...e,
+        srcId: ed.v,
+        destId: ed.w,
+        data,
+      };
+    });
+
+    return {
+      newMultiAnnGNodesWithPositions,
+      newSingleAnnNodesWithPositions,
+      newEdgesWithPositions,
+    };
+  }
+
+  function renderDagreAutoLayoutTimeline(shouldUpdatePos: boolean): void {
     const rootG = rootGRef.current;
     const svgEl = svgRef.current;
     if (!rootG || !svgEl) {
       return;
     }
-    const g = select(rootG);
 
-    const [nodeWithDim, edges] = formAnnotationNodes(
-      props.timeline,
-      { width: ANN_NODE_WIDTH, height: ANN_NODE_HEIGHT }
-    );
+    expandedMultAnnZIds.current = [];
+    updateMultiNodeCloseIconStyle(select(svgEl), false, null);
+
+    const {
+      newMultiAnnGNodesWithPositions,
+      newSingleAnnNodesWithPositions,
+      newEdgesWithPositions,
+    } = dagreAutoLayoutTimeline();
+
+    const g = select(rootG);
 
     const gBoundData = g
       .selectAll<SVGGElement, number>('g.connectors')
@@ -918,52 +1332,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .append('g')
       .attr('class', 'connectors')
       .merge(gBoundData);
-
-    if (nodeWithDim.length === 0 && !props.shouldShowOnlyScreen) {
-      props.shouldShowScreenPicker({ ...newScreenPickerData, showCloseButton: false });
-    }
-
-    const nodeLookup = nodeWithDim.reduce((hm, n) => {
-      hm[n.id] = n;
-      return hm;
-    }, {} as Record<string, AnnotationNode<dagre.Node>>);
-
-    const graph = new dagre.graphlib.Graph();
-    graph.setGraph({ rankdir: 'LR', ranksep: ANN_NODE_SEP, nodesep: ANN_NODE_SEP });
-    graph.setDefaultEdgeLabel(() => ({}));
-    nodeWithDim.forEach(node => graph.setNode(node.id, { label: node.id, width: node.width, height: node.height }));
-    edges.forEach(edge => graph.setEdge(edge[0], edge[1]));
-    dagre.layout(graph);
-
-    const newNodesWithPositions: AnnotationNode<dagre.Node>[] = graph.nodes().map(v => {
-      const graphNode = graph.node(v);
-      const logicalNode = nodeLookup[graphNode.label!];
-      logicalNode.storedData = graphNode;
-      logicalNode.origStoredData = { ...graphNode };
-      return logicalNode;
-    });
-    // TODO Keep the x, y, width, height in d3 only.
-    // Right now we save it as part of d3 & react. That means this map code will be part of the above map code
-    setAnnWithCoords(graph.nodes().map(v => {
-      const graphNode = graph.node(v);
-      const [screenId, annId] = graphNode.label!.split('/');
-      const { x, y, width, height } = graphNode;
-      return { annId, screenId: +screenId, x, y, width, height } as AnnWithCoords;
-    }));
-
-    const newEdgesWithPositions: EdgeWithData[] = graph.edges().map(ed => {
-      const e = graph.edge(ed);
-      return {
-        ...e,
-        srcId: ed.v,
-        destId: ed.w,
-      };
-    });
-
-    const lines = line<EdgeWithData>()
-      .curve(curveBasis)
-      .x(d => d.x)
-      .y(d => d.y);
 
     // Connectors or edges are drawn like this
     // <g>
@@ -1015,27 +1383,94 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             const con = svgRef.current!.parentNode as HTMLDivElement;
             const relCoord = fromPointer(e, con);
             const d = select<SVGGElement, EdgeWithData>(this).datum();
+            const edge: GroupEdge = dagreGraphRef.current!.edge(d.srcId, d.destId).data;
             setConnectorMenuModalData({
               position: getLRPosition(relCoord, con),
-              fromAnnId: d.srcId,
-              toAnnId: d.destId
+              fromAnnId: edge.fromAnnId,
+              toAnnId: edge.toAnnId,
             });
           });
       })
       .merge(connectorGDataBound)
-      .call(p => {
-        ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
-          p.selectAll<SVGPathElement, EdgeWithData>(sel)
-            .data(p.data(), d => `${d.srcId}:${d.destId}`)
-            .attr('d', attr => lines(attr.points as any));
-        });
-      });
+      .call(setOrignalEdgePos);
 
     connectorGDataBound.exit().remove();
 
+    const multiAnnG = g
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.multi-node')
+      .data<MultiAnnotationNode<dagre.Node>>(newMultiAnnGNodesWithPositions, d => d.id);
+
+    multiAnnG
+      .enter()
+      .append('g')
+      .attr('class', 'multi-node')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', d => d.storedData!.width)
+      .attr('height', d => d.storedData!.height)
+      .call(node => {
+        node.append('rect').attr('class', 'marker-el');
+      })
+      .call(node => {
+        const closeActn = node.append('g').attr('class', 'close-actn');
+        closeActn.append('circle')
+          .attr('cx', 0)
+          .attr('cy', 0)
+          .attr('r', 10)
+          .attr('class', 'close-cont')
+          .attr('fill', 'transparent');
+        closeActn
+          .append('path')
+          .attr('class', 'closeicn')
+          .attr('stroke-width', 2)
+          .attr('stroke', 'transparent')
+          // eslint-disable-next-line max-len
+          .attr('d', 'M14.25 4.81125L13.1887 3.75L9 7.93875L4.81125 3.75L3.75 4.81125L7.93875 9L3.75 13.1887L4.81125 14.25L9 10.0612L13.1887 14.25L14.25 13.1887L10.0612 9L14.25 4.81125Z');
+      })
+      .merge(multiAnnG)
+      .call(node => {
+        if (shouldUpdatePos) { updateMultiNodePos(node); }
+      })
+      .call(renderMultiNodeMarker)
+      .call(node => {
+        const closeActn = node.selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.close-actn')
+          .data(node.data(), d => d.id);
+
+        closeActn
+          .attr('class', 'close-actn')
+          .merge(closeActn)
+          .attr(
+            'transform',
+            (d: MultiAnnotationNode<dagre.Node>) => `translate(${d.width + MULTI_ANN_G_MARKER_MARGIN}, ${d.y})`
+          )
+          .style('cursor', 'pointer')
+          .on('mousedown', prevent)
+          .on('mouseup', prevent)
+          .on('click', function (e) {
+            prevent(e);
+            const d = select<SVGGElement, MultiAnnotationNode<dagre.Node>>(this).datum();
+            const data = d.data.anns[0];
+            const isGrpExpanded = data.sameMultiAnnGroupAnnRids!.length !== 0
+            && expandedMultAnnZIds.current.includes(data.annotation.zId);
+            if (isGrpExpanded) {
+              collapseSelectedMultiNode(data.annotation);
+            }
+          })
+          .style('fill', 'none')
+          .style('stroke', 'none')
+          .style('display', 'flex');
+
+        closeActn
+          .exit()
+          .remove();
+      });
+    multiAnnG
+      .exit()
+      .remove();
+
     const nodeG = g
       .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
-      .data<AnnotationNode<dagre.Node>>(newNodesWithPositions, d => d.id);
+      .data<AnnotationNode<dagre.Node>>(d => newSingleAnnNodesWithPositions, d => d.annotation.refId);
     nodeG
       .enter()
       .append('g')
@@ -1047,6 +1482,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         if ((annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId)
           || createJourneyModalRef.current) return;
+
+        if (restrictMultiGroupAction(gEl.datum()) && !annEditorModalRef.current) {
+          updateMultiNodeSelectionStyle(gEl.datum(), true, Tags.TILE_STROKE_COLOR_ON_HOVER);
+          return;
+        }
+
         setAnnNodeSelectionStyle(gEl, Tags.TILE_STROKE_COLOR_ON_HOVER);
       })
       .on('mousedown', null)
@@ -1054,12 +1495,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseup', function (e: MouseEvent) {
         prevent(e);
         if (createJourneyModalRef.current) return;
+
         const toEl = this;
         const fromEl = connectorG.selectAll<SVGPathElement, SVGGElement>('path.guide-arr').datum();
         const fromElSel = select<SVGGElement, AnnotationNode<dagre.Node>>(fromEl);
         const fromElData = fromElSel.datum();
         const toElData = select<SVGGElement, AnnotationNode<dagre.Node>>(toEl).datum();
-
         isGuideArrowDrawing.current = 0;
         if (fromElData.id === toElData.id) return;
         if (annEditorModalRef.current) return;
@@ -1073,6 +1514,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .on('mouseout', function () {
         const gEl = select<SVGGElement, AnnotationNode<dagre.Node>>(this);
         if (annEditorModalRef.current && annEditorModalRef.current.annId === gEl.datum().annotation.refId) return;
+        if (restrictMultiGroupAction(gEl.datum()) && !annEditorModalRef.current) {
+          updateMultiNodeSelectionStyle(gEl.datum(), false, '');
+          return;
+        }
         resetAnnNodeSelectionStyle(gEl);
       })
       .call(p => {
@@ -1169,9 +1614,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         menug
           .append('path')
           .attr('class', 'menuicn')
-          .attr('fill', Tags.MENU_ICN_DOTS_COLOR)
+          .attr('fill', 'transparent')
           .attr('transform', d => 'translate(-2, -2)')
-          // eslint-disable-next-line max-len
+        // eslint-disable-next-line max-len
           .attr('d', 'M11.997 17.3333C11.7212 17.3333 11.4861 17.2351 11.2917 17.0387C11.0972 16.8423 11 16.6062 11 16.3304C11 16.0546 11.0982 15.8194 11.2946 15.625C11.491 15.4306 11.7271 15.3333 12.003 15.3333C12.2788 15.3333 12.5139 15.4315 12.7083 15.628C12.9028 15.8244 13 16.0605 13 16.3363C13 16.6121 12.9018 16.8472 12.7054 17.0417C12.509 17.2361 12.2729 17.3333 11.997 17.3333ZM11.997 12.6667C11.7212 12.6667 11.4861 12.5685 11.2917 12.372C11.0972 12.1756 11 11.9395 11 11.6637C11 11.3879 11.0982 11.1528 11.2946 10.9583C11.491 10.7639 11.7271 10.6667 12.003 10.6667C12.2788 10.6667 12.5139 10.7649 12.7083 10.9613C12.9028 11.1577 13 11.3938 13 11.6696C13 11.9454 12.9018 12.1806 12.7054 12.375C12.509 12.5694 12.2729 12.6667 11.997 12.6667ZM11.997 8C11.7212 8 11.4861 7.90179 11.2917 7.70537C11.0972 7.50897 11 7.27286 11 6.99704C11 6.72124 11.0982 6.48611 11.2946 6.29167C11.491 6.09722 11.7271 6 12.003 6C12.2788 6 12.5139 6.09821 12.7083 6.29463C12.9028 6.49103 13 6.72714 13 7.00296C13 7.27876 12.9018 7.51389 12.7054 7.70833C12.509 7.90278 12.2729 8 11.997 8Z');
 
         const connectorCircleG = p
@@ -1189,8 +1634,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           .attr('stroke-width', '2px');
       })
       .merge(nodeG)
-      .call(updateNodePos)
+      .call(node => {
+        if (shouldUpdatePos) { updateNodePos(node); }
+      })
       .call(nodeDraggable())
+      .call(p => p.raise())
       .call(p => {
         const bgEl = p.selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('rect.bg')
           .data(p.data(), d => d.id);
@@ -1286,7 +1734,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .style('text-shadow', 'rgba(0, 0, 0, 1) 2px 0px 15px, rgb(0, 0, 0) 2px 0px 20px')
               .style('color', 'white')
               .style('padding', '2px 8px')
-              .text(d => `${d.screenTitle.substring(0, 30)}${d.screenTitle.length > 30 ? '...' : ''}`);
+              .text(d => `${d.stepNumber.substring(0, 30)}${d.stepNumber.length > 30 ? '...' : ''}`);
           });
 
         const annTextCon = p
@@ -1321,7 +1769,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .style('text-align', 'center')
               .style('background', 'rgba(0, 0, 0, 0.2)')
               .style('color', 'black')
-              .text(d => `${d.text!.substring(0, 80)}${d.text!.length > 80 ? '...' : ''}`);
+              .text(d => getFormatedAnnText(d.text));
           });
 
         p.selectAll<SVGTextElement, AnnotationNode<dagre.Node>>('rect.interaction-marker')
@@ -1333,7 +1781,123 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     nodeG
       .exit()
       .remove();
-  }, [props.allAnnotationsForTour, showAnnText]);
+  }
+
+  function renderTimelineInSingleLine(timelineNodeY: number): void {
+    const g = select(rootGRef.current!);
+
+    const annConfig = getAnnotationByRefId(selectedAnnId, props.allAnnotationsForTour);
+    if (!annConfig) return;
+    const timelineId = annConfig.grpId;
+    const outsideAnnsZid : string[] = [];
+
+    const selectedMultiNode = g.selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(d => !!d.data.anns.find(ann => ann.annotation.refId === selectedAnnId));
+    if (selectedMultiNode.empty()) return;
+
+    const timelineTopYLimit = timelineNodeY - ANN_NODE_TOP_MARGIN_FOR_EDITOR;
+    const timelineBottomYLimit = timelineNodeY + ANN_NODE_HEIGHT + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
+    const timelineMidY = (timelineBottomYLimit - timelineTopYLimit) / 2 + timelineTopYLimit;
+
+    // change y of multi nodes of the same timeline
+    const multiNodeG = g.selectAll<SVGGElement, MultiAnnotationNode<dagre.Node>>('g.multi-node');
+    const newMultiAnnGNodesWithPositions = multiNodeG.data();
+
+    const updatedMultiNodeGData = newMultiAnnGNodesWithPositions
+      .map(node => {
+        if (node.data.anns.find(a => a.annotation.grpId === timelineId)) {
+          node.storedData!.y = timelineNodeY;
+        } else {
+          // if any ann from other timeline is in the timeline area, we push it outside of timeline view
+          const dim = node.origStoredData!;
+          const top = dim.y;
+          const bottom = dim.y + dim.height;
+          const isNodeInTimelineArea = (top >= timelineTopYLimit && top <= timelineBottomYLimit)
+            || (bottom >= timelineTopYLimit && bottom <= timelineBottomYLimit);
+          if (isNodeInTimelineArea) {
+            if (dim.y < timelineMidY) {
+              const totalHeight = dim.height + ANN_NODE_TOP_MARGIN_FOR_EDITOR + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
+              node.storedData!.y = timelineTopYLimit - totalHeight;
+            } else {
+              node.storedData!.y = timelineBottomYLimit + ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR;
+            }
+          }
+          outsideAnnsZid.push(node.data.zId);
+        }
+        return node;
+      });
+
+    const multiNodeGDataBound = multiNodeG.data<MultiAnnotationNode<dagre.Node>>(updatedMultiNodeGData, d => d.id);
+    multiNodeGDataBound
+      .merge(multiNodeGDataBound)
+      .call(updateMultiNodePos)
+      .call(renderMultiNodeMarker);
+
+    // update single ann nodes's positions
+    const updatedSingleAnnNodesWithPositions: AnnotationNode<dagre.Node>[] = [];
+    updatedMultiNodeGData.forEach(groupNode => {
+      groupNode.data.anns.forEach(annNode => {
+        const newX = groupNode.storedData!.x - groupNode.storedData!.width / 2;
+        let newY = groupNode.storedData!.y - groupNode.storedData!.height / 2;
+
+        if (groupNode.data.anns.find(ann => ann.annotation.grpId === timelineId)) {
+          newY = timelineNodeY - annNode.origStoredData!.height / 2;
+        }
+
+        let margin = 0;
+        if (annNode.sameMultiAnnGroupAnnRids!.length > 0) margin = MULTI_ANN_G_MARKER_MARGIN;
+        const storedData = {
+          ...annNode.storedData as dagre.Node,
+          x: newX + margin,
+          y: newY,
+        };
+        updatedSingleAnnNodesWithPositions.push({
+          ...annNode,
+          storedData: { ...storedData },
+          origStoredData: { ...storedData },
+        });
+      });
+    });
+
+    const nodeG = g.selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
+    const nodeGDataBound = nodeG.data<AnnotationNode<dagre.Node>>(updatedSingleAnnNodesWithPositions, d => d.id);
+    nodeGDataBound
+      .merge(nodeGDataBound)
+      .call(updateNodePos)
+      .filter(d => d.annotation.grpId === timelineId).each(function (d) {
+        select(this).call(p => p.raise());
+      })
+      .filter(d => d.annotation.refId === selectedAnnId)
+      .each(function () {
+        select(this).call(p => p.raise());
+      });
+
+    // update connectors
+    updateSelectedMultiNodeEdgesPos(updatedSingleAnnNodesWithPositions, outsideAnnsZid);
+  }
+
+  const renderMultiNodeMarker = (
+    node: D3Selection<SVGGElement, MultiAnnotationNode<dagre.Node>, SVGGElement, {}>
+  ): void => {
+    const markerEl = node.selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('rect.marker-el')
+      .data(node.data(), d => d.id);
+
+    markerEl
+      .attr('class', 'marker-el')
+      .merge(markerEl)
+      .attr('x', -MULTI_ANN_G_MARKER_MARGIN)
+      .attr('y', -MULTI_ANN_G_MARKER_MARGIN)
+      .attr('rx', ANN_NODE_BORDER_RADIUS)
+      .attr('ry', ANN_NODE_BORDER_RADIUS)
+      .attr('width', d => d.storedData!.width + MULTI_ANN_G_MARKER_MARGIN * 2)
+      .attr('height', d => d.storedData!.height + MULTI_ANN_G_MARKER_MARGIN * 2)
+      .style('fill', 'none')
+      .style('display', 'none');
+
+    markerEl
+      .exit()
+      .remove();
+  };
 
   function resetNodePos(): void {
     const g = select(rootGRef.current);
@@ -1344,53 +1908,162 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         'transform',
         d => {
           const pos = d.origStoredData!;
-          const x = pos.x - pos.width / 2;
-          const y = pos.y - pos.height / 2;
+          const x = pos.x;
+          const y = pos.y;
           return `translate(${x}, ${y})`;
         }
       );
-
-    const lines = line<EdgeWithData>()
-      .curve(curveBasis)
-      .x(d => d.x)
-      .y(d => d.y);
 
     g
       .selectAll('rect.connectors')
       .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
       .call(p => {
+        setOrignalEdgePos(p as D3Selection<SVGGElement, EdgeWithData, SVGGElement, AnnotationPerScreen[]>);
+      });
+  }
+
+  function setOrignalEdgePos(node: D3Selection<SVGGElement, EdgeWithData, SVGGElement, AnnotationPerScreen[]>): void {
+    ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
+      node.selectAll<SVGPathElement, EdgeWithData>(sel)
+        // .filter((n) => n.srcId !== n.destId)
+        .data(node.data(), d => `${d.srcId}:${d.destId}`)
+        .attr('d', attr => {
+          if (attr.destId === attr.srcId) {
+            return lines([]);
+          }
+          return lines(attr.points as any);
+        });
+    });
+  }
+
+  function updateSelectedMultiNodeEdgesPos(
+    updatedNodeData: AnnotationNode<dagre.Node>[],
+    outsideAnnsZid: string[] = []
+  ): void {
+    const g = select(rootGRef.current);
+
+    g
+      .selectAll('g.connectors')
+      .selectAll<SVGGElement, EdgeWithData>('g.edgegrp')
+      .call(p => {
         ['path.edgeconn', 'path.edgehotspot'].forEach(sel => {
           p.selectAll<SVGPathElement, EdgeWithData>(sel)
             .data(p.data(), d => `${d.srcId}:${d.destId}`)
-            .attr('d', attr => lines(attr.points as any));
+            .attr('d', attr => {
+              if (outsideAnnsZid.includes(attr.destId) || outsideAnnsZid.includes(attr.srcId)) {
+                return lines([]);
+              }
+              const fromNode = updatedNodeData.find((nodeD) => nodeD.id === attr.data.fromAnnId);
+              const fromX = fromNode!.storedData!.x;
+              const fromY = fromNode!.storedData!.y;
+
+              const toNode = updatedNodeData.find((nodeD) => nodeD.id === attr.data.toAnnId);
+              const toX = toNode!.storedData!.x;
+              const toY = toNode!.storedData!.y;
+              const nodeH = fromNode!.storedData!.height / 2;
+              return formPathUsingPoints([
+                { x: fromX + fromNode!.storedData!.width, y: fromY + nodeH },
+                { x: toX, y: toY + nodeH }]);
+            });
         });
       });
   }
+
+  const updateMultiNodeMarkerSize = (
+    multiG: D3Selection<SVGRectElement, MultiAnnotationNode<dagre.Node>, SVGSVGElement, unknown>,
+    multiGData: MultiAnnotationNode<dagre.Node>[],
+    annotation: IAnnotationConfigWithScreen,
+    show: boolean
+  ) : void => {
+    const mnodeGDataBound = multiG.data<MultiAnnotationNode<dagre.Node>>(multiGData, d => d.id);
+    mnodeGDataBound.merge(mnodeGDataBound)
+      .attr('height', d => `${d.height}`)
+      .attr('width', d => `${d.width}`)
+      .call(node => node.selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('rect.marker-el')
+        .filter(d => d.data.zId === annotation.zId)
+        .transition()
+        .attr('height', d => `${d.height + MULTI_ANN_G_MARKER_MARGIN * 2}`)
+        .attr('width', d => `${d.width + MULTI_ANN_G_MARKER_MARGIN * 2}`))
+      .call(grpNode => updateMultiNodeCloseIconStyle(grpNode, show, annotation));
+  };
+
+  const updateMultiNodeCloseIconStyle = (
+    node: any,
+    show: boolean,
+    annotation: IAnnotationConfigWithScreen | null
+  ): void => {
+    node
+      .selectAll('g.close-actn')
+      .filter((dd: MultiAnnotationNode<dagre.Node>) => {
+        if (annotation) {
+          return dd.data.anns.length > 0
+        && dd.data.anns[0].annotation.screen.id === annotation.screen.id
+        && dd.id === annotation.zId;
+        }
+        return true;
+      })
+      .attr(
+        'transform',
+        (d: MultiAnnotationNode<dagre.Node>) => `translate(${d.width + MULTI_ANN_G_MARKER_MARGIN}, ${d.y})`
+      )
+      .selectAll('path.closeicn')
+      .style('display', () => (show ? 'block' : 'none'))
+      .style('stroke', () => (show ? 'red' : 'transparent'));
+  };
+
+  const updateMultiNodeSelectionStyle = (
+    data: AnnotationNode<dagre.Node>,
+    show: boolean,
+    color: string,
+  ): void => {
+    select(svgRef.current!)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(dd => dd.data.anns.length > 0
+        && dd.data.anns[0].annotation.screen.id === data.annotation.screen.id
+        && dd.id === data.annotation.zId)
+      .selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('rect')
+      .style('display', () => (show ? 'block' : 'none'))
+      .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
+      .style('stroke', () => (show ? color : 'transparent'));
+  };
+
   const setAnnNodeSelectionStyle = (
     node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>,
     color: string,
   ): void => {
     node.selectAll('rect.interaction-marker')
       .style('stroke-width', TILE_STROKE_WIDTH_ON_HOVER)
-      .style('stroke', color);
+      .style('stroke', color)
+      .style('display', 'block');
+
+    node.selectAll('g.actnicngrp-prev')
+      .style('display', 'block');
+
+    node.selectAll('g.actnicngrp-next')
+      .style('display', 'block');
 
     node.selectAll('circle.plusicnbase')
-      .style('fill', color);
+      .style('fill', color)
+      .style('display', 'block');
 
     node.selectAll('path.menuicn')
-      .style('fill', Tags.TILE_STROKE_COLOR_DEFAULT);
+      .style('fill', Tags.TILE_STROKE_COLOR_DEFAULT)
+      .style('display', 'block');
 
     node.selectAll('rect.menuicnovrly')
-      .style('fill', color);
+      .style('fill', color)
+      .style('display', 'block');
 
     node.selectAll('path.plusicn')
-      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT);
+      .style('stroke', Tags.TILE_STROKE_COLOR_DEFAULT)
+      .style('display', 'block');
 
     if (!annEditorModalRef.current) {
       node
         .selectAll('circle.connector-indicator')
         .style('stroke', color)
-        .style('fill', 'white');
+        .style('fill', 'white')
+        .style('display', 'block');
     }
   };
 
@@ -1398,29 +2071,50 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     node: D3Selection<SVGGElement, AnnotationNode<dagre.Node>, any, any>
   ): void => {
     node.selectAll('rect.interaction-marker')
-      .style('stroke', 'transparent');
+      .style('stroke', 'transparent')
+      .style('display', 'none');
+
+    node.selectAll('g.actnicngrp-prev')
+      .style('display', 'none');
+
+    node.selectAll('g.actnicngrp-next')
+      .style('display', 'none');
 
     node.selectAll('circle.plusicnbase')
-      .style('fill', 'transparent');
+      .style('fill', 'transparent')
+      .style('display', 'none');
 
     node.selectAll('path.menuicn')
-      .style('fill', 'transparent');
+      .style('fill', 'transparent')
+      .style('display', 'none');
 
     node.selectAll('rect.menuicnovrly')
-      .style('fill', 'transparent');
+      .style('fill', 'transparent')
+      .style('display', 'none');
 
     node.selectAll('path.plusicn')
-      .style('stroke', 'transparent');
+      .style('stroke', 'transparent')
+      .style('display', 'none');
 
     node
       .selectAll('circle.connector-indicator')
       .style('stroke', 'transparent')
-      .style('fill', 'transparent');
+      .style('fill', 'transparent')
+      .style('display', 'none');
   };
 
-  const getAnnModalArrowLeftPos = (annCoordsX: number, newSvgZoomX: number): number => {
-    const left = newSvgZoomX + (annCoordsX * ANN_EDITOR_ZOOM);
+  const getAnnModalArrowLeftPos = (annCoordsCenterX: number, newSvgZoomX: number): number => {
+    const left = newSvgZoomX + (annCoordsCenterX * ANN_EDITOR_ZOOM);
     return left;
+  };
+
+  const getAnnNodeCoordsCenterXForAnnModalArrow = (annRefId: string): number => {
+    const selectedMultiNodeData = selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(d => !!d.data.anns.find(ann => ann.annotation.refId === annRefId));
+    if (selectedMultiNodeData.size() === 0) return screenEditorArrowLeft;
+    const data = selectedMultiNodeData.datum();
+    const annCoords = data.storedData!;
+    return annCoords.x;
   };
 
   const zoomThenPan = (
@@ -1491,48 +2185,66 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     createJourneyModalRef.current = createJourneyModal;
   }, [createJourneyModal]);
 
+  /**
+   *
+   * Show screen editor
+   * and
+   * Rendering changes to annotations
+   *
+   */
   useEffect(() => {
     // reset previously selected ann's selection marker
     const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
     resetAnnNodeSelectionStyle(annNodes);
 
-    if (!annWithCoords.length) return;
-
     if (!selectedAnnId && annEditorModal) {
-      const [k, x, y,] = zoomPanState.getValueFromBuffer();
-      const centerX = annEditorModal.newSvgZoom.centerX;
-
-      const translateXWithoutZoom = window.innerWidth / 2 - (centerX * k!);
-
-      const newSvgZoom = annEditorModal.newSvgZoom;
-
-      zoomThenPan(
-        { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
-        { x: translateXWithoutZoom, y: annEditorModal.newSvgZoom.y * k!, k: k! },
-        { x: x!, y: y!, k: k! }
-      );
-      setAnnEditorModal(null);
-      setShowSceenEditor(false);
+      closeScreenEditor();
       return;
     }
 
-    if (!selectedAnnId) return;
+    if (!selectedAnnId) {
+      renderDagreAutoLayoutTimeline(true);
+      return;
+    }
 
+    renderDagreAutoLayoutTimeline(false);
+    if (annEditorModal && annEditorModal!.timelineY !== Number.MAX_VALUE) {
+      renderTimelineInSingleLine(annEditorModal.timelineY);
+    } else {
+      // the selected multi node's y
+      const g = select(rootGRef.current!);
+
+      const selectedMultiNode = g.selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+        .filter(d => !!d.data.anns.find(ann => ann.annotation.refId === selectedAnnId));
+      if (selectedMultiNode.empty()) return;
+      const selectedMultiNodeData = selectedMultiNode.datum();
+
+      const timelineNodeY = selectedMultiNodeData.origStoredData!.y;
+      renderTimelineInSingleLine(timelineNodeY);
+      setAnnEditorModal(prev => ({ ...prev!, timelineY: timelineNodeY }));
+    }
+
+    showScreenEditorForSelectedAnn();
+  }, [selectedAnnId, props.allAnnotationsForTour, showAnnText, multiNodeModalData]);
+
+  const showScreenEditorForSelectedAnn = (): void => {
     // set selection marker
     const annNode = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
       .filter((d) => d.annotation.refId === selectedAnnId);
     setAnnNodeSelectionStyle(annNode, Tags.TILE_STROKE_COLORON_SELECT);
 
-    const annCoords = annWithCoords.find(ann => ann.annId === selectedAnnId);
+    const selectedAnn = selectAll<SVGRectElement, AnnotationNode<dagre.Node>>('g.node')
+      .filter(d => d.annotation.refId === selectedAnnId);
+    if (selectedAnn.empty()) return;
 
-    if (!annCoords) return;
+    const annCoords = selectedAnn.datum().storedData!;
 
     if (annEditorModal) {
       const { x: zoomAfterAnnModalShownX } = annEditorModal.newSvgZoom;
-      const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
-      const endY = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM + (annCoords.width * ANN_EDITOR_ZOOM) / 2;
+      const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM;
+      const endX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM + (annCoords.width * ANN_EDITOR_ZOOM);
 
-      const isAnnNodeInViewPort = startX > 0 && endY * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
+      const isAnnNodeInViewPort = startX > 0 && endX * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
       if (isAnnNodeInViewPort) {
         setAnnEditorModal(prev => ({
           ...prev!,
@@ -1540,26 +2252,35 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
           applyTransitionToArrow: true,
           prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
         }));
-        setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, zoomAfterAnnModalShownX));
+        setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x + annCoords.width / 2, zoomAfterAnnModalShownX));
         return;
       }
     }
 
     const [currK] = zoomPanState.getValueFromBuffer();
-    const rowHeight = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM + ANN_NODE_SEP * ANN_EDITOR_ZOOM;
-    const row = Math.floor((annCoords.y * ANN_EDITOR_ZOOM) / rowHeight);
-    const newY = -(row * rowHeight) + ANN_NODE_TOP_MARGIN_FOR_EDITOR;
 
-    const newX = window.innerWidth / 2 - (annCoords.x * ANN_EDITOR_ZOOM);
+    const selectedMultiNode = selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(d => !!d.data.anns.find(ann => ann.annotation.refId === selectedAnnId));
+    if (selectedMultiNode.empty()) return;
 
-    const translateXWithoutZoom = window.innerWidth / 2 - (annCoords.x * currK!);
+    const selectedMultiNodeData = selectedMultiNode.datum();
+    const nodeDim = selectedMultiNodeData.storedData!;
+    const timelineY = nodeDim.y - ANN_NODE_HEIGHT / 2;
+    const newY = (-timelineY * ANN_EDITOR_ZOOM) + ANN_NODE_TOP_MARGIN_FOR_EDITOR;
 
+    const nodeX = nodeDim.x + nodeDim.width / 2;
+    const newX = window.innerWidth / 2 - (nodeX * ANN_EDITOR_ZOOM);
+
+    const translateXWithoutZoom = window.innerWidth / 2 - ((nodeDim.x + nodeDim.width / 2) * currK!);
+
+    let firstSelectedAnnId: string;
     if (annEditorModal) {
       const newSvgZoom = annEditorModal.newSvgZoom;
       zoomAndPan(
         { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
         { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
       );
+      firstSelectedAnnId = annEditorModal.firstSelectedAnnId;
     } else {
       panThenZoom(
         { x: translateXWithoutZoom, y: newY * currK!, k: currK! },
@@ -1568,16 +2289,41 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       setTimeout(() => {
         setShowSceenEditor(true);
       }, ANN_EDITOR_ANIM_DUR * 2);
+      firstSelectedAnnId = selectedAnnId;
     }
 
     setAnnEditorModal(prev => ({
       annId: selectedAnnId,
-      newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: annCoords.x },
+      newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: nodeDim.x },
       applyTransitionToArrow: true,
       prevAnnId: getPrevSelectedAnnIdForEditor(prev, selectedAnnId),
+      firstSelectedAnnId,
+      timelineY: prev?.timelineY || Number.MAX_VALUE
     }));
-    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x, newX));
-  }, [selectedAnnId, annWithCoords]);
+    setScreenEditorArrowLeft(getAnnModalArrowLeftPos(annCoords.x + annCoords.width / 2, newX));
+  };
+
+  const closeScreenEditor = (): void => {
+    if (!annEditorModal) return;
+
+    const [k, x, y,] = zoomPanState.getValueFromBuffer();
+    const centerX = annEditorModal.newSvgZoom.centerX;
+
+    const translateXWithoutZoom = window.innerWidth / 2 - (centerX * k!);
+
+    const newSvgZoom = annEditorModal.newSvgZoom;
+
+    zoomThenPan(
+      { x: newSvgZoom.x, y: newSvgZoom.y, k: newSvgZoom.k },
+      { x: translateXWithoutZoom, y: annEditorModal.newSvgZoom.y * k!, k: k! },
+      { x: x!, y: y!, k: k! }
+    );
+    setTimeout(() => {
+      renderDagreAutoLayoutTimeline(true);
+    }, ANN_EDITOR_ANIM_DUR * 2);
+    setAnnEditorModal(null);
+    setShowSceenEditor(false);
+  };
 
   useEffect(() => {
     setSelectedAnnId(props.toAnnotationId);
@@ -1623,6 +2369,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   const isAnnSelected = selectedAnnId && annEditorModal;
 
+  const showMultiNodeModal = multiNodeModalData.selectedMultiNode && annEditorModal;
+
   const getFirstAnnotations = () : IAnnotationConfigWithScreen[] => {
     if (firstAnnotations.length !== 0) {
       zoomAnnInView(firstAnnotations[0].refId);
@@ -1630,7 +2378,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }
     const firstScreens : IAnnotationConfigWithScreen[] = [];
     props.timeline.forEach((flow) => {
-      firstScreens.push(flow[0][0]);
+      firstScreens.push(flow[0]);
     });
     zoomAnnInView(firstScreens[0].refId);
     setFirstAnnotations(firstScreens);
@@ -1641,19 +2389,26 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
     resetAnnNodeSelectionStyle(annNodes);
 
-    const annCoords = annWithCoords.find(ann => ann.annId === annRefId)!;
-    const [currK] = zoomPanState.get();
-    const rowHeight = ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM + ANN_NODE_SEP * ANN_EDITOR_ZOOM;
-    const row = Math.floor((annCoords.y * ANN_EDITOR_ZOOM) / rowHeight);
-    const newY = -(row * rowHeight) + ANN_NODE_TOP_MARGIN_FOR_EDITOR;
-    const newX = annCoords.x * ANN_EDITOR_ZOOM + CREATE_JOURNEY_MODAL_WIDTH;
+    const selectedMultiNodeData = selectAll<SVGRectElement, MultiAnnotationNode<dagre.Node>>('g.multi-node')
+      .filter(d => !!d.data.anns.find(ann => ann.annotation.refId === annRefId));
+    if (selectedMultiNodeData.size() === 0) return;
+    const annCoords = selectedMultiNodeData.datum().storedData!;
+    const timelineY = annCoords.y - annCoords.height / 2;
+    const newY = (-timelineY * ANN_EDITOR_ZOOM);
 
+    const nodeX = annCoords.x - annCoords.width;
+    const newX = -(nodeX * ANN_EDITOR_ZOOM) + CREATE_JOURNEY_MODAL_WIDTH;
+
+    const [currK] = zoomPanState.get();
+    const translateXWithoutZoom = CREATE_JOURNEY_MODAL_WIDTH - (nodeX * currK!);
+    const translateYWithoutZoom = timelineY * currK!;
     if (createJourneyModal) {
       const { x: zoomAfterAnnModalShownX, y: zoomAfterAnnModalShownY } = createJourneyModal.newSvgZoom;
       const startY = zoomAfterAnnModalShownY + annCoords.y * ANN_EDITOR_ZOOM - (annCoords.height * ANN_EDITOR_ZOOM) / 2;
       const endY = zoomAfterAnnModalShownY + annCoords.y * ANN_EDITOR_ZOOM + (annCoords.height * ANN_EDITOR_ZOOM) / 2;
 
-      const startX = zoomAfterAnnModalShownX + annCoords.x * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
+      const startX = zoomAfterAnnModalShownX
+      + (nodeX) * ANN_EDITOR_ZOOM - (annCoords.width * ANN_EDITOR_ZOOM) / 2;
       const isAnnNodeYInViewPort = startY > 0 && endY * ANN_EDITOR_ZOOM < window.innerHeight * ANN_EDITOR_ZOOM;
       const isAnnNodeXInViewPort = startX > window.innerWidth * ANN_EDITOR_ZOOM
         && startX * ANN_EDITOR_ZOOM < window.innerWidth * ANN_EDITOR_ZOOM;
@@ -1675,7 +2430,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }
 
     panThenZoom(
-      { x: newX, y: newY * currK!, k: currK! },
+      { x: translateXWithoutZoom, y: translateYWithoutZoom, k: currK! },
       { x: newX, y: newY, k: ANN_EDITOR_ZOOM }
     );
     setCreateJourneyModal({ newSvgZoom: { x: newX, y: newY, k: ANN_EDITOR_ZOOM, centerX: annCoords.x } });
@@ -1691,7 +2446,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const [k, x, y,] = zoomPanState.get();
     const centerX = createJourneyModal!.newSvgZoom.centerX;
 
-    const translateXWithoutZoom = CREATE_JOURNEY_MODAL_WIDTH + (centerX * k!);
+    const translateXWithoutZoom = CREATE_JOURNEY_MODAL_WIDTH - (centerX * k!);
 
     const newSvgZoom = createJourneyModal!.newSvgZoom;
     // while closing
@@ -1715,6 +2470,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const restrictCanvasActions = () : boolean => Boolean(annEditorModalRef.current || createJourneyModalRef.current);
+
+  const restrictMultiGroupAction = (data: AnnotationNode<dagre.Node>)
+  : boolean => data.sameMultiAnnGroupAnnRids!.length !== 0
+  && !expandedMultAnnZIds.current.includes(data.annotation.zId);
+
+  const isAnnPartOfGroup = (): boolean => {
+    const [screenId, annId] = nodeMenuModalData.annId.split('/');
+    const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
+    return expandedMultAnnZIds.current.includes(currentAnn.zId);
+  };
+
+  const getFormatedAnnText = (annText: string) : string => `${annText.substring(0, 80)}${annText.length > 0 && '...'}`;
 
   return (
     <>
@@ -1864,7 +2631,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                       okText: 'Delete',
                       okType: 'danger',
                       onOk() {
-                        traceEvent(AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        traceEvent(
+                          AMPLITUDE_EVENTS.EDGE_CONNECTION_DELETED,
+                          {},
+                          [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+                        );
                         const [, fromAnnId] = connectorMenuModalData.fromAnnId.split('/');
                         const [, toAnnId] = connectorMenuModalData.toAnnId.split('/');
                         const result = deleteConnection(
@@ -1944,6 +2715,41 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     </div>
                   </div>
                 </div>
+                {isAnnPartOfGroup() && (
+                <div
+                  className="menu-item"
+                  onClick={() => {
+                    confirm({
+                      title: 'Are you sure you want to remove this annotation from group?',
+                      content: 'This annotation will be removed from group',
+                      okText: 'Remove',
+                      okType: 'danger',
+                      onOk() {
+                        const [screenId, annId] = nodeMenuModalData.annId.split('/');
+
+                        const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
+                        removeAnnFromGroup(currentAnn, parseInt(screenId, 10));
+                        setNodeMenuModalData(initialAnnNodeModalData);
+                      },
+                      onCancel() { }
+                    });
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <img
+                      src={CloseIcon}
+                      width="24px"
+                      height="24px"
+                      alt="remove annotation"
+                      style={{ width: '1.5rem' }}
+                    />
+                    <div>
+                      Remove this annotation from group
+                      <div className="subtext">This annotation won't be part of this group</div>
+                    </div>
+                  </div>
+                </div>
+                )}
               </Tags.MenuModal>
             </Tags.MenuModalMask>
           )}
@@ -2004,8 +2810,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onScreenEditChange={props.onScreenEditChange}
                     onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
                     applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                    shouldShowScreenPicker={props.shouldShowScreenPicker}
-                    showEntireTimeline={false}
                     isScreenLoaded={props.isScreenLoaded}
                     updateScreen={props.updateScreen}
                     newAnnPos={newAnnPos}
@@ -2068,8 +2872,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onScreenEditChange={props.onScreenEditChange}
                     onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
                     applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
-                    shouldShowScreenPicker={props.shouldShowScreenPicker}
-                    showEntireTimeline={false}
                     isScreenLoaded={props.isScreenLoaded}
                     onDeleteAnnotation={handleReselectionOfPrevAnnWhenCurAnnIsDeleted}
                     updateScreen={props.updateScreen}
@@ -2092,6 +2894,61 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               tourOpts={props.tourOpts}
               journey={props.journey}
             />
+          }
+          {
+            showMultiNodeModal && (
+            <Tags.MultiNodeModalWrapper
+              top={ANN_EDITOR_TOP}
+              left={multiNodeModalData.leftCoord}
+              width={MULTI_NODE_MODAL_WIDTH}
+              maxHeight={multiNodeModalData.selectedMultiNode!.length > 2 ? '50vh'
+                : `${(ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM + 20) * 2 + 20}px`}
+            >
+              <Tags.MultiNodeModal>
+                <Tags.MultiNodeModalClose>
+                  <div
+                    onClick={() => setMultiNodeModalData(initialMultiNodeModalData)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <img
+                      src={CloseIcon}
+                      alt="close"
+                      style={{ height: '14px' }}
+                    />
+                  </div>
+                </Tags.MultiNodeModalClose>
+                <div>
+                  {multiNodeModalData.selectedMultiNode!.map(((ann, ind) => (
+                    <Tags.AnnNode
+                      key={ann.id}
+                      height={ANN_NODE_HEIGHT * ANN_EDITOR_ZOOM}
+                      width={ANN_NODE_WIDTH * ANN_EDITOR_ZOOM}
+                      borderRadius={ANN_NODE_BORDER_RADIUS}
+                      isSelected={ann.refId === selectedAnnId}
+                      onClick={() => {
+                        selectAnn(`${ann.screen.id}/${ann.refId}`);
+                        setMultiNodeModalData(initialMultiNodeModalData);
+                      }}
+                      style={{ animationDelay: `${(ind + 1) * 0.1}s` }}
+                    >
+                      <img
+                        src={ann.screen.thumbnailUri.href}
+                        alt={ann.displayText}
+                        style={{ width: '100%', height: '100%', borderRadius: ANN_NODE_BORDER_RADIUS }}
+                      />
+                      <div style={{ borderRadius: '10px 14px', position: 'absolute', bottom: 0, overflow: 'hidden' }}>
+                        <Tags.StepNumberWrapper>
+                          <Tags.AnnNodeStepNumber>{ann.stepNumber}</Tags.AnnNodeStepNumber>
+                        </Tags.StepNumberWrapper>
+                      </div>
+                      {showAnnText && <Tags.AnnDisplayText>{getFormatedAnnText(ann.displayText)}</Tags.AnnDisplayText>}
+                    </Tags.AnnNode>
+                  )
+                  ))}
+                </div>
+              </Tags.MultiNodeModal>
+            </Tags.MultiNodeModalWrapper>
+            )
           }
           {props.timeline.length && <SelectorComponent userGuides={userGuides} />}
         </GTags.BodyCon>

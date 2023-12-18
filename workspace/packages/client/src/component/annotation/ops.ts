@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
-import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from '../timeline/types';
+import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from './types';
 import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import { AnnAdd } from '../../action/creator';
 

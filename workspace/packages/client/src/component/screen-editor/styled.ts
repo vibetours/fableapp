@@ -168,8 +168,14 @@ export const CreateNewAnnotationBtn = styled.div`
   font-size: 11px;
   font-weight: 400;
 
+  p {
+    text-align: center;
+  }
+
   img {
     transition: transform 0.2s ease-out;
+    height: 57px !important;
+    width: 57px !important;
   }
 
   &:hover {
@@ -439,7 +445,7 @@ export const AnnPositioningInput = styled.div<{
   background-color: #fff;
   border: 1px solid #bdbdbd;
   border-radius: 4px;
-}
+
   cursor: default;
 
   .ann-pos-panel {
@@ -512,5 +518,52 @@ export const AnnPositionInputBox = styled.div<{isSelected: boolean}>`
     div {
       background-color: ${props => `${props.isSelected ? '#160245' : 'black'}`};
     }
+  }
+`;
+
+export const AnnotationLI = styled.div`
+  position: relative;
+  background: #F7F7F7;
+  padding: 0.65rem 0 0.25rem;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  border-top: 1px solid #DDD;
+  border-bottom: 1px solid #DDD;
+
+  &:hover {
+    cursor: pointer;
+  }
+`;
+
+export const AnotCrtPanelSecLabel = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+
+`;
+
+export const AnnDisplayText = styled.div`
+  line-height: 1.25rem;
+  color: #212121;
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 2rem);
+  margin-right: 10px;
+
+  .steps {
+    font-weight: 600;
+    display: inline-block;
+    font-size: 1.1rem;
+  }
+
+  .head {
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    text-overflow: ellipsis;
+    font-size: 0.95rem;
   }
 `;

@@ -239,6 +239,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
   grpId: string;
+  zId: string;
   bodyContent: string;
   displayText: string;
   positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition,

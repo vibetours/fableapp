@@ -139,11 +139,11 @@ export const enum Ops {
 
 export interface IAnnotationConfigWithScreen extends IAnnotationConfig {
   screen: P_RespScreen;
-  index: string;
+  stepNumber: string;
 }
 
-export type ConnectedOrderedAnnGroupedByScreen = Array<Array<Array<IAnnotationConfigWithScreen>>>;
-export type OrderedAnnGroupedByScreen = Array<Array<IAnnotationConfigWithScreen>>;
+export type SingleTimeline = Array<IAnnotationConfigWithScreen>;
+export type Timeline = Array<SingleTimeline>;
 
 export enum DestinationAnnotationPosition {
   next,
@@ -231,3 +231,7 @@ export interface GlobalAppData {
 }
 
 export type GlobalWin = Window & { __fable_global_app_data__?: GlobalAppData }
+export type MultiNodeModalData = {
+  leftCoord: number,
+  selectedMultiNode: IAnnotationConfigWithScreen[] | null
+}

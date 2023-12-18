@@ -25,4 +25,13 @@ export type IUpdateButton = (
   screenId: number,
   actionValue: string | null,
   opts: ITourDataOpts | null | undefined
-) => IAnnotationConfig
+) => IAnnotationConfig;
+
+export type AllDimsForAnnotation = {
+  dimForSmallAnnotation: DimForAnnotation,
+  dimForMediumAnnotation: DimForAnnotation,
+  dimForLargeAnnotation: DimForAnnotation,
+  dimForCustomAnnotation: DimForAnnotation,
+};
+
+export type DimForAnnotation = { w: number, h: number };

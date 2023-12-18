@@ -11,3 +11,5 @@ export type ApplyDiffAndGoToAnn = (
 
 export type DisplayCSSPropValue = 'block' | 'inline' | 'inline-block' | 'flex' |
 'grid' | 'none' | 'table' | 'table-cell' | 'table-row' | 'initial' | 'inherit';
+
+export type NavToAnnByRefIdFn = (annRefId: string) => void;

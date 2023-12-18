@@ -290,6 +290,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     id: lc.id,
     refId: lc.refId,
     grpId: lc.grpId,
+    zId: lc.zId,
     bodyContent: lc.bodyContent,
     displayText: lc.displayText,
     buttons: lc.buttons,
@@ -386,6 +387,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.customDims === undefined || an.customDims === null) {
     an.customDims = DEFAULT_ANN_DIMS;
+  }
+
+  if (an.zId === undefined || an.zId === null) {
+    an.zId = an.refId;
   }
 
   const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);

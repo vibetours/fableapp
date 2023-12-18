@@ -1,4 +1,11 @@
-import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ScreenData, SerNode } from '@fable/common/dist/types';
+import {
+  IAnnotationButtonType,
+  IAnnotationConfig,
+  ITourDataOpts,
+  ScreenData,
+  SerNode,
+  JourneyFlow
+} from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
@@ -28,12 +35,13 @@ import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserFrame, deserIframeEl } from './utils/deser';
 import { showOrHideEditsFromEl } from './utils/edits';
-import { getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
+import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { areSerNodePropsDifferent, getDiffsOfImmediateChildren, getSerNodesAttrUpdates } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode, Update } from './utils/diffs/types';
-import { getChildElementByFid, getFidOfNode, getFidOfSerNode } from '../../utils';
+import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
+import { NavToAnnByRefIdFn } from './types';
 
 export interface IOwnProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
@@ -57,7 +65,8 @@ export interface IOwnProps {
   editsAcrossScreens?: Record<string, EditItem[]>;
   preRenderNextScreen?: (screen: P_RespScreen) => void;
   onDispose?: () => void;
-  updateCurrentFlowMain: (btnType: IAnnotationButtonType)=> void,
+  updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
+  flows: JourneyFlow[];
   closeJourneyMenu? : ()=> void;
   screenRidOnWhichDiffsAreApplied?: string;
   updateJourneyProgress: (annRefId: string)=> void;
@@ -247,6 +256,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           {
             navigate: this.props.navigate,
             isPlayMode: this.props.playMode,
+            navigateToAnnByRefIdOnSameScreen: this.navigateToAnnByRefIdOnSameScreen,
           },
           this.props.screen.type,
           this.props.allAnnotationsForTour,
@@ -319,10 +329,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         }
       }
     }
-    this.annotationLCM!.show();
+    const annsofSameMultiAnnGrp = getAnnsOfSameMultiAnnGrp(conf.zId, this.props.allAnnotationsForTour)
+      .filter(ann => ann.refId !== conf.refId);
     await this.annotationLCM!.addOrReplaceAnnotation(
       targetEl as HTMLElement,
       conf,
+      annsofSameMultiAnnGrp,
       opts,
       true,
     );
@@ -757,6 +769,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.annotationLCM!.resetCons();
     this.addFont();
     scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
+  };
+
+  navigateToAnnByRefIdOnSameScreen: NavToAnnByRefIdFn = (annRefId) => {
+    this.reachAnnotation(annRefId);
+    const main = getCurrentFlowMain(annRefId, this.props.allAnnotationsForTour, this.props.flows);
+    this.props.updateCurrentFlowMain('custom', main);
   };
 
   render(): JSX.Element {

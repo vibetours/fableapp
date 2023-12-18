@@ -270,7 +270,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                             }, 300);
                                           }}
                                         >
-                                          <b>{ann.index}</b>: {ann.displayText}
+                                          <b>{ann.stepNumber}</b>: {ann.displayText}
                                         </Option>
                                       ))))}
                                     </Tags.FlowSelect>

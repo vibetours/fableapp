@@ -75,7 +75,7 @@ import { hotspotHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
 import { isVideoAnnotation, usePrevious, getValidUrl } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
-import { AnnUpdateType } from '../timeline/types';
+import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';

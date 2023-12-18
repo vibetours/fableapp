@@ -2,7 +2,12 @@ import { hexToRGB } from "@fable/common/dist/utils";
 import { DEFAULT_BORDER_RADIUS } from "@fable/common/dist/types";
 
 export const FABLE_CONTROL_PILL = "fable-dont-ser";
-export const BATCH_SIZE = 5;
+/**
+ * If the app being recorded is heavy with a lot of elements,
+ * batching of 5 screens together was also exceeding the limit.
+ * For this reason, batch size is now reduced to 1
+ */
+export const BATCH_SIZE = 1;
 
 export function getRandomId(): string {
   return Math.random().toString(16).substring(2, 15) + Math.random().toString(16).substring(2, 15);

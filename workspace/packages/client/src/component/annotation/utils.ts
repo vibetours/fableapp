@@ -3,6 +3,7 @@ import { IAnnoationDisplayConfig } from '.';
 import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
+import { AllDimsForAnnotation } from './types';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
 
@@ -11,7 +12,14 @@ export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement => {
   return umbrlDiv as HTMLDivElement;
 };
 
-export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoationDisplayConfig) => {
+export const DEFAULT_DIMS_FOR_ANN: AllDimsForAnnotation = {
+  dimForSmallAnnotation: { w: 10, h: 10 },
+  dimForMediumAnnotation: { w: 10, h: 10 },
+  dimForLargeAnnotation: { w: 10, h: 10 },
+  dimForCustomAnnotation: { w: 10, h: 10 },
+};
+
+export const scrollToAnn = (win: Window, boxRect: Rect, annDisplayConfig: IAnnoationDisplayConfig): void => {
   const doc = win.document;
 
   const pageHeight = doc.body.offsetHeight;
@@ -111,6 +119,13 @@ export const generateShadeColor = (color: string, d = 50): string => {
   return getShadedRGBColor(color, percent);
 };
 
+export const generatePointFiveLightShate = (color: string): string => {
+  const rgbValues = extractColorValuesInRgb(color);
+  const [r, g, b] = rgbValues;
+  const lightColor = `rgba(${r}, ${g}, ${b}, 0.5)`;
+  return lightColor;
+};
+
 export const playVideoAnn = (screenId: string, annId: string): void => {
   const iframe = getIframeByScreenId(screenId)!;
   const videoEl = iframe.contentDocument!.querySelector(`#fable-ann-video-${annId}`) as HTMLVideoElement;
@@ -129,7 +144,10 @@ export const getIframeByScreenId = (screenId: string): HTMLIFrameElement | null 
   return iframe;
 };
 
-export const getAnnotationByRefId = (refId: string, allAnnotationsForTour: AnnotationPerScreen[]) => {
+export const getAnnotationByRefId = (
+  refId: string,
+  allAnnotationsForTour: AnnotationPerScreen[]
+): IAnnotationConfig | null => {
   for (const screenGroup of allAnnotationsForTour) {
     for (const annotation of screenGroup.annotations) {
       if (annotation.refId === refId) {
@@ -138,6 +156,23 @@ export const getAnnotationByRefId = (refId: string, allAnnotationsForTour: Annot
     }
   }
   return null;
+};
+
+export const getAnnsOfSameMultiAnnGrp = (
+  zId: string,
+  allAnnotationsForTour: AnnotationPerScreen[]
+): IAnnotationConfig[] => {
+  const anns: IAnnotationConfig[] = [];
+
+  for (const screenGroup of allAnnotationsForTour) {
+    for (const annotation of screenGroup.annotations) {
+      if (annotation.zId === zId) {
+        anns.push(annotation);
+      }
+    }
+  }
+
+  return anns;
 };
 
 export function isPrevNextBtnLinksToVideoAnn(
