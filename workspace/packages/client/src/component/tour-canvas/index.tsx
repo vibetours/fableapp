@@ -2590,7 +2590,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
                 <Tags.CanvasMenuItemCon id="journey-btn">
                   <Tooltip
-                    title={props.journey.flows.length === 0 ? 'Create a Journey' : 'Edit journey'}
+                    title={props.journey.flows.length === 0 ? 'Create a Module' : 'Edit module'}
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >

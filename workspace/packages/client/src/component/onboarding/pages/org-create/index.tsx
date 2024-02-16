@@ -1,37 +1,32 @@
 import React, { useState } from 'react';
-import { ResponseStatus } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
+import { LoadingOutlined } from '@ant-design/icons';
 import Plus from '../../../../assets/onboarding/plus.svg';
 import * as CTags from '../../styled';
 import RocketEmoji from '../../../../assets/onboarding/rocket.png';
-import { createOrg } from './utils';
 import Button from '../../../button';
 import Input from '../../../input';
 import Browser from '../../../../assets/onboarding/org-create-browser.png';
 import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
 
-export default function OrgCreate(): JSX.Element {
+interface Props {
+  createOrg: (orgName: string)=> void;
+}
+export default function OrgCreate({ createOrg }: Props): JSX.Element {
   const [orgName, setOrgName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
+    setIsLoading(true);
 
-    if (orgName) {
+    if (orgName && !isLoading) {
       traceEvent(AMPLITUDE_EVENTS.USER_ORG_ASSIGN, {
         org_name: orgName,
         type: 'create_new'
       }, [CmnEvtProp.EMAIL, CmnEvtProp.FIRST_NAME, CmnEvtProp.LAST_NAME]);
-      const resStatus = await createOrg(orgName);
-      const redirect = localStorage.getItem('redirect');
-      if (resStatus === ResponseStatus.Success) {
-        if (redirect) {
-          window.location.replace(`/${redirect}`);
-        } else {
-          window.location.replace('/');
-        }
-      }
-      localStorage.removeItem('redirect');
+      createOrg(orgName);
     }
   };
 
@@ -60,7 +55,7 @@ export default function OrgCreate(): JSX.Element {
             <Button
               style={{ width: '100%', marginTop: '1.5rem' }}
               type="submit"
-              icon={<img src={Plus} alt="" />}
+              icon={isLoading ? <LoadingOutlined /> : <img src={Plus} alt="" />}
               iconPlacement="left"
             >
               Create New

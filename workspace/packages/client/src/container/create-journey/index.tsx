@@ -134,10 +134,10 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
         {
           !(this.state.journeyData.flows.length !== 0 || this.state.journeyData.title.length !== 0) ? (
             <Tags.NoJourneyCon>
-              <img src={CreateJourneyEmptyIcon} alt="no journey created" />
+              <img src={CreateJourneyEmptyIcon} alt="no module created" />
               <div>
-                <p style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>You don't have a journey yet.</p>
-                <p style={{ margin: '10px 0' }}>You can add journey to your product tours</p>
+                <p style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>You don't have a module yet.</p>
+                <p style={{ margin: '10px 0' }}>You can add module to your product tours</p>
               </div>
               <AntdButton
                 type="primary"
@@ -148,14 +148,14 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 onClick={this.addNewFlow}
               >
-                Create a journey
+                Create a module
               </AntdButton>
             </Tags.NoJourneyCon>
           ) : (
             <Tags.EditorCon>
               <Tags.JourneyInnerCon>
                 <Input
-                  label="Journey name"
+                  label="Module name"
                   defaultValue={this.state.journeyData.title}
                   onBlur={async (e) => {
                     this.setState(prevState => ({ journeyData: { ...prevState.journeyData, title: e.target.value } }));
@@ -239,12 +239,12 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                   </div>
                                   <Tags.FieldInputCon>
                                     <Input
-                                      label="Heading 1"
+                                      label="Module title"
                                       defaultValue={flow.header1}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header1', e.target.value); }}
                                     />
                                     <Input
-                                      label="Heading 2"
+                                      label="Module subtitle"
                                       defaultValue={flow.header2}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
                                     />
@@ -400,7 +400,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 }
                 <Divider style={{ margin: '24px 0' }} />
                 <Tags.JourneyInnerCon>
-                  <Tags.CTAText>Journey Box Positioning</Tags.CTAText>
+                  <Tags.CTAText>Module Box Positioning</Tags.CTAText>
                   <Tags.CTAInputCon>
                     <label htmlFor={CreateJourneyPositioning.Left_Bottom}>
                       <input
@@ -453,7 +453,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   this.setState({
                     journeyData: getSampleJourneyData() });
                 }}
-              > Delete journey
+              > Delete Module
               </Tags.OutlineButton>
             </Tags.EditorCon>
 

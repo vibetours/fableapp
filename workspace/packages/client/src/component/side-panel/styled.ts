@@ -196,3 +196,17 @@ export const GridCard = styled.div`
   flex: 1;
   border-radius: 4px;
 `;
+
+export const PlanBadgeCon = styled.div`
+  margin-top: auto;
+  display: flex;
+  padding: 1rem;
+  justify-content: space-around;
+  transition: background-color 0.2s ease-in;
+  cursor: pointer;
+
+  &:hover {
+    background-color: white;
+  }
+
+`;

@@ -42,12 +42,9 @@ function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
   const days = Math.floor(msDiffs / (1000 * 60 * 60 * 24));
   const hours = Math.floor((msDiffs / (1000 * 60 * 60)) % 24);
-  let res = `in ${days} ${days > 1 ? 'days' : 'day'}`;
-  if (hours > 0) res += ` and ${hours} ${hours > 1 ? 'hours' : 'hour'}`;
+  const res = days > 0 ? `in ${days} ${days > 1 ? 'days' : 'day'}` : `in ${hours} ${hours > 1 ? 'hours' : 'hour'}`;
 
-  if (days >= 1) return [res, days];
-  if (days >= 0 && hours > 0) return [`in ${hours} ${hours > 1 ? 'hours' : 'hour'}`, days];
-  return ['', days];
+  return [res, days];
 }
 
 export interface P_RespSubscription extends RespSubscription {

@@ -89,15 +89,13 @@ export const TourActionBtnCon = styled.div`
 // ~~~~~~~~~~~~~~~~~~~~~~ EMPTY STATE ~~~~~~~~~~~~~~~~~~~~~~
 
 export const EmptyToursContainer = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  margin: auto;
   max-width: 40rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2.12rem;
+  padding: 50px 0;
 `;
 
 export const HeaderMsgCon = styled.div`
@@ -195,4 +193,50 @@ export const CardImg = styled.img`
   max-width: 4.8rem;
   filter: drop-shadow(0px 4.4px 6.6px rgba(0, 0, 0, 0.25));
   align-self: center;
+`;
+
+export const SmallTourCardCon = styled(Link)`
+  display: flex;
+  padding: 1rem;
+  gap: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #E6E6E6;
+  background: #FFF;
+  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  text-decoration: none;
+  margin-bottom: 1rem;
+  flex-direction: column;
+
+  &:hover {
+    border: 1px solid ${(props) => props.theme.colors.light.selection.background};
+    cursor: pointer;
+    text-decoration: none;
+    color: #16023e;
+  }
+`;
+
+export const DefaultTourContainer = styled.div`
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(15vw, auto));
+`;
+
+export const TourCreated = styled.p`
+  color: #595959;
+  font-family: IBM Plex Sans;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.125rem;
+  margin: 0;
+  padding: 0;
+`;
+
+export const DefaultDemoCon = styled.div`
+  border-bottom: 1px solid #EEEEEE;
+  margin-bottom: 1rem;
+  padding-bottom: 2rem;
+  width: 100%;
 `;

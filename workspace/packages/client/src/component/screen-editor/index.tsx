@@ -28,6 +28,7 @@ import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
+import NewMultiAnnotation from '../../assets/creator-panel/new_multi_annotation.svg';
 import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
 import * as GTags from '../../common-styled';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
@@ -1357,7 +1358,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                           <Tags.CreateNewAnnotationBtn
                             onClick={() => this.createDefaultAnnotation('multi-ann')}
                           >
-                            <img src={NewAnnotation} alt="new multi annotation" />
+                            <img src={NewMultiAnnotation} alt="new multi annotation" />
                             <p>New Multi Annotation</p>
                           </Tags.CreateNewAnnotationBtn>
                         )}

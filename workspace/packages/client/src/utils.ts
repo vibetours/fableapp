@@ -447,3 +447,5 @@ export const getCurrentFlowMain = (
   }
   return '';
 };
+
+export const isHTTPS = (url: string): boolean => url.trim().startsWith('https://');

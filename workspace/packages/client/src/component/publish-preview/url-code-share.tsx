@@ -34,7 +34,7 @@ export default function (props: IProps): JSX.Element {
       {props.showOpenLinkButton && (
       <Tooltip title="Open url">
         <div
-          className="copy-outline"
+          className="open-link-con"
           style={{ position: 'absolute', right: '40px' }}
         >
           <ArrowRightOutlined

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2023-11-02 16:51:39.
+// Generated using typescript-generator version 2.35.1025 on 2024-02-16 04:42:30.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -119,6 +119,7 @@ export interface ReqRecordEdit {
 
 export interface ReqRenameGeneric {
     newName: string;
+    description?: string;
     rid: string;
 }
 
@@ -221,6 +222,7 @@ export interface RespTour extends ResponseBase {
     displayName: string;
     description: string;
     lastPublishedDate: Date;
+    onboarding: boolean;
     createdBy: RespUser;
 }
 

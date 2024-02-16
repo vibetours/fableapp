@@ -10,7 +10,7 @@ import {
   WarningOutlined
 } from '@ant-design/icons';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { RespUser, Status } from '@fable/common/dist/api-contract';
+import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { Button as AntButton } from 'antd';
 import Tooltip from 'antd/lib/tooltip';
@@ -20,11 +20,10 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
 import * as GTags from '../../common-styled';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespTour } from '../../entity-processor';
 import Input from '../input';
 import PublishButton from '../publish-preview/publish-button';
 import ShareTourModal from '../publish-preview/share-modal';
-import { PlanBadge } from './plan-badge';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
 
@@ -33,7 +32,6 @@ interface IOwnProps {
   shouldShowFullLogo?: boolean;
   navigateToWhenLogoIsClicked?: string;
   titleElOnLeft?: ReactElement;
-  subs: P_RespSubscription | null;
   leftElGroups: ReactElement[];
   principal?: RespUser | null;
   manifestPath: string;
@@ -139,11 +137,6 @@ function Header(props: IOwnProps): JSX.Element {
           ))}
         </>
       </Tags.LMenuCon>
-      <div>
-        {props.subs && props.subs.status === Status.IN_TRIAL && (
-          <PlanBadge subs={props.subs} />
-        )}
-      </div>
       <Tags.RMenuCon>
         <div style={{
           display: 'flex',

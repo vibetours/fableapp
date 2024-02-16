@@ -1,6 +1,6 @@
-import { DeleteOutlined, PlusOutlined, SisternodeOutlined, ChromeOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CmnEvtProp, ITourDataOpts, LoadingStatus } from '@fable/common/dist/types';
+import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import message from 'antd/lib/message';
@@ -13,6 +13,7 @@ import {
   duplicateTour,
   deleteTour,
   publishTour,
+  defaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -33,16 +34,18 @@ import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
 import { createIframeSrc, isExtensionInstalled } from '../../utils';
 import ExtDownloadRemainder from '../../component/ext-download';
+import TextArea from '../../component/text-area';
 
 const userGuides = [TourCardGuide];
 
 interface IDispatchProps {
   getAllTours: () => void;
-  createNewTour: (tourName: string) => void;
-  renameTour: (tour: P_RespTour, newVal: string) => void;
+  createNewTour: (tourName: string, description: string) => void;
+  renameTour: (tour: P_RespTour, newVal: string, newDescription: string) => void;
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>,
+  defaultTour: () => void
 }
 
 export enum CtxAction {
@@ -55,10 +58,13 @@ export enum CtxAction {
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   publishTour: (tour) => dispatch(publishTour(tour)),
   getAllTours: () => dispatch(getAllTours(false)),
-  createNewTour: (tourName: string) => dispatch(createNewTour(true, tourName)),
-  renameTour: (tour: P_RespTour, newDisplayName: string) => dispatch(renameTour(tour, newDisplayName)),
+  createNewTour: (tourName: string, description: string) => dispatch(createNewTour(true, tourName, 'new', description)),
+  renameTour: (tour: P_RespTour, newDisplayName: string, newDescription: string) => dispatch(
+    renameTour(tour, newDisplayName, newDescription)
+  ),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
+  defaultTour: () => dispatch(defaultTour()),
 });
 
 interface IAppStateProps {
@@ -69,6 +75,7 @@ interface IAppStateProps {
   opsInProgress: Ops;
   pubTourAssetPath: string;
   manifestFileName: string;
+  defaultTourLoadingStatus: LoadingStatus;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -79,6 +86,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   opsInProgress: state.default.opsInProgress,
   pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
   manifestFileName: state.default.commonConfig?.manifestFileName || '',
+  defaultTourLoadingStatus: state.default.defaultTourLoadingStatus
 });
 
 interface IOwnProps {
@@ -96,6 +104,12 @@ const { confirm } = Modal;
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   renameOrDuplicateOrCreateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
 
+  interval : null | NodeJS.Timeout = null;
+
+  defaultTourLoaded: boolean = false;
+
+  renameOrDuplicateOrCreateDescRef: React.RefObject<HTMLTextAreaElement> = React.createRef();
+
   constructor(props: IProps) {
     super(props);
     this.state = { showModal: false, selectedTour: null, ctxAction: CtxAction.NA, isExtInstalled: false };
@@ -108,6 +122,21 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       .then((isExtInstalled) => {
         this.setState({ isExtInstalled });
       });
+
+    if (!this.state.isExtInstalled) {
+      this.interval = setInterval(() => isExtensionInstalled()
+        .then((isExtInstalled) => {
+          this.setState({ isExtInstalled });
+        }), 5000);
+    } else this.clearExtensionInstallInterval();
+  }
+
+  clearExtensionInstallInterval = () : void => {
+    if (this.interval) { clearInterval(this.interval); }
+  };
+
+  componentWillUnmount(): void {
+    this.clearExtensionInstallInterval();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
@@ -129,6 +158,17 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         this.renameOrDuplicateOrCreateIpRef.current!.focus();
         this.renameOrDuplicateOrCreateIpRef.current!.select();
       });
+    }
+
+    if (prevProps.allToursLoadingStatus !== this.props.allToursLoadingStatus
+      && this.props.allToursLoadingStatus === LoadingStatus.Done) {
+      const isDefaultTourPresent = this.props.tours.filter(tour => tour.onboarding).length !== 0;
+
+      if (!isDefaultTourPresent) {
+        this.props.defaultTour();
+      } else {
+        this.defaultTourLoaded = true;
+      }
     }
   }
 
@@ -153,16 +193,18 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleModalOk = (): void => {
     const newVal = this.renameOrDuplicateOrCreateIpRef.current!.value.trim().replace(/\s+/, ' ');
+    const descriptionVal = this.renameOrDuplicateOrCreateDescRef.current!.value.trim();
     if (!newVal) return;
     if (this.state.ctxAction === CtxAction.Rename) {
-      if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()) {
+      if (newVal.toLowerCase() === this.state.selectedTour!.displayName.toLowerCase()
+       && descriptionVal.toLowerCase() === this.state.selectedTour!.description.toLowerCase()) {
         return;
       }
       traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
         tour_action_type: 'rename',
         tour_url: createIframeSrc(`/demo/${this.state.selectedTour!.rid}`)
       }, [CmnEvtProp.EMAIL]);
-      this.props.renameTour(this.state.selectedTour!, newVal);
+      this.props.renameTour(this.state.selectedTour!, newVal, descriptionVal);
       this.state.selectedTour!.displayName = newVal;
     } else if (this.state.ctxAction === CtxAction.Duplicate) {
       traceEvent(AMPLITUDE_EVENTS.GENERAL_TOUR_ACTIONS, {
@@ -176,7 +218,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         { from: 'app', tour_name: newVal },
         [CmnEvtProp.EMAIL]
       );
-      this.props.createNewTour(newVal);
+      this.props.createNewTour(newVal, descriptionVal);
     }
 
     this.setState({ selectedTour: null, showModal: false, ctxAction: CtxAction.NA });
@@ -229,15 +271,32 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  getIsAtleastOneAnnPublished = () : boolean => {
+    const publishedTours = this.props.tours.filter((tour) => tour.lastPublishedDate !== undefined);
+    if (publishedTours.length !== 0) return true;
+    return false;
+  };
+
+  isTourCreatedByUser = () : boolean => {
+    const toursOtherThanDefaultTours = this.props.tours.filter(tour => !tour.onboarding);
+    if (toursOtherThanDefaultTours.length === 0) {
+      if (this.props.tours.length !== 0) this.defaultTourLoaded = true;
+      return false;
+    }
+
+    return true;
+  };
+
   render(): ReactElement {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
+    this.defaultTourLoaded = (this.props.defaultTourLoadingStatus === LoadingStatus.Done) || this.defaultTourLoaded;
+
     return (
       <GTags.ColCon className="tour-con">
         <SkipLink />
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
-            subs={this.props.subs}
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
@@ -255,14 +314,23 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon
-              style={{ height: '100%', position: 'relative', overflowY: 'scroll', flexDirection: 'row', gap: '5rem' }}
+              style={{ height: '100%', overflowY: 'auto', flexDirection: 'row', gap: '3rem' }}
               id="main"
             >
               {toursLoaded ? (
                 <>
                   {
-                    this.props.tours.length === 0 ? (
-                      <EmptyTourState principal={this.props.principal} extensionInstalled={this.state.isExtInstalled} />
+                    !this.isTourCreatedByUser() ? (
+                      <EmptyTourState
+                        principal={this.props.principal}
+                        tours={this.props.tours}
+                        publishTour={this.props.publishTour}
+                        pubTourAssetPath={this.props.pubTourAssetPath}
+                        manifestFileName={this.props.manifestFileName}
+                        handleShowModal={this.handleShowModal}
+                        handleDelete={this.handleDelete}
+                        defaultTourLoaded={this.defaultTourLoaded}
+                      />
                     ) : (
                       <>
                         <div style={{ width: '45%', minWidth: '43.5rem' }}>
@@ -296,7 +364,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           </Tags.BottomPanel>
                           <SelectorComponent userGuides={userGuides} />
                         </div>
-                        <ExtDownloadRemainder extensionInstalled={this.state.isExtInstalled} />
+                        <ExtDownloadRemainder
+                          extensionInstalled={this.state.isExtInstalled}
+                          isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
+                        />
                       </>
                     )
                   }
@@ -338,7 +409,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               <div className="modal-title">{this.getModalTitle()}</div>
               <form
                 onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
-                style={{ paddingTop: '1rem' }}
+                style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
               >
                 <Input
                   label={this.getModalDesc()}
@@ -346,7 +417,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   innerRef={this.renameOrDuplicateOrCreateIpRef}
                   defaultValue={this.getModalInputDefaultVal()}
                 />
-
+                <TextArea
+                  label="Enter description for this tour"
+                  innerRef={this.renameOrDuplicateOrCreateDescRef}
+                  defaultValue={this.state.ctxAction === CtxAction.Duplicate
+                    ? '' : this.state.selectedTour?.description || ''}
+                />
               </form>
             </div>
           </GTags.BorderedModal>

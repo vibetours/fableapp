@@ -25,8 +25,8 @@ import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespProxyAsset } from '@fable/common/dist/api-contract';
-import { getAllTours } from '../../action/creator';
+import { RespProxyAsset, RespTour } from '@fable/common/dist/api-contract';
+import { addNewTourToAllTours, getAllTours } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
 import SkeletonCard from '../../component/create-tour/skeleton-card';
@@ -53,11 +53,13 @@ const { confirm } = Modal;
 
 interface IDispatchProps {
   getAllTours: () => void;
+  addNewTourToAllTours: (tour: RespTour)=> void;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours(false)),
+  addNewTourToAllTours: (tour: RespTour) => dispatch(addNewTourToAllTours(tour))
 });
 
 interface IAppStateProps {
@@ -116,6 +118,7 @@ type IOwnStateProps = {
   selectedBorderRadius: number | null;
   currentDisplayState: DisplayState;
   prevDisplayState: DisplayState;
+  openSelect: boolean;
 }
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -159,7 +162,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       showMoreAnnotation: 4,
       selectedBorderRadius: null,
       currentDisplayState: DisplayState.ShowTourCreationOptions,
-      prevDisplayState: DisplayState.ShowTourCreationOptions
+      prevDisplayState: DisplayState.ShowTourCreationOptions,
+      openSelect: false
     };
 
     this.data = null;
@@ -184,7 +188,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  createThemeCandidatesFromStats = (themeStats: ThemeStats) : ThemeCandidature => {
+  createThemeCandidatesFromStats = (themeStats: ThemeStats): ThemeCandidature => {
     const theme: ThemeCandidature = { colorList: [], borderRadius: [] };
     let orderedColors: {
       hex: string,
@@ -305,6 +309,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
+    this.props.addNewTourToAllTours(tour.data);
 
     traceEvent(
       AMPLITUDE_EVENTS.CREATE_NEW_TOUR,
@@ -359,6 +364,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
     this.setState({ loading: true });
     this.initDbOperations();
+    this.props.getAllTours();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -375,8 +381,12 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    if (prevState.showExistingTours !== this.state.showExistingTours && this.state.showExistingTours) {
-      this.props.getAllTours();
+    if (this.state.currentDisplayState === DisplayState.ShowAddExistingTourOptions
+      && this.state.currentDisplayState !== prevState.currentDisplayState) {
+      this.setState({ openSelect: false });
+      setTimeout(() => {
+        this.setState({ openSelect: true });
+      }, 500);
     }
   }
 
@@ -549,21 +559,23 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   >
                     Create a new interactive demo
                   </Button>
-
-                  <Button
-                    intent="secondary"
-                    onClick={() => {
-                      this.setState({
-                        showExistingTours: true,
-                        currentDisplayState: DisplayState.ShowAddExistingTourOptions,
-                        prevDisplayState: DisplayState.ShowTourCreationOptions
-                      });
-                    }}
-                    icon={<DownOutlined />}
-                    style={{ paddingTop: '14px', paddingBottom: '14px' }}
-                  >
-                    Save in an existing interactive demo
-                  </Button>
+                  {(!this.props.allToursLoaded || this.props.tours.length !== 0)
+                    && (
+                      <Button
+                        intent="secondary"
+                        onClick={() => {
+                          this.setState({
+                            showExistingTours: true,
+                            currentDisplayState: DisplayState.ShowAddExistingTourOptions,
+                            prevDisplayState: DisplayState.ShowTourCreationOptions
+                          });
+                        }}
+                        icon={<DownOutlined />}
+                        style={{ paddingTop: '14px', paddingBottom: '14px' }}
+                      >
+                        Save in an existing interactive demo
+                      </Button>
+                    )}
 
                   <Tags.DangerButton
                     onClick={() => {
@@ -592,9 +604,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 isVisible={this.state.currentDisplayState === DisplayState.ShowAddExistingTourOptions}
               >
                 <div style={{ width: '80%', position: 'absolute', maxWidth: '30rem' }}>
-                  {this.props.allToursLoaded ? (
-                    <div>
-                      <style>{`
+                  {this.props.allToursLoaded
+                    && this.state.currentDisplayState === DisplayState.ShowAddExistingTourOptions ? (
+                      <div>
+                        <style>{`
                         .ant-select-selector {
                           border-radius: 8px !important;
                           height: auto !important;
@@ -611,58 +624,63 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           font-weight: bold !important;
                         }
                         `}
-                      </style>
-                      <Select
-                        style={{ width: '100%', borderRadius: '8px' }}
-                        autoFocus
-                        defaultOpen
-                        size="large"
-                        onSelect={(selectedTourRId) => this.setState({ existingTourRId: selectedTourRId })}
-                        showSearch
-                        options={this.props.tours.map(t => ({
-                          label: t.displayName,
-                          value: t.rid
-                        }))}
-                      />
-                      <Tags.ModalButtonsContainer style={{
-                        margin: '2rem 0',
-                        flexDirection: 'column',
-                        alignItems: 'center'
-                      }}
-                      >
-                        <Button
-                          style={{ width: '100%' }}
-                          onClick={() => this.setState({
-                            currentDisplayState: DisplayState.ShowTourCreationOptions,
-                            prevDisplayState: DisplayState.ShowAddExistingTourOptions
+                        </style>
+                        <Select
+                          style={{ width: '100%', borderRadius: '8px' }}
+                          autoFocus
+                          open={this.state.openSelect}
+                          size="large"
+                          onSelect={(selectedTourRId) => this.setState({
+                            existingTourRId: selectedTourRId,
+                            openSelect: false
                           })}
-                          intent="secondary"
-                          icon={<ArrowLeftOutlined />}
-                          iconPlacement="left"
+                          showSearch
+                          options={this.props.tours.map(t => ({
+                            label: t.displayName,
+                            value: t.rid
+                          }))}
+                          onFocus={() => { this.setState({ openSelect: true }); }}
+                          onBlur={() => this.setState({ openSelect: false })}
+                        />
+                        <Tags.ModalButtonsContainer style={{
+                          margin: '2rem 0',
+                          flexDirection: 'column',
+                          alignItems: 'center'
+                        }}
                         >
-                          Back
-                        </Button>
-                        {this.state.existingTourRId && (
-                        <Button
-                          onClick={() => this.setState({
-                            isReadyToSave: true,
-                            saveType: 'existing_tour',
-                            saving: true,
-                            showSaveWizard: false
-                          })}
-                          disabled={this.state.saving}
-                          icon={<CheckOutlined />}
-                          iconPlacement="left"
-                          style={{ width: '100%', paddingBlock: '12.4px' }}
-                        >
-                          Add to Demo
-                        </Button>
-                        )}
-                      </Tags.ModalButtonsContainer>
-                    </div>
-                  ) : (
-                    <Loader width="240px" />
-                  )}
+                          <Button
+                            style={{ width: '100%' }}
+                            onClick={() => this.setState({
+                              currentDisplayState: DisplayState.ShowTourCreationOptions,
+                              prevDisplayState: DisplayState.ShowAddExistingTourOptions
+                            })}
+                            intent="secondary"
+                            icon={<ArrowLeftOutlined />}
+                            iconPlacement="left"
+                          >
+                            Back
+                          </Button>
+                          {this.state.existingTourRId && (
+                          <Button
+                            onClick={() => this.setState({
+                              isReadyToSave: true,
+                              saveType: 'existing_tour',
+                              saving: true,
+                              showSaveWizard: false
+                            })}
+                            disabled={this.state.saving}
+                            icon={<CheckOutlined />}
+                            iconPlacement="left"
+                            style={{ width: '100%', paddingBlock: '12.4px' }}
+                          >
+                            Add to Demo
+                          </Button>
+                          )}
+                        </Tags.ModalButtonsContainer>
+                      </div>
+                    ) : (
+                      <Loader width="240px" />
+                    )}
                 </div>
               </reactanimated.Animated>
               <reactanimated.Animated

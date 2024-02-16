@@ -1,6 +1,7 @@
 import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import { DeSerProps } from '../preview';
+import { isHTTPS } from '../../../utils';
 
 export const FABLE_CUSTOM_NODE = -1;
 
@@ -224,6 +225,10 @@ export const createHtmlElement = (
 
   if (node.name.toLowerCase() === 'img' && shouldAddImgToAssetLoadingPromises) {
     addToAssetLoadingPromises(el as HTMLImageElement);
+  }
+
+  if (node.name.toLocaleLowerCase() === 'img' && !isHTTPS(node.attrs.src || '')) {
+    el.style.visibility = 'hidden';
   }
 
   if (node.props.isShadowHost) {

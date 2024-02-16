@@ -1,8 +1,17 @@
 import styled from 'styled-components';
-import { CheckOutlined } from '@ant-design/icons';
+import { CheckCircleFilled } from '@ant-design/icons';
+
+export const Container = styled.div<{setupGuideVisible: boolean}>`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: flex-start;
+  margin-top: 5.4rem;
+  margin-left: ${(props) => (props.setupGuideVisible ? '-2.5rem' : 0)};}
+`;
 
 export const Con = styled.div`
-  width: fit-content;
+  width: inherit;
   max-width: 22.25rem;
   height: fit-content;
   padding: 1.5rem;
@@ -11,8 +20,6 @@ export const Con = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  position: sticky;
-  top: 5.4rem;
 `;
 
 export const TitleCon = styled.div`
@@ -25,6 +32,7 @@ export const Title = styled.h2`
   font-size: 1rem;
   font-weight: 600;
   color: #16023e;
+  margin: 0;
 `;
 
 export const FableLogo = styled.img`
@@ -32,24 +40,66 @@ export const FableLogo = styled.img`
   width: 2.75rem;
 `;
 
-export const Features = styled.ul`
+export const CheckFilledIcon = styled(CheckCircleFilled)`
+  width: 20px;
+  height: 20px;
+  margin-top: 5px;
+  color: #7567FF;
+`;
+
+export const EmptyCircle = styled.div`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-top: 5px;
+  border: 1px solid #7567FF;
+`;
+
+export const StepsCon = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  list-style-type: none;
-  font-size: 0.875rem;
-  font-weight: 400;
-  padding-left: 0;
+  max-width: 22.25rem;
 
   li {
-    display: flex;
-    gap: 0.5rem;
-    align-items: flex-start;
+    margin: 0.5rem 0;
+  }
+
+  ul {
+    padding-left: 13px;
+  }
+
+  &.empty {
+    .ant-steps-item-icon {
+      background: #ebf4f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .ant-steps-icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .ant-steps-item-title {
+      color: black !important;
+      font-size: 1rem;
+      font-weight: 600;
+    }
   }
 `;
 
-export const CheckOutlinedIcon = styled(CheckOutlined)`
-  width: 1rem;
-  height: 1rem;
-  margin-top: 4px;
+export const SetupGuideCon = styled.div`
+  max-width: 350px;
+  min-width: 300px;
+
+  p{
+    margin: 0;
+    padding: 0;
+  }
+
+  & .ant-progress-text{
+    color: #7567FF !important;
+  }
 `;

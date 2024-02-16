@@ -110,8 +110,8 @@ export const guide: Guide = {
       width: '20rem'
     },
     {
-      title: 'Create a journey',
-      description: 'When you have multiple flows within the same interactive demo to showcase different modules, you can use the journey feature so that your buyers can navigate between different flows/modules very easily. Think of it like the index of a book where there are multiple chapters. 😉',
+      title: 'Create a module',
+      description: 'When you have multiple flows within the same interactive demo to showcase different modules, you can use the module feature so that your buyers can navigate between different flows/modules very easily. Think of it like the index of a book where there are multiple chapters. 😉',
       target: () => getDOMElement(guide, () => document.getElementById('journey-btn'))!,
       nextButtonProps: {
         onClick() {

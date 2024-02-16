@@ -1,10 +1,13 @@
 import { CreditCardOutlined, NodeIndexOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plan, Status } from '@fable/common/dist/api-contract';
 import packageJSON from '../../../package.json';
 import * as Tags from './styled';
 import { P_RespSubscription } from '../../entity-processor';
 import UserGuideProgress from './user-guide-progess';
 import UserGuideDetails from './user-guide-details';
+import PlanBadge from './plan-badge';
 
 interface Props {
   selected: 'tours' | 'user-management' | 'billing' | 'settings';
@@ -15,6 +18,8 @@ interface Props {
 
 export default function SidePanel(props: Props): JSX.Element {
   const [isUserGuideDetailsOpen, setIsUserGuideDetailsOpen] = useState<boolean>(false);
+  const navigate = useNavigate();
+  const isBuisnessPlan = props.subs && props.subs.status === Status.ACTIVE && props.subs.paymentPlan === Plan.BUSINESS;
 
   return (
     <Tags.Con>
@@ -33,11 +38,16 @@ export default function SidePanel(props: Props): JSX.Element {
           <p>Billing</p>
         </Tags.ConNavBtn>
 
-        <UserGuideProgress
-          selected={isUserGuideDetailsOpen}
-          onClick={() => setIsUserGuideDetailsOpen(prevState => !prevState)}
-        />
-
+        <div style={{ marginTop: 'auto' }}>
+          {props.subs && !isBuisnessPlan && <PlanBadge
+            subs={props.subs}
+            onClick={() => navigate('/billing')}
+          />}
+          <UserGuideProgress
+            selected={isUserGuideDetailsOpen}
+            onClick={() => setIsUserGuideDetailsOpen(prevState => !prevState)}
+          />
+        </div>
       </Tags.ConNav>
       <Tags.Footer style={{ marginBottom: '1.8rem' }}>
         <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>

@@ -28,6 +28,7 @@ import {
   RespSubscription,
   ReqActivateOrDeactivateUser,
   ReqUpdateScreenProperty,
+  ResponseStatus,
 } from '@fable/common/dist/api-contract';
 import {
   CreateJourneyData,
@@ -158,6 +159,27 @@ export function iam() {
 }
 
 /* ************************************************************************* */
+
+export interface TCreateNewOrg {
+  type: ActionType.CREATE_NEW_ORG;
+  org: RespOrg;
+}
+
+export function createOrg(displayName: string) {
+  return async (dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGenericLoading>, getState: () => TState) => {
+    const data2 = await api<ReqNewOrg, ApiResp<RespOrg>>('/neworg', {
+      auth: true,
+      body: {
+        displayName,
+        thumbnail: ''
+      },
+    });
+
+    if (data2.status === ResponseStatus.Success) {
+      window.location.replace('/demos');
+    }
+  };
+}
 
 export interface TGetOrg {
   type: ActionType.ORG;
@@ -605,13 +627,18 @@ export interface TTour {
   performedAction: SupportedPerformedAction;
 }
 
-export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mode: SupportedPerformedAction = 'new') {
+export function createNewTour(
+  shouldNavigate = false,
+  tourName = 'Untitled',
+  mode: SupportedPerformedAction = 'new',
+  description = ''
+) {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
     const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
       auth: true,
       body: {
         name: tourName,
-        description: '',
+        description,
       },
     });
     const tour = processRawTourData(data.data, getState());
@@ -630,13 +657,14 @@ export function createNewTour(shouldNavigate = false, tourName = 'Untitled', mod
 
 /* ************************************************************************* */
 
-export function renameTour(tour: P_RespTour, newVal: string) {
+export function renameTour(tour: P_RespTour, newVal: string, description: string) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
     const data = await api<ReqRenameGeneric, ApiResp<RespTour>>('/renametour', {
       auth: true,
       body: {
         newName: newVal,
         rid: tour.rid,
+        description
       },
     });
     const renamedTour = processRawTourData(data.data, getState());
@@ -669,56 +697,9 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
         fromTourRid: tour.rid,
       },
     });
-    const duplicatedTour = processRawTourData(data.data, getState());
-    const idxm = data.data.idxm;
-    if (idxm) {
-      const tourDataFile = await api<null, TourData>(duplicatedTour.dataFileUri.href);
-      // update the old screen index with new one
-      const newEntities: typeof tourDataFile.entities = {};
-      for (const [screenId, entity] of Object.entries(tourDataFile.entities)) {
-        if (screenId in idxm) {
-          const newEntity = deepcopy(entity);
-          const newScreenId = idxm[screenId];
 
-          if (newEntity.type === 'screen') {
-            const tNewEntity = newEntity as TourScreenEntity;
-            for (const ann of Object.values(tNewEntity.annotations)) {
-              for (const btn of ann.buttons) {
-                if (btn.hotspot && btn.hotspot.actionType === 'navigate') {
-                  const actionValueSplit = btn.hotspot.actionValue.split('/');
-                  if (actionValueSplit[0] in idxm) {
-                    actionValueSplit[0] = idxm[actionValueSplit[0]];
-                    btn.hotspot.actionValue = actionValueSplit.join('/');
-                  }
-                }
-              }
-            }
-          }
+    const duplicatedTour = await duplicateGivenTour(data.data, getState, dispatch);
 
-          newEntity.ref = newScreenId;
-          newEntities[newScreenId] = newEntity;
-        } else {
-          newEntities[screenId] = entity;
-        }
-      }
-      tourDataFile.entities = newEntities;
-
-      if (tourDataFile.opts.main) {
-        const mainSplit = tourDataFile.opts.main.split('/');
-        if (mainSplit[0] in idxm) {
-          mainSplit[0] = idxm[mainSplit[0]];
-          tourDataFile.opts.main = mainSplit.join('/');
-        }
-      }
-
-      await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
-        auth: true,
-        body: {
-          rid: duplicatedTour.rid,
-          editData: JSON.stringify(tourDataFile),
-        },
-      });
-    }
     dispatch({
       type: ActionType.TOUR,
       tour: duplicatedTour,
@@ -1050,6 +1031,104 @@ export function activateOrDeactivateUser(id: number, shouldActivate: boolean) {
     dispatch({
       type: ActionType.USER_UPDATED,
       user: data.data,
+    });
+  };
+}
+
+const duplicateGivenTour = async (
+  tour: RespTourWithScreens,
+  getState: () => TState,
+  dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving>
+): Promise<P_RespTour> => {
+  const duplicatedTour = processRawTourData(tour, getState());
+  const idxm = tour.idxm;
+  if (idxm) {
+    const tourDataFile = await api<null, TourData>(duplicatedTour.dataFileUri.href);
+    // update the old screen index with new one
+    const newEntities: typeof tourDataFile.entities = {};
+    for (const [screenId, entity] of Object.entries(tourDataFile.entities)) {
+      if (screenId in idxm) {
+        const newEntity = deepcopy(entity);
+        const newScreenId = idxm[screenId];
+
+        if (newEntity.type === 'screen') {
+          const tNewEntity = newEntity as TourScreenEntity;
+          for (const ann of Object.values(tNewEntity.annotations)) {
+            for (const btn of ann.buttons) {
+              if (btn.hotspot && btn.hotspot.actionType === 'navigate') {
+                const actionValueSplit = btn.hotspot.actionValue.split('/');
+                if (actionValueSplit[0] in idxm) {
+                  actionValueSplit[0] = idxm[actionValueSplit[0]];
+                  btn.hotspot.actionValue = actionValueSplit.join('/');
+                }
+              }
+            }
+          }
+        }
+
+        newEntity.ref = newScreenId;
+        newEntities[newScreenId] = newEntity;
+      } else {
+        newEntities[screenId] = entity;
+      }
+    }
+    tourDataFile.entities = newEntities;
+
+    if (tourDataFile.opts.main) {
+      const mainSplit = tourDataFile.opts.main.split('/');
+      if (mainSplit[0] in idxm) {
+        mainSplit[0] = idxm[mainSplit[0]];
+        tourDataFile.opts.main = mainSplit.join('/');
+      }
+    }
+
+    await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+      auth: true,
+      body: {
+        rid: duplicatedTour.rid,
+        editData: JSON.stringify(tourDataFile),
+      },
+    });
+  }
+  return duplicatedTour;
+};
+
+export interface TGetDefaultTours {
+  type: ActionType.DEFAULT_TOUR_LOADED;
+  tours: Array<P_RespTour>;
+}
+
+export function defaultTour() {
+  return async (
+    dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetDefaultTours>,
+    getState: () => TState
+  ) => {
+    const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens[]>>('/conbtrs', {
+      auth: true, method: 'POST'
+    });
+    const duplicatedTours: P_RespTour[] = [];
+
+    await Promise.all(data.data.map(async (tour) => {
+      const duplicatedTour = await duplicateGivenTour(tour, getState, dispatch);
+      duplicatedTours.push(duplicatedTour);
+    }));
+
+    dispatch({
+      type: ActionType.DEFAULT_TOUR_LOADED,
+      tours: duplicatedTours,
+    });
+  };
+}
+
+export function addNewTourToAllTours(newTour: RespTour) {
+  return async (
+    dispatch: Dispatch<TGetAllTours>,
+    getState: () => TState
+  ) => {
+    const state = getState();
+    dispatch({
+      type: ActionType.ALL_TOURS_LOADED,
+      tours: [...state.default.tours, processRawTourData(newTour, state)],
     });
   };
 }

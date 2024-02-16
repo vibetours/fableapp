@@ -19,6 +19,7 @@ import { createIframeSrc } from '../../utils';
 import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from '../publish-preview/share-modal';
 import * as Tags from './styled';
+import FableLogo from '../../assets/fable-rounded-icon.svg';
 
 interface Props {
   tour: P_RespTour;
@@ -28,7 +29,9 @@ interface Props {
   manifestPath: string;
 }
 
-export default function TourCard({ tour, handleShowModal, handleDelete, publishTour, manifestPath }: Props): JSX.Element {
+export default function TourCard({
+  tour, handleShowModal, handleDelete, publishTour, manifestPath
+}: Props): JSX.Element {
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
   return (
@@ -39,14 +42,24 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
           <Tags.DisplayName>
             {tour.displayName}
           </Tags.DisplayName>
-          <Tags.TourMetaDataCon>
-            Edited {tour.displayableUpdatedAt}
-            <Tags.Divider />
-            <Tags.AvatarCon>
-              Created by <GTags.Avatar src={tour.createdBy.avatar} referrerPolicy="no-referrer" />
-            </Tags.AvatarCon>
-          </Tags.TourMetaDataCon>
-
+          {
+            tour.onboarding
+              ? (
+                <Tags.TourMetaDataCon>
+                  <Tags.TourCreated>Sample demo created by </Tags.TourCreated>
+                  <img style={{ width: '16px' }} src={FableLogo} alt="fable-logo" />
+                </Tags.TourMetaDataCon>
+              )
+              : (
+                <Tags.TourMetaDataCon>
+                  Edited {tour.displayableUpdatedAt}
+                  <Tags.Divider />
+                  <Tags.AvatarCon>
+                    Created by <GTags.Avatar src={tour.createdBy.avatar} referrerPolicy="no-referrer" />
+                  </Tags.AvatarCon>
+                </Tags.TourMetaDataCon>
+              )
+          }
         </Tags.CardDataCon>
         <Tags.TourActionBtnCon>
           <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
@@ -68,6 +81,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
               }}
             />
           </Tooltip>
+          {!tour.onboarding && (
           <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
             <Button
               id="TG-2"
@@ -83,6 +97,8 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
               }}
             />
           </Tooltip>
+          )}
+          {!tour.onboarding && (
           <Popover
             content={
               <div onClick={(e) => {
@@ -115,7 +131,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
                   <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Tour
                 </GTags.PopoverMenuItem>
               </div>
-          }
+            }
             trigger="focus"
             placement="right"
           >
@@ -132,6 +148,7 @@ export default function TourCard({ tour, handleShowModal, handleDelete, publishT
               }}
             />
           </Popover>
+          )}
         </Tags.TourActionBtnCon>
       </Tags.TourCardCon>
       <ShareTourModal

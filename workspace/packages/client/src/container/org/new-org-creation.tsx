@@ -5,10 +5,15 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import OrgCreate from '../../component/onboarding/pages/org-create';
 import RootLayout from '../../component/onboarding/root-layout';
+import { createOrg } from '../../action/creator';
 
-interface IDispatchProps {}
+interface IDispatchProps {
+  createOrg: (orgName: string) => void;
+}
 
-const mapDispatchToProps = (dispatch: any) => ({});
+const mapDispatchToProps = (dispatch: any) => ({
+  createOrg: (orgName: string) => dispatch(createOrg(orgName)),
+});
 
 interface IAppStateProps { }
 
@@ -37,7 +42,7 @@ class NewOrgCreation extends React.PureComponent<IProps, IOwnStateProps> {
   render(): React.ReactNode {
     return (
       <RootLayout>
-        <OrgCreate />
+        <OrgCreate createOrg={this.props.createOrg} />
       </RootLayout>
     );
   }

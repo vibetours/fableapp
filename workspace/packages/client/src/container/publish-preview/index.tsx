@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Tooltip } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
 import { clearCurrentTourSelection, loadTourAndData, publishTour } from '../../action/creator';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
@@ -33,7 +33,6 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   isTourLoaded: boolean;
-  subs: P_RespSubscription | null;
   manifestPath: string;
 }
 
@@ -41,7 +40,6 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
-  subs: state.default.subs,
   manifestPath: (state.default.commonConfig && state.default.currentTour)
     ? `${state.default.commonConfig.pubTourAssetPath + state.default.currentTour.rid}/${state.default.commonConfig.manifestFileName}`
     : '',
@@ -120,7 +118,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             manifestPath={this.props.manifestPath}
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"
-            subs={this.props.subs}
             titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
             leftElGroups={[(
               <Tooltip title="Go to Canvas" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>

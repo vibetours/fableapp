@@ -27,6 +27,7 @@ import ProtectedRoutes from '../protected-routes';
 import Analytics from '../analytics';
 import Healthcheck from '../healthcheck';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
+import Invite from '../invite';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
 import { addToGlobalAppData } from '../../utils';
 import { P_RespTour } from '../../entity-processor';
@@ -158,6 +159,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
             />
             <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
             <Route path="/preptour" element={<PrepTour title="Fable" />} />
+            <Route path="/invite/:id" element={<Invite />} />
           </Routes>
         </div>
       </Router>

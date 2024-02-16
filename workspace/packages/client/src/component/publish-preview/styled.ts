@@ -120,30 +120,6 @@ export const ModalBodyCon = styled.div`
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  .copy-outline {
-    background-color: #ebebeb;
-    color: #7a7a7a;
-    padding: 0.3rem;
-    margin-left: 0.2rem;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 15px;
-    height: 15px;
-    display: flex;
-    justify-content: center;
-  }
-
-  .check-outline {
-    background-color: #ebebeb;
-    color: #3fb950;
-    padding: 0.3rem;
-    margin-left: 0.2rem;
-    border-radius: 4px;
-    cursor: pointer;
-    width: 15px;
-    height: 15px;
-  }
 `;
 
 export const MenuItem = styled.div`
@@ -184,14 +160,14 @@ export const BackgroundGradientImg = styled.img`
 export const URLCon = styled.div`
   border: 1px solid lightgray;
   border-radius: 12px;
-  padding: 0.5rem;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   position: relative;
 
   .url-content {
     white-space: nowrap;
-
+    padding: 0.7rem;
     scrollbar-color: #7567FF #E5E7EB;
     scrollbar-width: thin;
     overflow-y: hidden;
@@ -214,5 +190,48 @@ export const URLCon = styled.div`
       border-radius: 10px;
       background-color: #646e82;
     } 
+  }
+
+  .open-link-con {
+    background-color: #ebebeb;
+    color: #7a7a7a;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    justify-content: center;
+  }
+`;
+
+export const CopyHandelerCon = styled.div`
+  display: flex;
+  position: absolute;
+  right: 0.5rem;
+
+  .copy-outline {
+    background-color: #ebebeb;
+    color: #7a7a7a;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .check-outline {
+    background-color: #ebebeb !important;
+    color: #3fb950;
+    padding: 0.3rem;
+    margin-left: 0.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
   }
 `;

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tooltip } from 'antd';
 import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
+import * as Tags from './styled';
 
 interface IProps {
   copyUrl: string;
@@ -12,7 +13,7 @@ export default function (props: IProps): JSX.Element {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div style={{ display: 'flex', position: 'absolute', right: '0.5rem' }}>
+    <Tags.CopyHandelerCon>
       <Tooltip
         title={copyButtonClicked ? 'Copied' : 'Copy to clipboard'}
         placement={copyButtonClicked ? 'left' : 'top'}
@@ -43,6 +44,6 @@ export default function (props: IProps): JSX.Element {
               }}
           />}
       </Tooltip>
-    </div>
+    </Tags.CopyHandelerCon>
   );
 }
