@@ -1113,9 +1113,10 @@ export function defaultTour() {
       duplicatedTours.push(duplicatedTour);
     }));
 
+    const state = getState();
     dispatch({
       type: ActionType.DEFAULT_TOUR_LOADED,
-      tours: duplicatedTours,
+      tours: [...duplicatedTours, ...state.default.tours],
     });
   };
 }

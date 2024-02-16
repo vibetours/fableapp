@@ -109,17 +109,17 @@ export default function TourCard({
                 <GTags.PopoverMenuItem
                   onMouseDown={e => setIsShareModalVisible(true)}
                 >
-                  <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Tour
+                  <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Demo
                 </GTags.PopoverMenuItem>
                 <GTags.PopoverMenuItem
                   onMouseDown={e => handleShowModal(tour, CtxAction.Rename)}
                 >
-                  <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Tour
+                  <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Demo
                 </GTags.PopoverMenuItem>
                 <GTags.PopoverMenuItem
                   onMouseDown={e => handleShowModal(tour, CtxAction.Duplicate)}
                 >
-                  <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Tour
+                  <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Demo
                 </GTags.PopoverMenuItem>
                 <GTags.PopoverMenuItemDivider color="#ff735050" />
                 <GTags.PopoverMenuItem
@@ -128,7 +128,7 @@ export default function TourCard({
                     color: '#ff7350'
                   }}
                 >
-                  <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Tour
+                  <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Demo
                 </GTags.PopoverMenuItem>
               </div>
             }

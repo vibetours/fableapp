@@ -143,7 +143,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.opsInProgress !== this.props.opsInProgress) {
       if (this.props.opsInProgress === Ops.DuplicateTour) {
         message.warning({
-          content: 'Tour duplication is in progress! Please don\'t close this tab',
+          content: 'Demo duplication is in progress! Please don\'t close this tab',
         });
       } else if (this.props.opsInProgress === Ops.None) {
         message.info({
@@ -178,7 +178,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleDelete = (tour: P_RespTour | null): void => {
     confirm({
-      title: 'Are you sure you want to delete this tour ?',
+      title: 'Are you sure you want to delete this demo ?',
       okText: 'Delete',
       okType: 'danger',
       onOk: () => {
@@ -249,11 +249,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   getModalTitle = (): string => {
     switch (this.state.ctxAction) {
       case CtxAction.Duplicate:
-        return 'Duplicate Tour';
+        return 'Duplicate Demo';
       case CtxAction.Rename:
-        return 'Rename Tour';
+        return 'Rename Demo';
       case CtxAction.Create:
-        return 'Create Tour';
+        return 'Create Demo';
       default:
         return '';
     }
@@ -262,10 +262,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   getModalDesc = (): string => {
     switch (this.state.ctxAction) {
       case CtxAction.Duplicate:
-        return 'Choose a name for the new duplicated tour.';
+        return 'Choose a name for the new duplicated demo.';
       case CtxAction.Rename:
       case CtxAction.Create:
-        return 'Give a new name for this tour';
+        return 'Give a new name for this demo';
       default:
         return '';
     }
@@ -347,7 +347,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                               onClick={() => this.handleShowModal(null, CtxAction.Create)}
                               intent={this.state.isExtInstalled ? 'primary' : 'secondary'}
                             >
-                              Create a tour
+                              Create a demo
                             </Button>
                           </Tags.TopPanel>
                           <Tags.BottomPanel style={{ overflow: 'auto' }}>
@@ -418,7 +418,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   defaultValue={this.getModalInputDefaultVal()}
                 />
                 <TextArea
-                  label="Enter description for this tour"
+                  label="Enter description for this demo"
                   innerRef={this.renameOrDuplicateOrCreateDescRef}
                   defaultValue={this.state.ctxAction === CtxAction.Duplicate
                     ? '' : this.state.selectedTour?.description || ''}
