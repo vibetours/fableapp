@@ -36,7 +36,10 @@ const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
     }
     return loc.reverse();
   }
-  const siblings = el.parentNode!.childNodes;
+  const siblings: Array<ChildNode | ShadowRoot> = Array.from(el.parentNode!.childNodes);
+  if (el.parentNode!.nodeType === Node.ELEMENT_NODE && (el.parentNode! as HTMLElement).shadowRoot) {
+    siblings.unshift((el.parentNode! as HTMLElement).shadowRoot!);
+  }
   for (let i = 0, l = siblings.length; i < l; i++) {
     if (el === siblings[i]) {
       // For html5 documents the first element is doctype, and for html4.1 documents the doctype is not present, first
