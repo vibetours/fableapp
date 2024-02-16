@@ -128,18 +128,18 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/demos" element={<Tours title="Interactive demos | Fable" />} />
               <Route path="/users" element={<UserManagement title="Fable - User Management" />} />
               <Route path="/billing" element={<Billing title="Fable - Billing & Subscription" />} />
-              <Route path="/tour/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
-              <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
-              <Route path="/demo/:tourId" element={<TourEditor title="Fable - Tour editor" />} />
-              <Route path="/demo/:tourId/:screenId" element={<TourEditor title="Fable - Tour editor" />} />
+              <Route path="/tour/:tourId" element={<TourEditor title="Fable - Demo editor" />} />
+              <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Demo editor" />} />
+              <Route path="/demo/:tourId" element={<TourEditor title="Fable - Demo editor" />} />
+              <Route path="/demo/:tourId/:screenId" element={<TourEditor title="Fable - Demo editor" />} />
               <Route path="/a/demo/:tourId" element={<Analytics />} />
               <Route
                 path="/tour/:tourId/:screenId/:annotationId"
-                element={<TourEditor title="Fable - Tour editor" />}
+                element={<TourEditor title="Fable - Demo editor" />}
               />
               <Route
                 path="/demo/:tourId/:screenId/:annotationId"
-                element={<TourEditor title="Fable - Tour editor" />}
+                element={<TourEditor title="Fable - Demo editor" />}
               />
               <Route path="/create-interactive-demo" element={<CreateTour title="Create interactive demo | Fable" />} />
               <Route path="/login" element={<Login title="Fable - Login" />} />

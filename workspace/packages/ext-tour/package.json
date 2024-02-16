@@ -2,7 +2,7 @@
   "name": "@fable/ext-tour",
   "version": "1.6.0",
   "main": "build",
-  "description": "Product tour extension for Fable",
+  "description": "Product demo extension for Fable",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "private": true,
   "license": "MIT",

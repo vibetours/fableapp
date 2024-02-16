@@ -43,6 +43,21 @@ export const LMenuCon = styled.div`
 
 export const MenuItem = styled.div`
   margin: 0 0.25rem;
+
+  .ant-btn-icon {
+    margin-inline-end: 4px !important;
+  }
+
+  .sec-btn {
+    border: 1px solid white !important;
+    font-weight: 500;
+  }
+
+  .sec-btn:hover {
+    border: 1px solid white !important;
+    color: white !important;
+    transform: translate(2px, -2px);
+  }
 `;
 
 export const CodeCon = styled.code`

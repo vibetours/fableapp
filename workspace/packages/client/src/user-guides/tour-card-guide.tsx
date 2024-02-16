@@ -10,7 +10,7 @@ export const guide: Guide = {
   name: 'Managing your interactive demos',
   desc: {
     toursCreated: 'Tips on how to manage your entire library of interactive demos',
-    toursNotCreated: 'Create a tour to see this guide'
+    toursNotCreated: 'Create a demo to see this guide'
   },
   serialId: 5,
   steps: [

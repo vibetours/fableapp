@@ -19,7 +19,7 @@ export const guide: Guide = {
   serialId: 1,
   desc: {
     toursCreated: 'Fable’s canvas is the playground where the magic sauce is added to an interactive demo after capturing it.',
-    toursNotCreated: 'Create a tour to see this guide'
+    toursNotCreated: 'Create a demo to see this guide'
   },
   steps: [
     {

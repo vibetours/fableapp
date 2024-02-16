@@ -17,7 +17,7 @@ export const guide: Guide = {
   name: 'Editing the interactive demo that you have captured',
   desc: {
     toursCreated: 'After you have captured an interactive demo, you can customize everything from messaging to the order of the flow of the demo',
-    toursNotCreated: 'Create a tour to see this guide'
+    toursNotCreated: 'Create a demo to see this guide'
   },
   serialId: 2,
   steps: [

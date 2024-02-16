@@ -594,7 +594,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           body={(
             <>
               <p>
-                Entry point is the annotation where the tour starts. You can set an annotation as entry point by
+                Entry point is the annotation where the demo starts. You can set an annotation as entry point by
               </p>
               <ol>
                 <li>Clicking on the annotation</li>

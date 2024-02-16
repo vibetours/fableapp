@@ -19,7 +19,7 @@ export const guide: Guide = {
   serialId: 4,
   desc: {
     toursCreated: 'You can share an interactive demo as a unique link or embed it on any webpage as an iframe',
-    toursNotCreated: 'Create a tour to see this guide'
+    toursNotCreated: 'Create a demo to see this guide'
   },
   steps: [
     {

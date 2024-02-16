@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
-import { Tooltip } from 'antd';
+import { Tooltip, Button as AntButton } from 'antd';
 import { ArrowLeftOutlined, EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
 import { clearCurrentTourSelection, loadTourAndData, publishTour } from '../../action/creator';
 import { P_RespTour } from '../../entity-processor';
@@ -119,12 +119,23 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
-            leftElGroups={[(
-              <Tooltip title="Go to Canvas" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-                <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
-                  <ArrowLeftOutlined className="left-arrow" />
-                </Link>
-              </Tooltip>
+            rightElGroups={[(
+              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
+                <AntButton
+                  size="small"
+                  className="sec-btn"
+                  type="default"
+                  style={{
+                    padding: '0 0.8rem',
+                    height: '30px',
+                    borderRadius: '16px',
+                    backgroundColor: '#160245',
+                    color: 'white'
+                  }}
+                >
+                  Edit demo
+                </AntButton>
+              </Link>
             )]}
             principal={this.props.principal}
             tour={this.props.tour}

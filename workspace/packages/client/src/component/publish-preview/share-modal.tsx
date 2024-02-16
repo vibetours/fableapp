@@ -96,7 +96,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
               {props.tour && getPublicationState(props.tour) === PublicationState.UNPUBLISHED && (
                 <>
                   <div className="section-heading" style={{ marginBottom: '0.5rem' }}>
-                    You haven't published this tour yet!
+                    You haven't published this demo yet!
                   </div>
                   <div className="section-subheading" style={{ marginBottom: '0.5rem' }}>
                     For a demo to go live, you’ll need to publish it. Please click on <em>publish</em> below once you are done making all changes.

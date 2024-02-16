@@ -415,7 +415,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           >
             <Tags.HeaderText>A little quiet here today</Tags.HeaderText>
             <Tags.SubheaderText>
-              No tours to be created. Use Fable's extension to record an interactive demo.
+              No demos to be created. Use Fable's extension to record an interactive demo.
               <div style={{ fontStyle: 'italic' }}>
                 If you've just recorded an interactive demo and this screen is shown, then you might have only recorded empty chrome tabs.
               </div>

@@ -51,7 +51,7 @@ function StepContainer({ extensionInstalled, isAtleastOneTourPublished }:
               : <Tags.EmptyCircle />,
             title: 'Embed a demo on your website',
             description: (
-              <div> Click on share/ embed tour button avialable in menu </div>
+              <div> Click on share/embed demo button avialable in menu </div>
             ),
           },
         ]}

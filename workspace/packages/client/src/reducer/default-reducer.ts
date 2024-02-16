@@ -36,7 +36,7 @@ import {
   TSaveTourLoader,
   TAutosavingLoader,
   TScreenUpdate,
-  defaultTour,
+  createDefaultTour,
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -125,7 +125,7 @@ export const initialState: {
   isAutoSavingLoader: false,
   allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
   journey: null,
-  defaultTourLoadingStatus: LoadingStatus.InProgress
+  defaultTourLoadingStatus: LoadingStatus.NotStarted
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -480,9 +480,7 @@ export default function projectReducer(state = initialState, action: Action) {
     }
 
     case ActionType.DEFAULT_TOUR_LOADED: {
-      const tAction = action as TGetAllTours;
       const newState = { ...state };
-      newState.tours = tAction.tours;
       newState.defaultTourLoadingStatus = LoadingStatus.Done;
       return newState;
     }

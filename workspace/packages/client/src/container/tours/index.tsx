@@ -13,7 +13,7 @@ import {
   duplicateTour,
   deleteTour,
   publishTour,
-  defaultTour,
+  createDefaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -45,7 +45,7 @@ interface IDispatchProps {
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>,
-  defaultTour: () => void
+  createDefaultTour: () => void
 }
 
 export enum CtxAction {
@@ -64,29 +64,31 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   ),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
-  defaultTour: () => dispatch(defaultTour()),
+  createDefaultTour: () => dispatch(createDefaultTour()),
 });
 
 interface IAppStateProps {
   tours: P_RespTour[];
+  defaultTours: P_RespTour[];
+  userCreatedTours: P_RespTour[];
   subs: P_RespSubscription | null;
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
   opsInProgress: Ops;
   pubTourAssetPath: string;
   manifestFileName: string;
-  defaultTourLoadingStatus: LoadingStatus;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
+  defaultTours: state.default.tours.filter(tour => tour.onboarding),
+  userCreatedTours: state.default.tours.filter(tour => !tour.onboarding),
   subs: state.default.subs,
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
   pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
   manifestFileName: state.default.commonConfig?.manifestFileName || '',
-  defaultTourLoadingStatus: state.default.defaultTourLoadingStatus
 });
 
 interface IOwnProps {
@@ -105,8 +107,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   renameOrDuplicateOrCreateIpRef: React.RefObject<HTMLInputElement> = React.createRef();
 
   interval : null | NodeJS.Timeout = null;
-
-  defaultTourLoaded: boolean = false;
 
   renameOrDuplicateOrCreateDescRef: React.RefObject<HTMLTextAreaElement> = React.createRef();
 
@@ -162,12 +162,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (prevProps.allToursLoadingStatus !== this.props.allToursLoadingStatus
       && this.props.allToursLoadingStatus === LoadingStatus.Done) {
-      const isDefaultTourPresent = this.props.tours.filter(tour => tour.onboarding).length !== 0;
-
-      if (!isDefaultTourPresent) {
-        this.props.defaultTour();
-      } else {
-        this.defaultTourLoaded = true;
+      const shouldCreateDefaultTour = this.props.tours.length === 0;
+      if (shouldCreateDefaultTour) {
+        this.props.createDefaultTour();
       }
     }
   }
@@ -277,19 +274,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     return false;
   };
 
-  isTourCreatedByUser = () : boolean => {
-    const toursOtherThanDefaultTours = this.props.tours.filter(tour => !tour.onboarding);
-    if (toursOtherThanDefaultTours.length === 0) {
-      if (this.props.tours.length !== 0) this.defaultTourLoaded = true;
-      return false;
-    }
-
-    return true;
-  };
-
   render(): ReactElement {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
-    this.defaultTourLoaded = (this.props.defaultTourLoadingStatus === LoadingStatus.Done) || this.defaultTourLoaded;
 
     return (
       <GTags.ColCon className="tour-con">
@@ -320,16 +306,15 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               {toursLoaded ? (
                 <>
                   {
-                    !this.isTourCreatedByUser() ? (
+                    this.props.userCreatedTours.length === 0 ? (
                       <EmptyTourState
                         principal={this.props.principal}
-                        tours={this.props.tours}
+                        defaultTours={this.props.defaultTours}
                         publishTour={this.props.publishTour}
                         pubTourAssetPath={this.props.pubTourAssetPath}
                         manifestFileName={this.props.manifestFileName}
                         handleShowModal={this.handleShowModal}
                         handleDelete={this.handleDelete}
-                        defaultTourLoaded={this.defaultTourLoaded}
                       />
                     ) : (
                       <>
@@ -340,7 +325,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             justifyContent: 'space-between',
                           }}
                           >
-                            <Tags.ToursHeading style={{ fontWeight: 400 }}>All tours in your org</Tags.ToursHeading>
+                            <Tags.ToursHeading style={{ fontWeight: 400 }}>All demos in your org</Tags.ToursHeading>
                             <Button
                               icon={<PlusOutlined />}
                               iconPlacement="left"
@@ -374,7 +359,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 </>
               ) : (
                 <div style={{ width: '100%' }}>
-                  <Loader width="80px" txtBefore="Loading tours for you" showAtPageCenter />
+                  <Loader width="80px" txtBefore="Loading demos for you" showAtPageCenter />
                 </div>
               )}
             </GTags.BodyCon>

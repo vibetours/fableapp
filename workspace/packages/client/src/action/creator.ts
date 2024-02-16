@@ -42,7 +42,7 @@ import {
   TourDataWoScheme,
   TourScreenEntity
 } from '@fable/common/dist/types';
-import { deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
+import { deepcopy, getCurrentUtcUnixTime, getImgScreenData, sleep } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -78,6 +78,7 @@ export interface TGenericLoading {
   | ActionType.USER_LOADING
   | ActionType.TOUR_LOADING
   | ActionType.ORG_LOADING
+  | ActionType.DEFAULT_TOUR_LOADED
   | ActionType.ALL_USERS_FOR_ORG_LOADING;
   shouldCache?: boolean;
 }
@@ -1093,14 +1094,9 @@ const duplicateGivenTour = async (
   return duplicatedTour;
 };
 
-export interface TGetDefaultTours {
-  type: ActionType.DEFAULT_TOUR_LOADED;
-  tours: Array<P_RespTour>;
-}
-
-export function defaultTour() {
+export function createDefaultTour() {
   return async (
-    dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetDefaultTours>,
+    dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetAllTours | TGenericLoading>,
     getState: () => TState
   ) => {
     const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens[]>>('/conbtrs', {
@@ -1116,6 +1112,9 @@ export function defaultTour() {
     const state = getState();
     dispatch({
       type: ActionType.DEFAULT_TOUR_LOADED,
+    });
+    dispatch({
+      type: ActionType.ALL_TOURS_LOADED,
       tours: [...duplicatedTours, ...state.default.tours],
     });
   };

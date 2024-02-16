@@ -13,25 +13,33 @@ import SmallTourCard from './small-tour-card';
 
 interface IProps {
   principal: RespUser | null;
-  tours: P_RespTour[];
+  defaultTours: P_RespTour[];
   publishTour: (tour: P_RespTour) => Promise<boolean>;
   pubTourAssetPath: string;
   manifestFileName: string;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction)=> void;
   handleDelete: (tour: P_RespTour | null) => void;
-  defaultTourLoaded: boolean;
 }
 
-function EmptyTourState({ principal, tours, publishTour,
-  pubTourAssetPath, manifestFileName, handleShowModal, handleDelete, defaultTourLoaded }: IProps): JSX.Element {
+function EmptyTourState({
+  principal,
+  defaultTours: tours,
+  publishTour,
+  pubTourAssetPath,
+  manifestFileName,
+  handleShowModal,
+  handleDelete,
+}: IProps): JSX.Element {
+  const defaultTourLoaded = tours.length > 0;
   return (
     <Tags.EmptyToursContainer>
       <Tags.DefaultDemoCon>
-        <h2> Sample demos created for you</h2>
+        <h2>
+          {defaultTourLoaded ? 'Sample demos created for you' : 'Creating sample demos for you...'}
+        </h2>
         {
             !defaultTourLoaded && (
               <Tags.DefaultTourContainer>
-                <Skeleton active />
                 <Skeleton active />
                 <Skeleton active />
               </Tags.DefaultTourContainer>

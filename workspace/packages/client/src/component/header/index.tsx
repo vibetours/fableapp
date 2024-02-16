@@ -32,7 +32,8 @@ interface IOwnProps {
   shouldShowFullLogo?: boolean;
   navigateToWhenLogoIsClicked?: string;
   titleElOnLeft?: ReactElement;
-  leftElGroups: ReactElement[];
+  leftElGroups?: ReactElement[];
+  rightElGroups?: ReactElement[];
   principal?: RespUser | null;
   manifestPath: string;
   titleText?: string;
@@ -127,7 +128,7 @@ function Header(props: IOwnProps): JSX.Element {
           }
         </div>
         <>
-          {props.leftElGroups.map((e, i) => (
+          {(props.leftElGroups || []).map((e, i) => (
             <div
               style={{ ...CMN_HEADER_GRP_STYLE, ...CMN_HEADER_GRP_DIVISION }}
               key={`lg-${i}`}
@@ -148,7 +149,23 @@ function Header(props: IOwnProps): JSX.Element {
         >
           <SaveOutlined style={{ color: 'white' }} />
         </div>
-
+        {(props.rightElGroups || []).length > 0 && (
+          <Tags.MenuItem style={{
+            borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+            paddingRight: '16px',
+            marginRight: '10px'
+          }}
+          >
+            {(props.rightElGroups || []).map((e, i) => (
+              <div
+                style={{ ...CMN_HEADER_GRP_STYLE }}
+                key={`lg-${i}`}
+              >
+                {e}
+              </div>
+            ))}
+          </Tags.MenuItem>
+        )}
         {props.tour && (
           <div style={{
             display: 'flex',
@@ -185,28 +202,38 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
               )
             }
-
             {
               props.isTourMainSet && (
                 <>
-                  <Tags.MenuItem>
-                    <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
-                      <AntButton
-                        id="step-1"
-                        size="small"
-                        shape="circle"
-                        type="text"
-                        icon={<CaretRightOutlined
-                          style={{ color: 'white' }}
-                        />}
-                        onClick={(e) => {
-                          traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                            preview_clicked_from: 'header'
-                          }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-                          window.open(`/pp/demo/${props.tour?.rid}`)?.focus();
-                        }}
-                      />
-                    </Tooltip>
+                  <Tags.MenuItem style={{
+                    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                    paddingRight: '16px'
+                  }}
+                  >
+                    <AntButton
+                      id="step-1"
+                      size="small"
+                      className="sec-btn"
+                      type="default"
+                      icon={<CaretRightOutlined
+                        style={{ color: 'white' }}
+                      />}
+                      style={{
+                        padding: '0 0.8rem',
+                        height: '30px',
+                        borderRadius: '16px',
+                        backgroundColor: '#160245',
+                        color: 'white'
+                      }}
+                      onClick={(e) => {
+                        traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                          preview_clicked_from: 'header'
+                        }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        window.open(`/pp/demo/${props.tour?.rid}`)?.focus();
+                      }}
+                    >
+                      Preview
+                    </AntButton>
                   </Tags.MenuItem>
                   <Tags.MenuItem>
                     <Tooltip title="Embed demo" overlayStyle={{ fontSize: '0.75rem' }}>
