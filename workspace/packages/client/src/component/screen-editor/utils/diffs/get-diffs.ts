@@ -187,6 +187,7 @@ export const getSerNodesAttrUpdates = (serNodeOfTree1: SerNode, serNodeOfTree2: 
         attrKey: key,
         attrOldVal: serNodeOfTree1.attrs[key] ?? '',
         attrNewVal: serNodeOfTree2.attrs[key] ?? '',
+        shouldRemove: serNodeOfTree2.attrs[key] === undefined,
       });
     }
   }

@@ -22,6 +22,7 @@ export type Update = {
     attrKey: string,
     attrOldVal: string,
     attrNewVal: string,
+    shouldRemove: boolean,
 }
 
 export type CommonNode = {

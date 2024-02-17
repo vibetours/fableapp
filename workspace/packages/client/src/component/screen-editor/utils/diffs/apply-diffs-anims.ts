@@ -18,7 +18,11 @@ export function applyUpdateDiff(updates: Update[], el: Node): void {
         const allStyles = update.attrNewVal.split(';').filter(prop => !prop.match(/\s*transition/));
         update.attrNewVal = allStyles.join(' ; ');
       }
-      (el as Element).setAttribute(update.attrKey, update.attrNewVal);
+      if (update.shouldRemove) {
+        (el as Element).removeAttribute(update.attrKey);
+      } else {
+        (el as Element).setAttribute(update.attrKey, update.attrNewVal);
+      }
     });
     (el as HTMLElement).style.transition = 'all 0.3s ease-out';
   }
