@@ -188,7 +188,7 @@ export const NoJourneyCon = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 24px;
 `;
 
 export const JourneyConfigCon = styled.div`

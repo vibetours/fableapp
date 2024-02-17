@@ -2550,7 +2550,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               >
                 <Tags.CanvasMenuItemCon id="new-screen-btn">
                   <Tooltip
-                    title="Add a new screen to this tour"
+                    title="Add a new screen to this demo"
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >

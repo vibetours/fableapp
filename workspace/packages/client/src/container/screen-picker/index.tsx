@@ -295,8 +295,11 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
           {this.props.screenLoadingFinished && (
             <>
               <Tags.MsgCon>
-                <Tags.Heading>Choose screens to add in this tour</Tags.Heading>
-                {/* <Tags.SubHeading>You can add 1 or multiple screens</Tags.SubHeading> */}
+                <Tags.Heading>Choose screens to add in this demo</Tags.Heading>
+                <Tags.SubHeading>
+                  You can upload images from your system and add those in this demos.
+                  You can also use our chrome extension to record your product and add it as part of this demo.
+                </Tags.SubHeading>
               </Tags.MsgCon>
               <Tags.ScreenCardCon id="screen-picker-grid">
                 <Tags.Screen

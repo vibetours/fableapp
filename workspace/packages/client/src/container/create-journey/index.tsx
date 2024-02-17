@@ -136,8 +136,13 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
             <Tags.NoJourneyCon>
               <img src={CreateJourneyEmptyIcon} alt="no module created" />
               <div>
-                <p style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>You don't have a module yet.</p>
-                <p style={{ margin: '10px 0' }}>You can add module to your product tours</p>
+                <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, textAlign: 'center' }}>You don't have any modules yet.</p>
+                <p style={{ margin: '10px 0', textAlign: 'center' }}>
+                  Modules help you to split your demo in multiple logical small demos instead of one large demo.
+                </p>
+                <p style={{ margin: '10px 0', textAlign: 'center' }}>
+                  Your buyer can choose which demo they want to see right from the UI.
+                </p>
               </div>
               <AntdButton
                 type="primary"

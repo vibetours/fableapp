@@ -590,7 +590,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.state.isMainSet) {
       return (
         <InfoCon
-          heading="Entry point is not set for this tour"
+          heading="Entry point is not set for this demo"
           body={(
             <>
               <p>
