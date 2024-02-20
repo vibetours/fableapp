@@ -31,6 +31,7 @@ interface ImageUploadPluginProps {
 export default function ImageUploadPlugin({ isModalOpen, modalControls }: ImageUploadPluginProps): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
   const [imgUrl, setImgUrl] = useState<string>('');
+  const [isUploading, setIsUploading] = useState<boolean>(false);
 
   useEffect(() => mergeRegister(
     editor.registerCommand<InsertImagePayload>(
@@ -48,32 +49,41 @@ export default function ImageUploadPlugin({ isModalOpen, modalControls }: ImageU
     )
   ), [editor]);
 
-  modalControls.handleOk = () => {
+  const handleOk = (): void => {
     editor.dispatchCommand(INSERT_IMAGE_COMMAND, { altText: '', src: imgUrl } as InsertImagePayload);
+    setImgUrl('');
+    modalControls.handleOk();
+  };
+
+  const handleCancel = (): void => {
+    setImgUrl('');
     modalControls.handleCancel();
   };
 
   const handleSelectedImageChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    setIsUploading(true);
     const selectedImage = e.target.files![0];
     if (!selectedImage) {
+      setIsUploading(false);
       return;
     }
     const imageUrl = await uploadFileToAws(selectedImage);
     setImgUrl(imageUrl);
+    setIsUploading(false);
   };
 
   return (
     <GTags.BorderedModal
       style={{ height: '10px' }}
       open={isModalOpen}
-      onOk={modalControls.handleOk}
-      onCancel={modalControls.handleCancel}
+      onOk={handleOk}
+      onCancel={handleCancel}
       footer={(
         <div className="button-two-col-cont">
           <Button
             type="button"
             intent="secondary"
-            onClick={modalControls.handleCancel}
+            onClick={handleCancel}
             style={{ flex: 1 }}
           >
             Cancel
@@ -82,9 +92,10 @@ export default function ImageUploadPlugin({ isModalOpen, modalControls }: ImageU
           <Button
             type="submit"
             style={{ flex: 1 }}
-            onClick={modalControls.handleOk}
+            onClick={handleOk}
+            disabled={Boolean(isUploading || !imgUrl)}
           >
-            Insert
+            {isUploading ? 'Uploading' : 'Insert'}
           </Button>
         </div>
       )}
