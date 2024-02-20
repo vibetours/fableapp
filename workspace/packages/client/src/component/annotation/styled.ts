@@ -21,10 +21,10 @@ export const BubbleCon = styled.div`
   align-items: center;
 `;
 
-export const AnContent = styled.div`
+export const AnContent = styled.div<{bgColor: string}>`
+  background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor}, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
-  background: #fff;
   border-radius: 4px;
   padding: 0;
   margin: 0;

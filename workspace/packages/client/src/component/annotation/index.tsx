@@ -120,6 +120,7 @@ export class AnnotationContent extends React.PureComponent<{
       <Tags.AnContent
         key={this.props.config.refId}
         ref={this.conRef}
+        bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
           minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,
           width: `${this.props.width}px`,
@@ -129,7 +130,6 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
           fontSize: '18px',
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
-          backgroundColor: this.props.opts.annotationBodyBackgroundColor,
           borderRadius: this.props.opts.borderRadius,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
