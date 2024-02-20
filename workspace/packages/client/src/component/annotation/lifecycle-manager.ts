@@ -3,7 +3,7 @@ import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts } from '@fable/
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { getDefaultTourOpts } from '@fable/common/dist/utils';
+import { getDefaultTourOpts, sleep } from '@fable/common/dist/utils';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
 import { AnnotationPerScreen, NavFn } from '../../types';
@@ -353,6 +353,35 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.undoLastAnnStyleOverride.push(undo1, undo2);
   };
 
+  private checkIfAllScrollsComplete = async (el: HTMLElement, config: IAnnotationConfig): Promise<void> => {
+    let lastScrollingTs = +new Date();
+    let intervalId;
+
+    const scrollHandler = (): void => {
+      lastScrollingTs = +new Date();
+    };
+
+    this.doc.addEventListener('scroll', scrollHandler);
+    this.doc.body.addEventListener('scroll', scrollHandler);
+
+    await Promise.race([
+      new Promise((resolve) => {
+        intervalId = setInterval(() => {
+          if (+new Date() - lastScrollingTs > 100) {
+            resolve(1);
+          }
+        }, 48);
+      }),
+      sleep(3000)
+    ]);
+
+    clearInterval(intervalId);
+    this.doc.removeEventListener('scroll', scrollHandler);
+    this.doc.body.removeEventListener('scroll', scrollHandler);
+
+    this.onScrollComplete(el, config);
+  };
+
   private onIframeElsScroll = (): void => {
     if (this.mode === AnnotationViewMode.Hide) return;
     this.con!.style.display = 'none';
@@ -402,7 +431,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       const box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
       scrollToAnn(this.win, box, this.annotationElMap[coordsStr][1]);
       setTimeout(() => {
-        this.onScrollComplete(el, config);
+        this.checkIfAllScrollsComplete(el, config);
       }, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
       return;
     }
@@ -422,11 +451,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       scrollIntoView(el, {
         time: AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS,
       }, (type: 'complete' | 'cancel') => {
-        if (type === 'complete') this.onScrollComplete(el, config);
+        if (type === 'complete') this.checkIfAllScrollsComplete(el, config);
       });
     } else {
       this.win.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-      setTimeout(() => this.onScrollComplete(el, config), AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
+      setTimeout(() => this.checkIfAllScrollsComplete(el, config), AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
     }
   }
 
