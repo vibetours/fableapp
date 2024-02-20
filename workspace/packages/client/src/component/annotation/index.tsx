@@ -1024,7 +1024,14 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
           width={`${arrowWidth}px`}
           height={`${arrowHeight}px`}
           viewBox={this.getViewBox()}
-          style={{ ...this.getTransformRotateStyle(), verticalAlign: 'top' }}
+          style={{
+            ...this.getTransformRotateStyle(),
+            verticalAlign: 'top',
+            width: `${arrowWidth}px`,
+            height: `${arrowHeight}px`,
+            filter: 'none',
+            margin: 0
+          }}
         >
           <path
             className="fab-arr-path"
@@ -1192,6 +1199,10 @@ export class AnnotationBubble extends React.PureComponent<AnnBubbleProps> {
 }
 
 export class AnnotationCon extends React.PureComponent<IConProps> {
+  componentDidMount(): void {
+    this.props.onCompMount();
+  }
+
   componentDidUpdate(prevProps: Readonly<IConProps>, prevState: Readonly<{}>, snapshot?: any): void {
     this.props.onCompMount();
   }
