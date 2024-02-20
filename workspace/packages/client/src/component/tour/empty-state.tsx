@@ -19,6 +19,7 @@ interface IProps {
   manifestFileName: string;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction)=> void;
   handleDelete: (tour: P_RespTour | null) => void;
+  extensionInstalled: boolean;
 }
 
 function EmptyTourState({
@@ -29,6 +30,7 @@ function EmptyTourState({
   manifestFileName,
   handleShowModal,
   handleDelete,
+  extensionInstalled
 }: IProps): JSX.Element {
   const defaultTourLoaded = tours.length > 0;
   return (
@@ -60,16 +62,18 @@ function EmptyTourState({
         }
         </Tags.DefaultTourContainer>
       </Tags.DefaultDemoCon>
-      <Button
-        onClick={() => {
-          window.open('https://chrome.google.com/webstore/detail/fable/ekmabenadlgfkjplmpldkjkhiikobaoc', '_blank');
-        }}
-        icon={<ChromeOutlined />}
-        iconPlacement="left"
-        size="large"
-      >
-        Install Fable's Chrome Extension
-      </Button>
+      {!extensionInstalled && (
+        <Button
+          onClick={() => {
+            window.open('https://chrome.google.com/webstore/detail/fable/ekmabenadlgfkjplmpldkjkhiikobaoc', '_blank');
+          }}
+          icon={<ChromeOutlined />}
+          iconPlacement="left"
+          size="large"
+        >
+          Install Fable's Chrome Extension
+        </Button>
+      )}
       <div>
         <div style={{ marginLeft: '60px' }}>
           <Tags.HeaderMsgCon>

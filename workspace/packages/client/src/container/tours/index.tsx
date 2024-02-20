@@ -315,6 +315,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         manifestFileName={this.props.manifestFileName}
                         handleShowModal={this.handleShowModal}
                         handleDelete={this.handleDelete}
+                        extensionInstalled={this.state.isExtInstalled}
                       />
                     ) : (
                       <>

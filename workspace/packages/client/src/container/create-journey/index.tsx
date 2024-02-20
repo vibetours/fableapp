@@ -258,7 +258,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                       defaultValue={flow.main || undefined}
                                       style={{ width: '100%', borderRadius: '8px' }}
                                       onSelect={(value) => { this.updateFlowAtIndex(idx, 'main', value as string); }}
-                                      placeholder="Choose a flow"
+                                      placeholder="Choose a module"
                                       optionLabelProp="children"
                                     >
                                       {this.props.firstAnnotations.map((ann => ((
@@ -292,7 +292,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 </DragDropContext>
                 <Tags.CTAInputCon>
                   <Tags.OutlineButton icon={<PlusOutlined />} onClick={this.addNewFlow}>
-                    Add another flow
+                    Add another module
                   </Tags.OutlineButton>
                 </Tags.CTAInputCon>
               </Tags.JourneyInnerCon>

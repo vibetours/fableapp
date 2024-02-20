@@ -10,6 +10,7 @@ import { assignImplicitOrgToUser } from './utils';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/org-assign-browser.png';
 import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
+import { TALK_TO_US_LINK } from '../../../../constant';
 
 interface Props {
   org: RespOrg;
@@ -91,7 +92,7 @@ export default function OrgAssign({ org }: Props): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://www.sharefable.com/get-a-demo"
+            href={TALK_TO_US_LINK}
             target="_blank"
             rel="noopener noreferrer"
           >

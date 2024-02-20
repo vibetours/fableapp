@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-02-16 04:42:30.
+// Generated using typescript-generator version 2.35.1025 on 2024-02-20 07:43:07.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -33,6 +33,11 @@ export interface MediaTypeEntityHolding extends EntityHoldingInfoBase {
 }
 
 export interface PaymentTerms {
+}
+
+export interface ReqTourPropUpdate {
+    tourRid: string;
+    inProgress?: boolean;
 }
 
 export interface ScreenAssets {
@@ -223,6 +228,7 @@ export interface RespTour extends ResponseBase {
     description: string;
     lastPublishedDate: Date;
     onboarding: boolean;
+    inProgress: boolean;
     createdBy: RespUser;
 }
 

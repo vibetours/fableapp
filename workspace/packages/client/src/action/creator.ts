@@ -29,6 +29,7 @@ import {
   ReqActivateOrDeactivateUser,
   ReqUpdateScreenProperty,
   ResponseStatus,
+  ReqTourPropUpdate,
 } from '@fable/common/dist/api-contract';
 import {
   CreateJourneyData,
@@ -57,7 +58,7 @@ import {
   processRawTourData,
   P_RespScreen,
   P_RespSubscription,
-  P_RespTour
+  P_RespTour,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -610,9 +611,10 @@ export function getAllTours(shouldRefreshIfPresent = true) {
         type: ActionType.ALL_TOURS_LOADING,
       });
       const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
+      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState())).filter(t => !t.inProgress);
       dispatch({
         type: ActionType.ALL_TOURS_LOADED,
-        tours: data.data.map((d: RespTour) => processRawTourData(d, getState())),
+        tours,
       });
     }
   };
@@ -699,7 +701,7 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
       },
     });
 
-    const duplicatedTour = await duplicateGivenTour(data.data, getState, dispatch);
+    const duplicatedTour = await duplicateGivenTour(data.data, getState);
 
     dispatch({
       type: ActionType.TOUR,
@@ -1039,7 +1041,6 @@ export function activateOrDeactivateUser(id: number, shouldActivate: boolean) {
 const duplicateGivenTour = async (
   tour: RespTourWithScreens,
   getState: () => TState,
-  dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving>
 ): Promise<P_RespTour> => {
   const duplicatedTour = processRawTourData(tour, getState());
   const idxm = tour.idxm;
@@ -1091,7 +1092,16 @@ const duplicateGivenTour = async (
       },
     });
   }
-  return duplicatedTour;
+  const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespTour>>('/updtrprop', {
+    auth: true,
+    body: {
+      tourRid: duplicatedTour.rid,
+      inProgress: false
+    },
+    method: 'POST'
+  });
+
+  return processRawTourData(updatedTourResp.data, getState());
 };
 
 export function createDefaultTour() {
@@ -1105,17 +1115,20 @@ export function createDefaultTour() {
     const duplicatedTours: P_RespTour[] = [];
 
     await Promise.all(data.data.map(async (tour) => {
-      const duplicatedTour = await duplicateGivenTour(tour, getState, dispatch);
+      const duplicatedTour = await duplicateGivenTour(tour, getState);
       duplicatedTours.push(duplicatedTour);
     }));
 
     const state = getState();
+    const processedDuplicatedTours = duplicatedTours.filter(tr => !tr.inProgress);
+    const tours = [...processedDuplicatedTours, ...state.default.tours];
+
     dispatch({
       type: ActionType.DEFAULT_TOUR_LOADED,
     });
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,
-      tours: [...duplicatedTours, ...state.default.tours],
+      tours,
     });
   };
 }
@@ -1126,9 +1139,11 @@ export function addNewTourToAllTours(newTour: RespTour) {
     getState: () => TState
   ) => {
     const state = getState();
+    const processedNewTours = [processRawTourData(newTour, state)];
+    const tours = [...state.default.tours, ...processedNewTours];
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,
-      tours: [...state.default.tours, processRawTourData(newTour, state)],
+      tours
     });
   };
 }

@@ -10,6 +10,7 @@ import Button from '../../../button';
 import Input from '../../../input';
 import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
 import { setEventCommonState } from '../../../../utils';
+import { TALK_TO_US_LINK } from '../../../../constant';
 
 interface Props {
   principal: RespUser | null;
@@ -31,17 +32,17 @@ export default function IamDetails({ principal }: Props): JSX.Element {
       [CmnEvtProp.FIRST_NAME, CmnEvtProp.LAST_NAME, CmnEvtProp.EMAIL]
     );
 
-    if (
-      resStatus === ResponseStatus.Success
-      && principal
-      && principal.orgAssociation !== UserOrgAssociation.Explicit
-    ) {
+    if (resStatus !== ResponseStatus.Success) return;
+
+    if (principal!.orgAssociation !== UserOrgAssociation.Explicit) {
       // If org creation is not yet done then create org first
       if (!document.location.pathname.startsWith('/organization-')) {
         window.location.replace(
-          principal.orgAssociation === UserOrgAssociation.Implicit ? '/organization-join' : '/organization-details'
+          principal!.orgAssociation === UserOrgAssociation.Implicit ? '/organization-join' : '/organization-details'
         );
       }
+    } else {
+      window.location.replace('/demos');
     }
   };
 
@@ -86,7 +87,7 @@ export default function IamDetails({ principal }: Props): JSX.Element {
       <CTags.StepDotsWrapper>
         Need help?
         <CTags.Link
-          href="https:www.sharefable.com/get-a-demo"
+          href={TALK_TO_US_LINK}
           target="_blank"
           rel="noopener noreferrer"
         >

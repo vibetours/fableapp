@@ -7,6 +7,7 @@ import * as CTags from '../../styled';
 import * as Tags from './styled';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/go-to-app-browser.png';
+import { TALK_TO_US_LINK } from '../../../../constant';
 
 interface Props {
   title: string,
@@ -75,7 +76,7 @@ export default function ProductTours(props: Props): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://www.sharefable.com/get-a-demo"
+            href={TALK_TO_US_LINK}
             target="_blank"
             rel="noopener noreferrer"
           >

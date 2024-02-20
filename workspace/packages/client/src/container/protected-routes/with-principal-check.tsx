@@ -108,15 +108,6 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       window.location.replace('/login');
       return <div />;
     }
-    if (this.props.principal.personalEmail) {
-      this.props.auth0.logout({
-        logoutParams: {
-          returnTo: `${APP_CLIENT_ENDPOINT
-          }/login?t=${LoginErrorType.UserUsedPersonalEmail}&e=${this.props.principal.email}`,
-        }
-      });
-      return <HeartLoader />;
-    }
 
     if (!this.props.principal.firstName) {
       // If user details are not yet completed

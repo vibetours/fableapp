@@ -9,6 +9,7 @@ import Button from '../../../button';
 import Input from '../../../input';
 import Browser from '../../../../assets/onboarding/org-create-browser.png';
 import { AMPLITUDE_EVENTS } from '../../../../amplitude/events';
+import { TALK_TO_US_LINK } from '../../../../constant';
 
 interface Props {
   createOrg: (orgName: string)=> void;
@@ -67,7 +68,7 @@ export default function OrgCreate({ createOrg }: Props): JSX.Element {
         <CTags.StepDotsWrapper>
           Need help?
           <CTags.Link
-            href="https://www.sharefable.com/get-a-demo"
+            href={TALK_TO_US_LINK}
             target="_blank"
             rel="noopener noreferrer"
           >
