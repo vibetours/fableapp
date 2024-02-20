@@ -43,7 +43,7 @@ export const InfoTextCon = styled.div`
 `;
 
 export const EditorBtn = styled.span`
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease-out;
@@ -57,21 +57,21 @@ export const EditorBtn = styled.span`
     border: 1px solid #7566ff;
     background: #7566ff;
     color: white;
-    padding: 3px 5px;
-    border-radius: 2px;
+    padding: 2px 4px;
+    border-radius: 4px;
   }
 
   &.outline {
     border: 1px solid #7566ff;
-    padding: 3px 5px;
-    border-radius: 2px;
+    padding: 2px 4px;
+    border-radius: 4px;
     color: #7566ff;
   }
 
   &.link {
     border: 1px solid transparent;
-    padding: 3px 5px;
-    border-radius: 2px;
+    padding: 2px 4px;
+    border-radius: 4px;
     color: #616161;
   }
 `;

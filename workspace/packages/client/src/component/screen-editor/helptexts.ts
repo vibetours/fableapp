@@ -5,3 +5,5 @@ export const annotationTabHelpText = 'Annotations are guide to your product mean
 export const editTabHelpText = 'Edits are applied on screen that you have recorded. You can edit text, change images and show / hide elements.';
 
 export const hotspotHelpText = 'If the element is made hotspot, user can click on the element to go to the next annotation.';
+
+export const effectsHelpText = 'Effects are customization applied on the current page and annotation when this annotation is displayed. You can choose predefined template or you can add your custom effect using css.';

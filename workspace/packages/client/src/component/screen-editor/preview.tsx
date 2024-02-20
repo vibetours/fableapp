@@ -9,6 +9,7 @@ import { deserFrame } from './utils/deser';
 import { DisplayCSSPropValue } from './types';
 import { FABLE_RT_UMBRL, getFableRtUmbrlDiv } from '../annotation/utils';
 import { AEP_HEIGHT } from '../../utils';
+import { FABLE_IFRAME_GENERIC_CLASSNAME } from '../../constants';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -229,7 +230,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         src="about:blank"
         title={this.props.screen.displayName}
         id={ROOT_EMBED_IFRAME_ID}
-        className={`fable-iframe-${this.props.screen.id}`}
+        className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
         style={{
           visibility: this.props.hidden ? 'hidden' : 'visible',
           borderRadius: `${this.props.playMode ? 'none' : '20px'}`,

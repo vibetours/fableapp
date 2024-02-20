@@ -449,3 +449,14 @@ export const getCurrentFlowMain = (
 };
 
 export const isHTTPS = (url: string): boolean => url.trim().startsWith('https://');
+
+export function isStrBlank(str: string | undefined | null): boolean {
+  return !(str || '').trim();
+}
+
+export function getTransparencyFromHexStr(hex: string): number {
+  if (hex.length <= 7) return 100;
+  const transparencyHexStr = hex.substring(8);
+  const h = parseInt(transparencyHexStr, 16);
+  return Number.isNaN(h) ? 0 : Math.round((h / 255) * 100);
+}

@@ -22,7 +22,7 @@ export const BubbleCon = styled.div`
 `;
 
 export const AnContent = styled.div<{bgColor: string}>`
-  background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor}, black) 100%)`};
+  background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor} 85%, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
   border-radius: 4px;
@@ -129,7 +129,8 @@ export const ButtonCon = styled.div`
 export const Progress = styled.p<{bg: string; fg: string, fontFamily: string}>`
   font-size: 1rem;
   margin: 0;
-  background-color: ${props => props.bg};
+  backdrop-filter: blur(8px);
+  background-color: #0000ff00;
   color: ${props => props.fg}a8;
   font-family: ${props => props.fontFamily};
 `;
@@ -160,11 +161,11 @@ export const ABtn = styled.button`
 
   padding: ${(p: BtnConf) => {
     if (p.size === AnnotationButtonSize.Large) {
-      return '12px 22px';
+      return p.noPad ? '12px 0px' : '12px 22px';
     } if (p.size === AnnotationButtonSize.Medium) {
-      return '8px 18px';
+      return p.noPad ? '8px 0px' : '8px 18px';
     }
-    return '4px 12px';
+    return p.noPad ? '4px 0px' : '4px 12px';
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
@@ -172,7 +173,7 @@ export const ABtn = styled.button`
     text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')};
   }
   width:  ${(p: BtnConf) => (p.btnLayout === 'default' ? 'auto' : '100%')};
-  opacity: 0.85;
+  opacity: 0.8;
   transition: opacity 0.2s ease-out;
 
   &:hover {
@@ -189,6 +190,7 @@ export interface BtnConf {
   borderRadius: number;
   idx?: number;
   bg: string;
+  noPad?: boolean;
 }
 
 interface AnHotspotProps {

@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { getDefaultTourOpts, sleep } from '@fable/common/dist/utils';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
 import { AnnotationPerScreen, NavFn } from '../../types';
@@ -19,6 +20,7 @@ import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { AnnElsVisibilityObserver } from './ann-els-visibility-observer';
 import { AllDimsForAnnotation } from './types';
+import { FABLE_IFRAME_GENERIC_CLASSNAME } from '../../constants';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -113,6 +115,27 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }];
   }
 
+  static compileCSSForEffect(effect: string | undefined, config: IAnnotationConfig): string {
+    if (!effect) return '';
+    effect = effect.replaceAll(
+      '{{f-actn-idr--not-selected-subtree}}',
+      '.f-fable-an-t-path > :not(.f-fable-an-t-path, .f-fable-an-target)'
+    );
+    effect = effect.replaceAll(
+      '{{f-actn-idr--selected-subtree}}',
+      '.f-fable-an-target'
+    );
+    effect = effect.replaceAll(
+      '{{f-actn-idr--selected-subtree-hss}}',
+      `.${this.getFablePrefixedClsName(config.refId)}.f-fable-an-target`
+    );
+    effect = effect.replaceAll(
+      '{{f-actn-idr--ann-card-con}}',
+      `.f-a-c-${config.refId}.fable-ann-card`
+    );
+    return effect;
+  }
+
   // Take the initial annotation config from here
   constructor(
     doc: Document,
@@ -195,6 +218,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   private hideAllAnnotations(): void {
+    this.undoLastAnnStyleOverride.forEach(f => f());
     for (const [, [_, annotationDisplayConfig]] of Object.entries(this.annotationElMap)) {
       annotationDisplayConfig.isMaximized = false;
     }
@@ -260,7 +284,44 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.createFullScreenMask();
   };
 
+  // eslint-disable-next-line class-methods-use-this
+  private getAncestorsFromExclusive(el: HTMLElement): HTMLElement[] {
+    const allAncestors: HTMLElement[] = [];
+    let ptr = el.parentNode;
+    while (ptr) {
+      if (ptr.nodeName === '#document') {
+        const tEl = ptr as Document;
+        if (tEl.defaultView
+          && tEl.defaultView!.frameElement
+          && !(tEl.defaultView!.frameElement as HTMLIFrameElement).classList.contains(FABLE_IFRAME_GENERIC_CLASSNAME)
+        ) {
+          ptr = tEl.defaultView.frameElement;
+        } else break;
+      }
+      if (!(ptr.nodeName === 'BODY'
+        || ptr.nodeName === 'HEAD'
+        || ptr.nodeName === 'HTML'
+        || ptr.nodeName === 'IFRAME'
+        || ptr.nodeName === 'FRAME'
+        || ptr.nodeName === 'OBJECT'
+      )) {
+        allAncestors.push(ptr as HTMLElement);
+      }
+      ptr = ptr.parentNode;
+    }
+
+    return allAncestors;
+  }
+
   // algorithm: https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity#how_is_specificity_calculated
+  // Target element receives f-fable-an-target class.
+  // The ancestors receives f-fable-an-t-path class.
+  // Use this to form selection of subtree. Ex the following code selects all subtree but the target one
+  //  .f-fable-an-t-path > :not(.f-fable-an-t-path, .f-fable-an-target) {
+  //    background: rgba(0, 0, 0, 0.15);
+  //    filter: blur(1px);
+  //  }
+  //
   // eslint-disable-next-line class-methods-use-this
   private setCssSelectorForHighestProbalbleSpecificity(el: HTMLElement, config: IAnnotationConfig): () => void {
     const [, sel] = AnnotationLifecycleManager.getCompositeSelector(el, config);
@@ -270,10 +331,28 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
     el.classList.add(sel.cls);
     el.classList.add('f-fable-anim-target');
+    el.classList.add('f-fable-an-target');
+    const ancestors = this.getAncestorsFromExclusive(el);
+    // const ancestors: HTMLElement[] = [];
+    for (const ancestorEl of ancestors) {
+      try {
+        ancestorEl.classList.add('f-fable-an-t-path');
+      } catch (e) {
+        raiseDeferredError(e as Error);
+      }
+    }
     return () => {
       if (sel.isOurId) el.removeAttribute('id');
       el.classList.remove(sel.cls);
       el.classList.remove('f-fable-anim-target');
+      el.classList.remove('f-fable-an-target');
+      for (const ancestorEl of ancestors) {
+        try {
+          ancestorEl.classList.remove('f-fable-an-t-path');
+        } catch (e) {
+          raiseDeferredError(e as Error);
+        }
+      }
     };
   }
 
@@ -281,18 +360,30 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 .f-fable-anim-target, .f-fable-anim-target * {
   transition: all 0.3s ease-out;
 }
-
-`;
+`.trim();
 
   private exportTourThemeAsCssVar(): string {
+    const padding = this.tourDataOpts.annotationPadding;
+    const match = padding.match(/\s*(\d+)\s+(\d+)\s*/);
+    let padX = 0;
+    let padY = 0;
+    if (match) {
+      padY = +match[1];
+      padX = +match[2];
+      padX = Number.isNaN(padX) ? 0 : padX;
+      padY = Number.isNaN(padY) ? 0 : padY;
+    }
+
     return `
 :root {
   --fable-primary-color: ${this.tourDataOpts.primaryColor};
   --fable-selection-color: ${this.config.selectionColor};
-  --fable-annotation-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor};
-  --fable-annotation-border-color: ${this.tourDataOpts.annotationBodyBorderColor};
-  --fable-annotation-font-color: ${this.tourDataOpts.annotationFontColor};
-  --fable-annotation-border-radius: ${this.tourDataOpts.borderRadius};
+  --fable-ann-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor};
+  --fable-ann-border-color: ${this.tourDataOpts.annotationBodyBorderColor};
+  --fable-ann-font-color: ${this.tourDataOpts.annotationFontColor};
+  --fable-ann-border-radius: ${this.tourDataOpts.borderRadius};
+  --fable-ann-con-pad-x: ${padX};
+  --fable-ann-con-pad-y: ${padY};
 }
 
 `;

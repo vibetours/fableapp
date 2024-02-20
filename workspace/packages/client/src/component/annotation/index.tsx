@@ -1,4 +1,5 @@
 import {
+  AnnotationButtonStyle,
   AnnotationSelectionShapeType,
   IAnnotationButtonType,
   IAnnotationConfig,
@@ -7,12 +8,13 @@ import {
 } from '@fable/common/dist/types';
 import React from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
+import { ArrowLeftOutlined, CaretLeftFilled, LeftOutlined } from '@ant-design/icons';
 import { ExtMsg, InternalEvents, Msg, NavFn, Payload_AnnotationNav, Payload_NavToAnnotation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
 import { generateShadeColor } from './utils';
-import { getAnnotationIndex, isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
+import { getAnnotationIndex, getTransparencyFromHexStr, isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
 import { AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
@@ -133,8 +135,7 @@ export class AnnotationContent extends React.PureComponent<{
           borderRadius: this.props.opts.borderRadius,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
-        className={`fable-ann-card f-a-c-${this.props.config.refId}`}
-        id={`f-a-i-${this.props.config.refId}`}
+        className={`fable-ann-card f-a-c-${this.props.config.refId} dir-${this.props.dir}`}
       >
         <Tags.AnInnerContainer
           anPadding={this.props.opts.annotationPadding.trim()}
@@ -175,7 +176,8 @@ export class AnnotationContent extends React.PureComponent<{
                   className={`f-${generateCSSSelectorFromText(btnConf.text)}-btn`}
                   idx={idx}
                   key={btnConf.id}
-                  btnStyle={btnConf.style}
+                  noPad={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default'}
+                  btnStyle={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? AnnotationButtonStyle.Link : btnConf.style}
                   color={this.props.opts.primaryColor}
                   size={btnConf.size}
                   fontFamily={this.props.opts.annotationFontFamily}
@@ -184,7 +186,16 @@ export class AnnotationContent extends React.PureComponent<{
                   onClick={() => {
                     this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                   }}
-                > {btnConf.text}
+                >
+                  <span>{
+                    btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? (
+                      <ArrowLeftOutlined style={{
+                        fontSize: '1.5rem',
+                        color: this.props.opts.primaryColor
+                      }}
+                      />) : btnConf.text
+                    }
+                  </span>
                 </Tags.ABtn>
               ))}
             </Tags.ButtonCon>
@@ -712,7 +723,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy);
     let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
     let isBorderColorDefault = false;
-    if (arrowColor.toUpperCase() === '#BDBDBD') {
+    if (arrowColor.toUpperCase() === '#BDBDBD' || getTransparencyFromHexStr(arrowColor) <= 30) {
       arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor;
       isBorderColorDefault = true;
     }
@@ -1016,6 +1027,7 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
           style={{ ...this.getTransformRotateStyle(), verticalAlign: 'top' }}
         >
           <path
+            className="fab-arr-path"
             fill={this.props.arrowColor}
             d={this.getTrianglePath()}
           />
