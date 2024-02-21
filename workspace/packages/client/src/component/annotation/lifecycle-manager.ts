@@ -700,7 +700,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private getElFromAnnConfig(config: IAnnotationConfig): HTMLElement {
     let el: HTMLElement;
     if (this.screenType === ScreenType.Img && config.type === 'default') {
-      el = document.querySelector('img')!;
+      el = this.doc.querySelector('img')!;
     } else if (config.type === 'cover') {
       el = this.doc.querySelector('body')!;
     } else {
@@ -718,7 +718,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     entriesToClear.forEach(entry => {
       const el = entry[1][0];
-      this.annElsVisibilityObserver.unobserve(el);
+      const config = entry[1][1].config;
+      if (this.screenType === ScreenType.SerDom && config.type === 'default') {
+        this.annElsVisibilityObserver.unobserve(el);
+      }
       delete this.annotationElMap[entry[0]];
     });
   }
