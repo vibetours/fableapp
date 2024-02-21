@@ -163,7 +163,7 @@ const CONNECTOR_HOTSPOT_COLOR_NON_HOVERED = 'transparent';
 const CONNECTOR_HOTSPOT_COLOR_HOVERED = '#1503450a';
 const TILE_STROKE_WIDTH_ON_HOVER = '6px';
 const TILE_STROKE_WIDTH_DEFAULT = '4px';
-const DROP_TARGET_PEEK_WIDTH = ANN_NODE_SEP / 2;
+const DROP_TARGET_PEEK_WIDTH = ANN_NODE_SEP / 1.5;
 const DROP_TARGET_PEEK_GUTTER = ANN_NODE_SEP / 4;
 const CREATE_JOURNEY_MODAL_WIDTH = 360;
 
@@ -647,7 +647,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             : DestinationAnnotationPosition.next;
           reorderPropsRef.current.destinationDraggedAnnotationId = targetData.id;
           reorderPropsRef.current.isCursorOnDropTarget = true;
-        }, 200) as unknown as number;
+        }, 16) as unknown as number;
       })
       .on('end', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
@@ -1552,17 +1552,19 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             fo.append('xhtml:p');
           });
 
+        const dropTgHeight = 42;
+
         ['l', 'r'].forEach(pos => {
           p
             .append('rect')
             .attr('class', `tg-hide droptg ${pos}`)
-            .attr('y', 4)
+            .attr('y', -dropTgHeight / 2)
             .attr('x', d => (pos === 'l'
               ? -(DROP_TARGET_PEEK_WIDTH + DROP_TARGET_PEEK_GUTTER)
               : d.width + DROP_TARGET_PEEK_GUTTER))
             .attr('rx', 4)
             .attr('ry', 4)
-            .attr('height', d => d.height - 8)
+            .attr('height', d => d.height + dropTgHeight)
             .attr('width', DROP_TARGET_PEEK_WIDTH);
         });
 

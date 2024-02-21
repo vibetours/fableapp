@@ -36,12 +36,14 @@ export const SVGCanvas = styled.svg`
   .node {
     .droptg {
       fill: #15034517;
-      stroke: none;
+      stroke: #150345;
+      stroke-dasharray: 2 3;
 
       &.sel {
         fill: #d0d0ff;
         stroke: #150345;
         stroke-width: 2;
+        stroke-dasharray: none;
       }
     }
 

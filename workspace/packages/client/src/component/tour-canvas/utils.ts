@@ -30,7 +30,7 @@ export function getMultiAnnNodesAndEdges(
   const multiAnnNodes: MultiAnnotationNode<Box>[] = [];
   const edges: GroupEdge[] = [];
 
-  groupedAnnNodes.forEach(group => {
+  groupedAnnNodes.forEach((group, groupIdx) => {
     const annsWithNewDims: AnnotationNode<Box>[] = group.anns.map((annotation, annIdx) => {
       const annId = `${annotation.screen.id}/${annotation.refId}`;
       const newX = annIdx * dim.gap;
@@ -56,7 +56,7 @@ export function getMultiAnnNodesAndEdges(
       return {
         ...annotation,
         id: annId,
-        localIdx: annIdx,
+        localIdx: groupIdx,
         grp: annotation.grpId,
         width: dim.width,
         height: dim.height,
