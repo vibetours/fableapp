@@ -46,7 +46,7 @@ export default function Line(props: Props): ReactElement {
         tooltipFunction: (point) => `${formatDateForDisplay(point.date)}: ${props.yTooltipText} ${point.value}${props.percentageScale ? '%' : ''}`
       });
     }, 1000);
-  }, []);
+  }, [props.data]);
 
   return (<Tags.LineCon
     id={props.chartId}

@@ -1,12 +1,17 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-02-20 07:43:07.
+// Generated using typescript-generator version 2.35.1025 on 2024-02-21 12:33:46.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
     data: T;
     errStr: string;
     errCode: ErrorCode;
+}
+
+export interface ButtonClicks {
+    btnId: string;
+    totalClicks: number;
 }
 
 export interface EntityHoldingInfoBase extends Serializable {
@@ -45,6 +50,22 @@ export interface ScreenAssets {
     name: string;
     url: string;
     icon: string;
+}
+
+export interface TotalVisitorsByYmd {
+    totalViews: number;
+    ymd: string;
+}
+
+export interface TourAnnViewsWithPercentile {
+    annId: string;
+    totalViews: number;
+    percentile50: number;
+}
+
+export interface TourAnnWithViews {
+    annId: string;
+    totalViews: number;
 }
 
 export interface TourManifest {
@@ -173,6 +194,11 @@ export interface RespCommonConfig extends ResponseBase {
     latestSchemaVersion: SchemaVersion;
 }
 
+export interface RespConversion {
+    tourId: number;
+    buttonsWithTotalClicks: ButtonClicks[];
+}
+
 export interface RespHealth extends ResponseBase {
     status: string;
 }
@@ -230,6 +256,21 @@ export interface RespTour extends ResponseBase {
     onboarding: boolean;
     inProgress: boolean;
     createdBy: RespUser;
+}
+
+export interface RespTourAnnViews {
+    tourId: number;
+    tourAnnWithViews: TourAnnWithViews[];
+}
+
+export interface RespTourAnnWithPercentile {
+    tourAnnInfo: TourAnnViewsWithPercentile[];
+}
+
+export interface RespTourView {
+    tourId: number;
+    totalViews: number;
+    totalVisitorsByYmd: TotalVisitorsByYmd[];
 }
 
 export interface RespTourWithScreens extends RespTour {

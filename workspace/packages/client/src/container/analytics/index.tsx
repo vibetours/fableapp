@@ -1,20 +1,31 @@
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
-import { RespUser } from '@fable/common/dist/api-contract';
+import {
+  ButtonClicks,
+  RespConversion,
+  RespTourAnnViews,
+  RespTourAnnWithPercentile,
+  RespTourView,
+  RespUser,
+  TotalVisitorsByYmd,
+  TourAnnViewsWithPercentile,
+  TourAnnWithViews } from '@fable/common/dist/api-contract';
 import Dropdown from 'antd/lib/dropdown';
 import { ArrowUpOutlined, DownOutlined, WarningOutlined } from '@ant-design/icons';
 import { MenuProps } from 'antd';
-import Radio from 'antd/lib/radio';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import Funnel from './sleeping-funnel';
-import { loadTourAndData, publishTour } from '../../action/creator';
+import {
+  getConversionDataForTour,
+  getTotalViewsForTour,
+  getStepsVisitedForTour,
+  loadTourAndData,
+  getAnnViewsForTour } from '../../action/creator';
 import { flatten } from '../../utils';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
-import InfoCon from '../../component/info-con';
 import Loader from '../../component/loader';
-import ShareTourModal from '../../component/publish-preview/share-modal';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import Header from '../../component/header';
@@ -22,29 +33,33 @@ import Line from './line';
 
 interface IDispatchProps {
   loadTourWithData: (rid: string) => void,
-  publishTour: (tour: P_RespTour) => Promise<boolean>,
+  getTotalViewsForTour: (rid: string, days: number) => void;
+  getConversionDataForTour: (rid: string, days: number) => void;
+  getStepsVisitedForTour: (rid: string, days: number) => void;
+  getAnnViewsForTour: (rid: string, days: number) => void;
 }
 
-const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, true)),
-  publishTour: (tour) => dispatch(publishTour(tour)),
+const mapDispatchToProps = (dispatch: any) => ({
+  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid)),
+  getTotalViewsForTour: (rid: string, days: number) => dispatch(getTotalViewsForTour(rid, days)),
+  getConversionDataForTour: (rid: string, days: number) => dispatch(getConversionDataForTour(rid, days)),
+  getStepsVisitedForTour: (rid: string, days: number) => dispatch(getStepsVisitedForTour(rid, days)),
+  getAnnViewsForTour: (rid: string, days: number) => dispatch(getAnnViewsForTour(rid, days))
 });
 
 type FunnelData = Array<{ step: number, value: number, label: string }>;
-type TOrderedAnnWithMetrics = [status: EmptyStateType, orderedAnn: FunnelData, view: {
-    totalViews: number;
+type TOrderedAnnWithMetrics = {status: EmptyStateType, orderedAnn: FunnelData, view: {
+    totalVisitors: number,
+    avgTimeSpentInaTour: number,
+    conversion: number;
     viewDist: Array<{ date: Date, value: number }>;
-    conversionDist: Array<{ date: Date, value: number}>;
-}];
+}};
 
 interface IAppStateProps {
   tour: P_RespTour | null;
-  // subs: P_RespSubscription | null;
-  // isTourLoaded: boolean;
-  manifestPath: string
-  // orderedAnnotationsForTour: TOrderedAnnWithMetrics;
-  // principal: RespUser | null;
-  // conversion: number;
+  isTourLoaded: boolean;
+  orderedAnnotationsForTour: TOrderedAnnWithMetrics;
+  principal: RespUser | null;
 }
 
 const enum EmptyStateType {
@@ -54,13 +69,113 @@ const enum EmptyStateType {
   NoData
 }
 
+function getTotalVisitors(totalViewsForTour: RespTourView): number {
+  let totalVisitors = 0;
+  if (totalViewsForTour && Object.keys(totalViewsForTour).length > 0) {
+    totalVisitors = totalViewsForTour.totalViews || 0;
+  }
+  return totalVisitors;
+}
+
+function getConversionPercentage(
+  tourConversion: RespConversion,
+  openLinkBtnId: string[],
+  firstButtonId: string
+): number {
+  let conversion = 0;
+  let buttons: ButtonClicks[] = [];
+  if (tourConversion && Object.keys(tourConversion).length > 0) {
+    let firstButtonTotalClicks = 0;
+    buttons = tourConversion.buttonsWithTotalClicks;
+    if (buttons && buttons.length !== 0) {
+      let sum = 0;
+      const firstButton = buttons.find(button => button !== undefined && button.btnId === firstButtonId);
+      if (firstButton) {
+        firstButtonTotalClicks = firstButton.totalClicks;
+      }
+
+      for (let i = 0; i < openLinkBtnId.length; i++) {
+        const button = buttons.find(b => b !== undefined && b.btnId === openLinkBtnId[i]);
+        if (button) {
+          sum += button.totalClicks;
+        }
+      }
+      conversion = firstButtonTotalClicks !== 0 ? Math.round((sum / firstButtonTotalClicks) * 100) : 0;
+    }
+  }
+  return conversion;
+}
+
+function getAvgTimeSpent(tourStepsVisited: RespTourAnnWithPercentile): number {
+  let avgTimeSpentInATour = 0;
+  if (tourStepsVisited && Object.keys(tourStepsVisited).length > 0) {
+    const timeSpent: TourAnnViewsWithPercentile[] = tourStepsVisited.tourAnnInfo;
+    if (timeSpent) {
+      for (let i = 0; i < timeSpent.length; i++) {
+        avgTimeSpentInATour += timeSpent[i].percentile50;
+      }
+      return Math.round(avgTimeSpentInATour);
+    }
+  }
+  return avgTimeSpentInATour;
+}
+
+function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAnnotationConfig[]): number[] {
+  const OrderAnnTotalViews: number[] = [];
+  if (tourAnnInfo && Object.keys(tourAnnInfo).length > 0) {
+    const eachAnnTotalViews: TourAnnWithViews[] = tourAnnInfo.tourAnnWithViews;
+    if (eachAnnTotalViews) {
+      for (let i = 0; i < flatAnn.length; i++) {
+        const matchingAnn = eachAnnTotalViews.find(item => item !== undefined && flatAnn[i].refId === item.annId);
+        OrderAnnTotalViews.push(matchingAnn ? matchingAnn.totalViews : 0);
+      }
+      return OrderAnnTotalViews;
+    }
+  }
+  return OrderAnnTotalViews;
+}
+
+function getFunnelData(annotationTotalViews: number[], flatAnn: IAnnotationConfig[]): FunnelData {
+  const funnelData: FunnelData = [];
+  for (let i = 0; i < flatAnn.length; i++) {
+    funnelData.push({
+      step: i + 1,
+      value: annotationTotalViews[i] ? annotationTotalViews[i] : 0,
+      label: flatAnn[i].displayText.substring(0, 19)
+    });
+  }
+  return funnelData;
+}
+
+function getTotalVisitorsForAPeriod(totalViewsForTour: RespTourView): TotalVisitorsByYmd[] {
+  let totalVisitorsByYmd: TotalVisitorsByYmd[] = [];
+  if (totalViewsForTour && Object.keys(totalViewsForTour).length > 0 && totalViewsForTour.totalVisitorsByYmd) {
+    totalVisitorsByYmd = totalViewsForTour.totalVisitorsByYmd;
+  }
+  return totalVisitorsByYmd;
+}
+
 function orderedAnnotationsForTour(
   annGroupedByScreen: Record<string, IAnnotationConfig[]>,
   opts: ITourDataOpts | null,
   isTourLoaded: boolean,
-  conversion: number
+  totalViewsForTour: RespTourView,
+  tourConversion: RespConversion,
+  tourStepsVisited: RespTourAnnWithPercentile,
+  tourAnnInfo: RespTourAnnViews,
 ): TOrderedAnnWithMetrics {
-  if (!isTourLoaded) return [EmptyStateType.Loading, [], { totalViews: 0, viewDist: [], conversionDist: [] }];
+  if (!isTourLoaded) {
+    return {
+      status: EmptyStateType.Loading,
+      orderedAnn: [],
+      view: {
+        totalVisitors: 0,
+        avgTimeSpentInaTour: 0,
+        conversion: 0,
+        viewDist: []
+      }
+    };
+  }
 
   let hasAnn = false;
   const allAnnHm = flatten(Object.values(annGroupedByScreen)).reduce((hm, an) => {
@@ -69,15 +184,40 @@ function orderedAnnotationsForTour(
     return hm;
   }, {} as Record<string, IAnnotationConfig>);
 
-  if (!hasAnn) return [EmptyStateType.NoData, [], { totalViews: 0, viewDist: [], conversionDist: [] }];
+  if (!hasAnn) {
+    return {
+      status: EmptyStateType.Loading,
+      orderedAnn: [],
+      view: {
+        totalVisitors: 0,
+        avgTimeSpentInaTour: 0,
+        conversion: 0,
+        viewDist: []
+      }
+    };
+  }
 
   const main = opts!.main || '';
   const mainAnnId: string = main.split('/').at(-1)!;
   const start = allAnnHm[mainAnnId];
-  if (!start) return [EmptyStateType.MainMissing, [], { totalViews: 0, viewDist: [], conversionDist: [] }];
+
+  if (!start) {
+    return {
+      status: EmptyStateType.Loading,
+      orderedAnn: [],
+      view: {
+        totalVisitors: 0,
+        avgTimeSpentInaTour: 0,
+        conversion: 0,
+        viewDist: []
+      }
+    };
+  }
 
   const flatAnn: IAnnotationConfig[] = [];
   let ptr: IAnnotationConfig = start;
+  const firstButtonId: string = ptr.buttons[0].id;
+  const openLinkBtnId: string[] = [];
   while (true) {
     flatAnn.push(ptr);
     const nextBtn = ptr.buttons.find(btn => btn.type === 'next')!;
@@ -85,390 +225,311 @@ function orderedAnnotationsForTour(
       const actionVal = nextBtn.hotspot.actionValue;
       const nextAnnId = actionVal.split('/').at(-1)!;
       ptr = allAnnHm[nextAnnId];
-    } else break;
-  }
-
-  const lowerLimit = 60 + (Math.random() * 10 | 0);
-  const upperLimit = Math.ceil((lowerLimit * 100) / conversion);
-  const steps = flatAnn.length;
-  let gap = ((upperLimit - lowerLimit) / steps) | 0;
-
-  const funnelData: FunnelData = [];
-  for (let i = 0; i < steps; i++) {
-    let stepGap = gap;
-    if (i > 0) {
-      stepGap = Math.ceil(Math.random() * gap);
-      gap += gap - stepGap;
+    } else {
+      openLinkBtnId.push(nextBtn.id);
+      break;
     }
-    funnelData.push({
-      step: i + 1,
-      value: i === 0 ? upperLimit : i === steps - 1 ? lowerLimit : Math.max(funnelData[i - 1].value - stepGap, lowerLimit),
-      label: flatAnn[i].displayText.substring(0, 12)
-    });
   }
 
-  const viewDist: Array<{ date: Date, value: number}> = [];
-  const conversionDist: Array<{ date: Date, value: number}> = [];
-  let i = 20;
+  const totalVisitors = getTotalVisitors(totalViewsForTour);
+  const conversion = getConversionPercentage(tourConversion, openLinkBtnId, firstButtonId);
+  const avgTimeSpentInATour = getAvgTimeSpent(tourStepsVisited);
+  const annotationViews = getEachAnnotationTotalViews(tourAnnInfo, flatAnn);
+  const funnelData: FunnelData = getFunnelData(annotationViews, flatAnn);
+  const totalVisitorsByYmd: TotalVisitorsByYmd[] = getTotalVisitorsForAPeriod(totalViewsForTour);
+
   const now = new Date();
-  while (i--) {
-    const y = Math.ceil(Math.max((0.025 * (i ** 2)) - (0.02 * i), 2));
+  const viewDist: Array<{ date: Date, value: number}> = [];
+
+  let numOfDays = 30;
+  while (numOfDays--) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - numOfDays);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const ymd = `${date.getFullYear().toString()}${month}${date.getDate().toString().padStart(2, '0')}`;
+    let viewDistValue = 0;
+    if (totalVisitorsByYmd.length > 0) {
+      for (const visitor of totalVisitorsByYmd) {
+        if (visitor.ymd !== undefined && visitor.ymd === ymd) {
+          viewDistValue = visitor.totalViews;
+          break;
+        }
+      }
+    }
     viewDist.push({
-      date: new Date(2023, now.getMonth(), now.getDate() - i),
-      value: i < 3 ? Math.ceil(Math.random() * 20) : y,
-    });
-    conversionDist.push({
-      date: new Date(2023, now.getMonth(), now.getDate() - i),
-      value: conversion + Math.ceil(Math.random() * 3) * (Math.ceil(Math.random() * 2) % 2 ? 1 : -1),
+      date,
+      value: viewDistValue
     });
   }
-
-  return [EmptyStateType.Ok, funnelData, {
-    totalViews: upperLimit,
-    viewDist,
-    conversionDist
-  }];
+  return {
+    status: EmptyStateType.Ok,
+    orderedAnn: funnelData,
+    view: {
+      totalVisitors,
+      avgTimeSpentInaTour: avgTimeSpentInATour,
+      conversion,
+      viewDist
+    }
+  };
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
-  const conversion = (10 + Math.random() * 10 | 0);
+  const totalViewsForTour = state.default.totalViewsForTour as RespTourView;
+  const tourConversion = state.default.tourConversion as RespConversion;
+  const tourStepsVisited = state.default.tourStepsVisited as RespTourAnnWithPercentile;
+  const tourAnnInfo = state.default.tourAnnInfo as RespTourAnnViews;
   return {
     tour: state.default.currentTour,
-    // subs: state.default.subs,
-    // isTourLoaded: state.default.tourLoaded,
-    manifestPath: (state.default.commonConfig && state.default.currentTour)
-      ? `${state.default.commonConfig.pubTourAssetPath + state.default.currentTour}/${state.default.commonConfig.manifestFileName}`
-      : '',
-    // conversion,
-    // orderedAnnotationsForTour: orderedAnnotationsForTour(
-    //   state.default.remoteAnnotations,
-    //   state.default.remoteTourOpts,
-    //   state.default.tourLoaded,
-    //   conversion
-    // ),
-    // principal: state.default.principal,
+    isTourLoaded: state.default.tourLoaded,
+    orderedAnnotationsForTour: orderedAnnotationsForTour(
+      state.default.remoteAnnotations,
+      state.default.remoteTourOpts,
+      state.default.tourLoaded,
+      totalViewsForTour,
+      tourConversion,
+      tourStepsVisited,
+      tourAnnInfo
+    ),
+    principal: state.default.principal,
   };
 };
 
 interface IOwnProps {
 }
+
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{
   tourId: string;
 }>;
 
 interface IOwnStateProps {
-  // funnelOrUserpathTab: 'funnel' | 'userpath';
-  showShareModal: boolean;
+  funnelOrUserpathTab: 'funnel' | 'userpath';
+  days: number;
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
-    this.state = {
-      // funnelOrUserpathTab: 'funnel'
-      showShareModal: false,
-    };
+    this.state = { funnelOrUserpathTab: 'funnel', days: 30 };
   }
 
   componentDidMount(): void {
-    this.props.loadTourWithData(this.props.match.params.tourId);
+    this.initAnalytics();
   }
 
-  render(): JSX.Element {
-    if (!this.props.tour) {
+  componentDidUpdate(_prevProps: IProps, prevState: IOwnStateProps): void {
+    if (this.state.days !== prevState.days) {
+      this.initAnalytics();
+    }
+  }
+
+  initAnalytics = (): void => {
+    this.props.loadTourWithData(this.props.match.params.tourId);
+    this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days);
+    this.props.getStepsVisitedForTour(this.props.match.params.tourId, this.state.days);
+    this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days);
+    this.props.getConversionDataForTour(this.props.match.params.tourId, this.state.days);
+  };
+
+  handleDropdownItemClick = (e: { key: string; }): void => {
+    this.setState({ days: parseInt(e.key, 10) });
+  };
+
+  render(): ReactElement {
+    const items: MenuProps['items'] = [
+      {
+        label: '30d',
+        key: '30',
+      },
+      {
+        label: '60d',
+        key: '60',
+      },
+      {
+        label: '90d',
+        key: '90',
+      },
+    ];
+    if (!this.props.isTourLoaded) {
       return (
         <div>
           <Loader width="80px" txtBefore="Crunching number!!!" showAtPageCenter />
         </div>
       );
     }
-
-    if (this.props.tour!.lastPublishedDate) {
-      return (
-        <InfoCon
-          heading="Not enough data to show insight"
-          body={(
-            <p>
-              It looks like there is no data present to show any insight. Check back after sometime.
-            </p>
-          )}
-          btns={[{
-            text: 'Go to demo editor',
-            linkTo: `/demo/${this.props.tour!.rid}`,
-            type: 'primary'
-          }, {
-            text: 'See all demos',
-            linkTo: '/demos',
-            type: 'secondary'
-          }]}
-        />
-      );
-    }
-
+    const data = this.props.orderedAnnotationsForTour.orderedAnn;
+    const lastSyncMs = +new Date() - (41 * 60 * 1000);
+    const lastSync = new Date(lastSyncMs);
     return (
-      <>
-        <InfoCon
-          heading="Demo not yet published!!!"
-          body={(
-            <p>
-              You haven't published the demo yet. Insights would be available only after you publish the demo.
-            </p>
-          )}
-          btns={[{
-            text: 'Publish this demo',
-            onClick: () => {
-              this.setState({ showShareModal: true });
-            },
-            type: 'primary'
-          }, {
-            text: 'Go to demo editor',
-            linkTo: `/demo/${this.props.tour!.rid}`,
-            type: 'secondary'
-          }, {
-            text: 'See all demos',
-            linkTo: '/demos',
-            type: 'secondary'
-          }]}
-        />
-        {this.props.tour && <ShareTourModal
-          publishTour={this.props.publishTour}
-          tour={this.props.tour!}
-          height="100%"
-          manifestPath={this.props.manifestPath}
-          width="100%"
-          relativeUrl={`/p/demo/${this.props.tour.rid}`}
-          isModalVisible={this.state.showShareModal}
-          closeModal={() => this.setState({ showShareModal: false })}
-          openShareModal={() => this.setState({ showShareModal: true })}
-          copyUrl=""
-          embedClickedFrom="header"
-        />}
-      </>
+      <GTags.ColCon>
+        <GTags.HeaderCon>
+          <Header
+            tour={this.props.tour}
+            navigateToWhenLogoIsClicked="/demos"
+            titleElOnLeft={
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <GTags.Txt className="subsubhead">Insight for</GTags.Txt>
+                <GTags.Txt style={{ fontWeight: 500 }}>{this.props.tour!.displayName}</GTags.Txt>
+              </div>
+            }
+            leftElGroups={[]}
+            manifestPath=""
+            principal={this.props.principal}
+          />
+        </GTags.HeaderCon>
+        <GTags.BodyCon style={{
+          height: 'calc(100% - 72px)',
+          background: '#fff',
+          padding: '0.25rem 2rem',
+          overflowY: 'scroll',
+        }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'end',
+              gap: '1rem'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              Data from past&nbsp;&nbsp;
+              <Dropdown
+                menu={{
+                  onClick: this.handleDropdownItemClick,
+                  items,
+                }}
+                trigger={['click']}
+              >
+                <a
+                  onClick={(e) => { e.preventDefault(); }}
+                  style={{
+                    background: '#F5F5F5',
+                    padding: '0.15rem 0.25rem',
+                    borderRadius: '4px',
+                    border: '1px solid #BDBDBD',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {`${this.state.days}d`}&nbsp;
+                  <DownOutlined />
+                </a>
+              </Dropdown>
+            </div>
+            <div>
+              <span
+                style={{
+                  padding: '0.15rem 0.25rem',
+                  fontSize: '12px',
+                  background: '#E0E0E0',
+                  borderRadius: '4px',
+                  color: '#757575'
+                }}
+              >Last synced {lastSync.getHours()}:{lastSync.getMinutes()}
+              </span>
+            </div>
+          </div>
+          <div style={{ marginTop: '1rem' }}>
+            <div style={{ display: 'flex', marginBottom: '2rem', gap: '1rem' }}>
+              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
+                <Tags.KPIHead>
+                  <span className="label">Total visitors</span>
+                  <span className="val">{this.props.orderedAnnotationsForTour.view.totalVisitors}</span>
+                </Tags.KPIHead>
+              </Tags.KPICon>
+              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
+                <Tags.KPIHead>
+                  <span className="label">Average Time Spent</span>
+                  <span className="val">{this.props.orderedAnnotationsForTour.view.avgTimeSpentInaTour}s</span>
+                </Tags.KPIHead>
+              </Tags.KPICon>
+              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
+                <Tags.KPIHead>
+                  <span className="label">Conversion</span>
+                  <span className="val">{this.props.orderedAnnotationsForTour.view.conversion}%</span>
+                </Tags.KPIHead>
+              </Tags.KPICon>
+            </div>
+            <div>
+              <Tags.KPICon>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
+                }}
+                >
+                  <p style={{
+                    opacity: '0.75',
+                    fontSize: '0.75rem'
+                  }}
+                  >Count of visitors day by day for past 1 month
+                  </p>
+                  <Line
+                    data={this.props.orderedAnnotationsForTour.view.viewDist}
+                    width={1140}
+                    height={120}
+                    chartId="totalviewkpi"
+                    yTooltipText="visitor"
+                  />
+                </div>
+              </Tags.KPICon>
+            </div>
+            <Tags.BtnGroup style={{ marginBottom: '1rem', marginTop: '3rem' }}>
+              <span
+                className={this.state.funnelOrUserpathTab === 'funnel' ? 'sel' : 'nasel'}
+                onClick={() => this.setState({ funnelOrUserpathTab: 'funnel' })}
+              >
+                Funnel Dropoffs
+              </span>
+              <span
+                className={this.state.funnelOrUserpathTab === 'userpath' ? 'sel' : 'nasel'}
+                onClick={() => this.setState({ funnelOrUserpathTab: 'userpath' })}
+              >
+                User Path <WarningOutlined />
+              </span>
+            </Tags.BtnGroup>
+            {this.state.funnelOrUserpathTab === 'funnel' ? (
+              <>
+                <p style={{ opacity: '0.65' }}>Funnel view provides a bird's eye view of where the visitors are dropping off if they are not booking a demo. You can futher drill down and see how long user has spent on a specific part of the tour giving you opportunities to optimize further.
+                </p>
+                <div style={{
+                  padding: '1rem',
+                  height: '300px',
+                  display: 'flex',
+                  position: 'relative',
+                  flexDirection: 'column',
+                  background: '#f5f5f5',
+                  borderRadius: '8px'
+                }}
+                >
+                  <Funnel data={data} />
+                </div>
+              </>
+            ) : (
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                alignItems: 'center'
+              }}
+              >
+                <img src="/ph_userpath.png" alt="userpath guide" style={{ width: '480px' }} />
+                <div>
+                  <h3>Properties to display user path are not configured</h3>
+                  <p>
+                    Fable shows user specific path once you use Fable's Form or integrate your own form with Fable.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </GTags.BodyCon>
+      </GTags.ColCon>
     );
   }
-
-  // render(): ReactElement {
-  //   if (!this.props.isTourLoaded) {
-  //     return (
-  //       <div>
-  //         <Loader width="80px" txtBefore="Crunching number!!!" showAtPageCenter />
-  //       </div>
-  //     );
-  //   }
-  //   const data = this.props.orderedAnnotationsForTour[1];
-  //   const lastSyncMs = +new Date() - (41 * 60 * 1000);
-  //   const lastSync = new Date(lastSyncMs);
-  //   return (
-  //     <GTags.ColCon>
-  //       <GTags.HeaderCon>
-  //         <Header
-  //           tour={this.props.tour}
-  //           subs={this.props.subs}
-  //           navigateToWhenLogoIsClicked="/demos"
-  //           titleElOnLeft={
-  //             <div style={{ display: 'flex', flexDirection: 'column' }}>
-  //               <GTags.Txt className="subsubhead">Insight for</GTags.Txt>
-  //               <GTags.Txt style={{ fontWeight: 500 }}>{this.props.tour!.displayName}</GTags.Txt>
-  //             </div>
-  //           }
-  //           leftElGroups={[]}
-  //           principal={this.props.principal}
-  //         />
-  //       </GTags.HeaderCon>
-  //       <GTags.BodyCon style={{
-  //         height: 'calc(100% - 72px)',
-  //         background: '#fff',
-  //         padding: '0.25rem 2rem',
-  //         overflowY: 'hidden',
-  //       }}
-  //       >
-  //         <div
-  //           style={{
-  //             display: 'flex',
-  //             alignItems: 'center',
-  //             justifyContent: 'end',
-  //             gap: '1rem'
-  //           }}
-  //         >
-  //           <div
-  //             style={{
-  //               display: 'flex',
-  //               alignItems: 'center'
-  //             }}
-  //           >
-  //             Data from past&nbsp;&nbsp;
-  //             <Dropdown menu={{ items }} trigger={['click']}>
-  //               <a
-  //                 onClick={(e) => e.preventDefault()}
-  //                 style={{
-  //                   background: '#F5F5F5',
-  //                   padding: '0.15rem 0.25rem',
-  //                   borderRadius: '4px',
-  //                   border: '1px solid #BDBDBD',
-  //                   cursor: 'pointer'
-  //                 }}
-  //               >
-  //                 30d&nbsp;
-  //                 <DownOutlined />
-  //               </a>
-  //             </Dropdown>
-  //           </div>
-  //           <div>
-  //             <span
-  //               style={{
-  //                 padding: '0.15rem 0.25rem',
-  //                 fontSize: '12px',
-  //                 background: '#E0E0E0',
-  //                 borderRadius: '4px',
-  //                 color: '#757575'
-  //               }}
-  //             >Last synced {lastSync.getHours()}:{lastSync.getMinutes()}
-  //             </span>
-  //           </div>
-  //         </div>
-  //         <div style={{ marginTop: '1rem' }}>
-  //           <div style={{ display: 'flex', marginBottom: '2rem', gap: '1rem' }}>
-  //             <Tags.KPICon style={{ height: '240px', width: '480px' }}>
-  //               <Tags.KPIHead>
-  //                 <span className="label">Total visitors</span>
-  //                 <span className="val">{this.props.orderedAnnotationsForTour[2].totalViews}</span>
-  //               </Tags.KPIHead>
-  //               <div style={{
-  //                 display: 'flex',
-  //                 flexDirection: 'column',
-  //                 alignItems: 'center'
-  //               }}
-  //               >
-  //                 <p style={{
-  //                   opacity: '0.75',
-  //                   fontSize: '0.75rem'
-  //                 }}
-  //                 >Count of visitors day by day for past 3 months
-  //                 </p>
-  //                 <Line
-  //                   data={this.props.orderedAnnotationsForTour[2].viewDist}
-  //                   width={360}
-  //                   height={120}
-  //                   chartId="totalviewkpi"
-  //                   yTooltipText="visitor"
-  //                 />
-  //               </div>
-  //             </Tags.KPICon>
-  //             <Tags.KPICon style={{ height: '240px', width: '480px' }}>
-  //               <Tags.KPIHead>
-  //                 <span className="label">Steps completed</span>
-  //                 <span className="val">{Math.max(this.props.orderedAnnotationsForTour[1].length - 3, 3)}</span>
-  //               </Tags.KPIHead>
-  //               <div style={{
-  //                 display: 'flex',
-  //                 flexDirection: 'column',
-  //                 alignItems: 'center',
-  //                 transform: 'translateY(-4rem)'
-  //               }}
-  //               >
-  //                 <p style={{
-  //                   opacity: '0.75',
-  //                   fontSize: '0.75rem'
-  //                 }}
-  //                 >75% visitors atleast completed <b><i>{Math.max(this.props.orderedAnnotationsForTour[1].length - 3, 3)} steps out of {this.props.orderedAnnotationsForTour[1].length}</i></b> before they drops, which is
-  //                 </p>
-  //                 <div style={{ fontSize: '2rem', fontWeight: 500, color: '#1ece1e', marginTop: '1rem' }}>
-  //                   <ArrowUpOutlined />
-  //                   2%
-  //                 </div>
-  //                 <div>
-  //                   than last week
-  //                 </div>
-  //               </div>
-  //             </Tags.KPICon>
-  //             <Tags.KPICon style={{ height: '240px', width: '480px' }}>
-  //               <Tags.KPIHead>
-  //                 <span className="label">Conversion</span>
-  //                 <span className="val">{this.props.conversion}%</span>
-  //               </Tags.KPIHead>
-  //               <div style={{
-  //                 display: 'flex',
-  //                 flexDirection: 'column',
-  //                 alignItems: 'center',
-  //               }}
-  //               >
-  //                 <p style={{
-  //                   opacity: '0.75',
-  //                   fontSize: '0.75rem'
-  //                 }}
-  //                 >Conversion over time by day
-  //                 </p>
-  //                 <Line
-  //                   data={this.props.orderedAnnotationsForTour[2].conversionDist}
-  //                   width={360}
-  //                   height={120}
-  //                   chartId="conversionkpi"
-  //                   yTooltipText="Conversion"
-  //                   percentageScale
-  //                   isArea
-  //                 />
-  //               </div>
-  //             </Tags.KPICon>
-  //           </div>
-  //           <Tags.BtnGroup style={{ marginBottom: '1rem', marginTop: '3rem' }}>
-  //             <span
-  //               className={this.state.funnelOrUserpathTab === 'funnel' ? 'sel' : 'nasel'}
-  //               onClick={() => this.setState({ funnelOrUserpathTab: 'funnel' })}
-  //             >
-  //               Funnel Dropoffs
-  //             </span>
-  //             <span
-  //               className={this.state.funnelOrUserpathTab === 'userpath' ? 'sel' : 'nasel'}
-  //               onClick={() => this.setState({ funnelOrUserpathTab: 'userpath' })}
-  //             >
-  //               User Path <WarningOutlined />
-  //             </span>
-  //           </Tags.BtnGroup>
-  //           {this.state.funnelOrUserpathTab === 'funnel' ? (
-  //             <>
-  //               <p style={{ opacity: '0.65' }}>Funnel view provides a bird's eye view of where the visitors are dropping off if they are not booking a demo. You can futher drill down and see how long user has spent on a specific part of the tour giving you opportunities to optimize further.
-  //               </p>
-  //               <div style={{
-  //                 padding: '1rem',
-  //                 height: '400px',
-  //                 display: 'flex',
-  //                 flexDirection: 'column',
-  //                 background: '#f5f5f5',
-  //                 borderRadius: '8px'
-  //               }}
-  //               >
-  //                 <Funnel data={data} />
-  //               </div>
-  //             </>
-  //           ) : (
-  //             <div style={{
-  //               display: 'flex',
-  //               gap: '1rem',
-  //               alignItems: 'center'
-  //             }}
-  //             >
-  //               <img src="/ph_userpath.png" alt="userpath guide" style={{ width: '480px' }} />
-  //               <div>
-  //                 <h3>Properties to display user path are not configured</h3>
-  //                 <p>
-  //                   Fable shows user specific path once you use Fable's Form or integrate your own form with Fable.
-  //                 </p>
-  //               </div>
-  //             </div>
-  //           )}
-  //         </div>
-  //       </GTags.BodyCon>
-  //     </GTags.ColCon>
-  //   );
-  // }
 }
-
-const items: MenuProps['items'] = [
-  {
-    label: '30d',
-    key: '0',
-  },
-];
 
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,

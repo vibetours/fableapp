@@ -30,6 +30,10 @@ import {
   ReqUpdateScreenProperty,
   ResponseStatus,
   ReqTourPropUpdate,
+  RespTourView,
+  RespConversion,
+  RespTourAnnWithPercentile,
+  RespTourAnnViews,
 } from '@fable/common/dist/api-contract';
 import {
   CreateJourneyData,
@@ -1144,6 +1148,74 @@ export function addNewTourToAllTours(newTour: RespTour) {
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,
       tours
+    });
+  };
+}
+
+export interface TAnalyticsTourTotalViews{
+  type: ActionType.ANALYTICS_TOTAL_TOUR_VIEW,
+  tourTotalView: RespTourView,
+}
+
+export function getTotalViewsForTour(rid: string, days: number) {
+  return async (dispatch: Dispatch<TAnalyticsTourTotalViews>) => {
+    const data = await api<null, ApiResp<RespTourView>>(`/totalviews?rid=${rid}&d=${days}`, {
+      auth: true,
+    });
+    dispatch({
+      type: ActionType.ANALYTICS_TOTAL_TOUR_VIEW,
+      tourTotalView: data.data,
+    });
+  };
+}
+
+export interface TAnalyticsConversion{
+  type: ActionType.ANALYTICS_TOUR_CONVERSION,
+  tourConversion: RespConversion,
+}
+
+export function getConversionDataForTour(rid: string, days: number) {
+  return async (dispatch: Dispatch<TAnalyticsConversion>) => {
+    const data = await api<null, ApiResp<RespConversion>>(`/convrsn?rid=${rid}&d=${days}`, {
+      auth: true,
+    });
+    dispatch({
+      type: ActionType.ANALYTICS_TOUR_CONVERSION,
+      tourConversion: data.data,
+    });
+  };
+}
+
+export interface TAnalyticsStepsVisited{
+  type: ActionType.ANALYTICS_STEPS_VISITED,
+  tourStepsVisited: RespTourAnnWithPercentile,
+}
+
+export function getStepsVisitedForTour(rid: string, days: number) {
+  return async (dispatch: Dispatch<TAnalyticsStepsVisited>) => {
+    const data = await api<null, ApiResp<RespTourAnnWithPercentile>>(`/stpsvis?rid=${rid}&d=${days}`, {
+      auth: true,
+    });
+    dispatch({
+      type: ActionType.ANALYTICS_STEPS_VISITED,
+      tourStepsVisited: data.data,
+    });
+  };
+}
+
+export interface TAnalyticsAnnInfo{
+    type: ActionType.ANALYTICS_ANN_INFO,
+    tourAnnViews: RespTourAnnViews,
+}
+
+export function getAnnViewsForTour(rid: string, days: number) {
+  return async (dispatch: Dispatch<TAnalyticsAnnInfo>) => {
+    const data = await api<null, ApiResp<RespTourAnnViews>>(`/annviews?rid=${rid}&d=${days}`, {
+      auth: true,
+    });
+    dispatch({
+      type: ActionType.ANALYTICS_ANN_INFO,
+      tourAnnViews: data.data,
     });
   };
 }

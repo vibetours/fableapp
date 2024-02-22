@@ -1,5 +1,5 @@
 // Ref: https://observablehq.com/d/7e58cf7c71d8d8b5
-import React, { ReactElement, useEffect, useRef } from 'react';
+import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
 import { scaleUtc, scaleLinear } from 'd3-scale';
 import { extent, max, range } from 'd3-array';
@@ -12,8 +12,13 @@ interface Props {
   data: Array<{ step: number, value: number, label: string }>
 }
 
+interface AnnotationModal {
+  coords: { x: number, width: number, height: number}
+}
+
 export default function Funnel(props: Props): ReactElement {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [annotationModal, setAnnotationModal] = useState<AnnotationModal | null>(null);
 
   useEffect(() => {
     const box = svgRef.current?.getBoundingClientRect()!;
@@ -118,7 +123,7 @@ export default function Funnel(props: Props): ReactElement {
           .append('text')
           .attr('class', 'lp')
           .attr('y', 20)
-          .text(({ value }, index) => (index === 0 ? '' : format('.1%')(value / data[0].value)))
+          .text(({ value }, index) => (index === 0 ? '' : value === 0 ? format('.1%')(0) : format('.1%')(value / data[0].value)))
           .attr('style', `
             fill: #16023e75;
             font-size: 18px;
@@ -184,21 +189,34 @@ export default function Funnel(props: Props): ReactElement {
             const sel = select(this);
             sel.attr('fill', 'transparent');
           })
-          .on('mouseup', (d, step) => {
-            // show annotation here
+          .on('mouseup', function () {
+            const el = this;
+            const elBox = el.getBoundingClientRect();
+            setAnnotationModal({ coords: { x: elBox.left, width: elBox.width, height: elBox.height } });
           });
       });
   }, []);
 
   return (
-    <svg
-      style={{
-        height: '100%',
-        width: '100%',
-        flexGrow: 1
-      }}
-      ref={svgRef}
-      xmlns="http://www.w3.org/2000/svg"
-    />
+    <>
+      <svg
+        style={{
+          height: '100%',
+          width: '100%',
+          flexGrow: 1
+        }}
+        ref={svgRef}
+        xmlns="http://www.w3.org/2000/svg"
+      />
+      {annotationModal && <div
+        style={{
+          backgroundColor: '#16023e75',
+          position: 'absolute',
+          width: `${annotationModal.coords.width}px`,
+          height: `${annotationModal.coords.height}px`,
+          left: `${annotationModal.coords.x - 30}px`
+        }}
+      />}
+    </>
   );
 }
