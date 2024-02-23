@@ -171,9 +171,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     if (this.props.screen.type === ScreenType.Img || (this.props.screen.type === ScreenType.SerDom && !this.props.screen.responsive)) {
-      // INFO for now we use a constant image scaling size of 1440 / 810 (with ratio 16:9) similar to 13inch mac
-      const vpdW = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.w : 1440;
-      const vpdH = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.h : 810;
+      // INFO for now we use a constant image scaling size of 1280 / 720 (with ratio 16:9)
+      const vpdW = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.w : 1280;
+      const vpdH = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.h : 720;
 
       const scaleX = origFrameViewPort.width / vpdW;
       const scaleY = origFrameViewPort.height / vpdH;

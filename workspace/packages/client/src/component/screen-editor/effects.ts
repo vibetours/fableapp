@@ -51,7 +51,9 @@ export function getEffectFromString(effects: Effect[], cssStr?: string): Effect 
       const [key, ...value] = dir.split('=');
       dirsMap[key.trim()] = value.join('=').trim();
     }
-    return effects.find(ef => ef.id === dirsMap.effect) || fallback;
+    const effect = effects.find(ef => ef.id === dirsMap.effect) || fallback;
+    effect.css = nCssStr;
+    return effect;
   } catch (e) {
     raiseDeferredError(e as Error);
     return fallback;
@@ -181,8 +183,8 @@ export const annEffects: Effect[] = process([{
 }
 `.trim()
 }, {
-  id: 'backham',
-  displayName: 'Backham',
+  id: 'beckham',
+  displayName: 'Beckham',
   desc: 'Bend a ligher color through the edge',
   css: `
 {{f-actn-idr--ann-card-con}} {
