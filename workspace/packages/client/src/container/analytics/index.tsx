@@ -171,7 +171,7 @@ function getFunnelData(annotationTotalViews: Array<Omit<IFunnelDatum, 'step' | '
     });
   }
   const base = funnelData[0];
-  if (base.value) {
+  if (base && base.value) {
     for (let i = 1; i < funnelData.length; i++) {
       funnelData[i].retentionP = format('.1%')(funnelData[i].value / base.value);
     }
@@ -506,7 +506,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.state.days !== prevState.days) {
       this.initAnalytics();
     }
-    if (this.props.tour && this.props.tour.rid !== prevProps.tour?.rid) {
+    if (this.props.orderedAnn.length !== prevProps.orderedAnn.length) {
       this.initAnalytics();
     }
   }
