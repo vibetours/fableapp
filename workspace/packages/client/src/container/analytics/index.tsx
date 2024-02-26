@@ -1,6 +1,4 @@
-import React, { ReactElement } from 'react';
-import { connect } from 'react-redux';
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { DownOutlined, LoadingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import {
   ButtonClicks,
   RespConversion,
@@ -8,175 +6,174 @@ import {
   RespTourAnnWithPercentile,
   RespTourView,
   RespUser,
-  TotalVisitorsByYmd,
   TourAnnViewsWithPercentile,
-  TourAnnWithViews } from '@fable/common/dist/api-contract';
+  TourAnnWithViews
+} from '@fable/common/dist/api-contract';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { Button, Drawer, MenuProps, Table } from 'antd';
 import Dropdown from 'antd/lib/dropdown';
-import { ArrowUpOutlined, DownOutlined, WarningOutlined } from '@ant-design/icons';
-import { MenuProps } from 'antd';
-import { TState } from '../../reducer';
-import { withRouter, WithRouterProps } from '../../router-hoc';
-import Funnel from './sleeping-funnel';
+import React, { ReactElement } from 'react';
+import { connect } from 'react-redux';
 import {
+  getAnnViewsForTour,
   getConversionDataForTour,
-  getTotalViewsForTour,
   getStepsVisitedForTour,
-  loadTourAndData,
-  getAnnViewsForTour } from '../../action/creator';
-import { flatten } from '../../utils';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
-import Loader from '../../component/loader';
+  getTotalViewsForTour,
+  loadTourAndData
+} from '../../action/creator';
 import * as GTags from '../../common-styled';
-import * as Tags from './styled';
 import Header from '../../component/header';
+import { P_RespTour } from '../../entity-processor';
+import { TState } from '../../reducer';
+import { WithRouterProps, withRouter } from '../../router-hoc';
+import { flatten } from '../../utils';
+import Bar from './bar';
 import Line from './line';
-
-interface IDispatchProps {
-  loadTourWithData: (rid: string) => void,
-  getTotalViewsForTour: (rid: string, days: number) => void;
-  getConversionDataForTour: (rid: string, days: number) => void;
-  getStepsVisitedForTour: (rid: string, days: number) => void;
-  getAnnViewsForTour: (rid: string, days: number) => void;
-}
+import Funnel, { IFunnelDatum } from './sleeping-funnel';
+import * as Tags from './styled';
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid)),
-  getTotalViewsForTour: (rid: string, days: number) => dispatch(getTotalViewsForTour(rid, days)),
-  getConversionDataForTour: (rid: string, days: number) => dispatch(getConversionDataForTour(rid, days)),
-  getStepsVisitedForTour: (rid: string, days: number) => dispatch(getStepsVisitedForTour(rid, days)),
-  getAnnViewsForTour: (rid: string, days: number) => dispatch(getAnnViewsForTour(rid, days))
+  getTotalViewsForTour: (
+    rid: string,
+    days: number,
+    onComplete: (data: RespTourView) => void
+  ) => dispatch(getTotalViewsForTour(rid, days)).then(onComplete),
+  getConversionDataForTour: (
+    rid: string,
+    days: number,
+    onComplete: (data: RespConversion) => void
+  ) => dispatch(getConversionDataForTour(rid, days)).then(onComplete),
+  getStepsVisitedForTour: (
+    rid: string,
+    days: number,
+    onComplete: (data: RespTourAnnWithPercentile) => void
+  ) => dispatch(getStepsVisitedForTour(rid, days)).then(onComplete),
+  getAnnViewsForTour: (
+    rid: string,
+    days: number,
+    onComplete: (data: RespTourAnnViews) => void
+  ) => dispatch(getAnnViewsForTour(rid, days)).then(onComplete)
 });
-
-type FunnelData = Array<{ step: number, value: number, label: string }>;
-type TOrderedAnnWithMetrics = {status: EmptyStateType, orderedAnn: FunnelData, view: {
-    totalVisitors: number,
-    avgTimeSpentInaTour: number,
-    conversion: number;
-    viewDist: Array<{ date: Date, value: number }>;
-}};
 
 interface IAppStateProps {
   tour: P_RespTour | null;
-  isTourLoaded: boolean;
-  orderedAnnotationsForTour: TOrderedAnnWithMetrics;
   principal: RespUser | null;
+  orderedAnn: IAnnotationConfig[];
+  extLinkOpenBtnIds: string[]
 }
 
-const enum EmptyStateType {
-  Loading = -1,
-  Ok = 0,
-  MainMissing = 1,
-  NoData
-}
-
-function getTotalVisitors(totalViewsForTour: RespTourView): number {
-  let totalVisitors = 0;
-  if (totalViewsForTour && Object.keys(totalViewsForTour).length > 0) {
-    totalVisitors = totalViewsForTour.totalViews || 0;
-  }
-  return totalVisitors;
+const enum LoadingStatus {
+  NotStarted,
+  InProgress,
+  Loaded
 }
 
 function getConversionPercentage(
   tourConversion: RespConversion,
   openLinkBtnId: string[],
-  firstButtonId: string
+  totalSessions: number
 ): number {
+  if (!totalSessions) return 0;
   let conversion = 0;
   let buttons: ButtonClicks[] = [];
   if (tourConversion && Object.keys(tourConversion).length > 0) {
-    let firstButtonTotalClicks = 0;
     buttons = tourConversion.buttonsWithTotalClicks;
     if (buttons && buttons.length !== 0) {
       let sum = 0;
-      const firstButton = buttons.find(button => button !== undefined && button.btnId === firstButtonId);
-      if (firstButton) {
-        firstButtonTotalClicks = firstButton.totalClicks;
-      }
-
       for (let i = 0; i < openLinkBtnId.length; i++) {
         const button = buttons.find(b => b !== undefined && b.btnId === openLinkBtnId[i]);
         if (button) {
           sum += button.totalClicks;
         }
       }
-      conversion = firstButtonTotalClicks !== 0 ? Math.round((sum / firstButtonTotalClicks) * 100) : 0;
+      conversion = Math.round((sum / totalSessions) * 100);
     }
   }
   return conversion;
 }
 
-function getAvgTimeSpent(tourStepsVisited: RespTourAnnWithPercentile): number {
-  let avgTimeSpentInATour = 0;
+type TPVals = [
+  p1: number,
+  p5: number,
+  p10: number,
+  p25: number,
+  p50: number,
+  p75: number,
+  p90: number,
+  p95: number,
+  p99: number
+]
+const ps: Array<keyof Omit<TourAnnViewsWithPercentile, 'annId' | 'totalViews'>> = ['p1', 'p5', 'p10', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99'];
+function medianTimeSpentInTour(tourStepsVisited: RespTourAnnWithPercentile): TPVals {
+  const pvals = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   if (tourStepsVisited && Object.keys(tourStepsVisited).length > 0) {
     const timeSpent: TourAnnViewsWithPercentile[] = tourStepsVisited.tourAnnInfo;
     if (timeSpent) {
       for (let i = 0; i < timeSpent.length; i++) {
-        avgTimeSpentInATour += timeSpent[i].percentile50;
+        for (let j = 0; j < ps.length; j++) {
+          pvals[j] += timeSpent[i][ps[j]];
+        }
       }
-      return Math.round(avgTimeSpentInATour);
     }
   }
-  return avgTimeSpentInATour;
+  return pvals.map(v => Math.round(v)) as TPVals;
 }
 
-function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAnnotationConfig[]): number[] {
-  const OrderAnnTotalViews: number[] = [];
+function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAnnotationConfig[]): Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>> {
+  const orderAnnTotalViews: Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>> = [];
   if (tourAnnInfo && Object.keys(tourAnnInfo).length > 0) {
     const eachAnnTotalViews: TourAnnWithViews[] = tourAnnInfo.tourAnnWithViews;
     if (eachAnnTotalViews) {
       for (let i = 0; i < flatAnn.length; i++) {
         const matchingAnn = eachAnnTotalViews.find(item => item !== undefined && flatAnn[i].refId === item.annId);
-        OrderAnnTotalViews.push(matchingAnn ? matchingAnn.totalViews : 0);
+        orderAnnTotalViews.push({
+          value: matchingAnn?.totalViews ?? 0,
+          p50: matchingAnn?.p50 ?? 0,
+          p75: matchingAnn?.p75 ?? 0,
+          p95: matchingAnn?.p95 ?? 0,
+        });
       }
-      return OrderAnnTotalViews;
+      return orderAnnTotalViews;
     }
   }
-  return OrderAnnTotalViews;
+  return orderAnnTotalViews;
 }
 
-function getFunnelData(annotationTotalViews: number[], flatAnn: IAnnotationConfig[]): FunnelData {
-  const funnelData: FunnelData = [];
+function getFunnelData(annotationTotalViews: Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>>, flatAnn: IAnnotationConfig[]): IFunnelDatum[] {
+  const funnelData: IFunnelDatum[] = [];
   for (let i = 0; i < flatAnn.length; i++) {
     funnelData.push({
       step: i + 1,
-      value: annotationTotalViews[i] ? annotationTotalViews[i] : 0,
-      label: flatAnn[i].displayText.substring(0, 19)
+      value: annotationTotalViews[i]?.value ?? 0,
+      label: flatAnn[i].displayText.substring(0, 19),
+      fullLabel: flatAnn[i].displayText,
+      p50: annotationTotalViews[i]?.p50 ?? 0,
+      p75: annotationTotalViews[i]?.p75 ?? 0,
+      p95: annotationTotalViews[i]?.p95 ?? 0,
     });
   }
   return funnelData;
 }
 
-function getTotalVisitorsForAPeriod(totalViewsForTour: RespTourView): TotalVisitorsByYmd[] {
-  let totalVisitorsByYmd: TotalVisitorsByYmd[] = [];
-  if (totalViewsForTour && Object.keys(totalViewsForTour).length > 0 && totalViewsForTour.totalVisitorsByYmd) {
-    totalVisitorsByYmd = totalViewsForTour.totalVisitorsByYmd;
-  }
-  return totalVisitorsByYmd;
+function parseYYYYMMDDtoDate(str: string): Date {
+  if (str.length !== 8) throw new Error(`${str} not in YYYYMMDD format`);
+  const yyyy = +str.substring(0, 4);
+  const mm = +str.substring(4, 6);
+  const dd = +str.substring(6);
+  if (Number.isNaN(yyyy) || Number.isNaN(mm) || Number.isNaN(dd)) throw new Error(`Can't parse number properly ${str}`);
+
+  return new Date(yyyy, mm - 1, dd);
 }
 
 function orderedAnnotationsForTour(
   annGroupedByScreen: Record<string, IAnnotationConfig[]>,
   opts: ITourDataOpts | null,
-  isTourLoaded: boolean,
-  totalViewsForTour: RespTourView,
-  tourConversion: RespConversion,
-  tourStepsVisited: RespTourAnnWithPercentile,
-  tourAnnInfo: RespTourAnnViews,
-): TOrderedAnnWithMetrics {
-  if (!isTourLoaded) {
-    return {
-      status: EmptyStateType.Loading,
-      orderedAnn: [],
-      view: {
-        totalVisitors: 0,
-        avgTimeSpentInaTour: 0,
-        conversion: 0,
-        viewDist: []
-      }
-    };
-  }
-
+): {
+  orderedAnn: IAnnotationConfig[];
+  extLinkOpenBtnIds: string[]
+} {
   let hasAnn = false;
   const allAnnHm = flatten(Object.values(annGroupedByScreen)).reduce((hm, an) => {
     hasAnn = true;
@@ -186,14 +183,8 @@ function orderedAnnotationsForTour(
 
   if (!hasAnn) {
     return {
-      status: EmptyStateType.Loading,
       orderedAnn: [],
-      view: {
-        totalVisitors: 0,
-        avgTimeSpentInaTour: 0,
-        conversion: 0,
-        viewDist: []
-      }
+      extLinkOpenBtnIds: []
     };
   }
 
@@ -203,20 +194,13 @@ function orderedAnnotationsForTour(
 
   if (!start) {
     return {
-      status: EmptyStateType.Loading,
       orderedAnn: [],
-      view: {
-        totalVisitors: 0,
-        avgTimeSpentInaTour: 0,
-        conversion: 0,
-        viewDist: []
-      }
+      extLinkOpenBtnIds: []
     };
   }
 
   const flatAnn: IAnnotationConfig[] = [];
   let ptr: IAnnotationConfig = start;
-  const firstButtonId: string = ptr.buttons[0].id;
   const openLinkBtnId: string[] = [];
   while (true) {
     flatAnn.push(ptr);
@@ -231,133 +215,365 @@ function orderedAnnotationsForTour(
     }
   }
 
-  const totalVisitors = getTotalVisitors(totalViewsForTour);
-  const conversion = getConversionPercentage(tourConversion, openLinkBtnId, firstButtonId);
-  const avgTimeSpentInATour = getAvgTimeSpent(tourStepsVisited);
-  const annotationViews = getEachAnnotationTotalViews(tourAnnInfo, flatAnn);
-  const funnelData: FunnelData = getFunnelData(annotationViews, flatAnn);
-  const totalVisitorsByYmd: TotalVisitorsByYmd[] = getTotalVisitorsForAPeriod(totalViewsForTour);
-
-  const now = new Date();
-  const viewDist: Array<{ date: Date, value: number}> = [];
-
-  let numOfDays = 30;
-  while (numOfDays--) {
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - numOfDays);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const ymd = `${date.getFullYear().toString()}${month}${date.getDate().toString().padStart(2, '0')}`;
-    let viewDistValue = 0;
-    if (totalVisitorsByYmd.length > 0) {
-      for (const visitor of totalVisitorsByYmd) {
-        if (visitor.ymd !== undefined && visitor.ymd === ymd) {
-          viewDistValue = visitor.totalViews;
-          break;
-        }
-      }
-    }
-    viewDist.push({
-      date,
-      value: viewDistValue
-    });
-  }
   return {
-    status: EmptyStateType.Ok,
-    orderedAnn: funnelData,
-    view: {
-      totalVisitors,
-      avgTimeSpentInaTour: avgTimeSpentInATour,
-      conversion,
-      viewDist
-    }
+    orderedAnn: flatAnn,
+    extLinkOpenBtnIds: openLinkBtnId,
   };
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => {
-  const totalViewsForTour = state.default.totalViewsForTour as RespTourView;
-  const tourConversion = state.default.tourConversion as RespConversion;
-  const tourStepsVisited = state.default.tourStepsVisited as RespTourAnnWithPercentile;
-  const tourAnnInfo = state.default.tourAnnInfo as RespTourAnnViews;
-  return {
-    tour: state.default.currentTour,
-    isTourLoaded: state.default.tourLoaded,
-    orderedAnnotationsForTour: orderedAnnotationsForTour(
-      state.default.remoteAnnotations,
-      state.default.remoteTourOpts,
-      state.default.tourLoaded,
-      totalViewsForTour,
-      tourConversion,
-      tourStepsVisited,
-      tourAnnInfo
-    ),
-    principal: state.default.principal,
-  };
-};
-
+const mapStateToProps = (state: TState): IAppStateProps => ({
+  tour: state.default.currentTour,
+  principal: state.default.principal,
+  ...orderedAnnotationsForTour(
+    state.default.remoteAnnotations,
+    state.default.remoteTourOpts
+  )
+});
 interface IOwnProps {
 }
 
-type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{
+type IProps = IOwnProps & IAppStateProps & ReturnType<typeof mapDispatchToProps> & WithRouterProps<{
   tourId: string;
 }>;
 
+const SampleData = {
+  visitors: {
+    data: [
+      { key: 1, name: 'Emma', day: 'Monday', timeSpent: '10s' },
+      { key: 2, name: 'John', day: 'Monday', timeSpent: '12s' },
+      { key: 3, name: 'John', day: 'Tuesday', timeSpent: '16s' },
+      { key: 4, name: 'Emma', day: 'Thursday', timeSpent: '8s' },
+    ],
+    cols: [
+      { title: 'Name', key: 'name', dataIndex: 'name' },
+      { title: 'Visited on', key: 'day', dataIndex: 'day' },
+      { title: 'Time Spent', key: 'timeSpent', dataIndex: 'timeSpent' }
+    ]
+  }
+};
+const HelpText = {
+  '': {
+    title: '',
+    body: <div />
+  },
+  totalSession: {
+    title: 'How is Total Sessions calculated?',
+    body: (
+      <div>
+        <p>A sessions is created when your buyer interacts with this Fable.</p>
+        <p>
+          <em>Total Sessions</em> represets all the sessions that were created for past 30 days (or 60 / 90 days).
+          This include repeated sessions as well.
+        </p>
+        <p>
+          A repeated session is when a particular user visits the Fable multiple times.
+        </p>
+        <h3>Example</h3>
+        <Table dataSource={SampleData.visitors.data} columns={SampleData.visitors.cols} size="small" pagination={false} />
+        <p>
+          For the above table <em>Total Sessions</em> are <b>4</b>, even though only 2 (Emma & John)
+          users have visited this Fable.
+        </p>
+      </div>
+    )
+  },
+  uniqueVisitors: {
+    title: 'How is Unique Visitors calculated?',
+    body: (
+      <div>
+        <p>A sessions is created when your buyer interacts with this Fable.</p>
+        <p>
+          <em>Unique Visitors</em> represets all the unique visitors that have interacted with this Fable.
+        </p>
+        <p>
+          If the same user interact with the Fable multiple times we count <em>Unique Visitor</em> as 1 for that particular
+          user
+        </p>
+        <h3>Example</h3>
+        <Table dataSource={SampleData.visitors.data} columns={SampleData.visitors.cols} size="small" pagination={false} />
+        <p>
+          For the above table value of Total Sessions are 4 but <em>Unique Visitors</em> are <b>2</b> (Emma & John).
+        </p>
+      </div>
+    )
+  },
+  conversion: {
+    title: 'How is Conversion calculated?',
+    body: (
+      <div>
+        <p>Roughly <em>Conversion</em> is percentage of <code>count of users finished this demo / count of users interacted with this demo</code></p>
+        <p>
+          <em>Finshing a demo</em> is calculated from the following points
+        </p>
+        <ul>
+          <li>If user has reached the last annotation and clicked <em>Next</em> CTA</li>
+          <li>If the user have clicked CTA from modules pill</li>
+          <li>If the user is in between a demo and clicks a button that is not <em>Next</em> or <em>Back</em></li>
+        </ul>
+        <p>
+          Please ensure that the CTA links are valid before deploying this Fable.
+        </p>
+      </div>
+    )
+  },
+  sessionDuration: {
+    title: 'How is Session Duration calculated?',
+    body: (
+      <div>
+        <p>
+          <em>Session Duration</em> for a user is the exact amount of time the user has interacted with this demo.
+          The time is rounded up to the nearest second value.
+        </p>
+        <p>
+          <em>Median Session Time</em> is a rough but useful representation number that indicates how engaging the demo is.
+        </p>
+        <p>
+          Calculation of <em>Median Session Time</em> is done in the standard way, i.e. by recording all the session duration across
+          all users and selecting the value at center.
+        </p>
+        <p><em>All Session Duration calculations are approximate values with maximum error value of 0.5%</em></p>
+        <h3>Example</h3>
+        <Table dataSource={SampleData.visitors.data} columns={SampleData.visitors.cols} size="small" pagination={false} />
+        <p>
+          For the above sessions on a demo, the <em>Median Session Time</em> becomes <b>11s</b>
+        </p>
+        <h2>Percentile Distribution</h2>
+        <p>This graph gives you birds eye view of all the sessions on this demo</p>
+        <div style={{ position: 'relative', height: '100px' }}>
+          <Bar
+            offset={0}
+            xs={[1, 5, 10, 25, 50, 75, 90, 95, 99]}
+            ys={[6, 11, 11, 11, 15, 18, 22, 45, 48]}
+          />
+        </div>
+        <p>
+          X Axis is the percentile buckets. Each bucket consists of roughly 11% of your users.
+        </p>
+        <p>
+          Y Axis is <em>session duration</em> for a particular bucket.
+        </p>
+        <p>
+          You read the chart from left to right. For example
+        </p>
+        <ol>
+          <li>1% of the users have interacted with this demo for at most 6 seconds</li>
+          <li>5% of the users have interacted with this demo for 11 seconds or less</li>
+          <ul>
+            <li>Or 4% (5% - 1%) of the users have interacted with this demo for at least 6 seconds and at most 11 seconds</li>
+          </ul>
+          <li>Interpolating the same logic, we can say, 75% of the users have  interacted with this demo for 18seconds or less</li>
+          <ul>
+            <li>Or 25% (75% - 50%) of the users have interacted with this demo for at least 15 seconds and at most 18 seconds</li>
+          </ul>
+        </ol>
+        <p>
+          As you can notice, the above chart, is decently skewed. (Longer bar at the end and shorter bar at the start).
+        </p>
+        <p>
+          If your demo has a skewed chart like the above it means only a selective percentage of your users are engaging with the demo
+          more than other.
+        </p>
+        <p>
+          Your goal would be to create a demo for which the <em>Session duration distribution</em> is not very skewed. An example of such chart is following
+        </p>
+        <div style={{ position: 'relative', height: '100px' }}>
+          <Bar
+            offset={0}
+            xs={[1, 5, 10, 25, 50, 75, 90, 95, 99]}
+            ys={[12, 12, 12, 15, 18, 20, 24, 25, 28]}
+          />
+        </div>
+      </div>
+    )
+  },
+  funnel: {
+    title: 'How is Funnel Drop off calculated?',
+    body: (
+      <div>
+        <p>
+          <em>Funnel dropoff</em> gives you insight about how your demo is performing as users interact with the demo.
+        </p>
+        <p>
+          You would see how many sessions have been created per step (annotation of demo), giving you an idea of churn / retentation per step.
+        </p>
+        <p>
+          If you click on the funnel step, you would see details about the conversion and distribution of session duration
+          for that particular step.
+        </p>
+      </div>
+    )
+  }
+};
+
 interface IOwnStateProps {
-  funnelOrUserpathTab: 'funnel' | 'userpath';
+  // funnelOrUserpathTab: 'funnel' | 'userpath';
   days: number;
+  showHelpFor: keyof typeof HelpText | '';
+  countVisitors: {
+    status: LoadingStatus,
+    data: RespTourView | null,
+    viewDist: Array<{ date: Date, value: number }>
+  },
+  conversion: {
+    status: LoadingStatus,
+    data: number
+  },
+  sessionDuration: {
+    status: LoadingStatus,
+    pVals: TPVals
+    ps: TPVals
+  },
+  funnelData: {
+    status: LoadingStatus,
+    funnelData: IFunnelDatum[]
+  }
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
-    this.state = { funnelOrUserpathTab: 'funnel', days: 30 };
+    this.state = {
+      // funnelOrUserpathTab: 'funnel',
+      showHelpFor: '',
+      days: 30,
+      countVisitors: {
+        status: LoadingStatus.InProgress,
+        data: null,
+        viewDist: []
+      },
+      conversion: {
+        status: LoadingStatus.InProgress,
+        data: 0
+      },
+      sessionDuration: {
+        status: LoadingStatus.InProgress,
+        pVals: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ps: ps.map(_ => +_.substring(1)) as TPVals,
+      },
+      funnelData: {
+        status: LoadingStatus.InProgress,
+        funnelData: []
+      }
+    };
   }
 
   componentDidMount(): void {
-    this.initAnalytics();
+    this.props.loadTourWithData(this.props.match.params.tourId);
   }
 
-  componentDidUpdate(_prevProps: IProps, prevState: IOwnStateProps): void {
+  componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     if (this.state.days !== prevState.days) {
+      this.initAnalytics();
+    }
+    if (this.props.tour && this.props.tour.rid !== prevProps.tour?.rid) {
       this.initAnalytics();
     }
   }
 
-  initAnalytics = (): void => {
-    this.props.loadTourWithData(this.props.match.params.tourId);
-    this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days);
-    this.props.getStepsVisitedForTour(this.props.match.params.tourId, this.state.days);
-    this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days);
-    this.props.getConversionDataForTour(this.props.match.params.tourId, this.state.days);
+  initAnalytics = async (): Promise<void> => {
+    this.setState(state => ({
+      countVisitors: {
+        data: state.countVisitors.data,
+        viewDist: state.countVisitors.viewDist,
+        status: LoadingStatus.InProgress
+      },
+      conversion: {
+        data: state.conversion.data,
+        status: LoadingStatus.InProgress
+      },
+      sessionDuration: {
+        status: LoadingStatus.InProgress,
+        pVals: state.sessionDuration.pVals,
+        ps: state.sessionDuration.ps
+      },
+      funnelData: {
+        status: LoadingStatus.InProgress,
+        funnelData: state.funnelData.funnelData
+      }
+    }));
+
+    this.props.getStepsVisitedForTour(this.props.match.params.tourId, this.state.days, (data) => {
+      const medianTime = medianTimeSpentInTour(data);
+      this.setState(state => ({
+        sessionDuration: {
+          status: LoadingStatus.Loaded,
+          pVals: medianTime,
+          ps: state.sessionDuration.ps
+        }
+      }));
+    });
+
+    this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days, data => {
+      const annotationViews = getEachAnnotationTotalViews(data, this.props.orderedAnn);
+      const funnelData = getFunnelData(annotationViews, this.props.orderedAnn);
+      this.setState({
+        funnelData: {
+          status: LoadingStatus.Loaded,
+          funnelData
+        }
+      });
+    });
+
+    const totalViewData: RespTourView = await this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days, (data) => {
+      const rawDist = data.totalVisitorsByYmd || [];
+      let viewDist: Array<{
+        value: number;
+        date: Date;
+      }> = [];
+      for (const visitor of rawDist) {
+        let date;
+        try {
+          date = parseYYYYMMDDtoDate(visitor.ymd);
+          viewDist.push({
+            date,
+            value: visitor.totalViews
+          });
+        } catch (e) {
+          raiseDeferredError(e as Error);
+          continue;
+        }
+      }
+      viewDist = viewDist.reverse();
+      this.setState({
+        countVisitors: {
+          data,
+          viewDist,
+          status: LoadingStatus.Loaded
+        }
+      });
+      return data;
+    });
+    this.props.getConversionDataForTour(this.props.match.params.tourId, this.state.days, data => {
+      const conversionPercentage = getConversionPercentage(data, this.props.extLinkOpenBtnIds, totalViewData.totalViews?.viewsAll ?? 0);
+      this.setState({
+        conversion: {
+          status: LoadingStatus.Loaded,
+          data: conversionPercentage
+        }
+      });
+    });
   };
 
   handleDropdownItemClick = (e: { key: string; }): void => {
     this.setState({ days: parseInt(e.key, 10) });
   };
 
+  private items: MenuProps['items'] = [
+    {
+      label: '30d',
+      key: '30',
+    },
+    {
+      label: '60d',
+      key: '60',
+    },
+    {
+      label: '90d',
+      key: '90',
+    },
+  ];
+
   render(): ReactElement {
-    const items: MenuProps['items'] = [
-      {
-        label: '30d',
-        key: '30',
-      },
-      {
-        label: '60d',
-        key: '60',
-      },
-      {
-        label: '90d',
-        key: '90',
-      },
-    ];
-    if (!this.props.isTourLoaded) {
-      return (
-        <div>
-          <Loader width="80px" txtBefore="Crunching number!!!" showAtPageCenter />
-        </div>
-      );
-    }
-    const data = this.props.orderedAnnotationsForTour.orderedAnn;
-    const lastSyncMs = +new Date() - (41 * 60 * 1000);
-    const lastSync = new Date(lastSyncMs);
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
@@ -367,7 +583,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <GTags.Txt className="subsubhead">Insight for</GTags.Txt>
-                <GTags.Txt style={{ fontWeight: 500 }}>{this.props.tour!.displayName}</GTags.Txt>
+                <GTags.Txt style={{ fontWeight: 500 }}>{this.props.tour?.displayName ?? ''}</GTags.Txt>
               </div>
             }
             leftElGroups={[]}
@@ -400,7 +616,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               <Dropdown
                 menu={{
                   onClick: this.handleDropdownItemClick,
-                  items,
+                  items: this.items,
                 }}
                 trigger={['click']}
               >
@@ -428,110 +644,160 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   borderRadius: '4px',
                   color: '#757575'
                 }}
-              >Last synced {lastSync.getHours()}:{lastSync.getMinutes()}
+              >Refreshes every 1 hour
               </span>
             </div>
           </div>
-          <div style={{ marginTop: '1rem' }}>
-            <div style={{ display: 'flex', marginBottom: '2rem', gap: '1rem' }}>
-              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
-                <Tags.KPIHead>
-                  <span className="label">Total visitors</span>
-                  <span className="val">{this.props.orderedAnnotationsForTour.view.totalVisitors}</span>
-                </Tags.KPIHead>
-              </Tags.KPICon>
-              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
-                <Tags.KPIHead>
-                  <span className="label">Average Time Spent</span>
-                  <span className="val">{this.props.orderedAnnotationsForTour.view.avgTimeSpentInaTour}s</span>
-                </Tags.KPIHead>
-              </Tags.KPICon>
-              <Tags.KPICon style={{ height: '50px', width: '480px' }}>
-                <Tags.KPIHead>
-                  <span className="label">Conversion</span>
-                  <span className="val">{this.props.orderedAnnotationsForTour.view.conversion}%</span>
-                </Tags.KPIHead>
-              </Tags.KPICon>
+          <Tags.KpiAndVisitorCon data-x-id-kvc>
+            <div style={{ display: 'flex', gap: '1rem', flex: '1 0 auto', flexDirection: 'column' }} className="vis-con">
+              <div style={{ display: 'flex', gap: '1rem', flex: '1 1 auto' }}>
+                <Tags.KPICon style={{ border: '2px dashed #160245', flex: '1 1 auto' }}>
+                  <Tags.KPIHead>
+                    <div className="val">{this.state.countVisitors.data?.totalViews?.viewsAll ?? 0}</div>
+                    <div className="label">Total Sessions</div>
+                  </Tags.KPIHead>
+                  {this.state.countVisitors.status !== LoadingStatus.Loaded && (
+                  <div className="loader"><LoadingOutlined /></div>
+                  )}
+                  <div className="helpcn">
+                    <Button
+                      icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                      onClick={() => this.setState({ showHelpFor: 'totalSession' })}
+                      type="text"
+                      size="small"
+                    />
+                  </div>
+                </Tags.KPICon>
+                <Tags.KPICon style={{ flex: '1 1 auto' }}>
+                  <Tags.KPIHead>
+                    <div className="val">{this.state.countVisitors.data?.totalViews?.viewsUnique ?? 0}</div>
+                    <div className="label">Unique Visitors</div>
+                  </Tags.KPIHead>
+                  {this.state.countVisitors.status !== LoadingStatus.Loaded && (
+                  <div className="loader"><LoadingOutlined /></div>
+                  )}
+                  <div className="helpcn">
+                    <Button
+                      icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                      onClick={() => this.setState({ showHelpFor: 'uniqueVisitors' })}
+                      type="text"
+                      size="small"
+                    />
+                  </div>
+                </Tags.KPICon>
+                <Tags.KPICon style={{ flex: '1 1 auto' }}>
+                  <Tags.KPIHead>
+                    <div className="val">{this.state.conversion.data}%</div>
+                    <div className="label">Conversion</div>
+                  </Tags.KPIHead>
+                  {this.state.conversion.status !== LoadingStatus.Loaded && (
+                  <div className="loader"><LoadingOutlined /></div>
+                  )}
+                  <div className="helpcn">
+                    <Button
+                      icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                      onClick={() => this.setState({ showHelpFor: 'conversion' })}
+                      type="text"
+                      size="small"
+                    />
+                  </div>
+                </Tags.KPICon>
+              </div>
+              <div>
+                <Tags.KPICon>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%',
+                    position: 'relative',
+                    height: 'calc(160px)'
+                  }}
+                  >
+                    <p style={{
+                      opacity: '0.75',
+                      fontSize: '0.75rem'
+                    }}
+                    >Count of sessions per day for past {this.state.days / 30} month{this.state.days / 30 > 1 ? 's' : ''}
+                    </p>
+                    <Line data={this.state.countVisitors.viewDist} />
+                  </div>
+                  {this.state.countVisitors.status !== LoadingStatus.Loaded && (
+                  <div className="loader"><LoadingOutlined /></div>
+                  )}
+                </Tags.KPICon>
+              </div>
             </div>
-            <div>
-              <Tags.KPICon>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}
-                >
+            <div style={{ flex: '1 0 auto', maxWidth: '480px' }}>
+              <Tags.KPICon style={{
+                height: 'calc(100% - 3rem)'
+              }}
+              >
+                <Tags.KPIHead>
+                  <div className="val">{this.state.sessionDuration.pVals[4]}s</div>
+                  <div className="label">Median Session Time</div>
                   <p style={{
                     opacity: '0.75',
-                    fontSize: '0.75rem'
+                    fontSize: '0.75rem',
+                    marginTop: '4.5rem'
                   }}
-                  >Count of visitors day by day for past 1 month
+                  >
+                    Percentile distribution of session times across all sessions
+                    <br />
                   </p>
-                  <Line
-                    data={this.props.orderedAnnotationsForTour.view.viewDist}
-                    width={1140}
-                    height={120}
-                    chartId="totalviewkpi"
-                    yTooltipText="visitor"
+                  <Bar
+                    ys={this.state.sessionDuration.pVals}
+                    xs={this.state.sessionDuration.ps}
+                  />
+                </Tags.KPIHead>
+                {this.state.sessionDuration.status !== LoadingStatus.Loaded && (
+                  <div className="loader"><LoadingOutlined /></div>
+                )}
+                <div className="helpcn">
+                  <Button
+                    icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                    onClick={() => this.setState({ showHelpFor: 'sessionDuration' })}
+                    type="text"
+                    size="small"
                   />
                 </div>
               </Tags.KPICon>
             </div>
-            <Tags.BtnGroup style={{ marginBottom: '1rem', marginTop: '3rem' }}>
-              <span
-                className={this.state.funnelOrUserpathTab === 'funnel' ? 'sel' : 'nasel'}
-                onClick={() => this.setState({ funnelOrUserpathTab: 'funnel' })}
-              >
-                Funnel Dropoffs
-              </span>
-              <span
-                className={this.state.funnelOrUserpathTab === 'userpath' ? 'sel' : 'nasel'}
-                onClick={() => this.setState({ funnelOrUserpathTab: 'userpath' })}
-              >
-                User Path <WarningOutlined />
-              </span>
-            </Tags.BtnGroup>
-            {this.state.funnelOrUserpathTab === 'funnel' ? (
-              <>
-                <p style={{ opacity: '0.65' }}>Funnel view provides a bird's eye view of where the visitors are dropping off if they are not booking a demo. You can futher drill down and see how long user has spent on a specific part of the tour giving you opportunities to optimize further.
-                </p>
-                <div style={{
-                  padding: '1rem',
-                  height: '300px',
-                  display: 'flex',
-                  position: 'relative',
-                  flexDirection: 'column',
-                  background: '#f5f5f5',
-                  borderRadius: '8px'
-                }}
-                >
-                  <Funnel data={data} />
-                </div>
-              </>
-            ) : (
-              <div style={{
-                display: 'flex',
-                gap: '1rem',
-                alignItems: 'center'
-              }}
-              >
-                <img src="/ph_userpath.png" alt="userpath guide" style={{ width: '480px' }} />
-                <div>
-                  <h3>Properties to display user path are not configured</h3>
-                  <p>
-                    Fable shows user specific path once you use Fable's Form or integrate your own form with Fable.
-                  </p>
-                </div>
+          </Tags.KpiAndVisitorCon>
+          <Tags.FunnelCon>
+            <Tags.KPICon style={{ height: '420px' }}>
+              <Tags.KPIHead style={{ marginBottom: '20px' }}>
+                <div className="label">Funnel drop off across all sessions</div>
+              </Tags.KPIHead>
+              <Funnel data={this.state.funnelData.funnelData} />
+              {this.state.funnelData.status !== LoadingStatus.Loaded && (
+                <div className="loader"><LoadingOutlined /></div>
+              )}
+              <div className="helpcn">
+                <Button
+                  icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                  onClick={() => this.setState({ showHelpFor: 'funnel' })}
+                  type="text"
+                  size="small"
+                />
               </div>
-            )}
-          </div>
+            </Tags.KPICon>
+
+          </Tags.FunnelCon>
         </GTags.BodyCon>
+        <Drawer
+          title={HelpText[this.state.showHelpFor].title}
+          onClose={() => this.setState({ showHelpFor: '' })}
+          open={!!this.state.showHelpFor}
+        >
+          {HelpText[this.state.showHelpFor].body}
+        </Drawer>
       </GTags.ColCon>
     );
   }
 }
 
-export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
+export default connect<IAppStateProps, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(Tours));

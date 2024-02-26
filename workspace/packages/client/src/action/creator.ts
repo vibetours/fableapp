@@ -1166,6 +1166,8 @@ export function getTotalViewsForTour(rid: string, days: number) {
       type: ActionType.ANALYTICS_TOTAL_TOUR_VIEW,
       tourTotalView: data.data,
     });
+
+    return Promise.resolve(data.data);
   };
 }
 
@@ -1183,6 +1185,8 @@ export function getConversionDataForTour(rid: string, days: number) {
       type: ActionType.ANALYTICS_TOUR_CONVERSION,
       tourConversion: data.data,
     });
+
+    return Promise.resolve(data.data);
   };
 }
 
@@ -1193,13 +1197,14 @@ export interface TAnalyticsStepsVisited{
 
 export function getStepsVisitedForTour(rid: string, days: number) {
   return async (dispatch: Dispatch<TAnalyticsStepsVisited>) => {
-    const data = await api<null, ApiResp<RespTourAnnWithPercentile>>(`/stpsvis?rid=${rid}&d=${days}`, {
+    const data = await api<null, ApiResp<RespTourAnnWithPercentile>>(`/stpsdur?rid=${rid}&d=${days}`, {
       auth: true,
     });
     dispatch({
       type: ActionType.ANALYTICS_STEPS_VISITED,
       tourStepsVisited: data.data,
     });
+    return Promise.resolve(data.data);
   };
 }
 
@@ -1217,5 +1222,6 @@ export function getAnnViewsForTour(rid: string, days: number) {
       type: ActionType.ANALYTICS_ANN_INFO,
       tourAnnViews: data.data,
     });
+    return Promise.resolve(data.data);
   };
 }

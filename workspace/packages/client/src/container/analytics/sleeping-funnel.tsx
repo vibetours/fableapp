@@ -5,20 +5,48 @@ import { scaleUtc, scaleLinear } from 'd3-scale';
 import { extent, max, range } from 'd3-array';
 import { format } from 'd3-format';
 import { area, curveCatmullRom } from 'd3-shape';
+import * as Tags from './styled';
+import Bar from './bar';
 
 const margin = { top: 20, right: 20, bottom: 30, left: 30 };
 
+export interface IFunnelDatum {
+  step: number;
+  value: number;
+  label: string ;
+  fullLabel: string;
+  p50: number;
+  p75: number;
+  p95: number;
+}
+
 interface Props {
-  data: Array<{ step: number, value: number, label: string }>
+  data: Array<IFunnelDatum>
 }
 
 interface AnnotationModal {
-  coords: { x: number, width: number, height: number}
+  coords: { x: number, width: number, height: number},
+  data: IFunnelDatum & {
+    conversionP: string;
+  }
 }
 
 export default function Funnel(props: Props): ReactElement {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [annotationModal, setAnnotationModal] = useState<AnnotationModal | null>(null);
+
+  useEffect(() => {
+    const svg = select(svgRef.current);
+
+    svg.append('linearGradient')
+      .attr('id', 'temperature-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse');
+
+    svg.append('path')
+      .attr('class', 'orgn');
+    svg.append('path')
+      .attr('class', 'mirr');
+  }, []);
 
   useEffect(() => {
     const box = svgRef.current?.getBoundingClientRect()!;
@@ -53,17 +81,15 @@ export default function Funnel(props: Props): ReactElement {
 
     const svg = select(svgRef.current);
 
-    svg.append('linearGradient')
-      .attr('id', 'temperature-gradient')
-      .attr('gradientUnits', 'userSpaceOnUse')
+    svg.select('linearGradient')
       .attr('x1', x(1))
       .attr('y1', 0)
       .attr('x2', x(5))
       .attr('y2', 0)
       .selectAll('stop')
       .data([
-        { offset: '0%', color: '#7567FF' },
-        { offset: '100%', color: '#7567FFaa' },
+        { offset: '0%', color: '#160245b8' },
+        { offset: '100%', color: '#16024559' },
       ])
       .enter()
       .append('stop')
@@ -78,9 +104,10 @@ export default function Funnel(props: Props): ReactElement {
       .y0(y(0))
       .y1((p: any) => y(p.value));
 
-    svg.append('path')
+    svg.select('path.orgn')
       .datum(data2)
       .attr('fill', 'url(#temperature-gradient)')
+      .transition()
       .attr('d', afn as any);
 
     const areaMirror = area()
@@ -89,9 +116,10 @@ export default function Funnel(props: Props): ReactElement {
       .y0(y(0))
       .y1((p: any) => y(-p.value));
 
-    svg.append('path')
+    svg.select('path.mirr')
       .datum(data2)
       .attr('fill', 'url(#temperature-gradient)')
+      .transition()
       .attr('d', areaMirror as any);
 
     const gLables = svg
@@ -104,48 +132,43 @@ export default function Funnel(props: Props): ReactElement {
       .attr('transform', p => `translate(${x(p.step) + 10}, 30)`)
       .call(g => {
         g
-          // .selectAll('text.lv')
-          // .data(g.data())
-          // .enter()
           .append('text')
           .attr('class', 'lv')
           .attr('y', 0)
-          .text(({ value }) => format(',')(value)) // format number with k/m
           .attr('style', `
             fill: #16023e;
             font-size: 22px;
           `);
 
         g
-          // .selectAll('text.lp')
-          // .data(g.data())
-          // .enter()
           .append('text')
           .attr('class', 'lp')
           .attr('y', 20)
-          .text(({ value }, index) => (index === 0 ? '' : value === 0 ? format('.1%')(0) : format('.1%')(value / data[0].value)))
           .attr('style', `
             fill: #16023e75;
             font-size: 18px;
           `);
 
         g
-          // .selectAll('text.ll')
-          // .data(g.data(), d => (d as any).step)
-          // .enter()
           .append('text')
           .attr('class', 'll')
-          // .attr('x', ({ step }) => x(step) + 10)
           .attr('y', 40)
-          .text(d => d.label)
           .attr('style', `
             fill: #b4adc2;
             font-size: 12px;
           `);
       })
       .merge(gLables as any)
-      .exit()
-      .remove();
+      .call(g => {
+        g.select('text.lv')
+          .text(({ value }) => format(',')(value)); // format number with k/m
+
+        g.select('text.lp')
+          .text(({ value }, index) => (index === 0 ? '' : value === 0 ? format('.1%')(0) : format('.1%')(value / data[0].value)));
+
+        g.select('text.ll').text(d => d.label);
+      });
+    gLables.exit().remove();
 
     svg.selectAll('line')
       .data(range(2, data.length + 1))
@@ -192,10 +215,24 @@ export default function Funnel(props: Props): ReactElement {
           .on('mouseup', function () {
             const el = this;
             const elBox = el.getBoundingClientRect();
-            setAnnotationModal({ coords: { x: elBox.left, width: elBox.width, height: elBox.height } });
+            const svgBBox = svgRef.current!.getBoundingClientRect();
+            const idx = select(el).datum() as number - 1;
+            const d = props.data[idx];
+            let conv = '';
+            console.log(d);
+            if (idx > 0) {
+              conv = format('.1%')(d.value / data[0].value);
+            }
+            setAnnotationModal({
+              coords: { x: elBox.left - svgBBox.x, width: elBox.width, height: elBox.height },
+              data: {
+                ...d,
+                conversionP: conv
+              }
+            });
           });
       });
-  }, []);
+  }, [props.data]);
 
   return (
     <>
@@ -208,15 +245,42 @@ export default function Funnel(props: Props): ReactElement {
         ref={svgRef}
         xmlns="http://www.w3.org/2000/svg"
       />
-      {annotationModal && <div
-        style={{
-          backgroundColor: '#16023e75',
-          position: 'absolute',
-          width: `${annotationModal.coords.width}px`,
-          height: `${annotationModal.coords.height}px`,
-          left: `${annotationModal.coords.x - 30}px`
-        }}
-      />}
+      {annotationModal && (
+        <Tags.FunnelSelectOverlay
+          onClick={() => setAnnotationModal(null)}
+          style={{
+            width: `${annotationModal.coords.width}px`,
+            height: `${annotationModal.coords.height}px`,
+            left: `${annotationModal.coords.x}px`,
+            // INFO this 108px is height adjustment for padding of svg container
+            top: '108px',
+          }}
+        >
+          <div className="con">
+            <div className="sess">{annotationModal.data.value} Sessions</div>
+            {annotationModal.data.conversionP && (
+              <div className="conv">{annotationModal.data.conversionP} <span className="x-sm">Retention rate at this point</span></div>
+            )}
+            <div className="ann-txt">{annotationModal.data.fullLabel}</div>
+          </div>
+          <div className="dist-chart">
+            <div style={{ position: 'relative' }}>
+              <div className="x-sm" style={{ padding: '0 4px', textAlign: 'center' }}>
+                Distribution of time spent on this step
+              </div>
+              <Bar
+                noPad
+                bg="#fafafacc"
+                offset="24px"
+                height={120}
+                xs={[50, 75, 95]}
+                noAbs
+                ys={[annotationModal.data.p50, annotationModal.data.p75, annotationModal.data.p95]}
+              />
+            </div>
+          </div>
+        </Tags.FunnelSelectOverlay>
+      )}
     </>
   );
 }

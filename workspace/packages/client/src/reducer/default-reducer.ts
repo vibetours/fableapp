@@ -97,10 +97,6 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus;
   journey: CreateJourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
-  totalViewsForTour: RespTourView | null;
-  tourConversion: RespConversion | null;
-  tourStepsVisited: RespTourAnnWithPercentile | null;
-  tourAnnInfo: RespTourAnnViews | null;
 } = {
   inited: false,
   commonConfig: null,
@@ -142,10 +138,6 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
-  totalViewsForTour: null,
-  tourConversion: null,
-  tourStepsVisited: null,
-  tourAnnInfo: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -502,34 +494,6 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.DEFAULT_TOUR_LOADED: {
       const newState = { ...state };
       newState.defaultTourLoadingStatus = LoadingStatus.Done;
-      return newState;
-    }
-
-    case ActionType.ANALYTICS_TOTAL_TOUR_VIEW: {
-      const tAction = action as TAnalyticsTourTotalViews;
-      const newState = { ...state };
-      newState.totalViewsForTour = tAction.tourTotalView;
-      return newState;
-    }
-
-    case ActionType.ANALYTICS_TOUR_CONVERSION: {
-      const tAction = action as TAnalyticsConversion;
-      const newState = { ...state };
-      newState.tourConversion = tAction.tourConversion;
-      return newState;
-    }
-
-    case ActionType.ANALYTICS_STEPS_VISITED: {
-      const tAction = action as TAnalyticsStepsVisited;
-      const newState = { ...state };
-      newState.tourStepsVisited = tAction.tourStepsVisited;
-      return newState;
-    }
-
-    case ActionType.ANALYTICS_ANN_INFO: {
-      const tAction = action as TAnalyticsAnnInfo;
-      const newState = { ...state };
-      newState.tourAnnInfo = tAction.tourAnnViews;
       return newState;
     }
 

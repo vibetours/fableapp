@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { ResponsiveContainer } from 'recharts';
 
 export const BtnGroup = styled.div`
   span {
@@ -27,20 +28,40 @@ export const BtnGroup = styled.div`
   }
 `;
 
-export const LineCon = styled.div`
-  path.mg-line {
-    fill: none;
-    stroke-width: 3;
-  }
+export const ChartCon = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 2rem;
+`;
+
+export const KpiAndVisitorCon = styled.div`
+  display: flex;
+  margin: 10%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  gap: 1.5rem;
+  align-items: stretch;
+`;
+
+export const FunnelCon = styled.div`
+  margin: 10%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
 `;
 
 export const KPIHead = styled.div`
-  span.label {
-    font-size: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .label {
+    font-size: 1.25rem;
     opacity: 0.75;
   }
 
-  span.val {
+  .val {
     font-size: 2rem;
     margin-left: 0.5rem;
     font-weight: 500;
@@ -52,8 +73,74 @@ export const KPICon = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
-  background: #fafafa;
-  border-radius: 8px;
+  background: radial-gradient(circle at 18.7% 37.8%, rgb(250, 250, 250) 0%, rgb(225, 234, 238) 90%);
+  border-radius: 16px;
+  position: relative;
+  padding: 1.5rem 0;
   gap: 2rem;
+
+  .loader {
+    position: absolute;
+    background: #eeeeeecf;
+    height: 100%;
+    width: 100%;
+    transform: translateY(-1.5rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    font-size: 2rem;
+    border-radius: 16px;
+  }
+
+  .helpcn {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+`;
+
+export const FunnelSelectOverlay = styled.div`
+  background-color: #1602457a;
+  position: absolute;
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  border: 2px solid #160245b8;
+  border-radius: 2px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .x-sm {
+    font-size: x-small;
+  }
+
+  .dist-chart {
+    position: relative;
+    height: 145px;
+    border-top: 1px solid #160245b0;
+    background: #16024587;
+    padding: 10px 2px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+  }
+
+  .con {
+    padding: 12px 8px;
+    overflow: auto;
+
+    .ann-txt {
+      font-size: 0.85rem;
+      line-height: 0.95rem;
+      margin-top: 8px;
+      border-top: 1px solid #ffffff66;
+      padding-top: 8px;
+    }
+
+    .sess {
+      font-size: 1.5rem;
+    }
+  }
 `;

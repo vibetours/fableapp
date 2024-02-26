@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-02-21 12:33:46.
+// Generated using typescript-generator version 2.35.1025 on 2024-02-26 06:22:01.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -60,12 +60,23 @@ export interface TotalVisitorsByYmd {
 export interface TourAnnViewsWithPercentile {
     annId: string;
     totalViews: number;
-    percentile50: number;
+    p1: number;
+    p5: number;
+    p10: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p90: number;
+    p95: number;
+    p99: number;
 }
 
 export interface TourAnnWithViews {
     annId: string;
     totalViews: number;
+    p50: number;
+    p75: number;
+    p95: number;
 }
 
 export interface TourManifest {
@@ -269,7 +280,7 @@ export interface RespTourAnnWithPercentile {
 
 export interface RespTourView {
     tourId: number;
-    totalViews: number;
+    totalViews: SumViews;
     totalVisitorsByYmd: TotalVisitorsByYmd[];
 }
 
@@ -304,6 +315,11 @@ export interface MapSerializable extends Serializable {
 export interface ResponseBase {
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface SumViews {
+    viewsAll: number;
+    viewsUnique: number;
 }
 
 export const enum EntityType {
