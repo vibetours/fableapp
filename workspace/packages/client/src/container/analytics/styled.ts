@@ -133,6 +133,14 @@ export const FunnelSelectData = styled.div`
     font-size: x-small;
   }
 
+  .sm {
+    font-size: small;
+  }
+
+  .conv {
+    font-size: 1.15rem;
+  }
+
   .dist-chart {
     position: relative;
     height: 145px;
@@ -149,7 +157,6 @@ export const FunnelSelectData = styled.div`
     .ann-txt {
       font-size: 0.85rem;
       line-height: 0.95rem;
-      margin-top: 8px;
       padding-top: 8px;
     }
 

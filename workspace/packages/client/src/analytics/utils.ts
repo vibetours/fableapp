@@ -23,13 +23,30 @@ export const getAnonymousUserId = (): string => {
   return aid;
 };
 
+// Generate a new session id after 10mins of inactivity
+// WARN Use this sessionId only for analytics as session gets invalidated after expiry
 export const getSessionId = (): string => {
   const sid = sessionStorage.getItem(FableAnalyticsLocalStoreKeys.SessionId);
-  if (!sid) {
+  const expiry = sessionStorage.getItem(FableAnalyticsLocalStoreKeys.SessionIdExpireAt);
+  // set session id expiry 10mins in future
+  const expireAfterSeconds = 10 * 60;
+  sessionStorage.setItem(
+    FableAnalyticsLocalStoreKeys.SessionIdExpireAt,
+    String(Math.floor((+new Date() / 1000) + expireAfterSeconds))
+  );
+
+  let sessionIdExpired = false;
+  let expiryNum;
+  if (expiry && Number.isFinite(expiryNum = +expiry) && expiryNum < Math.floor((+new Date() / 1000))) {
+    sessionIdExpired = true;
+  }
+
+  if (!sid || sessionIdExpired) {
     const newSid = getUUID();
     sessionStorage.setItem(FableAnalyticsLocalStoreKeys.SessionId, newSid);
     return newSid;
   }
+
   return sid;
 };
 

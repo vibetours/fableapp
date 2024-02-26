@@ -246,6 +246,7 @@ export default function Funnel(props: Props): ReactElement {
         <Tags.FunnelSelectData>
           <div className="con">
             <div className="sess">{props.data[annotationModal.selIdx].formattedValue} {props.data[annotationModal.selIdx].value > 1 ? 'Sessions' : 'Session'}</div>
+            <div className="conv">{Math.round(props.data[annotationModal.selIdx].p50)} <span className="x-sm">seconds spent in avg on this step</span></div>
             {props.data[annotationModal.selIdx].retentionP && (
               <div className="conv">{props.data[annotationModal.selIdx].retentionP} <span className="x-sm">Retention rate at this point</span></div>
             )}

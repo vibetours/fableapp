@@ -3,6 +3,7 @@ import { IAnnotationButtonType } from '@fable/common/dist/types';
 export enum FableAnalyticsLocalStoreKeys {
   AnonymousUserId = 'fable/aid',
   SessionId = 'fable/sid',
+  SessionIdExpireAt = 'fable/side'
 }
 
 export interface CommonEventProps {
