@@ -3,8 +3,9 @@ import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
 import { scaleUtc, scaleLinear } from 'd3-scale';
 import { extent, max, range } from 'd3-array';
-import { format } from 'd3-format';
 import { area, curveCatmullRom } from 'd3-shape';
+import { Link } from 'react-router-dom';
+import { LinkOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import Bar from './bar';
 
@@ -13,11 +14,15 @@ const margin = { top: 20, right: 20, bottom: 30, left: 30 };
 export interface IFunnelDatum {
   step: number;
   value: number;
+  refId: string;
   label: string ;
+  loc: string;
   fullLabel: string;
   p50: number;
   p75: number;
   p95: number;
+  formattedValue: string;
+  retentionP: string;
 }
 
 interface Props {
@@ -26,9 +31,7 @@ interface Props {
 
 interface AnnotationModal {
   coords: { x: number, width: number, height: number},
-  data: IFunnelDatum & {
-    conversionP: string;
-  }
+  selIdx: number
 }
 
 export default function Funnel(props: Props): ReactElement {
@@ -148,25 +151,11 @@ export default function Funnel(props: Props): ReactElement {
             fill: #16023e75;
             font-size: 18px;
           `);
-
-        g
-          .append('text')
-          .attr('class', 'll')
-          .attr('y', 40)
-          .attr('style', `
-            fill: #b4adc2;
-            font-size: 12px;
-          `);
       })
       .merge(gLables as any)
       .call(g => {
-        g.select('text.lv')
-          .text(({ value }) => format(',')(value)); // format number with k/m
-
-        g.select('text.lp')
-          .text(({ value }, index) => (index === 0 ? '' : value === 0 ? format('.1%')(0) : format('.1%')(value / data[0].value)));
-
-        g.select('text.ll').text(d => d.label);
+        g.select('text.lv').text(({ formattedValue }) => formattedValue);
+        g.select('text.lp').text(({ retentionP }) => retentionP);
       });
     gLables.exit().remove();
 
@@ -217,29 +206,25 @@ export default function Funnel(props: Props): ReactElement {
             const elBox = el.getBoundingClientRect();
             const svgBBox = svgRef.current!.getBoundingClientRect();
             const idx = select(el).datum() as number - 1;
-            const d = props.data[idx];
-            let conv = '';
-            console.log(d);
-            if (idx > 0) {
-              conv = format('.1%')(d.value / data[0].value);
-            }
             setAnnotationModal({
               coords: { x: elBox.left - svgBBox.x, width: elBox.width, height: elBox.height },
-              data: {
-                ...d,
-                conversionP: conv
-              }
+              selIdx: idx
             });
           });
       });
   }, [props.data]);
 
   return (
-    <>
+    <div style={{
+      display: 'flex',
+      width: '100%',
+      height: '100%'
+    }}
+    >
       <svg
         style={{
           height: '100%',
-          width: '100%',
+          width: '70%',
           flexGrow: 1
         }}
         ref={svgRef}
@@ -253,34 +238,45 @@ export default function Funnel(props: Props): ReactElement {
             height: `${annotationModal.coords.height}px`,
             left: `${annotationModal.coords.x}px`,
             // INFO this 108px is height adjustment for padding of svg container
-            top: '108px',
+            top: '100px',
           }}
-        >
+        />
+      )}
+      {annotationModal ? (
+        <Tags.FunnelSelectData>
           <div className="con">
-            <div className="sess">{annotationModal.data.value} Sessions</div>
-            {annotationModal.data.conversionP && (
-              <div className="conv">{annotationModal.data.conversionP} <span className="x-sm">Retention rate at this point</span></div>
+            <div className="sess">{props.data[annotationModal.selIdx].formattedValue} {props.data[annotationModal.selIdx].value > 1 ? 'Sessions' : 'Session'}</div>
+            {props.data[annotationModal.selIdx].retentionP && (
+              <div className="conv">{props.data[annotationModal.selIdx].retentionP} <span className="x-sm">Retention rate at this point</span></div>
             )}
-            <div className="ann-txt">{annotationModal.data.fullLabel}</div>
+            {props.data[annotationModal.selIdx].loc && (
+              <div className="ann-txt">
+                <Link to={props.data[annotationModal.selIdx].loc}><LinkOutlined /> Open Annotation</Link>
+              </div>
+            )}
           </div>
           <div className="dist-chart">
             <div style={{ position: 'relative' }}>
               <div className="x-sm" style={{ padding: '0 4px', textAlign: 'center' }}>
-                Distribution of time spent on this step
+                Percentile distribution of time spent in this step
               </div>
               <Bar
                 noPad
-                bg="#fafafacc"
+                bg="#abacc0"
                 offset="24px"
                 height={120}
                 xs={[50, 75, 95]}
                 noAbs
-                ys={[annotationModal.data.p50, annotationModal.data.p75, annotationModal.data.p95]}
+                ys={[props.data[annotationModal.selIdx].p50, props.data[annotationModal.selIdx].p75, props.data[annotationModal.selIdx].p95]}
               />
             </div>
           </div>
-        </Tags.FunnelSelectOverlay>
-      )}
-    </>
+        </Tags.FunnelSelectData>
+      ) : (
+        <Tags.FunnelSelectData style={{ justifyContent: 'center' }}>
+          <span className="x-sm">Click on a step from the funnel to see details.</span>
+        </Tags.FunnelSelectData>
+      ) }
+    </div>
   );
 }

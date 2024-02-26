@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-02-26 06:22:01.
+// Generated using typescript-generator version 2.35.1025 on 2024-02-26 10:39:42.
 
 export interface ApiResp<T> {
     status: ResponseStatus;

@@ -15,6 +15,8 @@ import { Button, Drawer, MenuProps, Table } from 'antd';
 import Dropdown from 'antd/lib/dropdown';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
+import { format } from 'd3-format';
+import { Link } from 'react-router-dom';
 import {
   getAnnViewsForTour,
   getConversionDataForTour,
@@ -24,7 +26,7 @@ import {
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { flatten } from '../../utils';
@@ -34,7 +36,7 @@ import Funnel, { IFunnelDatum } from './sleeping-funnel';
 import * as Tags from './styled';
 
 const mapDispatchToProps = (dispatch: any) => ({
-  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid)),
+  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, true)),
   getTotalViewsForTour: (
     rid: string,
     days: number,
@@ -57,10 +59,14 @@ const mapDispatchToProps = (dispatch: any) => ({
   ) => dispatch(getAnnViewsForTour(rid, days)).then(onComplete)
 });
 
+interface IAnnotationConfigWithLocation extends IAnnotationConfig {
+  location: string;
+}
+
 interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
-  orderedAnn: IAnnotationConfig[];
+  orderedAnn: IAnnotationConfigWithLocation[];
   extLinkOpenBtnIds: string[]
 }
 
@@ -121,18 +127,23 @@ function medianTimeSpentInTour(tourStepsVisited: RespTourAnnWithPercentile): TPV
   return pvals.map(v => Math.round(v)) as TPVals;
 }
 
-function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAnnotationConfig[]): Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>> {
+function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAnnotationConfigWithLocation[]): Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>> {
   const orderAnnTotalViews: Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>> = [];
   if (tourAnnInfo && Object.keys(tourAnnInfo).length > 0) {
     const eachAnnTotalViews: TourAnnWithViews[] = tourAnnInfo.tourAnnWithViews;
     if (eachAnnTotalViews) {
       for (let i = 0; i < flatAnn.length; i++) {
         const matchingAnn = eachAnnTotalViews.find(item => item !== undefined && flatAnn[i].refId === item.annId);
+        const value = matchingAnn?.totalViews ?? 0;
         orderAnnTotalViews.push({
-          value: matchingAnn?.totalViews ?? 0,
+          value,
+          refId: flatAnn[i].refId,
           p50: matchingAnn?.p50 ?? 0,
           p75: matchingAnn?.p75 ?? 0,
           p95: matchingAnn?.p95 ?? 0,
+          retentionP: '',
+          formattedValue: format(',')(value),
+          loc: flatAnn[i].location
         });
       }
       return orderAnnTotalViews;
@@ -141,18 +152,29 @@ function getEachAnnotationTotalViews(tourAnnInfo: RespTourAnnViews, flatAnn: IAn
   return orderAnnTotalViews;
 }
 
-function getFunnelData(annotationTotalViews: Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>>, flatAnn: IAnnotationConfig[]): IFunnelDatum[] {
+function getFunnelData(annotationTotalViews: Array<Omit<IFunnelDatum, 'step' | 'label' | 'fullLabel'>>, flatAnn: IAnnotationConfigWithLocation[]): IFunnelDatum[] {
   const funnelData: IFunnelDatum[] = [];
   for (let i = 0; i < flatAnn.length; i++) {
     funnelData.push({
       step: i + 1,
+      refId: annotationTotalViews[i]?.refId,
+
       value: annotationTotalViews[i]?.value ?? 0,
       label: flatAnn[i].displayText.substring(0, 19),
       fullLabel: flatAnn[i].displayText,
       p50: annotationTotalViews[i]?.p50 ?? 0,
       p75: annotationTotalViews[i]?.p75 ?? 0,
       p95: annotationTotalViews[i]?.p95 ?? 0,
+      formattedValue: annotationTotalViews[i]?.formattedValue ?? '',
+      retentionP: '',
+      loc: annotationTotalViews[i]?.loc
     });
+  }
+  const base = funnelData[0];
+  if (base.value) {
+    for (let i = 1; i < funnelData.length; i++) {
+      funnelData[i].retentionP = format('.1%')(funnelData[i].value / base.value);
+    }
   }
   return funnelData;
 }
@@ -168,18 +190,35 @@ function parseYYYYMMDDtoDate(str: string): Date {
 }
 
 function orderedAnnotationsForTour(
+  tour: P_RespTour | null,
+  flattenedScreens: P_RespScreen[],
   annGroupedByScreen: Record<string, IAnnotationConfig[]>,
   opts: ITourDataOpts | null,
 ): {
-  orderedAnn: IAnnotationConfig[];
+  orderedAnn: IAnnotationConfigWithLocation[];
   extLinkOpenBtnIds: string[]
 } {
+  if (!tour) {
+    return {
+      orderedAnn: [],
+      extLinkOpenBtnIds: []
+    };
+  }
+
+  const flattenedAnnotations: IAnnotationConfigWithLocation[] = [];
+  for (const [screenId, anns] of Object.entries(annGroupedByScreen)) {
+    const screen = flattenedScreens.find(s => s.id === +screenId);
+    for (const ann of anns) {
+      (ann as IAnnotationConfigWithLocation).location = screen ? `/demo/${tour.rid}/${screen!.rid}/${ann.refId}` : '';
+      flattenedAnnotations.push(ann as IAnnotationConfigWithLocation);
+    }
+  }
   let hasAnn = false;
-  const allAnnHm = flatten(Object.values(annGroupedByScreen)).reduce((hm, an) => {
+  const allAnnHm = flattenedAnnotations.reduce((hm, an) => {
     hasAnn = true;
     hm[an.refId] = an;
     return hm;
-  }, {} as Record<string, IAnnotationConfig>);
+  }, {} as Record<string, IAnnotationConfigWithLocation>);
 
   if (!hasAnn) {
     return {
@@ -199,8 +238,8 @@ function orderedAnnotationsForTour(
     };
   }
 
-  const flatAnn: IAnnotationConfig[] = [];
-  let ptr: IAnnotationConfig = start;
+  const flatAnn: IAnnotationConfigWithLocation[] = [];
+  let ptr: IAnnotationConfigWithLocation = start;
   const openLinkBtnId: string[] = [];
   while (true) {
     flatAnn.push(ptr);
@@ -225,6 +264,8 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   principal: state.default.principal,
   ...orderedAnnotationsForTour(
+    state.default.currentTour,
+    state.default.allScreens,
     state.default.remoteAnnotations,
     state.default.remoteTourOpts
   )
@@ -580,6 +621,24 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           <Header
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"
+            rightElGroups={[(
+              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
+                <Button
+                  size="small"
+                  className="sec-btn"
+                  type="default"
+                  style={{
+                    padding: '0 0.8rem',
+                    height: '30px',
+                    borderRadius: '16px',
+                    backgroundColor: '#160245',
+                    color: 'white'
+                  }}
+                >
+                  Edit demo
+                </Button>
+              </Link>
+            )]}
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <GTags.Txt className="subsubhead">Insight for</GTags.Txt>
@@ -739,7 +798,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   <p style={{
                     opacity: '0.75',
                     fontSize: '0.75rem',
-                    marginTop: '4.5rem'
+                    marginTop: '4.5rem',
+                    padding: '0 8px'
                   }}
                   >
                     Percentile distribution of session times across all sessions

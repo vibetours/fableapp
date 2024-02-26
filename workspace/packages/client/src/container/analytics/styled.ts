@@ -101,16 +101,33 @@ export const KPICon = styled.div`
 `;
 
 export const FunnelSelectOverlay = styled.div`
-  background-color: #1602457a;
+  background-color: #fafafa8f;
   position: absolute;
-  backdrop-filter: blur(3px);
   cursor: pointer;
-  border: 2px solid #160245b8;
   border-radius: 2px;
-  color: white;
+`;
+
+export const FunnelSelectData = styled.div`
+  width: 20%;
+  min-width: 240px;
   display: flex;
   flex-direction: column;
+  padding: 0rem 0.5rem 1rem 1rem;
+  align-items: center;
   justify-content: space-between;
+
+  .con {
+    width: calc(100% - 3rem);
+  }
+
+  a {
+    color: #747474;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 
   .x-sm {
     font-size: x-small;
@@ -119,23 +136,20 @@ export const FunnelSelectOverlay = styled.div`
   .dist-chart {
     position: relative;
     height: 145px;
-    border-top: 1px solid #160245b0;
-    background: #16024587;
-    padding: 10px 2px 0;
+    padding: 0px 2px 0;
     display: flex;
     flex-direction: column;
     justify-content: end;
   }
 
   .con {
-    padding: 12px 8px;
+    padding: 0px 8px;
     overflow: auto;
 
     .ann-txt {
       font-size: 0.85rem;
       line-height: 0.95rem;
       margin-top: 8px;
-      border-top: 1px solid #ffffff66;
       padding-top: 8px;
     }
 
