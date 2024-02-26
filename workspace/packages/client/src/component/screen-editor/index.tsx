@@ -128,7 +128,7 @@ interface IOwnProps {
   onScreenEditStart: () => void;
   toAnnotationId: string;
   onScreenEditFinish: () => void;
-  onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
+  onScreenEditChange: (forScreen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
   commitTx: (tx: Tx) => void;
@@ -983,7 +983,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   flushMicroEdits(): void {
     const hasEdits = Object.keys(this.microEdits).length !== 0;
     if (hasEdits) {
-      this.props.onScreenEditChange(this.microEdits);
+      this.props.onScreenEditChange(this.props.screen, this.microEdits);
       this.microEdits = {};
     }
   }

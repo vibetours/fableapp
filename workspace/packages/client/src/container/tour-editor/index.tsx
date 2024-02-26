@@ -82,12 +82,14 @@ import { AnnUpdateType } from '../../component/annotation/types';
 import Loader from '../../component/loader';
 import ScreenPicker from '../screen-picker';
 
+type EditChunksForScreen = Record<string, AllEdits<ElEditType>>;
+
 interface IDispatchProps {
   publishTour: (tour: P_RespTour) => Promise<boolean>,
   loadScreenAndData: (rid: string) => void;
   saveEditChunks: (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   saveTourData: (tour: P_RespTour, data: TourDataWoScheme, isJourneyUpdate?: boolean) => void;
-  flushEditChunksToMasterFile: (screen: P_RespScreen, edits: AllEdits<ElEditType>) => void;
+  flushEditChunksToMasterFile: (screenIdRidStr: string, edits: AllEdits<ElEditType>) => void;
   flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => void;
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   clearCurrentScreenSelection: () => void,
@@ -105,7 +107,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   saveEditChunks:
     (screen: P_RespScreen, editChunks: AllEdits<ElEditType>) => dispatch(saveEditChunks(screen, editChunks)),
   flushEditChunksToMasterFile:
-    (screen: P_RespScreen, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screen, edits)),
+    (screenIdRidStr: string, edits: AllEdits<ElEditType>) => dispatch(flushEditChunksToMasterFile(screenIdRidStr, edits)),
   saveTourData: (
     tour: P_RespTour,
     data: TourDataWoScheme,
@@ -418,10 +420,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  getStorageKeyForType(type: 'edit-chunk' | 'tour-data'): string {
+  getStorageKeyForType(type: 'edit-chunk' | 'tour-data', key?: string): string {
     switch (type) {
       case 'edit-chunk':
-        return `${TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK}/${this.props.screen?.id!}`;
+        return `${TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK}/${key ?? this.props.screen?.id!}`;
 
       case 'tour-data':
         return `${TourEditor.LOCAL_STORAGE_KEY_PREFIX_TOUR_DATA}/${this.props.tour?.rid!}`;
@@ -780,8 +782,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   private flushEdits = (key: string, value: AllEdits<ElEditType> | TourDataWoScheme): void => {
     if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK)) {
+      const screenIdRid = key.substring(TourEditor.LOCAL_STORAGE_KEY_PREFIX_EDIT_CHUNK.length + 1);
       const tValue = value as AllEdits<ElEditType>;
-      this.props.flushEditChunksToMasterFile(this.props.screen!, tValue);
+      this.props.flushEditChunksToMasterFile(screenIdRid, tValue);
     } else if (key.startsWith(TourEditor.LOCAL_STORAGE_KEY_PREFIX_TOUR_DATA)) {
       const tValue = value as TourDataWoScheme;
       this.props.flushTourDataToMasterFile(this.props.tour!, tValue);
@@ -839,10 +842,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.saveTourData(this.props.tour!, mergedData);
   };
 
-  private onScreenEditChange = (editChunks: AllEdits<ElEditType>): void => {
+  private onScreenEditChange = (forScreen: P_RespScreen, editChunks: AllEdits<ElEditType>): void => {
     this.props.startAutoSaving();
     const mergedEditChunks = this.chunkSyncManager!.add(
-      this.getStorageKeyForType('edit-chunk'),
+      this.getStorageKeyForType('edit-chunk', `${forScreen.id}/${forScreen.rid}`),
       editChunks,
       (storedEdits: AllEdits<ElEditType> | null, edits: AllEdits<ElEditType>) => {
         if (storedEdits === null) {
@@ -851,7 +854,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         return mergeEdits(storedEdits, edits);
       }
     );
-    this.props.saveEditChunks(this.props.screen!, mergedEditChunks!);
+    this.props.saveEditChunks(forScreen, mergedEditChunks!);
   };
 
   private onTourJourneyChange = (newJourney: CreateJourneyData, tx?: Tx): void => {

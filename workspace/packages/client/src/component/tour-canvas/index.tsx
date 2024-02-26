@@ -116,7 +116,7 @@ type CanvasProps = {
   onAnnotationCreateOrChange: onAnnCreateOrChangeFn;
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
-  onScreenEditChange: (editChunks: AllEdits<ElEditType>) => void;
+  onScreenEditChange: (forScreen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
   isScreenLoaded: boolean;
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;

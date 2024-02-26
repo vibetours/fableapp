@@ -1,12 +1,7 @@
 import { Action } from 'redux';
 import {
   RespCommonConfig,
-  RespConversion,
   RespOrg,
-  RespSubscription,
-  RespTourAnnViews,
-  RespTourAnnWithPercentile,
-  RespTourView,
   RespUser
 } from '@fable/common/dist/api-contract';
 import {
@@ -45,10 +40,6 @@ import {
   TSaveTourLoader,
   TAutosavingLoader,
   TScreenUpdate,
-  TAnalyticsTourTotalViews,
-  TAnalyticsConversion,
-  TAnalyticsStepsVisited,
-  TAnalyticsAnnInfo
 } from '../action/creator';
 import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
@@ -437,11 +428,11 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TSaveEditChunks;
       const newState = { ...state };
       if (tAction.isLocal) {
-        newState.localEdits[tAction.screen.id] = [...tAction.editList];
+        newState.localEdits[tAction.screenId] = [...tAction.editList];
       } else {
-        newState.remoteEdits[tAction.screen.id] = [...tAction.editList];
-        newState.localEdits[tAction.screen.id] = [];
-        newState.screenEdits[tAction.screen.id] = tAction.editFile!;
+        newState.remoteEdits[tAction.screenId] = [...tAction.editList];
+        newState.localEdits[tAction.screenId] = [];
+        newState.screenEdits[tAction.screenId] = tAction.editFile!;
       }
       return newState;
     }

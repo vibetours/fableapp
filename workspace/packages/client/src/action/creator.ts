@@ -836,7 +836,7 @@ export function publishTour(tour: P_RespTour) {
 
 export interface TSaveEditChunks {
   type: ActionType.SAVE_EDIT_CHUNKS;
-  screen: P_RespScreen;
+  screenId: number;
   editList: EditItem[];
   isLocal: boolean;
   editFile?: EditFile<AllEdits<ElEditType>>
@@ -846,16 +846,19 @@ export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEdit
   return async (dispatch: Dispatch<TSaveEditChunks>) => {
     dispatch({
       type: ActionType.SAVE_EDIT_CHUNKS,
-      screen,
+      screenId: screen.id,
       editList: convertEditsToLineItems(editChunks, true),
       isLocal: true,
     });
   };
 }
 
-export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: AllEdits<ElEditType>) {
+export function flushEditChunksToMasterFile(screenRidIdStr: string, localEdits: AllEdits<ElEditType>) {
   return async (dispatch: Dispatch<TSaveEditChunks | TAutosaving>, getState: () => TState) => {
-    const savedEditData = getState().default.screenEdits[screen.id];
+    const [id, ...rid] = screenRidIdStr.split('/');
+    const screenId = +id;
+    const screenRid = rid.join('/');
+    const savedEditData = getState().default.screenEdits[screenId];
     if (savedEditData) {
       let masterEdit = savedEditData?.edits;
       if (masterEdit) {
@@ -870,14 +873,14 @@ export function flushEditChunksToMasterFile(screen: P_RespScreen, localEdits: Al
         const screenResp = await api<ReqRecordEdit, ApiResp<RespScreen>>('/recordeledit', {
           auth: true,
           body: {
-            rid: screen.rid,
+            rid: screenRid,
             editData: JSON.stringify(savedEditData),
           },
         });
 
         dispatch({
           type: ActionType.SAVE_EDIT_CHUNKS,
-          screen,
+          screenId,
           editList: convertEditsToLineItems(savedEditData.edits, false),
           editFile: savedEditData,
           isLocal: false,
