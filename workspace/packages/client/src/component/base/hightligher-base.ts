@@ -161,9 +161,9 @@ export default abstract class HighlighterBase {
 
   protected selectElementInDoc(el: HTMLElement, doc: Document): void {
     const win = doc.defaultView!;
-    const [dx, dy] = this.getCumulativeDxdy(doc);
+    const [dx, dy] = this.getCumulativeDxdy(el.ownerDocument);
     const elSize: DOMRect = el.getBoundingClientRect();
-    this.drawMask(elSize, win, dx, dy);
+    this.drawMask(elSize, this.win, dx, dy);
   }
 
   selectBoxInDoc(scaleCoords: Coords): void {

@@ -179,6 +179,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (this.screenType === ScreenType.SerDom) {
       this.win.addEventListener('mousewheel', this.onIframeElsScroll, true);
       this.doc.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+      this.nestedFrames.forEach(frame => {
+        const doc2 = frame.contentDocument!;
+        const win2 = doc2.defaultView!;
+        win2.addEventListener('mousewheel', this.onIframeElsScroll, true);
+        doc2.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+      });
     }
   }
 
@@ -205,6 +211,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       umbrellaDiv.style.position = 'absolute';
       umbrellaDiv.style.left = `${0}`;
       umbrellaDiv.style.top = `${0}`;
+      umbrellaDiv.style.setProperty('display', 'block', 'important');
       this.doc.body.appendChild(umbrellaDiv);
 
       const [con, root] = this.createContainerRoot('');
@@ -454,6 +461,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     this.doc.addEventListener('scroll', scrollHandler);
     this.doc.body.addEventListener('scroll', scrollHandler);
+    this.nestedDocs.forEach(doc => {
+      doc.addEventListener('scroll', scrollHandler);
+      doc.body.addEventListener('scroll', scrollHandler);
+    });
 
     await Promise.race([
       new Promise((resolve) => {
@@ -469,6 +480,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     clearInterval(intervalId);
     this.doc.removeEventListener('scroll', scrollHandler);
     this.doc.body.removeEventListener('scroll', scrollHandler);
+    this.nestedDocs.forEach(doc => {
+      doc.removeEventListener('scroll', scrollHandler);
+      doc.body.removeEventListener('scroll', scrollHandler);
+    });
 
     this.onScrollComplete(el, config);
   };
@@ -910,6 +925,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (this.screenType === ScreenType.SerDom) {
         this.win.removeEventListener('mousewheel', this.onIframeElsScroll, true);
         this.doc.body.removeEventListener('mousewheel', this.onIframeElsScroll, true);
+        this.nestedFrames.forEach(frame => {
+          const doc2 = frame.contentDocument;
+          const win2 = doc2?.defaultView;
+          win2?.addEventListener('mousewheel', this.onIframeElsScroll, true);
+          doc2?.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+        });
       }
       this.annElsVisibilityObserver.unobserveAllEls();
       super.dispose();

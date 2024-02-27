@@ -128,6 +128,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
                 umbrellaDiv.style.position = 'absolute';
                 umbrellaDiv.style.left = `${0}`;
                 umbrellaDiv.style.top = `${0}`;
+                umbrellaDiv.style.setProperty('display', 'block', 'important');
                 frameBody.appendChild(umbrellaDiv);
               }
               this.props.onBeforeFrameBodyDisplay({

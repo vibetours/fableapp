@@ -11,7 +11,7 @@ export const deser = (
   version: string,
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
-  nestedFrames: HTMLIFrameElement[] = [],
+  nestedFrames: HTMLIFrameElement[],
   props: DeSerProps = { partOfSvgEl: 0, shadowParent: null },
   shouldAddImgToAssetLoadingPromises: boolean = false,
 
@@ -108,7 +108,7 @@ export const deser = (
 
               tNode.onload = () => {
                 const newDoc = tNode.contentDocument!;
-                deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises);
+                deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises, nestedFrames);
                 nestedFrames.push(tNode);
                 resolve(1);
               };
@@ -188,7 +188,10 @@ export const createHtmlElement = (
         attrValue = `/aboutblank?ts=${+new Date()}`;
         el.setAttribute(attrKey, attrValue);
         // el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
-      } else if (node.name === 'iframe' && (attrKey === 'sandbox' || attrKey === 'allow')) {
+      } else if (node.name === 'iframe'
+      && (attrKey === 'sandbox' || attrKey === 'allow'
+      || (attrKey === 'srcdoc' && !(attrValue || '').trim()))
+      ) {
         continue;
       } else if (node.name === 'object' && attrKey === 'data') {
         el.setAttribute(attrKey, '/aboutblank');
@@ -254,7 +257,7 @@ export const deserFrame = async (
   v: string,
   frameLoadingPromises: Promise<unknown>[],
   assetLoadingPromises: Promise<unknown>[],
-  nestedFrames: HTMLIFrameElement[] = [],
+  nestedFrames: HTMLIFrameElement[],
   shouldAddImgToAssetLoadingPromises: boolean = false,
 ): Promise<void> => {
   const rootHTMLEl = deser(
@@ -312,7 +315,7 @@ export const deserIframeEl = (
 
       tNode.onload = () => {
         const newDoc = tNode.contentDocument!;
-        deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises);
+        deserFrame(htmlNode, newDoc, version, frameLoadingPromises, assetLoadingPromises, nestedFrames);
         nestedFrames.push(tNode);
         resolve(1);
       };
