@@ -165,3 +165,16 @@ export const FunnelSelectData = styled.div`
     }
   }
 `;
+
+export const SvgCon = styled.div`
+  position: relative;
+
+  .w-adj-btn {
+    position: absolute;
+    top: -96px;
+    right: 26px;
+
+    button  {
+    }
+  } 
+`;

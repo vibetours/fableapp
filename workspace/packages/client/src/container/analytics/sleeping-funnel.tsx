@@ -1,11 +1,11 @@
-// Ref: https://observablehq.com/d/7e58cf7c71d8d8b5
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
 import { scaleUtc, scaleLinear } from 'd3-scale';
 import { extent, max, range } from 'd3-array';
 import { area, curveCatmullRom } from 'd3-shape';
 import { Link } from 'react-router-dom';
-import { LinkOutlined } from '@ant-design/icons';
+import { ArrowsAltOutlined, LinkOutlined, ShrinkOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import * as Tags from './styled';
 import Bar from './bar';
 
@@ -34,12 +34,22 @@ interface AnnotationModal {
   selIdx: number
 }
 
+enum WidthAdjustmentOptions {
+  Compact, // fit full funnel inside viewport, don't show inline step info
+  Expanded // relaxed space show inline step info
+}
+
 export default function Funnel(props: Props): ReactElement {
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const conRef = useRef<HTMLDivElement | null>(null);
   const [annotationModal, setAnnotationModal] = useState<AnnotationModal | null>(null);
+  const [widthAdjustment, setWidthAdjustment] = useState<WidthAdjustmentOptions>(WidthAdjustmentOptions.Compact);
+  const [showWidthAdjustmentOption, setShowWidthAdjustmentOption] = useState(false);
+  const initialSvgWidth = useRef(0);
 
   useEffect(() => {
     const svg = select(svgRef.current);
+    initialSvgWidth.current = svgRef.current!.getBoundingClientRect().width;
 
     svg.append('linearGradient')
       .attr('id', 'temperature-gradient')
@@ -52,9 +62,23 @@ export default function Funnel(props: Props): ReactElement {
   }, []);
 
   useEffect(() => {
-    const box = svgRef.current?.getBoundingClientRect()!;
-
     const data = props.data;
+
+    const box = svgRef.current!.getBoundingClientRect()!;
+    let width = initialSvgWidth.current!;
+    const expandedWidth = data.length * 80;
+    const isBiggerThanViewport = width < expandedWidth;
+
+    if (isBiggerThanViewport) setShowWidthAdjustmentOption(true);
+
+    if (widthAdjustment === WidthAdjustmentOptions.Compact) {
+      svgRef.current!.style.width = '100%';
+    } else {
+      // eslint-disable-next-line no-mixed-operators
+      svgRef.current!.style.width = `${Math.ceil(expandedWidth / width * 100)}%`;
+      width = expandedWidth;
+    }
+
     const data2: Array<{
       step: number;
       value: number;
@@ -76,7 +100,7 @@ export default function Funnel(props: Props): ReactElement {
 
     const x = scaleUtc()
       .domain(extent(data2, ({ step }) => step) as any)
-      .range([margin.left, box.width - margin.right]);
+      .range([margin.left, width - margin.right]);
 
     const y = scaleLinear()
       .domain([-max(data, ({ value }) => value)!, max(data, ({ value }) => value)] as any).nice()
@@ -127,7 +151,7 @@ export default function Funnel(props: Props): ReactElement {
 
     const gLables = svg
       .selectAll('g.label')
-      .data(data, d => (d as any).step);
+      .data(widthAdjustment === WidthAdjustmentOptions.Compact && isBiggerThanViewport ? [] : data, d => (d as any).step);
     gLables
       .enter()
       .append('g')
@@ -159,17 +183,20 @@ export default function Funnel(props: Props): ReactElement {
       });
     gLables.exit().remove();
 
-    svg.selectAll('line')
-      .data(range(2, data.length + 1))
+    const gridLines = svg.selectAll('line')
+      .data(range(2, data.length + 1));
+    gridLines
       .enter()
       .append('line')
-      .attr('x1', value => x(value))
-      .attr('y1', 10)
-      .attr('x2', value => x(value))
-      .attr('y2', box.height - 30)
       .style('stroke-width', 1)
       .style('stroke', '#16023e17')
-      .style('fill', 'none');
+      .style('fill', 'none')
+      .attr('y1', 10)
+      .merge(gridLines as any)
+      .attr('y2', box.height - 30)
+      .attr('x1', value => x(value))
+      .attr('x2', value => x(value));
+    gridLines.exit().remove();
 
     const gMask = svg
       .selectAll('g.ie')
@@ -188,11 +215,12 @@ export default function Funnel(props: Props): ReactElement {
           .append('rect')
           .attr('x', 0)
           .attr('y', 0)
-          .attr('height', box.height - 30)
-          .attr('width', x(3) - x(2))
-          .attr('transform', v => `translate(${x(v)}, 0)`)
           .attr('fill', 'transparent')
           .attr('style', 'cursor: pointer;')
+          .attr('height', box.height - 30)
+          .merge(r as any)
+          .attr('width', x(3) - x(2))
+          .attr('transform', v => `translate(${x(v)}, 0)`)
           .on('mouseover', function () {
             const sel = select(this);
             sel.attr('fill', '#d0d0ff38');
@@ -212,24 +240,34 @@ export default function Funnel(props: Props): ReactElement {
             });
           });
       });
-  }, [props.data]);
+    gMask.exit().remove();
+  }, [props.data, widthAdjustment]);
 
   return (
-    <div style={{
-      display: 'flex',
-      width: '100%',
-      height: '100%'
-    }}
+    <Tags.SvgCon
+      style={{
+        display: 'flex',
+        width: '100%',
+        height: '100%'
+      }}
+      ref={conRef}
     >
-      <svg
-        style={{
-          height: '100%',
-          width: '70%',
-          flexGrow: 1
-        }}
-        ref={svgRef}
-        xmlns="http://www.w3.org/2000/svg"
-      />
+      <div style={{
+        width: '100%',
+        height: '100%',
+        overflowX: 'auto'
+      }}
+      >
+        <svg
+          style={{
+            height: '100%',
+            width: '100%',
+            flexGrow: 1
+          }}
+          ref={svgRef}
+          xmlns="http://www.w3.org/2000/svg"
+        />
+      </div>
       {annotationModal && (
         <Tags.FunnelSelectOverlay
           onClick={() => setAnnotationModal(null)}
@@ -237,8 +275,6 @@ export default function Funnel(props: Props): ReactElement {
             width: `${annotationModal.coords.width}px`,
             height: `${annotationModal.coords.height}px`,
             left: `${annotationModal.coords.x}px`,
-            // INFO this 108px is height adjustment for padding of svg container
-            top: '100px',
           }}
         />
       )}
@@ -278,6 +314,22 @@ export default function Funnel(props: Props): ReactElement {
           <span className="x-sm">Click on a step from the funnel to see details.</span>
         </Tags.FunnelSelectData>
       ) }
-    </div>
+      {showWidthAdjustmentOption && (
+        <div className="w-adj-btn">
+          <Button
+            size="small"
+            type="text"
+            onClick={() => {
+              setWidthAdjustment(widthAdjustment === WidthAdjustmentOptions.Expanded
+                ? WidthAdjustmentOptions.Compact
+                : WidthAdjustmentOptions.Expanded);
+            }}
+            icon={widthAdjustment === WidthAdjustmentOptions.Expanded
+              ? (<ShrinkOutlined rotate={45} />)
+              : (<ArrowsAltOutlined rotate={45} />)}
+          />
+        </div>
+      )}
+    </Tags.SvgCon>
   );
 }
