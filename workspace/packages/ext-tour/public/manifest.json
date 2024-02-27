@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Fable: Create interactive demos in 5 minutes",
+  "name": "Fable: Create step-by-step interactive demos and guides in 5 minutes.",
   "author": "fable",
-  "version": "1.6.4",
-  "description": "Craft stunning interactive demos in less than 5 minutes.",
+  "version": "1.6.5",
+  "description": "Capture your product in minutes to build interactive guides and demos with Fable.",
   "icons": {
     "16": "logo_16.png",
     "24": "logo_24.png",
