@@ -1,6 +1,6 @@
 {
   "name": "@fable/ext-tour",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "main": "build",
   "description": "Product demo extension for Fable",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
