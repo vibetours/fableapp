@@ -12,6 +12,10 @@ import {
   GridSelection,
   ElementNode,
   TextNode,
+  $isElementNode,
+  ElementFormatType,
+  LexicalCommand,
+  createCommand,
 } from 'lexical';
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import {
@@ -31,10 +35,14 @@ import {
   AlignRightOutlined,
   EditOutlined,
   FontSizeOutlined,
-  DownOutlined
+  DownOutlined,
+  FormOutlined
 } from '@ant-design/icons';
-import { Dropdown } from 'antd';
+import { Dropdown, Select } from 'antd';
 import { AnnotationFontSize } from '@fable/common/dist/types';
+import { BorderedModal } from '../../../common-styled';
+import Input from '../../input';
+import Button from '../../button';
 
 const LowPriority = 1;
 
@@ -219,18 +227,25 @@ interface ToolbarPluginProps {
   }
 }
 
+export const INSERT_POLL_COMMAND: LexicalCommand<string> = createCommand(
+  'INSERT_POLL_COMMAND',
+);
+
 export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : ReactElement {
   const [editor] = useLexicalComposerContext();
+  const [activeEditor, setActiveEditor] = useState(editor);
   const toolbarRef = useRef(null);
   const [isLink, setIsLink] = useState(false);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
-  const [fontSize, setFontSize] = useState<string>(AnnotationFontSize.medium);
+  const [fontSize, setFontSize] = useState<string>(AnnotationFontSize.normal);
+  const [alignment, setAlignment] = useState<ElementFormatType>('left');
+
   const fontSizeOptions = [
     {
-      label: 'Medium',
-      key: AnnotationFontSize.medium,
-      className: fontSize === AnnotationFontSize.medium ? 'dropdown-menu-item-active' : '',
+      label: 'Normal',
+      key: AnnotationFontSize.normal,
+      className: fontSize === AnnotationFontSize.normal ? 'dropdown-menu-item-active' : '',
     },
     {
       label: 'Large',
@@ -238,9 +253,9 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
       className: fontSize === AnnotationFontSize.large ? 'dropdown-menu-item-active' : '',
     },
     {
-      label: 'Larger',
-      key: AnnotationFontSize.larger,
-      className: fontSize === AnnotationFontSize.larger ? 'dropdown-menu-item-active' : '',
+      label: 'X-Large',
+      key: AnnotationFontSize.huge,
+      className: fontSize === AnnotationFontSize.huge ? 'dropdown-menu-item-active' : '',
     },
   ];
 
@@ -260,8 +275,11 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
         setIsLink(false);
       }
 
+      const nodeAlignment = ($isElementNode(node) ? node.getFormatType() : parent?.getFormatType()) || 'left';
+      setAlignment(nodeAlignment);
+
       setFontSize(
-        $getSelectionStyleValueForProperty(selection, 'font-size', AnnotationFontSize.medium),
+        $getSelectionStyleValueForProperty(selection, 'font-size', AnnotationFontSize.normal)
       );
     }
   }, [editor]);
@@ -272,10 +290,12 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
         updateToolbar();
       });
     }),
+
     editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
       (_payload, newEditor) => {
         updateToolbar();
+        setActiveEditor(newEditor);
         return false;
       },
       LowPriority
@@ -316,6 +336,7 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
       >
         <BoldOutlined className="format" />
       </button>
+
       <Dropdown
         menu={{
           onClick: (e) => handleDropdownItemClick(`${e.key}px`),
@@ -327,6 +348,7 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
           <FontSizeOutlined /> <DownOutlined className="down-outline" />
         </button>
       </Dropdown>
+
       <button
         type="button"
         onClick={() => {
@@ -346,38 +368,20 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
       >
         <LinkOutlined className="format" />
       </button>
-      {isLink
-            && createPortal(<FloatingLinkEditor editor={editor} />, document.body)}
-      <button
-        type="button"
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left');
-        }}
-        className="toolbar-item spaced"
-        aria-label="Left Align"
-      >
-        <AlignLeftOutlined className="format" />
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center');
-        }}
-        className="toolbar-item spaced"
-        aria-label="Center Align"
-      >
-        <AlignCenterOutlined className="format" />
-      </button>
-      <button
-        type="button"
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right');
-        }}
-        className="toolbar-item spaced"
-        aria-label="Right Align"
-      >
-        <AlignRightOutlined className="format" />
-      </button>
+
+      {isLink && createPortal(<FloatingLinkEditor editor={editor} />, document.body)}
+
+      <Select
+        bordered={false}
+        value={alignment}
+        onChange={(value) => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value)}
+        options={[
+          { value: 'left', label: <AlignLeftOutlined className="format" /> },
+          { value: 'center', label: <AlignCenterOutlined className="format" /> },
+          { value: 'right', label: <AlignRightOutlined className="format" /> },
+        ]}
+      />
+
       <button
         type="button"
         onClick={() => modalControls.showModal()}
@@ -385,6 +389,15 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
         aria-label="Image Upload"
       >
         <PictureOutlined className="format" />
+      </button>
+
+      <button
+        type="button"
+        onClick={() => editor.dispatchCommand(INSERT_POLL_COMMAND, '')}
+        className="toolbar-item spaced"
+        aria-label="Lead Form"
+      >
+        <FormOutlined className="format" />
       </button>
     </div>
   );

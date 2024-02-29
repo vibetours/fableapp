@@ -13,8 +13,13 @@ import { ExtMsg, InternalEvents, Msg, NavFn, Payload_AnnotationNav, Payload_NavT
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
-import { generateShadeColor } from './utils';
-import { getAnnotationIndex, getTransparencyFromHexStr, isCoverAnnotation as isCoverAnn, isVideoAnnotation as isVideoAnn } from '../../utils';
+import { generateShadeColor, isLeadFormPresent, validateInput } from './utils';
+import {
+  getAnnotationIndex,
+  getTransparencyFromHexStr,
+  isCoverAnnotation as isCoverAnn,
+  isVideoAnnotation as isVideoAnn
+} from '../../utils';
 import { AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
@@ -122,6 +127,8 @@ export class AnnotationContent extends React.PureComponent<{
       <Tags.AnContent
         key={this.props.config.refId}
         ref={this.conRef}
+        primaryColor={this.props.opts.primaryColor}
+        borderRadius={this.props.opts.borderRadius}
         bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
           minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,
@@ -184,7 +191,27 @@ export class AnnotationContent extends React.PureComponent<{
                   btnLayout={this.props.config.buttonLayout}
                   borderRadius={this.props.opts.borderRadius}
                   onClick={() => {
-                    this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                    if (this.conRef.current && isLeadFormPresent(this.conRef.current) && btnConf.type === 'next') {
+                      const leadFormFields = this.conRef.current?.getElementsByClassName('LeadForm__optionContainer');
+
+                      let shouldNavigate = true;
+                      const leadForm: Record<string, string> = {};
+                      if (leadFormFields) {
+                        for (const field of Array.from(leadFormFields)) {
+                          const { isValid, fieldName, fieldValue } = validateInput(field as HTMLDivElement);
+                          if (!isValid) shouldNavigate = false;
+                          leadForm[fieldName] = fieldValue;
+                        }
+                      }
+
+                      if (shouldNavigate) {
+                        // API call will go here
+                        console.log(leadForm);
+                        this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                      }
+                    } else {
+                      this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                    }
                   }}
                 >
                   <span>{

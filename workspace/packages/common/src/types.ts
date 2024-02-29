@@ -275,9 +275,9 @@ export interface Coords {
 }
 
 export enum AnnotationFontSize {
-  medium = '18',
-  large = '22',
-  larger = '26'
+  normal = '18',
+  large = '24',
+  huge = '30'
 }
 
 export interface ThemeCandidature {

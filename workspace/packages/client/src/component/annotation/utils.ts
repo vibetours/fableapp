@@ -4,6 +4,9 @@ import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 import { AllDimsForAnnotation } from './types';
+import { LeadFormField } from '../annotation-rich-text-editor/nodes/poll-node';
+import { FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
+import { FIELD_NAME_VARIABLE_REGEX } from '../annotation-rich-text-editor/utils/poll-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
 
@@ -204,3 +207,80 @@ export function isBtnLinksToVideoAnn(
 
   return isLinkToVideoAnn;
 }
+
+export const isLeadFormPresent = (annConDiv: HTMLDivElement): boolean => {
+  const res = Boolean(annConDiv.getElementsByClassName('LeadForm__container').item(0));
+  return res;
+};
+
+function validateEmail(email: string): boolean {
+  const regex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
+  return regex.test(email);
+}
+
+function validateText(text: string): boolean {
+  return Boolean(text.trim());
+}
+
+const validationFnMap: Record<LeadFormField, (value: string) => boolean> = {
+  email: validateEmail,
+  text: validateText
+};
+
+const EMPTY_FIELD_VALIDATION_ERROR = 'Field can\'t be empty';
+const INVALID_EMAIL_VALIDATION_ERROR = 'Email format is not valid';
+
+const getValidationErrorMsg = (value: string, validationType: LeadFormField): string => {
+  if (!value.trim()) return EMPTY_FIELD_VALIDATION_ERROR;
+  if (validationType === 'email') return INVALID_EMAIL_VALIDATION_ERROR;
+  return '';
+};
+
+export const validateInput = (field: HTMLDivElement): {
+  isValid: boolean,
+  fieldName: string,
+  fieldValue: string
+} => {
+  const inpulEl = field.getElementsByClassName('LeadForm__optionInput').item(0);
+
+  const validationType = (field.getAttribute(FABLE_LEAD_FORM_VALIDATION_FN) || 'text') as LeadFormField;
+  const validationFn = validationFnMap[validationType];
+  const fieldValue = (inpulEl as HTMLInputElement).value.trim();
+  const fieldName = parseFieldName((inpulEl as HTMLInputElement).placeholder);
+  const isValid = validationFn(fieldValue);
+
+  const uid = field.getAttribute('fable-input-field-uid');
+  const errorMsgEl = field.querySelector(`[fable-validation-uid="${uid}"]`) as HTMLDivElement;
+
+  if (isValid) hideValidationError(errorMsgEl as HTMLDivElement);
+  else showValidationError(errorMsgEl as HTMLDivElement, getValidationErrorMsg(fieldValue, validationType));
+
+  return { isValid, fieldName, fieldValue };
+};
+
+const parseFieldName = (placeholderString: string): string => {
+  let nVarName = '';
+  const match = placeholderString.match(FIELD_NAME_VARIABLE_REGEX);
+
+  if (match && match[1]) {
+    const varName = match[1];
+    nVarName = varName.trim().replace(/[\s\W]/g, '_').toLowerCase();
+  }
+
+  if (!nVarName) {
+    nVarName = placeholderString.trim().replace(/[\s\W]/g, '_').toLowerCase();
+  }
+
+  return nVarName;
+};
+
+export const showValidationError = (errorMsgEl: HTMLDivElement, message: string): void => {
+  if (errorMsgEl) {
+    (errorMsgEl as HTMLDivElement).innerText = message;
+    (errorMsgEl as HTMLDivElement).style.visibility = 'visible';
+  }
+};
+
+export const hideValidationError = (errorMsgEl: HTMLDivElement): void => {
+  if (errorMsgEl) (errorMsgEl as HTMLDivElement).style.visibility = 'hidden';
+};

@@ -21,7 +21,10 @@ export const BubbleCon = styled.div`
   align-items: center;
 `;
 
-export const AnContent = styled.div<{bgColor: string}>`
+export const AnContent = styled.div<{ bgColor: string, borderRadius: number, primaryColor: string }>`
+  --f-ann-bg-color: ${(p) => p.bgColor};
+  --f-ann-border-radius: ${(p) => p.borderRadius}px;
+  --f-ann-primary-color: ${(p) => p.primaryColor};
   background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor} 85%, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
@@ -88,7 +91,7 @@ export const AnTextContent = styled.div`
   }
 
   p {
-    font-size: ${AnnotationFontSize.medium}px;
+    font-size: ${AnnotationFontSize.normal}px;
     font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'};
     color: ${(p: AnTextContentProps) => `${p.fontColor}`};
   }

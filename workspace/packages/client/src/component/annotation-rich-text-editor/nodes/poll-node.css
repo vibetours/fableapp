@@ -1,0 +1,94 @@
+.LeadForm__container {
+  border: 1px solid #eee;
+  background-color: #fcfcfc;
+  border-radius: 10px;
+  width: 100%;
+  /* max-width: 600px; */
+  /* min-width: 400px; */
+  cursor: pointer;
+  user-select: none;
+}
+.LeadForm__container.focused {
+  outline: 2px solid rgb(60, 132, 244);
+}
+.LeadForm__inner {
+  margin: 15px;
+  cursor: default;
+}
+.LeadForm__optionContainer {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 10px;
+  align-items: center;
+}
+.LeadForm__optionInputWrapper {
+  display: flex;
+  flex: 10px;
+  border: 1px solid rgb(61, 135, 245);
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.LeadForm__optionInput {
+  display: flex;
+  flex: 1px;
+  border: 0px;
+  padding: 7px;
+  color: rgb(61, 135, 245);
+  background-color: transparent;
+  font-weight: bold;
+  outline: 0px;
+  z-index: 0;
+}
+.LeadForm__optionInput::placeholder {
+  font-weight: normal;
+  color: #999;
+}
+.LeadForm__optionDelete {
+  position: relative;
+  display: flex;
+  width: 28px;
+  height: 28px;
+  margin-left: 6px;
+  border: 0px;
+  background-color: transparent;
+  background-position: 6px 6px;
+  background-repeat: no-repeat;
+  z-index: 0;
+  cursor: pointer;
+  border-radius: 5px;
+  opacity: 0.3;
+}
+.LeadForm__optionDelete:before,
+.LeadForm__optionDelete:after {
+  position: absolute;
+  display: block;
+  content: '';
+  background-color: #999;
+  width: 2px;
+  height: 15px;
+  top: 6px;
+  left: 13px;
+}
+.LeadForm__optionDelete:before {
+  transform: rotate(-45deg);
+}
+.LeadForm__optionDelete:after {
+  transform: rotate(45deg);
+}
+.LeadForm__optionDelete:hover {
+  opacity: 1;
+  background-color: #eee;
+}
+.LeadForm__optionDeleteDisabled {
+  cursor: not-allowed;
+}
+.LeadForm__optionDeleteDisabled:hover {
+  opacity: 0.3;
+  background-color: transparent;
+}
+.LeadForm__footer {
+  display: flex;
+  justify-content: center;
+}

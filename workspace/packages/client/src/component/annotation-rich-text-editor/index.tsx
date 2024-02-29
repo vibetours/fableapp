@@ -10,7 +10,7 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $rootTextContent } from '@lexical/text';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode } from 'lexical';
+import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode, LexicalNode, ParagraphNode } from 'lexical';
 import { SaveOutlined, } from '@ant-design/icons';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
@@ -20,6 +20,8 @@ import './styles.css';
 import { ImageNode } from './nodes/image-node';
 import { ExtendedTextNode } from './plugins/extended-text-node';
 import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
+import PollPlugin from './plugins/poll-plugin';
+import { PollNode } from './nodes/poll-node';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -35,6 +37,7 @@ const editorConfig = {
     AutoLinkNode,
     LinkNode,
     ImageNode,
+    PollNode,
     ExtendedTextNode,
     { replace: TextNode, with: (node: TextNode) => new ExtendedTextNode(node.__text, node.__key) },
   ]
@@ -74,7 +77,10 @@ interface AnnotationContent {
   annotationDisplayText: string;
 }
 
-export default function AnnotationRichTextEditor({ defaultValue, throttledChangeHandler }: React.PropsWithChildren<Props>) : ReactElement {
+export default function AnnotationRichTextEditor({
+  defaultValue,
+  throttledChangeHandler
+}: React.PropsWithChildren<Props>): ReactElement {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savingInProgress, setSavingInProgress] = useState(false);
@@ -123,6 +129,7 @@ export default function AnnotationRichTextEditor({ defaultValue, throttledChange
           <OnChangePlugin onChange={onChangePluginHandler} />
           <AutoFocusPlugin />
           <LinkPlugin />
+          <PollPlugin />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={defaultValue} />
