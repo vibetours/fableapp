@@ -282,9 +282,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   navigateToMain = (): void => {
     this.preRender();
     const opts = this.props.tourOpts;
+    const flowIdx = Number(this.props.searchParams.get('n'));
     if (!(this.props.match.params.screenRid && this.props.match.params.annotationId)) {
       if (!(opts && opts.main) && !this.isJourneyAdded()) this.setState({ isMainSet: false });
-      else if (this.isJourneyAdded()) {
+      else if (flowIdx && flowIdx >= 1 && this.props.journey!.flows.length >= flowIdx) {
+        this.navigateTo(this.props.journey!.flows[flowIdx - 1].main);
+      } else if (this.isJourneyAdded()) {
         this.navigateTo(this.props.journey!.flows[0].main);
       } else this.navigateTo(opts!.main);
     }
