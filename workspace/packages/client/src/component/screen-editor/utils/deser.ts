@@ -200,6 +200,10 @@ export const createHtmlElement = (
           // eslint-disable-next-line no-script-url
           attrValue = 'javascript:void(0);';
         }
+        // HOTFIX!
+        if (attrKey === 'xlink:href') {
+          el.setAttribute('href', attrValue === null ? 'true' : attrValue);
+        }
         el.setAttribute(attrKey, attrValue === null ? 'true' : attrValue);
       }
     } catch (e) {
