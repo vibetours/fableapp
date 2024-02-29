@@ -444,9 +444,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               {videoAnn ? 'Change Video' : 'Record/Upload Video'}
             </Tags.ActionPaneBtn>
             {isVideoAnnotation(config) && (
-            <Tooltip title="Delete recorded video">
-              <DeleteOutlined style={{ cursor: 'pointer' }} onClick={showVideoDeleteConfirm} />
-            </Tooltip>
+              <Tooltip title="Delete recorded video">
+                <DeleteOutlined style={{ cursor: 'pointer' }} onClick={showVideoDeleteConfirm} />
+              </Tooltip>
             )}
           </div>
         </div>
@@ -622,36 +622,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Button Layout</GTags.Txt>
-          <div style={{ padding: '0.3rem 0' }}>
-            <label htmlFor="default">
-              <ColumnWidthOutlined />
-              <input
-                id="default"
-                type="radio"
-                value="default"
-                checked={config.buttonLayout === 'default'}
-                onChange={(e) => {
-                  setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
-                }}
-              />
-            </label>
-
-            <label htmlFor="full-width">
-              <ColumnHeightOutlined />
-              <input
-                id="full-width"
-                type="radio"
-                value="full-width"
-                checked={config.buttonLayout === 'full-width'}
-                onChange={(e) => {
-                  setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
-                }}
-              />
-            </label>
-          </div>
-        </div>
-        <div style={commonActionPanelItemStyle}>
           <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
           <Tags.ActionPaneSelect
             defaultValue={config.selectionShape}
@@ -758,7 +728,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 </div>
                 <Tags.ButtonSecCon>
                   <Popover
-                    open={openConnectionPopover === btnConf.id}
+                    open={openConnectionPopover === btnConf.id && canAddExternalLinkToBtn(btnConf)}
                     onOpenChange={(newOpen: boolean) => {
                       setIsUrlValid(true);
                       if (newOpen) {
@@ -878,7 +848,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       >
                         <AntButton
                           style={{
-                            pointerEvents: canAddExternalLinkToBtn(btnConf) ? 'all' : 'none',
                             opacity: canAddExternalLinkToBtn(btnConf) ? '1' : '0.55',
                             color: btnConf.hotspot ? '#7567FF' : '#FF7450',
                             ...buttonSecStyle
@@ -896,45 +865,54 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </Popover>
                   {
                     btnConf.type === 'custom' ? (
-                      <AntButton
-                        icon={<img src={DeleteIcon} alt="" />}
-                        type="text"
-                        size="small"
-                        style={{ color: '#bdbdbd', ...buttonSecStyle }}
-                        onClick={() => {
-                          setConfig(c => removeButtonWithId(c, btnConf.id));
-                        }}
-                      />
+                      <Tooltip title="Remove button" overlayStyle={{ fontSize: '0.75rem' }}>
+                        <AntButton
+                          icon={<img src={DeleteIcon} alt="" />}
+                          type="text"
+                          size="small"
+                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
+                          onClick={() => {
+                            setConfig(c => removeButtonWithId(c, btnConf.id));
+                          }}
+                        />
+                      </Tooltip>
                     ) : (
-                      <AntButton
-                        icon={
+                      <Tooltip
+                        title={btnConf.exclude ? 'Show button' : 'Hide button'}
+                        overlayStyle={{ fontSize: '0.75rem' }}
+                      >
+                        <AntButton
+                          icon={
                           btnConf.exclude
                             ? <img src={InvisibilityIcon} alt="" />
                             : <img src={VisibilityIcon} alt="" />
                         }
-                        type="text"
-                        size="small"
-                        style={{ color: '#bdbdbd', ...buttonSecStyle }}
-                        onClick={() => {
-                          amplitudeAnnotationEdited('hide_cta', btnConf.exclude!);
-                          setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
-                        }}
-                      />
+                          type="text"
+                          size="small"
+                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
+                          onClick={() => {
+                            amplitudeAnnotationEdited('hide_cta', btnConf.exclude!);
+                            setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
+                          }}
+                        />
+                      </Tooltip>
                     )
                   }
-                  <AntButton
-                    icon={<img src={EditIcon} alt="" />}
-                    type="text"
-                    size="small"
-                    style={{
-                      color: '#bdbdbd',
-                      ...buttonSecStyle
-                    }}
-                    onClick={() => {
-                      if (btnEditing === btnConf.id) setBtnEditing('');
-                      else setBtnEditing(btnConf.id);
-                    }}
-                  />
+                  <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
+                    <AntButton
+                      icon={<img src={EditIcon} alt="" />}
+                      type="text"
+                      size="small"
+                      style={{
+                        color: '#bdbdbd',
+                        ...buttonSecStyle
+                      }}
+                      onClick={() => {
+                        if (btnEditing === btnConf.id) setBtnEditing('');
+                        else setBtnEditing(btnConf.id);
+                      }}
+                    />
+                  </Tooltip>
                 </Tags.ButtonSecCon>
               </div>
               {btnConf.id === btnEditing && (
