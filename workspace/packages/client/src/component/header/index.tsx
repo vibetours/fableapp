@@ -425,38 +425,38 @@ function Header(props: IOwnProps): JSX.Element {
         }}
         open={showWarningDrawer}
       >
-        <Tags.MainNotSetCon>
+        <>
           {!props.isTourMainSet
         && (
           <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#fedf64' }} />
-            &nbsp; Entry point for this demo is not set. Check here on how to set the entry point.
+            <WarningFilled style={{ color: '#FF7450' }} />
+            &nbsp; Entry point demo is not set.
             <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
-              Doc <LinkOutlined />
+              <LinkOutlined /> Check here how to set the entry point.
             </a>
           </Tags.MainNotSetContent>
         )}
           {!props.lastAnnHasCTA
         && (
           <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#fedf64' }} />
-            &nbsp; No external URL set for the last annotation. Check here how to set a CTA
+            <WarningFilled style={{ color: '#FF7450' }} />
+            &nbsp; Book a Demo CTA is not configured on the last annotation.
             <a href="https://help.sharefable.com/Editing-Demos/Call-to-Actions" target="_blank" rel="noreferrer">
-              Doc <LinkOutlined />
+              <LinkOutlined /> Check here how to configure a CTA with external URL
             </a>
           </Tags.MainNotSetContent>
         )}
           {!props.isJourneyCTASet
         && (
           <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#fedf64' }} />
-            &nbsp; No external URL set for the module. Check here how to add a custom CTA.
+            <WarningFilled style={{ color: '#FF7450' }} />
+            &nbsp; Book a Demo CTA is not configured for modules.
             <a href="https://help.sharefable.com/Editing-Demos/Module" target="_blank" rel="noreferrer">
-              Doc <LinkOutlined />
+              <LinkOutlined /> Check here how to configure a CTA with external URL for modules.
             </a>
           </Tags.MainNotSetContent>
         )}
-        </Tags.MainNotSetCon>
+        </>
       </Drawer>
       )}
     </Tags.Con>

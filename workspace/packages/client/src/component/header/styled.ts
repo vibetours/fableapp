@@ -102,9 +102,26 @@ export const MainNotSetCon = styled.div`
   margin: 2rem 0;
 `;
 
-export const MainNotSetContent = styled.div`
+export const MainNotSetContent = styled.p`
   font-size: 17px;
-  margin: 2rem 0;
+  margin: 1.5rem 0;
+  font-size: 1rem;
+
+  &:first-child {
+    margin-top: 0.5rem;
+  }
+
+  a {
+    margin-left: 8px;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    color: #616161;
+    text-decoration: dotted underline;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 `;
 
 export const WarningIcon = styled(WarningFilled)`
