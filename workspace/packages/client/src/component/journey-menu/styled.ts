@@ -66,8 +66,9 @@ export const FlowHeader2 = styled.p`
 `;
 
 export const IndexButton = styled(Button)`
-  height: 36px;
-  width:${(p: IndexBtnConf) => (p.applywidth === 'true' ? '36px !important' : 'auto')};
+  height: 46px;
+  padding: 5px 10px;
+  width:${(p: IndexBtnConf) => (p.applywidth === 'true' ? '46px !important' : 'auto')};
   background: ${(p: IndexBtnConf) => (`${p.color} !important`)};
   color: ${(p: IndexBtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')};
   font-family: "IBM Plex Sans", sans-serif;
@@ -86,3 +87,10 @@ interface IndexBtnConf {
   color: string;
   applywidth: 'true' | 'false';
 }
+
+export const IndexButtonContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  text-align: start;
+  margin-left: 9px;
+`;

@@ -1,5 +1,6 @@
 import styled from 'styled-components';
 import { Popover } from 'antd';
+import { WarningFilled } from '@ant-design/icons';
 
 export const ConLogoImg = styled.img`
   height: 2.5rem;
@@ -94,5 +95,22 @@ export const CanvasOption = styled.button`
 
   &:hover {
     background-color: #F8F8F8;
+  }
+`;
+
+export const MainNotSetCon = styled.div`
+  margin: 2rem 0;
+`;
+
+export const MainNotSetContent = styled.div`
+  font-size: 17px;
+  margin: 2rem 0;
+`;
+
+export const WarningIcon = styled(WarningFilled)`
+  color: #fedf64;
+
+  :hover {
+    color: #ff9800;
   }
 `;

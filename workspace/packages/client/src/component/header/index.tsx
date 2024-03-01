@@ -3,11 +3,12 @@ import {
   CaretDownOutlined,
   CaretRightOutlined,
   EditOutlined,
+  LinkOutlined,
   LogoutOutlined,
   MoreOutlined,
   SaveOutlined,
   ShareAltOutlined,
-  WarningOutlined
+  WarningFilled
 } from '@ant-design/icons';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { RespUser } from '@fable/common/dist/api-contract';
@@ -16,6 +17,7 @@ import { Button as AntButton } from 'antd';
 import Tooltip from 'antd/lib/tooltip';
 import React, { Dispatch, ReactElement, SetStateAction, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Drawer } from 'antd/lib';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
@@ -51,6 +53,8 @@ interface IOwnProps {
   publishTour?: (tour: P_RespTour) => Promise<boolean>;
   tour: P_RespTour | null;
   onLogoClicked?: () => void;
+  isJourneyCTASet?: boolean;
+  lastAnnHasCTA?: boolean;
 }
 
 export type HeaderProps = IOwnProps;
@@ -71,6 +75,7 @@ function Header(props: IOwnProps): JSX.Element {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showRenameScreenModal, setShowRenameScreenModal] = useState(false);
   const [screenName, setScreenName] = useState(props.titleText || '');
+  const [showWarningDrawer, setShowWarningDrawer] = useState(false);
 
   const handleRenameScreenModalOk = (): void => {
     const newVal = screenName.trim().replace(/\s+/, ' ');
@@ -178,27 +183,15 @@ function Header(props: IOwnProps): JSX.Element {
             {
               props.warnings && props.warnings.length > 0 && (
                 <Tags.MenuItem>
-                  <Tooltip
-                    title={(
-                      <>
-                        {props.warnings.map((warning, i) => (
-                          <div style={{ marginBottom: '1rem' }} key={i}>- {warning}</div>
-                        ))}
-                      </>)}
-                    overlayStyle={{ fontSize: '0.8rem' }}
-                    overlayInnerStyle={{ padding: '1rem' }}
-                  >
-                    <AntButton
-                      size="small"
-                      shape="circle"
-                      type="text"
-                      icon={<WarningOutlined
-                        style={{ color: 'white' }}
-                      />}
-                      onClick={(e) => {
-                      }}
-                    />
-                  </Tooltip>
+                  <AntButton
+                    size="small"
+                    shape="circle"
+                    type="text"
+                    icon={<Tags.WarningIcon />}
+                    onClick={(e) => {
+                      setShowWarningDrawer(true);
+                    }}
+                  />
                 </Tags.MenuItem>
               )
             }
@@ -423,6 +416,49 @@ function Header(props: IOwnProps): JSX.Element {
           />
         </form>
       </GTags.BorderedModal>
+      {showWarningDrawer
+      && (
+      <Drawer
+        title="Fix the following items before you embed this demo"
+        onClose={() => {
+          setShowWarningDrawer(false);
+        }}
+        open={showWarningDrawer}
+      >
+        <Tags.MainNotSetCon>
+          {!props.isTourMainSet
+        && (
+          <Tags.MainNotSetContent>
+            <WarningFilled style={{ color: '#fedf64' }} />
+            &nbsp; Entry point for this demo is not set. Check here on how to set the entry point.
+            <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
+              Doc <LinkOutlined />
+            </a>
+          </Tags.MainNotSetContent>
+        )}
+          {!props.lastAnnHasCTA
+        && (
+          <Tags.MainNotSetContent>
+            <WarningFilled style={{ color: '#fedf64' }} />
+            &nbsp; No external URL set for the last annotation. Check here how to set a CTA
+            <a href="https://help.sharefable.com/Editing-Demos/Call-to-Actions" target="_blank" rel="noreferrer">
+              Doc <LinkOutlined />
+            </a>
+          </Tags.MainNotSetContent>
+        )}
+          {!props.isJourneyCTASet
+        && (
+          <Tags.MainNotSetContent>
+            <WarningFilled style={{ color: '#fedf64' }} />
+            &nbsp; No external URL set for the module. Check here how to add a custom CTA.
+            <a href="https://help.sharefable.com/Editing-Demos/Module" target="_blank" rel="noreferrer">
+              Doc <LinkOutlined />
+            </a>
+          </Tags.MainNotSetContent>
+        )}
+        </Tags.MainNotSetCon>
+      </Drawer>
+      )}
     </Tags.Con>
   );
 }

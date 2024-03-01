@@ -2484,7 +2484,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const getFormatedAnnText = (annText: string) : string => `${annText.substring(0, 80)}${annText.length > 0 && '...'}`;
-
   return (
     <>
       <GTags.ColCon>

@@ -318,7 +318,9 @@ type IProps = IOwnProps &
 interface IOwnStateProps {
   alertMsg: string;
   showScreenPicker: boolean;
-  screenPickerData: ScreenPickerData
+  screenPickerData: ScreenPickerData;
+  lastAnnHasCTA: boolean;
+  isJourneyCTASet: boolean;
 }
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
@@ -339,8 +341,10 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         screenPickerMode: 'create',
         annotation: null,
         position: DestinationAnnotationPosition.next,
-        showCloseButton: true
+        showCloseButton: true,
       },
+      lastAnnHasCTA: true,
+      isJourneyCTASet: true
     };
   }
 
@@ -387,6 +391,20 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       }
     } catch (err) {
       sentryCaptureException(err as Error);
+    }
+
+    if (this.props.isTourLoaded && this.props.allAnnotationsForTour !== prevProps.allAnnotationsForTour) {
+      setTimeout(() => {
+        const lastAnnHasCTA = this.getLastAnnHasCTA();
+        this.setState({ lastAnnHasCTA });
+      }, 0);
+    }
+
+    if (this.props.isTourLoaded && this.props.journey !== prevProps.journey) {
+      setTimeout(() => {
+        const isJourneyCTASet = this.getIsJourneyCTASet();
+        this.setState({ isJourneyCTASet });
+      }, 0);
     }
   }
 
@@ -544,7 +562,15 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     const warnings: string[] = [];
 
     if (!this.props.isMainValid) {
-      warnings.push('Entry point is not set for the tour.');
+      warnings.push('Entry point is not set for the demo.');
+    }
+
+    if (!this.state.lastAnnHasCTA) {
+      warnings.push('Last annotation not have CTA.');
+    }
+
+    if (!this.state.isJourneyCTASet) {
+      warnings.push('Journey CTA is not set');
     }
 
     const screenDiagnostics = this.getCurrentScreenDiagnostics();
@@ -562,6 +588,60 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   updateShowScreenPicker = (newScreenPickerData: ScreenPickerData): void => {
     this.setState({ showScreenPicker: true, screenPickerData: newScreenPickerData });
+  };
+
+  getIsJourneyCTASet = (): boolean => {
+    if (this.props.journey!.flows.length === 0) {
+      return true;
+    }
+
+    if (this.props.journey!.cta && this.props.journey!.cta.navigateTo) {
+      return true;
+    }
+    return false;
+  };
+
+  getLastAnnHasCTA = (): boolean => {
+    const flowLength = this.props.journey!.flows.length;
+    if (flowLength === 0 && !this.props.isMainValid) {
+      return false;
+    }
+    let refId = '';
+
+    if (flowLength === 0) {
+      refId = this.props.tourOpts.main.split('/')[1];
+    } else {
+      const lastFlow = this.props.journey!.flows[flowLength - 1];
+      refId = lastFlow.main.split('/')[1];
+    }
+
+    let ann = getAnnotationByRefId(refId, this.props.allAnnotationsForTour);
+    let lastAnn = null;
+
+    let allAnnsLength = this.props.allAnnotationsForTour.length;
+    while (allAnnsLength) {
+      if (ann === null) {
+        return false;
+      }
+      const nextBtn = getAnnotationBtn(ann!, 'next')!;
+      if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
+        lastAnn = ann;
+        break;
+      }
+      const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+      ann = getAnnotationByRefId(nextAnnRefId, this.props.allAnnotationsForTour);
+      allAnnsLength--;
+    }
+
+    let hasCta = false;
+    if (lastAnn) {
+      lastAnn.buttons.forEach(btn => {
+        if ((btn.type === 'custom' || btn.type === 'next') && btn.hotspot !== null && btn.exclude !== true) {
+          hasCta = true;
+        }
+      });
+    }
+    return hasCta;
   };
 
   render(): ReactElement {
@@ -634,7 +714,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isTourMainSet: this.props.isMainValid,
                 isAutoSaving: this.props.isAutoSaving,
                 warnings: this.getTourWarnings(),
-                tour: this.props.tour
+                tour: this.props.tour,
+                isJourneyCTASet: this.state.isJourneyCTASet,
+                lastAnnHasCTA: this.state.lastAnnHasCTA
               }}
               journey={this.props.journey!}
             />

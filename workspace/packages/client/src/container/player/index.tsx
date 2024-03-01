@@ -285,7 +285,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const flowIdx = Number(this.props.searchParams.get('n'));
     if (!(this.props.match.params.screenRid && this.props.match.params.annotationId)) {
       if (!(opts && opts.main) && !this.isJourneyAdded()) this.setState({ isMainSet: false });
-      else if (flowIdx && flowIdx >= 1 && this.props.journey!.flows.length >= flowIdx) {
+      else if (flowIdx && flowIdx >= 1 && this.props.journey && this.props.journey.flows.length >= flowIdx) {
         this.navigateTo(this.props.journey!.flows[flowIdx - 1].main);
       } else if (this.isJourneyAdded()) {
         this.navigateTo(this.props.journey!.flows[0].main);
@@ -569,6 +569,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       if (!isPrerendered) return false;
     }
 
+    if (!this.props.isTourLoaded) {
+      return false;
+    }
+
+    if (this.isJourneyAdded() && !this.state.currentFlowMain) {
+      return false;
+    }
+
     if (!this.isLoadingCompleteMsgSentRef.current) {
       // not ordered ans, we can  order using index/stepnomber but its present in IAnnotationConfigWithScreen
       const annCnfs = Object.values(this.props.allAnnotations).flat();
@@ -581,7 +589,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return true;
   }
 
-  isJourneyAdded = () : boolean => (this.props.journey!.flows.length !== 0);
+  isJourneyAdded = () : boolean => (this.props.journey !== null && this.props.journey.flows.length !== 0);
 
   addJourneyToGlobalData = (main: string) : void => {
     const journeyName = this.props.journey?.flows

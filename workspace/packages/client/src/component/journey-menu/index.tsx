@@ -1,7 +1,7 @@
 import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
 import Dropdown from 'antd/lib/dropdown/dropdown';
 import React, { ReactElement } from 'react';
-import { CreateJourneyData, ITourDataOpts } from '@fable/common/dist/types';
+import { CreateJourneyData, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import { getColorContrast, isBlankString } from '../../utils';
@@ -82,6 +82,11 @@ const getMenu = (
   );
 };
 
+function getCurretFlowTitle(flows: JourneyFlow[], currentFlowMain: string): string {
+  const currentFlow = flows.find((flow) => flow.main === currentFlowMain);
+  return currentFlow ? currentFlow.header1 : '';
+}
+
 function JourneyMenu(props: Props): JSX.Element {
   const primaryColor = props.journey.primaryColor;
   return (
@@ -113,8 +118,17 @@ function JourneyMenu(props: Props): JSX.Element {
             type="primary"
             applywidth="false"
           >
-            {props.journey.title}
-            <BarsOutlined style={{ color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000' }} />
+            <BarsOutlined style={{
+              color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
+            />
+            <Tags.IndexButtonContent>
+              <span style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.2' }}>
+                {getCurretFlowTitle(props.journey.flows, props.currentFlowMain)}
+              </span>
+              <span style={{ lineHeight: '1.2' }}>
+                {props.journey.title}
+              </span>
+            </Tags.IndexButtonContent>
           </Tags.IndexButton>
         )}
       </Dropdown>
