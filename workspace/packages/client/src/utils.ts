@@ -179,7 +179,7 @@ export const setEventCommonState = (property: string, value: any): void => {
   localStorage.setItem('fable/ep', JSON.stringify(eventProperties));
 };
 
-const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 export const generateScreenIndex = (timelineCount: number, timelineIdx: number, annIdx: number): string => {
   if (timelineCount > 1) {

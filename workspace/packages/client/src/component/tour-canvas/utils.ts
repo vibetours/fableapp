@@ -1,7 +1,9 @@
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import { AnnotationNode, Box, Point, MultiAnnotationNode, GroupedAnns, GroupEdge } from './types';
-import { IAnnotationConfigWithScreen, Timeline } from '../../types';
-import { getAnnotationBtn } from '../annotation/ops';
-import { getAnnotationWithScreenAndIdx } from '../../utils';
+import { AnnotationPerScreen, IAnnotationConfigWithScreen, Timeline } from '../../types';
+import { getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
+import { baseURL, getAnnotationWithScreenAndIdx } from '../../utils';
+import { IAnnotationConfigWithScreenId } from '../annotation/annotation-config-utils';
 
 function getGroupedAnnNodesFromAnnNodeBoxArr(timeline: Timeline): GroupedAnns[] {
   const groups: Record<string, IAnnotationConfigWithScreen[]> = {};
@@ -121,3 +123,86 @@ export function getEndPointsUsingPath(d: string): [Point, Point] {
 
   return [{ x: start[0], y: start[1] }, { x: end[0], y: end[1] }];
 }
+
+export const getMDNewline = (): string => {
+  const newLine = `
+`;
+  return newLine;
+};
+
+export const normalizeMdStr = (str: string): string => str.trim().replace(/\n+/g, '. ');
+
+export const getMDPara = (content: string, shouldNormalize: boolean = true): string => {
+  let mdPara = `${content}`;
+  if (shouldNormalize) mdPara = normalizeMdStr(mdPara);
+  mdPara += getMDNewline();
+  mdPara += getMDNewline();
+  return mdPara;
+};
+
+export const getTourIntroMDStr = (title: string, description: string, manifestPath: string): string => {
+  let mdStr = '';
+  mdStr += getMDPara(`[${title} Demo](${manifestPath})`, false);
+  mdStr += getMDPara(`${description}`);
+  return mdStr;
+};
+
+export const getJourneyIntroMDStr = (title: string, description: string): string => {
+  let mdStr = '';
+  mdStr += getMDPara(`### ${title}`);
+  mdStr += getMDPara(`${description}`);
+  return mdStr;
+};
+
+export const getAnnotationTextsMDStr = (annConfigs: IAnnotationConfig[]): string => {
+  let mdStr = '';
+  annConfigs.forEach(ann => {
+    mdStr += `- ${normalizeMdStr(ann.displayText)}`;
+    mdStr += getMDNewline();
+  });
+  mdStr += getMDNewline();
+  return mdStr;
+};
+
+export const getAnnotationsInOrder = (
+  main: string,
+  allAnnotationsForTour: AnnotationPerScreen[]
+): IAnnotationConfig[] => {
+  const firstAnn = getAnnotationByRefId(main.split('/')[1], allAnnotationsForTour)!;
+
+  const annsInOrder: IAnnotationConfig[] = [];
+  let ann = firstAnn;
+  while (true && ann) {
+    annsInOrder.push(ann);
+
+    const nextBtn = getAnnotationBtn(ann, 'next')!;
+    if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
+      break;
+    }
+    const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+    ann = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
+  }
+
+  return annsInOrder;
+};
+
+export const getValidFileName = (input: string): string => {
+  const nonLetterSpaceChars = /[^a-zA-Z\s]/g;
+  return input.replace(nonLetterSpaceChars, '').replaceAll(' ', '-');
+};
+
+export const downloadFile = (content: string, filename: string, type: string): void => {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 0);
+};

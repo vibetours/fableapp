@@ -48,6 +48,7 @@ interface IOwnProps {
     resetZoom: () => void;
     showAnnText: boolean;
     setShowAnnText: Dispatch<SetStateAction<boolean>>;
+    downloadTourData: () => void;
   }
   publishOptions?: ReactElement;
   publishTour?: (tour: P_RespTour) => Promise<boolean>;
@@ -281,6 +282,13 @@ function Header(props: IOwnProps): JSX.Element {
                           style={{ borderBottom: 'none' }}
                         >
                           Reset canvas position
+                        </Tags.CanvasOption>
+                        <Tags.CanvasOption
+                          type="button"
+                          onClick={props.canvasOptions.downloadTourData}
+                          style={{ borderBottom: 'none' }}
+                        >
+                          Download datafile
                         </Tags.CanvasOption>
                       </Tags.CanvasOptionsCon>
                     }

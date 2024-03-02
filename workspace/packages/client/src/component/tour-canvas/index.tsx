@@ -72,8 +72,12 @@ import {
   ModalPosition,
   MultiAnnotationNode
 } from './types';
-import { formPathUsingPoints, getEndPointsUsingPath, getMultiAnnNodesAndEdges } from './utils';
-import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
+import {
+  downloadFile, formPathUsingPoints, getAnnotationTextsMDStr,
+  getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
+  getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
+} from './utils';
+import { baseURL, isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -2484,6 +2488,35 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   };
 
   const getFormatedAnnText = (annText: string) : string => `${annText.substring(0, 80)}${annText.length > 0 && '...'}`;
+
+  const getTourMDData = (): string => {
+    let mdData = '';
+
+    const { displayName: title, description } = props.tour;
+    mdData += getTourIntroMDStr(title, description, props.headerProps.manifestPath);
+
+    const isJourney = props.journey.flows.length > 0;
+    if (isJourney) {
+      props.journey.flows.forEach(flow => {
+        const { main, header1: flowTitle, header2: flowDescription } = flow;
+        mdData += getJourneyIntroMDStr(flowTitle, flowDescription);
+        const annsInOrder = getAnnotationsInOrder(main, props.allAnnotationsForTour);
+        mdData += getAnnotationTextsMDStr(annsInOrder);
+      });
+    } else if (props.tourOpts.main) {
+      const annsInOrder = getAnnotationsInOrder(props.tourOpts.main, props.allAnnotationsForTour);
+      mdData += getAnnotationTextsMDStr(annsInOrder);
+    }
+
+    return mdData;
+  };
+
+  const downloadTourData = (): void => {
+    const content = getTourMDData();
+    const filename = `${getValidFileName(props.tour.displayName || '')}.md`;
+    downloadFile(content, filename, 'text/markdown');
+  };
+
   return (
     <>
       <GTags.ColCon>
@@ -2497,7 +2530,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 resetZoom();
               },
               showAnnText,
-              setShowAnnText
+              setShowAnnText,
+              downloadTourData,
             }}
           />
         </GTags.HeaderCon>
