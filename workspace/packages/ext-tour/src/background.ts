@@ -116,7 +116,7 @@ chrome.storage.onChanged.addListener(async (changes, areaName) => {
       let isThumbnailCaptured = false;
       let sessionFinishedType : TSessionFinish = "na";
       const tabId = tVal[0].tabId;
-      const frames = (framesInTab[tabId] as number[]).reduce((s, n) => {
+      const frames = ((framesInTab[tabId] || []) as number[]).reduce((s, n) => {
         s[n] = 1;
         return s;
       }, {} as Record<number, number>);
