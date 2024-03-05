@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 import {
   CmnEvtProp,
-  CreateJourneyData,
+  JourneyData,
   IAnnotationConfig,
   ITourDataOpts,
   ITourDiganostics,
@@ -207,7 +207,7 @@ interface IAppStateProps {
   annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
-  journey: CreateJourneyData | null;
+  journey: JourneyData | null;
   pubTourAssetPath: string;
   manifestFileName: string;
 }
@@ -939,7 +939,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.saveEditChunks(forScreen, mergedEditChunks!);
   };
 
-  private onTourJourneyChange = (newJourney: CreateJourneyData, tx?: Tx): void => {
+  private onTourJourneyChange = (newJourney: JourneyData, tx?: Tx): void => {
     this.props.startAutoSaving();
 
     const journey = { ...newJourney, flows: newJourney.flows.filter((flow) => !isBlankString(flow.main)) };

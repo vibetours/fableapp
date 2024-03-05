@@ -2,24 +2,27 @@ import { AnalyticsEvents, AnnotationBtnClickedPayload } from './analytics/types'
 import {
   ExtMsg,
   InternalEvents,
-  Payload_AnnotationNav,
   Payload_DemoLoadingFinished,
   Payload_DemoLoadingStarted,
-  Payload_JourneySwitch
+  Payload_JourneySwitch,
+  Payload_Navigation,
+  JourneyNameIndexData
 } from './types';
 import { createIframeSrc, getGlobalData, postMessageForEvent } from './utils';
 import { P_RespTour } from './entity-processor';
 import { logEvent } from './analytics/utils';
 
-type Payload_IE_AnnotationNav = Payload_AnnotationNav & AnnotationBtnClickedPayload;
+type Payload_IE_AnnotationNav = AnnotationBtnClickedPayload;
 type Payload_IE_JourneySwitch = Payload_JourneySwitch;
 type Payload_IE_DemoLoadingStarted = Payload_DemoLoadingStarted;
-type Payload_IE_DemoLoadingFinished = Payload_DemoLoadingFinished
+type Payload_IE_DemoLoadingFinished = Payload_DemoLoadingFinished;
+type Payload_IE_Navigation = Payload_Navigation;
 
 type Payload_IE_All = Payload_IE_AnnotationNav
   | Payload_IE_JourneySwitch
   | Payload_IE_DemoLoadingStarted
-  | Payload_IE_DemoLoadingFinished;
+  | Payload_IE_DemoLoadingFinished
+  | Payload_IE_Navigation;
 
 export function emitEvent<T>(
   ev: InternalEvents,
@@ -39,26 +42,18 @@ export function registerListenerForInternalEvent(ev: InternalEvents, fn: (payloa
 }
 
 export function initInternalEvents() : void {
-  registerListenerForInternalEvent(InternalEvents.OnAnnotationNav, (payload: Payload_IE_All) => {
-    const demoData = getGlobalData('demo') as P_RespTour;
-    const journeyName = getGlobalData('journeyName') || null;
+  registerListenerForInternalEvent(InternalEvents.OnNavigation, (payload: Payload_IE_All) => {
+    const journeyData = getGlobalData('journeyData') as JourneyNameIndexData;
+    const journeyIndex = journeyData !== undefined ? journeyData.journeyIndex : -1;
     const tPayload = {
       ...payload,
-      demoUrl: createIframeSrc(`/demo/${demoData.rid}`) || '',
-      demoDisplayName: demoData.displayName || '',
-      demoRid: demoData.rid || '',
-      journeyName
-    } as Payload_IE_AnnotationNav;
-    const postMsgPayload: Payload_AnnotationNav = {
-      currentAnnoationIndex: tPayload.currentAnnoationIndex,
-      totalNumberOfAnnotationsInCurrentTimeline: tPayload.totalNumberOfAnnotationsInCurrentTimeline,
-      journeyName: tPayload.journeyName,
-      annotationConfig: tPayload.annotationConfig,
-      demoDisplayName: tPayload.demoDisplayName,
-      demoRid: tPayload.demoRid,
-      demoUrl: tPayload.demoUrl
+      journeyIndex
+    } as Payload_IE_Navigation;
+    const postMsgPayload: Payload_Navigation = {
+      journeyIndex: tPayload.journeyIndex,
+      currentAnnotationRefId: tPayload.currentAnnotationRefId
     };
-    postMessageForEvent<Payload_AnnotationNav>(ExtMsg.OnAnnotationNav, postMsgPayload);
+    postMessageForEvent<Payload_Navigation>(ExtMsg.OnNavigation, postMsgPayload);
   });
 
   registerListenerForInternalEvent(InternalEvents.OnAnnotationNav, (payload: Payload_IE_All) => {
@@ -73,12 +68,8 @@ export function initInternalEvents() : void {
   });
 
   registerListenerForInternalEvent(InternalEvents.JourneySwitch, (payload: Payload_IE_All) => {
-    const demoData = getGlobalData('demo') as P_RespTour;
     const tPayload = {
       ...payload,
-      demoUrl: createIframeSrc(`/demo/${demoData.rid}`) || '',
-      demoDisplayName: demoData.displayName || '',
-      demoRid: demoData.rid || '',
     };
     postMessageForEvent(ExtMsg.JourneySwitch, tPayload as Payload_IE_JourneySwitch);
   });
@@ -97,12 +88,8 @@ export function initInternalEvents() : void {
   registerListenerForInternalEvent(
     InternalEvents.DemoLoadingFinished,
     (payload: Payload_IE_All) => {
-      const demoData = getGlobalData('demo') as P_RespTour;
       const tPayload = {
         ...payload,
-        demoUrl: createIframeSrc(`/demo/${demoData.rid}`) || '',
-        demoDisplayName: demoData.displayName || '',
-        demoRid: demoData.rid || '',
       };
       postMessageForEvent(ExtMsg.DemoLoadingFinished, tPayload as Payload_IE_DemoLoadingFinished);
     }

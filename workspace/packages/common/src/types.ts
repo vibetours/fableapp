@@ -139,7 +139,7 @@ export interface TourDataWoScheme {
   opts: ITourDataOpts,
   entities: Record<string, TourEntity>;
   diagnostics: ITourDiganostics;
-  journey: CreateJourneyData;
+  journey: JourneyData;
 }
 
 export interface TourData extends TourDataWoScheme {
@@ -310,7 +310,7 @@ export enum CmnEvtProp {
   TOUR_URL = 'tour_url'
 }
 
-export interface CreateJourneyData {
+export interface JourneyData {
   positioning: CreateJourneyPositioning;
   title: string;
   flows: JourneyFlow[];

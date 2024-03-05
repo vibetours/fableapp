@@ -26,7 +26,7 @@ import {
   IdxEncodingTypeImage,
   IdxEncodingTypeMask,
   IdxEncodingTypeText,
-  NavFn
+  NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
@@ -294,7 +294,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     let an: IAnnotationConfig | null = null;
     if (id) {
       an = getAnnotationByRefId(id, this.props.allAnnotationsForTour);
-      if (an) annFound = true;
+      if (an) {
+        annFound = true;
+      }
     }
 
     clearTimeout(this.timer);

@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons';
 import {
   CmnEvtProp,
-  CreateJourneyData,
+  JourneyData,
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot,
@@ -124,9 +124,9 @@ type CanvasProps = {
   isScreenLoaded: boolean;
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;
-  onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
+  onTourJourneyChange: (newJourney: JourneyData, tx?: Tx)=> void;
   headerProps: HeaderProps,
-  journey: CreateJourneyData
+  journey: JourneyData
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -2202,7 +2202,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     // reset previously selected ann's selection marker
     const annNodes = selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node');
     resetAnnNodeSelectionStyle(annNodes);
-
     if (!selectedAnnId && annEditorModal) {
       closeScreenEditor();
       return;

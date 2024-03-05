@@ -5,7 +5,7 @@ import {
   RespUser
 } from '@fable/common/dist/api-contract';
 import {
-  CreateJourneyData,
+  JourneyData,
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
@@ -86,7 +86,7 @@ export const initialState: {
   isAutoSaving: boolean;
   isAutoSavingLoader: boolean;
   allScreensForCurrentTourLoadingStatus: LoadingStatus;
-  journey: CreateJourneyData | null;
+  journey: JourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
 } = {
   inited: false,

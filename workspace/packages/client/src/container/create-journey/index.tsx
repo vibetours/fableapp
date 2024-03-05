@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
-  CreateJourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+  JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import { Input as CTAInput, Button as AntdButton } from 'antd';
 import Select from 'antd/lib/select';
 import Tooltip from 'antd/lib/tooltip';
@@ -37,9 +37,9 @@ interface IOwnProps {
     closeEditor: () => void;
     firstAnnotations: IAnnotationConfigWithScreen[];
     getAnnInView: (refId: string) => void;
-    onTourJourneyChange: (newJourney: CreateJourneyData, tx?: Tx)=> void;
+    onTourJourneyChange: (newJourney: JourneyData, tx?: Tx)=> void;
     tourOpts: ITourDataOpts;
-    journey: CreateJourneyData;
+    journey: JourneyData;
 }
 
 type IProps = IOwnProps &
@@ -52,7 +52,7 @@ type IProps = IOwnProps &
   }>;
 
 interface IOwnStateProps {
-  journeyData: CreateJourneyData;
+  journeyData: JourneyData;
   isUrlValid: boolean;
 }
 

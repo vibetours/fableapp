@@ -8,14 +8,13 @@ import {
 } from '@fable/common/dist/types';
 import React from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
-import { ArrowLeftOutlined, CaretLeftFilled, LeftOutlined } from '@ant-design/icons';
-import { ExtMsg, InternalEvents, Msg, NavFn, Payload_AnnotationNav, Payload_NavToAnnotation } from '../../types';
+import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import AnnotationVideo from './video-player';
 import { generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 import {
-  getAnnotationIndex,
   getTransparencyFromHexStr,
   isCoverAnnotation as isCoverAnn,
   isVideoAnnotation as isVideoAnn
@@ -42,6 +41,7 @@ interface IProps {
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean;
   maskBox: Rect | null;
+  nav: NavFn
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
@@ -255,6 +255,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       window.addEventListener('message', this.receiveMessage, false);
     }
     if (this.conRef.current && !this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
+    if (this.props.annotationDisplayConfig.isMaximized) {
+      emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
+        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId
+      });
+    }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
@@ -270,6 +275,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized
        && this.props.annotationDisplayConfig.isMaximized) {
+      emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
+        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId
+      });
       if (this.conRef.current && this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
     }
 
@@ -288,10 +296,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
     if (e.data.sender !== 'sharefable.com') return;
     if (e.data.type === ExtMsg.NavToAnnotation) {
-      if (e.data.payload.refId) {
-      // const ann = getAnnotationByRefId(e.data.payload.refId, this.props.allAnnotationsForTour);
-      // if (ann) { this.navigateTo(`${ann.screenId}/${ann.refId}`); }
-      } else if (e.data.payload.action) {
+      if (e.data.payload.main && this.props.annotationDisplayConfig.isMaximized) {
+        this.props.nav(e.data.payload.main, 'annotation-hotspot');
+      } else if (e.data.payload.action && this.props.annotationDisplayConfig.isMaximized) {
         const btnConfig = this.props.annotationDisplayConfig.config.buttons.filter(
           button => button.type === e.data.payload.action
         )[0];
@@ -1129,21 +1136,14 @@ function handleEventLogging(
   btn_id: string,
   btn_type: IAnnotationButtonType,
   tour_id: number,
-  annotatonIndexString: string,
   annotationConfig: IAnnotationConfig
 ): void {
   setTimeout(() => {
-    // TODO annotationIndex would be a structured data like an array [currentIndex, totalLength]
-    const annIndexArr = getAnnotationIndex(annotatonIndexString, btn_type);
-
     const btnClickedpayload: AnnotationBtnClickedPayload = {
       tour_id, ann_id: annotationConfig.refId, btn_id, btn_type
     };
 
-    emitEvent<Partial<Payload_AnnotationNav>>(InternalEvents.OnAnnotationNav, {
-      currentAnnoationIndex: annIndexArr[0],
-      totalNumberOfAnnotationsInCurrentTimeline: annIndexArr[1],
-      annotationConfig,
+    emitEvent<Partial<AnnotationBtnClickedPayload>>(InternalEvents.OnAnnotationNav, {
       ...btnClickedpayload
     });
   // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
@@ -1264,7 +1264,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           btnId,
           type,
           this.props.tourId,
-          p.annotationSerialIdMap[p.conf.config.refId],
           p.conf.config
         );
 
@@ -1333,6 +1332,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             tourId={this.props.tourId}
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
+            nav={this.props.nav}
           />
         </div>
       );

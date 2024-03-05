@@ -1,7 +1,7 @@
 import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
 import Dropdown from 'antd/lib/dropdown/dropdown';
 import React, { ReactElement } from 'react';
-import { CreateJourneyData, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+import { JourneyData, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import { getColorContrast, isBlankString } from '../../utils';
@@ -9,7 +9,7 @@ import { FlowProgress } from '../../types';
 import { ProgressCircle } from '../progress-circle';
 
 interface Props {
-    journey: CreateJourneyData;
+    journey: JourneyData;
     isJourneyMenuOpen: boolean;
     navigateToJourney: (main: string)=> void;
     updateJourneyMenu: (isMenuOpen: boolean)=> void;
@@ -20,7 +20,7 @@ interface Props {
 }
 
 const getMenu = (
-  journey: CreateJourneyData,
+  journey: JourneyData,
   navigateToJourney: (main: string)=> void,
   navigateToCta: ()=> void,
   tourOpts: ITourDataOpts,

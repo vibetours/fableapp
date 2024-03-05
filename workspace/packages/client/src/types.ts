@@ -1,6 +1,7 @@
-import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
+import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 
 export const enum ElEditType {
   Text = 1,
@@ -179,13 +180,14 @@ export enum InternalEvents {
   DemoLoadingStarted = 'demo_loading_started',
   DemoLoadingFinished = 'demo_loading_finished',
   OnAnnotationNav = 'on_annotation_navigation',
+  OnNavigation = 'on_navigation',
   JourneySwitch = 'journey_switch',
 }
 
 export enum ExtMsg {
   DemoLoadingStarted = 'demo-loading-started',
   DemoLoadingFinished = 'demo-loading-finished',
-  OnAnnotationNav = 'on-annotation-navigation',
+  OnNavigation = 'on-navigation',
   JourneySwitch = 'journey-switch',
   NavToAnnotation = 'navigate-to-annotation'
 }
@@ -206,32 +208,45 @@ export interface CommonPayloadProps {
 }
 
 export interface Payload_DemoLoadingStarted extends CommonPayloadProps{}
-export interface Payload_DemoLoadingFinished extends CommonPayloadProps{
-  annConfigs:IAnnotationConfig[]
+export interface Payload_DemoLoadingFinished{
+  annConfigs:IAnnotationConfigWithScreenId[] | null,
+  journeyData: JourneyModuleWithAnns[] | null
 }
-export interface Payload_JourneySwitch extends CommonPayloadProps{
+export interface Payload_JourneySwitch{
   fromJourney: string | null;
   currentJourney: string;
 }
-export interface Payload_AnnotationNav extends CommonPayloadProps{
-  currentAnnoationIndex: number;
-  totalNumberOfAnnotationsInCurrentTimeline: number;
-  journeyName: string | null;
-  annotationConfig: IAnnotationConfig;
+export interface Payload_Navigation{
+  currentAnnotationRefId: string;
+  journeyIndex: number;
 }
 
 export interface Payload_NavToAnnotation{
-  refId?: string
+  main?: string
   action?: 'prev' | 'next'
 }
 
 export interface GlobalAppData {
   demo?: P_RespTour,
+  journeyData?: JourneyNameIndexData
+}
+
+export interface JourneyNameIndexData {
   journeyName?: string | null,
+  journeyIndex?: number
 }
 
 export type GlobalWin = Window & { __fable_global_app_data__?: GlobalAppData }
 export type MultiNodeModalData = {
   leftCoord: number,
   selectedMultiNode: IAnnotationConfigWithScreen[] | null
+}
+
+export interface JourneyModuleWithAnns extends JourneyFlow{
+  annsInOrder: IAnnotationConfigWithScreenId[]
+}
+
+export interface queryData {
+  hm: 0 | 1, // hide module
+  ha: 0 | 1 // hide annotation
 }

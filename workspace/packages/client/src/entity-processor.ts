@@ -14,7 +14,7 @@ import {
 } from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
-  CreateJourneyData,
+  JourneyData,
   IAnnotationConfig,
   IAnnotationOriginConfig,
   ITourDataOpts,
@@ -206,7 +206,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
-  journey: CreateJourneyData
+  journey: JourneyData
 } {
   const annotationsPerScreen: Record<string, IAnnotationConfig[]> = {};
   const annotationsIdMapPerScreen: Record<string, string[]> = {};
@@ -497,9 +497,9 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
 }
 
 export function normalizeBackwardCompatibilityForJourney(
-  journey: CreateJourneyData,
+  journey: JourneyData,
   opts: ITourDataOpts
-): CreateJourneyData {
+): JourneyData {
   if (journey === null || journey === undefined) {
     return getSampleJourneyData();
   }

@@ -36,7 +36,7 @@ import {
   RespTourAnnViews,
 } from '@fable/common/dist/api-contract';
 import {
-  CreateJourneyData,
+  JourneyData,
   EditFile,
   IAnnotationConfig,
   ITourDataOpts,
@@ -748,7 +748,7 @@ export interface TTourWithData {
   annotations: Record<string, IAnnotationConfig[]>;
   opts: ITourDataOpts;
   allCorrespondingScreens: boolean,
-  journey: CreateJourneyData,
+  journey: JourneyData,
 }
 
 export interface TTourWithLoader {
@@ -905,7 +905,7 @@ export interface TSaveTourEntities {
   idMap: Record<string, string[]>,
   opts: ITourDataOpts,
   isLocal: boolean,
-  journey: CreateJourneyData
+  journey: JourneyData
 }
 
 export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { IAnnotationConfig, ITourEntityHotspot, SerNode, JourneyFlow } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourEntityHotspot, SerNode, JourneyFlow, JourneyData } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
 import {
@@ -7,13 +7,16 @@ import {
   IAnnotationConfigWithScreen,
   JOURNEY_PROGRESS_LOCAL_STORE_KEY,
   FlowProgress,
-  InternalEvents,
   GlobalAppData,
   GlobalWin,
   ExtMsg,
-  Timeline
+  Timeline,
+  JourneyModuleWithAnns,
+  queryData
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
+import { P_RespScreen } from './entity-processor';
+import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -381,28 +384,6 @@ export const getChildElementByFid = (node: Node, fid: string): HTMLElement | nul
   return null;
 };
 
-export const getAnnotationIndex = (annotationString: string, type: 'prev'|'next'|'custom'): number[] => {
-  const fallbackAnnIndexArr = [-1, -1];
-  if (!annotationString) {
-    return fallbackAnnIndexArr;
-  }
-  const numberRegex = /\d+/g;
-  const matchResult = annotationString.match(numberRegex);
-  if (matchResult && matchResult.length !== 2) {
-    return fallbackAnnIndexArr;
-  }
-  const result = matchResult ? matchResult.map(Number) : fallbackAnnIndexArr;
-  const currentIndex = result[0];
-  const totalIndex = result[1];
-  if (type === 'prev' && currentIndex > 1) {
-    return [currentIndex - 1, totalIndex];
-  }
-  if (type === 'next' && currentIndex < totalIndex) {
-    return [currentIndex + 1, totalIndex];
-  }
-  return result;
-};
-
 export function postMessageForEvent<T>(eventType: ExtMsg, payload: T): void {
   const message = {
     sender: 'sharefable.com',
@@ -460,3 +441,114 @@ export function getTransparencyFromHexStr(hex: string): number {
   const h = parseInt(transparencyHexStr, 16);
   return Number.isNaN(h) ? 0 : Math.round((h / 255) * 100);
 }
+
+const getOrderedAnnsFromGivenAnn = (
+  ann: IAnnotationConfigWithScreenId,
+  flatAnns: Record<string, IAnnotationConfigWithScreenId>
+): IAnnotationConfigWithScreenId[] => {
+  const annsInOrder: IAnnotationConfigWithScreenId[] = [];
+
+  while (true) {
+    annsInOrder.push(ann);
+
+    const nextBtn = getAnnotationBtn(ann, 'next')!;
+    if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
+      break;
+    }
+    const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+    ann = flatAnns[nextAnnRefId];
+  }
+
+  return annsInOrder;
+};
+
+const getFlatAnns = (allAnns: AnnotationPerScreen[]): Record<string, IAnnotationConfigWithScreenId> => {
+  const flatAnns: Record<string, IAnnotationConfigWithScreenId> = {};
+  for (const annPerScreen of allAnns) {
+    for (const ann of annPerScreen.annotations) {
+      flatAnns[ann.refId] = {
+        ...ann,
+        screenId: annPerScreen.screen.id,
+      };
+    }
+  }
+  return flatAnns;
+};
+
+export const getJourneyWithAnnotations = (
+  allAnns: AnnotationPerScreen[],
+  journeyModules: JourneyFlow[]
+) : JourneyModuleWithAnns[] => {
+  const journeyData : JourneyModuleWithAnns[] = [];
+
+  const flatAnns = getFlatAnns(allAnns);
+
+  const firstAnns: IAnnotationConfigWithScreenId[] = [];
+  journeyModules.forEach(module => {
+    const firstAnnId = module.main.split('/')[1];
+    firstAnns.push(flatAnns[firstAnnId]);
+  });
+
+  firstAnns.forEach((firstAnn, index) => {
+    const annsInOrder = getOrderedAnnsFromGivenAnn(firstAnn, flatAnns);
+    const flow: JourneyModuleWithAnns = {
+      ...journeyModules[index],
+      annsInOrder
+    };
+
+    journeyData.push(flow);
+  });
+
+  return journeyData;
+};
+
+export const getOrderedAnnotaionFromMain = (
+  allAnns: AnnotationPerScreen[],
+  main: string
+) : IAnnotationConfigWithScreenId[] => {
+  const flatAnns = getFlatAnns(allAnns);
+  const firstAnnId = main.split('/')[1];
+  const firstAnn = flatAnns[firstAnnId];
+
+  const annsInOrder = getOrderedAnnsFromGivenAnn(firstAnn, flatAnns);
+  return annsInOrder;
+};
+
+export const updateAllAnnotationsForTour = (
+  allAnnotationForTour: AnnotationPerScreen[],
+): AnnotationPerScreen[] => {
+  const newAllAnnotationForTour = [...allAnnotationForTour];
+  newAllAnnotationForTour.forEach((screen) => {
+    screen.annotations.forEach((annotation) => {
+      if (annotation.type === 'default') {
+        annotation.hideAnnotation = true;
+        annotation.isHotspot = true;
+      }
+    });
+  });
+
+  return newAllAnnotationForTour;
+};
+
+export const updateAllAnnotations = (
+  allAnnotations: Record<string, IAnnotationConfig[]>
+): Record<string, IAnnotationConfig[]> => {
+  Object.keys(allAnnotations).forEach(screen => {
+    allAnnotations[screen].forEach((annotation) => {
+      if (annotation.type === 'default') {
+        annotation.hideAnnotation = true;
+        annotation.isHotspot = true;
+      }
+    });
+  });
+  return allAnnotations;
+};
+
+export const getSearchParamData = (param: string | null) : queryData | null => {
+  if (!param) {
+    return null;
+  }
+  const decodedQuery = window.atob(decodeURIComponent(param));
+  const query = JSON.parse(decodedQuery);
+  return query;
+};
