@@ -12,7 +12,8 @@ import {
   AnnotationButtonLayoutType,
   CustomAnnDims,
   CustomAnnotationPosition,
-  AnnotationSelectionShapeType
+  AnnotationSelectionShapeType,
+  AnnotationSelectionEffectType
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -120,6 +121,15 @@ export function updateAnnotationTypeToDefault(
   newConfig.id = elPath;
   newConfig.size = 'small';
   newConfig.hideAnnotation = false;
+  return newConfig;
+}
+
+export function updateAnnotationSelectionEffect<T extends IAnnotationConfig>(
+  config: T,
+  selectionEffect: AnnotationSelectionEffectType
+): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.selectionEffect = selectionEffect;
   return newConfig;
 }
 

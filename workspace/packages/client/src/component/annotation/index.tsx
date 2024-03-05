@@ -32,6 +32,7 @@ interface NavigateToAnnMessage<T> extends MessageEvent{
   data: Msg<T>
 }
 interface IProps {
+  el: HTMLElement;
   annotationDisplayConfig: IAnnoationDisplayConfig;
   box: Rect,
   win: Window,
@@ -563,7 +564,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     if (dir === 't' || dir === 'b') {
-      // debugger;
       let arrowLeft = elBox.left + elBox.width / 2 - arrowWidth / 2;
       if (arrowLeft + arrowWidth >= annBox.left + annBox.width - borderRadius) {
         const diff = (arrowLeft + arrowWidth) - (annBox.left + annBox.width);
@@ -864,6 +864,21 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             selColor={config.annotationSelectionColor}
           />
         }
+        {
+          config.selectionEffect === 'blinking'
+          && config.selectionShape !== 'pulse'
+          && !isCoverAnn(config)
+          && !displayConfig.prerender
+          && <Tags.AnHotspot
+            shouldAnimate
+            className="blinking-el-mask"
+            selColor={config.annotationSelectionColor}
+            box={maskBoxRect}
+            scrollX={this.props.win.scrollX}
+            scrollY={this.props.win.scrollY}
+            style={{ borderRadius: getComputedStyle(this.props.el).borderRadius || '2px' }}
+          />
+        }
       </>
     );
   }
@@ -1095,6 +1110,8 @@ export interface IAnnoationDisplayConfig {
 }
 
 export interface IAnnProps {
+  el: HTMLElement;
+  hotspotEl: HTMLElement | null;
   box: Rect;
   conf: IAnnoationDisplayConfig;
   isNextAnnVideo: boolean;
@@ -1119,6 +1136,9 @@ interface IConProps {
 
 interface HotspotProps {
   data: Array<{
+    win: Window,
+    el: HTMLElement,
+    hotspotEl: HTMLElement | null,
     opts: ITourDataOpts,
     conf: IAnnotationConfig,
     box: Rect,
@@ -1154,6 +1174,8 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
   render(): (JSX.Element | null)[] {
     return this.props.data.map((p, idx) => {
       const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
+      const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(p.win);
+      const maskBoxRect = HighlighterBase.getMaskBoxRect(p.box, p.win, cdx, cdy);
 
       /**
        * If we show the annotation in edit mode, the user won't be able to select any
@@ -1164,12 +1186,13 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
       if (this.props.playMode || p.isGranularHotspot) {
         return (
           <Tags.AnHotspot
+            style={{ borderRadius: getComputedStyle(p.isGranularHotspot ? p.hotspotEl! : p.el).borderRadius || '2px' }}
             key={p.conf.id}
-            box={p.box}
+            box={maskBoxRect}
             selColor={p.conf.annotationSelectionColor}
             scrollX={p.scrollX}
             scrollY={p.scrollY}
-            isGranularHotspot={p.isGranularHotspot}
+            shouldAnimate={p.isGranularHotspot}
             className="fable-hotspot"
             onClick={() => {
               this.props.navigateToAdjacentAnn('next', btnConf.id);
@@ -1310,6 +1333,9 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           {
             isHotspot && <AnnotationHotspot
               data={[{
+                win: this.props.win,
+                el: p.el,
+                hotspotEl: p.hotspotEl,
                 opts: p.conf.opts,
                 conf: p.conf.config,
                 box: isGranularHotspot ? p.hotspotBox! : p.box,
@@ -1324,6 +1350,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             />
           }
           <AnnotationCard
+            el={p.el}
             annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}

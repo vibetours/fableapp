@@ -611,7 +611,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         }
       }
 
-      if (annotationDisplayConfig.config.selectionShape === 'pulse') {
+      if (
+        annotationDisplayConfig.config.selectionShape === 'pulse'
+        || annotationDisplayConfig.config.selectionEffect === 'blinking'
+      ) {
         this.updateConfig('selectionColor', 'transparent');
       }
 
@@ -620,6 +623,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       }
 
       props.push({
+        el,
+        hotspotEl,
         box,
         conf: annotationDisplayConfig,
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
@@ -762,7 +767,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         isNextAnnVideo: false,
         isPrevAnnVideo: false,
         annotationSerialIdMap: this.annotationSerialIdMap,
-        maskBox: null
+        maskBox: null,
+        el: document.createElement('div'),
+        hotspotEl: null
       };
     });
 

@@ -67,7 +67,7 @@ export default abstract class HighlighterBase {
     );
   }
 
-  private drawMask(elSize: Rect, win: Window, dx: number, dy: number): void {
+  private drawMask(elSize: Rect, win: Window, dx: number, dy: number, elBorderRadius: string): void {
     const maskBox = this.getOrCreateMask();
 
     const { top, left, width, height } = HighlighterBase.getMaskBoxRect(elSize, win, dx, dy);
@@ -76,6 +76,7 @@ export default abstract class HighlighterBase {
     maskBox.style.left = `${left}px`;
     maskBox.style.width = `${width}px`;
     maskBox.style.height = `${height}px`;
+    maskBox.style.borderRadius = elBorderRadius;
   }
 
   static getMaskBoxRect(elSize: Rect, win: Window, dx: number, dy: number): Rect {
@@ -163,14 +164,15 @@ export default abstract class HighlighterBase {
     const win = doc.defaultView!;
     const [dx, dy] = this.getCumulativeDxdy(el.ownerDocument);
     const elSize: DOMRect = el.getBoundingClientRect();
-    this.drawMask(elSize, this.win, dx, dy);
+    const elBorderRadius = getComputedStyle(el).borderRadius;
+    this.drawMask(elSize, this.win, dx, dy, elBorderRadius);
   }
 
   selectBoxInDoc(scaleCoords: Coords): void {
     const win = this.doc.defaultView!;
     const [dx, dy] = this.doc.body.getAttribute('dxdy')!.split(',').map(d => +d);
     const elSize = this.getAbsFromRelCoords(scaleCoords);
-    this.drawMask(elSize, win, dx, dy);
+    this.drawMask(elSize, win, dx, dy, '2px');
   }
 
   getAbsFromRelCoords(coords: Coords): Rect {

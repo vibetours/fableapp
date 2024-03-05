@@ -5,7 +5,7 @@ import {
   AnnotationButtonLayoutType,
   AnnotationFontSize
 } from '@fable/common/dist/types';
-import { Rect } from '../base/hightligher-base';
+import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
 import { getColorContrast } from '../../utils';
 
@@ -201,7 +201,14 @@ interface AnHotspotProps {
   box: Rect;
   scrollX: number;
   scrollY: number;
-  isGranularHotspot: boolean;
+  shouldAnimate: boolean;
+}
+
+interface BlinkingSelectionEffectProps {
+  selColor: string;
+  box: Rect;
+  scrollX: number;
+  scrollY: number;
 }
 
 const createBoxShadowKF = (selColor: string) : SimpleInterpolation => keyframes`
@@ -209,7 +216,7 @@ const createBoxShadowKF = (selColor: string) : SimpleInterpolation => keyframes`
 `;
 
 const BoxShadowKFRule = css`
-  ${({ selColor }: AnHotspotProps) => css`
+  ${({ selColor }: { selColor: string }) => css`
     ${createBoxShadowKF(selColor)} 2s infinite;
   `}
 `;
@@ -217,13 +224,18 @@ const BoxShadowKFRule = css`
 export const AnHotspot = styled.div`
   background: transparent;
   cursor: pointer;
-  animation: ${(p: AnHotspotProps) => (p.isGranularHotspot ? BoxShadowKFRule : 'none')};
+  animation: ${(p: AnHotspotProps) => (p.shouldAnimate ? BoxShadowKFRule : 'none')};
   border-radius: 4px;
   position: absolute;
-  top: ${(p: AnHotspotProps) => `${p.box.top - 4 + p.scrollY}px`};
-  left: ${(p: AnHotspotProps) => `${p.box.left - 4 + p.scrollX}px`};
-  width: ${(p: AnHotspotProps) => `${p.box.width + 8}px`};
-  height: ${(p: AnHotspotProps) => `${p.box.height + 8}px`};
+  top: ${(p: AnHotspotProps) => `${p.box.top}px`};
+  left: ${(p: AnHotspotProps) => `${p.box.left}px`};
+  width: ${(p: AnHotspotProps) => `${p.box.width}px`};
+  height: ${(p: AnHotspotProps) => `${p.box.height}px`};
+  transition: all 0.3s ease-in-out;
+
+  &:hover {
+    background-color: color-mix(in srgb, ${(p: AnHotspotProps) => p.selColor} 10%, rgba(0, 0, 0, 0.1));
+  }
 `;
 
 export const AnBubble = styled.div<{bubbleWidth: number}>`

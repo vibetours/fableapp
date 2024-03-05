@@ -232,6 +232,9 @@ export declare type AnnotationButtonLayoutType = typeof AnnotationButtonLayout[n
 export const AnnotationSelectionShape = ['box', 'pulse'] as const;
 export declare type AnnotationSelectionShapeType = typeof AnnotationSelectionShape[number];
 
+export const AnnotationSelectionEffect = ['regular', 'blinking'] as const;
+export declare type AnnotationSelectionEffectType = typeof AnnotationSelectionEffect[number];
+
 export type CustomAnnDims = {
   width: number,
 }
@@ -257,6 +260,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   showOverlay: boolean;
   buttonLayout: AnnotationButtonLayoutType;
   selectionShape: AnnotationSelectionShapeType;
+  selectionEffect: AnnotationSelectionEffectType;
   targetElCssStyle: string;
   annCSSStyle: string;
   annotationSelectionColor: string;

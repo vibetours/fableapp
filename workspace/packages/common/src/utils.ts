@@ -119,6 +119,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
   const id = getRandomId();
 
   return {
+    selectionEffect: 'regular',
     annotationSelectionColor: DEFAULT_BLUE_BORDER_COLOR,
     id: isCoverAnn ? `$#${id}` : elPath,
     refId: id,
@@ -134,7 +135,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     type: isCoverAnn ? 'cover' : 'default',
     size: isCoverAnn ? 'medium' : 'small',
     customDims: DEFAULT_ANN_DIMS,
-    isHotspot: false,
+    isHotspot: !isCoverAnn,
     hideAnnotation: false,
     videoUrl: '', // legacy
     videoUrlHls: '',

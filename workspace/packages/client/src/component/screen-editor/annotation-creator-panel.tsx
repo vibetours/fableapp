@@ -3,6 +3,8 @@ import {
   AnnotationButtonLayoutType,
   AnnotationButtonSize,
   AnnotationButtonStyle,
+  AnnotationSelectionEffect,
+  AnnotationSelectionEffectType,
   AnnotationPositions,
   AnnotationSelectionShape,
   AnnotationSelectionShapeType,
@@ -66,6 +68,7 @@ import {
   getAnnPositioningOptions,
   updateAnnotationSelectionShape,
   updateSelectionColor,
+  updateAnnotationSelectionEffect,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { AnnotationPerScreen, onAnnCreateOrChangeFn, } from '../../types';
@@ -621,6 +624,26 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
+
+        <div style={commonActionPanelItemStyle}>
+          <GTags.Txt>Selection Effect</GTags.Txt>
+          <Tags.ActionPaneSelect
+            title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
+            disabled={config.selectionShape === 'pulse'}
+            defaultValue={config.selectionEffect}
+            size="small"
+            bordered={false}
+            options={AnnotationSelectionEffect.map(v => ({
+              value: v,
+              label: v.charAt(0).toUpperCase() + v.slice(1),
+            }))}
+            onChange={(value) => {
+              setConfig(c => updateAnnotationSelectionEffect(c, value as AnnotationSelectionEffectType));
+            }}
+            suffixIcon={<CaretOutlined dir="down" />}
+          />
+        </div>
+
         <div style={commonActionPanelItemStyle}>
           <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
           <Tags.ActionPaneSelect
@@ -995,31 +1018,16 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
       </ActionPanel>
       {
-        props.screen.type === ScreenType.SerDom && (
+        props.screen.type === ScreenType.SerDom && config.type === 'default' && (
           <ActionPanel
             id="hotspot-panel"
             title="Hotspot"
             helpText={hotspotHelpText}
             icon={<ThunderboltOutlined style={{ fontSize: '1.25rem' }} />}
           >
-            <div style={{
-              ...commonActionPanelItemStyle,
-              height: 'auto',
-              marginTop: '0.5rem',
-              marginBottom: '10px',
-            }}
-            >
-              <GTags.Txt>Interactive element</GTags.Txt>
-              <Tags.StyledSwitch
-                size="small"
-                style={{ backgroundColor: config.isHotspot ? '#7567FF' : '#BDBDBD' }}
-                defaultChecked={config.isHotspot}
-                onChange={(e) => setConfig(c => updateAnnotationIsHotspot(c, e))}
-              />
-            </div>
-            {config.isHotspot && config.type !== 'cover' && (
+            {config.isHotspot && (
               <>
-                <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
+                <div style={{ ...commonActionPanelItemStyle, height: 'auto', marginTop: '0.5rem' }}>
                   <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
                     <GTags.Txt>Hide annotation</GTags.Txt>
                     <Tags.StyledSwitch

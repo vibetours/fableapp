@@ -307,6 +307,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     showOverlay: lc.showOverlay,
     buttonLayout: lc.buttonLayout,
     selectionShape: lc.selectionShape,
+    selectionEffect: lc.selectionEffect,
     targetElCssStyle: lc.targetElCssStyle,
     annCSSStyle: lc.annCSSStyle,
     customDims: lc.customDims,
@@ -342,9 +343,8 @@ export function normalizeBackwardCompatibility(
     an.annotationSelectionColor = tOpts.annotationSelectionColor || DEFAULT_BLUE_BORDER_COLOR;
   }
 
-  if (an.isHotspot === undefined || an.isHotspot === null) {
-    an.isHotspot = false;
-  }
+  if (an.type === 'cover') an.isHotspot = false;
+  else an.isHotspot = true;
 
   if (an.hideAnnotation === undefined || an.hideAnnotation === null) {
     an.hideAnnotation = false;
@@ -372,6 +372,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.selectionShape === undefined || an.selectionShape === null) {
     an.selectionShape = 'box';
+  }
+
+  if (an.selectionEffect === undefined || an.selectionEffect === null) {
+    an.selectionEffect = 'regular';
   }
 
   if (an.targetElCssStyle === undefined || an.targetElCssStyle === null) {
