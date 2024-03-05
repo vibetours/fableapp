@@ -177,13 +177,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.prerenderVideoAnnotations();
     this.iframeElsScrollTimeoutId = 0;
     if (this.screenType === ScreenType.SerDom) {
-      this.win.addEventListener('mousewheel', this.onIframeElsScroll, true);
-      this.doc.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+      this.win.addEventListener('scroll', this.onIframeElsScroll, true);
+      this.doc.body.addEventListener('scroll', this.onIframeElsScroll, true);
       this.nestedFrames.forEach(frame => {
         const doc2 = frame.contentDocument!;
         const win2 = doc2.defaultView!;
-        win2.addEventListener('mousewheel', this.onIframeElsScroll, true);
-        doc2.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+        win2.addEventListener('scroll', this.onIframeElsScroll, true);
+        doc2.body.addEventListener('scroll', this.onIframeElsScroll, true);
       });
     }
   }
@@ -495,7 +495,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     clearTimeout(this.iframeElsScrollTimeoutId);
     this.iframeElsScrollTimeoutId = setTimeout(() => {
       this.render();
-      this.con!.style.display = '';
     }, 48) as unknown as number;
   };
 
@@ -930,13 +929,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.conProbe.remove();
       }
       if (this.screenType === ScreenType.SerDom) {
-        this.win.removeEventListener('mousewheel', this.onIframeElsScroll, true);
-        this.doc.body.removeEventListener('mousewheel', this.onIframeElsScroll, true);
+        this.win.removeEventListener('scroll', this.onIframeElsScroll, true);
+        this.doc.body.removeEventListener('scroll', this.onIframeElsScroll, true);
         this.nestedFrames.forEach(frame => {
           const doc2 = frame.contentDocument;
           const win2 = doc2?.defaultView;
-          win2?.addEventListener('mousewheel', this.onIframeElsScroll, true);
-          doc2?.body.addEventListener('mousewheel', this.onIframeElsScroll, true);
+          win2?.removeEventListener('scroll', this.onIframeElsScroll, true);
+          doc2?.body.removeEventListener('scroll', this.onIframeElsScroll, true);
         });
       }
       this.annElsVisibilityObserver.unobserveAllEls();
