@@ -4,9 +4,8 @@ import {
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { Button, Tooltip } from 'antd';
-import React, { useState } from 'react';
+import React from 'react';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { CtxAction } from '../../container/tours';
 import { P_RespTour } from '../../entity-processor';
 import { createIframeSrc } from '../../utils';
 import * as Tags from './styled';
@@ -14,15 +13,9 @@ import FableLogo from '../../assets/fable-rounded-icon.svg';
 
   interface Props {
     tour: P_RespTour;
-    handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
-    handleDelete: (tour: P_RespTour | null) => void;
-    publishTour: (tour: P_RespTour) => Promise<boolean>;
-    manifestPath: string;
   }
 
-export default function SmallTourCard({ tour, handleShowModal, handleDelete, publishTour, manifestPath }: Props): JSX.Element {
-  const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
-
+export default function SmallTourCard({ tour }: Props): JSX.Element {
   return (
     <>
       <Tags.SmallTourCardCon to={`/demo/${tour.rid}`}>

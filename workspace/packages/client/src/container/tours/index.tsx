@@ -310,11 +310,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                       <EmptyTourState
                         principal={this.props.principal}
                         defaultTours={this.props.defaultTours}
-                        publishTour={this.props.publishTour}
-                        pubTourAssetPath={this.props.pubTourAssetPath}
-                        manifestFileName={this.props.manifestFileName}
-                        handleShowModal={this.handleShowModal}
-                        handleDelete={this.handleDelete}
                         extensionInstalled={this.state.isExtInstalled}
                       />
                     ) : (

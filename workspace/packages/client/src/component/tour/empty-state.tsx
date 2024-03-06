@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChromeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { Skeleton } from 'antd';
+import { Progress } from 'antd/lib';
 import * as Tags from './styled';
 import Browser1 from '../../assets/tour/browser-1.png';
 import Browser3 from '../../assets/tour/browser-3.png';
@@ -14,24 +15,32 @@ import SmallTourCard from './small-tour-card';
 interface IProps {
   principal: RespUser | null;
   defaultTours: P_RespTour[];
-  publishTour: (tour: P_RespTour) => Promise<boolean>;
-  pubTourAssetPath: string;
-  manifestFileName: string;
-  handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction)=> void;
-  handleDelete: (tour: P_RespTour | null) => void;
   extensionInstalled: boolean;
 }
 
 function EmptyTourState({
   principal,
   defaultTours: tours,
-  publishTour,
-  pubTourAssetPath,
-  manifestFileName,
-  handleShowModal,
-  handleDelete,
   extensionInstalled
 }: IProps): JSX.Element {
+  const [defaultTourLoadProgress, setDefaultTourLoadProgress] = useState(0);
+
+  useEffect(() => {
+    const incrementProgress = (): void => {
+      setDefaultTourLoadProgress((prev) => {
+        if (prev < 99) {
+          return prev + 1;
+        }
+        clearInterval(interval);
+        return 99;
+      });
+    };
+
+    const interval = setInterval(incrementProgress, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const defaultTourLoaded = tours.length > 0;
   return (
     <Tags.EmptyToursContainer>
@@ -39,6 +48,14 @@ function EmptyTourState({
         <h2>
           {defaultTourLoaded ? 'Sample demos created for you' : 'Creating sample demos for you...'}
         </h2>
+        {
+          !defaultTourLoaded && <Progress
+            strokeLinecap="butt"
+            strokeColor="#7567ff"
+            percent={defaultTourLoadProgress}
+            style={{ maxWidth: '30vw' }}
+          />
+        }
         {
             !defaultTourLoaded && (
               <Tags.DefaultTourContainer>
@@ -51,12 +68,8 @@ function EmptyTourState({
           {
           defaultTourLoaded && tours.map((tour, index) => (
             index < 3 && <SmallTourCard
-              publishTour={publishTour}
               tour={tour}
               key={tour.rid}
-              handleShowModal={handleShowModal}
-              handleDelete={handleDelete}
-              manifestPath={`${pubTourAssetPath}${tour.rid}/${manifestFileName}`}
             />
           ))
         }
