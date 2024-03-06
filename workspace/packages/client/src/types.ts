@@ -1,7 +1,12 @@
-import { JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+import { JourneyData, IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
+import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
+
+export interface JourneyModuleWithAnns extends JourneyFlow {
+  annsInOrder: IAnnotationConfigWithLocation[]
+}
 
 export const enum ElEditType {
   Text = 1,
@@ -240,10 +245,6 @@ export type GlobalWin = Window & { __fable_global_app_data__?: GlobalAppData }
 export type MultiNodeModalData = {
   leftCoord: number,
   selectedMultiNode: IAnnotationConfigWithScreen[] | null
-}
-
-export interface JourneyModuleWithAnns extends JourneyFlow{
-  annsInOrder: IAnnotationConfigWithScreenId[]
 }
 
 export interface queryData {

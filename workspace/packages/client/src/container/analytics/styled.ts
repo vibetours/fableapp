@@ -49,6 +49,9 @@ export const FunnelCon = styled.div`
   margin: 10%;
   margin-top: 1rem;
   margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 `;
 
 export const KPIHead = styled.div`

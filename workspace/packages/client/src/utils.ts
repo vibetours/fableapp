@@ -15,7 +15,8 @@ import {
   queryData
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
-import { P_RespScreen } from './entity-processor';
+import { P_RespTour } from './entity-processor';
+import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -443,10 +444,10 @@ export function getTransparencyFromHexStr(hex: string): number {
 }
 
 const getOrderedAnnsFromGivenAnn = (
-  ann: IAnnotationConfigWithScreenId,
-  flatAnns: Record<string, IAnnotationConfigWithScreenId>
-): IAnnotationConfigWithScreenId[] => {
-  const annsInOrder: IAnnotationConfigWithScreenId[] = [];
+  ann: IAnnotationConfigWithLocation,
+  flatAnns: Record<string, IAnnotationConfigWithLocation>
+): IAnnotationConfigWithLocation[] => {
+  const annsInOrder: IAnnotationConfigWithLocation[] = [];
 
   while (true) {
     annsInOrder.push(ann);
@@ -462,12 +463,16 @@ const getOrderedAnnsFromGivenAnn = (
   return annsInOrder;
 };
 
-const getFlatAnns = (allAnns: AnnotationPerScreen[]): Record<string, IAnnotationConfigWithScreenId> => {
-  const flatAnns: Record<string, IAnnotationConfigWithScreenId> = {};
+const getFlatAnns = (
+  allAnns: AnnotationPerScreen[],
+  tour?: P_RespTour,
+): Record<string, IAnnotationConfigWithLocation> => {
+  const flatAnns: Record<string, IAnnotationConfigWithLocation> = {};
   for (const annPerScreen of allAnns) {
     for (const ann of annPerScreen.annotations) {
       flatAnns[ann.refId] = {
         ...ann,
+        location: tour ? `/demo/${tour.rid}/${annPerScreen.screen.rid}/${ann.refId}` : '',
         screenId: annPerScreen.screen.id,
       };
     }
@@ -477,13 +482,14 @@ const getFlatAnns = (allAnns: AnnotationPerScreen[]): Record<string, IAnnotation
 
 export const getJourneyWithAnnotations = (
   allAnns: AnnotationPerScreen[],
-  journeyModules: JourneyFlow[]
+  journeyModules: JourneyFlow[],
+  tour?: P_RespTour,
 ) : JourneyModuleWithAnns[] => {
   const journeyData : JourneyModuleWithAnns[] = [];
 
-  const flatAnns = getFlatAnns(allAnns);
+  const flatAnns = getFlatAnns(allAnns, tour);
 
-  const firstAnns: IAnnotationConfigWithScreenId[] = [];
+  const firstAnns: IAnnotationConfigWithLocation[] = [];
   journeyModules.forEach(module => {
     const firstAnnId = module.main.split('/')[1];
     firstAnns.push(flatAnns[firstAnnId]);

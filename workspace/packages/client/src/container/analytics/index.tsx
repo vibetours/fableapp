@@ -10,7 +10,7 @@ import {
   TourAnnWithViews
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
+import { JourneyData, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
 import { Button, Drawer, MenuProps, Table } from 'antd';
 import Dropdown from 'antd/lib/dropdown';
 import React, { ReactElement } from 'react';
@@ -29,11 +29,13 @@ import Header from '../../component/header';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import { flatten } from '../../utils';
+import { getAnnotationsPerScreen, getJourneyWithAnnotations } from '../../utils';
 import Bar from './bar';
 import Line from './line';
 import Funnel, { IFunnelDatum } from './sleeping-funnel';
 import * as Tags from './styled';
+import { AnnotationPerScreen } from '../../types';
+import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, true)),
@@ -55,11 +57,12 @@ const mapDispatchToProps = (dispatch: any) => ({
   getAnnViewsForTour: (
     rid: string,
     days: number,
-    onComplete: (data: RespTourAnnViews) => void
-  ) => dispatch(getAnnViewsForTour(rid, days)).then(onComplete)
+  ) => dispatch(getAnnViewsForTour(rid, days))
 });
 
-interface IAnnotationConfigWithLocation extends IAnnotationConfig {
+const DEFAULT_FUNNEL_TITLE = 'Funnel drop off across all sessions';
+
+export interface IAnnotationConfigWithLocation extends IAnnotationConfigWithScreenId {
   location: string;
 }
 
@@ -67,7 +70,9 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   orderedAnn: IAnnotationConfigWithLocation[];
-  extLinkOpenBtnIds: string[]
+  extLinkOpenBtnIds: string[];
+  allAnnotationsForTour: AnnotationPerScreen[];
+  journey: JourneyData | null;
 }
 
 const enum LoadingStatus {
@@ -260,16 +265,22 @@ function orderedAnnotationsForTour(
   };
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  principal: state.default.principal,
-  ...orderedAnnotationsForTour(
-    state.default.currentTour,
-    state.default.allScreens,
-    state.default.remoteAnnotations,
-    state.default.remoteTourOpts
-  )
-});
+const mapStateToProps = (state: TState): IAppStateProps => {
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+
+  return {
+    allAnnotationsForTour,
+    tour: state.default.currentTour,
+    principal: state.default.principal,
+    journey: state.default.journey,
+    ...orderedAnnotationsForTour(
+      state.default.currentTour,
+      state.default.allScreens,
+      state.default.remoteAnnotations,
+      state.default.remoteTourOpts
+    )
+  };
+};
 interface IOwnProps {
 }
 
@@ -466,7 +477,7 @@ interface IOwnStateProps {
   },
   funnelData: {
     status: LoadingStatus,
-    funnelData: IFunnelDatum[]
+    funnelData: { funnelData: IFunnelDatum[]; title: string }[],
   }
 }
 
@@ -503,10 +514,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
-    if (this.state.days !== prevState.days) {
+    if (this.props.tour && this.props.journey && this.state.days !== prevState.days) {
       this.initAnalytics();
     }
-    if (this.props.orderedAnn.length !== prevProps.orderedAnn.length) {
+    if (this.props.tour && this.props.journey && this.props.orderedAnn.length !== prevProps.orderedAnn.length) {
       this.initAnalytics();
     }
   }
@@ -544,15 +555,39 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       }));
     });
 
-    this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days, data => {
-      const annotationViews = getEachAnnotationTotalViews(data, this.props.orderedAnn);
-      const funnelData = getFunnelData(annotationViews, this.props.orderedAnn);
-      this.setState({
-        funnelData: {
-          status: LoadingStatus.Loaded,
-          funnelData
+    const annViewsForTour = await this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days);
+    const journeysWithAnns = getJourneyWithAnnotations(this.props.allAnnotationsForTour, this.props.journey!.flows, this.props.tour!);
+    const funnelDataForJourneys: { funnelData: IFunnelDatum[]; title: string }[] = [];
+
+    if (journeysWithAnns.length) {
+      const conjoinedDataForAllJourneys: IFunnelDatum[] = [];
+
+      for (const journey of journeysWithAnns) {
+        const annotationViews = getEachAnnotationTotalViews(annViewsForTour, journey.annsInOrder);
+        const funnelData = getFunnelData(annotationViews, journey.annsInOrder);
+        funnelDataForJourneys.push({ funnelData, title: journey.header1 });
+      }
+
+      let stepCounter = 1;
+      for (const funnelData of funnelDataForJourneys) {
+        for (const step of funnelData.funnelData) {
+          conjoinedDataForAllJourneys.push({ ...step, step: stepCounter });
+          stepCounter++;
         }
-      });
+      }
+
+      funnelDataForJourneys.unshift({ funnelData: conjoinedDataForAllJourneys, title: 'Master data' });
+    } else {
+      const annotationViews = getEachAnnotationTotalViews(annViewsForTour, this.props.orderedAnn);
+      const funnelData = getFunnelData(annotationViews, this.props.orderedAnn);
+      funnelDataForJourneys.push({ funnelData, title: DEFAULT_FUNNEL_TITLE });
+    }
+
+    this.setState({
+      funnelData: {
+        status: LoadingStatus.Loaded,
+        funnelData: funnelDataForJourneys
+      }
     });
 
     const totalViewData: RespTourView = await this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days, (data) => {
@@ -825,23 +860,25 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           </Tags.KpiAndVisitorCon>
           <Tags.FunnelCon>
-            <Tags.KPICon style={{ height: '420px' }}>
-              <Tags.KPIHead style={{ marginBottom: '20px' }}>
-                <div className="label">Funnel drop off across all sessions</div>
-              </Tags.KPIHead>
-              <Funnel data={this.state.funnelData.funnelData} />
-              {this.state.funnelData.status !== LoadingStatus.Loaded && (
+            {this.state.funnelData.funnelData.map(funnelData => (
+              <Tags.KPICon style={{ height: '420px' }} key={Math.random()}>
+                <Tags.KPIHead style={{ marginBottom: '20px' }}>
+                  <div className="label">{funnelData.title}</div>
+                </Tags.KPIHead>
+                <Funnel data={funnelData.funnelData} />
+                {this.state.funnelData.status !== LoadingStatus.Loaded && (
                 <div className="loader"><LoadingOutlined /></div>
-              )}
-              <div className="helpcn">
-                <Button
-                  icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
-                  onClick={() => this.setState({ showHelpFor: 'funnel' })}
-                  type="text"
-                  size="small"
-                />
-              </div>
-            </Tags.KPICon>
+                )}
+                <div className="helpcn">
+                  <Button
+                    icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                    onClick={() => this.setState({ showHelpFor: 'funnel' })}
+                    type="text"
+                    size="small"
+                  />
+                </div>
+              </Tags.KPICon>
+            ))}
 
           </Tags.FunnelCon>
         </GTags.BodyCon>
