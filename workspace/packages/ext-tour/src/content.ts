@@ -147,12 +147,16 @@ function installListener(doc: Document) {
         installListener(doc);
       }
     });
-    observer.observe(document, {
+    observer.observe(doc, {
       subtree: true,
       childList: true
     });
   }
-  const docs = [...Array.from(doc.getElementsByTagName("iframe")), ...Array.from(doc.getElementsByTagName("object"))]
+  const iframes = [
+    ...Array.from(doc.getElementsByTagName("iframe")),
+    ...Array.from(doc.getElementsByTagName("object")),
+  ];
+  const sameOriginDocs = iframes
     .map(frame => {
       // Sometime this code can run when a frame is still loading, we run the installListener once more once the frame
       // loading is completed. Practically during dev/testing we did not see this code getting executed, but logically,
@@ -165,7 +169,14 @@ function installListener(doc: Document) {
     })
     .filter(d => !!d);
 
-  for (const d of docs) {
+  if (iframes.length !== sameOriginDocs.length) {
+    chrome.runtime.sendMessage<MsgPayload<{}>>({
+      type: Msg.REINJECT_CONTENT_SCRIPT,
+      data: { }
+    });
+  }
+
+  for (const d of sameOriginDocs) {
     installListener(d!);
   }
 }

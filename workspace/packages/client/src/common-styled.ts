@@ -240,6 +240,16 @@ export const BorderedModal = styled(Modal)`
       gap: 1rem;
       margin: 1.5rem 1rem 1.5rem 1rem;
     }
+
+    &.apply-all{
+      padding-bottom: 0px;
+      
+      p {
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+      }
+    }
 `;
 
 export const CTABtn = styled.button`

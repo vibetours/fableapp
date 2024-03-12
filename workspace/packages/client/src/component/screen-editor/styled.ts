@@ -248,7 +248,7 @@ interface AnotPanelSecOri {
   row?: boolean;
 }
 
-export const ActionPanel = styled.div<{gutter: boolean}>`
+export const ActionPanel = styled.div<{ gutter: boolean }>`
   padding: ${props => (props.gutter ? '0.75rem 1.5rem 0.75rem' : '0.75rem 1rem 0.75rem')};
   border-bottom: 1px solid #dddddd;
   cursor: pointer;
@@ -309,7 +309,7 @@ export const ActionPaneSelect = styled(Select)`
   background-color: white;
   border-radius: 8px;
   border: 1px solid #E8E8E8;
-  height: 100%;
+  height: 40px;
   min-width: 140px;
   display: flex;
   justify-content: center;
@@ -362,12 +362,13 @@ export const ColorPicker = styled(AntColorPicker)`
   border-radius: 8px;
   display: flex;
   justify-content: flex-start;
-  height: 100%;
+  height: 40px;
   font-weight: 400;
+  position: relative;
   .ant-color-picker-color-block{ 
     border-radius: 50% !important;
     position: absolute;
-    right: 28px;
+    right: 10px;
   }
   .ant-color-picker-color-block-inner,
   .ant-color-picker-color-block {
@@ -497,7 +498,7 @@ export const AnnPositioningInput = styled.div<{
   }
 `;
 
-export const AnnPositionInputBox = styled.div<{isSelected: boolean}>`
+export const AnnPositionInputBox = styled.div<{ isSelected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -566,4 +567,73 @@ export const AnnDisplayText = styled.div`
     text-overflow: ellipsis;
     font-size: 0.95rem;
   }
+`;
+
+export const ApplyAllTxt = styled.div`
+  margin: 0px;
+  color: #aaa; 
+  font-weight: 400;
+  font-size: 12px;
+  &:hover {
+    text-decoration: underline;
+    cursor: pointer;
+  }
+`;
+
+export const ConnectableAnnsCon = styled.div`
+  margin: 1rem;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const NavigateToCon = styled.div`
+  max-height: 45vh;
+  overflow-y: scroll;
+  scrollbar-width: unset !important;
+  opacity: 0;
+  animation-name: fadeIn;
+  animation-duration: 1s;
+  animation-delay: 0.1s;
+  animation-fill-mode: forwards;
+
+  @keyframes fadeIn{
+    0%{
+      opacity:0;
+    }
+    100%{
+      opacity:1;
+    }
+  }
+
+  &::-webkit-scrollbar-track {
+    padding: 2px 0;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar {
+    margin: 4px 0;
+    height: 4px;
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #646e82;
+  }
+`;
+
+export const ConnectableAnnCon = styled.div`
+  cursor: pointer;
+  margin: 10px 0;
+  border-radius: 10px;
+  padding: 5px;
+  &:hover {
+    background-color: #eee;
+  }
+`;
+
+export const ConnectableAnnText = styled.p`
+  margin: 0;
+  padding: 0;
+  font-family: "IBM Plex Sans", sans-serif;
 `;

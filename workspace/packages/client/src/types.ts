@@ -1,4 +1,4 @@
-import { JourneyData, IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
@@ -251,3 +251,9 @@ export interface queryData {
   hm: 0 | 1, // hide module
   ha: 0 | 1 // hide annotation
 }
+
+export type TourApplyAllChangeFn = (
+  tx?: Tx,
+) => void;
+
+export const SCREEN_EDITOR_ID = 'fable-ann-editorial-modal';

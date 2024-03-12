@@ -16,5 +16,6 @@ export enum AMPLITUDE_EVENTS {
     ADVANCED_EL_PICKER_USED='advanced_el_picker_used',
     SCREEN_TAB_SELECTED='screen_tab_selected',
     SCREEN_EDITED='screen_edited',
-    ANNOTATION_EDITED='annotation_edited'
+    ANNOTATION_EDITED='annotation_edited',
+    ANNOTATION_APPLY_ALL='annotation_apply_all'
 }

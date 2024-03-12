@@ -183,9 +183,15 @@ export const createHtmlElement = (
     // Since we proxy assets, the css files sometimes are edited with proxied url;
     // hence the integrity attribute might throw error https://stackoverflow.com/a/34429101
       if ((attrKey || '').toLowerCase() === 'integrity') continue;
+      if (node.name === 'iframe' && attrKey === 'loading') continue;
       if (node.name === 'iframe' && attrKey === 'src') {
-        // safari is a bitch. I'll write why if everything works
-        attrValue = `/aboutblank?ts=${+new Date()}`;
+        const isHTML5 = node.chldrn.find(child => child.type === Node.DOCUMENT_TYPE_NODE);
+        if (isHTML5) {
+          // safari is a bitch. I'll write why if everything works
+          attrValue = `/aboutblank?ts=${+new Date()}`;
+        } else {
+          attrValue = `/aboutblankhtml4.html?ts=${+new Date()}`;
+        }
         el.setAttribute(attrKey, attrValue);
         // el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
       } else if (node.name === 'iframe'

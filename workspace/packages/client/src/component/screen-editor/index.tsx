@@ -38,7 +38,7 @@ import {
   DestinationAnnotationPosition, EditItem,
   EditValueEncoding,
   ElEditType,
-  FrameAssetLoadFn, IdxEditEncodingText,
+  FrameAssetLoadFn, IAnnotationConfigWithScreen, IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
@@ -46,6 +46,7 @@ import {
   IdxEncodingTypeMask,
   NavFn,
   Timeline,
+  TourDataChangeFn,
   onAnnCreateOrChangeFn
 } from '../../types';
 import {
@@ -138,6 +139,8 @@ interface IOwnProps {
   updateScreen: UpdateScreenFn;
   newAnnPos: null | DestinationAnnotationPosition;
   resetNewAnnPos: ()=>void;
+  onTourDataChange: TourDataChangeFn;
+  updateConnection: (fromMain: string, toMain: string)=> void;
 }
 
 const enum ElSelReqType {
@@ -1440,6 +1443,28 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                resetSelectedAnnotationElements={() => {
                                  this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
                                }}
+                               timeline={this.props.timeline}
+                               onTourDataChange={this.props.onTourDataChange}
+                               commitTx={this.props.commitTx}
+                               getConnectableAnnotations={(refId, btnType) => {
+                                 const connectableAnnotations: IAnnotationConfigWithScreen[] = [];
+                                 if (btnType === 'next') {
+                                   this.props.timeline.forEach((flow) => {
+                                     if (flow[flow.length - 1].refId !== refId) {
+                                       connectableAnnotations.push(flow[0]);
+                                     }
+                                   });
+                                 }
+                                 if (btnType === 'prev') {
+                                   this.props.timeline.forEach((flow) => {
+                                     if (flow[0].refId !== refId) {
+                                       connectableAnnotations.push(flow[flow.length - 1]);
+                                     }
+                                   });
+                                 }
+                                 return connectableAnnotations;
+                               }}
+                               updateConnection={this.props.updateConnection}
                              />
                              <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
                            </>

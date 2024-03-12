@@ -342,19 +342,7 @@ export function getSearializedDom(
             }, 0);
           } else {
             let idx = 0;
-            let offset = 0;
             const chldrn = frameDoc.childNodes;
-            if (chldrn[0].nodeType !== 10) {
-              offset = 1;
-              sNode.chldrn.push({
-                type: 10,
-                name: "html",
-                attrs: {},
-                props: { proxyUrlMap: {} },
-                chldrn: [],
-                sv: SER_DOC_SCHEMA_VERSION,
-              });
-            }
             for (let i = 0; i < chldrn.length; i++) {
               if (chldrn[i] === frameDoc.documentElement) {
                 idx = i;
@@ -369,7 +357,7 @@ export function getSearializedDom(
                 });
               }
             }
-            traversalPath.push(idx + offset);
+            traversalPath.push(idx);
             const rep = getRep(frameDoc.documentElement, origin, traversalPath);
             sNode.chldrn.push(rep.serNode);
             traversalPath.pop();
@@ -456,6 +444,7 @@ export function getSearializedDom(
     candidateIcon = icons[0];
   }
 
+  const isHTML5 = Boolean(Array.from(doc.childNodes).find(el => el.nodeType === Node.DOCUMENT_TYPE_NODE));
   return {
     frameUrl,
     title: doc.title,
@@ -471,6 +460,7 @@ export function getSearializedDom(
     },
     icon: candidateIcon,
     baseURI: doc.body.baseURI,
+    isHTML5
   };
 }
 

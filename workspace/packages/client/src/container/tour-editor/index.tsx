@@ -57,7 +57,7 @@ import {
   IAnnotationConfigWithScreen,
   DestinationAnnotationPosition,
   ScreenPickerData,
-  Timeline
+  Timeline,
 } from '../../types';
 import {
   openTourExternalLink,

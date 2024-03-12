@@ -68,6 +68,7 @@ export interface SerDoc {
     width: number;
   };
   baseURI: string;
+  isHTML5: boolean;
 }
 
 export interface CapturedViewPort {

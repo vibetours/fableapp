@@ -429,14 +429,16 @@ async function postProcessSerDocs(
           raiseDeferredError(new Error(`No sub frame present for node ^^^. src=${node.attrs.src}`));
         } else {
           const subFrameData = subFrame.data as SerDoc;
-          node.chldrn.push({
-            type: 10,
-            name: 'html',
-            attrs: {},
-            props: { proxyUrlMap: {} },
-            chldrn: [],
-            sv: node.sv,
-          });
+          if (subFrameData.isHTML5) {
+            node.chldrn.push({
+              type: 10,
+              name: 'html',
+              attrs: {},
+              props: { proxyUrlMap: {} },
+              chldrn: [],
+              sv: node.sv,
+            });
+          }
           node.chldrn.push(subFrameData.docTree!);
           await process(
             subFrameData,

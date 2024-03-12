@@ -209,7 +209,7 @@ export function updateTourDataOpts(
   return newOpts;
 }
 
-function newConfigFrom<T extends IChronoUpdatable>(c: T): T {
+export function newConfigFrom<T extends IChronoUpdatable>(c: T): T {
   const newConfig = { ...c };
   newConfig.monoIncKey++;
   newConfig.updatedAt = getCurrentUtcUnixTime();

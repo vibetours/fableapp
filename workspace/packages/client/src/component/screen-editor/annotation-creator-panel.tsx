@@ -12,6 +12,7 @@ import {
   CustomAnnotationPosition,
   EAnnotationBoxSize,
   IAnnotationButton,
+  IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot,
@@ -33,12 +34,13 @@ import {
   LoadingOutlined,
   ThunderboltOutlined,
   FireOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { InputNumber, Button as AntButton } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { Collapse } from 'antd/lib';
+import { Collapse, Radio } from 'antd/lib';
 import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -69,9 +71,17 @@ import {
   updateAnnotationSelectionShape,
   updateSelectionColor,
   updateAnnotationSelectionEffect,
+  newConfigFrom,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
-import { AnnotationPerScreen, onAnnCreateOrChangeFn, } from '../../types';
+import {
+  AnnotationPerScreen,
+  IAnnotationConfigWithScreen,
+  Timeline,
+  TourDataChangeFn,
+  SCREEN_EDITOR_ID,
+  onAnnCreateOrChangeFn,
+} from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AEP from './advanced-element-picker';
 import VideoRecorder from './video-recorder';
@@ -86,7 +96,7 @@ import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
 import { getDefaultAnnCSSStyleText } from './utils/css-styles';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeAnnotationEdited, amplitudeScreenEdited } from '../../amplitude';
+import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeScreenEdited } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
 import ButtonIcon from '../../assets/icons/buttons.svg';
@@ -104,6 +114,8 @@ import LinkInActiveIcon from '../../assets/icons/link-inactive.svg';
 import SettingsIcon from '../../assets/icons/settings.svg';
 import AnnPositioningInput from './ann-positioning-input';
 import EffectSelector, { EffectFor } from './effect-selection-and-builder';
+import { Tx } from '../../container/tour-editor/chunk-sync-manager';
+import { calculatePopoverPlacement, isLinkButtonInViewport } from './scroll-util';
 
 const { confirm } = Modal;
 
@@ -130,6 +142,11 @@ interface IProps {
   onDeleteAnnotation: (deletedAnnRid: string) => void;
   selectedAnnotationCoords: string | null;
   setAlertMsg: (alertMsg: string) => void;
+  timeline: Timeline;
+  onTourDataChange: TourDataChangeFn;
+  commitTx: (tx: Tx) => void;
+  getConnectableAnnotations: (annRefId: string, btnType: IAnnotationButtonType) => IAnnotationConfigWithScreen[];
+  updateConnection: (fromMain: string, toMain: string) => void;
 }
 
 const commonInputStyles: React.CSSProperties = {
@@ -159,6 +176,21 @@ const buttonSecStyle: React.CSSProperties = {
   borderRadius: '8px',
   height: '44px',
   width: '44px',
+};
+
+interface ApplyAll {
+  key: 'annotationSelectionColor' | 'size' | 'selectionShape' | 'showOverlay' | 'selectionEffect',
+  value: string | boolean
+}
+
+const applyAllMapping:
+{[key: string]: 'branding-selection_color' | 'branding-selection_shape' |
+'cta-button_size' | 'overlay' | 'branding-selection_effect'} = {
+  annotationSelectionColor: 'branding-selection_color',
+  selectionShape: 'branding-selection_shape',
+  size: 'cta-button_size',
+  showOverlay: 'overlay',
+  selectionEffect: 'branding-selection_effect'
 };
 
 function canAddExternalLinkToBtn(btnConf: IAnnotationButton): boolean {
@@ -212,6 +244,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [showBrandingOptionsPopup, setShowBrandingOptionsPopup] = useState(false);
   const [showCustomPositioningOption, setShowCustomPositioningOption] = useState(false);
   const [isUrlValid, setIsUrlValid] = useState<boolean>(true);
+  const [applyAllProperty, setApplyAllProperty] = useState<ApplyAll | null>(null);
+  const [applyToModule, setApplyToModule] = useState<'all' | 'module'>('all');
+
+  const [linkButtonVisible, setLinkButtonVisible] = useState(true);
+  const [popoverPlacement, setPopoverPlacement] = useState<'leftBottom' | 'left' | 'leftTop'>('leftBottom');
+  const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
+  const [activePopover, setActivePopover] = useState<'open'|'navigate'>('open');
   const unsubFn = useRef(() => { });
 
   const prevConfig = usePrevious(config);
@@ -270,6 +309,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       if (prevConfig.showOverlay !== config.showOverlay) {
         amplitudeAnnotationEdited('overlay', config.showOverlay);
       }
+      if (prevConfig.selectionShape !== config.selectionShape) {
+        amplitudeAnnotationEdited('branding-selection_shape', config.selectionShape);
+      }
       props.onConfigChange(config, 'upsert', opts);
     }
   }, [config, opts]);
@@ -322,6 +364,26 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       props.resetSelectedAnnotationElements();
     }
   }, [props.selectedAnnReplaceEl, showSelectElement, props.selectedAnnotationCoords]);
+
+  function checkInView(): void {
+    if (openConnectionPopover.length !== 0) {
+      const isLinkButtonVisible = isLinkButtonInViewport(openConnectionPopover);
+      setLinkButtonVisible(isLinkButtonVisible);
+      const popPlacement = calculatePopoverPlacement(openConnectionPopover);
+      setPopoverPlacement(popPlacement);
+    }
+  }
+
+  useEffect(() => {
+    const creatorPanel = document.getElementById('ann-creator-panel');
+    if (!creatorPanel) {
+      return () => { };
+    }
+    creatorPanel.addEventListener('scroll', checkInView);
+    return () => {
+      creatorPanel.removeEventListener('scroll', checkInView);
+    };
+  }, [openConnectionPopover]);
 
   const showDeleteConfirm = (): void => {
     confirm({
@@ -391,9 +453,37 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     amplitudeAnnotationEdited('hotspot-nested_element', '');
   };
 
+  const applyPropertyToAnn = (
+    ann: IAnnotationConfigWithScreen,
+    propertyKey: ApplyAll['key'],
+    propertValue: string | boolean,
+    tx: Tx
+  ): void => {
+    const newAnn = newConfigFrom(ann);
+    if (propertyKey === 'size') {
+      const buttons = newAnn.buttons.slice(0);
+      buttons.forEach(button => {
+        button.size = propertValue as AnnotationButtonSize;
+      });
+    } else {
+      (newAnn as any)[propertyKey] = propertValue;
+    }
+    props.onTourDataChange('annotation-and-theme', newAnn.screen.id, {
+      config: newAnn,
+      actionType: 'upsert',
+    }, tx);
+  };
+
   const videoAnn = isVideoAnnotation(config);
 
   const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
+
+  const hideConnectionPopover = (): void => {
+    setOpenConnectionPopover('');
+    setLinkButtonVisible(true);
+    setPopoverPlacement('leftBottom');
+    setActivePopover('open');
+  };
 
   if (props.busy) {
     return (
@@ -415,14 +505,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     >
       <ActionPanel id="annotation-rte" alwaysOpen>
         <div style={{
-          background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '1rem' }}
+          background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '1rem'
+        }}
         >
           <AnnotationRichTextEditor
             throttledChangeHandler={(htmlString, displayText) => {
               setConfig(c => {
                 if (c.bodyContent === htmlString) {
-                // This gets fired on focus or if the user makes some change and then deletes the change.
-                // In all those case we don't do quitely skip the update.
+                  // This gets fired on focus or if the user makes some change and then deletes the change.
+                  // In all those case we don't do quitely skip the update.
                   return c;
                 }
                 return updateAnnotationText(c, htmlString, displayText);
@@ -434,13 +525,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>
             <Tags.ActionPaneBtn
               type="text"
-              style={{ ...commonInputStyles,
+              style={{
+                ...commonInputStyles,
                 border: 'none',
                 padding: 'none',
                 flexGrow: 1,
                 background: 'white',
                 borderRadius: '8px',
-                color: '#666' }}
+                color: '#666'
+              }}
               onClick={() => setShowVideoRecorder(true)}
               icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
             >
@@ -589,7 +682,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Selection color</GTags.Txt>
+          <div>
+            <GTags.Txt>Selection color</GTags.Txt>
+            <Tags.ApplyAllTxt
+              onClick={() => {
+                setApplyAllProperty({
+                  key: 'annotationSelectionColor',
+                  value: config.annotationSelectionColor
+                });
+              }}
+            >Apply to all
+            </Tags.ApplyAllTxt>
+          </div>
           <Tags.ColorPicker
             showText={(color) => color.toHexString()}
             onChangeComplete={e => {
@@ -626,7 +730,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
 
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Selection Effect</GTags.Txt>
+          <div>
+            <GTags.Txt>Selection Effect</GTags.Txt>
+            <Tags.ApplyAllTxt
+              onClick={() => {
+                setApplyAllProperty({
+                  key: 'selectionEffect',
+                  value: config.selectionEffect
+                });
+              }}
+            >Apply to all
+            </Tags.ApplyAllTxt>
+          </div>
           <Tags.ActionPaneSelect
             title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
             disabled={config.selectionShape === 'pulse'}
@@ -645,7 +760,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
 
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
+          <div>
+            <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
+            <Tags.ApplyAllTxt
+              onClick={() => {
+                setApplyAllProperty({
+                  key: 'selectionShape',
+                  value: config.selectionShape
+                });
+              }}
+            >Apply to all
+            </Tags.ApplyAllTxt>
+          </div>
           <Tags.ActionPaneSelect
             defaultValue={config.selectionShape}
             size="small"
@@ -751,24 +877,36 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 </div>
                 <Tags.ButtonSecCon>
                   <Popover
-                    open={openConnectionPopover === btnConf.id && canAddExternalLinkToBtn(btnConf)}
+                    open={openConnectionPopover === btnConf.id && linkButtonVisible}
                     onOpenChange={(newOpen: boolean) => {
                       setIsUrlValid(true);
                       if (newOpen) {
+                        const connectableAnnotations = props.getConnectableAnnotations(config.refId, btnConf.type);
+                        setConnectableAnns(connectableAnnotations);
                         setOpenConnectionPopover(btnConf.id);
                       } else {
-                        setOpenConnectionPopover('');
+                        hideConnectionPopover();
                       }
                     }}
                     trigger="click"
-                    placement="topRight"
+                    placement={popoverPlacement}
                     content={
-                      <div style={{ fontSize: '1rem', width: '500px' }}>
+                      <div style={{
+                        fontSize: '1rem',
+                        width: '500px',
+                        height: activePopover === 'open' ? '20vh' : '55vh',
+                        transition: 'height 0.3s ease-in-out'
+                      }}
+                      >
                         <GTags.Txt className="title2">
                           Describe what will happen when the button is clicked
                         </GTags.Txt>
                         <Tabs
                           defaultActiveKey="open"
+                          activeKey={activePopover}
+                          onTabClick={(e) => {
+                            setActivePopover(e as 'open' | 'navigate');
+                          }}
                           style={{ fontSize: '0.95rem' }}
                           size="small"
                           items={[{
@@ -783,14 +921,16 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                     <FableInput
                                       label="Enter a link that would open in new tab"
                                       defaultValue={
-                                        btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                          ? btnConf.hotspot.actionValue
-                                          : ''
-                                      }
+                                            btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                              ? btnConf.hotspot.actionValue
+                                              : ''
+                                          }
                                       onBlur={(e) => {
                                         setIsUrlValid(true);
                                         if (!canAddExternalLinkToBtn(btnConf)) {
-                                          props.setAlertMsg('Cannot add link as this button is already connected to an annotation');
+                                          props.setAlertMsg(
+                                            'Cannot add link as this button is already connected to an annotation'
+                                          );
                                           return;
                                         }
                                         const trimmedValue = (e.target.value || '').trim();
@@ -826,34 +966,83 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                     intent="primary"
                                     onClick={() => {
                                       if (!isUrlValid) return;
-                                      setOpenConnectionPopover('');
+                                      hideConnectionPopover();
                                     }}
                                     style={{ borderRadius: '8px' }}
                                   >Submit
                                   </Button>
                                 </Tags.CTALinkInputCont>
                                 {!isUrlValid && (
-                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
-                                    The url you have entered appears to be malformed. A correctly formed url would look like
-                                    &nbsp; <em>https://acme.com</em>
-                                  </p>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
+                                  The url you have entered appears to be malformed. A correctly formed url would look like
+                                  &nbsp; <em>https://acme.com</em>
+                                </p>
                                 )}
                               </div>
                             )
                           },
-                          {
+                          ...(btnConf.type !== 'custom' ? [{
                             key: 'navigate',
                             label: 'Navigate to',
                             children: (
-                              <div>
-                                <GTags.Txt className="title">
-                                  Use the canvas to make connection between annotations
-                                </GTags.Txt>
-                              </div>
+                              <Tags.NavigateToCon className={activePopover}>
+                                {btnConf.hotspot === null
+                                  ? (
+                                    <div>
+                                      <GTags.Txt className="title">
+                                        {connectableAnns.length === 0
+                                          ? 'No annotations avialable to which we can connect'
+                                          : 'Select annotation to make a connection'}
+                                      </GTags.Txt>
+                                      <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
+                                        <Tags.ConnectableAnnCon
+                                          key={ann.refId}
+                                          onClick={() => {
+                                            const fromMain = `${props.screen.id}/${config.refId}`;
+                                            const toMain = `${ann.screen.id}/${ann.refId}`;
+                                            if (btnConf.type === 'next') {
+                                              props.updateConnection(fromMain, toMain);
+                                            } else {
+                                              props.updateConnection(toMain, fromMain);
+                                            }
+                                            hideConnectionPopover();
+                                          }}
+                                        >
+                                          <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
+                                            <img
+                                              src={ann.screen.thumbnailUri.href}
+                                              alt={ann.displayText}
+                                              style={{ width: '140px', height: '100px' }}
+                                            />
+                                          </div>
+                                          <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
+                                        </Tags.ConnectableAnnCon>
+                                      ))}
+                                      </Tags.ConnectableAnnsCon>
+                                    </div>
+                                  )
+                                  : (
+                                    <div>
+                                      <iframe
+                                        src="https://help.sharefable.com/Editing-Demos/Reordering-the-Demo"
+                                        width="480"
+                                        height="500"
+                                        title="recording demo"
+                                        style={{
+                                          border: 'none',
+                                          margin: 'auto',
+                                          display: 'block'
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                              </Tags.NavigateToCon>
                             )
-                          }]}
+                          }] : [])
+                          ]}
                         />
                       </div>
+
                     }
                   >
                     <div>
@@ -862,24 +1051,27 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         title={
                           <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
                             {
-                              btnConf.hotspot && btnConf.hotspot.actionType === 'navigate'
-                                ? 'Already connected to an annotation'
+                              btnConf.hotspot
+                                ? btnConf.hotspot.actionType === 'open'
+                                  ? 'Already connected to external link'
+                                  : 'Already connected to an annotation'
                                 : 'No action defined for what would happen if user clicks this button'
                             }
                           </GTags.Txt>
                         }
                       >
                         <AntButton
+                          id={`${btnConf.id}`}
                           style={{
-                            opacity: canAddExternalLinkToBtn(btnConf) ? '1' : '0.55',
+                            opacity: btnConf.hotspot === null ? '1' : '0.55',
                             color: btnConf.hotspot ? '#7567FF' : '#FF7450',
                             ...buttonSecStyle
                           }}
                           icon={
-                          btnConf.hotspot
-                            ? <img src={LinkIcon} alt="" />
-                            : <img src={LinkInActiveIcon} alt="" />
-                        }
+                            btnConf.hotspot
+                              ? <img src={LinkIcon} alt="" />
+                              : <img src={LinkInActiveIcon} alt="" />
+                          }
                           type="text"
                           size="small"
                         />
@@ -906,10 +1098,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       >
                         <AntButton
                           icon={
-                          btnConf.exclude
-                            ? <img src={InvisibilityIcon} alt="" />
-                            : <img src={VisibilityIcon} alt="" />
-                        }
+                            btnConf.exclude
+                              ? <img src={InvisibilityIcon} alt="" />
+                              : <img src={VisibilityIcon} alt="" />
+                          }
                           type="text"
                           size="small"
                           style={{ color: '#bdbdbd', ...buttonSecStyle }}
@@ -958,7 +1150,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
-                    <GTags.Txt style={{ marginRight: '0.5rem' }}>Button size</GTags.Txt>
+                    <div>
+                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Button size</GTags.Txt>
+                      <Tags.ApplyAllTxt
+                        onClick={() => {
+                          setApplyAllProperty({
+                            key: 'size',
+                            value: btnConf.size
+                          });
+                        }}
+                      >Apply to all
+                      </Tags.ApplyAllTxt>
+                    </div>
                     <Tags.ActionPaneSelect
                       defaultValue={btnConf.size}
                       size="small"
@@ -1054,35 +1257,35 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 </div>
                 {
                   config.hotspotElPath && (
-                  <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
-                    <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
-                      <GTags.Txt style={{ opacity: '0.65', margin: '0' }}>{hotspotElText.substring(0, 15)}</GTags.Txt>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Tooltip
-                          title="Select other element"
-                        >
+                    <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
+                      <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
+                        <GTags.Txt style={{ opacity: '0.65', margin: '0' }}>{hotspotElText.substring(0, 15)}</GTags.Txt>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Tooltip
+                            title="Select other element"
+                          >
+                            <AntButton
+                              icon={<img src={ResetIcon} alt="" />}
+                              type="text"
+                              size="small"
+                              onClick={startSelectingHotspotEl}
+                              style={buttonSecStyle}
+                            />
+                          </Tooltip>
                           <AntButton
-                            icon={<img src={ResetIcon} alt="" />}
+                            icon={<img src={DeleteIcon} alt="" />}
                             type="text"
                             size="small"
-                            onClick={startSelectingHotspotEl}
+                            onClick={() => {
+                              setConfig(c => updateAnnotationHotspotElPath(c, null));
+                            }}
                             style={buttonSecStyle}
                           />
-                        </Tooltip>
-                        <AntButton
-                          icon={<img src={DeleteIcon} alt="" />}
-                          type="text"
-                          size="small"
-                          onClick={() => {
-                            setConfig(c => updateAnnotationHotspotElPath(c, null));
-                          }}
-                          style={buttonSecStyle}
-                        />
-                      </div>
-                    </Tags.AnotCrtPanelSec>
-                  </div>
+                        </div>
+                      </Tags.AnotCrtPanelSec>
+                    </div>
                   )
-                  }
+                }
                 {selectedHotspotEl && config.hotspotElPath && (
                   <div style={{ ...commonActionPanelItemStyle, width: '100%', height: '22px' }}>
                     <AEP
@@ -1212,7 +1415,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
-          <GTags.Txt>Overlay</GTags.Txt>
+          <div>
+            <GTags.Txt>Overlay</GTags.Txt>
+            <Tags.ApplyAllTxt
+              onClick={() => {
+                setApplyAllProperty({
+                  key: 'showOverlay',
+                  value: config.showOverlay
+                });
+              }}
+            >Apply to all
+            </Tags.ApplyAllTxt>
+          </div>
           <Tags.StyledSwitch
             size="small"
             style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
@@ -1232,6 +1446,84 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           Delete this annotation
         </Tags.ActionPaneBtn>
       </div>
+      <GTags.BorderedModal
+        title=""
+        open={applyAllProperty !== null}
+        onCancel={() => {
+          setApplyAllProperty(null);
+        }}
+        className="apply-all"
+        footer={(
+          <div className="button-two-col-cont">
+            <Button
+              type="button"
+              intent="secondary"
+              onClick={() => {
+                setApplyAllProperty(null);
+              }}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              style={{ flex: 1 }}
+              onClick={() => {
+                if (!applyAllProperty) return;
+                const tx = new Tx();
+                tx.start();
+
+                // if apply to all modify all annotations in timeline
+                if (applyToModule === 'all') {
+                  const timeline: Timeline = props.timeline;
+                  timeline.forEach((flow) => {
+                    flow.forEach((ann) => {
+                      applyPropertyToAnn(ann, applyAllProperty.key, applyAllProperty.value, tx);
+                    });
+                  });
+                } else {
+                  const currentFlow = props.timeline.filter((timeline) => timeline[0].grpId === config.grpId)[0];
+                  currentFlow.forEach(ann => {
+                    applyPropertyToAnn(ann, applyAllProperty.key, applyAllProperty.value, tx);
+                  });
+                }
+
+                amplitudeAnnotationApplyAll(
+                  applyToModule,
+                  applyAllMapping[applyAllProperty!.key],
+                  applyAllProperty!.value
+                );
+
+                props.commitTx(tx);
+                setApplyAllProperty(null);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        )}
+      >
+        <p>This style is already applied to the current annotation.</p>
+        {props.timeline.length > 1
+          ? (
+            <div>
+              Confirm if you want to
+              <Radio.Group
+                onChange={(e) => {
+                  setApplyToModule(e.target.value);
+                }}
+                value={applyToModule}
+                style={{ marginTop: '7px' }}
+              >
+                <Radio value="module">apply this style to all the annotations of this module</Radio>
+                <Radio value="all">apply this style to all the annotations of this demo (across all modules)</Radio>
+              </Radio.Group>
+            </div>
+          ) : (
+            <div>
+              <p>Confirm if you want to apply this style on all the annotations.</p>
+            </div>
+          )}
+      </GTags.BorderedModal>
     </Tags.AnotCrtPanelCon>
   );
 }

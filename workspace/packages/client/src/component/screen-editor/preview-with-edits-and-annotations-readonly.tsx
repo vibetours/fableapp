@@ -713,6 +713,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       this.applyEdits(goToScreenEdits);
 
+      this.annotationLCM!.updateNestedFrames(this.nestedFrames);
       // go to next annotation
       setTimeout(() => {
         this.reachAnnotation(goToAnnId);

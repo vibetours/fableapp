@@ -42,7 +42,8 @@ export const amplitudeScreenEdited = (
 };
 
 export const amplitudeAnnotationEdited = (
-  annotationProp: 'text' | 'box_sizing' | 'branding-primary_color' | 'branding-background_color' | 'branding-border_color' |
+  annotationProp: 'text' | 'box_sizing' | 'branding-primary_color' | 'branding-background_color' |
+  'branding-selection_shape' | 'branding-border_color' |
   'branding-font_color' | 'branding-selection_color' | 'branding-font_family' | 'branding-button_layout' |
   'branding-padding' | 'branding-border_radius' | 'add_new_cta' | 'cta-button_style' | 'cta-button_size' |
   'cta-button_text' | 'hide_cta' | 'add_link_to_cta' | 'hotspot-interactive_element' | 'hotspot-hide_annotation' |
@@ -52,6 +53,19 @@ export const amplitudeAnnotationEdited = (
   traceEvent(
     AMPLITUDE_EVENTS.ANNOTATION_EDITED,
     { annotation_prop: annotationProp, annotation_prop_value: annotationPropValue },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeAnnotationApplyAll = (
+  applyTo: 'module' | 'all',
+  annotationProp: 'branding-selection_color' | 'branding-selection_shape' | 'cta-button_size' | 'overlay'
+  | 'branding-selection_effect',
+  annotationPropValue: string | number| boolean
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.ANNOTATION_APPLY_ALL,
+    { apply_to: applyTo, annotation_prop: annotationProp, annotation_prop_value: annotationPropValue },
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );
 };

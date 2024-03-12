@@ -92,6 +92,7 @@ import DeleteIcon from '../../assets/icons/canvas-delete.svg';
 import EditingInteractiveDemoGuidePart1 from '../../user-guides/editing-interactive-demo-guide/part-1';
 import ExploringCanvasGuide from '../../user-guides/exploring-canvas-guide';
 import { UserGuideMsg } from '../../user-guides/types';
+import { SCREEN_EDITOR_ID } from '../../constants';
 
 const { confirm } = Modal;
 
@@ -302,11 +303,17 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [newAnnPos, setNewAnnPos] = useState<null | DestinationAnnotationPosition>(null);
   const [screenEditorArrowLeft, setScreenEditorArrowLeft] = useState(0);
   const [multiNodeModalData, setMultiNodeModalData] = useState(initialMultiNodeModalData);
+  const [allAnnsLookupMap, setAllAnnsLookupMap] = useState<AnnoationLookupMap>({});
   const dagreGraphRef = useRef<dagre.graphlib.Graph>();
 
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
+
+  useEffect(() => {
+    const lookupMap = getAnnotationLookupMap(props.allAnnotationsForTour);
+    setAllAnnsLookupMap(lookupMap);
+  }, [props.allAnnotationsForTour]);
 
   useEffect(() => {
     annWithCoordsRef.current = annWithCoords;
@@ -1960,13 +1967,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 return lines([]);
               }
               const fromNode = updatedNodeData.find((nodeD) => nodeD.id === attr.data.fromAnnId);
+
               const fromX = fromNode!.storedData!.x;
               const fromY = fromNode!.storedData!.y;
 
               const toNode = updatedNodeData.find((nodeD) => nodeD.id === attr.data.toAnnId);
+
               const toX = toNode!.storedData!.x;
               const toY = toNode!.storedData!.y;
               const nodeH = fromNode!.storedData!.height / 2;
+
               return formPathUsingPoints([
                 { x: fromX + fromNode!.storedData!.width, y: fromY + nodeH },
                 { x: toX, y: toY + nodeH }]);
@@ -2516,6 +2526,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     downloadFile(content, filename, 'text/markdown');
   };
 
+  const updateConnectionFromPannel = (fromMain: string, toMain: string) : void => {
+    updateConnection(
+      props.allAnnotationsForTour,
+      allAnnsLookupMap,
+      fromMain,
+      toMain,
+      props.onTourDataChange
+    );
+  };
+
   return (
     <>
       <GTags.ColCon>
@@ -2848,6 +2868,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateScreen={props.updateScreen}
                     newAnnPos={newAnnPos}
                     resetNewAnnPos={() => setNewAnnPos(null)}
+                    onTourDataChange={props.onTourDataChange}
+                    updateConnection={updateConnectionFromPannel}
                   />
                   )
                 }
@@ -2874,6 +2896,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               </Tags.AnnEditorModalArrow>
               <Tags.AnnEditorModalWrapper
                 top={ANN_EDITOR_TOP}
+                id={SCREEN_EDITOR_ID}
               >
                 <Tags.AnnEditorModal style={{ position: 'relative' }}>
                   <Tags.CloseIcon
@@ -2911,6 +2934,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateScreen={props.updateScreen}
                     newAnnPos={newAnnPos}
                     resetNewAnnPos={() => setNewAnnPos(null)}
+                    onTourDataChange={props.onTourDataChange}
+                    updateConnection={updateConnectionFromPannel}
                   />
                 )
               }

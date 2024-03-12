@@ -1,4 +1,4 @@
-import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import { SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_EDITOR_ID } from '../../constants';
 
 export function scrollIframeEls(version: string, doc: Document): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -36,4 +36,36 @@ function calculateScrollTopFromScrollFactor(scrollFactor: string, el: Element): 
 
 function calculateScrollLeftFromScrollFactor(scrollFactor: string, el: Element): number {
   return parseFloat(scrollFactor) * (el.scrollWidth - el.clientWidth);
+}
+
+export function isLinkButtonInViewport(buttonId: string): boolean {
+  const showButton = document.getElementById(buttonId);
+  const editorialModal = document.getElementById(SCREEN_EDITOR_ID);
+  if (!showButton || !editorialModal) return true;
+
+  const sbBoundingRect = showButton.getBoundingClientRect();
+  if (sbBoundingRect.bottom > window.innerHeight - 10) {
+    return false;
+  }
+
+  const emBoundingRect = editorialModal.getBoundingClientRect();
+  if (emBoundingRect.top > sbBoundingRect.top) {
+    return false;
+  }
+  return true;
+}
+
+export function calculatePopoverPlacement(buttonId: string): 'leftBottom' | 'left' | 'leftTop' {
+  const showButton = document.getElementById(buttonId);
+  const editorialModal = document.getElementById(SCREEN_EDITOR_ID);
+  if (!showButton || !editorialModal) return 'leftBottom';
+  const sbBoundingRect = showButton.getBoundingClientRect();
+  const emBoundingRect = editorialModal.getBoundingClientRect();
+  if (sbBoundingRect.top < emBoundingRect.top + emBoundingRect.height / 3) {
+    return 'leftTop';
+  }
+  if (sbBoundingRect.top < emBoundingRect.top + emBoundingRect.height / 2) {
+    return 'left';
+  }
+  return 'leftBottom';
 }

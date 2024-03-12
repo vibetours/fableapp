@@ -27,9 +27,9 @@ export default abstract class HighlighterBase {
 
   static ANNOTATION_PADDING_ONE_SIDE = 8;
 
-  nestedFrames: HTMLIFrameElement[];
+  nestedFrames: HTMLIFrameElement[] = [];
 
-  nestedDocs: Document[];
+  nestedDocs: Document[] = [];
 
   private listnrSubs: Partial<Record<keyof HTMLElementEventMap, Array<[(e: Event) => void, Document]>>>;
 
@@ -37,12 +37,16 @@ export default abstract class HighlighterBase {
 
   constructor(doc: Document, nestedFrames: HTMLIFrameElement[], config: HighlighterBaseConfig) {
     this.doc = doc;
-    this.nestedFrames = nestedFrames;
-    this.nestedDocs = this.nestedFrames.map(f => f.contentDocument).filter(d => !!d) as Document[];
+    this.setNestedFrames(nestedFrames);
     this.win = doc.defaultView as Window;
     this.maskEl = null;
     this.listnrSubs = {};
     this.config = config;
+  }
+
+  setNestedFrames(nestedFrames: HTMLIFrameElement[]): void {
+    this.nestedFrames = nestedFrames.filter(frame => !!frame.contentDocument);
+    this.nestedDocs = this.nestedFrames.map(f => f.contentDocument).filter(d => !!d) as Document[];
   }
 
   protected dispose(): void {
@@ -301,7 +305,11 @@ export default abstract class HighlighterBase {
       if ((node as HTMLElement).shadowRoot) {
         childNodes.unshift((node as HTMLElement).shadowRoot!);
       }
-      node = childNodes[id];
+      if (node.nodeType === Node.DOCUMENT_NODE) {
+        node = (node as Document).documentElement;
+      } else {
+        node = childNodes[id];
+      }
     }
     if (node === this.doc) {
       return null;

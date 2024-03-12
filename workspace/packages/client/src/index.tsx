@@ -37,7 +37,11 @@ if (document.location.pathname !== '/aboutblank') {
     console.log((e as Error).stack);
   }
 
-  sentryInit('client', packageJSON.version);
+  if (window.location.pathname.includes('/p/')) {
+    sentryInit('client-preview', packageJSON.version);
+  } else {
+    sentryInit('client', packageJSON.version);
+  }
   initAmplitude();
   removeOldGuides();
   upsertAllUserGuides();

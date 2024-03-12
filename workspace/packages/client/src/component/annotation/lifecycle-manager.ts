@@ -177,15 +177,36 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.prerenderVideoAnnotations();
     this.iframeElsScrollTimeoutId = 0;
     if (this.screenType === ScreenType.SerDom) {
-      this.win.addEventListener('scroll', this.onIframeElsScroll, true);
-      this.doc.body.addEventListener('scroll', this.onIframeElsScroll, true);
-      this.nestedFrames.forEach(frame => {
-        const doc2 = frame.contentDocument!;
-        const win2 = doc2.defaultView!;
-        win2.addEventListener('scroll', this.onIframeElsScroll, true);
-        doc2.body.addEventListener('scroll', this.onIframeElsScroll, true);
-      });
+      this.setFramesScrollListeners();
     }
+  }
+
+  updateNestedFrames(nestedFrames: HTMLIFrameElement[]): void {
+    this.resetFramesScrollListeners();
+    this.setNestedFrames(nestedFrames);
+    this.setFramesScrollListeners();
+  }
+
+  setFramesScrollListeners(): void {
+    this.win.addEventListener('scroll', this.onIframeElsScroll, true);
+    this.doc.body.addEventListener('scroll', this.onIframeElsScroll, true);
+    this.nestedFrames.forEach(frame => {
+      const doc2 = frame.contentDocument!;
+      const win2 = doc2.defaultView!;
+      win2.addEventListener('scroll', this.onIframeElsScroll, true);
+      doc2.body.addEventListener('scroll', this.onIframeElsScroll, true);
+    });
+  }
+
+  resetFramesScrollListeners(): void {
+    this.win.removeEventListener('scroll', this.onIframeElsScroll, true);
+    this.doc.body.removeEventListener('scroll', this.onIframeElsScroll, true);
+    this.nestedFrames.forEach(frame => {
+      const doc2 = frame.contentDocument;
+      const win2 = doc2?.defaultView;
+      win2?.removeEventListener('scroll', this.onIframeElsScroll, true);
+      doc2?.body.removeEventListener('scroll', this.onIframeElsScroll, true);
+    });
   }
 
   setElVisibilityInAnnElMap(el: HTMLElement, isElVisible: boolean): void {
@@ -929,14 +950,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         this.conProbe.remove();
       }
       if (this.screenType === ScreenType.SerDom) {
-        this.win.removeEventListener('scroll', this.onIframeElsScroll, true);
-        this.doc.body.removeEventListener('scroll', this.onIframeElsScroll, true);
-        this.nestedFrames.forEach(frame => {
-          const doc2 = frame.contentDocument;
-          const win2 = doc2?.defaultView;
-          win2?.removeEventListener('scroll', this.onIframeElsScroll, true);
-          doc2?.body.removeEventListener('scroll', this.onIframeElsScroll, true);
-        });
+        this.resetFramesScrollListeners();
       }
       this.annElsVisibilityObserver.unobserveAllEls();
       super.dispose();
