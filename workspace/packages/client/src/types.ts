@@ -160,7 +160,15 @@ export interface GlobalSettings {
   shouldLogEvent?: boolean;
 }
 
-export type FWin = Window & { __fable_global_settings__?: GlobalSettings }
+export interface GlobalUser {
+  userEmail: string;
+  lastName: string;
+  org: string
+}
+
+export type FWin = Window
+  & { __fable_global_settings__?: GlobalSettings }
+  & { __fable_global_user__?: GlobalUser };
 
 export type ScreenPickerMode = 'create' | 'navigate';
 

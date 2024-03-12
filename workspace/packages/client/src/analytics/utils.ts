@@ -58,9 +58,9 @@ export const removeSessionId = (): void => {
   sessionStorage.removeItem(FableAnalyticsLocalStoreKeys.SessionId);
 };
 
-const getCommonEventProps = (date: Date): CommonEventProps => ({
+const getCommonEventProps = (date: Date, event: AnalyticsEvents): CommonEventProps => ({
   aid: getAnonymousUserId(),
-  sid: getSessionId(),
+  ...(event !== AnalyticsEvents.ANN_USER_ASSIGN ? { sid: getSessionId() } : {}),
   uts: getUtcUnixTimestamp(date),
   tz: getTimezoneOffset(date)
 });
@@ -73,7 +73,7 @@ export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof 
       const data: EventLog = {
         event,
         payload,
-        ...getCommonEventProps(new Date())
+        ...getCommonEventProps(new Date(), event)
       };
       const eventLogs = flattenLogEvent(data);
       const sub = encodeURIComponent(btoa(eventLogs.event));

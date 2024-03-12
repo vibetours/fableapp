@@ -20,8 +20,8 @@ import './styles.css';
 import { ImageNode } from './nodes/image-node';
 import { ExtendedTextNode } from './plugins/extended-text-node';
 import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
-import PollPlugin from './plugins/poll-plugin';
-import { PollNode } from './nodes/poll-node';
+import LeadFormPlugin from './plugins/lead-form-plugin';
+import { LeadFormNode } from './nodes/lead-form-node';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -37,7 +37,7 @@ const editorConfig = {
     AutoLinkNode,
     LinkNode,
     ImageNode,
-    PollNode,
+    LeadFormNode,
     ExtendedTextNode,
     { replace: TextNode, with: (node: TextNode) => new ExtendedTextNode(node.__text, node.__key) },
   ]
@@ -129,7 +129,7 @@ export default function AnnotationRichTextEditor({
           <OnChangePlugin onChange={onChangePluginHandler} />
           <AutoFocusPlugin />
           <LinkPlugin />
-          <PollPlugin />
+          <LeadFormPlugin />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={defaultValue} />

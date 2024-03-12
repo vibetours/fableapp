@@ -4,9 +4,9 @@ import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 import { AllDimsForAnnotation } from './types';
-import { LeadFormField } from '../annotation-rich-text-editor/nodes/poll-node';
-import { FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
-import { FIELD_NAME_VARIABLE_REGEX } from '../annotation-rich-text-editor/utils/poll-node-utils';
+import { LeadFormField } from '../annotation-rich-text-editor/nodes/lead-form-node';
+import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
+import { FIELD_NAME_VARIABLE_REGEX } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
 
@@ -246,7 +246,7 @@ export const validateInput = (field: HTMLDivElement): {
   const validationType = (field.getAttribute(FABLE_LEAD_FORM_VALIDATION_FN) || 'text') as LeadFormField;
   const validationFn = validationFnMap[validationType];
   const fieldValue = (inpulEl as HTMLInputElement).value.trim();
-  const fieldName = parseFieldName((inpulEl as HTMLInputElement).placeholder);
+  const fieldName = inpulEl?.getAttribute(FABLE_LEAD_FORM_FIELD_NAME) || '';
   const isValid = validationFn(fieldValue);
 
   const uid = field.getAttribute('fable-input-field-uid');
@@ -258,7 +258,7 @@ export const validateInput = (field: HTMLDivElement): {
   return { isValid, fieldName, fieldValue };
 };
 
-const parseFieldName = (placeholderString: string): string => {
+export const parseFieldName = (placeholderString: string): string => {
   let nVarName = '';
   const match = placeholderString.match(FIELD_NAME_VARIABLE_REGEX);
 

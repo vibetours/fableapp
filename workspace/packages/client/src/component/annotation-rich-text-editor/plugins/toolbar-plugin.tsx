@@ -227,8 +227,8 @@ interface ToolbarPluginProps {
   }
 }
 
-export const INSERT_POLL_COMMAND: LexicalCommand<string> = createCommand(
-  'INSERT_POLL_COMMAND',
+export const INSERT_LEAD_FORM_COMMAND: LexicalCommand<string> = createCommand(
+  'INSERT_LEAD_FORM_COMMAND',
 );
 
 export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : ReactElement {
@@ -393,11 +393,11 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
 
       <button
         type="button"
-        onClick={() => editor.dispatchCommand(INSERT_POLL_COMMAND, '')}
+        onClick={() => editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')}
         className="toolbar-item spaced"
         aria-label="Lead Form"
       >
-        <FormOutlined className="format" />
+        @
       </button>
     </div>
   );

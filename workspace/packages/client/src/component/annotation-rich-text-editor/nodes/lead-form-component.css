@@ -3,8 +3,6 @@
   background-color: #fcfcfc;
   border-radius: 10px;
   width: 100%;
-  /* max-width: 600px; */
-  /* min-width: 400px; */
   cursor: pointer;
   user-select: none;
 }
@@ -89,6 +87,17 @@
   background-color: transparent;
 }
 .LeadForm__footer {
+  justify-content: space-between;
+  align-items: center;
   display: flex;
-  justify-content: center;
+}
+
+.lead-form-tooltip p {
+  font-size: 14px;
+}
+
+.lead-form-tooltip .select {
+  color: #000;
+  background: #eaeaea;
+  padding: 2px 6px;
 }

@@ -1,4 +1,4 @@
-import { AnalyticsEvents, AnnotationBtnClickedPayload } from './analytics/types';
+import { AnalyticsEvents, AnnotationBtnClickedPayload, UserAssignPayload } from './analytics/types';
 import {
   ExtMsg,
   InternalEvents,
@@ -6,7 +6,8 @@ import {
   Payload_DemoLoadingStarted,
   Payload_JourneySwitch,
   Payload_Navigation,
-  JourneyNameIndexData
+  JourneyNameIndexData,
+  FWin
 } from './types';
 import { createIframeSrc, getGlobalData, postMessageForEvent } from './utils';
 import { P_RespTour } from './entity-processor';
@@ -83,6 +84,19 @@ export function initInternalEvents() : void {
       demoRid: demoData.rid || '',
     };
     postMessageForEvent(ExtMsg.DemoLoadingStarted, tPayload as Payload_IE_DemoLoadingStarted);
+  });
+
+  registerListenerForInternalEvent(InternalEvents.DemoLoadingStarted, () => {
+    const demoData = getGlobalData('demo') as P_RespTour;
+    const user = (window as FWin).__fable_global_user__;
+    if (user) {
+      const userAssignPayload: UserAssignPayload = {
+        user_email: user.userEmail,
+        tour_id: demoData.id,
+        others: { email: user.userEmail, lastName: user.lastName }
+      };
+      logEvent(AnalyticsEvents.ANN_USER_ASSIGN, userAssignPayload);
+    }
   });
 
   registerListenerForInternalEvent(

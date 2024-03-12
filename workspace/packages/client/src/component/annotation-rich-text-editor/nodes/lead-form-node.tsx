@@ -13,71 +13,9 @@ import {
 import * as React from 'react';
 import { Suspense } from 'react';
 import { getRandomId } from '@fable/common/dist/utils';
-import { FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
-import { removeFieldNameDefinition } from '../utils/poll-node-utils';
-
-const styles = `
-.LeadForm__container {
-  display: block;
-  cursor: pointer;
-  user-select: none;
-  font-family: inherit;
-  border-radius: var(--f-ann-border-radius);
-  background-color: color-mix(in srgb, var(--f-ann-bg-color) 50%, white);
-  border: none;
-  padding: 14px 44px 44px 44px;
-}
-.LeadForm__container.focused {
-  outline: 2px solid var(--f-ann-primary-color);
-}
-.LeadForm__inner {
-  width: 100%;
-  cursor: default;
-  gap: 16px;
-  display: flex;
-  flex-direction: column;
-}
-.LeadForm__optionContainer {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: center;
-  margin: 0px;
-}
-.LeadForm__inputValidation {
-  font-size: 1rem;
-  visibility: hidden;
-  color: #963214;
-  width: 100%;
-  margin-bottom: 6px;
-}
-.LeadForm__optionInputWrapper {
-  flex: 1;
-  display: flex;
-  width: 100%;
-  border: none;
-  box-shadow: 0 0 0 2px var(--f-ann-primary-color);
-  padding: 4px 0;
-  border-radius: 5px;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-.LeadForm__optionInput {
-  display: flex;
-  flex: 1px;
-  border: 0px;
-  padding: 7px;
-  color: var(--fable-ann-font-color);
-  background-color: transparent;
-  font-weight: bold;
-  outline: 0px;
-  z-index: 0;
-}
-.LeadForm__optionInput::placeholder {
-  font-weight: normal;
-  color: #999;
-}
-`;
+import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
+import { removeFieldNameDefinition } from '../utils/lead-form-node-utils';
+import { parseFieldName } from '../../annotation/utils';
 
 export type Options = ReadonlyArray<Option>;
 
@@ -88,11 +26,11 @@ export type Option = Readonly<{
   type: LeadFormField;
 }>;
 
-const PollComponent = React.lazy(() => import('./poll-component'));
+const LeadFormComponent = React.lazy(() => import('./lead-form-component'));
 
 export type LeadFormField = 'email' | 'text'
 
-export function createPollOption(text = '', isMandatory = false, type: LeadFormField = 'text'): Option {
+export function createLeadFormOption(text = '', isMandatory = false, type: LeadFormField = 'text'): Option {
   return {
     text,
     uid: getRandomId(),
@@ -113,35 +51,35 @@ function cloneOption(
   };
 }
 
-export type SerializedPollNode = Spread<
+export type SerializedLeadFormNode = Spread<
   {
     options: Options;
   },
   SerializedLexicalNode
 >;
 
-function convertPollElement(domNode: HTMLElement): DOMConversionOutput | null {
-  const options = domNode.getAttribute('data-lexical-poll-options');
+function convertLeadFormElement(domNode: HTMLElement): DOMConversionOutput | null {
+  const options = domNode.getAttribute('data-lexical-lead-form-options');
   if (options !== null) {
-    const node = $createPollNode(JSON.parse(options));
+    const node = $createLeadFormNode(JSON.parse(options));
     return { node };
   }
   return null;
 }
 
-export class PollNode extends DecoratorNode<JSX.Element> {
+export class LeadFormNode extends DecoratorNode<JSX.Element> {
   __options: Options;
 
   static getType(): string {
-    return 'poll';
+    return 'lead-form';
   }
 
-  static clone(node: PollNode): PollNode {
-    return new PollNode(node.__options, node.__key);
+  static clone(node: LeadFormNode): LeadFormNode {
+    return new LeadFormNode(node.__options, node.__key);
   }
 
-  static importJSON(serializedNode: SerializedPollNode): PollNode {
-    const node = $createPollNode(
+  static importJSON(serializedNode: SerializedLeadFormNode): LeadFormNode {
+    const node = $createLeadFormNode(
       serializedNode.options,
     );
     serializedNode.options.forEach(node.addOption);
@@ -153,10 +91,10 @@ export class PollNode extends DecoratorNode<JSX.Element> {
     this.__options = options;
   }
 
-  exportJSON(): SerializedPollNode {
+  exportJSON(): SerializedLeadFormNode {
     return {
       options: this.__options,
-      type: 'poll',
+      type: 'lead-form',
       version: 1,
     };
   }
@@ -188,12 +126,12 @@ export class PollNode extends DecoratorNode<JSX.Element> {
   static importDOM(): DOMConversionMap | null {
     return {
       span: (domNode: HTMLElement) => {
-        if (!domNode.hasAttribute('data-lexical-poll-options')) {
+        if (!domNode.hasAttribute('data-lexical-lead-form-options')) {
           return null;
         }
 
         return {
-          conversion: convertPollElement,
+          conversion: convertLeadFormElement,
           priority: 2,
         };
       },
@@ -203,12 +141,11 @@ export class PollNode extends DecoratorNode<JSX.Element> {
   exportDOM(): DOMExportOutput {
     const container = document.createElement('span');
     const innerCon = document.createElement('span');
-    const styleTag = document.createElement('style');
 
     container.appendChild(innerCon);
 
     container.setAttribute(
-      'data-lexical-poll-options',
+      'data-lexical-lead-form-options',
       JSON.stringify(this.__options),
     );
 
@@ -238,13 +175,11 @@ export class PollNode extends DecoratorNode<JSX.Element> {
 
       optionInput.classList.add('LeadForm__optionInput');
       optionInput.setAttribute('fable-input-uid', option.uid);
+      optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, parseFieldName(option.text));
       optionInput.type = 'text';
       optionInput.placeholder = removeFieldNameDefinition(option.text);
       optionInputWrapper.appendChild(optionInput);
     }
-
-    styleTag.innerHTML = styles;
-    container.appendChild(styleTag);
 
     return { element: container };
   }
@@ -262,7 +197,7 @@ export class PollNode extends DecoratorNode<JSX.Element> {
   decorate(): JSX.Element {
     return (
       <Suspense fallback={null}>
-        <PollComponent
+        <LeadFormComponent
           options={this.__options}
           nodeKey={this.__key}
         />
@@ -271,12 +206,12 @@ export class PollNode extends DecoratorNode<JSX.Element> {
   }
 }
 
-export function $createPollNode(options: Options): PollNode {
-  return new PollNode(options);
+export function $createLeadFormNode(options: Options): LeadFormNode {
+  return new LeadFormNode(options);
 }
 
-export function $isPollNode(
+export function $isLeadFormNode(
   node: LexicalNode | null | undefined,
-): node is PollNode {
-  return node instanceof PollNode;
+): node is LeadFormNode {
+  return node instanceof LeadFormNode;
 }

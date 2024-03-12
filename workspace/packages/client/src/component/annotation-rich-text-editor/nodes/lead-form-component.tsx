@@ -1,4 +1,4 @@
-import './poll-node.css';
+import './lead-form-component.css';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
 import { mergeRegister } from '@lexical/utils';
@@ -15,27 +15,30 @@ import {
 } from 'lexical';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 import joinClasses from '../utils/join-classes';
-import { $isPollNode, createPollOption } from './poll-node';
-import type { Option, Options, PollNode } from './poll-node';
+import { $isLeadFormNode, createLeadFormOption } from './lead-form-node';
+import type { Option, Options, LeadFormNode } from './lead-form-node';
 import Button from '../../button';
+import { parseFieldName } from '../../annotation/utils';
 
-interface PollOptionProps {
+interface LeadFormOptionProps {
   index: number;
   option: Option;
   options: Options;
-  withPollNode: (
-    cb: (pollNode: PollNode) => void,
+  withLeadFormNode: (
+    cb: (leadFormNode: LeadFormNode) => void,
     onSelect?: () => void,
   ) => void;
 }
 
-function PollOptionComponent({
+function LeadFormOptionComponent({
   option,
   index,
   options,
-  withPollNode,
-}: PollOptionProps): JSX.Element {
+  withLeadFormNode,
+}: LeadFormOptionProps): JSX.Element {
   const text = option.text;
 
   return (
@@ -50,7 +53,7 @@ function PollOptionComponent({
             const value = target.value;
             const selectionStart = target.selectionStart;
             const selectionEnd = target.selectionEnd;
-            withPollNode(
+            withLeadFormNode(
               (node) => {
                 node.setOptionText(option, value);
               },
@@ -73,7 +76,7 @@ function PollOptionComponent({
         )}
         aria-label="Remove"
         onClick={() => {
-          withPollNode((node) => {
+          withLeadFormNode((node) => {
             node.deleteOption(option);
           });
         }}
@@ -82,7 +85,7 @@ function PollOptionComponent({
   );
 }
 
-export default function PollComponent({
+export default function LeadFormComponent({
   options,
   nodeKey,
 }: {
@@ -100,7 +103,7 @@ export default function PollComponent({
         const event: KeyboardEvent = payload;
         event.preventDefault();
         const node = $getNodeByKey(nodeKey);
-        if ($isPollNode(node)) {
+        if ($isLeadFormNode(node)) {
           node.remove();
           return true;
         }
@@ -143,14 +146,14 @@ export default function PollComponent({
     ),
   ), [clearSelection, editor, isSelected, nodeKey, onDelete, setSelected]);
 
-  const withPollNode = (
-    cb: (node: PollNode) => void,
+  const withLeadFormNode = (
+    cb: (node: LeadFormNode) => void,
     onUpdate?: () => void,
   ): void => {
     editor.update(
       () => {
         const node = $getNodeByKey(nodeKey);
-        if ($isPollNode(node)) {
+        if ($isLeadFormNode(node)) {
           cb(node);
         }
       },
@@ -159,8 +162,8 @@ export default function PollComponent({
   };
 
   const addOption = (): void => {
-    withPollNode((node) => {
-      node.addOption(createPollOption('Field {[field]}'));
+    withLeadFormNode((node) => {
+      node.addOption(createLeadFormOption('Field {[field]}'));
     });
   };
 
@@ -175,9 +178,9 @@ export default function PollComponent({
         {options.map((option, index) => {
           const key = option.uid;
           return (
-            <PollOptionComponent
+            <LeadFormOptionComponent
               key={key}
-              withPollNode={withPollNode}
+              withLeadFormNode={withLeadFormNode}
               option={option}
               index={index}
               options={options}
@@ -188,8 +191,45 @@ export default function PollComponent({
           <Button intent="secondary" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }} onClick={addOption}>
             Add a new field
           </Button>
+
+          <Tooltip title={<LeadFormInfoTooltip options={options} />}>
+            <QuestionCircleOutlined />
+          </Tooltip>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface LeadFormTooltipProps {
+  options: Options;
+}
+
+function LeadFormInfoTooltip(props: LeadFormTooltipProps): JSX.Element {
+  const sampleFormData = props.options.map(option => `"${parseFieldName(option.text)}": "..."`);
+
+  return (
+    <div className="lead-form-tooltip">
+      <p>For the following placeholder</p>
+
+      <p>
+        <span className="select">
+          Enter your First Name <code>{'{[firstName]}'}</code>
+        </span>
+      </p>
+
+      <p>
+        Once user enters their first name, the value is assigned to <code style={{ fontWeight: 'bold' }}>{'{[firstName]}'}</code> field
+      </p>
+      <p>
+        Example: When user submits the form the data would look like
+      </p>
+
+      {'{'}
+      <pre style={{ margin: 0 }}>
+        {sampleFormData.map(kv => <div key={kv}>  {kv}</div>)}
+      </pre>
+      {'}'}
     </div>
   );
 }

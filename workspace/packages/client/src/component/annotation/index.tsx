@@ -19,7 +19,7 @@ import {
   isCoverAnnotation as isCoverAnn,
   isVideoAnnotation as isVideoAnn
 } from '../../utils';
-import { AnnotationBtnClickedPayload, TimeSpentInAnnotationPayload } from '../../analytics/types';
+import { AnalyticsEvents, AnnotationBtnClickedPayload, UserAssignPayload } from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
@@ -27,6 +27,7 @@ import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
+import { logEvent } from '../../analytics/utils';
 
 interface NavigateToAnnMessage<T> extends MessageEvent{
   data: Msg<T>
@@ -60,7 +61,8 @@ export class AnnotationContent extends React.PureComponent<{
   dir: AnimEntryDir
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean,
-  doc?: Document
+  doc?: Document,
+  isProbing?: boolean,
 }> {
   static readonly MIN_WIDTH = DEFAULT_ANN_DIMS.width;
 
@@ -129,6 +131,7 @@ export class AnnotationContent extends React.PureComponent<{
         key={this.props.config.refId}
         ref={this.conRef}
         primaryColor={this.props.opts.primaryColor}
+        fontColor={this.props.opts.annotationFontColor}
         borderRadius={this.props.opts.borderRadius}
         bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
@@ -143,6 +146,7 @@ export class AnnotationContent extends React.PureComponent<{
           borderRadius: this.props.opts.borderRadius,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
+        id={this.props.isProbing ? '' : 'fable-ann-card-rendered'}
         className={`fable-ann-card f-a-c-${this.props.config.refId} dir-${this.props.dir}`}
       >
         <Tags.AnInnerContainer
@@ -206,8 +210,12 @@ export class AnnotationContent extends React.PureComponent<{
                       }
 
                       if (shouldNavigate) {
-                        // API call will go here
-                        console.log(leadForm);
+                        const userAssignPayload: UserAssignPayload = {
+                          user_email: leadForm.email,
+                          tour_id: this.props.tourId,
+                          others: leadForm
+                        };
+                        logEvent(AnalyticsEvents.ANN_USER_ASSIGN, userAssignPayload);
                         this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                       }
                     } else {

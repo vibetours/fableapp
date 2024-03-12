@@ -170,10 +170,23 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     document.title = this.props.title;
+    const searchParams = new URLSearchParams(this.props.location.search);
+    const userEmail: string = searchParams.get('ftm_uid') || '';
+    const lastName: string = searchParams.get('ftm_lastname') || '';
+    const org: string = searchParams.get('ftm_org') || '';
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
         ...((window as FWin).__fable_global_settings__ || {}),
         shouldLogEvent: !this.props.staging
+      };
+    }
+
+    if (userEmail) {
+      (window as FWin).__fable_global_user__ = {
+        ...((window as FWin).__fable_global_user__ || {}),
+        userEmail,
+        lastName,
+        org
       };
     }
     this.props.loadTourWithDataAndCorrespondingScreens(

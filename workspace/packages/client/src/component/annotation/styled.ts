@@ -21,10 +21,12 @@ export const BubbleCon = styled.div`
   align-items: center;
 `;
 
-export const AnContent = styled.div<{ bgColor: string, borderRadius: number, primaryColor: string }>`
+export const AnContent = styled.div<{ bgColor: string, borderRadius: number, primaryColor: string, fontColor: string }>`
   --f-ann-bg-color: ${(p) => p.bgColor};
   --f-ann-border-radius: ${(p) => p.borderRadius}px;
   --f-ann-primary-color: ${(p) => p.primaryColor};
+  --f-ann-font-color: ${(p) => p.fontColor};
+
   background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor} 85%, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
@@ -33,6 +35,86 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
   margin: 0;
   justify-items: center;
   align-items: center;
+
+  .LeadForm__container {
+    display: block;
+    cursor: pointer;
+    user-select: none;
+    font-family: inherit;
+    color: inherit;
+    font-size: inherit;
+    border-radius: var(--f-ann-border-radius);
+    background-color: color-mix(in srgb, var(--f-ann-bg-color) 90%, white);
+    border: none;
+    padding: 14px 44px 44px 44px;
+  }
+
+  .LeadForm__container.focused {
+    outline: 2px solid var(--f-ann-primary-color);
+  }
+
+  .LeadForm__inner {
+    width: 100%;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .LeadForm__optionContainer {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    margin: 0px;
+  }
+
+  .LeadForm__inputValidation {
+    transform: translate(1rem, 1rem);
+    background: color-mix(in srgb, var(--f-ann-bg-color) 95%, white);
+    display: inline-block;
+    width: auto;
+    align-self: baseline;
+    color: color-mix(in srgb, var(--f-ann-font-color) 90%, white);
+    filter: hue-rotate(180deg);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 14px;
+    visibility: hidden;
+    margin-bottom: 6px;
+  }
+
+  .LeadForm__optionInputWrapper {
+    flex: 1;
+    display: flex;
+    width: 100%;
+    border: none;
+    box-shadow: 0 0 0 2px var(--f-ann-primary-color);
+    padding: 4px 0;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .LeadForm__optionInput {
+    width: 100%;
+    font-size: inherit;
+    display: flex;
+    flex: 1px;
+    font-size: 1.35rem;
+    border: 0px;
+    padding: 8px 16px;
+    color: var(--fable-ann-font-color);
+    background-color: transparent;
+    font-weight: bold;
+    outline: 0px;
+    z-index: 0;
+  }
+  
+  .LeadForm__optionInput::placeholder {
+    font-weight: normal;
+    color: var(--f-ann-font-color);
+    opacity: 0.75;
+  }
 `;
 
 const getAnnotationPadding = (annotationPadding: string): string => {

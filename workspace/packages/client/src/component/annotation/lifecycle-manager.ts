@@ -509,7 +509,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.onScrollComplete(el, config);
   };
 
-  private onIframeElsScroll = (): void => {
+  private onIframeElsScroll = (ev: Event): void => {
+    const fableCard = this.doc.querySelector('#fable-ann-card-rendered');
+    if (fableCard && ev.target) {
+      if (fableCard.contains(ev.target as HTMLElement)) return;
+    }
+
     if (this.mode === AnnotationViewMode.Hide) return;
     this.con!.style.display = 'none';
     this.createFullScreenMask();
@@ -859,7 +864,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
-              doc: this.doc
+              doc: this.doc,
+              isProbing: true,
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[1],
@@ -874,7 +880,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
-              doc: this.doc
+              doc: this.doc,
+              isProbing: true,
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[2],
@@ -889,7 +896,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
-              doc: this.doc
+              doc: this.doc,
+              isProbing: true,
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[3],
@@ -904,7 +912,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
-              doc: this.doc
+              doc: this.doc,
+              isProbing: true
             })
           )
         )
