@@ -44,7 +44,7 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
     color: inherit;
     font-size: inherit;
     border-radius: var(--f-ann-border-radius);
-    background-color: color-mix(in srgb, var(--f-ann-bg-color) 90%, white);
+    background-color: color-mix(in srgb, var(--f-ann-bg-color) 99%, white);
     border: none;
     padding: 14px 44px 44px 44px;
   }
@@ -95,7 +95,7 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
     cursor: pointer;
   }
 
-  .LeadForm__optionInput {
+  .LeadForm__optionInputInAnn {
     width: 100%;
     font-size: inherit;
     display: flex;
@@ -110,7 +110,7 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
     z-index: 0;
   }
   
-  .LeadForm__optionInput::placeholder {
+  .LeadForm__optionInputInAnn::placeholder {
     font-weight: normal;
     color: var(--f-ann-font-color);
     opacity: 0.75;

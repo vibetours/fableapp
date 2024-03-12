@@ -173,7 +173,7 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
       optionCon.appendChild(optionInputWrapper);
       optionCon.appendChild(optionInputValidationWrapper);
 
-      optionInput.classList.add('LeadForm__optionInput');
+      optionInput.classList.add('LeadForm__optionInputInAnn');
       optionInput.setAttribute('fable-input-uid', option.uid);
       optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, parseFieldName(option.text));
       optionInput.type = 'text';
