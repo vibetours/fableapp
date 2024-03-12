@@ -33,10 +33,10 @@ const DescText: Record<EffectFor, string> = {
 };
 
 export default function EffectSelector(props: IProps): JSX.Element {
-  const effects = props.effectFor === EffectFor.tel ? elEffects : annEffects;
+  const effects = (props.effectFor === EffectFor.tel ? elEffects : annEffects).map(ef => ({ ...ef }));
   const effectSet = getEffectFromString(effects, props.cssStr);
   const [stylePreset, setStylePreset] = useState(effectSet.id);
-  const [showCssEditor, setShowCssEditor] = useState(ShowCssEditorState.SystemShow);
+  const [showCssEditor, setShowCssEditor] = useState(ShowCssEditorState.SystemHide);
   const [currentEffect, setCurrentEffect] = useState<typeof effects[0]>(effectSet);
 
   useEffect(() => {
@@ -106,6 +106,7 @@ export default function EffectSelector(props: IProps): JSX.Element {
         </div>
         <CssEditor
           effectId={currentEffect.id}
+          annKey={props.config.refId}
           content={ALCM.compileCSSForEffect(currentEffect.css, props.config)}
           infoText=<div />
           hidden={showCssEditor === ShowCssEditorState.SystemHide}

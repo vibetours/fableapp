@@ -17,20 +17,20 @@ interface Effect {
 }
 
 function process(rawEffects: Effect[]): Effect[] {
-  return rawEffects.map(ef => {
-    ef.css = `
+  return rawEffects.map(ef => ({
+    ...ef,
+    css: `
 /* @dir effect=${ef.id} */
 /* !!! DO NOT DELETE ABOVE LINE. DO NOT LET YOUR INTRUSIVE THOUGHT WIN FOR ONCE. CSS STARTS FROM BELOW */
 
 ${ef.css}
-    `.trim();
-    return ef;
-  });
+`.trim()
+  }));
 }
 
 export function getEffectFromString(effects: Effect[], cssStr?: string): Effect {
   const l = effects.length;
-  const fallback = effects[l - 1];
+  const fallback = effects[0];
   try {
     const nCssStr = (cssStr || '').trim();
     if (!nCssStr) return fallback;

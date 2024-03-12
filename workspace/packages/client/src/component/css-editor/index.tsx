@@ -9,6 +9,7 @@ interface IProps {
   onPreview: (css: string) => void;
   onSubmit: (css: string) => void;
   effectId: string;
+  annKey: string;
   hidden?: boolean;
 }
 
@@ -34,7 +35,7 @@ export default function CssEditor(props: IProps): JSX.Element {
         style={{
           display: props.hidden ? 'none' : 'block'
         }}
-        key={props.effectId}
+        key={`${props.effectId}/${props.annKey}`}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

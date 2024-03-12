@@ -1326,6 +1326,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               key: '1',
               label: <span style={{ fontWeight: 500 }}>On screen</span>,
               children: <EffectSelector
+                key={props.config.refId}
                 config={props.config}
                 cssStr={props.config.targetElCssStyle}
                 onSubmit={cssStr => {
@@ -1357,6 +1358,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               key: '2',
               label: <span style={{ fontWeight: 500 }}>On annotation</span>,
               children: <EffectSelector
+                key={props.config.refId}
                 config={props.config}
                 cssStr={props.config.annCSSStyle}
                 onSubmit={cssStr => {
