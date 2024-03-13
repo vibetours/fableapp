@@ -558,3 +558,22 @@ export const getSearchParamData = (param: string | null) : queryData | null => {
   const query = JSON.parse(decodedQuery);
   return query;
 };
+
+type DebounceFunction<T extends any[]> = (...args: T) => void;
+
+export function debounce<T extends any[]>(
+  func: DebounceFunction<T>,
+  delay: number
+): DebounceFunction<T> {
+  let timeout: NodeJS.Timeout | null;
+
+  return function (...args: T) {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+
+    clearTimeout(timeout as NodeJS.Timeout);
+    timeout = setTimeout(later, delay);
+  };
+}

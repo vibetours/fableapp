@@ -88,7 +88,7 @@ import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { effectsHelpText, hotspotHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank } from '../../utils';
+import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
@@ -496,6 +496,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     );
   }
 
+  const debouncedPaddingOnChangeHandler = debounce((e) => {
+    setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', e.target.value));
+  }, 2000);
+
+  const debouncedBorderRadiusOnChangeHandler = debounce((e) => {
+    setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
+  }, 2000);
+
   return (
     <Tags.AnotCrtPanelCon
       className="e-ignr"
@@ -803,9 +811,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 ));
               }
             }}
-            onBlur={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', e.target.value));
-            }}
+            onChange={debouncedPaddingOnChangeHandler}
           />
         </div>
         <div style={commonActionPanelItemStyle}>
@@ -816,9 +822,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             // bordered={false} // looks ugly
             defaultValue={opts.borderRadius}
             addonAfter="px"
-            onChange={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
-            }}
+            onChange={debouncedBorderRadiusOnChangeHandler}
           />
         </div>
       </ActionPanel>
