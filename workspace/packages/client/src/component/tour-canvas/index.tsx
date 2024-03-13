@@ -77,7 +77,7 @@ import {
   getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
   getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
 } from './utils';
-import { baseURL, isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
+import { doesBtnOpenALink, isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -854,7 +854,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const toAn = allAnns[toScreenIdx].annotations[toAnIdx];
     toAn.grpId = fromAn.grpId;
 
-    if (isNextBtnOpensALink(fromAn)) {
+    if (doesBtnOpenALink(fromAn, 'next')) {
       props.setAlert("The selected annotation contains a link, hence, it can't be reordered. ");
       return;
     }

@@ -4,7 +4,7 @@ import { getSampleConfig } from '@fable/common/dist/utils';
 import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from './types';
-import { isNavigateHotspot, isNextBtnOpensALink, updateLocalTimelineGroupProp } from '../../utils';
+import { doesBtnOpenALink, isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
 import { AnnAdd } from '../../action/creator';
 
 function getValidNavigateValueForActionType(btn: IAnnotationButton): string | null {
@@ -22,7 +22,7 @@ export const addNextAnnotation = (
   const updates: AnnUpdate[] = [];
 
   const selectedAnnConfig = getAnnotationByRefId(selectedAnnId, allAnnotationsForTour)!;
-  if (isNextBtnOpensALink(selectedAnnConfig)) {
+  if (doesBtnOpenALink(selectedAnnConfig, 'next')) {
     return {
       status: 'denied',
       deniedReason: 'The selected annotation will open a new url when next button is cliced, hence a new annotation can\'t be added. Deleting the url and try again.',
@@ -284,7 +284,7 @@ export const reorderAnnotation = (
   const destinationAnnotation = getAnnotationByRefId(destinationAnnId, allAnnotationsForTour)!;
   const nextBtnOfDestinationAnn = getAnnotationBtn(destinationAnnotation, 'next');
 
-  if (isNextBtnOpensALink(currentAnnConfig) && (position === DestinationAnnotationPosition.prev || nextBtnOfDestinationAnn.hotspot)) {
+  if (doesBtnOpenALink(currentAnnConfig, 'next') && (position === DestinationAnnotationPosition.prev || nextBtnOfDestinationAnn.hotspot)) {
     // if current annotation has a link in next button it can only be placec at the very end
     return {
       status: 'denied',
@@ -306,7 +306,7 @@ export const reorderAnnotation = (
     };
   }
 
-  if (isNextBtnOpensALink(destinationAnnotation) && position === DestinationAnnotationPosition.next) {
+  if (doesBtnOpenALink(destinationAnnotation, 'next') && position === DestinationAnnotationPosition.next) {
     return {
       status: 'denied',
       deniedReason: 'The destination annotation would open a link when next button is clicked, hence it can\'t be reordered. Delete the url and try again.',

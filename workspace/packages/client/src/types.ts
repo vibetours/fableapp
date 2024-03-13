@@ -152,8 +152,8 @@ export type SingleTimeline = Array<IAnnotationConfigWithScreen>;
 export type Timeline = Array<SingleTimeline>;
 
 export enum DestinationAnnotationPosition {
-  next,
-  prev
+  next = 'next',
+  prev = 'prev'
 }
 
 export interface GlobalSettings {

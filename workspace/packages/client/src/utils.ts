@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { IAnnotationConfig, ITourEntityHotspot, SerNode, JourneyFlow, JourneyData } from '@fable/common/dist/types';
+import {
+  IAnnotationConfig,
+  ITourEntityHotspot,
+  SerNode,
+  JourneyFlow,
+  IAnnotationButtonType
+} from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
 import {
@@ -160,9 +166,9 @@ export const isNavigateHotspot = (hotspot: ITourEntityHotspot | null): boolean =
   return result;
 };
 
-export const isNextBtnOpensALink = (ann: IAnnotationConfig): boolean => {
-  const nxt = ann.buttons.find(btn => btn.type === 'next')!;
-  return !!(nxt.hotspot && nxt.hotspot.actionType === 'open');
+export const doesBtnOpenALink = (ann: IAnnotationConfig, type: 'next' | 'prev'): boolean => {
+  const foundBtn = getAnnotationBtn(ann, type);
+  return !!(foundBtn.hotspot && foundBtn.hotspot.actionType === 'open');
 };
 
 export const DEFAULT_ALERT_FOR_ANN_OPS = 'Operation can\'t be performed.';

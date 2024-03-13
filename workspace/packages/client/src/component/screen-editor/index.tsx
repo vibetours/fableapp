@@ -76,9 +76,8 @@ import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import {
   AEP_HEIGHT,
   ANN_EDIT_PANEL_WIDTH,
+  doesBtnOpenALink,
   getAnnotationWithScreenAndIdx,
-  isNavigateHotspot,
-  isNextBtnOpensALink
 } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
@@ -592,22 +591,26 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   findPositionToAddAnnotation(): [IAnnotationConfig, DestinationAnnotationPosition, boolean] {
     const lastAnnId = this.lastSelectedAnnId;
     let validAnn = null;
+
     if (lastAnnId) {
       validAnn = getAnnotationByRefId(lastAnnId, this.props.allAnnotationsForTour);
     }
 
     if (validAnn) {
-      if (isNextBtnOpensALink(validAnn)) {
-        // If the annotation's next button open a new url on click of next
-        return [validAnn, DestinationAnnotationPosition.prev, false];
+      for (const pos of Object.values(DestinationAnnotationPosition)) {
+        if (this.props.newAnnPos === pos && doesBtnOpenALink(validAnn, pos)) {
+          return [validAnn, pos, false];
+        }
       }
+
       return [validAnn, DestinationAnnotationPosition.next, true];
     }
 
     const ann = this.props.allAnnotationsForScreen.slice(0).reverse().at(-1)!;
-    if (isNextBtnOpensALink(ann)) {
+    if (doesBtnOpenALink(ann, 'next')) {
       return [ann, DestinationAnnotationPosition.prev, false];
     }
+
     return [ann, DestinationAnnotationPosition.next, true];
   }
 
@@ -729,10 +732,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       // check if position is present, if yes create new ann wrt that position
       const currentAnn = getAnnotationByRefId(this.props.toAnnotationId, this.props.allAnnotationsForTour);
 
-      if (isNextBtnOpensALink(currentAnn!)) {
-        this.props.setAlert('Cannot add annotation as this annotaiton contains a link');
-        return;
+      for (const pos of Object.values(DestinationAnnotationPosition)) {
+        if (this.props.newAnnPos === pos && doesBtnOpenALink(currentAnn!, pos)) {
+          this.props.setAlert('Cannot add annotation as this annotaiton contains a link');
+          return;
+        }
       }
+
       conf = addNewAnn(
         this.props.allAnnotationsForTour,
         {

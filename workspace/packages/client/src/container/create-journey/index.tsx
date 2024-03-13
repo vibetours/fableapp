@@ -400,6 +400,14 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         </p>
                         )}
                       </div>
+                      <Tags.OutlineButton
+                        color="red"
+                        onClick={() => {
+                          this.setState((prevState) => ({ journeyData: { ...prevState.journeyData, cta: undefined } }));
+                        }}
+                      >
+                        Delete CTA
+                      </Tags.OutlineButton>
                     </Tags.JourneyInnerCon>
                   )
                 }

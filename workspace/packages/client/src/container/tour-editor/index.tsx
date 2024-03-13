@@ -723,7 +723,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
           </div>
           {this.state.alertMsg && <Alert
-            style={{ position: 'absolute', left: '0', bottom: '0', width: '100%' }}
+            style={{ position: 'absolute', left: '0', bottom: '0', width: '100%', zIndex: 101 }}
             message="Error"
             description={this.state.alertMsg}
             type="warning"
