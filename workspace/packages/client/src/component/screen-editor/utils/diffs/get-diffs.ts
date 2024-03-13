@@ -28,6 +28,11 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
     return diffs;
   }
 
+  if (isFidRepeated(node1.serNode) || isFidRepeated(node2.serNode)) {
+    diffs.shouldReplaceNode = true;
+    return diffs;
+  }
+
   if (node1.serNode.name.toLowerCase() === 'svg') diffs.nodeProps.partOfSvgEl = 1;
 
   const mapOfTree1 = new Map();
@@ -133,6 +138,21 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
 
   return diffs;
 };
+
+function isFidRepeated(tree: SerNode): boolean {
+  const map = new Map();
+
+  for (const child of tree.chldrn) {
+    if (child.attrs['f-id']) {
+      if (map.has(child.attrs['f-id'])) {
+        return true;
+      }
+      map.set(child.attrs['f-id'], true);
+    }
+  }
+
+  return false;
+}
 
 function isSerNodeReordered(tree1: SerNode, tree2: SerNode): boolean {
   let tree1Fids: string[] = [];
