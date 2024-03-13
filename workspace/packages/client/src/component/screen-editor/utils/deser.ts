@@ -236,6 +236,10 @@ export const createHtmlElement = (
     }
   }
 
+  if (node.name.toLowerCase() === 'img') {
+    el.setAttribute('loading', 'eager');
+  }
+
   if (node.name.toLowerCase() === 'img' && shouldAddImgToAssetLoadingPromises) {
     addToAssetLoadingPromises(el as HTMLImageElement);
   }
