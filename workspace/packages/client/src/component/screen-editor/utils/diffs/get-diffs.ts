@@ -143,12 +143,12 @@ function isFidRepeated(tree: SerNode): boolean {
   const map = new Map();
 
   for (const child of tree.chldrn) {
-    if (child.attrs['f-id']) {
-      if (map.has(child.attrs['f-id'])) {
-        return true;
-      }
-      map.set(child.attrs['f-id'], true);
+    const fid = getFidOfSerNode(child);
+    if (map.has(fid)) {
+      return true;
     }
+
+    map.set(fid, true);
   }
 
   return false;

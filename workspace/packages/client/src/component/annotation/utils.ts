@@ -4,7 +4,7 @@ import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 import { AllDimsForAnnotation } from './types';
-import { LeadFormField } from '../annotation-rich-text-editor/nodes/lead-form-node';
+import { LeadFormField, OPTION_INPUT_CLASSNAME } from '../annotation-rich-text-editor/nodes/lead-form-node';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
 import { FIELD_NAME_VARIABLE_REGEX } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
@@ -241,7 +241,7 @@ export const validateInput = (field: HTMLDivElement): {
   fieldName: string,
   fieldValue: string
 } => {
-  const inpulEl = field.getElementsByClassName('LeadForm__optionInput').item(0);
+  const inpulEl = field.getElementsByClassName(OPTION_INPUT_CLASSNAME).item(0);
 
   const validationType = (field.getAttribute(FABLE_LEAD_FORM_VALIDATION_FN) || 'text') as LeadFormField;
   const validationFn = validationFnMap[validationType];

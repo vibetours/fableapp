@@ -17,6 +17,8 @@ import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDAT
 import { removeFieldNameDefinition } from '../utils/lead-form-node-utils';
 import { parseFieldName } from '../../annotation/utils';
 
+export const OPTION_INPUT_CLASSNAME = 'LeadForm__optionInputInAnn';
+
 export type Options = ReadonlyArray<Option>;
 
 export type Option = Readonly<{
@@ -173,7 +175,7 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
       optionCon.appendChild(optionInputWrapper);
       optionCon.appendChild(optionInputValidationWrapper);
 
-      optionInput.classList.add('LeadForm__optionInputInAnn');
+      optionInput.classList.add(OPTION_INPUT_CLASSNAME);
       optionInput.setAttribute('fable-input-uid', option.uid);
       optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, parseFieldName(option.text));
       optionInput.type = 'text';
