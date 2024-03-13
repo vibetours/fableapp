@@ -5,10 +5,15 @@ Write description if applicable
 
 ## Answer the following questions
 
-### Is this a sentry bug?
+### What's the source of the issue?
 
-- no / yes
-- na / [link to sentry issue]()
+- Is it from sentry? [yes, here is the link to sentry issue](...) / no
+- Is it from slack? [yes, here is the link to slack thread](...) / no
+- Does it have whimsical details? [yes, here is the link to slack thread](...) / no
+- Does it have exalidraw details?  [yes, here is the image](...) / no
+- Others
+
+If others write issue details with screenshot / loom if applicable.
 
 ### Sample fable demo link
 
