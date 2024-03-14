@@ -111,9 +111,9 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
   }
   
   .LeadForm__optionInputInAnn::placeholder {
-    font-weight: normal;
-    color: var(--f-ann-font-color);
-    opacity: 0.75;
+    font-weight: normal !important;
+    color: var(--f-ann-font-color) !important;
+    opacity: 0.75 !important;
   }
 `;
 
