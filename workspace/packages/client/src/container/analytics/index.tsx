@@ -11,7 +11,7 @@ import {
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { JourneyData, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
-import { Button, Drawer, MenuProps, Table } from 'antd';
+import { Button, Drawer, MenuProps, Table, Tabs } from 'antd';
 import Dropdown from 'antd/lib/dropdown';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -478,7 +478,8 @@ interface IOwnStateProps {
   funnelData: {
     status: LoadingStatus,
     funnelData: { funnelData: IFunnelDatum[]; title: string }[],
-  }
+  },
+  funnelDataForSelectedModule: IFunnelDatum[] | null,
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
@@ -505,7 +506,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       funnelData: {
         status: LoadingStatus.InProgress,
         funnelData: []
-      }
+      },
+      funnelDataForSelectedModule: null
     };
   }
 
@@ -587,7 +589,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       funnelData: {
         status: LoadingStatus.Loaded,
         funnelData: funnelDataForJourneys
-      }
+      },
+      funnelDataForSelectedModule: funnelDataForJourneys[0].funnelData
     });
 
     const totalViewData: RespTourView = await this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days, (data) => {
@@ -860,26 +863,35 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           </Tags.KpiAndVisitorCon>
           <Tags.FunnelCon>
-            {this.state.funnelData.funnelData.map(funnelData => (
-              <Tags.KPICon style={{ height: '420px' }} key={Math.random()}>
-                <Tags.KPIHead style={{ marginBottom: '20px' }}>
-                  <div className="label">{funnelData.title}</div>
-                </Tags.KPIHead>
-                <Funnel data={funnelData.funnelData} />
-                {this.state.funnelData.status !== LoadingStatus.Loaded && (
-                <div className="loader"><LoadingOutlined /></div>
-                )}
-                <div className="helpcn">
-                  <Button
-                    icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
-                    onClick={() => this.setState({ showHelpFor: 'funnel' })}
-                    type="text"
-                    size="small"
-                  />
-                </div>
-              </Tags.KPICon>
-            ))}
-
+            <Tags.KPICon style={{ height: '420px', justifyContent: 'unset', alignItems: 'unset' }}>
+              <Tabs
+                tabBarGutter={8}
+                style={{ font: 'inherit', padding: '1rem' }}
+                destroyInactiveTabPane
+                items={this.state.funnelData.funnelData.map((funnelData, i) => {
+                  const id = String(i);
+                  return {
+                    label: funnelData.title,
+                    key: id,
+                  };
+                })}
+                onChange={(key) => this.setState((prevState) => ({
+                  funnelDataForSelectedModule: prevState.funnelData.funnelData[parseInt(key, 10)].funnelData
+                }))}
+              />
+              {this.state.funnelDataForSelectedModule && <Funnel data={this.state.funnelDataForSelectedModule} />}
+              {this.state.funnelData.status !== LoadingStatus.Loaded && (
+              <div className="loader"><LoadingOutlined /></div>
+              )}
+              <div className="helpcn">
+                <Button
+                  icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                  onClick={() => this.setState({ showHelpFor: 'funnel' })}
+                  type="text"
+                  size="small"
+                />
+              </div>
+            </Tags.KPICon>
           </Tags.FunnelCon>
         </GTags.BodyCon>
         <Drawer

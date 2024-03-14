@@ -27,7 +27,7 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
   --f-ann-primary-color: ${(p) => p.primaryColor};
   --f-ann-font-color: ${(p) => p.fontColor};
 
-  background: ${(p) => `linear-gradient(45deg, ${p.bgColor} 0%, color-mix(in srgb, ${p.bgColor} 85%, black) 100%)`};
+  background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
   border-radius: 4px;

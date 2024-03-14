@@ -52,6 +52,49 @@ export const FunnelCon = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+
+  .ant-tabs-tab {
+    padding: 0 8px;   
+    border: none !important;
+    background: transparent !important;
+    border-radius: 0px !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+  }
+
+  .ant-tabs-tab.ant-tabs-tab-active  {
+    &:after {
+      z-index: -1;
+      width: 100%;
+      content: " ";
+      background: lightgray;
+      position: absolute;
+      left: 0px;
+      top: 0;
+      height: 100%;
+      border-radius: 8px;
+    }
+  }
+
+  & .ant-tabs .ant-tabs-tab-btn .ant-tabs-tab-icon:not(:last-child) {
+    margin-inline-end: 6px;
+  }
+
+  .ant-tabs-content-holder {
+    border-left: none !important;
+  }
+
+  .ant-tabs-tab-btn[aria-selected=true] {
+    color: #160245 !important;
+  }
+
+  .ant-tabs-tab:hover {
+    color: #160245 !important;
+  }
+
+  .ant-tabs-ink-bar {
+    background: none;
+  }
 `;
 
 export const KPIHead = styled.div`
@@ -174,7 +217,7 @@ export const SvgCon = styled.div`
 
   .w-adj-btn {
     position: absolute;
-    top: -96px;
+    top: -20px;
     right: 26px;
 
     button  {

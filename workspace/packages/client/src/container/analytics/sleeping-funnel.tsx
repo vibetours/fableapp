@@ -255,7 +255,8 @@ export default function Funnel(props: Props): ReactElement {
       <div style={{
         width: '100%',
         height: '100%',
-        overflowX: 'auto'
+        overflowX: 'auto',
+        overflowY: 'hidden'
       }}
       >
         <svg
