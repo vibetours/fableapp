@@ -1,6 +1,0 @@
-{
-    "domain": "dev-vsfoa2y1lhzvmfic.us.auth0.com",
-    "clientId": "KwuQZLT5wlDSzQRfF4DSnmJnxdtOE09V",
-    "audience": "backend",
-    "scope": "openid profile email"
-}

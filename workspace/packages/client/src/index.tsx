@@ -41,12 +41,12 @@ if (document.location.pathname !== '/aboutblank') {
     sentryInit('client-preview', packageJSON.version);
   } else {
     sentryInit('client', packageJSON.version);
+    addChargebeeScript();
+    addReditusTrackingScript();
   }
   initAmplitude();
   removeOldGuides();
   upsertAllUserGuides();
-  addChargebeeScript();
-  addReditusTrackingScript();
 }
 
 const theme = {

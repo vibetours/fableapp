@@ -10,7 +10,7 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { isProdEnv } from '@fable/common/dist/utils';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import Auth0Config from '../../component/auth/auth0-config.json';
+// import Auth0Config from '../../component/auth/auth0-config.json';
 import { iam } from '../../action/creator';
 import HeartLoader from '../../component/loader/heart';
 import { LoginErrorType } from '../../component/auth/login';
@@ -51,8 +51,8 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
     setSec('getAccessToken', async () => {
       const accessToken = await getAccessTokenSilently({
         authorizationParams: {
-          audience: Auth0Config.audience,
-          scope: Auth0Config.scope,
+          audience: process.env.REACT_APP_AUTH0_AUD,
+          scope: 'openid profile email',
         }
       });
       return accessToken;

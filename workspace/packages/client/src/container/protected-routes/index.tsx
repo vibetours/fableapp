@@ -4,7 +4,6 @@ import { Outlet } from 'react-router-dom';
 import { Auth0Provider } from '@auth0/auth0-react';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import Auth0Config from '../../component/auth/auth0-config.json';
 import WithPrincipalCheck from './with-principal-check';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
@@ -35,14 +34,14 @@ class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <Auth0Provider
-        domain={Auth0Config.domain}
-        clientId={Auth0Config.clientId}
+        domain={process.env.REACT_APP_AUTH0_DOMAIN as string}
+        clientId={process.env.REACT_APP_AUTH0_CLIENT_ID as string}
         useRefreshTokens
         cacheLocation="localstorage"
         authorizationParams={{
-          audience: Auth0Config.audience,
+          audience: process.env.REACT_APP_AUTH0_AUD,
           redirect_uri: `${APP_CLIENT_ENDPOINT}/cb/auth`,
-          scope: Auth0Config.scope,
+          scope: 'openid profile email',
         }}
       >
         {
