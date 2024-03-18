@@ -171,6 +171,11 @@ export enum CustomAnnotationPosition {
   LEFT_TOP = 'c-left-top'
 }
 
+export enum CoverAnnotationPositions {
+  LEFT = 'left',
+  RIGHT = 'right',
+}
+
 export enum AnnotationPositions {
   Auto = 'auto',
 }
@@ -246,7 +251,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   zId: string;
   bodyContent: string;
   displayText: string;
-  positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition,
+  positioning: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition | CoverAnnotationPositions,
   buttons: IAnnotationButton[],
   type: 'cover' | 'default',
   size: EAnnotationBoxSize,

@@ -567,6 +567,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
           <Tags.ActionPaneSelect
             defaultValue={isAnnCustomPosition(config.positioning) ? 'custom' : config.positioning}
+            value={config.positioning}
             size="small"
             bordered={false}
             options={getAnnPositioningOptions(config).map(v => ({

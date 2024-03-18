@@ -13,7 +13,8 @@ import {
   CustomAnnDims,
   CustomAnnotationPosition,
   AnnotationSelectionShapeType,
-  AnnotationSelectionEffectType
+  AnnotationSelectionEffectType,
+  CoverAnnotationPositions,
 } from '@fable/common/dist/types';
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
@@ -151,6 +152,7 @@ export function clearAnnotationAllVideoURL(config: IAnnotationConfig): IAnnotati
   newConfig.videoUrlMp4 = '';
   newConfig.videoUrlWebm = '';
   newConfig.videoUrlHls = '';
+  newConfig.positioning = AnnotationPositions.Auto;
   return newConfig;
 }
 
@@ -312,7 +314,7 @@ export function isCoverAnnotation(annId: string): boolean {
 }
 
 export const isAnnCustomPosition = (
-  pos: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition
+  pos: AnnotationPositions | VideoAnnotationPositions | CustomAnnotationPosition | CoverAnnotationPositions
 ): boolean => {
   let isCustomPos = false;
 
@@ -323,20 +325,28 @@ export const isAnnCustomPosition = (
   return isCustomPos;
 };
 
-type PositioningOptions = Array<AnnotationPositions | VideoAnnotationPositions | 'custom'>;
+type PositioningOptions = Array<AnnotationPositions | VideoAnnotationPositions | CoverAnnotationPositions | 'custom'>;
 
 export const getAnnPositioningOptions = (config: IAnnotationConfig)
 : PositioningOptions => {
   const positions: PositioningOptions = [];
 
   if (isVideoAnnotation(config)) {
-    positions.push(...Object.values(VideoAnnotationPositions));
-  } else {
-    positions.push(...Object.values(AnnotationPositions));
+    const videoPositions = Object.values(VideoAnnotationPositions);
+    if (config.type === 'cover') {
+      positions.push(...videoPositions.filter(pos => pos !== VideoAnnotationPositions.Follow));
+    } else {
+      positions.push(...videoPositions, 'custom');
+    }
+    return positions;
   }
 
   if (config.type === 'default') {
-    positions.push('custom');
+    positions.push(...Object.values(AnnotationPositions), 'custom');
+  }
+
+  if (config.type === 'cover') {
+    positions.push(...Object.values(CoverAnnotationPositions), AnnotationPositions.Auto);
   }
 
   return positions;

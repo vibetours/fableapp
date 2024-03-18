@@ -1,6 +1,7 @@
 import {
   AnnotationButtonStyle,
   AnnotationSelectionShapeType,
+  CoverAnnotationPositions,
   IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
@@ -414,7 +415,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     };
   };
 
-  getAutoAnnRenderingData = (w: number, h: number,): {
+  getAutoDefaultAndVideoAnnRenderingData = (w: number, h: number,): {
     l: number,
     t: number,
     dir: AnimEntryDir,
@@ -431,8 +432,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let isUltrawideBox = false;
 
     if (!displayConfig.isInViewPort) return { l, t, dir, isUltrawideBox };
-    if (displayConfig.config.type === 'cover'
-    || (displayConfig.isVideoAnnotation && displayConfig.config.positioning === 'center')) {
+    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === 'center') {
       t = winH / 2 - h / 2;
       l = winW / 2 - w / 2;
       return { l, t, dir, isUltrawideBox };
@@ -532,6 +532,28 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     };
   };
 
+  getCoverAnnRenderingData = (w: number, h: number,): {
+    l: number,
+    t: number,
+  } => {
+    const displayConfig = this.props.annotationDisplayConfig;
+    const winW = displayConfig.windowWidth;
+    const winH = displayConfig.windowHeight;
+    const pos = displayConfig.config.positioning;
+
+    let l = winW / 2 - w / 2;
+    const t = winH / 2 - h / 2;
+
+    if (pos === CoverAnnotationPositions.LEFT) {
+      l = winW / 4 - w / 2;
+    }
+    if (pos === CoverAnnotationPositions.RIGHT) {
+      l = winW / 2 + winW / 4 - w / 2;
+    }
+
+    return { l, t };
+  };
+
   adjustTopLeftOfAnn = (
     l: number,
     t: number,
@@ -592,7 +614,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return { t, l };
   };
 
-  getCustomAnnPosDir = (): AnimEntryDir => {
+  getCustomDefaultAndVideoAnnPosDir = (): AnimEntryDir => {
     const pos = this.props.annotationDisplayConfig.config.positioning;
     const side = pos.split('-')[1];
 
@@ -611,9 +633,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
    *  top -> position
    *  left -> subposition
    */
-  getCustomAnnPosLeft = (w: number, h: number): number => {
+  getCustomDefaultAndVideoAnnPosLeft = (w: number, h: number): number => {
     const pos = this.props.annotationDisplayConfig.config.positioning;
-    const dir = this.getCustomAnnPosDir();
+    const dir = this.getCustomDefaultAndVideoAnnPosDir();
     const elBox = this.props.box;
     const maskBoxPadding = this.props.maskBox
       ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
@@ -633,9 +655,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return 0;
   };
 
-  getCustomAnnPosTop = (w: number, h: number): number => {
+  getCustomDefaultAndVideoAnnPosTop = (w: number, h: number): number => {
     const pos = this.props.annotationDisplayConfig.config.positioning;
-    const dir = this.getCustomAnnPosDir();
+    const dir = this.getCustomDefaultAndVideoAnnPosDir();
     const elBox = this.props.box;
 
     const maskBoxPadding = this.props.maskBox
@@ -721,45 +743,56 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   //  rendered component
   render(): JSX.Element {
     const { w, h } = this.getAnnWidthHeight();
+    const displayConfig = this.props.annotationDisplayConfig;
 
-    let showAutoPositioning = !isAnnCustomPosition(this.props.annotationDisplayConfig.config.positioning);
+    const config = displayConfig.config;
+    const isVideoAnnotation = isVideoAnn(config);
+    const isCoverAnnotation = isCoverAnn(config);
+
     let t: number = 0;
     let l: number = 0;
     let dir: AnimEntryDir = 't';
     let isUltrawideBox: boolean = false;
 
-    if (!showAutoPositioning) {
-      l = this.getCustomAnnPosLeft(w, h);
-      t = this.getCustomAnnPosTop(w, h);
-      dir = this.getCustomAnnPosDir();
+    const annType = isVideoAnn(config) ? 'video' : config.type;
 
-      const adjustedPos = this.adjustTopLeftOfAnn(l, t, w, h, dir);
-      l = adjustedPos.l;
-      t = adjustedPos.t;
+    if (annType === 'default' || annType === 'video') {
+      let showAutoPositioning = !isAnnCustomPosition(this.props.annotationDisplayConfig.config.positioning);
 
-      const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
+      if (!showAutoPositioning) {
+        l = this.getCustomDefaultAndVideoAnnPosLeft(w, h);
+        t = this.getCustomDefaultAndVideoAnnPosTop(w, h);
+        dir = this.getCustomDefaultAndVideoAnnPosDir();
 
-      if (annOutsideOfViewport) { showAutoPositioning = true; }
-    }
-
-    if (showAutoPositioning) {
-      const renderingData = this.getAutoAnnRenderingData(w, h);
-      t = renderingData.t;
-      l = renderingData.l;
-      dir = renderingData.dir;
-      isUltrawideBox = renderingData.isUltrawideBox;
-
-      if (!isUltrawideBox) {
         const adjustedPos = this.adjustTopLeftOfAnn(l, t, w, h, dir);
         l = adjustedPos.l;
         t = adjustedPos.t;
+
+        const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
+
+        if (annOutsideOfViewport) { showAutoPositioning = true; }
+      }
+
+      if (showAutoPositioning) {
+        const renderingData = this.getAutoDefaultAndVideoAnnRenderingData(w, h);
+        t = renderingData.t;
+        l = renderingData.l;
+        dir = renderingData.dir;
+        isUltrawideBox = renderingData.isUltrawideBox;
+
+        if (!isUltrawideBox) {
+          const adjustedPos = this.adjustTopLeftOfAnn(l, t, w, h, dir);
+          l = adjustedPos.l;
+          t = adjustedPos.t;
+        }
       }
     }
 
-    const displayConfig = this.props.annotationDisplayConfig;
-    const config = displayConfig.config;
-    const isVideoAnnotation = isVideoAnn(config);
-    const isCoverAnnotation = isCoverAnn(config);
+    if (annType === 'cover') {
+      const renderingData = this.getCoverAnnRenderingData(w, h);
+      t = renderingData.t;
+      l = renderingData.l;
+    }
 
     const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
     const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy);
