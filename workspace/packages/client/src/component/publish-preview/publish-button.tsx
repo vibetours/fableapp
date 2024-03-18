@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Tooltip } from 'antd';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import Button from '../button';
 import { P_RespTour } from '../../entity-processor';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
   tour: P_RespTour | null;
@@ -24,6 +27,8 @@ export default function PublishButton(props: Props): JSX.Element {
     const res = await props.publishTour(props.tour!);
     props.setIsPublishing(false);
     setButtonTitle('Publish');
+
+    traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
 
     if (!res) {
       props.setIsPublishFailed(true);

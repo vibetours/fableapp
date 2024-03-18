@@ -17,5 +17,7 @@ export enum AMPLITUDE_EVENTS {
     SCREEN_TAB_SELECTED='screen_tab_selected',
     SCREEN_EDITED='screen_edited',
     ANNOTATION_EDITED='annotation_edited',
-    ANNOTATION_APPLY_ALL='annotation_apply_all'
+    ANNOTATION_APPLY_ALL='annotation_apply_all',
+    DEMO_PUBLISHED='demo_published',
+    SIDE_PANEL_TAB_CLICKED='side_panel_tab_clicked'
 }
