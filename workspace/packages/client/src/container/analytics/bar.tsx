@@ -33,7 +33,7 @@ function CustomTooltip(props: any) {
     >
       <code><b>{payload.x}%</b></code> users spent
       <br />
-      <code><b>{payload.y}</b></code> seconds or less
+      <code><b>{Math.ceil(payload.y)}</b></code> seconds or less
     </div>
   );
 }

@@ -1,41 +1,46 @@
-import { DownOutlined, LoadingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, DownOutlined, LoadingOutlined, QuestionCircleOutlined, UndoOutlined } from '@ant-design/icons';
 import {
   ButtonClicks,
   RespConversion,
   RespTourAnnViews,
   RespTourAnnWithPercentile,
+  RespTourLeads,
   RespTourView,
   RespUser,
   TourAnnViewsWithPercentile,
-  TourAnnWithViews
+  TourAnnWithViews,
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { JourneyData, IAnnotationConfig, ITourDataOpts } from '@fable/common/dist/types';
-import { Button, Drawer, MenuProps, Table, Tabs } from 'antd';
+import { ITourDataOpts, JourneyData } from '@fable/common/dist/types';
+import { Button, Divider, Drawer, MenuProps, Table, Tooltip } from 'antd';
 import Dropdown from 'antd/lib/dropdown';
+import { format } from 'd3-format';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import { format } from 'd3-format';
 import { Link } from 'react-router-dom';
 import {
   getAnnViewsForTour,
   getConversionDataForTour,
+  getLeadActivityForTour,
+  getLeadsForTour,
   getStepsVisitedForTour,
   getTotalViewsForTour,
   loadTourAndData
 } from '../../action/creator';
+import { formatTimeFromSeconds } from '../../analytics/utils';
 import * as GTags from '../../common-styled';
+import InteractionsTimeline from '../../component/analytics/interactions-timeline';
+import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import { getAnnotationsPerScreen, getJourneyWithAnnotations } from '../../utils';
+import { AnnInverseLookupIndex, AnnotationPerScreen, JourneyModuleWithAnns, LeadActivityData, LeadActivityWithTime } from '../../types';
+import { annotationInverseLookupIndex, flatten, getAnnotationsPerScreen, getJourneyWithAnnotationsNormalized } from '../../utils';
 import Bar from './bar';
 import Line from './line';
 import Funnel, { IFunnelDatum } from './sleeping-funnel';
 import * as Tags from './styled';
-import { AnnotationPerScreen } from '../../types';
-import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 
 const mapDispatchToProps = (dispatch: any) => ({
   loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, true)),
@@ -57,7 +62,17 @@ const mapDispatchToProps = (dispatch: any) => ({
   getAnnViewsForTour: (
     rid: string,
     days: number,
-  ) => dispatch(getAnnViewsForTour(rid, days))
+  ) => dispatch(getAnnViewsForTour(rid, days)),
+  getLeadsForTour: (
+    rid: string,
+    days: number,
+    onComplete: (data: RespTourLeads) => void
+  ) => dispatch(getLeadsForTour(rid, days)).then(onComplete),
+  getLeadActivityForTour: (
+    rid: string,
+    aid: string,
+    onComplete: (data: LeadActivityData[]) => void
+  ) => dispatch(getLeadActivityForTour(rid, aid)).then(onComplete)
 });
 
 const DEFAULT_FUNNEL_TITLE = 'Funnel drop off across all sessions';
@@ -69,10 +84,11 @@ export interface IAnnotationConfigWithLocation extends IAnnotationConfigWithScre
 interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
-  orderedAnn: IAnnotationConfigWithLocation[];
-  extLinkOpenBtnIds: string[];
+  // orderedAnn: IAnnotationConfigWithLocation[];
   allAnnotationsForTour: AnnotationPerScreen[];
   journey: JourneyData | null;
+  isTourLoaded: boolean;
+  opts: ITourDataOpts | null
 }
 
 const enum LoadingStatus {
@@ -194,75 +210,21 @@ function parseYYYYMMDDtoDate(str: string): Date {
   return new Date(yyyy, mm - 1, dd);
 }
 
-function orderedAnnotationsForTour(
-  tour: P_RespTour | null,
-  flattenedScreens: P_RespScreen[],
-  annGroupedByScreen: Record<string, IAnnotationConfig[]>,
-  opts: ITourDataOpts | null,
-): {
-  orderedAnn: IAnnotationConfigWithLocation[];
-  extLinkOpenBtnIds: string[]
-} {
-  if (!tour) {
-    return {
-      orderedAnn: [],
-      extLinkOpenBtnIds: []
-    };
-  }
+function getTimeSpentOnAllSessions(activityTimeline: ActivityTimeline):number {
+  let totalTimeSpent = 0;
 
-  const flattenedAnnotations: IAnnotationConfigWithLocation[] = [];
-  for (const [screenId, anns] of Object.entries(annGroupedByScreen)) {
-    const screen = flattenedScreens.find(s => s.id === +screenId);
-    for (const ann of anns) {
-      (ann as IAnnotationConfigWithLocation).location = screen ? `/demo/${tour.rid}/${screen!.rid}/${ann.refId}` : '';
-      flattenedAnnotations.push(ann as IAnnotationConfigWithLocation);
+  for (const sid in activityTimeline) {
+    if (activityTimeline[sid]) {
+      const timeSpentInSession = activityTimeline[sid].timeSpentOnSession;
+      totalTimeSpent += timeSpentInSession;
     }
   }
-  let hasAnn = false;
-  const allAnnHm = flattenedAnnotations.reduce((hm, an) => {
-    hasAnn = true;
-    hm[an.refId] = an;
-    return hm;
-  }, {} as Record<string, IAnnotationConfigWithLocation>);
+  return totalTimeSpent;
+}
 
-  if (!hasAnn) {
-    return {
-      orderedAnn: [],
-      extLinkOpenBtnIds: []
-    };
-  }
-
-  const main = opts!.main || '';
-  const mainAnnId: string = main.split('/').at(-1)!;
-  const start = allAnnHm[mainAnnId];
-
-  if (!start) {
-    return {
-      orderedAnn: [],
-      extLinkOpenBtnIds: []
-    };
-  }
-
-  const flatAnn: IAnnotationConfigWithLocation[] = [];
-  let ptr: IAnnotationConfigWithLocation = start;
-  const openLinkBtnId: string[] = [];
-  while (true) {
-    flatAnn.push(ptr);
-    const nextBtn = ptr.buttons.find(btn => btn.type === 'next')!;
-    if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
-      const actionVal = nextBtn.hotspot.actionValue;
-      const nextAnnId = actionVal.split('/').at(-1)!;
-      ptr = allAnnHm[nextAnnId];
-    } else {
-      openLinkBtnId.push(nextBtn.id);
-      break;
-    }
-  }
-
-  return {
-    orderedAnn: flatAnn,
-    extLinkOpenBtnIds: openLinkBtnId,
-  };
+function getFormattedTimeSpentOnAllSessions(activityTimeline: ActivityTimeline): string {
+  const timeSpent = getTimeSpentOnAllSessions(activityTimeline);
+  return formatTimeFromSeconds(timeSpent);
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -270,22 +232,20 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   return {
     allAnnotationsForTour,
+    opts: state.default.remoteTourOpts,
     tour: state.default.currentTour,
     principal: state.default.principal,
     journey: state.default.journey,
-    ...orderedAnnotationsForTour(
-      state.default.currentTour,
-      state.default.allScreens,
-      state.default.remoteAnnotations,
-      state.default.remoteTourOpts
-    )
+    isTourLoaded: state.default.tourLoaded,
   };
 };
 interface IOwnProps {
 }
 
-type IProps = IOwnProps & IAppStateProps & ReturnType<typeof mapDispatchToProps> & WithRouterProps<{
+type IProps = IOwnProps & IAppStateProps & ReturnType<typeof mapDispatchToProps> &
+WithRouterProps<{
   tourId: string;
+  activeKey?: 'leads' | 'funnel-dropoff';
 }>;
 
 const SampleData = {
@@ -457,10 +417,102 @@ const HelpText = {
   }
 };
 
+function groupAndSortSid(payloads: LeadActivityData[]): ActivityTimeline {
+  const sortedPayloads = Object.values(payloads).sort((a, b) => parseInt(a.uts, 10) - parseInt(b.uts, 10));
+  const groupedPayloads: ActivityTimeline = {};
+
+  sortedPayloads.forEach((payload, index) => {
+    if (!(payload.sid in groupedPayloads)) {
+      groupedPayloads[payload.sid] = {
+        leadActivity: [],
+        timeSpentOnSession: 5,
+        maxTimeSpentOnSession: 5
+      };
+      const payloadWithTime: LeadActivityWithTime = {
+        ...payload,
+        timeSpenOnAnnInSec: 5
+      };
+      groupedPayloads[payload.sid].leadActivity.push(payloadWithTime);
+    } else {
+      const currentTime = new Date(+payload.uts * 1000);
+      const prevTime = new Date(+sortedPayloads[index - 1].uts * 1000);
+      const millisecondsDiff = currentTime.getTime() - prevTime.getTime();
+      const timeSpenOnAnnInSec = millisecondsDiff / 1000;
+      const payloadWithTime: LeadActivityWithTime = {
+        ...payload,
+        timeSpenOnAnnInSec
+      };
+      groupedPayloads[payload.sid].leadActivity.push(payloadWithTime);
+      groupedPayloads[payload.sid].timeSpentOnSession += timeSpenOnAnnInSec;
+      if (groupedPayloads[payload.sid].maxTimeSpentOnSession < timeSpenOnAnnInSec) {
+        groupedPayloads[payload.sid].maxTimeSpentOnSession = timeSpenOnAnnInSec;
+      }
+    }
+  });
+
+  const finalGroupPayload: ActivityTimeline = {};
+  Object.keys(groupedPayloads).reverse().forEach(sid => {
+    finalGroupPayload[sid] = {
+      leadActivity: groupedPayloads[sid].leadActivity.reverse(),
+      timeSpentOnSession: groupedPayloads[sid].timeSpentOnSession,
+      maxTimeSpentOnSession: groupedPayloads[sid].maxTimeSpentOnSession
+    };
+  });
+  return finalGroupPayload;
+}
+function getMailFromAid(hashAid: string, leadPerMail: LeadsPerMail): string | null {
+  for (const mail in leadPerMail) {
+    if (mail in leadPerMail) {
+      const lead = leadPerMail[mail].aids.find((aid) => aid === hashAid.substring(1));
+      if (lead !== undefined) {
+        return mail;
+      }
+    }
+  }
+  return null;
+}
+
+function getMaxTimeSpent(activityTimeline: ActivityTimeline): number {
+  let maxSessionTime = 0;
+  for (const sid in activityTimeline) {
+    if (activityTimeline[sid]) {
+      maxSessionTime = Math.max(maxSessionTime, activityTimeline[sid].maxTimeSpentOnSession);
+    }
+  }
+  return maxSessionTime;
+}
+
+interface ActivityDetails {
+  numberOfSessions: number,
+  timeSpentAcrossAllSessions: string,
+  userClickedCTA: boolean
+}
+
+export interface SessionActivity {
+    leadActivity: LeadActivityWithTime[],
+    timeSpentOnSession: number,
+    maxTimeSpentOnSession: number
+  }
+
+interface ActivityTimeline {
+  [sid: string]: SessionActivity
+}
+
+const initialLeadsData = {
+  status: LoadingStatus.InProgress,
+  tourLeads: {},
+  uniqueEmailCount: 0
+};
+
+type ActiveTabKey = 'funnel-dropoff' | 'leads'
+
+interface LeadsPerMail {
+  [email: string]: {idx: number, aids: string[]};
+}
 interface IOwnStateProps {
-  // funnelOrUserpathTab: 'funnel' | 'userpath';
   days: number;
   showHelpFor: keyof typeof HelpText | '';
+  extLinkOpenBtnIds: string[];
   countVisitors: {
     status: LoadingStatus,
     data: RespTourView | null,
@@ -477,16 +529,29 @@ interface IOwnStateProps {
   },
   funnelData: {
     status: LoadingStatus,
-    funnelData: { funnelData: IFunnelDatum[]; title: string }[],
+    funnelData: Array<IFunnelDatum[]>,
+    selectedTab: number,
+    tabs: string[],
   },
-  funnelDataForSelectedModule: IFunnelDatum[] | null,
+  leadsData: {
+    status: LoadingStatus,
+    tourLeads: LeadsPerMail,
+    uniqueEmailCount: number,
+  },
+  annotationLookupMap: AnnInverseLookupIndex;
+  activityTimeline: ActivityTimeline | null,
+  activityTimelineLoaded: LoadingStatus,
+  activityTimelines: Record<string, ActivityTimeline>,
+  activeKey: ActiveTabKey,
+  currentEmail: string | null,
+  activityDetails: ActivityDetails,
+  ctaClickedForMail: Record<string, boolean>
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
     this.state = {
-      // funnelOrUserpathTab: 'funnel',
       showHelpFor: '',
       days: 30,
       countVisitors: {
@@ -498,6 +563,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         status: LoadingStatus.InProgress,
         data: 0
       },
+      extLinkOpenBtnIds: [],
       sessionDuration: {
         status: LoadingStatus.InProgress,
         pVals: [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -505,26 +571,163 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       },
       funnelData: {
         status: LoadingStatus.InProgress,
-        funnelData: []
+        funnelData: [],
+        selectedTab: 0,
+        tabs: [],
       },
-      funnelDataForSelectedModule: null
+      annotationLookupMap: {},
+      leadsData: initialLeadsData,
+      activityTimeline: null,
+      activityTimelineLoaded: LoadingStatus.NotStarted,
+      activityTimelines: {},
+      activeKey: 'funnel-dropoff',
+      currentEmail: null,
+      activityDetails: {
+        numberOfSessions: 0,
+        timeSpentAcrossAllSessions: '',
+        userClickedCTA: false
+      },
+      ctaClickedForMail: {}
     };
   }
 
   componentDidMount(): void {
     this.props.loadTourWithData(this.props.match.params.tourId);
+    this.handleInitialActiveKey();
   }
 
-  componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
+  async componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): Promise<void> {
     if (this.props.tour && this.props.journey && this.state.days !== prevState.days) {
       this.initAnalytics();
     }
-    if (this.props.tour && this.props.journey && this.props.orderedAnn.length !== prevProps.orderedAnn.length) {
+    if (this.props.journey && this.props.isTourLoaded !== prevProps.isTourLoaded && this.props.isTourLoaded) {
       this.initAnalytics();
+    }
+
+    if ((this.props.isTourLoaded && prevProps.isTourLoaded !== this.props.isTourLoaded)
+      || this.state.days !== prevState.days) {
+      this.setState({
+        leadsData: initialLeadsData,
+        activityTimeline: null,
+        activityTimelineLoaded: LoadingStatus.NotStarted,
+        activityTimelines: {},
+        currentEmail: null
+      });
+      this.props.getLeadsForTour(this.props.match.params.tourId, this.state.days, (data) => {
+        const leadPerMail : LeadsPerMail = data.tourLeads.reduce((accumulator, currentLead, index) => {
+          if (currentLead.email in accumulator) (accumulator as any)[currentLead.email].aids.push(currentLead.aid);
+          else (accumulator as any)[currentLead.email] = { i: index, aids: [currentLead.aid] };
+          return accumulator;
+        }, {});
+
+        let currentEmail : null | string = null;
+        if (this.props.location.hash) {
+          currentEmail = getMailFromAid(this.props.location.hash, leadPerMail);
+        } else if (data.tourLeads.length !== 0) {
+          currentEmail = data.tourLeads[0].email;
+        }
+        this.setState((prevS) => ({
+          leadsData: {
+            status: LoadingStatus.Loaded,
+            tourLeads: leadPerMail,
+            uniqueEmailCount: data.uniqueEmailCount,
+          },
+          activityTimelineLoaded: data.tourLeads.length === 0 ? LoadingStatus.Loaded : LoadingStatus.NotStarted,
+          currentEmail
+        }));
+      });
+    }
+
+    if (this.state.currentEmail !== prevState.currentEmail
+      && this.state.currentEmail !== null) {
+      if (this.state.activityTimelines[this.state.currentEmail]) {
+        this.setState(prevS => {
+          const activityDetails: ActivityDetails = {
+            numberOfSessions: Object.keys(prevS.activityTimelines[prevS.currentEmail!]).length,
+            timeSpentAcrossAllSessions:
+              getFormattedTimeSpentOnAllSessions(prevS.activityTimelines[prevS.currentEmail!]),
+            userClickedCTA: prevS.ctaClickedForMail[prevS.currentEmail!]
+          };
+          return {
+            activityTimeline: prevS.activityTimelines[prevS.currentEmail!],
+            activityTimelineLoaded: LoadingStatus.Loaded,
+            activityDetails
+          };
+        });
+      } else {
+        this.setState({
+          activityTimeline: null,
+          activityTimelineLoaded: LoadingStatus.InProgress
+        });
+
+        let emailActivity: LeadActivityData[] = [];
+        let numberOfEmailActivityAdded = 0;
+
+        const buttonIdMap : Record<string, boolean> = this.state.extLinkOpenBtnIds.reduce((map, buttonId) => {
+          (map as any)[buttonId] = true;
+          return map;
+        }, {} as Record<string, boolean>);
+        let ctaButtonClicked = false;
+        this.state.leadsData.tourLeads[this.state.currentEmail].aids.forEach((aid) => {
+          this.props.getLeadActivityForTour(this.props.match.params.tourId, aid, (data) => {
+            emailActivity = [...emailActivity, ...data];
+            numberOfEmailActivityAdded++;
+            ctaButtonClicked = ctaButtonClicked || data.some(activity => buttonIdMap[activity.payloadButtonId]);
+
+            if (numberOfEmailActivityAdded === this.state.leadsData.tourLeads[this.state.currentEmail!].aids.length) {
+              const allTimelineForMail = groupAndSortSid(emailActivity);
+              this.setState(prevS => {
+                const activityDetails: ActivityDetails = {
+                  numberOfSessions: Object.keys(allTimelineForMail).length,
+                  timeSpentAcrossAllSessions:
+                    getFormattedTimeSpentOnAllSessions(allTimelineForMail),
+                  userClickedCTA: ctaButtonClicked
+                };
+
+                return {
+                  activityTimeline: allTimelineForMail,
+                  activityTimelineLoaded: LoadingStatus.Loaded,
+                  activityTimelines: {
+                    ...prevS.activityTimelines,
+                    [prevS.currentEmail!]: allTimelineForMail
+                  },
+                  activityDetails,
+                  ctaClickedForMail: {
+                    ...prevS.ctaClickedForMail,
+                    [prevS.currentEmail!]: ctaButtonClicked
+                  }
+                };
+              });
+            }
+          });
+        });
+      }
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getBtnIdsLinkedWithConversion = (journeysWithAnns: JourneyModuleWithAnns[]): string[] => {
+    const btnIds: string[] = [];
+
+    for (const ann of journeysWithAnns[0].annsInOrder) {
+      for (const btn of ann.buttons) {
+        if ((btn.type === 'custom' || btn.type === 'next') && btn.hotspot && btn.hotspot.actionType === 'open') {
+          btnIds.push(btn.id);
+        }
+      }
+    }
+
+    return btnIds;
+  };
+
   initAnalytics = async (): Promise<void> => {
+    const journeysWithAnns = getJourneyWithAnnotationsNormalized(
+      this.props.allAnnotationsForTour,
+      this.props.journey!.flows,
+      this.props.tour!,
+      this.props.opts!
+    );
+
     this.setState(state => ({
       countVisitors: {
         data: state.countVisitors.data,
@@ -542,8 +745,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       },
       funnelData: {
         status: LoadingStatus.InProgress,
-        funnelData: state.funnelData.funnelData
-      }
+        funnelData: state.funnelData.funnelData,
+        selectedTab: 0,
+        tabs: journeysWithAnns.map((item, i) => (i ? item.header1 : 'All'))
+      },
+      annotationLookupMap: annotationInverseLookupIndex(journeysWithAnns),
+      extLinkOpenBtnIds: this.getBtnIdsLinkedWithConversion(journeysWithAnns),
     }));
 
     this.props.getStepsVisitedForTour(this.props.match.params.tourId, this.state.days, (data) => {
@@ -558,40 +765,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     });
 
     const annViewsForTour = await this.props.getAnnViewsForTour(this.props.match.params.tourId, this.state.days);
-    const journeysWithAnns = getJourneyWithAnnotations(this.props.allAnnotationsForTour, this.props.journey!.flows, this.props.tour!);
-    const funnelDataForJourneys: { funnelData: IFunnelDatum[]; title: string }[] = [];
+    const annotationViews = getEachAnnotationTotalViews(annViewsForTour, journeysWithAnns[this.state.funnelData.selectedTab].annsInOrder);
+    const funnelDataPerModule = journeysWithAnns.map(item => getFunnelData(annotationViews, item.annsInOrder));
 
-    if (journeysWithAnns.length) {
-      const conjoinedDataForAllJourneys: IFunnelDatum[] = [];
-
-      for (const journey of journeysWithAnns) {
-        const annotationViews = getEachAnnotationTotalViews(annViewsForTour, journey.annsInOrder);
-        const funnelData = getFunnelData(annotationViews, journey.annsInOrder);
-        funnelDataForJourneys.push({ funnelData, title: journey.header1 });
-      }
-
-      let stepCounter = 1;
-      for (const funnelData of funnelDataForJourneys) {
-        for (const step of funnelData.funnelData) {
-          conjoinedDataForAllJourneys.push({ ...step, step: stepCounter });
-          stepCounter++;
-        }
-      }
-
-      funnelDataForJourneys.unshift({ funnelData: conjoinedDataForAllJourneys, title: 'Master data' });
-    } else {
-      const annotationViews = getEachAnnotationTotalViews(annViewsForTour, this.props.orderedAnn);
-      const funnelData = getFunnelData(annotationViews, this.props.orderedAnn);
-      funnelDataForJourneys.push({ funnelData, title: DEFAULT_FUNNEL_TITLE });
-    }
-
-    this.setState({
+    this.setState(state => ({
       funnelData: {
+        ...state.funnelData,
         status: LoadingStatus.Loaded,
-        funnelData: funnelDataForJourneys
+        funnelData: funnelDataPerModule,
       },
-      funnelDataForSelectedModule: funnelDataForJourneys[0].funnelData
-    });
+    }));
 
     const totalViewData: RespTourView = await this.props.getTotalViewsForTour(this.props.match.params.tourId, this.state.days, (data) => {
       const rawDist = data.totalVisitorsByYmd || [];
@@ -622,14 +805,18 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       });
       return data;
     });
+
     this.props.getConversionDataForTour(this.props.match.params.tourId, this.state.days, data => {
-      const conversionPercentage = getConversionPercentage(data, this.props.extLinkOpenBtnIds, totalViewData.totalViews?.viewsAll ?? 0);
-      this.setState({
+      this.setState(state => ({
         conversion: {
           status: LoadingStatus.Loaded,
-          data: conversionPercentage
+          data: getConversionPercentage(
+            data,
+            state.extLinkOpenBtnIds,
+            totalViewData.totalViews?.viewsAll ?? 0
+          )
         }
-      });
+      }));
     });
   };
 
@@ -651,6 +838,25 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       key: '90',
     },
   ];
+
+  handleInitialActiveKey(): void {
+    const propsActiveKey = this.props.match.params.activeKey;
+    if (propsActiveKey) {
+      this.setState({ activeKey: propsActiveKey });
+    } else {
+      window.history.replaceState({}, '', `${this.props.location.pathname}/funnel-dropoff`);
+    }
+  }
+
+  handleActiveKey(activeKey: ActiveTabKey): void {
+    this.setState({ activeKey });
+    const pathNameSegment = this.props.location.pathname.split('/');
+    if (pathNameSegment[pathNameSegment.length - 1] === 'leads'
+    || pathNameSegment[pathNameSegment.length - 1] === 'funnel-dropoff') { pathNameSegment.pop(); }
+    const newPathName = pathNameSegment.join('/');
+    const newUrl = `${newPathName}/${activeKey}`;
+    window.history.replaceState({}, '', newUrl);
+  }
 
   render(): ReactElement {
     return (
@@ -754,7 +960,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <div className="label">Total Sessions</div>
                   </Tags.KPIHead>
                   {this.state.countVisitors.status !== LoadingStatus.Loaded && (
-                  <div className="loader"><LoadingOutlined /></div>
+                    <div className="loader"><LoadingOutlined /></div>
                   )}
                   <div className="helpcn">
                     <Button
@@ -771,7 +977,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <div className="label">Unique Visitors</div>
                   </Tags.KPIHead>
                   {this.state.countVisitors.status !== LoadingStatus.Loaded && (
-                  <div className="loader"><LoadingOutlined /></div>
+                    <div className="loader"><LoadingOutlined /></div>
                   )}
                   <div className="helpcn">
                     <Button
@@ -782,13 +988,22 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     />
                   </div>
                 </Tags.KPICon>
+                <Tags.KPICon style={{ border: '2px dashed #160245', flex: '1 1 auto' }}>
+                  <Tags.KPIHead>
+                    <div className="val">{this.state.leadsData.uniqueEmailCount ?? 0}</div>
+                    <div className="label">Leads Captured</div>
+                  </Tags.KPIHead>
+                  {this.state.leadsData.status !== LoadingStatus.Loaded && (
+                    <div className="loader"><LoadingOutlined /></div>
+                  )}
+                </Tags.KPICon>
                 <Tags.KPICon style={{ flex: '1 1 auto' }}>
                   <Tags.KPIHead>
                     <div className="val">{this.state.conversion.data}%</div>
                     <div className="label">Conversion</div>
                   </Tags.KPIHead>
                   {this.state.conversion.status !== LoadingStatus.Loaded && (
-                  <div className="loader"><LoadingOutlined /></div>
+                    <div className="loader"><LoadingOutlined /></div>
                   )}
                   <div className="helpcn">
                     <Button
@@ -820,7 +1035,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <Line data={this.state.countVisitors.viewDist} />
                   </div>
                   {this.state.countVisitors.status !== LoadingStatus.Loaded && (
-                  <div className="loader"><LoadingOutlined /></div>
+                    <div className="loader"><LoadingOutlined /></div>
                   )}
                 </Tags.KPICon>
               </div>
@@ -862,37 +1077,175 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               </Tags.KPICon>
             </div>
           </Tags.KpiAndVisitorCon>
-          <Tags.FunnelCon>
-            <Tags.KPICon style={{ height: '420px', justifyContent: 'unset', alignItems: 'unset' }}>
-              <Tabs
-                tabBarGutter={8}
-                style={{ font: 'inherit', padding: '1rem' }}
-                destroyInactiveTabPane
-                items={this.state.funnelData.funnelData.map((funnelData, i) => {
-                  const id = String(i);
-                  return {
-                    label: funnelData.title,
-                    key: id,
-                  };
-                })}
-                onChange={(key) => this.setState((prevState) => ({
-                  funnelDataForSelectedModule: prevState.funnelData.funnelData[parseInt(key, 10)].funnelData
-                }))}
-              />
-              {this.state.funnelDataForSelectedModule && <Funnel data={this.state.funnelDataForSelectedModule} />}
-              {this.state.funnelData.status !== LoadingStatus.Loaded && (
-              <div className="loader"><LoadingOutlined /></div>
-              )}
-              <div className="helpcn">
-                <Button
-                  icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
-                  onClick={() => this.setState({ showHelpFor: 'funnel' })}
-                  type="text"
-                  size="small"
-                />
-              </div>
-            </Tags.KPICon>
-          </Tags.FunnelCon>
+          <div style={{ margin: '0 10%' }}>
+            <Tags.AnalyticsTabs
+              activeKey={this.state.activeKey}
+              onChange={(activeKey) => {
+                this.handleActiveKey(activeKey as ActiveTabKey);
+              }}
+              destroyInactiveTabPane
+              items={[
+                {
+                  key: 'funnel-dropoff',
+                  label: <>Funnel Drop off</>,
+                  children: (
+                    <Tags.FunnelCon>
+                      <Tags.KPICon style={{ height: '420px', justifyContent: 'unset', alignItems: 'unset' }} className="waldo">
+                        <Tags.TabsWithVisibilityCtrl
+                          tabBarGutter={8}
+                          style={{ font: 'inherit', padding: '1rem' }}
+                          destroyInactiveTabPane
+                          type="card"
+                          hidden={this.state.funnelData.tabs.length <= 1}
+                          size="small"
+                          items={this.state.funnelData.tabs.map((name, i) => ({
+                            key: String(i),
+                            label: name,
+                            children: (
+                              <div style={{
+                                height: '360px'
+                              }}
+                              >
+                                <Funnel data={this.state.funnelData.funnelData[i] || []} />
+                              </div>
+                            )
+                          }))}
+                          onChange={(key) => this.setState(state => ({
+                            funnelData: {
+                              ...state.funnelData,
+                              selectedTab: +key,
+                            }
+                          }))}
+                        />
+                        {this.state.funnelData.status !== LoadingStatus.Loaded && (
+                        <div className="loader"><LoadingOutlined /></div>
+                        )}
+                        <div className="helpcn">
+                          <Button
+                            icon={<QuestionCircleOutlined style={{ color: '#747474', fontSize: '0.85rem' }} />}
+                            onClick={() => this.setState({ showHelpFor: 'funnel' })}
+                            type="text"
+                            size="small"
+                          />
+                        </div>
+                      </Tags.KPICon>
+
+                    </Tags.FunnelCon>
+                  )
+                },
+                {
+                  key: 'leads',
+                  label: <>Lead Activity</>,
+                  children: (
+                    <div style={{ minHeight: '50vh' }}>
+                      <p style={{
+                        fontSize: '0.85rem',
+                        padding: '0 1.5rem',
+                        lineHeight: '1rem',
+                        color: '#757575',
+                        margin: '0rem 0rem 1.5rem 0rem'
+                      }}
+                      >
+                        Lead activity outlines how a lead interacted with the demo.
+                        In the left hand side of the following section, all the emailIds are listed.
+                        On the right hand side the details of demo interaction is outlined.
+                      </p>
+                      {this.state.leadsData.status !== LoadingStatus.Loaded ? (
+                        <Tags.LoaderCon><LoadingOutlined /></Tags.LoaderCon>
+                      )
+                        : (
+                          <div>
+                            <Tags.UserDataCon>
+                              <Tags.UserDataTxt className="title">Email ID</Tags.UserDataTxt>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Tags.UserDataTxt className="title">Activity</Tags.UserDataTxt>
+                              </div>
+                            </Tags.UserDataCon>
+                            <Divider style={{ marginBottom: '5px', marginTop: '0px' }} />
+                            <Tags.UserDataCon>
+                              <div style={{ flex: '1 0 auto' }}>
+                                {Object.keys(this.state.leadsData.tourLeads).map((lead) => (
+                                  <Tags.UserDataMailCon
+                                    key={lead}
+                                    className={lead === this.state.currentEmail ? 'active' : ''}
+                                    onClick={() => {
+                                      this.setState((prevS) => ({ currentEmail: lead }));
+                                      window.history.pushState(null, '', `#${this.state.leadsData.tourLeads[lead].aids[0]}`);
+                                    }}
+                                  >
+                                    <Tags.UserDataTxt
+                                      className={
+                                        lead === this.state.currentEmail ? ' subtext active' : 'subtext'
+                                      }
+                                    >
+                                      {lead}
+                                    </Tags.UserDataTxt>
+                                  </Tags.UserDataMailCon>
+                                ))}
+                              </div>
+                              <div style={{ display: 'flex', gap: '10px' }}>
+                                <Tags.UserDataTimeline
+                                  style={{
+                                    flex: '1 0 auto',
+                                    borderRadius: '16px',
+                                    minHeight: this.state.activityTimelineLoaded !== LoadingStatus.Loaded ? '80vh' : undefined
+                                  }}
+                                >
+                                  {
+                                  this.state.activityTimelineLoaded === LoadingStatus.Loaded
+                                    ? (
+                                      <div>
+                                        {
+                                        this.state.activityTimeline && (
+                                        <div className="timelinecon">
+                                          {Object.keys(this.state.activityTimeline!).map(sid => (
+                                            <InteractionsTimeline
+                                              key={sid}
+                                              timelineData={this.state.activityTimeline![sid]}
+                                              annotationLookupMap={this.state.annotationLookupMap}
+                                              maxTimeSpentOnSession={getMaxTimeSpent(this.state.activityTimeline!)}
+                                            />
+                                          ))}
+                                        </div>
+                                        )
+                                        }
+                                      </div>
+                                    )
+                                    : (<LoadingOutlined />)
+                                }
+                                </Tags.UserDataTimeline>
+                                {this.state.activityTimeline && (
+                                <Tags.UserMetaInf>
+                                  <p>
+                                    <span>Number of sessions</span>
+                                    <Tags.ActivityInfo>
+                                      <UndoOutlined />&nbsp;{this.state.activityDetails.numberOfSessions}
+                                    </Tags.ActivityInfo>
+                                  </p>
+                                  <p>
+                                    <span>Time spent across all sessions</span>
+                                    <Tags.ActivityInfo><ClockCircleOutlined />&nbsp;
+                                      {this.state.activityDetails.timeSpentAcrossAllSessions}
+                                    </Tags.ActivityInfo>
+                                  </p>
+                                  <p>
+                                    <span>User has clicked CTA</span>
+                                    <Tags.ActivityInfo>
+                                      {this.state.activityDetails.userClickedCTA ? 'Yes' : 'No'}
+                                    </Tags.ActivityInfo>
+                                  </p>
+                                </Tags.UserMetaInf>
+                                )}
+                              </div>
+                            </Tags.UserDataCon>
+                          </div>
+                        )}
+                    </div>
+                  )
+                }
+              ]}
+            />
+          </div>
         </GTags.BodyCon>
         <Drawer
           title={HelpText[this.state.showHelpFor].title}

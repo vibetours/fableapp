@@ -133,6 +133,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/demo/:tourId" element={<TourEditor title="Fable - Demo editor" />} />
               <Route path="/demo/:tourId/:screenId" element={<TourEditor title="Fable - Demo editor" />} />
               <Route path="/a/demo/:tourId" element={<Analytics />} />
+              <Route path="/a/demo/:tourId/:activeKey" element={<Analytics />} />
               <Route
                 path="/tour/:tourId/:screenId/:annotationId"
                 element={<TourEditor title="Fable - Demo editor" />}

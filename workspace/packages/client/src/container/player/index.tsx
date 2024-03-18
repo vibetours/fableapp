@@ -171,9 +171,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     const searchParams = new URLSearchParams(this.props.location.search);
-    const userEmail: string = searchParams.get('ftm_uid') || '';
-    const lastName: string = searchParams.get('ftm_lastname') || '';
-    const org: string = searchParams.get('ftm_org') || '';
+    const userEmail: string = searchParams.get('email') || '';
+    const firstName: string = searchParams.get('first_name') || '';
+    const lastName: string = searchParams.get('last_name') || '';
+    const org: string = searchParams.get('org') || '';
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
         ...((window as FWin).__fable_global_settings__ || {}),
@@ -185,6 +186,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       (window as FWin).__fable_global_user__ = {
         ...((window as FWin).__fable_global_user__ || {}),
         userEmail,
+        firstName,
         lastName,
         org
       };

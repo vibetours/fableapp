@@ -5,6 +5,7 @@ import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
+  isPhony?: boolean;
   annsInOrder: IAnnotationConfigWithLocation[]
 }
 
@@ -103,14 +104,14 @@ export const enum IdxEditItem {
 }
 
 export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;
-export type AnnotationPerScreen = {screen: P_RespScreen, annotations: IAnnotationConfig[]};
+export type AnnotationPerScreen = { screen: P_RespScreen, annotations: IAnnotationConfig[] };
 
 export type TourDataChangeFn = (
-    changeType: 'annotation-and-theme' | 'screen',
-    screenId: number | null,
-    changeObj: {config: IAnnotationConfig, opts?: ITourDataOpts | null, actionType: 'upsert' | 'delete'},
-    tx?: Tx,
-    isDefault?: boolean,
+  changeType: 'annotation-and-theme' | 'screen',
+  screenId: number | null,
+  changeObj: { config: IAnnotationConfig, opts?: ITourDataOpts | null, actionType: 'upsert' | 'delete' },
+  tx?: Tx,
+  isDefault?: boolean,
 ) => void;
 
 export type onAnnCreateOrChangeFn = (
@@ -163,6 +164,7 @@ export interface GlobalSettings {
 export interface GlobalUser {
   userEmail: string;
   lastName: string;
+  firstName: string;
   org: string
 }
 
@@ -220,21 +222,21 @@ export interface CommonPayloadProps {
   demoUrl: string
 }
 
-export interface Payload_DemoLoadingStarted extends CommonPayloadProps{}
-export interface Payload_DemoLoadingFinished{
-  annConfigs:IAnnotationConfigWithScreenId[] | null,
+export interface Payload_DemoLoadingStarted extends CommonPayloadProps { }
+export interface Payload_DemoLoadingFinished {
+  annConfigs: IAnnotationConfigWithScreenId[] | null,
   journeyData: JourneyModuleWithAnns[] | null
 }
-export interface Payload_JourneySwitch{
+export interface Payload_JourneySwitch {
   fromJourney: string | null;
   currentJourney: string;
 }
-export interface Payload_Navigation{
+export interface Payload_Navigation {
   currentAnnotationRefId: string;
   journeyIndex: number;
 }
 
-export interface Payload_NavToAnnotation{
+export interface Payload_NavToAnnotation {
   main?: string
   action?: 'prev' | 'next'
 }
@@ -265,3 +267,24 @@ export type TourApplyAllChangeFn = (
 ) => void;
 
 export const SCREEN_EDITOR_ID = 'fable-ann-editorial-modal';
+
+export interface LeadActivityData {
+  aid: string;
+  sid: string;
+  uts: string;
+  payloadAnnId:string;
+  payloadButtonId: string;
+}
+
+export interface LeadActivityWithTime extends LeadActivityData {
+  timeSpenOnAnnInSec: number
+}
+
+export type AnnInverseLookupIndex = Record<string, {
+    journeyName: string,
+    isJourneyPhony: boolean;
+    stepNo: number,
+    ann: IAnnotationConfigWithLocation,
+    flowIndex: number,
+    flowLength: number,
+  }>;

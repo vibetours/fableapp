@@ -97,3 +97,15 @@ export const flattenLogEvent = (logs: EventLog): FlattendEventLog => {
   }, {} as Record<string, string | number>);
   return { ...rest, ...flattenedPayload };
 };
+
+export function formatTimeFromSeconds(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes === 0) {
+    return `${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`;
+  } if (remainingSeconds === 0) {
+    return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`;
+  }
+  return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${remainingSeconds} ${remainingSeconds === 1 ? 'Sec' : 'Secs'}`;
+}

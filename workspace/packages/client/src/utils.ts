@@ -4,7 +4,8 @@ import {
   ITourEntityHotspot,
   SerNode,
   JourneyFlow,
-  IAnnotationButtonType
+  IAnnotationButtonType,
+  ITourDataOpts
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
@@ -18,7 +19,8 @@ import {
   ExtMsg,
   Timeline,
   JourneyModuleWithAnns,
-  queryData
+  queryData,
+  AnnInverseLookupIndex
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour } from './entity-processor';
@@ -486,13 +488,78 @@ const getFlatAnns = (
   return flatAnns;
 };
 
+// Irrespective of journey's presence this function always returns standard a data format
+// The first element always contains the full dataset across all journey. If journey is not present
+// then there is only one element in the array
+export function getJourneyWithAnnotationsNormalized(
+  allAnns: AnnotationPerScreen[],
+  journeyModules: JourneyFlow[],
+  tour: P_RespTour,
+  opts: ITourDataOpts
+): JourneyModuleWithAnns[] {
+  const annsOrderedByJourney = getJourneyWithAnnotations(allAnns, journeyModules, tour);
+  if (!annsOrderedByJourney.length) {
+    // journey not present
+    const main = opts.main || '';
+    const phoney: JourneyModuleWithAnns = {
+      isPhony: true,
+      header1: '',
+      header2: '',
+      main,
+      annsInOrder: main ? getOrderedAnnotaionFromMain(allAnns, main) : []
+    };
+    return [phoney];
+  }
+  const phony = {
+    isPhony: true,
+    header1: '',
+    header2: '',
+    main: '',
+    annsInOrder: annsOrderedByJourney.reduce((flatArr, journeysWithAnns) => {
+      flatArr.push(...journeysWithAnns.annsInOrder);
+      return flatArr;
+    }, [] as IAnnotationConfigWithLocation[])
+  };
+  annsOrderedByJourney.unshift(phony);
+  return annsOrderedByJourney;
+}
+
+export function annotationInverseLookupIndex(orderedAnnsWithJourney: JourneyModuleWithAnns[]): AnnInverseLookupIndex {
+  const hm: AnnInverseLookupIndex = {};
+
+  // the first element of the joureny is phoney it contains all the annotations irrespective of journey
+  // is present or not.
+  // hence we check if the journey is present (len > 1) we omit the first element as it contains information
+  // that in turn is present in the subsequent journeys
+  const unitJourneys = orderedAnnsWithJourney.length === 1 ? orderedAnnsWithJourney : orderedAnnsWithJourney.slice(1);
+
+  let flowIndex = 0;
+  for (const flow of unitJourneys) {
+    let stepNo = 0;
+    for (const ann of flow.annsInOrder) {
+      hm[ann.refId] = {
+        journeyName: flow.header1,
+        flowIndex,
+        flowLength: unitJourneys.length,
+        isJourneyPhony: !!flow.isPhony,
+        stepNo: ++stepNo,
+        ann
+      };
+    }
+    flowIndex++;
+  }
+
+  return hm;
+}
+
 export const getJourneyWithAnnotations = (
   allAnns: AnnotationPerScreen[],
   journeyModules: JourneyFlow[],
   tour?: P_RespTour,
 ) : JourneyModuleWithAnns[] => {
-  const journeyData : JourneyModuleWithAnns[] = [];
+  if (!journeyModules.length) return [];
 
+  const journeyData : JourneyModuleWithAnns[] = [];
   const flatAnns = getFlatAnns(allAnns, tour);
 
   const firstAnns: IAnnotationConfigWithLocation[] = [];
@@ -517,7 +584,7 @@ export const getJourneyWithAnnotations = (
 export const getOrderedAnnotaionFromMain = (
   allAnns: AnnotationPerScreen[],
   main: string
-) : IAnnotationConfigWithScreenId[] => {
+) : IAnnotationConfigWithLocation[] => {
   const flatAnns = getFlatAnns(allAnns);
   const firstAnnId = main.split('/')[1];
   const firstAnn = flatAnns[firstAnnId];

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-02-26 10:39:42.
+// Generated using typescript-generator version 2.35.1025 on 2024-03-11 17:17:19.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -79,6 +79,11 @@ export interface TourAnnWithViews {
     p95: number;
 }
 
+export interface TourLeads {
+    aid: string;
+    email: string;
+}
+
 export interface TourManifest {
     version: number;
     name: string;
@@ -111,6 +116,12 @@ export interface ReqDuplicateTour {
 export interface ReqEntityAssetAssn {
     entityRid: string;
     entityType: EntityType;
+}
+
+export interface ReqLeadActivityDataPost {
+    tourId: number;
+    aid: string;
+    data: string;
 }
 
 export interface ReqMediaProcessing {
@@ -214,6 +225,10 @@ export interface RespHealth extends ResponseBase {
     status: string;
 }
 
+export interface RespLeadActivityUrl {
+    leadActivityUrl: string;
+}
+
 export interface RespMediaProcessingInfo extends ResponseBase {
     jobId: number;
     originalFilePath: string;
@@ -232,6 +247,7 @@ export interface RespOrg extends ResponseBase {
 export interface RespProxyAsset extends ResponseBase {
     proxyUri: string;
     content?: string;
+    hasErr?: boolean;
 }
 
 export interface RespScreen extends ResponseBase {
@@ -276,6 +292,11 @@ export interface RespTourAnnViews {
 
 export interface RespTourAnnWithPercentile {
     tourAnnInfo: TourAnnViewsWithPercentile[];
+}
+
+export interface RespTourLeads {
+    tourLeads: TourLeads[];
+    uniqueEmailCount: number;
 }
 
 export interface RespTourView {
@@ -327,6 +348,12 @@ export const enum EntityType {
     Tour = 1,
 }
 
+export const enum EntryDurationType {
+    CURRENT = "CURRENT",
+    DAILY = "DAILY",
+    LIFETIME = "LIFETIME",
+}
+
 export const enum JobProcessingStatus {
     Failed = 0,
     Touched = 1,
@@ -338,6 +365,17 @@ export const enum JobType {
     TRANSCODE_VIDEO = "TRANSCODE_VIDEO",
     RESIZE_IMG = "RESIZE_IMG",
     DELETE_ASSET = "DELETE_ASSET",
+    REFRESH_CRAWLER = "REFRESH_CRAWLER",
+    REFRESH_CRAWLER_FOR_ANN_USER_ASSIGN = "REFRESH_CRAWLER_FOR_ANN_USER_ASSIGN",
+    REFRESH_TOUR_ANN_CLICK = "REFRESH_TOUR_ANN_CLICK",
+    REFRESH_TOUR_CONVERSION = "REFRESH_TOUR_CONVERSION",
+    REFRESH_TOUR_METRICS = "REFRESH_TOUR_METRICS",
+    REFRESH_USER_AID_MAPPING = "REFRESH_USER_AID_MAPPING",
+    REFRESH_AID_SID_MAPPING = "REFRESH_AID_SID_MAPPING",
+    REFRESH_LEAD_ACTIVITY = "REFRESH_LEAD_ACTIVITY",
+    ROLLUP_METRICS_CURRENT_TO_DAILY = "ROLLUP_METRICS_CURRENT_TO_DAILY",
+    ROLLUP_CONVERSION_CURRENT_TO_DAILY = "ROLLUP_CONVERSION_CURRENT_TO_DAILY",
+    ROLLUP_ANN_CLICK_CURRENT_TO_DAILY = "ROLLUP_ANN_CLICK_CURRENT_TO_DAILY",
 }
 
 export const enum SchemaVersion {

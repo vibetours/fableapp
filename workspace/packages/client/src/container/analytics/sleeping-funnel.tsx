@@ -156,7 +156,6 @@ export default function Funnel(props: Props): ReactElement {
       .enter()
       .append('g')
       .attr('class', 'label')
-      .attr('transform', p => `translate(${x(p.step) + 10}, 30)`)
       .call(g => {
         g
           .append('text')
@@ -177,6 +176,7 @@ export default function Funnel(props: Props): ReactElement {
           `);
       })
       .merge(gLables as any)
+      .attr('transform', p => `translate(${x(p.step) + 10}, 30)`)
       .call(g => {
         g.select('text.lv').text(({ formattedValue }) => formattedValue);
         g.select('text.lp').text(({ retentionP }) => retentionP);
@@ -239,9 +239,14 @@ export default function Funnel(props: Props): ReactElement {
               selIdx: idx
             });
           });
+        r.exit().remove();
       });
     gMask.exit().remove();
   }, [props.data, widthAdjustment]);
+
+  useEffect(() => {
+    setAnnotationModal(null);
+  }, [props.data]);
 
   return (
     <Tags.SvgCon
@@ -279,7 +284,7 @@ export default function Funnel(props: Props): ReactElement {
           }}
         />
       )}
-      {annotationModal ? (
+      {(annotationModal && props.data[annotationModal.selIdx]) ? (
         <Tags.FunnelSelectData>
           <div className="con">
             <div className="sess">{props.data[annotationModal.selIdx].formattedValue} {props.data[annotationModal.selIdx].value > 1 ? 'Sessions' : 'Session'}</div>

@@ -34,6 +34,8 @@ import {
   RespConversion,
   RespTourAnnWithPercentile,
   RespTourAnnViews,
+  RespTourLeads,
+  RespLeadActivityUrl,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -70,6 +72,7 @@ import {
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
+  LeadActivityData,
   Ops,
   STORAGE_PREFIX_KEY_QUERY_PARAMS
 } from '../types';
@@ -1226,5 +1229,50 @@ export function getAnnViewsForTour(rid: string, days: number) {
       tourAnnViews: data.data,
     });
     return Promise.resolve(data.data);
+  };
+}
+
+export interface TAnalyticsLeads{
+  type: ActionType.ANALYTICS_LEADS,
+  leads: RespTourLeads,
+}
+
+export function getLeadsForTour(rid: string, days: number) {
+  return async (dispatch: Dispatch<TAnalyticsLeads>) => {
+    const data = await api<null, ApiResp<RespTourLeads>>(`/gettrleads?rid=${rid}&d=${days}`, {
+      auth: true,
+    });
+    dispatch({
+      type: ActionType.ANALYTICS_LEADS,
+      leads: data.data,
+    });
+    return Promise.resolve(data.data);
+  };
+}
+
+export interface TLeadActivity{
+  type: ActionType.ANALYTICS_LEAD_ACTIVITY,
+  leadData: LeadActivityData[],
+}
+
+export function getLeadActivityForTour(rid: string, aid: string) {
+  return async (dispatch: Dispatch<TLeadActivity>) => {
+    const data = await api<null, ApiResp<RespLeadActivityUrl>>(`/getleadactvitydatafile?rid=${rid}&aid=${aid}`, {
+      auth: true,
+    });
+    const tmpActivityData = await api<null, any[]>(data.data.leadActivityUrl);
+    const activityData: LeadActivityData[] = tmpActivityData.map(tmpData => ({
+      sid: tmpData.sid,
+      aid: tmpData.aid,
+      uts: tmpData.uts,
+      payloadAnnId: tmpData.payload_ann_id,
+      payloadButtonId: tmpData.payload_btn_id
+    }));
+
+    dispatch({
+      type: ActionType.ANALYTICS_LEAD_ACTIVITY,
+      leadData: activityData,
+    });
+    return Promise.resolve(activityData);
   };
 }
