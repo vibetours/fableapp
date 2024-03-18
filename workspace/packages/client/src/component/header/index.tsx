@@ -12,10 +12,10 @@ import {
 } from '@ant-design/icons';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CmnEvtProp } from '@fable/common/dist/types';
+import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Button as AntButton } from 'antd';
 import Tooltip from 'antd/lib/tooltip';
-import React, { Dispatch, ReactElement, SetStateAction, useState } from 'react';
+import React, { Dispatch, ReactElement, SetStateAction, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Drawer } from 'antd/lib';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -28,6 +28,7 @@ import PublishButton from '../publish-preview/publish-button';
 import ShareTourModal from '../publish-preview/share-modal';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
+import { TourMainValidity } from '../../types';
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -41,9 +42,8 @@ interface IOwnProps {
   titleText?: string;
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
-  isTourMainSet?: boolean;
+  tourMainValidity?: TourMainValidity;
   isAutoSaving?: boolean;
-  warnings?: string[];
   canvasOptions?: {
     resetZoom: () => void;
     showAnnText: boolean;
@@ -56,6 +56,7 @@ interface IOwnProps {
   onLogoClicked?: () => void;
   isJourneyCTASet?: boolean;
   lastAnnHasCTA?: boolean;
+  screenDiagnostics?: ScreenDiagnostics[];
 }
 
 export type HeaderProps = IOwnProps;
@@ -77,6 +78,18 @@ function Header(props: IOwnProps): JSX.Element {
   const [showRenameScreenModal, setShowRenameScreenModal] = useState(false);
   const [screenName, setScreenName] = useState(props.titleText || '');
   const [showWarningDrawer, setShowWarningDrawer] = useState(false);
+  const [isWarningPresent, setIsWarningPresent] = useState(false);
+
+  useEffect(() => {
+    let isWarning = false;
+    if (!props.isJourneyCTASet
+    || !props.lastAnnHasCTA
+    || props.tourMainValidity !== TourMainValidity.Valid
+    || props.screenDiagnostics?.length) {
+      isWarning = true;
+    }
+    setIsWarningPresent(isWarning);
+  }, [props.isJourneyCTASet, props.tourMainValidity]);
 
   const handleRenameScreenModalOk = (): void => {
     const newVal = screenName.trim().replace(/\s+/, ' ');
@@ -182,7 +195,7 @@ function Header(props: IOwnProps): JSX.Element {
           }}
           >
             {
-              props.warnings && props.warnings.length > 0 && (
+              isWarningPresent && (
                 <Tags.MenuItem>
                   <AntButton
                     size="small"
@@ -197,7 +210,7 @@ function Header(props: IOwnProps): JSX.Element {
               )
             }
             {
-              props.isTourMainSet && (
+              props.tourMainValidity === TourMainValidity.Valid && (
                 <>
                   <Tags.MenuItem style={{
                     borderRight: '1px solid rgba(255, 255, 255, 0.3)',
@@ -434,11 +447,28 @@ function Header(props: IOwnProps): JSX.Element {
         open={showWarningDrawer}
       >
         <>
-          {!props.isTourMainSet
+          {props.tourMainValidity === TourMainValidity.Main_Not_Set
         && (
           <Tags.MainNotSetContent>
             <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Entry point demo is not set.
+            &nbsp; Entry point of the demo is not set.
+            <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
+              <LinkOutlined /> Check here how to set the entry point.
+            </a>
+          </Tags.MainNotSetContent>
+        )}
+          {props.tourMainValidity === TourMainValidity.Journey_Main_Not_Present
+        && (
+          <Tags.MainNotSetContent>
+            <WarningFilled style={{ color: '#FF7450' }} />
+            &nbsp; Entry point of one of the modules is not valid. Please reset it.
+          </Tags.MainNotSetContent>
+        )}
+          {props.tourMainValidity === TourMainValidity.Main_Not_Present
+        && (
+          <Tags.MainNotSetContent>
+            <WarningFilled style={{ color: '#FF7450' }} />
+            &nbsp; Entry point of the demo is not valid. Please reset it.
             <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
               <LinkOutlined /> Check here how to set the entry point.
             </a>
@@ -464,6 +494,22 @@ function Header(props: IOwnProps): JSX.Element {
             </a>
           </Tags.MainNotSetContent>
         )}
+        </>
+        <>
+          {
+            props.screenDiagnostics && props.screenDiagnostics.length > 0 && (
+              props.screenDiagnostics
+                .filter(diag => diag.code === 100)
+                .map((_, idx) => (
+                  <Tags.MainNotSetContent key={idx}>
+                    <WarningFilled style={{ color: '#FF7450' }} />
+                    &nbsp; This screen was replaced by an image screen since we
+                    encountered an issue while retrieving an interactive version of the page.
+                    You can try rerecording the screen again.
+                  </Tags.MainNotSetContent>
+                ))
+            )
+          }
         </>
       </Drawer>
       )}

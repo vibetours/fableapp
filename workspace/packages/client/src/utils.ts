@@ -5,7 +5,8 @@ import {
   SerNode,
   JourneyFlow,
   IAnnotationButtonType,
-  ITourDataOpts
+  ITourDataOpts,
+  JourneyData
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from './reducer';
@@ -20,7 +21,8 @@ import {
   Timeline,
   JourneyModuleWithAnns,
   queryData,
-  AnnInverseLookupIndex
+  AnnInverseLookupIndex,
+  TourMainValidity
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour } from './entity-processor';
@@ -650,3 +652,35 @@ export function debounce<T extends any[]>(
     timeout = setTimeout(later, delay);
   };
 }
+
+export const isTourMainValid = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
+  if (main) {
+    const annId = main.split('/')[1];
+    if (getAnnotationByRefId(annId, allAnns)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+export const getTourMainValidity = (
+  tourOpts: ITourDataOpts | null,
+  journey: JourneyData | null,
+  allAnnotationsForTour: AnnotationPerScreen[],
+): TourMainValidity => {
+  let tourMainValidity: TourMainValidity = TourMainValidity.Valid;
+
+  if (journey && journey.flows.length !== 0) {
+    journey.flows.forEach(flow => {
+      if (!isTourMainValid(flow.main, allAnnotationsForTour)) {
+        tourMainValidity = TourMainValidity.Journey_Main_Not_Present;
+      }
+    });
+  } else if (!tourOpts || !tourOpts.main) {
+    tourMainValidity = TourMainValidity.Main_Not_Set;
+  } else if (!isTourMainValid(tourOpts.main, allAnnotationsForTour)) {
+    tourMainValidity = TourMainValidity.Main_Not_Present;
+  }
+
+  return tourMainValidity;
+};

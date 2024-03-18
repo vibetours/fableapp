@@ -23,6 +23,7 @@ import {
   Payload_DemoLoadingFinished,
   JourneyNameIndexData,
   queryData,
+  TourMainValidity,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -35,11 +36,13 @@ import {
   getOrderedAnnotaionFromMain,
   updateAllAnnotationsForTour,
   updateAllAnnotations,
-  getSearchParamData
+  getSearchParamData,
+  getTourMainValidity
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
   AnnotationSerialIdMap,
+  getAnnotationByRefId,
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
@@ -47,6 +50,7 @@ import JourneyMenu from '../../component/journey-menu';
 import InfoCon from '../../component/info-con';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { emitEvent } from '../../internal-events';
+import MainValidityInfo from './main-validity-info';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -125,13 +129,13 @@ type IProps = IOwnProps &
   }>;
 
 interface IOwnStateProps {
-  isMainSet: boolean;
   initialScreenRid: string;
   initiallyPrerenderedScreens: Record<string, boolean>;
   isMinLoaderTimeDone: boolean;
   isJourneyMenuOpen: boolean;
   annotationSerialIdMap: AnnotationSerialIdMap;
   currentFlowMain: string;
+  tourMainValidity: TourMainValidity;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -156,7 +160,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
     super(props);
     this.state = {
-      isMainSet: true,
+      tourMainValidity: TourMainValidity.Valid,
       initialScreenRid: '',
       initiallyPrerenderedScreens: {},
       isMinLoaderTimeDone: false,
@@ -313,14 +317,24 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     this.preRender();
     const opts = this.props.tourOpts;
     const flowIdx = Number(this.props.searchParams.get('n'));
-    if (!(this.props.match.params.screenRid && this.props.match.params.annotationId)) {
-      if (!(opts && opts.main) && !this.isJourneyAdded()) this.setState({ isMainSet: false });
-      else if (flowIdx && flowIdx >= 1 && this.props.journey && this.props.journey.flows.length >= flowIdx) {
-        this.navigateTo(this.props.journey!.flows[flowIdx - 1].main);
-      } else if (this.isJourneyAdded()) {
-        this.navigateTo(this.props.journey!.flows[0].main);
-      } else this.navigateTo(opts!.main);
+
+    if (this.props.match.params.screenRid && this.props.match.params.annotationId) return;
+
+    const tourMainValidity = getTourMainValidity(opts, this.props.journey, this.props.allAnnotationsForTour);
+    if (tourMainValidity !== TourMainValidity.Valid) {
+      this.setState({ tourMainValidity });
+      return;
     }
+
+    let main = '';
+    if (flowIdx && flowIdx >= 1 && this.props.journey && this.props.journey.flows.length >= flowIdx) {
+      main = this.props.journey!.flows[flowIdx - 1].main;
+    } else if (this.isJourneyAdded()) {
+      main = this.props.journey!.flows[0].main;
+    } else {
+      main = opts!.main;
+    }
+    this.navigateTo(main);
   };
 
   initJourneyProgress = (
@@ -643,29 +657,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render(): JSX.Element {
-    if (!this.state.isMainSet) {
-      return (
-        <InfoCon
-          heading="Entry point is not set for this demo"
-          body={(
-            <>
-              <p>
-                Entry point is the annotation where the demo starts. You can set an annotation as entry point by
-              </p>
-              <ol>
-                <li>Clicking on the annotation</li>
-                <li>Expanding <em>Advanced</em> section</li>
-                <li><em>Checking </em> Entry Point</li>
-              </ol>
-            </>
-          )}
-          btns={[{
-            type: 'primary',
-            linkTo: `/demo/${this.props.tour!.rid}`,
-            text: 'Go to canvas'
-          }]}
-        />
-      );
+    if (this.state.tourMainValidity !== TourMainValidity.Valid) {
+      return <MainValidityInfo
+        tourMainValidity={this.state.tourMainValidity}
+        tourRid={this.props.tour!.rid}
+      />;
     }
 
     return (

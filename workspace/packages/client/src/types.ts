@@ -288,3 +288,10 @@ export type AnnInverseLookupIndex = Record<string, {
     flowIndex: number,
     flowLength: number,
   }>;
+
+export enum TourMainValidity {
+  Valid,
+  Main_Not_Set,
+  Main_Not_Present,
+  Journey_Main_Not_Present,
+}

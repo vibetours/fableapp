@@ -58,6 +58,7 @@ import {
   DestinationAnnotationPosition,
   ScreenPickerData,
   Timeline,
+  TourMainValidity,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -69,7 +70,9 @@ import {
   createIframeSrc,
   isBlankString,
   generateTimelineOrder,
-  assignStepNumbersToAnnotations
+  assignStepNumbersToAnnotations,
+  isTourMainValid,
+  getTourMainValidity
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import {
@@ -178,16 +181,6 @@ const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline
   return timelineWithScreenIndices;
 };
 
-const isTourMainValid = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
-  if (main) {
-    const annId = main.split('/')[1];
-    if (getAnnotationByRefId(annId, allAnns)) {
-      return true;
-    }
-  }
-  return false;
-};
-
 interface IAppStateProps {
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
@@ -203,7 +196,7 @@ interface IAppStateProps {
   timeline: Timeline;
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
-  isMainValid: boolean;
+  tourMainVailidity: TourMainValidity;
   annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
@@ -269,12 +262,10 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
 
   const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
-  let isMainValid = false;
+  let tourMainVailidity: TourMainValidity = TourMainValidity.Valid;
   let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
-    if (state.default.journey && state.default.journey.flows.length !== 0) {
-      isMainValid = isTourMainValid(state.default.journey.flows[0].main, allAnnotationsForTour);
-    } else isMainValid = isTourMainValid(tourOpts.main, allAnnotationsForTour);
+    tourMainVailidity = getTourMainValidity(tourOpts, state.default.journey, allAnnotationsForTour);
     annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts.main, allAnnotationsForTour);
   }
 
@@ -286,7 +277,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     screenData: state.default.currentScreen ? state.default.screenData[state.default.currentScreen.id] : null,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     allEdits,
-    isMainValid,
+    tourMainVailidity,
     timeline: state.default.tourLoaded ? getTimeline(allAnnotationsForTour, state.default.currentTour!) : [],
     allAnnotationsForScreen,
     allAnnotationsForTour,
@@ -558,34 +549,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     return screenDiags;
   }
 
-  getTourWarnings(): string[] {
-    const warnings: string[] = [];
-
-    if (!this.props.isMainValid) {
-      warnings.push('Entry point is not set for the demo.');
-    }
-
-    if (!this.state.lastAnnHasCTA) {
-      warnings.push('Last annotation not have CTA.');
-    }
-
-    if (!this.state.isJourneyCTASet) {
-      warnings.push('Journey CTA is not set');
-    }
-
-    const screenDiagnostics = this.getCurrentScreenDiagnostics();
-
-    screenDiagnostics.forEach(diag => {
-      if (diag.code === 100) {
-        warnings.push(`This screen was replaced by an image screen since we 
-        encountered an issue while retrieving an interactive version of the page. 
-        You can try rerecording the screen again.`);
-      }
-    });
-
-    return warnings;
-  }
-
   updateShowScreenPicker = (newScreenPickerData: ScreenPickerData): void => {
     this.setState({ showScreenPicker: true, screenPickerData: newScreenPickerData });
   };
@@ -603,7 +566,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
   getLastAnnHasCTA = (): boolean => {
     const flowLength = this.props.journey!.flows.length;
-    if (flowLength === 0 && !this.props.isMainValid) {
+    if (flowLength === 0 && this.props.tourMainVailidity !== TourMainValidity.Valid) {
       return false;
     }
     let refId = '';
@@ -711,9 +674,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 titleText: this.props.screen?.displayName,
                 renameScreen: (newVal: string) => this.props.renameScreen(this.props.screen!, newVal),
                 showRenameIcon: this.isInCanvas(),
-                isTourMainSet: this.props.isMainValid,
+                tourMainValidity: this.props.tourMainVailidity,
+                screenDiagnostics: this.getCurrentScreenDiagnostics(),
                 isAutoSaving: this.props.isAutoSaving,
-                warnings: this.getTourWarnings(),
                 tour: this.props.tour,
                 isJourneyCTASet: this.state.isJourneyCTASet,
                 lastAnnHasCTA: this.state.lastAnnHasCTA
