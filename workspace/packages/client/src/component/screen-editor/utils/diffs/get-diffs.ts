@@ -144,7 +144,12 @@ function isFidRepeated(tree: SerNode): boolean {
 
   for (const child of tree.chldrn) {
     const fid = getFidOfSerNode(child);
-    if (map.has(fid)) {
+    /**
+     * To uniquely identify a text node, we create a comment node just before it and assign it the fid
+     * During this loop, already the comment node's fid is set to the map
+     * So we don't need to check that again explicity for the text node, as its already been checked
+     */
+    if (child.type !== Node.TEXT_NODE && map.has(fid)) {
       return true;
     }
 
