@@ -1,7 +1,7 @@
 import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
 import Dropdown from 'antd/lib/dropdown/dropdown';
-import React, { ReactElement } from 'react';
-import { JourneyData, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+import React, { ReactElement, useEffect, useState } from 'react';
+import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import { getColorContrast, isBlankString } from '../../utils';
@@ -17,6 +17,7 @@ interface Props {
     tourOpts: ITourDataOpts;
     currentFlowMain: string;
     journeyProgress: FlowProgress[];
+    currScreenId: number;
 }
 
 const getMenu = (
@@ -89,8 +90,30 @@ function getCurretFlowTitle(flows: JourneyFlow[], currentFlowMain: string): stri
 
 function JourneyMenu(props: Props): JSX.Element {
   const primaryColor = props.journey.primaryColor;
+  const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number} | null>(null);
+
+  const paddingFactor = 20;
+
+  useEffect(() => {
+    if (props.currScreenId === -1) return;
+    const iframe = document.querySelector(`.fable-iframe-${props.currScreenId}`) as HTMLIFrameElement;
+    const iframeRect = iframe.getBoundingClientRect();
+    const journeyTop = iframeRect.bottom - paddingFactor;
+    const journeyLeft = props.journey.positioning === CreateJourneyPositioning.Left_Bottom
+      ? iframeRect.left + paddingFactor
+      : iframeRect.right - paddingFactor;
+    const journeyTransformTranslateX = props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 0 : -100;
+
+    setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX });
+  }, [props.currScreenId]);
+
   return (
-    <Tags.DropdownCon positioning={props.journey.positioning}>
+    <Tags.DropdownCon
+      transformTranslateX={dropdownPos?.transformTranslateX}
+      left={dropdownPos?.left}
+      top={dropdownPos?.top}
+      positioning={props.journey.positioning}
+    >
       <Dropdown
         open={props.isJourneyMenuOpen}
         dropdownRender={() => getMenu(

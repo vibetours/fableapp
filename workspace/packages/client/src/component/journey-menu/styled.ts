@@ -5,13 +5,16 @@ import { getColorContrast } from '../../utils';
 
 export interface DropdownConf {
     positioning: CreateJourneyPositioning;
+    top?: number;
+    left?: number;
+    transformTranslateX?: number;
   }
 
 export const DropdownCon = styled.div`
     position: absolute; 
-    bottom: 40px;
-    right: ${(p: DropdownConf) => ((p.positioning === CreateJourneyPositioning.Right_Bottom) ? '20px' : '')};
-    left: ${(p: DropdownConf) => ((p.positioning === CreateJourneyPositioning.Left_Bottom) ? '20px' : '')};
+    left: ${(p: DropdownConf) => (`${p.left}px` || '20px')};
+    transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, -100%)`)};
+    ${(p: DropdownConf) => ((p.top ? `top: ${p.top}px;` : 'bottom: 40px;'))};
   `;
 
 export const JourneyCon = styled.div`

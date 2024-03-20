@@ -747,6 +747,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         {
           this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (!this.queryData || !this.queryData.hm) && (
             <JourneyMenu
+              currScreenId={this.getCurrScreenId()}
               journey={this.props.journey!}
               isJourneyMenuOpen={this.state.isJourneyMenuOpen}
               navigateToJourney={this.navigateTo}
