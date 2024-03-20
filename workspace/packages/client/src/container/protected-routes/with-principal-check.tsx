@@ -81,6 +81,10 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
           name: this.props.principal.firstName,
           email: this.props.principal.email
         };
+        twakApi.setAttributes && typeof twakApi.setAttributes === 'function' && twakApi.setAttributes({
+          name: this.props.principal.firstName,
+          email: this.props.principal.email
+        });
       }
     }
     if (!this.props.auth0.isAuthenticated) {
