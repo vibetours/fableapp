@@ -17,7 +17,8 @@ import {
   isShadeOfWhiteOrBlack,
   getNormalizedBorderRadius,
   sanitizeUrlsInCssStr,
-  getUrlsFromSrcset
+  getUrlsFromSrcset,
+  blobToDataUrl
 } from "./utils";
 
 export function getPostProcessType(serNode: SerNode): PostProcess["type"] {
@@ -242,19 +243,41 @@ export function getSearializedDom(
 
       let base64: string = "";
       if (src.startsWith("blob:")) {
-        const canvas = document.createElement("canvas");
-        canvas.width = tNode.width;
-        canvas.height = tNode.height;
-        const ctx = canvas.getContext("2d");
-        ctx!.drawImage(tNode, 0, 0);
-        const dataURL = canvas.toDataURL("image/png");
-        base64 = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
-        canvas.remove();
+        base64 = blobToDataUrl(tNode, tNode.width, tNode.height);
       }
 
       sNode.props.base64Img = base64;
       if (src) {
         sNode.props.proxyUrlMap.src = [src];
+        return { serNode: sNode, postProcess: true };
+      }
+    }
+
+    if (sNode.name === "image") {
+      const tNode = node as SVGImageElement;
+      const href = tNode.href || "";
+      const xlinkHref = tNode.getAttribute("xlink:href") || "";
+
+      let hrefBase64: string = "";
+      if (href.baseVal.startsWith("blob:")) {
+        hrefBase64 = blobToDataUrl(tNode, tNode.width.baseVal.value, tNode.height.baseVal.value);
+      }
+
+      sNode.props.base64Img = hrefBase64;
+
+      if (href && xlinkHref) {
+        sNode.props.proxyUrlMap.href = [href.baseVal];
+        sNode.props.proxyUrlMap["xlink:href"] = [xlinkHref];
+        return { serNode: sNode, postProcess: true };
+      }
+
+      if (href) {
+        sNode.props.proxyUrlMap.href = [href.baseVal];
+        return { serNode: sNode, postProcess: true };
+      }
+
+      if (xlinkHref) {
+        sNode.props.proxyUrlMap["xlink:href"] = [xlinkHref];
         return { serNode: sNode, postProcess: true };
       }
     }

@@ -194,3 +194,20 @@ export function getUrlsFromSrcset(srcset: string): string[] {
     .map(src => src.split(" ")[0]) // [url, width/density descriptor (2x OR 400w)] <- get url
     .filter(Boolean);
 }
+
+export const blobToDataUrl = (
+  node: SVGImageElement | HTMLImageElement,
+  width: number,
+  height: number
+) => {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  ctx!.drawImage(node, 0, 0);
+  const dataURL = canvas.toDataURL("image/png");
+  const base64 = dataURL.replace(/^data:image\/(png|jpg);base64,/, "");
+  canvas.remove();
+
+  return base64;
+};
