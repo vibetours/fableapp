@@ -162,8 +162,14 @@ export default function LeadFormComponent({
   };
 
   const addOption = (): void => {
+    let maxCount = 0;
+    for (const option of options) {
+      const match = option.text.match(/\d+/);
+      if (match) maxCount = Math.max(maxCount, parseInt(match[0], 10));
+    }
+
     withLeadFormNode((node) => {
-      node.addOption(createLeadFormOption('Field {[field]}'));
+      node.addOption(createLeadFormOption(`Field ${maxCount + 1} {[field${maxCount + 1}]}`));
     });
   };
 
