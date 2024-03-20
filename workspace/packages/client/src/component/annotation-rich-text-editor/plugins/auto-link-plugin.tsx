@@ -15,7 +15,8 @@ const MATCHERS = [
         index: match.index,
         length: match[0].length,
         text: match[0],
-        url: match[0]
+        url: match[0],
+        attributes: { rel: 'noopener noreferrer', target: '_blank' },
       }
     );
   },

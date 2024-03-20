@@ -264,7 +264,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (!this.props.annotationDisplayConfig.prerender) {
       window.addEventListener('message', this.receiveMessage, false);
     }
-    if (this.conRef.current && !this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
+    if (this.conRef.current && !this.props.annotationDisplayConfig.prerender) { this.resetAnnPos(); }
     if (this.props.annotationDisplayConfig.isMaximized) {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
         currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId

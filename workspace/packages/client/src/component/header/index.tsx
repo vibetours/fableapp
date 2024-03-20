@@ -89,7 +89,7 @@ function Header(props: IOwnProps): JSX.Element {
       isWarning = true;
     }
     setIsWarningPresent(isWarning);
-  }, [props.isJourneyCTASet, props.tourMainValidity]);
+  }, [props.isJourneyCTASet, props.lastAnnHasCTA, props.screenDiagnostics, props.tourMainValidity]);
 
   const handleRenameScreenModalOk = (): void => {
     const newVal = screenName.trim().replace(/\s+/, ' ');

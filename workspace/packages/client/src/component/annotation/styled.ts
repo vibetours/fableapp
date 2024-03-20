@@ -36,6 +36,16 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
   justify-items: center;
   align-items: center;
 
+  a {
+    color: inherit;
+    text-decoration: underline dotted;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   .LeadForm__container {
     display: block;
     cursor: pointer;
@@ -104,10 +114,14 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
     border: 0px;
     padding: 8px 16px;
     color: var(--fable-ann-font-color);
-    background-color: transparent;
+    background-color: transparent !important;
     font-weight: bold;
     outline: 0px;
     z-index: 0;
+  }
+
+  .LeadForm__optionInputInAnn:focus {
+    background-color: transparent !important;
   }
   
   .LeadForm__optionInputInAnn::placeholder {

@@ -604,6 +604,13 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.reachAnnotation('');
 
     this.props.closeJourneyMenu!();
+
+    const goToScreen = this.getScreenById(+goToScreenId)!;
+    const currScreen = this.getScreenById(+currScreenId)!;
+
+    const areDiffsAppliedToCurrIframe = currScreen.type === ScreenType.SerDom
+    && currScreen.rid !== this.props.screenRidOnWhichDiffsAreApplied!;
+
     /**
      * If the annotation is on the same screen,
      * no diffs will be required to apply.
@@ -611,17 +618,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      */
     if (+goToScreenId === currScreenId) {
       this.reachAnnotation(goToAnnId);
-      if (isGoToVideoAnn) {
+      if (isGoToVideoAnn && !areDiffsAppliedToCurrIframe) {
         playVideoAnn(goToScreenId, goToAnnId);
       }
       return;
     }
-
-    const goToScreen = this.getScreenById(+goToScreenId)!;
-    const currScreen = this.getScreenById(+currScreenId)!;
-
-    const areDiffsAppliedToCurrIframe = currScreen.type === ScreenType.SerDom
-    && currScreen.rid !== this.props.screenRidOnWhichDiffsAreApplied!;
 
     /**
      * If either of the screen type is image,
