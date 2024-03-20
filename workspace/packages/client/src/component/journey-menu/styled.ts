@@ -20,9 +20,8 @@ export const DropdownCon = styled.div`
 export const JourneyCon = styled.div`
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.20);
+  box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 2px, rgba(0, 0, 0, 0.3) 0px 0px 0px 1000vw;
   padding: 24px 0;
-  margin-bottom: 5px;
   width: 418px;
 `;
 

@@ -26,7 +26,8 @@ const getMenu = (
   navigateToCta: ()=> void,
   tourOpts: ITourDataOpts,
   currentFlowMain: string,
-  journeyProgress: FlowProgress[]
+  journeyProgress: FlowProgress[],
+  updateJourneyMenu: (isMenuOpen: boolean)=> void
 ) : ReactElement => {
   const getFlowProgress = (main: string) : FlowProgress => {
     const currenFlowProgress = journeyProgress.find(
@@ -45,7 +46,10 @@ const getMenu = (
           ? (
             <Tags.FLowItemCon
               key={flow.header1}
-              onClick={() => { navigateToJourney(flow.main); }}
+              onClick={() => {
+                navigateToJourney(flow.main);
+                updateJourneyMenu(false);
+              }}
               isCurrentFlow={flow.main === currentFlowMain}
             >
               <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
@@ -122,7 +126,8 @@ function JourneyMenu(props: Props): JSX.Element {
           props.navigateToCta,
           props.tourOpts,
           props.currentFlowMain,
-          props.journeyProgress
+          props.journeyProgress,
+          props.updateJourneyMenu
         )}
         trigger={['click']}
         onOpenChange={(e) => { props.updateJourneyMenu(e); }}

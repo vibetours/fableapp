@@ -409,7 +409,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         currentJourney: main,
       });
       this.addJourneyToGlobalData(main);
-      this.setState({ isJourneyMenuOpen: false, currentFlowMain: main });
+      this.setState({ currentFlowMain: main });
     }
   }
 

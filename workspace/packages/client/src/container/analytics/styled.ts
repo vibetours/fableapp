@@ -359,8 +359,6 @@ export const TimelineCon = styled.div`
 `;
 
 export const AnnTimeSpent = styled.span<{val: number, maxVal: number, hueRotation: number}>`
-  -webkit-filter: hue-rotate(240deg) brightness(100%);
-  /* filter: hue-rotate(240deg) brightness(100%); */
   font-size: 12px;
   color: #616161;
   padding: 2px 2px 2px 2px;
@@ -370,11 +368,6 @@ export const AnnTimeSpent = styled.span<{val: number, maxVal: number, hueRotatio
   font-size: 11px;
   font-weight: 500;
   font-family: "IBM Plex Mono", monospace;
-
-  &:hover {
-    cursor: pointer;
-    filter: ${props => `hue-rotate(${props.hueRotation}deg) brightness(90%)`};
-  }
 
   &:after {
     position: absolute;
@@ -386,6 +379,16 @@ export const AnnTimeSpent = styled.span<{val: number, maxVal: number, hueRotatio
     filter: ${props => `hue-rotate(${props.hueRotation}deg) brightness(100%)`};
     height: 8px;
     border-radius: 2px;
+  }
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &:hover:after {
+    cursor: pointer;
+    background: #b0a6c9;
+    filter: ${props => `hue-rotate(${props.hueRotation}deg) brightness(90%)`};
   }
 `;
 
