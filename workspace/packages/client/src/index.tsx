@@ -14,11 +14,26 @@ import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import { removeOldGuides, upsertAllUserGuides } from './user-guides';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const ENV = process.env.REACT_APP_ENVIRONMENT;
 
 function addReditusTrackingScript(): void {
   const script = document.createElement('script');
   script.innerHTML = '(function (w, d, s, p, t) { w.gr = w.gr || function () { w.gr.q = w.gr.q || []; w.gr.q.push(arguments); }; p = d.getElementsByTagName(s)[0]; t = d.createElement(s); t.async = true; t.src = "https://app.getreditus.com/gr.js?_ce=90"; p.parentNode.insertBefore(t, p); })(window, document, "script"); gr("track", "pageview");';
   document.head.appendChild(script);
+}
+
+function addSupportBot(): void {
+  const script = document.createElement('script');
+  script.innerHTML = `var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/65fa9dad1ec1082f04d93afb/1hpdffrng';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();`;
+  document.body.appendChild(script);
 }
 
 function addChargebeeScript(): void {
@@ -43,6 +58,7 @@ if (document.location.pathname !== '/aboutblank') {
     sentryInit('client', packageJSON.version);
     addChargebeeScript();
     addReditusTrackingScript();
+    if (ENV === 'prod') addSupportBot();
   }
   initAmplitude();
   removeOldGuides();

@@ -74,6 +74,14 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       setEventCommonState(CmnEvtProp.FIRST_NAME, this.props.principal.firstName);
       setEventCommonState(CmnEvtProp.LAST_NAME, this.props.principal.lastName);
       setAmplitudeUserId(this.props.principal.email);
+
+      let twakApi: any;
+      if (twakApi = (window as any).Tawk_API) {
+        twakApi.visitor = {
+          name: this.props.principal.firstName,
+          email: this.props.principal.email
+        };
+      }
     }
     if (!this.props.auth0.isAuthenticated) {
       resetAmplitude();
