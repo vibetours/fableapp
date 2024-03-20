@@ -1086,12 +1086,22 @@ const duplicateGivenTour = async (
     }
     tourDataFile.entities = newEntities;
 
-    if (tourDataFile.opts.main) {
+    if (tourDataFile.opts?.main) {
       const mainSplit = tourDataFile.opts.main.split('/');
       if (mainSplit[0] in idxm) {
         mainSplit[0] = idxm[mainSplit[0]];
         tourDataFile.opts.main = mainSplit.join('/');
       }
+    }
+
+    if (tourDataFile.journey?.flows.length > 0) {
+      tourDataFile.journey.flows.forEach(flow => {
+        const mainSplit = flow.main.split('/');
+        if (mainSplit[0] in idxm) {
+          mainSplit[0] = idxm[mainSplit[0]];
+          flow.main = mainSplit.join('/');
+        }
+      });
     }
 
     await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
