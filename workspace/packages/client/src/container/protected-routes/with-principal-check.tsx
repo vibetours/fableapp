@@ -18,6 +18,31 @@ import { setEventCommonState } from '../../utils';
 import { P_RespSubscription } from '../../entity-processor';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const ENV = process.env.REACT_APP_ENVIRONMENT;
+
+function addSupportBot(name?: string, email?: string): void {
+  const id = 'f-twk-sp-bt';
+
+  let script = document.getElementById('f-twk-sp-bt');
+  if (script) return;
+
+  script = document.createElement('script');
+  script.setAttribute('id', id);
+  script.innerHTML = `var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+Tawk_API.visitor = {
+  name: "${name}",
+  email: "${email}"
+};
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/65fa9dad1ec1082f04d93afb/1hpdffrng';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();`;
+  document.body.appendChild(script);
+}
 
 interface IDispatchProps {
   iam: () => void;
@@ -73,24 +98,16 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       setEventCommonState(CmnEvtProp.EMAIL, this.props.principal.email);
       setEventCommonState(CmnEvtProp.FIRST_NAME, this.props.principal.firstName);
       setEventCommonState(CmnEvtProp.LAST_NAME, this.props.principal.lastName);
-      setAmplitudeUserId(this.props.principal.email);
 
-      let twakApi: any;
-      if (twakApi = (window as any).Tawk_API) {
-        twakApi.visitor = {
-          name: this.props.principal!.firstName,
-          email: this.props.principal!.email
-        };
-        setTimeout(() => {
-          twakApi.setAttributes && typeof twakApi.setAttributes === 'function' && twakApi.setAttributes({
-            name: this.props.principal!.firstName,
-            email: this.props.principal!.email
-          });
-        }, 0);
+      try {
+        setAmplitudeUserId(this.props.principal.email);
+        if (ENV === 'prod') addSupportBot(this.props.principal?.firstName, this.props.principal?.email);
+        if (!this.props.auth0.isAuthenticated) {
+          resetAmplitude();
+        }
+      } catch (e) {
+        raiseDeferredError(e as Error);
       }
-    }
-    if (!this.props.auth0.isAuthenticated) {
-      resetAmplitude();
     }
   }
 
