@@ -100,15 +100,17 @@ function JourneyMenu(props: Props): JSX.Element {
 
   useEffect(() => {
     if (props.currScreenId === -1) return;
-    const iframe = document.querySelector(`.fable-iframe-${props.currScreenId}`) as HTMLIFrameElement;
-    const iframeRect = iframe.getBoundingClientRect();
-    const journeyTop = iframeRect.bottom - paddingFactor;
-    const journeyLeft = props.journey.positioning === CreateJourneyPositioning.Left_Bottom
-      ? iframeRect.left + paddingFactor
-      : iframeRect.right - paddingFactor;
-    const journeyTransformTranslateX = props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 0 : -100;
+    const iframe = document.querySelector(`.fable-iframe-${props.currScreenId}`);
+    if (iframe) {
+      const iframeRect = iframe.getBoundingClientRect();
+      const journeyTop = iframeRect.bottom - paddingFactor;
+      const journeyLeft = props.journey.positioning === CreateJourneyPositioning.Left_Bottom
+        ? iframeRect.left + paddingFactor
+        : iframeRect.right - paddingFactor;
+      const journeyTransformTranslateX = props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 0 : -100;
 
-    setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX });
+      setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX });
+    }
   }, [props.currScreenId]);
 
   return (
