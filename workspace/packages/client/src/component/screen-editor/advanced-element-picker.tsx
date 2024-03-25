@@ -93,11 +93,15 @@ export default function AdvanceElementPicker(props: IProps): JSX.Element {
                   }
                 }}
               >
-                {elsInPath.map((el, i) => (
-                  <span key={i} data-f-elidx={i} className={el[1]}>
-                    {el[0].nodeName}
-                  </span>
-                ))}
+                {elsInPath.map((el, i) => {
+                  if (el[0].nodeName.toLowerCase() === 'html') return <></>;
+
+                  return (
+                    <span key={i} data-f-elidx={i} className={el[1]}>
+                      {el[0].nodeName}
+                    </span>
+                  );
+                })}
                 <AlwaysScrollToRightEnd key={-1} />
               </AEPCon>
             </StyleSheetManager>
