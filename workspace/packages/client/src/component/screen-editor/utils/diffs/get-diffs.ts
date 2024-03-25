@@ -100,7 +100,8 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
         });
       }
 
-      const shouldReplaceChildNode = areSerNodePropsDifferent(serNodeInTree1, serNodeInTree2);
+      const shouldReplaceChildNode = areSerNodePropsDifferent(serNodeInTree1, serNodeInTree2)
+      || isAssetChanged(serNodeInTree1, serNodeInTree2);
       if (shouldReplaceChildNode) {
         diffs.replaceNodes.push({
           fid: currFid,
@@ -190,8 +191,28 @@ function isSerNodeReordered(tree1: SerNode, tree2: SerNode): boolean {
   return false;
 }
 
+export const isAssetChanged = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode): boolean => {
+  const assetsToBeChecked = [
+    { name: 'link', attr: 'href' }
+  ];
+
+  for (const assetToCheck of assetsToBeChecked) {
+    if (serNodeOfTree1.name.toLowerCase() === assetToCheck.name
+    && serNodeOfTree2.name.toLowerCase() === assetToCheck.name) {
+      if (serNodeOfTree1.attrs[assetToCheck.attr] !== serNodeOfTree2.attrs[assetToCheck.attr]) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};
+
 export const getSerNodesAttrUpdates = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode): Update[] => {
   const updates: Update[] = [];
+  const updatesToSkip = [
+    { name: 'link', attr: 'href' }
+  ];
   const keysOfNode1 = Object.keys(serNodeOfTree1.attrs);
   const keysOfNode2 = Object.keys(serNodeOfTree2.attrs);
 
@@ -208,15 +229,28 @@ export const getSerNodesAttrUpdates = (serNodeOfTree1: SerNode, serNodeOfTree2: 
   }
   for (const key of keys) {
     if (serNodeOfTree1.attrs[key] !== serNodeOfTree2.attrs[key]) {
-      updates.push({
-        attrKey: key,
-        attrOldVal: serNodeOfTree1.attrs[key] ?? '',
-        attrNewVal: serNodeOfTree2.attrs[key] ?? '',
-        shouldRemove: serNodeOfTree2.attrs[key] === undefined,
-      });
+      if (!shouldSkipUpdate(key)) {
+        updates.push({
+          attrKey: key,
+          attrOldVal: serNodeOfTree1.attrs[key] ?? '',
+          attrNewVal: serNodeOfTree2.attrs[key] ?? '',
+          shouldRemove: serNodeOfTree2.attrs[key] === undefined,
+        });
+      }
     }
   }
   return updates;
+
+  function shouldSkipUpdate(key: string): boolean {
+    for (const updateToSkip of updatesToSkip) {
+      if (serNodeOfTree1.name === updateToSkip.name
+        && serNodeOfTree2.name === updateToSkip.name
+        && key === updateToSkip.attr) {
+        return true;
+      }
+    }
+    return false;
+  }
 };
 
 export const areSerNodePropsDifferent = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode): boolean => {

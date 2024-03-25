@@ -12,6 +12,7 @@ import { captureException } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
+import { sleep } from '@fable/common/dist/utils';
 import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
 import {
   AnnotationPerScreen,
@@ -410,7 +411,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     return deserNode;
   };
 
-  getAndApplyDiffs = (tree1: SerNode, tree2: SerNode, doc: Document, version: string): boolean => {
+  getAndApplyDiffs = async (tree1: SerNode, tree2: SerNode, doc: Document, version: string): Promise<boolean> => {
     try {
       /**
        * Check if the entire html needs to replaced or updated
@@ -451,7 +452,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         );
 
         // apply diffs to only node1's immediate children or replace node1
-        this.applyDiffsToDom(node1, serNodeOfTree2, diffs, doc, version, props);
+        await this.applyDiffsToDom(node1, serNodeOfTree2, diffs, doc, version, props);
 
         // traverse its children
         const commonNodes = diffs.commonNodes;
@@ -493,14 +494,14 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   };
 
-  applyDiffsToDom = (
+  applyDiffsToDom = async (
     node: Node,
     serNodeInTree2: SerNode,
     diffs: DiffsSerNode,
     doc: Document,
     version: string,
     props: DeSerProps,
-  ): void => {
+  ): Promise<void> => {
     if (node.nodeName.toLowerCase() === 'head') {
       deletePrependStylesFromHead(node);
     }
@@ -508,7 +509,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     // replace node if required
     if (diffs.shouldReplaceNode) {
       const newNode = this.deserElOrIframeEl(serNodeInTree2, doc, version, props)!;
-      (node as HTMLElement).replaceWith(newNode);
+      await this.replaceNode(newNode, node.parentNode, node);
       return;
     }
 
@@ -556,11 +557,16 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       applyUpdateDiff(diff.updates, el);
     });
 
-    diffs.replaceNodes.forEach(diff => {
+    for (const diff of diffs.replaceNodes) {
       const nodeToReplace = getChildElementByFid(parentNode, diff.fid) as HTMLElement;
       const newNode = this.deserElOrIframeEl(diff.serNode, doc, version, diff.props)!;
-      nodeToReplace.replaceWith(newNode);
-    });
+      await this.replaceNode(newNode, parentNode, nodeToReplace);
+    }
+
+    await Promise.race([
+      this.waitForAssetLoading(),
+      sleep(3000)
+    ]);
 
     /**
      * Helper functions for the above applying diffs logic
@@ -589,6 +595,25 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           currNode.remove();
         }
       }
+    }
+  };
+
+  replaceNode = async (newNode: Node, parentNode: Node | null, nextNode: Node): Promise<void> => {
+    if (newNode.nodeName.toLowerCase() === 'link' && parentNode) {
+      parentNode.insertBefore(newNode, nextNode);
+      await Promise.race([
+        this.waitForAssetLoading(),
+        sleep(3000)
+      ]);
+      (nextNode as HTMLElement).remove();
+    } else {
+      (nextNode as HTMLElement).replaceWith(newNode);
+    }
+  };
+
+  waitForAssetLoading = async (): Promise<void> => {
+    while (this.assetLoadingPromises.length) {
+      await this.assetLoadingPromises.shift();
     }
   };
 
@@ -694,7 +719,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
-      const res = this.getAndApplyDiffs(currScreenData.docTree, goToScreenData.docTree, doc, goToScreenData.version);
+      const res = await this.getAndApplyDiffs(
+        currScreenData.docTree,
+        goToScreenData.docTree,
+        doc,
+        goToScreenData.version
+      );
 
       if (!res) {
         throw Error(`Animation failed between ${currScreen.id} and ${goToScreen.id}`);
