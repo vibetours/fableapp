@@ -655,8 +655,9 @@ export function debounce<T extends any[]>(
 
 export const isTourMainValid = (main: string | null | undefined, allAnns: AnnotationPerScreen[]): boolean => {
   if (main) {
-    const annId = main.split('/')[1];
-    if (getAnnotationByRefId(annId, allAnns)) {
+    const [screenId, annId] = main.split('/');
+    const annWithScreenId = getAnnotationByRefId(annId, allAnns);
+    if (annWithScreenId && annWithScreenId.screenId === +screenId) {
       return true;
     }
   }
