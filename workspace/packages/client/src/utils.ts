@@ -684,3 +684,10 @@ export const getTourMainValidity = (
 
   return tourMainValidity;
 };
+
+export function rearrangeArray<T>(arr: T[], sourceIdx: number, destinationIdx: number): T[] {
+  const newArr = [...arr];
+  const [removed] = newArr.splice(sourceIdx, 1);
+  newArr.splice(destinationIdx, 0, removed);
+  return newArr;
+}

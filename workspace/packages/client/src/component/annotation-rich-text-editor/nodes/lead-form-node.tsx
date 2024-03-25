@@ -16,6 +16,7 @@ import { getRandomId } from '@fable/common/dist/utils';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
 import { removeFieldNameDefinition } from '../utils/lead-form-node-utils';
 import { parseFieldName } from '../../annotation/utils';
+import { rearrangeArray } from '../../../utils';
 
 export const OPTION_INPUT_CLASSNAME = 'LeadForm__optionInputInAnn';
 
@@ -106,6 +107,12 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
     const options = Array.from(self.__options);
     options.unshift(option);
     self.__options = options;
+  }
+
+  rearrangeOptions(sourceIndex: number, destinationIndex: number): void {
+    const self = this.getWritable();
+    const options = Array.from(self.__options);
+    self.__options = rearrangeArray(options, sourceIndex, destinationIndex);
   }
 
   deleteOption(option: Option): void {

@@ -134,6 +134,7 @@ export class AnnotationContent extends React.PureComponent<{
         primaryColor={this.props.opts.primaryColor}
         fontColor={this.props.opts.annotationFontColor}
         borderRadius={this.props.opts.borderRadius}
+        padding={this.props.opts.annotationPadding.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14)) as [number, number]}
         bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
           minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,

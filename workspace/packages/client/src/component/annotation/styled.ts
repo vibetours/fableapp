@@ -21,11 +21,19 @@ export const BubbleCon = styled.div`
   align-items: center;
 `;
 
-export const AnContent = styled.div<{ bgColor: string, borderRadius: number, primaryColor: string, fontColor: string }>`
+export const AnContent = styled.div<{
+  bgColor: string,
+  borderRadius: number,
+  primaryColor: string,
+  fontColor: string,
+  padding: [number, number]
+}>`
   --f-ann-bg-color: ${(p) => p.bgColor};
   --f-ann-border-radius: ${(p) => p.borderRadius}px;
   --f-ann-primary-color: ${(p) => p.primaryColor};
   --f-ann-font-color: ${(p) => p.fontColor};
+  --f-ann-border-y: ${(p) => p.padding[0]};
+  --f-ann-border-x: ${(p) => p.padding[0]};
 
   background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};
   font-size: 1.1rem;
@@ -54,9 +62,10 @@ export const AnContent = styled.div<{ bgColor: string, borderRadius: number, pri
     color: inherit;
     font-size: inherit;
     border-radius: var(--f-ann-border-radius);
-    background-color: color-mix(in srgb, var(--f-ann-bg-color) 99%, white);
+    background-color: ${p => (getColorContrast(p.bgColor) === 'dark' ? '#ffffff1a' : '#bcbcbc1a')};
     border: none;
-    padding: 14px 44px 44px 44px;
+    margin-top: calc(var(--f-ann-border-y) * 1px - 0.5rem);
+    padding: 0 calc(var(--f-ann-border-x) * 2px) calc(var(--f-ann-border-y) * 1px + 1rem) ;
   }
 
   .LeadForm__container.focused {
