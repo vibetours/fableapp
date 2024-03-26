@@ -94,7 +94,7 @@ export default function AdvanceElementPicker(props: IProps): JSX.Element {
                 }}
               >
                 {elsInPath.map((el, i) => {
-                  if (el[0].nodeName.toLowerCase() === 'html') return <></>;
+                  if (el[0].nodeName.toLowerCase() === 'html') return <React.Fragment key={i} />;
 
                   return (
                     <span key={i} data-f-elidx={i} className={el[1]}>
