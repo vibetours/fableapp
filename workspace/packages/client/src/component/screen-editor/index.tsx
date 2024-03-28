@@ -6,7 +6,8 @@ import {
   FontSizeOutlined,
   HomeOutlined,
   LoadingOutlined,
-  PictureOutlined, PlusOutlined
+  PictureOutlined,
+  RetweetOutlined
 } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import {
@@ -43,6 +44,7 @@ import {
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
+  IdxEncodingTypeInput,
   IdxEncodingTypeMask,
   NavFn,
   Timeline,
@@ -89,6 +91,24 @@ import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interact
 import SelectorComponent from '../../user-guides/selector-component';
 import { UserGuideMsg } from '../../user-guides/types';
 
+const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
+  'button',
+  'checkbox',
+  'color',
+  'date',
+  'datetime-local',
+  'file',
+  'hidden',
+  'image',
+  'month',
+  'radio',
+  'range',
+  'reset',
+  'submit',
+  'time',
+  'week',
+];
+
 const userGuides = [EditingInteractiveDemoGuidePart2];
 
 const { confirm } = Modal;
@@ -96,10 +116,12 @@ const { confirm } = Modal;
 const enum EditTargetType {
   Text = 't',
   Img = 'i',
+  Input = 'inp',
   Mixed = 'm',
   None = 'n',
 }
-type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement>>;
+
+type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement | HTMLInputElement >>;
 
 export interface ITimelineConfig {
   currentScreenAnnotations: IAnnotationConfigWithScreenId[];
@@ -243,6 +265,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             el!.textContent = tEncoding[IdxEditEncodingText.OLD_VALUE];
             break;
           }
+
+          case ElEditType.Input: {
+            const tEncoding = encoding as EditValueEncoding[ElEditType.Input];
+            this.addToMicroEdit(path, ElEditType.Input, [
+              getCurrentUtcUnixTime(),
+              tEncoding[IdxEncodingTypeInput.OLD_VALUE],
+              null,
+            ]);
+            this.flushMicroEdits();
+            (el as HTMLInputElement).placeholder = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
+            break;
+          }
+
           case ElEditType.Image: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Image];
             this.addToMicroEdit(path, ElEditType.Image, [
@@ -394,6 +429,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
           </Tags.EditLICon>
         );
+
+      case ElEditType.Input:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <RetweetOutlined />
+              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Placeholder changed to</div>
+              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
+                {encoding[IdxEncodingTypeInput.NEW_VALUE]}
+              </GTags.Txt>
+            </div>
+            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+
       case ElEditType.Blur:
         return (
           <Tags.EditLICon>
@@ -452,18 +502,39 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   } {
     const nestedEditTargetTypes = (function rec(el2: HTMLElement): EditTargets {
       if (el2.nodeType === Node.TEXT_NODE) {
-        return { [EditTargetType.Text]: [el2], [EditTargetType.Img]: [] };
+        return {
+          [EditTargetType.Text]: [el2],
+          [EditTargetType.Img]: [],
+          [EditTargetType.Input]: []
+        };
       }
 
       if (el2.nodeName) {
         if (el2.nodeName.toLowerCase() === 'img' || el2.nodeName.toLowerCase() === 'svg') {
-          return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+          return {
+            [EditTargetType.Text]: [],
+            [EditTargetType.Img]: [el2],
+            [EditTargetType.Input]: []
+          };
         }
+
         if (el2.nodeName.toLowerCase() === 'div' || el2.nodeName.toLowerCase() === 'span') {
           const bgImage = getComputedStyle(el2).backgroundImage;
           if (bgImage.search(/^url\(/) !== -1) {
-            return { [EditTargetType.Text]: [], [EditTargetType.Img]: [el2] };
+            return {
+              [EditTargetType.Text]: [],
+              [EditTargetType.Img]: [el2],
+              [EditTargetType.Input]: []
+            };
           }
+        }
+
+        if (el2.nodeName.toLowerCase() === 'input' || el2.nodeName.toLowerCase() === 'textarea') {
+          return {
+            [EditTargetType.Text]: [],
+            [EditTargetType.Img]: [],
+            [EditTargetType.Input]: [el2]
+          };
         }
       }
 
@@ -471,7 +542,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       const targetByTypes: EditTargets = {
         [EditTargetType.Text]: [],
         [EditTargetType.Img]: [],
+        [EditTargetType.Input]: []
       };
+
       for (const child of children) {
         const targetType = rec(child as HTMLElement);
         for (const [tType, tTargets] of Object.entries(targetType)) {
@@ -483,20 +556,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
     const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
+    const noOfInputs = nestedEditTargetTypes[EditTargetType.Input].length;
 
-    if (noOfImgs === 1 && noOfTexts === 0) {
+    if (noOfImgs === 1 && noOfTexts === 0 && noOfInputs === 0) {
       return {
         targetType: EditTargetType.Img,
         target: nestedEditTargetTypes[EditTargetType.Img][0] as HTMLElement,
       };
     }
 
-    if (noOfTexts === 1 && noOfImgs === 0) {
+    if (noOfTexts === 1 && noOfImgs === 0 && noOfInputs === 0) {
       return {
         targetType: EditTargetType.Text,
         target: nestedEditTargetTypes[EditTargetType.Text][0] as HTMLElement,
       };
     }
+
+    if (noOfInputs === 1 && noOfTexts === 0 && noOfImgs === 0) {
+      return {
+        targetType: EditTargetType.Input,
+        target: nestedEditTargetTypes[EditTargetType.Input][0] as HTMLElement,
+      };
+    }
+
     return {
       targetType: EditTargetType.Mixed,
     };
@@ -936,6 +1018,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           )}
       </>
     );
+
     switch (type) {
       case EditTargetType.Img:
         return (
@@ -978,6 +1061,42 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             {CommonOptions}
           </Tags.EditCtrlCon>
         );
+
+      case EditTargetType.Input: {
+        if (
+          this.state.targetEl?.nodeName.toLowerCase() === 'input'
+          && INPUT_TYPE_WITHOUT_PLACEHOLDER.includes(this.state.targetEl.getAttribute('type') || '')
+        ) {
+          return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
+        }
+        return (
+          <Tags.EditCtrlCon>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
+              <Tags.EditCtrlLabel>Update Placeholder Text</Tags.EditCtrlLabel>
+              <Tags.CtrlTxtEditBox
+                defaultValue={(this.state.targetEl as HTMLInputElement)?.placeholder}
+                autoFocus
+                onBlur={() => this.flushMicroEdits()}
+                onChange={((t) => (e) => {
+                  const path = this.iframeElManager!.elPath(t);
+                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Input}`;
+                  let origVal = t.getAttribute(attrName);
+
+                  if (origVal === null) {
+                    origVal = (t as HTMLInputElement).placeholder;
+                    t.setAttribute(attrName, origVal);
+                  }
+
+                  this.addToMicroEdit(path, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+
+                  (t as HTMLInputElement).placeholder = e.target.value;
+                })(this.state.targetEl!)}
+              />
+            </Tags.EditCtrlLI>
+            {CommonOptions}
+          </Tags.EditCtrlCon>
+        );
+      }
 
       case EditTargetType.Mixed:
         return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
@@ -1494,6 +1613,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         </Tags.InfoText>
                       </>
                     )}
+
                     {
                     this.props.screen.type === ScreenType.SerDom && (
                       <>
@@ -1555,6 +1675,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       and textarea for changing text content */}
                           {this.getEditingCtrlForElType(this.state.editTargetType)}
                         </Tags.EditTabCon>
+
                         {/* this is edits list */}
                         {this.props.screen.parentScreenId !== 0
                       && this.props.allEdits

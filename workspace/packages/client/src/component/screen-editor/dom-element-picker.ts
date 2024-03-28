@@ -186,7 +186,7 @@ export default class DomElementPicker extends HighlighterBase {
 
   setupHighlighting(): DomElementPicker {
     this.subscribeListenerToAllDoc('mousemove', this.handleMouseMove);
-    this.subscribeListenerToAllDoc('click', this.handleClick);
+    this.subscribeListenerToAllDoc('mousedown', this.handleClick);
 
     return this;
   }

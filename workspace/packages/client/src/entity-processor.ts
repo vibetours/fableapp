@@ -34,7 +34,8 @@ import {
   IdxEncodingTypeImage,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
-  IdxEncodingTypeMask
+  IdxEncodingTypeMask,
+  IdxEncodingTypeInput
 } from './types';
 import { isVideoAnnotation as isVideoAnn } from './utils';
 
@@ -257,6 +258,9 @@ const isEditToBeRemoved = (
 
     case ElEditType.Mask:
       return editArray[IdxEncodingTypeMask.NEW_STYLE] === null;
+
+    case ElEditType.Input:
+      return editArray[IdxEncodingTypeInput.NEW_VALUE] === null;
 
     default:
       return false;

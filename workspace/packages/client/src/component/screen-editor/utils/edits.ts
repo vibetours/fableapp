@@ -5,7 +5,11 @@ import {
   IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
-  IdxEncodingTypeDisplay, IdxEncodingTypeImage, IdxEncodingTypeMask } from '../../../types';
+  IdxEncodingTypeDisplay,
+  IdxEncodingTypeImage,
+  IdxEncodingTypeInput,
+  IdxEncodingTypeMask
+} from '../../../types';
 import { hideChildren, unhideChildren } from './creator-actions';
 
 export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTMLElement): void => {
@@ -19,6 +23,14 @@ export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTM
       el.textContent = isShowEdits
         ? tEncoding[IdxEditEncodingText.NEW_VALUE]
         : tEncoding[IdxEditEncodingText.OLD_VALUE];
+      break;
+    }
+
+    case ElEditType.Input: {
+      const tEncoding = encoding as EditValueEncoding[ElEditType.Input];
+      (el as HTMLInputElement).placeholder = (isShowEdits
+        ? tEncoding[IdxEncodingTypeInput.NEW_VALUE]
+        : tEncoding[IdxEncodingTypeInput.OLD_VALUE])!;
       break;
     }
 

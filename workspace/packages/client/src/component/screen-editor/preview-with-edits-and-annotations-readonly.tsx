@@ -20,11 +20,13 @@ import {
   EncodingTypeBlur,
   EncodingTypeDisplay,
   EncodingTypeImage,
+  EncodingTypeInput,
   EncodingTypeMask,
   EncodingTypeText, FrameAssetLoadFn, IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
+  IdxEncodingTypeInput,
   IdxEncodingTypeMask,
   IdxEncodingTypeText,
   NavFn,
@@ -160,6 +162,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const imgOrigValAttr = `${ATTR_NAME}-${ElEditType.Image}`;
     const dispOrigValAttr = `${ATTR_NAME}-${ElEditType.Display}`;
     const blurOrigValAttr = `${ATTR_NAME}-${ElEditType.Blur}`;
+    const inputOrigValAttr = `${ATTR_NAME}-${ElEditType.Input}`;
+
     for (const edit of allEdits) {
       const path = edit[IdxEditItem.PATH];
       let el: Node;
@@ -174,6 +178,13 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         const tEl = el as HTMLElement;
         el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
         tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
+      }
+
+      if (edit[IdxEditItem.TYPE] === ElEditType.Input) {
+        const inputEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeInput;
+        const tEl = el as HTMLInputElement;
+        (el as HTMLInputElement).placeholder = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
+        tEl.setAttribute(inputOrigValAttr, inputEncodingVal[IdxEncodingTypeInput.OLD_VALUE]);
       }
 
       if (edit[IdxEditItem.TYPE] === ElEditType.Image) {

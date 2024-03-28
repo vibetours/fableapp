@@ -14,11 +14,19 @@ export const enum ElEditType {
   Image,
   Display,
   Blur,
-  Mask
+  Mask,
+  Input
 }
 
 export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string | null];
 export const enum IdxEncodingTypeText {
+  TIMESTAMP = 0,
+  OLD_VALUE,
+  NEW_VALUE,
+}
+
+export type EncodingTypeInput = [timeInSec: number, oldValue: string, newValue: string | null];
+export const enum IdxEncodingTypeInput {
   TIMESTAMP = 0,
   OLD_VALUE,
   NEW_VALUE,
@@ -75,6 +83,7 @@ export interface EditValueEncoding {
   [ElEditType.Blur]: EncodingTypeBlur;
   [ElEditType.Display]: EncodingTypeDisplay;
   [ElEditType.Mask]: EncodingTypeMask;
+  [ElEditType.Input]: EncodingTypeInput;
 }
 
 export const enum IdxEditEncodingText {
