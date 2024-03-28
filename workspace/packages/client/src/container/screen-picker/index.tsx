@@ -1,10 +1,11 @@
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { ArrowUpOutlined, FileImageOutlined, FileTextOutlined, UploadOutlined } from '@ant-design/icons';
+import { ArrowUpOutlined, FileImageOutlined, FileTextOutlined, MoreOutlined, UploadOutlined } from '@ant-design/icons';
 import { getDisplayableTime } from '@fable/common/dist/utils';
 import { LoadingStatus } from '@fable/common/dist/types';
 import { NavigateFunction } from 'react-router-dom';
+import { Popover, Button } from 'antd';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import {
@@ -122,9 +123,10 @@ const ITEMS_PER_PAGE = 15;
 interface ScreenComponentProps {
   screen: P_RespScreen;
   handleAddScreen: (screen: P_RespScreen) => void;
+  duplicateScreenToTour?: (screen: P_RespScreen) => void;
 }
 
-function ScreenCard({ screen, handleAddScreen }: ScreenComponentProps): ReactElement {
+function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenComponentProps): ReactElement {
   return (
     <Tags.Screen
       id="screen-card"
@@ -159,7 +161,54 @@ function ScreenCard({ screen, handleAddScreen }: ScreenComponentProps): ReactEle
           <GTags.Txt className="subtitle">
             Created {getDisplayableTime(screen.createdAt)}
           </GTags.Txt>
-          <GTags.Avatar src={screen.createdBy.avatar} alt="profile" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <GTags.Avatar src={screen.createdBy.avatar} alt="profile" />
+            {duplicateScreenToTour && (
+              <Popover
+                content={
+                  <Tags.ScreenOptionPopoverCon
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <GTags.PopoverMenuItem
+                      onMouseDown={(e) => handleAddScreen(screen)}
+                    >
+                      <div className="title">Add existing screen</div>
+                      <div className="desc">
+                        This screen is already added in the demo, click here to add it again.
+                        All the edits would be kept intact.
+                      </div>
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItem
+                      onMouseDown={(e) => duplicateScreenToTour(screen)}
+                    >
+                      <div className="title">Copy and add screen</div>
+                      <div className="desc">
+                        Copy a new version of the same screen and add to the demo.
+                        Edits on screen will be discarded
+                      </div>
+                    </GTags.PopoverMenuItem>
+                  </Tags.ScreenOptionPopoverCon>
+                }
+                trigger="click"
+                placement="right"
+              >
+                <Button
+                  style={{ padding: 0, margin: 0 }}
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<MoreOutlined />}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                />
+              </Popover>
+            )}
+          </div>
         </Tags.ScreenTitleIconCon>
       </Tags.ScreenContent>
     </Tags.Screen>
@@ -269,6 +318,14 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  duplicateScreenToTour = (screen: P_RespScreen): void => {
+    let parentScreen: P_RespScreen = screen;
+    if (screen.type === ScreenType.SerDom) {
+      parentScreen = this.props.rootScreens.find(srn => srn.id === screen.parentScreenId)!;
+    }
+    this.handleAddScreenNotPartOfTour(parentScreen);
+  };
+
   handleLoadMoreScreens = (): void => {
     this.setState((prevState) => ({
       currentPage: prevState.currentPage + 1,
@@ -315,7 +372,12 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                   </Tags.UploadImgCont>
                 </Tags.Screen>
                 {this.state.screensPartOfTour.map(screen => (
-                  <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenPartOfTour} key={screen.id} />
+                  <ScreenCard
+                    screen={screen}
+                    handleAddScreen={this.handleAddScreenPartOfTour}
+                    key={screen.id}
+                    duplicateScreenToTour={this.duplicateScreenToTour}
+                  />
                 ))}
                 {paginatedScreensNotPartOfTour.map(screen => (
                   <ScreenCard screen={screen} handleAddScreen={this.handleAddScreenNotPartOfTour} key={screen.id} />

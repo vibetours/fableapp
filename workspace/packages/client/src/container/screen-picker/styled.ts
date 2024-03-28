@@ -137,6 +137,7 @@ export const ScreenTitleIconCon = styled.div`
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
   `;
 
 export const UploadImgCont = styled.div`
@@ -275,7 +276,7 @@ export const ScreenPickerCon = styled.div`
   align-items: center;
   background-color: transparent;
   backdrop-filter: blur(16px);
-  z-index: 2000;
+  z-index: 1020;
   top: 0;
   left: 0;
   animation: ${bottomToTop} 0.3s ease-out;
@@ -400,4 +401,18 @@ export const LoadNextCon = styled.div`
   align-items: center;
   flex-direction: column;
   margin: auto;
+`;
+
+export const ScreenOptionPopoverCon = styled.div`
+  max-width: 320px;
+
+  .title {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .desc {
+    font-size: 0.8rem;
+    color: gray;
+  }
 `;
