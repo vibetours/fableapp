@@ -227,10 +227,13 @@ export interface TSubs {
   subs: P_RespSubscription;
 }
 
-export function checkout(chosenPlan: 'startup' | 'business', chosenInterval: 'annual' | 'monthly') {
+export function checkout(chosenPlan: 'solo' | 'startup' | 'business', chosenInterval: 'annual' | 'monthly') {
   return async (dispatch: Dispatch<TSubs>, getState: () => TState) => {
     let plan: PaymentTermsPlan | null = null;
     switch (chosenPlan.toUpperCase()) {
+      case 'SOLO':
+        plan = PaymentTermsPlan.SOLO;
+        break;
       case 'STARTUP':
         plan = PaymentTermsPlan.STARTUP;
         break;

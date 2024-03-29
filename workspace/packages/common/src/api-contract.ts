@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-03-29 12:38:13.
+// Generated using typescript-generator version 2.35.1025 on 2024-03-29 11:12:17.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -513,6 +513,7 @@ export const enum NfEvents {
 }
 
 export const enum Plan {
+    SOLO = "SOLO",
     STARTUP = "STARTUP",
     BUSINESS = "BUSINESS",
 }

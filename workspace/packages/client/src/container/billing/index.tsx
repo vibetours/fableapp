@@ -29,7 +29,7 @@ interface IDispatchProps {
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
-  checkout: (chosenPlan: 'startup' | 'business', chosenInterval: 'annual' | 'monthly') => dispatch(checkout(chosenPlan, chosenInterval)),
+  checkout: (chosenPlan: 'solo' | 'startup' | 'business', chosenInterval: 'annual' | 'monthly') => dispatch(checkout(chosenPlan, chosenInterval)),
 });
 
 interface IAppStateProps {
@@ -81,7 +81,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     let currentPlan = '';
     if (this.props.subs) {
       isSameInterval = this.props.subs.paymentInterval === this.state.tabSelected.toUpperCase();
-      currentPlan = this.props.subs.paymentPlan === Plan.STARTUP ? 'startup' : 'business';
+      currentPlan = this.props.subs.paymentPlan === Plan.STARTUP ? 'startup' : (this.props.subs.paymentPlan === Plan.SOLO ? 'solo' : 'business');
     }
     return (
       <GTags.ColCon>
@@ -222,14 +222,14 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                           }}
                           >{plan.planName}
                           </div>
-                          <Tags.PlanPrice>{plan[priceFor] ? (
+                          <Tags.PlanPrice>{plan[priceFor] !== undefined ? (
                             <>
-                              ${plan[priceFor]}
+                              {plan[priceFor] === 0 ? 'Free' : `$${plan[priceFor]}`}
                               <span style={{
                                 fontSize: '0.8rem',
                               }}
                               >
-                                <div style={{ marginBottom: '1rem', opacity: '0.6' }}>per month </div>
+                                { plan[priceFor] ? <div style={{ marginBottom: '1rem', opacity: '0.6' }}>per month </div> : <></> }
                               </span>
                             </>
                           ) : "Let's talk"}
@@ -238,7 +238,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                             <Button
                               intent="secondary"
                               style={{
-                                pointerEvents: plan.planId === currentPlan && isSameInterval ? 'none' : 'all',
+                                pointerEvents: plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 'none' : 'all',
+                                opacity: plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 0.55 : 1,
                               }}
                               onClick={() => {
                                 if (plan.planId === 'enterprise') {
@@ -249,7 +250,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                 this.props.checkout(plan.planId, interval);
                               }}
                             >
-                              {plan.planId === currentPlan && isSameInterval ? 'Subscribed' : 'Choose'}
+                              {plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 'Subscribed' : 'Choose'}
                             </Button>
                           </div>
                           <Tags.FeatCon>

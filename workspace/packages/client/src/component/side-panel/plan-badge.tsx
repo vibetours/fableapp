@@ -11,35 +11,42 @@ interface Props {
 
 interface badgeText {
   title: string,
-  subTitle: string
+  subTitle: string,
+  type: 'warn' | 'normal',
+  hide: boolean;
 }
 
 const getPlanBadgeText = (subs: P_RespSubscription) : badgeText => {
   const badgeText: badgeText = {
     title: '',
-    subTitle: ''
+    subTitle: '',
+    type: 'warn',
+    hide: false
   };
 
-  if (subs.status === Status.ACTIVE && subs.paymentPlan === Plan.STARTUP) {
-    badgeText.title = 'Startup';
-    badgeText.subTitle = 'Upgrade now';
+  if (subs.paymentPlan === Plan.SOLO) {
+    badgeText.title = 'Upgrade now';
     return badgeText;
   }
 
-  if (subs.status === Status.NON_RENEWING) {
-    badgeText.title = 'Non Renewing Plan';
-    badgeText.subTitle = 'Renew now';
+  if (subs.status === Status.ACTIVE) {
+    if (subs.paymentPlan === Plan.STARTUP) {
+      badgeText.title = 'Upgrade now';
+      badgeText.subTitle = 'On Startup Plan';
+    } else if (subs.paymentPlan === Plan.BUSINESS) {
+      badgeText.hide = true;
+    }
     return badgeText;
   }
 
-  if (subs.displayableTrialEndsOn === 'Expired') {
-    badgeText.title = 'Expired';
-    badgeText.subTitle = 'Renew your subscription by clicking here';
+  if (subs.status === Status.IN_TRIAL) {
+    badgeText.title = 'On Trial';
+    badgeText.subTitle = subs.displayableTrialEndsOn as string;
     return badgeText;
   }
 
-  badgeText.title = 'On Trial';
-  badgeText.subTitle = subs.displayableTrialEndsOn as string;
+  badgeText.title = 'Expired';
+  badgeText.subTitle = 'Renew your subscription by clicking here';
 
   return badgeText;
 };
@@ -48,13 +55,20 @@ export default function PlanBadge(props: Props): JSX.Element {
   const badgeText: badgeText = getPlanBadgeText(props.subs);
 
   return (
-    <Tags.PlanBadgeCon onClick={props.onClick}>
+    <Tags.PlanBadgeCon
+      onClick={props.onClick}
+      style={{
+        visibility: badgeText.hide ? 'hidden' : 'visible',
+        background: badgeText.type === 'warn' ? '#ff7450' : 'inherit',
+        color: badgeText.type === 'warn' ? 'white' : 'inherit'
+      }}
+    >
       <ThunderboltOutlined style={{ fontSize: 20 }} />
       <div style={{ width: '75%' }}>
-        <div style={{ color: '#212121' }}>
+        <div style={{ fontWeight: '500' }}>
           {badgeText.title}
         </div>
-        <div style={{ fontSize: '0.8rem', color: '#6a6a6a' }}>
+        <div style={{ fontSize: '0.8rem' }}>
           {badgeText.subTitle}
         </div>
       </div>
