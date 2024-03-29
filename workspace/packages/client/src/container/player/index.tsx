@@ -30,7 +30,6 @@ import {
   getAnnotationsPerScreen,
   getJourneyProgress,
   saveJourneyProgress,
-  addToGlobalAppData,
   getCurrentFlowMain,
   getJourneyWithAnnotations,
   getOrderedAnnotaionFromMain,
@@ -49,7 +48,8 @@ import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
-import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
+import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
+import { FableLeadContactProps, addToGlobalAppData } from '../../global';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -176,9 +176,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
     const searchParams = new URLSearchParams(this.props.location.search);
     const userEmail: string = searchParams.get('email') || '';
-    const firstName: string = searchParams.get('first_name') || '';
-    const lastName: string = searchParams.get('last_name') || '';
-    const org: string = searchParams.get('org') || '';
+    const firstName = searchParams.get('first_name') ?? undefined;
+    const lastName = searchParams.get('last_name') ?? undefined;
+    const org = searchParams.get('org') ?? undefined;
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
         ...((window as FWin).__fable_global_settings__ || {}),
@@ -187,14 +187,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (userEmail) {
-      (window as FWin).__fable_global_user__ = {
-        ...((window as FWin).__fable_global_user__ || {}),
-        userEmail,
-        firstName,
-        lastName,
+      emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, {
+        email: userEmail,
+        first_name: firstName,
+        last_name: lastName,
         org
-      };
+      });
     }
+
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
       !this.props.staging
@@ -530,6 +530,20 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  navigateToAndLogEvent = (journeyData: JourneyData, type: 'annotation-hotspot' | 'abs'): void => {
+    this.navFn(journeyData.cta!.navigateTo, type);
+    setTimeout(() => {
+      if (type !== 'annotation-hotspot') {
+        emitEvent<CtaClickedInternal>(InternalEvents.OnCtaClicked, {
+          ctaFrom: CtaFrom.Journey,
+          btnId: '$journey_cta',
+          url: journeyData.cta!.navigateTo,
+          btnTxt: journeyData.cta!.text
+        });
+      }
+    }, 0);
+  };
+
   getScreenWithRenderSlot(): {
     slotIdx: number;
     screen: P_RespScreen;
@@ -758,7 +772,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
               updateJourneyMenu={(isMenuOpen: boolean) : void => {
                 this.setState({ isJourneyMenuOpen: isMenuOpen });
               }}
-              navigateToCta={() => this.navFn(this.props.journey!.cta!.navigateTo, 'abs')}
+              // navigateToCta={() => this.navFn(this.props.journey!.cta!.navigateTo, 'abs')}
+              navigateToCta={() => this.navigateToAndLogEvent(this.props.journey!, 'abs')}
               tourOpts={this.props.tourOpts!}
               currentFlowMain={this.state.currentFlowMain}
               journeyProgress={this.localJourneyProgress[this.props.tour!.id]}

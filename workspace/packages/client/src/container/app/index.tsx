@@ -7,9 +7,9 @@ import { init, iam } from '../../action/creator';
 import Player from '../player';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
-import { addToGlobalAppData } from '../../utils';
 import { P_RespTour } from '../../entity-processor';
 import Loader from '../../component/loader/heart';
+import { addToGlobalAppData } from '../../global';
 
 const PublishPreview = lazy(() => import('../publish-preview'));
 const Tours = lazy(() => import('../tours'));
@@ -33,6 +33,7 @@ const ProtectedRoutes = lazy(() => import('../protected-routes'));
 const Analytics = lazy(() => import('../analytics'));
 const Healthcheck = lazy(() => import('../healthcheck'));
 const Invite = lazy(() => import('../invite'));
+const Integrations = lazy(() => import('../integrations'));
 
 interface IDispatchProps {
   init: () => void;
@@ -108,6 +109,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <div className="app" style={{ overflow: 'hidden' }}>
             <Routes>
               <Route path="/" element={<Navigate to="/demos" />} />
+              <Route path="/integrations" element={<Integrations title="Fable - Integrations" />} />
               <Route path="/tours" element={<Navigate to="/demos" />} />
               <Route path="/aboutblank" element={<div />} />
               <Route path="/onboarding" element={<Onboarding />}>

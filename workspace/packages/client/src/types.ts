@@ -3,6 +3,7 @@ import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
+import { FableLeadContactProps } from './global';
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
   isPhony?: boolean;
@@ -170,16 +171,9 @@ export interface GlobalSettings {
   shouldLogEvent?: boolean;
 }
 
-export interface GlobalUser {
-  userEmail: string;
-  lastName: string;
-  firstName: string;
-  org: string
-}
-
 export type FWin = Window
   & { __fable_global_settings__?: GlobalSettings }
-  & { __fable_global_user__?: GlobalUser };
+  & { __fable_global_user__?: FableLeadContactProps };
 
 export type ScreenPickerMode = 'create' | 'navigate';
 
@@ -206,6 +200,8 @@ export enum InternalEvents {
   OnAnnotationNav = 'on_annotation_navigation',
   OnNavigation = 'on_navigation',
   JourneySwitch = 'journey_switch',
+  OnCtaClicked = 'on_cta_clicked',
+  LeadAssign = 'lead_assign',
 }
 
 export enum ExtMsg {

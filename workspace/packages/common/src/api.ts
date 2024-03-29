@@ -66,6 +66,7 @@ export default async function api<T, M>(
   }
 
   if ((resp.status === 401 || resp.status === 403) && path.startsWith(apiPath)) {
+    // take user to logout page
     window.location.replace(`/logout?t=${LogoutType.APINotAutorized}`);
   }
 

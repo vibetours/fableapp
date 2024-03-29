@@ -7,7 +7,10 @@ import {
   PayloadTypeMap,
   EventLog,
   FlattendEventLog,
-  FableAnalyticsLocalStoreKeys
+  FableAnalyticsLocalStoreKeys,
+  CtaClickedAnalytics,
+  EventLogDirect,
+  AnalyticsEventsDirect
 } from './types';
 import { FWin } from '../types';
 
@@ -58,7 +61,7 @@ export const removeSessionId = (): void => {
   sessionStorage.removeItem(FableAnalyticsLocalStoreKeys.SessionId);
 };
 
-const getCommonEventProps = (date: Date, event: AnalyticsEvents): CommonEventProps => ({
+const getCommonEventProps = (date: Date, event: AnalyticsEvents | AnalyticsEventsDirect): CommonEventProps => ({
   aid: getAnonymousUserId(),
   ...(event !== AnalyticsEvents.ANN_USER_ASSIGN ? { sid: getSessionId() } : {}),
   uts: getUtcUnixTimestamp(date),
@@ -76,13 +79,26 @@ export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof 
         ...getCommonEventProps(new Date(), event)
       };
       const eventLogs = flattenLogEvent(data);
-      const sub = encodeURIComponent(btoa(eventLogs.event));
-      api(`/lue?sub=${sub}`, {
-        auth: false,
-        method: 'POST',
-        body: eventLogs,
-        noRespExpected: true,
-      });
+      sendEventToApi(event, eventLogs, '/lue');
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+  }, 0);
+};
+
+export const logEventDirect = (event: AnalyticsEventsDirect, payload: CtaClickedAnalytics): void => {
+  setTimeout(() => {
+    try {
+      const globalSettings = (window as FWin).__fable_global_settings__ || {};
+      const globalUser = { ...(window as FWin).__fable_global_user__ || {} };
+      if (!globalSettings.shouldLogEvent) return;
+      const data: EventLogDirect = {
+        email: globalUser.email || '',
+        event,
+        ...payload,
+        ...getCommonEventProps(new Date(), event)
+      };
+      sendEventToApi(event, data, '/lued');
     } catch (e) {
       raiseDeferredError(e as Error);
     }
@@ -108,4 +124,18 @@ export function formatTimeFromSeconds(seconds: number): string {
     return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`;
   }
   return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${remainingSeconds} ${remainingSeconds === 1 ? 'Sec' : 'Secs'}`;
+}
+
+function sendEventToApi(
+  event: AnalyticsEvents | AnalyticsEventsDirect,
+  data: FlattendEventLog | EventLogDirect,
+  url: string
+): void {
+  const sub = encodeURIComponent(btoa(event));
+  api(`${url}?sub=${sub}`, {
+    auth: false,
+    method: 'POST',
+    body: data,
+    noRespExpected: true,
+  });
 }

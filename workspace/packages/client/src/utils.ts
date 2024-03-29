@@ -405,17 +405,6 @@ export function postMessageForEvent<T>(eventType: ExtMsg, payload: T): void {
   window.parent.postMessage(message, '*');
 }
 
-export function addToGlobalAppData<T>(key: keyof GlobalAppData, val: GlobalAppData[keyof GlobalAppData]) : void {
-  (window as GlobalWin).__fable_global_app_data__ = {
-    ...((window as GlobalWin).__fable_global_app_data__ || {}),
-    [key]: val
-  };
-}
-
-export function getGlobalData(key: keyof GlobalAppData): GlobalAppData[keyof GlobalAppData] {
-  const commonMessageData = (window as GlobalWin).__fable_global_app_data__ || {};
-  return commonMessageData[key];
-}
 export const getCurrentFlowMain = (
   id: string,
   allAnnotationsForTour: AnnotationPerScreen[],

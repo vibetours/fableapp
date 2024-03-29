@@ -1,4 +1,9 @@
-import { AnalyticsEvents, AnnotationBtnClickedPayload, UserAssignPayload } from './analytics/types';
+import {
+  AnalyticsEvents,
+  AnalyticsEventsDirect,
+  AnnotationBtnClickedPayload,
+  CtaClickedInternal,
+} from './analytics/types';
 import {
   ExtMsg,
   InternalEvents,
@@ -7,23 +12,28 @@ import {
   Payload_JourneySwitch,
   Payload_Navigation,
   JourneyNameIndexData,
-  FWin
+  FWin,
 } from './types';
-import { createIframeSrc, getGlobalData, postMessageForEvent } from './utils';
+import { createIframeSrc, postMessageForEvent } from './utils';
 import { P_RespTour } from './entity-processor';
-import { logEvent } from './analytics/utils';
+import { getUUID, logEvent, logEventDirect } from './analytics/utils';
+import { CBCtaClickEvent, CBEventBase, CBEvents, logEventToCblt } from './analytics/handlers';
+import { FableLeadContactProps, getGlobalData, saveGlobalUser } from './global';
 
 type Payload_IE_AnnotationNav = AnnotationBtnClickedPayload;
 type Payload_IE_JourneySwitch = Payload_JourneySwitch;
 type Payload_IE_DemoLoadingStarted = Payload_DemoLoadingStarted;
 type Payload_IE_DemoLoadingFinished = Payload_DemoLoadingFinished;
 type Payload_IE_Navigation = Payload_Navigation;
+type Payload_IE_CtaClicked = CtaClickedInternal;
 
 type Payload_IE_All = Payload_IE_AnnotationNav
   | Payload_IE_JourneySwitch
   | Payload_IE_DemoLoadingStarted
   | Payload_IE_DemoLoadingFinished
-  | Payload_IE_Navigation;
+  | Payload_IE_Navigation
+  | Payload_IE_CtaClicked
+  | FableLeadContactProps;
 
 export function emitEvent<T>(
   ev: InternalEvents,
@@ -57,6 +67,8 @@ export function initInternalEvents() : void {
     postMessageForEvent<Payload_Navigation>(ExtMsg.OnNavigation, postMsgPayload);
   });
 
+  // registerListenerForInternalEvent(InternalEvents.LeadAssign, paylaod: )
+
   registerListenerForInternalEvent(InternalEvents.OnAnnotationNav, (payload: Payload_IE_All) => {
     const tPayload = payload as Payload_IE_AnnotationNav;
     const btnClickedPayload: AnnotationBtnClickedPayload = {
@@ -66,6 +78,52 @@ export function initInternalEvents() : void {
       btn_type: tPayload.btn_type
     };
     logEvent(AnalyticsEvents.ANN_BTN_CLICKED, btnClickedPayload);
+  });
+
+  registerListenerForInternalEvent(InternalEvents.LeadAssign, (payload: Payload_IE_All) => {
+    const lead = payload as FableLeadContactProps;
+    saveGlobalUser(lead);
+    const demo = getGlobalData('demo') as P_RespTour;
+
+    logEventToCblt<FableLeadContactProps & CBEventBase>({
+      event: CBEvents.CREATE_CONTACT,
+      payload: {
+        ...lead,
+        ti: demo.id
+      },
+    }, demo.rid);
+    logEvent(AnalyticsEvents.ANN_USER_ASSIGN, {
+      user_email: lead.email,
+      tour_id: demo.id,
+      others: lead
+    });
+  });
+
+  registerListenerForInternalEvent(InternalEvents.OnCtaClicked, (payload: Payload_IE_All) => {
+    const ctaClickedPayload = payload as CtaClickedInternal;
+    const demo = getGlobalData('demo') as P_RespTour;
+    const lead = ((window as FWin).__fable_global_user__ || {}) as FableLeadContactProps;
+    if (!lead.email) return;
+
+    logEventDirect(AnalyticsEventsDirect.CTA_CLICKED, {
+      ctaFrom: ctaClickedPayload.ctaFrom,
+      btnId: ctaClickedPayload.btnId,
+      url: ctaClickedPayload.url,
+      tourId: demo.id
+    });
+
+    logEventToCblt<CBCtaClickEvent>({
+      event: CBEvents.CTA_CLICKED,
+      payload: {
+        cta_url: ctaClickedPayload.url,
+        cta_txt: ctaClickedPayload.btnTxt,
+        our_event_id: getUUID(),
+        demo_url: `${process.env.REACT_APP_CLIENT_ENDPOINT}/p/demo/${demo.rid}`,
+        demo_name: demo.displayName,
+        ti: demo.id,
+        email: lead.email
+      }
+    }, demo.rid);
   });
 
   registerListenerForInternalEvent(InternalEvents.JourneySwitch, (payload: Payload_IE_All) => {
@@ -84,19 +142,6 @@ export function initInternalEvents() : void {
       demoRid: demoData.rid || '',
     };
     postMessageForEvent(ExtMsg.DemoLoadingStarted, tPayload as Payload_IE_DemoLoadingStarted);
-  });
-
-  registerListenerForInternalEvent(InternalEvents.DemoLoadingStarted, () => {
-    const demoData = getGlobalData('demo') as P_RespTour;
-    const user = (window as FWin).__fable_global_user__;
-    if (user) {
-      const userAssignPayload: UserAssignPayload = {
-        user_email: user.userEmail,
-        tour_id: demoData.id,
-        others: { email: user.userEmail, lastName: user.lastName }
-      };
-      logEvent(AnalyticsEvents.ANN_USER_ASSIGN, userAssignPayload);
-    }
   });
 
   registerListenerForInternalEvent(

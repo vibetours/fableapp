@@ -1,6 +1,7 @@
 import {
   AnnotationButtonStyle,
   CoverAnnotationPositions,
+  IAnnotationButton,
   IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
@@ -18,7 +19,13 @@ import {
   isCoverAnnotation as isCoverAnn,
   isVideoAnnotation as isVideoAnn
 } from '../../utils';
-import { AnalyticsEvents, AnnotationBtnClickedPayload, UserAssignPayload } from '../../analytics/types';
+import {
+  AnalyticsEvents,
+  AnnotationBtnClickedPayload,
+  CtaClickedInternal,
+  CtaFrom,
+  UserAssignPayload
+} from '../../analytics/types';
 import * as VIDEO_ANN from './video-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
@@ -26,7 +33,7 @@ import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
-import { logEvent } from '../../analytics/utils';
+import { FableLeadContactProps, getGlobalData } from '../../global';
 
 const AnnotationVideo = lazy(() => import('./video-player'));
 interface NavigateToAnnMessage<T> extends MessageEvent{
@@ -211,12 +218,14 @@ export class AnnotationContent extends React.PureComponent<{
                       }
 
                       if (shouldNavigate) {
-                        const userAssignPayload: UserAssignPayload = {
-                          user_email: leadForm.email,
-                          tour_id: this.props.tourId,
-                          others: leadForm
-                        };
-                        logEvent(AnalyticsEvents.ANN_USER_ASSIGN, userAssignPayload);
+                        setTimeout(() => {
+                          const evt: FableLeadContactProps = {
+                            ...leadForm,
+                            email: leadForm.email
+                          };
+                          emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
+                        }, 16);
+
                         this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
                       }
                     } else {
@@ -1194,20 +1203,28 @@ interface HotspotProps {
 }
 
 function handleEventLogging(
-  btn_id: string,
-  btn_type: IAnnotationButtonType,
+  btn: IAnnotationButton,
   tour_id: number,
   annotationConfig: IAnnotationConfig
 ): void {
   setTimeout(() => {
     const btnClickedpayload: AnnotationBtnClickedPayload = {
-      tour_id, ann_id: annotationConfig.refId, btn_id, btn_type
+      tour_id, ann_id: annotationConfig.refId, btn_id: btn.id, btn_type: btn.type
     };
 
     emitEvent<Partial<AnnotationBtnClickedPayload>>(InternalEvents.OnAnnotationNav, {
-      ...btnClickedpayload
+      ...btnClickedpayload,
     });
-  // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
+
+    if ((btn.type === 'custom' || btn.type === 'next') && btn.hotspot && btn.hotspot.actionType === 'open') {
+      emitEvent<Partial<CtaClickedInternal>>(InternalEvents.OnCtaClicked, {
+        ctaFrom: CtaFrom.Annotation,
+        btnId: btn.id,
+        url: btn.hotspot!.actionValue,
+        btnTxt: btn.text
+      });
+    }
+    // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
   }, 0);
 }
 
@@ -1325,8 +1342,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
 
         handleEventLogging(
-          btnId,
-          type,
+          btnConf,
           this.props.tourId,
           p.conf.config
         );

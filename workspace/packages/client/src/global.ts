@@ -1,0 +1,35 @@
+import { FWin, GlobalAppData, GlobalWin } from './types';
+
+export interface CmnLeadProps {
+  ti: number;
+}
+
+export interface FableLeadContactProps extends Record<string, string | number | undefined | null> {
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  country?: string;
+  industry?: string;
+  org?: string;
+  phone?: string;
+  website_url?: string;
+}
+
+export function saveGlobalUser(user: Partial<FableLeadContactProps>) {
+  (window as FWin).__fable_global_user__ = {
+    ...((window as FWin).__fable_global_user__ || {}) as FableLeadContactProps,
+    ...user
+  };
+}
+
+export function addToGlobalAppData<T>(key: keyof GlobalAppData, val: GlobalAppData[keyof GlobalAppData]) : void {
+  (window as GlobalWin).__fable_global_app_data__ = {
+    ...((window as GlobalWin).__fable_global_app_data__ || {}),
+    [key]: val
+  };
+}
+
+export function getGlobalData(key: keyof GlobalAppData): GlobalAppData[keyof GlobalAppData] {
+  const commonMessageData = (window as GlobalWin).__fable_global_app_data__ || {};
+  return commonMessageData[key];
+}

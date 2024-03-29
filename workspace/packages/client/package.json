@@ -8,6 +8,8 @@
     "@amplitude/analytics-browser": "^2.2.3",
     "@ant-design/icons": "^4.8.0",
     "@auth0/auth0-react": "^2.0.1",
+    "@cobaltio/cobalt-js": "^7.0.1",
+    "@cobaltio/react-cobalt-js": "^1.0.0-beta.15",
     "@lexical/react": "0.12.2",
     "@lottiefiles/react-lottie-player": "^3.5.3",
     "@sentry/react": "^7.49.0",

@@ -1,4 +1,4 @@
-import { CreditCardOutlined, NodeIndexOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
+import { ApiOutlined, CreditCardOutlined, NodeIndexOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
@@ -13,7 +13,7 @@ import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
-  selected: 'tours' | 'user-management' | 'billing' | 'settings';
+  selected: 'tours' | 'user-management' | 'billing' | 'settings' | 'integrations';
   subs: P_RespSubscription | null;
   tourAvailable?: boolean;
   firstTourRid?: string;
@@ -40,11 +40,11 @@ export default function SidePanel(props: Props): JSX.Element {
           <NodeIndexOutlined />
           <p>Interactive demos</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn
-          className={props.selected === 'user-management' ? 'selected' : ''}
-          to="/users"
-          onClick={() => sendEvntToAmplitude('user_management')}
-        >
+        <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
+          <ApiOutlined />
+          <p>Integrations</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users">
           <UsergroupAddOutlined />
           <p>User management</p>
         </Tags.ConNavBtn>
@@ -65,6 +65,7 @@ export default function SidePanel(props: Props): JSX.Element {
               navigate('/billing');
             }}
           />}
+
           <UserGuideProgress
             selected={isUserGuideDetailsOpen}
             onClick={() => {

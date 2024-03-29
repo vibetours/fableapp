@@ -1,4 +1,5 @@
 import { IAnnotationButtonType } from '@fable/common/dist/types';
+import { CmnLeadProps, FableLeadContactProps } from '../global';
 
 export enum FableAnalyticsLocalStoreKeys {
   AnonymousUserId = 'fable/aid',
@@ -19,6 +20,10 @@ export enum AnalyticsEvents {
   ANN_USER_ASSIGN = 'ann_user_assign',
   TIME_SPENT_IN_ANN = 'time_spent_in_ann',
   VIDEO_ANN_SKIPPED = 'video_ann_skipped'
+}
+
+export enum AnalyticsEventsDirect {
+  CTA_CLICKED = 'cta_clicked'
 }
 
 export interface AnnotationBtnClickedPayload {
@@ -43,7 +48,26 @@ export interface VideoAnnotationSkippedPayload {
 export interface UserAssignPayload {
   user_email: string;
   tour_id: number;
-  others: Record<string, string>;
+  others: Record<string, string | number | undefined | null>;
+}
+
+export interface CtaClickedInternal {
+  ctaFrom: CtaFrom;
+  btnId: string;
+  url: string;
+  btnTxt: string;
+}
+
+export interface CtaClickedAnalytics {
+  ctaFrom: CtaFrom;
+  btnId: string;
+  url: string;
+  tourId: number;
+}
+
+export enum CtaFrom {
+  Annotation = 'annotation',
+  Journey = 'journey',
 }
 
 export interface PayloadTypeMap {
@@ -60,6 +84,15 @@ export interface EventLog {
   uts: number;
   tz: string;
   event: AnalyticsEvents;
+}
+
+export interface EventLogDirect extends CtaClickedAnalytics {
+  email: string;
+  aid: string;
+  sid?: string;
+  uts: number;
+  tz: string;
+  event: AnalyticsEventsDirect;
 }
 
 export interface FlattendEventLog extends Record<string, number | string | undefined | object>{
