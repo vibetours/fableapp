@@ -92,6 +92,7 @@ import EditingInteractiveDemoGuidePart1 from '../../user-guides/editing-interact
 import ExploringCanvasGuide from '../../user-guides/exploring-canvas-guide';
 import { UserGuideMsg } from '../../user-guides/types';
 import { SCREEN_EDITOR_ID } from '../../constants';
+import 'd3-transition';
 
 const { confirm } = Modal;
 

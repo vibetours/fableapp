@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
-import { pointer as fromPointer, selectAll, select, Selection as D3Selection } from 'd3-selection';
+import { select } from 'd3-selection';
 import { scaleUtc, scaleLinear } from 'd3-scale';
 import { extent, max, range } from 'd3-array';
 import { area, curveCatmullRom } from 'd3-shape';
@@ -8,6 +8,7 @@ import { ArrowsAltOutlined, LinkOutlined, ShrinkOutlined } from '@ant-design/ico
 import { Button } from 'antd';
 import * as Tags from './styled';
 import Bar from './bar';
+import 'd3-transition';
 
 const margin = { top: 20, right: 20, bottom: 30, left: 30 };
 
