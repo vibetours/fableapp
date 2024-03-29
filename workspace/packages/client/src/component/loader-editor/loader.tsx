@@ -1,8 +1,10 @@
-import React from 'react';
-import { Player } from '@lottiefiles/react-lottie-player';
+import React, { lazy } from 'react';
 import { ITourLoaderData } from '@fable/common/dist/types';
 import * as Tags from './styled';
 
+const LottiePlayer = lazy(() => import('@lottiefiles/react-lottie-player').then(({ Player }) => ({
+  default: Player
+})));
 interface Props {
   data: ITourLoaderData;
 }
@@ -53,7 +55,7 @@ function Loader(props: Props): JSX.Element {
                     alt="logo"
                     className="gif"
                   />}
-                  {props.data.loader.type === 'lottie' && <Player
+                  {props.data.loader.type === 'lottie' && <LottiePlayer
                     style={{ height: '100%' }}
                     src={props.data.loader.url}
                     autoplay

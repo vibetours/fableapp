@@ -69,6 +69,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.0.2",
+    "source-map-explorer": "^2.5.3",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
     "redux": "^4.2.0",
@@ -86,6 +87,7 @@
     "start-staging": "env-cmd --verbose -e staging -r ../env.json  react-scripts start",
     "build-staging": "env-cmd --verbose -e staging -r ../env.json react-scripts build",
     "build-prod": "env-cmd --verbose -e prod -r ../env.json react-scripts build",
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
     "test": "react-scripts test"
   },
   "eslintConfig": {

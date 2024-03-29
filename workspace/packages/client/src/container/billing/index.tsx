@@ -6,7 +6,7 @@ import { ArrowRightOutlined,
   HeartFilled,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import Modal from 'antd/lib/modal';
+import { Modal } from 'antd';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';

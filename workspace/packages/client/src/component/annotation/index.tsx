@@ -1,19 +1,17 @@
 import {
   AnnotationButtonStyle,
-  AnnotationSelectionShapeType,
   CoverAnnotationPositions,
   IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import React from 'react';
+import React, { lazy } from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
-import AnnotationVideo from './video-player';
 import { generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 import {
   getTransparencyFromHexStr,
@@ -30,6 +28,7 @@ import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 import { logEvent } from '../../analytics/utils';
 
+const AnnotationVideo = lazy(() => import('./video-player'));
 interface NavigateToAnnMessage<T> extends MessageEvent{
   data: Msg<T>
 }

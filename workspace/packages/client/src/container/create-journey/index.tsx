@@ -2,12 +2,9 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
   JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
-import { Input as CTAInput, Button as AntdButton } from 'antd';
-import Select from 'antd/lib/select';
-import Tooltip from 'antd/lib/tooltip';
+import { Input as CTAInput, Button as AntdButton, Select, Tooltip, Divider } from 'antd';
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { getSampleJourneyData } from '@fable/common/dist/utils';
-import { Divider } from 'antd/lib';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';

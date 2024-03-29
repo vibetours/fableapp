@@ -1,19 +1,5 @@
-import Button from 'antd/lib/button';
-import Select from 'antd/lib/select';
-import styled, { keyframes } from 'styled-components';
-import Slider from 'antd/lib/slider';
-import TextArea from 'antd/lib/input/TextArea';
-import { ColorPicker as AntColorPicker } from 'antd/lib';
-import { InputNumber, Input, Switch } from 'antd';
-
-export const EmbedFrame = styled.iframe`
-  height: 100%;
-  width: 100%;
-  background: #fff;
-  border: none;
-  box-shadow: none;
-  border-radius: 4px;
-`;
+import { Button, Select, Slider, ColorPicker as AntColorPicker, InputNumber, Input, Switch } from 'antd';
+import styled from 'styled-components';
 
 export const EditPanelSec = styled.div`
   display: flex;
@@ -41,7 +27,7 @@ export const CtrlSlider = styled(Slider)`
   width: 9rem;
 `;
 
-export const CtrlTxtEditBox = styled(TextArea)`
+export const CtrlTxtEditBox = styled(Input.TextArea)`
   border-radius: 8px;
   border: 2px solid #ddd;
   padding: 0.875rem 1rem;

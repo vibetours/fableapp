@@ -1,7 +1,5 @@
-import { Button } from 'antd';
+import { Select, Button, ColorPicker as AntColorPicker } from 'antd';
 import styled from 'styled-components';
-import Select from 'antd/lib/select';
-import { ColorPicker as AntColorPicker } from 'antd/lib';
 
 export const CreateJourneyCon = styled.div`
     width: 360px;

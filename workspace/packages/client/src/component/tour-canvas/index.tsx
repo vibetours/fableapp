@@ -14,14 +14,13 @@ import {
   ITourEntityHotspot,
   ScreenData
 } from '@fable/common/dist/types';
-import Modal from 'antd/lib/modal';
+import { Modal, Button, Tooltip } from 'antd';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
 import { D3ZoomEvent, ZoomBehavior, zoom, zoomIdentity } from 'd3-zoom';
 import dagre from 'dagre';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
 import { sentryCaptureException } from '@fable/common/dist/sentry';

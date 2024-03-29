@@ -19,8 +19,7 @@ import {
 } from '@fable/common/dist/types';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { captureException, startTransaction, Transaction } from '@sentry/react';
-import Modal from 'antd/lib/modal';
-import Select from 'antd/lib/select';
+import { Modal, Select } from 'antd';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';

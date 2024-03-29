@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Select from 'antd/lib/select';
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as GTags from '../../common-styled';
 import { elEffects, annEffects, getEffectFromString } from './effects';

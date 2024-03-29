@@ -13,11 +13,9 @@ import {
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
-import { Button as AntButton } from 'antd';
-import Tooltip from 'antd/lib/tooltip';
+import { Tooltip, Button as AntButton, Drawer } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Drawer } from 'antd/lib';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';

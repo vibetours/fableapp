@@ -5,21 +5,9 @@ import {
   AnnotationButtonLayoutType,
   AnnotationFontSize
 } from '@fable/common/dist/types';
-import HighlighterBase, { Rect } from '../base/hightligher-base';
+import { Rect } from '../base/hightligher-base';
 import { generateShadeColor } from './utils';
 import { getColorContrast } from '../../utils';
-
-export const BubbleCon = styled.div`
-  position: absolute;
-  background: #FF7450;
-  color: #fff;
-  height: 10px;
-  width: 10px;
-  border-radius: 20px;
-  padding: 0.5rem;
-  justify-items: center;
-  align-items: center;
-`;
 
 export const AnContent = styled.div<{
   bgColor: string,
@@ -307,13 +295,6 @@ interface AnHotspotProps {
   scrollX: number;
   scrollY: number;
   shouldAnimate: boolean;
-}
-
-interface BlinkingSelectionEffectProps {
-  selColor: string;
-  box: Rect;
-  scrollX: number;
-  scrollY: number;
 }
 
 const createBoxShadowKF = (selColor: string) : SimpleInterpolation => keyframes`

@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { ChromeOutlined } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { Skeleton } from 'antd';
-import { Progress } from 'antd/lib';
+import { Skeleton, Progress } from 'antd';
 import * as Tags from './styled';
 import Browser1 from '../../assets/tour/browser-1.png';
 import Browser3 from '../../assets/tour/browser-3.png';
 import ControlPill from '../../assets/tour/control-pill.png';
 import Button from '../button';
 import { P_RespTour } from '../../entity-processor';
-import { CtxAction } from '../../container/tours';
 import SmallTourCard from './small-tour-card';
 
 interface IProps {

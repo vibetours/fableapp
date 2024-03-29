@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import Btn from 'antd/lib/button';
-import Dropdown from 'antd/lib/dropdown';
+import { Button as Btn, Dropdown } from 'antd';
 
 export const NoScreenMsgCon = styled.div`
 `;

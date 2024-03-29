@@ -1,6 +1,6 @@
 import styled from 'styled-components';
-import Modal from 'antd/lib/modal';
-import { AnnotationButtonSize, AnnotationButtonStyle } from '@fable/common/dist/types';
+import { Modal } from 'antd';
+import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
 export const ColCon = styled.div`

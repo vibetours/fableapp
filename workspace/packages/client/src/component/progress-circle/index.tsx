@@ -1,4 +1,4 @@
-import { Progress } from 'antd/lib';
+import { Progress } from 'antd';
 import React from 'react';
 import CircleGreenFilledIcon from '../../assets/icons/circle-check-green.svg';
 

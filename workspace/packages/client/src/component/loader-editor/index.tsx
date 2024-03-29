@@ -1,7 +1,6 @@
 import React, { RefObject, useEffect, useRef, useState } from 'react';
 import { DeleteOutlined, LinkOutlined, ReloadOutlined, SaveOutlined, UploadOutlined } from '@ant-design/icons';
-import { Tabs } from 'antd/lib';
-import { Popconfirm, Tooltip } from 'antd';
+import { Tabs, Tooltip } from 'antd';
 import { ITourLoaderData } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import Loader from './loader';

@@ -3,15 +3,13 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import { Provider } from 'react-redux';
 import { ThemeProvider } from 'styled-components';
-import AntDesignThemeConfigProvider from 'antd/lib/config-provider';
+import { ConfigProvider as AntDesignThemeConfigProvider } from 'antd';
 import { init as sentryInit } from '@fable/common/dist/sentry';
-import { initAmplitude } from '@fable/common/dist/amplitude';
 import App from './container/app';
 import reportWebVitals from './reportWebVitals';
 import config from './store-config';
 import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
-import { removeOldGuides, upsertAllUserGuides } from './user-guides';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -43,10 +41,19 @@ if (document.location.pathname !== '/aboutblank') {
     sentryInit('client', packageJSON.version);
     addChargebeeScript();
     addReditusTrackingScript();
+    import('@fable/common/dist/amplitude').then((res) => {
+      res.initAmplitude();
+    }).catch((error) => {
+      console.log("Couldn't load Amplitude Script ", error);
+    });
+
+    import('./user-guides').then((res) => {
+      res.removeOldGuides();
+      res.upsertAllUserGuides();
+    }).catch((error) => {
+      console.log("Couldn't load UserGuide Script ", error);
+    });
   }
-  initAmplitude();
-  removeOldGuides();
-  upsertAllUserGuides();
 }
 
 const theme = {

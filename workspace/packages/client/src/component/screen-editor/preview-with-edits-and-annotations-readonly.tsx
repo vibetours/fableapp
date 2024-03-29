@@ -41,7 +41,7 @@ import { showOrHideEditsFromEl } from './utils/edits';
 import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { areSerNodePropsDifferent, getDiffsOfImmediateChildren, getSerNodesAttrUpdates } from './utils/diffs/get-diffs';
-import { DiffsSerNode, QueueNode, Update } from './utils/diffs/types';
+import { DiffsSerNode, QueueNode } from './utils/diffs/types';
 import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { NavToAnnByRefIdFn } from './types';

@@ -12,8 +12,7 @@ import {
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { ITourDataOpts, JourneyData } from '@fable/common/dist/types';
-import { Button, Divider, Drawer, MenuProps, Table, Tooltip } from 'antd';
-import Dropdown from 'antd/lib/dropdown';
+import { Button, Divider, Drawer, MenuProps, Table, Tooltip, Dropdown } from 'antd';
 import { format } from 'd3-format';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';

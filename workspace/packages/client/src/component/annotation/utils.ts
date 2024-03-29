@@ -1,12 +1,14 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import { IAnnoationDisplayConfig } from '.';
 import { Rect } from '../base/hightligher-base';
-import { AnnotationPerScreen, IAnnotationConfigWithScreen } from '../../types';
+import { AnnotationPerScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 import { AllDimsForAnnotation } from './types';
-import { LeadFormField, OPTION_INPUT_CLASSNAME } from '../annotation-rich-text-editor/nodes/lead-form-node';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
-import { FIELD_NAME_VARIABLE_REGEX } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
+import { FIELD_NAME_VARIABLE_REGEX,
+  LeadFormField,
+  OPTION_INPUT_CLASSNAME
+} from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
 

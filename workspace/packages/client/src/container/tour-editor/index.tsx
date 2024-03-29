@@ -13,12 +13,10 @@ import {
 } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import Tooltip from 'antd/lib/tooltip';
-import Button from 'antd/lib/button';
+import { Tooltip, Button, Alert } from 'antd';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
-import Alert from 'antd/lib/alert';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
   AnnAdd,

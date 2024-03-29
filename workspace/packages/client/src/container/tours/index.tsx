@@ -3,8 +3,7 @@ import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import message from 'antd/lib/message';
-import Modal from 'antd/lib/modal';
+import { message, Modal } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import {
   createNewTour,

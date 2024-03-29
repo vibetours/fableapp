@@ -18,11 +18,7 @@ import {
   ITourEntityHotspot,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import Input from 'antd/lib/input';
-import Popover from 'antd/lib/popover';
-import Tabs from 'antd/lib/tabs';
-import Checkbox from 'antd/lib/checkbox';
-import Modal from 'antd/lib/modal';
+import { Input, Popover, Tabs, Checkbox, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
 import {
   DeleteOutlined,
   ExclamationCircleOutlined,
@@ -36,11 +32,8 @@ import {
   FireOutlined,
   CheckOutlined,
 } from '@ant-design/icons';
-import Tooltip from 'antd/lib/tooltip';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { InputNumber, Button as AntButton } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { Collapse, Radio } from 'antd/lib';
 import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';

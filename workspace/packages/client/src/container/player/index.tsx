@@ -1,4 +1,4 @@
-import React, { MutableRefObject } from 'react';
+import React, { MutableRefObject, lazy } from 'react';
 import { connect } from 'react-redux';
 import { JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
   LoadingStatus, ScreenData } from '@fable/common/dist/types';
@@ -37,23 +37,23 @@ import {
   updateAllAnnotationsForTour,
   updateAllAnnotations,
   getSearchParamData,
-  getTourMainValidity
+  getTourMainValidity,
+  preloadImagesInTour
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
   AnnotationSerialIdMap,
-  getAnnotationByRefId,
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import JourneyMenu from '../../component/journey-menu';
-import InfoCon from '../../component/info-con';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
+import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
+const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedData: boolean) => void,
@@ -438,11 +438,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       this.navigateToMain();
 
       emitEvent<Partial<Payload_DemoLoadingStarted>>(InternalEvents.DemoLoadingStarted, {});
+
+      // add images to preload
+      const main = this.props.tourOpts ? this.props.tourOpts.main : '';
+      preloadImagesInTour(this.props.allAnnotationsForTour, this.props.journey, main);
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
         const screen = this.getScreenAtId(currScreenRId, 'rid');
-        const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
+        const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
         this.getScreenDataPreloaded(screen, 1, startScreens, false);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
@@ -465,7 +469,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.tourLoaderData !== prevProps.tourLoaderData && this.props.tourLoaderData) {
       setTimeout(() => {
         this.setState({ isMinLoaderTimeDone: true });
-      }, 3500);
+      }, 300);
     }
   }
 
@@ -492,7 +496,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
 
-    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 3, startScreens, true);
+    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 2, startScreens, true);
     initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
 
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
@@ -708,7 +712,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 allScreens={this.props.allScreens}
                 editsAcrossScreens={this.props.editsAcrossScreens}
                 preRenderNextScreen={(screen: P_RespScreen) => {
-                  const startScreens = bfsTraverse(this.adjList!, [screen], 3, 'next').lastLevelNodes;
+                  const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
                   this.getScreenDataPreloaded(screen, 1, startScreens, false);
                 }}
                 updateCurrentFlowMain={(btnConfig: IAnnotationButtonType, main?: string) => {

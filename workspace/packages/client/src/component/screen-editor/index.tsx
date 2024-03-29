@@ -18,12 +18,10 @@ import {
   ScreenData
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
-import Modal from 'antd/lib/modal';
-import Switch from 'antd/lib/switch';
+import { Modal, Switch, Tooltip } from 'antd';
 import React from 'react';
 import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { Tooltip } from 'antd';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';

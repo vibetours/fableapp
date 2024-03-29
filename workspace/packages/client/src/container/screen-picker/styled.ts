@@ -1,7 +1,5 @@
 import styled, { keyframes } from 'styled-components';
-import Modal from 'antd/lib/modal';
-import Tabs from 'antd/lib/tabs';
-import Button from 'antd/lib/button';
+import { Modal, Tabs, Button } from 'antd';
 
 export const ScreenPickerContainer = styled(Modal)`    
     .ant-modal-content {

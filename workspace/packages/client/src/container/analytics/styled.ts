@@ -1,6 +1,6 @@
 /* eslint-disable no-mixed-operators */
 import styled from 'styled-components';
-import { Tabs } from 'antd/lib';
+import { Tabs } from 'antd';
 
 export const BtnGroup = styled.div`
   span {

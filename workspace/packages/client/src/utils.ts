@@ -692,3 +692,32 @@ export function rearrangeArray<T>(arr: T[], sourceIdx: number, destinationIdx: n
   newArr.splice(destinationIdx, 0, removed);
   return newArr;
 }
+
+export function preloadImagesInTour(
+  allAnnotationsForTour: AnnotationPerScreen[],
+  journey: JourneyData | null,
+  main: string
+) :void {
+  let annotationsInTour: IAnnotationConfigWithScreenId[] = [];
+  if (journey && journey.flows.length !== 0) {
+    journey.flows.forEach((flow) => {
+      const annsForFlow = getOrderedAnnotaionFromMain(allAnnotationsForTour, flow.main);
+      annotationsInTour = [...annotationsInTour, ...annsForFlow];
+    });
+  } else {
+    annotationsInTour = getOrderedAnnotaionFromMain(allAnnotationsForTour, main);
+  }
+
+  annotationsInTour.forEach((ann) => {
+    const domParser = new DOMParser();
+    const dom = domParser.parseFromString(ann.bodyContent, 'text/html');
+    const imgSrcs = Array.from(dom.querySelectorAll('img')).map(img => img.src);
+    imgSrcs.forEach((img) => {
+      const link = document.createElement('link');
+      link.as = 'image';
+      link.rel = 'preload';
+      link.href = img;
+      document.head.appendChild(link);
+    });
+  });
+}

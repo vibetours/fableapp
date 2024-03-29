@@ -1,6 +1,6 @@
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import React, { ReactElement, ReactNode, useState } from 'react';
-import Tooltip from 'antd/lib/tooltip';
+import React, { ReactElement, useState } from 'react';
+import { Tooltip } from 'antd';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import CaretOutlined from '../icons/caret-outlined';

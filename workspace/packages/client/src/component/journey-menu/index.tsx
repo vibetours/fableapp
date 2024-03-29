@@ -1,5 +1,5 @@
 import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
-import Dropdown from 'antd/lib/dropdown/dropdown';
+import { Dropdown } from 'antd';
 import React, { ReactElement, useEffect, useState } from 'react';
 import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } from '@fable/common/dist/types';
 import * as Tags from './styled';

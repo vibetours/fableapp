@@ -14,11 +14,9 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { getRandomId } from '@fable/common/dist/utils';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
-import { removeFieldNameDefinition } from '../utils/lead-form-node-utils';
+import { LeadFormField, OPTION_INPUT_CLASSNAME, removeFieldNameDefinition } from '../utils/lead-form-node-utils';
 import { parseFieldName } from '../../annotation/utils';
 import { rearrangeArray } from '../../../utils';
-
-export const OPTION_INPUT_CLASSNAME = 'LeadForm__optionInputInAnn';
 
 export type Options = ReadonlyArray<Option>;
 
@@ -30,8 +28,6 @@ export type Option = Readonly<{
 }>;
 
 const LeadFormComponent = React.lazy(() => import('./lead-form-component'));
-
-export type LeadFormField = 'email' | 'text'
 
 export function createLeadFormOption(text = '', isMandatory = false, type: LeadFormField = 'text'): Option {
   return {

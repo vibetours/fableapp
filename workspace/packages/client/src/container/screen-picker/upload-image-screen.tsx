@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import api from '@fable/common/dist/api';
-import { ApiResp, ReqNewScreen, ReqThumbnailCreation, RespScreen, ScreenType } from '@fable/common/dist/api-contract';
 import { captureException } from '@sentry/react';
-import { getImgScreenData } from '@fable/common/dist/utils';
 import * as Tags from './styled';
-import { uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 import Button from '../../component/button';
 import Input from '../../component/input';
 import * as GTags from '../../common-styled';

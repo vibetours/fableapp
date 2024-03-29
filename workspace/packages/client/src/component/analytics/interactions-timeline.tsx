@@ -1,8 +1,6 @@
 /* eslint-disable no-mixed-operators */
-import { MobileFilled } from '@ant-design/icons/lib/icons';
 import { SHORT_MONTHS } from '@fable/common/dist/utils';
-import { Tooltip } from 'antd';
-import { Timeline } from 'antd/lib';
+import { Tooltip, Timeline } from 'antd';
 import React, { ReactElement } from 'react';
 import { formatTimeFromSeconds } from '../../analytics/utils';
 import { SessionActivity } from '../../container/analytics';

@@ -1,5 +1,5 @@
 import React from 'react';
-import Tooltip from 'antd/lib/tooltip';
+import { Tooltip } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import * as GTags from '../../../../common-styled';
