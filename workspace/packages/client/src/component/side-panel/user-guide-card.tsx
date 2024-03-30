@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import * as Tags from './styled';
 import { LocalStoreUserGuideProps } from '../../user-guides/utils';
 import { GuideStatus } from './user-guide-details';
-import { Link } from '../create-tour/styled';
 import CircleGreenFilledIcon from '../../assets/icons/circle-check-green.svg';
 import * as GTags from '../../common-styled';
 import { useUserNickname } from '../../hooks/useUserNickname';

@@ -2,7 +2,6 @@ import { ApiOutlined, CreditCardOutlined, NodeIndexOutlined, UsergroupAddOutline
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
-import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import packageJSON from '../../../package.json';
 import * as Tags from './styled';
@@ -13,14 +12,18 @@ import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
-  selected: 'tours' | 'user-management' | 'billing' | 'settings' | 'integrations';
+  selected: 'tours' | 'user-management' | 'billing' | 'settings' | 'integrations' | '';
   subs: P_RespSubscription | null;
   tourAvailable?: boolean;
   firstTourRid?: string;
 }
 
 function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'billing' | 'user_guides'): void {
-  traceEvent(AMPLITUDE_EVENTS.SIDE_PANEL_TAB_CLICKED, { tab }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+  import('@fable/common/dist/amplitude').then((amp) => {
+    amp.traceEvent(AMPLITUDE_EVENTS.SIDE_PANEL_TAB_CLICKED, { tab }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+  }).catch((err) => {
+    console.log('error in amplitude event', err);
+  });
 }
 
 export default function SidePanel(props: Props): JSX.Element {

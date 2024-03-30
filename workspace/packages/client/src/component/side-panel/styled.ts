@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { CloseOutlined } from '@ant-design/icons';
 
 export const Con = styled.div`
-  height: 100%;
+  height: 100vh;
   background-color: #f5f5f5;
   color: #000;
   display: flex;

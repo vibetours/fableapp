@@ -10,11 +10,10 @@ import {
   ShareAltOutlined,
   WarningFilled
 } from '@ant-design/icons';
-import { traceEvent } from '@fable/common/dist/amplitude';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer } from 'antd';
-import React, { Dispatch, ReactElement, SetStateAction, useEffect, useState } from 'react';
+import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
@@ -22,11 +21,12 @@ import FableLogo from '../../assets/fableLogo.svg';
 import * as GTags from '../../common-styled';
 import { P_RespTour } from '../../entity-processor';
 import Input from '../input';
-import PublishButton from '../publish-preview/publish-button';
-import ShareTourModal from '../publish-preview/share-modal';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
 import { TourMainValidity } from '../../types';
+
+const PublishButton = lazy(() => import('../publish-preview/publish-button'));
+const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
 
 interface IOwnProps {
   rBtnTxt?: string;
@@ -117,22 +117,23 @@ function Header(props: IOwnProps): JSX.Element {
   };
 
   return (
-    <Tags.Con style={{ color: '#fff' }}>
-      <Tags.LMenuCon style={CMN_HEADER_GRP_STYLE}>
-        <div style={{ ...CMN_HEADER_GRP_STYLE, gap: '0.5rem' }}>
-          {props.shouldShowFullLogo ? (
-            <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
-          ) : (
-            <Link onClick={() => props.onLogoClicked && props.onLogoClicked()} to={props.navigateToWhenLogoIsClicked!}>
-              <Tags.ConLogoImg
-                id="fable-logo-screen-editor"
-                src={FableQuill}
-                alt="Fable logo"
-                style={{ height: '2rem', cursor: 'pointer' }}
-              />
-            </Link>
-          )}
-          {
+    <Suspense fallback={<></>}>
+      <Tags.Con style={{ color: '#fff' }}>
+        <Tags.LMenuCon style={CMN_HEADER_GRP_STYLE}>
+          <div style={{ ...CMN_HEADER_GRP_STYLE, gap: '0.5rem' }}>
+            {props.shouldShowFullLogo ? (
+              <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
+            ) : (
+              <Link onClick={() => props.onLogoClicked && props.onLogoClicked()} to={props.navigateToWhenLogoIsClicked!}>
+                <Tags.ConLogoImg
+                  id="fable-logo-screen-editor"
+                  src={FableQuill}
+                  alt="Fable logo"
+                  style={{ height: '2rem', cursor: 'pointer' }}
+                />
+              </Link>
+            )}
+            {
             props.titleElOnLeft
             && (
               <div style={{ display: 'flex', gap: '1rem' }}>
@@ -143,30 +144,30 @@ function Header(props: IOwnProps): JSX.Element {
               </div>
             )
           }
-        </div>
-        <>
-          {(props.leftElGroups || []).map((e, i) => (
-            <div
-              style={{ ...CMN_HEADER_GRP_STYLE, ...CMN_HEADER_GRP_DIVISION }}
-              key={`lg-${i}`}
-            >
-              {e}
-            </div>
-          ))}
-        </>
-      </Tags.LMenuCon>
-      <Tags.RMenuCon>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'end',
-          padding: '0 0.5rem 0.25rem 0',
-          animation: props.isAutoSaving ? 'blink 2s linear infinite' : 'none',
-          visibility: props.isAutoSaving ? 'visible' : 'hidden'
-        }}
-        >
-          <SaveOutlined style={{ color: 'white' }} />
-        </div>
-        {(props.rightElGroups || []).length > 0 && (
+          </div>
+          <>
+            {(props.leftElGroups || []).map((e, i) => (
+              <div
+                style={{ ...CMN_HEADER_GRP_STYLE, ...CMN_HEADER_GRP_DIVISION }}
+                key={`lg-${i}`}
+              >
+                {e}
+              </div>
+            ))}
+          </>
+        </Tags.LMenuCon>
+        <Tags.RMenuCon>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'end',
+            padding: '0 0.5rem 0.25rem 0',
+            animation: props.isAutoSaving ? 'blink 2s linear infinite' : 'none',
+            visibility: props.isAutoSaving ? 'visible' : 'hidden'
+          }}
+          >
+            <SaveOutlined style={{ color: 'white' }} />
+          </div>
+          {(props.rightElGroups || []).length > 0 && (
           <Tags.MenuItem style={{
             borderRight: '1px solid rgba(255, 255, 255, 0.3)',
             paddingRight: '16px',
@@ -182,8 +183,8 @@ function Header(props: IOwnProps): JSX.Element {
               </div>
             ))}
           </Tags.MenuItem>
-        )}
-        {props.tour && (
+          )}
+          {props.tour && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -231,9 +232,13 @@ function Header(props: IOwnProps): JSX.Element {
                         color: 'white'
                       }}
                       onClick={(e) => {
-                        traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                          preview_clicked_from: 'header'
-                        }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        import('@fable/common/dist/amplitude').then((amp) => {
+                          amp.traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                            preview_clicked_from: 'header'
+                          }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                        }).catch((err) => {
+                          console.log('error in amplitude event', err);
+                        });
                         window.open(`/pp/demo/${props.tour?.rid}`)?.focus();
                       }}
                     >
@@ -350,16 +355,16 @@ function Header(props: IOwnProps): JSX.Element {
             </div>
             )}
           </div>
-        )}
+          )}
 
-        {props.rBtnTxt && (
+          {props.rBtnTxt && (
           <Tags.MenuItem>
             <AntButton shape="round" size="middle">
               {props.rBtnTxt}
             </AntButton>
           </Tags.MenuItem>
-        )}
-        {props.principal && (
+          )}
+          {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
             <Tags.StyledPopover
               trigger="click"
@@ -400,42 +405,42 @@ function Header(props: IOwnProps): JSX.Element {
               </div>
             </Tags.StyledPopover>
           </Tags.MenuItem>
-        )}
-      </Tags.RMenuCon>
+          )}
+        </Tags.RMenuCon>
 
-      {props.tour && props.publishTour && <ShareTourModal
-        publishTour={props.publishTour}
-        tour={props.tour!}
-        height="100%"
-        manifestPath={props.manifestPath}
-        width="100%"
-        relativeUrl={`/p/demo/${props.tour?.rid}`}
-        isModalVisible={isModalVisible}
-        closeModal={closeModal}
-        openShareModal={() => setIsModalVisible(true)}
-        copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`)}
-        embedClickedFrom="header"
-      />}
-      <GTags.BorderedModal
-        style={{ height: '10px' }}
-        title="Rename Screen"
-        open={showRenameScreenModal}
-        onOk={handleRenameScreenModalOk}
-        onCancel={handleRenameScreenModalCancel}
-      >
-        <form
-          onSubmit={handleRenameScreenFormSubmit}
-          style={{ paddingTop: '0.75rem' }}
+        {props.tour && props.publishTour && <ShareTourModal
+          publishTour={props.publishTour}
+          tour={props.tour!}
+          height="100%"
+          manifestPath={props.manifestPath}
+          width="100%"
+          relativeUrl={`/p/demo/${props.tour?.rid}`}
+          isModalVisible={isModalVisible}
+          closeModal={closeModal}
+          openShareModal={() => setIsModalVisible(true)}
+          copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`)}
+          embedClickedFrom="header"
+        />}
+        <GTags.BorderedModal
+          style={{ height: '10px' }}
+          title="Rename Screen"
+          open={showRenameScreenModal}
+          onOk={handleRenameScreenModalOk}
+          onCancel={handleRenameScreenModalCancel}
         >
-          <Input
-            label="What would you like to rename the screen?"
-            id="renameScreen"
-            value={screenName}
-            onChange={e => setScreenName(e.target.value)}
-          />
-        </form>
-      </GTags.BorderedModal>
-      {showWarningDrawer
+          <form
+            onSubmit={handleRenameScreenFormSubmit}
+            style={{ paddingTop: '0.75rem' }}
+          >
+            <Input
+              label="What would you like to rename the screen?"
+              id="renameScreen"
+              value={screenName}
+              onChange={e => setScreenName(e.target.value)}
+            />
+          </form>
+        </GTags.BorderedModal>
+        {showWarningDrawer
       && (
       <Drawer
         title="Fix the following items before you embed this demo"
@@ -511,7 +516,8 @@ function Header(props: IOwnProps): JSX.Element {
         </>
       </Drawer>
       )}
-    </Tags.Con>
+      </Tags.Con>
+    </Suspense>
   );
 }
 

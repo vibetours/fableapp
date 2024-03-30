@@ -8,8 +8,8 @@ import Player from '../player';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
 import { P_RespTour } from '../../entity-processor';
-import Loader from '../../component/loader/heart';
 import { addToGlobalAppData } from '../../global';
+import Skeleton from '../fallback-provider';
 
 const PublishPreview = lazy(() => import('../publish-preview'));
 const Tours = lazy(() => import('../tours'));
@@ -104,8 +104,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     const staging = !!urlSearchParams.get('staging');
 
     return (
-      <Suspense fallback={<div><Loader /></div>}>
-        <Router>
+      <Router>
+        <Suspense fallback={<div><Skeleton /></div>}>
           <div className="app" style={{ overflow: 'hidden' }}>
             <Routes>
               <Route path="/" element={<Navigate to="/demos" />} />
@@ -168,8 +168,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
               <Route path="/invite/:id" element={<Invite />} />
             </Routes>
           </div>
-        </Router>
-      </Suspense>
+        </Suspense>
+      </Router>
     );
   }
 }
