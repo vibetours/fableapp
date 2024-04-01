@@ -109,14 +109,6 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <div className="app" style={{ overflow: 'hidden' }}>
             <Routes>
               <Route path="/" element={<Navigate to="/demos" />} />
-              <Route
-                path="/integrations"
-                element={
-                  <Suspense fallback={<div><Skeleton /></div>}>
-                    <Integrations title="Fable - Integrations" />
-                  </Suspense>
-                }
-              />
               <Route path="/tours" element={<Navigate to="/demos" />} />
               <Route path="/aboutblank" element={<div />} />
               <Route
@@ -161,6 +153,15 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
                   </Suspense>
                 }
               >
+                <Route
+                  path="/integrations"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Integrations title="Fable - Integrations" />
+                    </Suspense>
+                }
+                />
+
                 <Route
                   path="/healthcheck"
                   element={
