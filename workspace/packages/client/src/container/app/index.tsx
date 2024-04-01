@@ -95,7 +95,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     return document.location.pathname !== '/aboutblank';
   }
 
-  render():JSX.Element {
+  render(): JSX.Element {
     if (this.shouldInit() && !this.props.isInitied) {
       return <div />;
     }
@@ -109,50 +109,227 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
           <div className="app" style={{ overflow: 'hidden' }}>
             <Routes>
               <Route path="/" element={<Navigate to="/demos" />} />
-              <Route path="/integrations" element={<Integrations title="Fable - Integrations" />} />
+              <Route
+                path="/integrations"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <Integrations title="Fable - Integrations" />
+                  </Suspense>
+                }
+              />
               <Route path="/tours" element={<Navigate to="/demos" />} />
               <Route path="/aboutblank" element={<div />} />
-              <Route path="/onboarding" element={<Onboarding />}>
-                <Route path="extension-installed" element={<PinExt title="Onboarding - Extension installed | Fable" />} />
+              <Route
+                path="/onboarding"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <Onboarding />
+                  </Suspense>
+                }
+              >
+                <Route
+                  path="extension-installed"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <PinExt title="Onboarding - Extension installed | Fable" />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="create-interactive-demos"
-                  element={<ToursPage title="Onboarding - Create stunning interactive demos | Fable" />}
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <ToursPage title="Onboarding - Create stunning interactive demos | Fable" />
+                    </Suspense>
+                  }
                 />
-                <Route path="go-to-app" element={<ProductTours title="Onboarding - Go to the app | Fable" />} />
+                <Route
+                  path="go-to-app"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <ProductTours title="Onboarding - Go to the app | Fable" />
+                    </Suspense>
+                  }
+                />
               </Route>
 
-              <Route path="/" element={<ProtectedRoutes />}>
-                <Route path="/healthcheck" element={<Healthcheck />} />
-                <Route path="/cb/auth" element={<AuthCB />} />
-                <Route path="/user-details" element={<IamDetails title="User details | Fable" />} />
-                <Route path="/organization-details" element={<NewOrgCreation title="Organization details | Fable" />} />
+              <Route
+                path="/"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <ProtectedRoutes />
+                  </Suspense>
+                }
+              >
+                <Route
+                  path="/healthcheck"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Healthcheck />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/cb/auth"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <AuthCB />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/user-details"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <IamDetails title="User details | Fable" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/organization-details"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <NewOrgCreation title="Organization details | Fable" />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="/organization-join"
-                  element={<DefaultOrgAssignment title="Organization available | Fable" />}
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <DefaultOrgAssignment title="Organization available | Fable" />
+                    </Suspense>
+                  }
                 />
-                <Route path="/demos" element={<Tours title="Interactive demos | Fable" />} />
-                <Route path="/users" element={<UserManagement title="Fable - User Management" />} />
-                <Route path="/billing" element={<Billing title="Fable - Billing & Subscription" />} />
-                <Route path="/tour/:tourId" element={<TourEditor title="Fable - Demo editor" />} />
-                <Route path="/tour/:tourId/:screenId" element={<TourEditor title="Fable - Demo editor" />} />
-                <Route path="/demo/:tourId" element={<TourEditor title="Fable - Demo editor" />} />
-                <Route path="/demo/:tourId/:screenId" element={<TourEditor title="Fable - Demo editor" />} />
-                <Route path="/a/demo/:tourId" element={<Analytics />} />
-                <Route path="/a/demo/:tourId/:activeKey" element={<Analytics />} />
+                <Route
+                  path="/demos"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Tours title="Interactive demos | Fable" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <UserManagement title="Fable - User Management" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/billing"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Billing title="Fable - Billing & Subscription" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tour/:tourId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/tour/:tourId/:screenId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/demo/:tourId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/demo/:tourId/:screenId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/a/demo/:tourId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Analytics />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/a/demo/:tourId/:activeKey"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Analytics />
+                    </Suspense>
+                  }
+                />
                 <Route
                   path="/tour/:tourId/:screenId/:annotationId"
-                  element={<TourEditor title="Fable - Demo editor" />}
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
                 />
                 <Route
                   path="/demo/:tourId/:screenId/:annotationId"
-                  element={<TourEditor title="Fable - Demo editor" />}
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <TourEditor title="Fable - Demo editor" />
+                    </Suspense>
+                  }
                 />
-                <Route path="/create-interactive-demo" element={<CreateTour title="Create interactive demo | Fable" />} />
-                <Route path="/login" element={<Login title="Fable - Login" />} />
-                <Route path="/logout" element={<Logout title="Fable - Logout" />} />
-                <Route path="/pp/demo/:tourId" element={<PublishPreview title="Fable" />} />
+                <Route
+                  path="/create-interactive-demo"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <CreateTour title="Create interactive demo | Fable" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/login"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Login title="Fable - Login" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/logout"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <Logout title="Fable - Logout" />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="/pp/demo/:tourId"
+                  element={
+                    <Suspense fallback={<div><Skeleton /></div>}>
+                      <PublishPreview title="Fable" />
+                    </Suspense>
+                  }
+                />
               </Route>
-              <Route path="/form/:formId" element={<Form />} />
+              <Route
+                path="/form/:formId"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <Form />
+                  </Suspense>
+                }
+              />
               <Route path="/p/tour/:tourId" element={<Player staging={staging} title="Fable" />} />
               <Route
                 path="/p/tour/:tourId/:screenRid/:annotationId"
@@ -163,9 +340,30 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
                 path="/p/demo/:tourId/:screenRid/:annotationId"
                 element={<Player staging={staging} title="Fable" />}
               />
-              <Route path="/pp/tour/:tourId" element={<PublishPreview title="Fable" />} />
-              <Route path="/preptour" element={<PrepTour title="Fable" />} />
-              <Route path="/invite/:id" element={<Invite />} />
+              <Route
+                path="/pp/tour/:tourId"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <PublishPreview title="Fable" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/preptour"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <PrepTour title="Fable" />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/invite/:id"
+                element={
+                  <Suspense fallback={<div><Skeleton /></div>}>
+                    <Invite />
+                  </Suspense>
+                }
+              />
             </Routes>
           </div>
         </Suspense>
