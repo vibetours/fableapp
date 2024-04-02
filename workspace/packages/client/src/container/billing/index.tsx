@@ -41,9 +41,7 @@ interface IAppStateProps {
 const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   principal: state.default.principal,
-  manifestPath: state.default.commonConfig
-    ? state.default.commonConfig.pubTourAssetPath + state.default.commonConfig.manifestFileName
-    : '',
+  manifestPath: '',
 });
 
 interface IOwnProps {

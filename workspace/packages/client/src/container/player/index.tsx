@@ -56,15 +56,15 @@ const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
-  loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedData: boolean) => void,
+  loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData) => dispatch(
     loadTourAndData(rid, true, true, loadPublishedData)
   ),
-  loadScreenAndData: (rid, isPreloading, loadPublishedData) => dispatch(
-    loadScreenAndData(rid, true, isPreloading, loadPublishedData)
+  loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
+    loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
   ),
 });
 
@@ -224,6 +224,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   // TODO [optimization]: get prev n next screens to prerender in one function call
   getScreenDataPreloaded(
     screen: P_RespScreen,
+    tour: P_RespTour,
     nextScreenPrerenderCount: number,
     startScreens: P_RespScreen[],
     initalScreenLoad: boolean,
@@ -245,7 +246,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     prerenderList.map(({ screen: s }) => this.props.loadScreenAndData(
       s.rid,
       s.id !== screen.id,
-      !this.props.staging
+      this.props.staging ? undefined : tour
     ));
 
     prerenderList.forEach(({ screen: s }) => this.loadedScreenRids.add(s.rid));
@@ -447,12 +448,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       if (this.state.initialScreenRid) {
         const screen = this.getScreenAtId(currScreenRId, 'rid');
         const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
-        this.getScreenDataPreloaded(screen, 1, startScreens, false);
+        this.getScreenDataPreloaded(screen, this.props.tour!, 1, startScreens, false);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
         // in this case, we navigate to main, hence, firstTimeLoading is false
         // but still we are rendering the screens for the first time
-        this.initialScreenLoad(currScreenRId);
+        this.initialScreenLoad(currScreenRId, this.props.tour!);
         if (this.isJourneyAdded()) {
           this.setCurrentFlowMain();
         }
@@ -460,7 +461,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
     // this happens when the user uses the tourUrl as /tour/tourid/screenid/annid
     if (currScreenRId && firstTimeTourLoading) {
-      this.initialScreenLoad(currScreenRId);
+      this.initialScreenLoad(currScreenRId, this.props.tour!);
       if (this.isJourneyAdded()) {
         this.setCurrentFlowMain();
       }
@@ -481,7 +482,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return screen;
   }
 
-  initialScreenLoad(screenRid: string): void {
+  initialScreenLoad(screenRid: string, tour: P_RespTour): void {
     const obj: Record<string, boolean> = {};
     const startScreens : P_RespScreen[] = [];
 
@@ -496,7 +497,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
 
-    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, 2, startScreens, true);
+    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, tour, 2, startScreens, true);
     initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
 
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
@@ -727,7 +728,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 editsAcrossScreens={this.props.editsAcrossScreens}
                 preRenderNextScreen={(screen: P_RespScreen) => {
                   const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
-                  this.getScreenDataPreloaded(screen, 1, startScreens, false);
+                  this.getScreenDataPreloaded(screen, this.props.tour!, 1, startScreens, false);
                 }}
                 updateCurrentFlowMain={(btnConfig: IAnnotationButtonType, main?: string) => {
                   const currentMain = this.state.currentFlowMain;

@@ -1,4 +1,6 @@
 import {
+  RespCommonConfig,
+  RespConversion,
   RespScreen,
   RespSubscription,
   RespTour,
@@ -80,15 +82,13 @@ export interface P_RespScreen extends RespScreen {
 
 function getFileUris(
   screen: RespScreen,
-  state: TState,
-  loadPublishedData = false
+  config: RespCommonConfig,
+  publishForTour?: RespTour
 ): {editFileUri: URL, dataFileUri: URL} {
-  const screenAssetPath = state.default.commonConfig!.screenAssetPath;
+  const screenAssetPath = config.screenAssetPath;
   const assetPrefixHash = screen.assetPrefixHash;
-  const editFileName = loadPublishedData
-    ? state.default.commonConfig!.pubEditFileName
-    : state.default.commonConfig!.editFileName;
-  const dataFileName = state.default.commonConfig!.dataFileName;
+  const editFileName = publishForTour ? publishForTour.pubEditFileName : config.editFileName;
+  const dataFileName = config.dataFileName;
 
   const dataFileUri = new URL(`${screenAssetPath}${assetPrefixHash}/${dataFileName}`);
   const editFileUri = new URL(`${screenAssetPath}${assetPrefixHash}/${editFileName}?ts=${+new Date()}`);
@@ -96,9 +96,9 @@ function getFileUris(
   return { editFileUri, dataFileUri };
 }
 
-export function processRawScreenData(screen: RespScreen, state: TState, loadPublishedData = false): P_RespScreen {
+export function processRawScreenData(screen: RespScreen, config: RespCommonConfig, publishForTour?: RespTour): P_RespScreen {
   const d = new Date(screen.updatedAt);
-  const { editFileUri, dataFileUri } = getFileUris(screen, state, loadPublishedData);
+  const { editFileUri, dataFileUri } = getFileUris(screen, config, publishForTour);
 
   return {
     ...screen,
@@ -109,7 +109,7 @@ export function processRawScreenData(screen: RespScreen, state: TState, loadPubl
     urlStructured: screen.url === ''
       ? new URL(`https://${screen.displayName.toLowerCase().trim().replace(/\W+/g, '-')}}.img.flbk.sharefable.com`)
       : new URL(screen.url),
-    thumbnailUri: new URL(`${state.default.commonConfig?.commonAssetPath}${screen.thumbnail}`),
+    thumbnailUri: new URL(`${config.commonAssetPath}${screen.thumbnail}`),
     dataFileUri,
     editFileUri,
     related: [],
@@ -151,25 +151,22 @@ export interface P_RespTour extends RespTour {
   loaderFileUri: URL;
 }
 
-function getDataFileUri(tour: RespTour | RespTourWithScreens, state: TState, loadPublishedData = false): URL {
-  const tourAssetPath = state.default.commonConfig!.tourAssetPath;
+function getDataFileUri(tour: RespTour | RespTourWithScreens, config: RespCommonConfig, publishForTour?: RespTour): URL {
+  const tourAssetPath = config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
-  const dataFileName = loadPublishedData
-    ? state.default.commonConfig!.pubDataFileName
-    : state.default.commonConfig!.dataFileName;
+  const dataFileName = publishForTour
+    ? publishForTour.pubDataFileName
+    : config.dataFileName;
 
   const dataFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${dataFileName}?ts=${+new Date()}`);
 
   return dataFileUri;
 }
 
-function getLoaderFileUri(tour: RespTour | RespTourWithScreens, state: TState, loadPublishedData = false): URL {
-  const tourAssetPath = state.default.commonConfig!.tourAssetPath;
+function getLoaderFileUri(tour: RespTour | RespTourWithScreens, config: RespCommonConfig, publishForTour?: RespTour): URL {
+  const tourAssetPath = config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
-  const loaderFileName = loadPublishedData
-    ? state.default.commonConfig!.pubLoaderFileName
-    : state.default.commonConfig!.loaderFileName;
-
+  const loaderFileName = publishForTour ? publishForTour.pubLoaderFileName : config.loaderFileName;
   const loaderFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${loaderFileName}?ts=${+new Date()}`);
 
   return loaderFileUri;
@@ -177,19 +174,19 @@ function getLoaderFileUri(tour: RespTour | RespTourWithScreens, state: TState, l
 
 export function processRawTourData(
   tour: RespTour | RespTourWithScreens,
-  state: TState,
+  config: RespCommonConfig,
   isPlaceholder = false,
-  loadPublishedData = false
+  publishForTour: RespTour | undefined = undefined
 ): P_RespTour {
   const d = new Date(tour.updatedAt);
 
   let tTour;
   if ((tTour = (tour as RespTourWithScreens)).screens) {
-    tTour.screens = tTour.screens.map(s => processRawScreenData(s, state, loadPublishedData));
+    tTour.screens = tTour.screens.map(s => processRawScreenData(s, config, publishForTour));
   }
 
-  const dataFileUri = getDataFileUri(tour, state, loadPublishedData);
-  const loaderFileUri = getLoaderFileUri(tour, state, loadPublishedData);
+  const dataFileUri = getDataFileUri(tour, config, publishForTour);
+  const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
 
   return {
     ...tour,

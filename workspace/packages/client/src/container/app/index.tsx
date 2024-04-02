@@ -92,6 +92,12 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
 
   // eslint-disable-next-line class-methods-use-this
   shouldInit(): boolean {
+    // don't init for published route as the data is already present in tour file
+    const params = new URL(document.location.href).searchParams;
+    const isStaging = params.get('staging');
+    if (document.location.pathname.startsWith('/p/demo') && !isStaging) return false;
+
+    // don't init for same origin iframe
     return document.location.pathname !== '/aboutblank';
   }
 

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-03-29 11:12:17.
+// Generated using typescript-generator version 2.35.1025 on 2024-04-02 07:32:01.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -150,6 +150,10 @@ export interface ReqMediaProcessing {
     assn: ReqEntityAssetAssn;
 }
 
+export interface ReqNewLinkedAccount {
+    orgId: number;
+}
+
 export interface ReqNewOrg {
     displayName: string;
     thumbnail: string;
@@ -233,10 +237,6 @@ export interface RespCommonConfig extends ResponseBase {
     dataFileName: string;
     loaderFileName: string;
     editFileName: string;
-    pubDataFileName: string;
-    pubLoaderFileName: string;
-    pubEditFileName: string;
-    pubTourEntityFileName: string;
     manifestFileName: string;
     latestSchemaVersion: SchemaVersion;
 }
@@ -323,6 +323,10 @@ export interface RespTour extends ResponseBase {
     onboarding: boolean;
     inProgress: boolean;
     createdBy: RespUser;
+    pubDataFileName: string;
+    pubLoaderFileName: string;
+    pubEditFileName: string;
+    pubTourEntityFileName: string;
 }
 
 export interface RespTourAnnViews {
@@ -348,6 +352,7 @@ export interface RespTourView {
 export interface RespTourWithScreens extends RespTour {
     screens: RespScreen[];
     idxm?: { [index: string]: string };
+    cc?: RespCommonConfig;
 }
 
 export interface RespUploadUrl {

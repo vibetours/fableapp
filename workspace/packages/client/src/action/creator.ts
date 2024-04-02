@@ -36,6 +36,7 @@ import {
   RespTourAnnViews,
   RespTourLeads,
   RespLeadActivityUrl,
+  SchemaVersion,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -315,7 +316,7 @@ export function getAllScreens(shouldRefreshIfPresent = true) {
         type: ActionType.ALL_SCREENS_LOADING,
       });
       const data = await api<null, ApiResp<RespScreen[]>>('/screens', { auth: true });
-      const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState()));
+      const pScreens = data.data.map((d: RespScreen) => processRawScreenData(d, getState().default.commonConfig!));
       dispatch({
         type: ActionType.ALL_SCREENS_LOADED,
         allScreens: pScreens,
@@ -357,7 +358,7 @@ export function renameScreen(screen: P_RespScreen, newVal: string) {
         rid: screen.rid,
       },
     });
-    const renamedScreen = processRawScreenData(data.data, getState());
+    const renamedScreen = processRawScreenData(data.data, getState().default.commonConfig!);
     dispatch({
       type: ActionType.SCREEN,
       screen: renamedScreen,
@@ -414,7 +415,7 @@ export function updateScreen(
       },
     });
 
-    const updatedScreen = processRawScreenData(data.data, getState());
+    const updatedScreen = processRawScreenData(data.data, getState().default.commonConfig!);
     dispatch({
       type: ActionType.SCREEN_UPDATE,
       updatedScreen
@@ -426,7 +427,7 @@ export function loadScreenAndData(
   screenRid: string,
   shouldUseCache = false,
   preloading = false,
-  loadPublishedData = false,
+  loadPublishedDataForTour: P_RespTour | undefined = undefined,
 ) {
   return async (dispatch: Dispatch<TScreenWithData | TGenericLoading>, getState: () => TState) => {
     if (!preloading) {
@@ -449,7 +450,7 @@ export function loadScreenAndData(
     if (!isScreenFound) {
       try {
         const data = await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
-        screen = processRawScreenData(data.data, state, loadPublishedData);
+        screen = processRawScreenData(data.data, state.default.commonConfig!, loadPublishedDataForTour);
       } catch (e) {
         const err = e as Error;
         throw new Error(`Error encountered while getting screen with id=${screenRid} with message ${err.message}`);
@@ -481,7 +482,7 @@ export function loadScreenAndData(
       screenData: data,
       screenEdits: edits,
       remoteEdits,
-      screen: processRawScreenData(screen!, getState(), loadPublishedData),
+      screen: processRawScreenData(screen!, getState().default.commonConfig!, loadPublishedDataForTour),
       preloading
     });
   };
@@ -544,7 +545,7 @@ export function uploadImgScreenAndAddToTour(
       },
     });
 
-    const pScreen = processRawScreenData(screen, getState());
+    const pScreen = processRawScreenData(screen, getState().default.commonConfig!);
 
     await uploadImageAsBinary(screenImgFile, pScreen.uploadUrl!);
     await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
@@ -589,7 +590,7 @@ export function addScreenToTour(
     if (annAdd) {
       try {
         const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}&s=1`);
-        const updatedTour = processRawTourData(data.data, getState());
+        const updatedTour = processRawTourData(data.data, getState().default.commonConfig!);
 
         dispatch({
           type: ActionType.SAVE_TOUR_RELAY_ENTITIES,
@@ -621,7 +622,7 @@ export function getAllTours(shouldRefreshIfPresent = true) {
         type: ActionType.ALL_TOURS_LOADING,
       });
       const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
-      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState())).filter(t => !t.inProgress);
+      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState().default.commonConfig!)).filter(t => !t.inProgress);
       dispatch({
         type: ActionType.ALL_TOURS_LOADED,
         tours,
@@ -654,7 +655,7 @@ export function createNewTour(
         description,
       },
     });
-    const tour = processRawTourData(data.data, getState());
+    const tour = processRawTourData(data.data, getState().default.commonConfig!);
 
     if (shouldNavigate) {
       window.location.replace(`/demo/${tour.rid}`);
@@ -680,7 +681,7 @@ export function renameTour(tour: P_RespTour, newVal: string, description: string
         description
       },
     });
-    const renamedTour = processRawTourData(data.data, getState());
+    const renamedTour = processRawTourData(data.data, getState().default.commonConfig!);
     dispatch({
       type: ActionType.TOUR,
       tour: renamedTour,
@@ -769,7 +770,7 @@ export function loadTourAndData(
   isFreshLoading = true,
   loadPublishedData = false
 ) {
-  return async (dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading>, getState: () => TState) => {
+  return async (dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize>, getState: () => TState) => {
     const state = getState();
     if (isFreshLoading) {
       dispatch({
@@ -780,10 +781,22 @@ export function loadTourAndData(
     let tour: P_RespTour;
     try {
       const data = loadPublishedData
-        ? await api<null, ApiResp<RespTour>>(`${state.default.commonConfig!.pubTourAssetPath}${tourRid}/${state.default.commonConfig!.pubTourEntityFileName}`)
+        ? await api<null, ApiResp<RespTour>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${+new Date()}`)
         : await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
 
-      tour = processRawTourData(data.data, state, false, loadPublishedData);
+      let config: RespCommonConfig;
+      if (loadPublishedData) {
+        const tourWithScreen: RespTourWithScreens = data.data as RespTourWithScreens;
+        config = tourWithScreen.cc!;
+        dispatch({
+          type: ActionType.INIT,
+          config
+        });
+      } else {
+        config = state.default.commonConfig!;
+      }
+
+      tour = processRawTourData(data.data, config, false, loadPublishedData ? data.data : undefined);
     } catch (e) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
@@ -801,7 +814,7 @@ export function loadTourAndData(
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
-      tour: processRawTourData(tour!, getState(), false, loadPublishedData),
+      tour: processRawTourData(tour!, getState().default.commonConfig!, false, loadPublishedData ? tour : undefined),
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,
@@ -820,7 +833,7 @@ export function publishTour(tour: P_RespTour) {
         body: { tourRid: tour.rid }
       });
 
-      tour = processRawTourData(data.data, state, false, false);
+      tour = processRawTourData(data.data, state.default.commonConfig!, false);
       publishSuccessful = true;
     } catch (e) {
       sentryCaptureException(new Error(`Error while loading tour and corresponding data ${(e as Error).message}`));
@@ -950,7 +963,7 @@ export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) 
 
     dispatch({
       type: ActionType.TOUR,
-      tour: processRawTourData(data.data, state, false, false),
+      tour: processRawTourData(data.data, state.default.commonConfig!, false),
       oldTourRid: tour.rid,
       performedAction: 'edit'
     });
@@ -996,7 +1009,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
 
       dispatch({
         type: ActionType.TOUR,
-        tour: processRawTourData(data.data, state, false, false),
+        tour: processRawTourData(data.data, state.default.commonConfig!, false),
         oldTourRid: tour.rid,
         performedAction: 'edit'
       });
@@ -1055,7 +1068,7 @@ const duplicateGivenTour = async (
   tour: RespTourWithScreens,
   getState: () => TState,
 ): Promise<P_RespTour> => {
-  const duplicatedTour = processRawTourData(tour, getState());
+  const duplicatedTour = processRawTourData(tour, getState().default.commonConfig!);
   const idxm = tour.idxm;
   if (idxm) {
     const tourDataFile = await api<null, TourData>(duplicatedTour.dataFileUri.href);
@@ -1124,7 +1137,7 @@ const duplicateGivenTour = async (
     method: 'POST'
   });
 
-  return processRawTourData(updatedTourResp.data, getState());
+  return processRawTourData(updatedTourResp.data, getState().default.commonConfig!);
 };
 
 export function createDefaultTour() {
@@ -1162,7 +1175,7 @@ export function addNewTourToAllTours(newTour: RespTour) {
     getState: () => TState
   ) => {
     const state = getState();
-    const processedNewTours = [processRawTourData(newTour, state)];
+    const processedNewTours = [processRawTourData(newTour, state.default.commonConfig!)];
     const tours = [...state.default.tours, ...processedNewTours];
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,

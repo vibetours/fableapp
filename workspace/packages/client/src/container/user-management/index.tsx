@@ -52,9 +52,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   usersLoaded: state.default.allUsersLoadingStatus === LoadingStatus.Done,
   users: state.default.users,
-  manifestPath: state.default.commonConfig
-    ? state.default.commonConfig.pubTourAssetPath + state.default.commonConfig.manifestFileName
-    : '',
+  manifestPath: '',
 });
 
 interface IOwnProps {
