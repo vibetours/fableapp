@@ -33,6 +33,14 @@ export const getDiffsOfImmediateChildren = (node1: DiffQueueNode, node2: DiffQue
     return diffs;
   }
 
+  // this happens when an element has a type of 8 in case and some other time in other case
+  // if the node is skipped in 1 screen and included in the other
+  // this happned when in one screen an iframe was skipped so it had type of 8 and in other it had type of 1
+  if (node1.serNode.type !== node2.serNode.type) {
+    diffs.shouldReplaceNode = true;
+    return diffs;
+  }
+
   if (node1.serNode.name.toLowerCase() === 'svg') diffs.nodeProps.partOfSvgEl = 1;
 
   const mapOfTree1 = new Map();

@@ -731,11 +731,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       const timeTaken = performance.now() - startTime;
       console.log('dt', timeTaken);
-      sentryTransaction.setData('screenIds', {
+      sentryTransaction?.setData('screenIds', {
         currScreenId: currScreen.id,
         goToScreenId: goToScreen.id
       });
-      sentryTransaction.finish();
+      sentryTransaction?.finish();
 
       if (!res) {
         throw Error(`Animation failed between ${currScreen.id} and ${goToScreen.id}`);
