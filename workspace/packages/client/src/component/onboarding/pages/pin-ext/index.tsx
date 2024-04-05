@@ -1,6 +1,6 @@
 import React from 'react-dom';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigation } from 'react-router-dom';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
 import StepDot from '../../step-dot';
 import * as CTags from '../../styled';
@@ -9,18 +9,23 @@ import CurvedArrow from '../../../../assets/onboarding/curved-arrow.svg';
 import { ONBOARDING_PAGE_ROUTES } from '../../../../container/onboarding';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/pin-ext-browser.png';
+import TopLoader from '../../../loader/top-loader';
+import { TOP_LOADER_DURATION } from '../../../../constants';
 
 interface Props {
   title: string,
 }
 
 export default function PinExt(props: Props): JSX.Element {
+  const { state: loadingState } = useNavigation();
+
   useEffect(() => {
     document.title = props.title;
   }, []);
 
   return (
     <>
+      {loadingState === 'loading' && <TopLoader duration={TOP_LOADER_DURATION} showLogo={false} />}
       <CTags.ContentWrapper>
         <CTags.MotionDivWrapper
           initial={{ opacity: 0, x: 100 }}

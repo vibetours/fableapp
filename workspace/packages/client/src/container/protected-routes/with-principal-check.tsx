@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Navigate, Outlet } from 'react-router-dom';
-import { withAuth0, WithAuth0Props, Auth0Provider } from '@auth0/auth0-react';
+import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
 import { RespUser, Status, UserOrgAssociation } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
@@ -12,10 +12,9 @@ import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 // import Auth0Config from '../../component/auth/auth0-config.json';
 import { iam } from '../../action/creator';
-import HeartLoader from '../../component/loader/heart';
-import { LoginErrorType } from '../../component/auth/login';
 import { setEventCommonState } from '../../utils';
 import { P_RespSubscription } from '../../entity-processor';
+import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 export const ENV = process.env.REACT_APP_ENVIRONMENT;
@@ -126,14 +125,14 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): JSX.Element {
     if (this.props.auth0.isLoading) {
-      return <HeartLoader />;
+      return <FullPageTopLoader showLogo />;
     }
     if (!this.props.auth0.isAuthenticated) {
       window.location.replace('/login');
-      return <HeartLoader />;
+      return <div />;
     }
     if (!this.props.isPrincipalLoaded) {
-      return <HeartLoader />;
+      return <div />;
     }
     if (!this.props.principal) {
       window.location.replace('/login');
@@ -144,7 +143,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       // If user details are not yet completed
       if (!document.location.pathname.startsWith('/user-details')) {
         window.location.replace('/user-details');
-        return <HeartLoader />;
+        return <FullPageTopLoader showLogo />;
       }
     } else if (this.props.principal.orgAssociation !== UserOrgAssociation.Explicit) {
       try {

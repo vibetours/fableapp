@@ -1,4 +1,4 @@
-import React, { lazy } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { ITourLoaderData } from '@fable/common/dist/types';
 import * as Tags from './styled';
 
@@ -55,12 +55,14 @@ function Loader(props: Props): JSX.Element {
                     alt="logo"
                     className="gif"
                   />}
-                  {props.data.loader.type === 'lottie' && <LottiePlayer
-                    style={{ height: '100%' }}
-                    src={props.data.loader.url}
-                    autoplay
-                    loop
-                  />}
+                  <Suspense fallback={null}>
+                    {props.data.loader.type === 'lottie' && <LottiePlayer
+                      style={{ height: '100%' }}
+                      src={props.data.loader.url}
+                      autoplay
+                      loop
+                    />}
+                  </Suspense>
                 </Tags.Loader>
                 <Tags.LoadingTextWithLoader
                   loaderHeight={loaderHeight}

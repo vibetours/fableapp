@@ -34,6 +34,8 @@ import TourCardGuide from '../../user-guides/tour-card-guide';
 import { createIframeSrc, isExtensionInstalled } from '../../utils';
 import ExtDownloadRemainder from '../../component/ext-download';
 import TextArea from '../../component/text-area';
+import TopLoader from '../../component/loader/top-loader';
+import { TOP_LOADER_DURATION } from '../../constants';
 
 const userGuides = [TourCardGuide];
 
@@ -278,6 +280,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <GTags.ColCon className="tour-con">
+        {this.props.loadingState === 'loading' && <TopLoader
+          duration={TOP_LOADER_DURATION}
+          showLogo={false}
+          showOverlay
+        />}
         <SkipLink />
         <div style={{ height: '48px' }}>
           <Header
@@ -353,8 +360,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 </>
               ) : (
-                <div style={{ width: '100%' }}>
-                  <Loader width="80px" txtBefore="Loading demos for you" showAtPageCenter />
+                <div style={{ width: '100%', position: 'relative' }}>
+                  <TopLoader duration={TOP_LOADER_DURATION} showLogo text="Loading demos for you" />
                 </div>
               )}
             </GTags.BodyCon>

@@ -2,10 +2,10 @@ import { useAuth0 } from '@auth0/auth0-react';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { LogoutType } from '@fable/common/dist/constants';
-import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import Loader from '../loader';
 import InfoCon, { InfoBtn } from '../info-con';
+import FullPageTopLoader from '../loader/full-page-top-loader';
 
 interface Props {
   title: string,
@@ -19,6 +19,7 @@ export default function Logout(props: Props): JSX.Element {
   const [msg, setMsg] = useState(<></>);
   const [heading, setHeading] = useState('');
   const [btns, setBtns] = useState<Array<InfoBtn>>([]);
+  const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     document.title = props.title;
@@ -39,6 +40,7 @@ export default function Logout(props: Props): JSX.Element {
             </p>
           </>
         );
+        setShowLoader(false);
         setBtns([{
           type: 'primary',
           text: 'Logout',
@@ -54,6 +56,7 @@ export default function Logout(props: Props): JSX.Element {
             Either your session has expired or you don't have access to requested resource. Please login using correct account.
           </p>
         );
+        setShowLoader(false);
         setBtns([{
           type: 'primary',
           text: 'Logout',
@@ -72,6 +75,7 @@ export default function Logout(props: Props): JSX.Element {
           <Loader width="120px" />
         );
         setBtns([]);
+        setShowLoader(true);
         setTimeout(() => {
           logout({ logoutParams: { returnTo: `${APP_CLIENT_ENDPOINT}/login` } });
         }, 1500);
@@ -82,11 +86,15 @@ export default function Logout(props: Props): JSX.Element {
 
   return (
     <div>
-      <InfoCon
-        heading={heading}
-        body={msg}
-        btns={btns}
-      />
+      {
+        showLoader
+          ? <FullPageTopLoader showLogo text="Logging out" />
+          : <InfoCon
+              heading={heading}
+              body={msg}
+              btns={btns}
+          />
+      }
     </div>
   );
 }

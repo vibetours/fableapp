@@ -3,13 +3,13 @@ import { connect } from 'react-redux';
 import { startTransaction, captureException } from '@sentry/react';
 import { sentryTxReport } from '@fable/common/dist/sentry';
 import { Progress } from 'antd';
-import HeartLoader from '../../component/loader/heart';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import { DBData } from './types';
 import { getDataFromDb, openDb, putDataInDb } from './db-utils';
 import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
 import * as Tags from './styled';
+import FableLogo from '../../assets/fable-logo-2.svg';
 
 interface IDispatchProps {
 }
@@ -119,7 +119,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.state.loading) {
       return (
         <Tags.HeartLoaderCon>
-          <HeartLoader />
+          <img src={FableLogo} alt="fable loader" style={{ height: '50px', width: '50px', margin: 'auto' }} />
           <Progress strokeColor="#7567ff" status="active" percent={this.state.progressPercent} />
         </Tags.HeartLoaderCon>
       );

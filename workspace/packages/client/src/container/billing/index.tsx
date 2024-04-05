@@ -15,10 +15,12 @@ import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import { P_RespSubscription } from '../../entity-processor';
 import { checkout } from '../../action/creator';
-import Loader from '../../component/loader';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { IPriceDetails, PriceDetailsData } from './plans';
+import TopLoader from '../../component/loader/top-loader';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import { TOP_LOADER_DURATION } from '../../constants';
 
 const { confirm } = Modal;
 
@@ -48,7 +50,7 @@ interface IOwnProps {
   title: string;
 }
 
-type IProps = IOwnProps & IAppStateProps & IDispatchProps;
+type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   tabSelected: 'Monthly' | 'Yearly';
@@ -83,6 +85,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     }
     return (
       <GTags.ColCon>
+        {this.props.loadingState === 'loading' && <TopLoader duration={TOP_LOADER_DURATION} showLogo={false} showOverlay />}
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
@@ -269,8 +272,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                   </div>
                 </div>
               ) : (
-                <div>
-                  <Loader width="80px" txtBefore="Loading subscription information" showAtPageCenter />
+                <div style={{ width: '100%' }}>
+                  <TopLoader duration={TOP_LOADER_DURATION} showLogo text="Loading subscription information" />
                 </div>
               )}
             </GTags.BodyCon>
@@ -284,4 +287,4 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(UserManagementAndSubscription);
+)(withRouter(UserManagementAndSubscription));

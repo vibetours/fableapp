@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import {
   CmnEvtProp,
   JourneyData,
@@ -41,7 +40,7 @@ import {
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
 import Canvas from '../../component/tour-canvas';
-import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
@@ -69,7 +68,6 @@ import {
   isBlankString,
   generateTimelineOrder,
   assignStepNumbersToAnnotations,
-  isTourMainValid,
   getTourMainValidity
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
@@ -82,8 +80,7 @@ import {
 import { AnnUpdateType } from '../../component/annotation/types';
 import Loader from '../../component/loader';
 import ScreenPicker from '../screen-picker';
-
-type EditChunksForScreen = Record<string, AllEdits<ElEditType>>;
+import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 
 interface IDispatchProps {
   publishTour: (tour: P_RespTour) => Promise<boolean>,
@@ -609,7 +606,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.isTourLoadingComplete()) {
       return (
         <div>
-          <Loader width="80px" txtBefore="Loading demo" showAtPageCenter />
+          <FullPageTopLoader showLogo text="Loading demo" />
         </div>
       );
     }

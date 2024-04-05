@@ -30,7 +30,6 @@ import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
 import SkeletonCard from '../../component/create-tour/skeleton-card';
 import Loader from '../../component/loader';
-import HeartLoader from '../../component/loader/heart';
 import RootLayout from '../../component/onboarding/root-layout';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -45,6 +44,7 @@ import Input from '../../component/input';
 import { amplitudeAddScreensToTour } from '../../amplitude';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { createIframeSrc, setEventCommonState } from '../../utils';
+import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 
 const reactanimated = require('react-animated-css');
 
@@ -396,7 +396,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   render(): ReactElement {
     if (this.state.loading) {
       return (
-        <HeartLoader />
+        <FullPageTopLoader showLogo />
       );
     }
 

@@ -7,7 +7,7 @@ import {
   ITourDataOpts,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import React, { lazy } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
@@ -869,23 +869,25 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
           }
-            {
-          isVideoAnnotation && (
-          <AnnotationVideo
-            conf={this.props.annotationDisplayConfig}
-            playMode={this.props.playMode}
-            annFollowPositions={{
-              top: t,
-              left: l,
-              dir,
-            }}
-            width={w}
-            height={h}
-            tourId={this.props.tourId}
-            navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
-          />
-          )
-        }
+            <Suspense fallback={null}>
+              {
+                isVideoAnnotation && (
+                <AnnotationVideo
+                  conf={this.props.annotationDisplayConfig}
+                  playMode={this.props.playMode}
+                  annFollowPositions={{
+                    top: t,
+                    left: l,
+                    dir,
+                  }}
+                  width={w}
+                  height={h}
+                  tourId={this.props.tourId}
+                  navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+                />
+                )
+              }
+            </Suspense>
             {
             !isVideoAnnotation && (
               <AnnotationContent

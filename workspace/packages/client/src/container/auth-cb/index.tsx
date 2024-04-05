@@ -2,10 +2,11 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import Loader from '../../component/loader';
 import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from '../create-tour/constants';
 import { getDataFromDb, openDb } from '../create-tour/db-utils';
 import { DBData } from '../create-tour/types';
+import TopLoader from '../../component/loader/top-loader';
+import { TOP_LOADER_DURATION } from '../../constants';
 
 interface IDispatchProps {
 }
@@ -36,16 +37,15 @@ class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
       this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
       const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
       if (dbData) {
-        window.location.replace('/create-interactive-demo');
-        return;
+        this.props.navigate('/create-interactive-demo');
       }
-      window.location.replace('/demos');
+      this.props.navigate('/demos');
     }, 2000);
   }
 
   render(): React.ReactNode {
     return (
-      <div><Loader width="80px" showAtPageCenter /></div>
+      <div><TopLoader duration={TOP_LOADER_DURATION} showLogo /></div>
     );
   }
 }

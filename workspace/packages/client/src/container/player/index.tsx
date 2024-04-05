@@ -1,4 +1,4 @@
-import React, { MutableRefObject, lazy } from 'react';
+import React, { MutableRefObject, Suspense, lazy } from 'react';
 import { connect } from 'react-redux';
 import { JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
   LoadingStatus, ScreenData } from '@fable/common/dist/types';
@@ -771,7 +771,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
               />
             ))
         }
-        {
+        <Suspense fallback={null}>
+          {
           this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (!this.queryData || !this.queryData.hm) && (
             <JourneyMenu
               currScreenId={this.getCurrScreenId()}
@@ -789,6 +790,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             />
           )
         }
+        </Suspense>
         {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
           && (
           <FullScreenLoader data={this.props.tourLoaderData} />

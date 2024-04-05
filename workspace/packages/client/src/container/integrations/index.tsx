@@ -8,10 +8,13 @@ import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespSubscription } from '../../entity-processor';
 import * as Tags from './styled';
 import CobaltCard from '../../component/integrations/cobalt-card';
 import { CBEventPayload, CBEvents, logEventToCbltToSetAppProperties } from '../../analytics/handlers';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import TopLoader from '../../component/loader/top-loader';
+import { TOP_LOADER_DURATION } from '../../constants';
 
 interface IDispatchProps { }
 
@@ -31,7 +34,7 @@ interface IOwnProps {
   title: string;
 }
 
-type IProps = IOwnProps & IAppStateProps & IDispatchProps;
+type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   cobaltSessionToken: string | null;
@@ -98,6 +101,11 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
   render(): JSX.Element {
     return (
       <GTags.ColCon>
+        {this.props.loadingState === 'loading' && <TopLoader
+          duration={TOP_LOADER_DURATION}
+          showLogo={false}
+          showOverlay
+        />}
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
@@ -151,4 +159,4 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(Integrations);
+)(withRouter(Integrations));

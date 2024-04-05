@@ -1,7 +1,7 @@
 // Ref: https://stackoverflow.com/a/70937792
 //
 import React, { ComponentType } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigation, useParams, useSearchParams } from 'react-router-dom';
 
 export interface WithRouterProps<T = ReturnType<typeof useParams>> {
   history: {
@@ -16,12 +16,14 @@ export interface WithRouterProps<T = ReturnType<typeof useParams>> {
   };
   navigate: ReturnType<typeof useNavigate>;
   searchParams: URLSearchParams;
+  loadingState: 'idle' | 'loading' | 'submitting'
 }
 
 export const withRouter = <P extends object>(Comp: ComponentType<P>) => function (props: Omit<P, keyof WithRouterProps>) {
   const location = useLocation();
   const match = { params: useParams() };
   const navigate = useNavigate();
+  const { state: loadingState } = useNavigation();
   const searchParams = useSearchParams();
 
   const history = {
@@ -42,6 +44,7 @@ export const withRouter = <P extends object>(Comp: ComponentType<P>) => function
       searchParams={searchParams[0]}
       match={match}
       navigate={navigate}
+      loadingState={loadingState}
       {...(props as P)}
     />
   );

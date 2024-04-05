@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import Loader from '../../component/loader';
+import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 
 interface IDispatchProps {
 }
@@ -26,12 +26,14 @@ class Invite extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     localStorage.setItem('fable/invite-id', this.props.match.params.id);
 
-    window.location.replace('/login');
+    setTimeout(() => {
+      this.props.navigate('/login');
+    }, 0);
   }
 
   render(): React.ReactNode {
     return (
-      <div><Loader width="80px" showAtPageCenter /></div>
+      <FullPageTopLoader />
     );
   }
 }

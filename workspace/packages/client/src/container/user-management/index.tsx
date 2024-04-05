@@ -15,6 +15,9 @@ import Loader from '../../component/loader';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import UrlCodeShare from '../../component/publish-preview/url-code-share';
+import { withRouter, WithRouterProps } from '../../router-hoc';
+import TopLoader from '../../component/loader/top-loader';
+import { TOP_LOADER_DURATION } from '../../constants';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -59,7 +62,7 @@ interface IOwnProps {
   title: string;
 }
 
-type IProps = IOwnProps & IAppStateProps & IDispatchProps;
+type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   showModal: boolean;
@@ -84,6 +87,11 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     const heading = `${noOfUsers} user${noOfUsers > 1 ? 's' : ''} in your org`;
     return (
       <GTags.ColCon>
+        {this.props.loadingState === 'loading' && <TopLoader
+          duration={TOP_LOADER_DURATION}
+          showLogo={false}
+          showOverlay
+        />}
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
@@ -155,8 +163,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                   </Tags.BottomPanel>
                 </div>
               ) : (
-                <div>
-                  <Loader width="80px" txtBefore="Loading all users" showAtPageCenter />
+                <div style={{ width: '100%' }}>
+                  <TopLoader duration={TOP_LOADER_DURATION} showLogo text="Loading all users" />
                 </div>
               )}
             </GTags.BodyCon>
@@ -186,4 +194,4 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
 export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(UserManagementAndSubscription);
+)(withRouter(UserManagementAndSubscription));
