@@ -73,6 +73,7 @@ export interface IOwnProps {
   closeJourneyMenu? : ()=> void;
   screenRidOnWhichDiffsAreApplied?: string;
   updateJourneyProgress: (annRefId: string)=> void;
+  areDiffsAppliedSrnMap?: Map<string, boolean>;
 }
 
 interface IOwnStateProps {
@@ -330,18 +331,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } else if (this.props.screen.type === ScreenType.Img) {
       targetEl = this.embedFrameRef?.current?.contentDocument?.body.querySelector('img')!;
     } else {
-      try {
-        targetEl = this.annotationLCM.elFromPath(conf.id);
-      } catch (err) {
-        if (this.props.playMode) {
-          const { screenId } = getAnnotationByRefId(conf.refId, this.props.allAnnotationsForTour)!;
-          const { rid: screenRid } = this.getScreenById(screenId)!;
-          this.resetIframe(screenRid);
-          targetEl = this.annotationLCM.elFromPath(conf.id);
-          sentryCaptureException(new Error(`Element not found while showing ann for ann
-          ${conf.refId} the route screen is rid: ${this.props.screen.rid} & ann is on ${screenRid}`));
-        }
-      }
+      targetEl = this.annotationLCM.elFromPath(conf.id);
     }
     const annsofSameMultiAnnGrp = getAnnsOfSameMultiAnnGrp(conf.zId, this.props.allAnnotationsForTour)
       .filter(ann => ann.refId !== conf.refId);
@@ -362,6 +352,14 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       }
       if (prevProps.toAnnotationId && !this.props.toAnnotationId) {
         this.annotationLCM?.hide(true);
+      }
+
+      if (
+        this.props.hidden && this.props.hidden !== prevProps.hidden
+        && this.props.areDiffsAppliedSrnMap!.get(this.props.screen.rid)
+      ) {
+        this.resetIframe(this.props.screen.rid);
+        this.props.areDiffsAppliedSrnMap!.set(this.props.screen.rid, false);
       }
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel
@@ -669,9 +667,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if ((goToScreen.type === ScreenType.Img || currScreen.type === ScreenType.Img)
     || (goToScreen.urlStructured.host !== currScreen.urlStructured.host)
     ) {
-      if (areDiffsAppliedToCurrIframe) {
-        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
-      }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
     }
@@ -691,9 +686,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      *  TODO:// Wait until data is present instead of using navigate
      */
     if (!currScreenData || !goToScreenData) {
-      if (areDiffsAppliedToCurrIframe) {
-        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
-      }
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
       return;
     }
@@ -706,9 +698,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      */
     if (currScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION
       || goToScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION) {
-      if (areDiffsAppliedToCurrIframe) {
-        this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
-      }
       this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
       return;
     }
@@ -756,23 +745,32 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       this.applyEdits(goToScreenEdits);
 
       this.annotationLCM!.updateNestedFrames(this.nestedFrames);
+
+      // if the diffs are not applied correctly, the elpath on which the annotation will be displayed
+      // will result in a wrong/invalid/no element. this is handled over here
+      try {
+        const ann = getAnnotationByRefId(goToAnnId, this.props.allAnnotationsForTour)!;
+        if (ann.type === 'default') {
+          const targetEl = this.annotationLCM!.elFromPath(ann.id);
+          targetEl!.getBoundingClientRect();
+        }
+      } catch (err) {
+        throw Error(`After diffs element not valid: pls verify it on 
+          screen id ${goToScreen.id} screen rid ${goToScreen.rid} ann rid ${goToAnnId}`);
+      }
+
       // go to next annotation
       setTimeout(() => {
         this.reachAnnotation(goToAnnId);
       }, 300);
+
+      this.props.areDiffsAppliedSrnMap!.set(
+        this.props.screenRidOnWhichDiffsAreApplied!,
+        true
+      );
     } catch (err) {
       captureException(err);
-      this.resetIframeAsync(this.props.screenRidOnWhichDiffsAreApplied!);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
-      deserFrame(
-        currScreenData.docTree,
-        doc,
-        currScreenData.version,
-        [],
-        [],
-        [],
-      );
-      this.annotationLCM!.resetCons();
     }
   };
 
@@ -784,13 +782,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       playVideoAnn(goToScreenId, goToAnnId);
     }
   };
-
-  resetIframeAsync = (rid: string): Promise<void> => new Promise((res, rej) => {
-    setTimeout(() => {
-      res();
-    }, 0);
-    this.resetIframe(rid);
-  });
 
   resetIframe = (rid: string): void => {
     const screen = this.props.allScreens!

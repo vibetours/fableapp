@@ -84,6 +84,7 @@
   "scripts": {
     "start-local": "env-cmd --verbose -e local -r ../env.json react-scripts start",
     "start-dev": "env-cmd --verbose -e dev -r ../env.json react-scripts start",
+    "START-PROD-FROM-LOCAL-BE-EXTRA-CAREFUL": "env-cmd --verbose -e prod-from-local-be-extra-careful -r ../env.json react-scripts start",
     "dupdetect": "jscpd src/",
     "lint": "eslint \"src/**/*.{js,ts,tsx}\"",
     "start-staging": "env-cmd --verbose -e staging -r ../env.json  react-scripts start",

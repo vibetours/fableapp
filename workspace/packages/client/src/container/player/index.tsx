@@ -157,6 +157,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private queryData: queryData | null = getSearchParamData(this.props.searchParams.get('c'));
 
+  private areDiffsAppliedSrnMap = new Map<string, boolean>();
+
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -760,6 +762,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 }}
                 flows={this.props.journey?.flows || []}
+                areDiffsAppliedSrnMap={this.areDiffsAppliedSrnMap}
               />
             ))
         }

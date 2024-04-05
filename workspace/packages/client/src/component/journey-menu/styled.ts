@@ -11,11 +11,12 @@ export interface DropdownConf {
   }
 
 export const DropdownCon = styled.div`
-    position: absolute; 
-    left: ${(p: DropdownConf) => (`${p.left}px` || '20px')};
-    transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, -100%)`)};
-    ${(p: DropdownConf) => ((p.top ? `top: ${p.top}px;` : 'bottom: 40px;'))};
-  `;
+  z-index: 9999;
+  position: absolute; 
+  left: ${(p: DropdownConf) => (`${p.left}px` || '20px')};
+  transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, -100%)`)};
+  ${(p: DropdownConf) => ((p.top ? `top: ${p.top}px;` : 'bottom: 40px;'))};
+`;
 
 export const JourneyCon = styled.div`
   background-color: #fff;
