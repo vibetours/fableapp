@@ -50,7 +50,7 @@ export function logEventToCbltToSetAppProperties<T extends CBEventBase>(event: C
 
 // INFO these are cobalt events and needs to be sycned with that list
 export enum CBEvents {
-  CREATE_CONTACT = 'CREATAE_OR_UPDATE_CONTACT',
+  CREATE_CONTACT = 'CREATE_OR_UPDATE_CONTACT',
   CTA_CLICKED = 'CTA_CLICKED',
   CREATE_CONTACT_PROPERTIES_AND_GROUP = 'CREATE_CONTACT_PROPERTIES_AND_GROUP',
 }

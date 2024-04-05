@@ -70,9 +70,14 @@ export default async function api<T, M>(
     window.location.replace(`/logout?t=${LogoutType.APINotAutorized}`);
   }
 
+  if (resp.status >= 500) {
+    throw new Error('Probable server error');
+  }
+
   if (payload?.noRespExpected) {
     return {} as M;
   }
+
   const json = await resp.json();
   return json as M;
 }

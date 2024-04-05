@@ -252,7 +252,7 @@ export const saveJourneyProgress = (journeyProgress: Record<string, FlowProgress
   sessionStorage.setItem(JOURNEY_PROGRESS_LOCAL_STORE_KEY, JSON.stringify(journeyProgress));
 };
 
-const isValidUrl = (url: string) : boolean => {
+export const isValidUrl = (url: string) : boolean => {
   try {
     const constructedUrl = new URL(url);
     return true;

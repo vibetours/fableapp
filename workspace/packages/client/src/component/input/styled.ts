@@ -1,7 +1,8 @@
 import styled from 'styled-components';
 
-export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
+export const InputContainer = styled.div<{ size: 'large' | 'medium', inline?: boolean}>`
   position: relative;
+  display: ${props => (props.inline ? 'inline-block' : 'block')};
 
   input {
     height: ${props => (props.size === 'large' ? 48 : 42)}px;

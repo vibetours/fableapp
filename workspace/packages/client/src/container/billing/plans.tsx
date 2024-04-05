@@ -38,11 +38,11 @@ export const PriceDetailsData: Array<IPriceDetails> = [
     featTitle: 'Everything in Solo +',
     featList: [
       { id: 1.2, feat: 'Unlimited demos', isHightlighted: false },
+      { id: 1.6, feat: 'Auto-stitch of demo flows', isHightlighted: true },
       { id: 1.3, feat: 'Multi-flow demos with modules', isHightlighted: false },
       { id: 1.4, feat: 'Figma support', isHightlighted: true },
-      { id: 1.5, feat: '1 integration, only contact sync', isHightlighted: false },
-      { id: 1.6, feat: 'Auto-stitch of demo flows', isHightlighted: true },
-      { id: 1.7, feat: 'Demo analaytics with drop off', isHightlighted: false }
+      { id: 1.5, feat: 'Custom webhooks', isHightlighted: false },
+      { id: 1.7, feat: 'Call-to-action buttons', isHightlighted: false }
     ],
   },
   {
@@ -54,8 +54,9 @@ export const PriceDetailsData: Array<IPriceDetails> = [
     featTitle: 'Everything in Startup +',
     featList: [
       { id: 2.2, feat: 'Custom lead forms', isHightlighted: true },
+      { id: 2.2, feat: 'Personalize demo', isHightlighted: true },
+      { id: 2.2, feat: 'Hubspot Integration', isHightlighted: true },
       { id: 2.3, feat: 'Advanced lead level analytics', isHightlighted: true },
-      { id: 2.4, feat: 'Full data sync with integrations', isHightlighted: false },
       { id: 2.5, feat: 'Advanced branching demo', isHightlighted: false },
       { id: 2.6, feat: 'Audio & video guides', isHightlighted: false },
       { id: 2.7, feat: 'Demo templates', isHightlighted: false },
@@ -73,6 +74,7 @@ export const PriceDetailsData: Array<IPriceDetails> = [
       { id: 3.2, feat: 'Multi-team', isHightlighted: false },
       { id: 3.3, feat: 'Custom pricing', isHightlighted: false },
       { id: 3.4, feat: 'SSO', isHightlighted: true },
+      { id: 3.4, feat: 'Salesforce Integration', isHightlighted: true },
       { id: 3.5, feat: 'Dedicated slack support', isHightlighted: false },
       { id: 3.6, feat: 'Demo coaching', isHightlighted: false },
       { id: 3.7, feat: 'Quarterly demo reviews', isHightlighted: false },

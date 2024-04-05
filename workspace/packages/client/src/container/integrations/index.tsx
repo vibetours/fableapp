@@ -2,19 +2,29 @@
 import { Provider, Config } from '@cobaltio/react-cobalt-js';
 import React from 'react';
 import { connect } from 'react-redux';
-import { ApiResp, RespAccountToken, RespLinkedApps, RespUser } from '@fable/common/dist/api-contract';
+import {
+  ApiResp,
+  RespAccountToken,
+  RespLinkedApps,
+  RespPlatformIntegration,
+  RespTenantIntegration,
+  RespUser
+} from '@fable/common/dist/api-contract';
 import api from '@fable/common/dist/api';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import { P_RespSubscription } from '../../entity-processor';
 import * as Tags from './styled';
-import CobaltCard from '../../component/integrations/cobalt-card';
+import IntegrationCard from '../../component/integrations/integration-card';
 import { CBEventPayload, CBEvents, logEventToCbltToSetAppProperties } from '../../analytics/handlers';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
+import Webhook from './webhook';
+import { WEBHOOK_INTEGRATION_TYPE } from '../../component/integrations/webhook-form';
 
 interface IDispatchProps { }
 
@@ -38,8 +48,9 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   cobaltSessionToken: string | null;
-  listOfLinkedCobaltApps: RespLinkedApps[] | null;
-  selectedCobaltApp: string | null;
+  listOfLinkedApps: (RespLinkedApps | RespPlatformIntegration)[];
+  hasIntegrationLoadingErr: boolean;
+  selectedApp: string | null;
   modalOpen: boolean
 }
 
@@ -49,26 +60,53 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
 
     this.state = {
       cobaltSessionToken: null,
-      listOfLinkedCobaltApps: null,
-      selectedCobaltApp: null,
+      listOfLinkedApps: [],
+      hasIntegrationLoadingErr: false,
+      selectedApp: null,
       modalOpen: false
     };
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getPlatformIntegrations = async (): Promise<RespPlatformIntegration[]> => {
+    try {
+      const resp = await api<any, ApiResp<RespPlatformIntegration[]>>('/tenant_integrations', {
+        auth: true,
+      });
+      return resp.data;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      this.setState({ hasIntegrationLoadingErr: true });
+      return [];
+    }
+  };
+
   getCobaltSessionToken = async (): Promise<void> => {
-    const resp = await api<any, ApiResp<RespAccountToken>>('/vr/ct/tknlnkdacc', {
-      auth: true,
-    });
-    const sessionToken = resp.data.token;
-    this.setState({ cobaltSessionToken: sessionToken });
+    try {
+      const resp = await api<any, ApiResp<RespAccountToken>>('/vr/ct/tknlnkdacc', {
+        auth: true,
+      });
+      const sessionToken = resp.data.token;
+      this.setState({ cobaltSessionToken: sessionToken });
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      this.setState({ hasIntegrationLoadingErr: true });
+    }
   };
 
   getListOfLinkedCobaltApps = async (): Promise<RespLinkedApps[]> => {
-    const resp = await api<any, ApiResp<RespLinkedApps[]>>('/vr/ct/lstapp', {
-      auth: true,
-    });
-    this.setState({ listOfLinkedCobaltApps: resp.data });
-    return resp.data;
+    try {
+      const resp = await api<any, ApiResp<RespLinkedApps[]>>('/vr/ct/lstapp', {
+        auth: true,
+      });
+
+      this.setState({ listOfLinkedApps: resp.data.concat(await this.getPlatformIntegrations()) });
+      return resp.data;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      this.setState({ hasIntegrationLoadingErr: true, listOfLinkedApps: await this.getPlatformIntegrations() });
+      return [];
+    }
   };
 
   initiateContactPropertyEvent = async (): Promise<void> => {
@@ -120,34 +158,100 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
             <SidePanel selected="integrations" subs={this.props.subs} />
           </GTags.SidePanelCon>
           <GTags.MainCon style={{ overflow: 'auto' }}>
-            <Tags.CobaltCardCon>
-              {this.state.listOfLinkedCobaltApps?.filter(app => app.type === 'hubspot').map(cobaltApp => (
-                <CobaltCard
-                  key={cobaltApp.slug}
-                  cobaltApp={cobaltApp}
-                  onClick={() => this.setState({ selectedCobaltApp: cobaltApp.slug, modalOpen: true })}
+            <Tags.IntegrationCardCon>
+              {this.state.hasIntegrationLoadingErr && (
+                <div className="err-msg">
+                  <h3>Couldn't load some integrations</h3>
+                  <p>
+                    This might happen when you don't have access to integrations.
+                  </p>
+                  <p>
+                    Please contact us using the in app chat or email us at&nbsp;
+                    <a href="mailto:support@sharefable.com?subject=Can't access integrations">
+                      support@sharefable.com
+                    </a>.
+                  </p>
+                </div>
+              )}
+              {this.state.listOfLinkedApps.filter(app => app.type !== 'salesforce').map(appConfig => (
+                <IntegrationCard
+                  key={appConfig.slug}
+                  appConfig={appConfig}
+                  onClick={() => this.setState({ selectedApp: appConfig.slug, modalOpen: true })}
                 />
               ))}
-            </Tags.CobaltCardCon>
+            </Tags.IntegrationCardCon>
 
             <GTags.BorderedModal
               open={this.state.modalOpen}
-              onCancel={() => this.setState({ selectedCobaltApp: null, modalOpen: false })}
+              onCancel={() => this.setState({ selectedApp: null, modalOpen: false })}
               footer={null}
+              width={this.state.selectedApp && this.state.selectedApp.startsWith('fable-') ? 750 : undefined}
               centered
+              afterOpenChange={(open) => {
+                // TODO: this has been written in a hurry
+                // ideally, the better approach is to use redux state
+                if (open
+                  && this.state.selectedApp
+                  && this.state.selectedApp.startsWith('fable-')
+                  && this.state.selectedApp === 'fable-webhook'
+                ) {
+                  this.getListOfLinkedCobaltApps();
+                }
+              }}
             >
-              <Tags.CobaltConfigWrapper>
-                <Provider
-                  sessionToken={this.state.cobaltSessionToken}
-                >
-                  <Config
-                    removeBranding
-                    slug={this.state.selectedCobaltApp}
-                    onSave={() => this.setState({ modalOpen: false })}
-                    onConnect={this.initiateContactPropertyEvent}
-                  />
-                </Provider>
-              </Tags.CobaltConfigWrapper>
+              {this.state.selectedApp && (
+                this.state.selectedApp.startsWith('fable-') ? (
+                  (this.state.selectedApp === 'fable-webhook' && (
+                    <Webhook
+                      config={this.state.listOfLinkedApps.find(f => f.type === this.state.selectedApp) as RespPlatformIntegration | undefined}
+                      deleteWebhook={(id: number) => {
+                        this.setState(state => {
+                          const webhookApp = state.listOfLinkedApps
+                            .findIndex(app => app.type === WEBHOOK_INTEGRATION_TYPE);
+
+                          const tis = (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration)
+                            .tenantIntegrations.filter(ti => ti.id !== id);
+
+                          (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration) = {
+                            ...((state.listOfLinkedApps[webhookApp]) as RespPlatformIntegration),
+                            tenantIntegrations: tis
+                          };
+
+                          return ({ listOfLinkedApps: state.listOfLinkedApps.slice(0) });
+                        });
+                      }}
+                      createNewPlaceholderWebhook={(localId) => {
+                        const idx = this.state.listOfLinkedApps.findIndex(f => f.type === this.state.selectedApp);
+                        const app = this.state.listOfLinkedApps[idx] as RespPlatformIntegration;
+                        const webhooks = app.tenantIntegrations.concat({
+                          relay: localId,
+                        } as RespTenantIntegration);
+                        this.setState(state => ({
+                          ...state,
+                          listOfLinkedApps: state.listOfLinkedApps.slice(0, idx).concat({
+                            ...app,
+                            tenantIntegrations: webhooks
+                          }, ...state.listOfLinkedApps.slice(idx + 1))
+                        }));
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Tags.CobaltConfigWrapper>
+                    <Provider
+                      sessionToken={this.state.cobaltSessionToken}
+                    >
+                      <Config
+                        removeBranding
+                        slug={this.state.selectedApp}
+                        onSave={() => this.setState({ modalOpen: false })}
+                        onConnect={this.initiateContactPropertyEvent}
+                      />
+                    </Provider>
+                  </Tags.CobaltConfigWrapper>
+                )
+              )}
             </GTags.BorderedModal>
           </GTags.MainCon>
         </GTags.RowCon>

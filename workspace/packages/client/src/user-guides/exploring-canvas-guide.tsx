@@ -189,7 +189,9 @@ const guideInfo: GuideInfo = {
   stepsTaken: 0,
   totalSteps: guide.steps.length,
   isCompleted: false,
-  isSkipped: false,
+  // TODO skipped temporarily
+  // isSkipped: false,
+  isSkipped: true,
   name: guide.name,
   id: guide.id,
   groupId: guide.name,
