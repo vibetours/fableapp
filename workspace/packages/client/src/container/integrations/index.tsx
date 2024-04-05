@@ -128,15 +128,18 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
               footer={null}
               centered
             >
-              <Provider
-                sessionToken={this.state.cobaltSessionToken}
-              >
-                <Config
-                  slug={this.state.selectedCobaltApp}
-                  onSave={() => this.setState({ modalOpen: false })}
-                  onConnect={this.initiateContactPropertyEvent}
-                />
-              </Provider>
+              <Tags.CobaltConfigWrapper>
+                <Provider
+                  sessionToken={this.state.cobaltSessionToken}
+                >
+                  <Config
+                    removeBranding
+                    slug={this.state.selectedCobaltApp}
+                    onSave={() => this.setState({ modalOpen: false })}
+                    onConnect={this.initiateContactPropertyEvent}
+                  />
+                </Provider>
+              </Tags.CobaltConfigWrapper>
             </GTags.BorderedModal>
           </GTags.MainCon>
         </GTags.RowCon>

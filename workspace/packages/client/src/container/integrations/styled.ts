@@ -7,3 +7,9 @@ export const CobaltCardCon = styled.div`
   gap: 1rem;
   width: 60%;
 `;
+
+export const CobaltConfigWrapper = styled.div`
+  button {
+    background-color: #7567FF;
+  }
+`;
