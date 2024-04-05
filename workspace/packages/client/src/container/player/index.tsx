@@ -50,6 +50,7 @@ import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
 import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
 import { FableLeadContactProps, addToGlobalAppData } from '../../global';
+import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 
 const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -612,8 +613,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       .find(slot => slot.data.version !== SCREEN_DIFFS_SUPPORTED_VERSION);
     const isHostDifferent = screen2Slot.find(slot => screen1Slot.screen.urlStructured.host
       !== slot.screen.urlStructured.host);
+    const isHTMLNodeDifferent = screen2Slot
+      .filter(slot => slot.data)
+      .find(slot => isSerNodeDifferent(screen1Slot.data.docTree, slot.data.docTree));
 
-    return !(isAnyOfThemScreenImg || isCurrScreenOldVersioned || isAdjacentScreensOldVersioned || isHostDifferent);
+    return !(isAnyOfThemScreenImg || isCurrScreenOldVersioned || isAdjacentScreensOldVersioned
+      || isHostDifferent || isHTMLNodeDifferent);
   }
 
   getCurrScreenId(): number {

@@ -8,12 +8,12 @@ import {
 } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { captureException } from '@sentry/react';
+import { captureException, startTransaction } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { sleep } from '@fable/common/dist/utils';
-import { P_RespScreen, P_RespTour, convertEditsToLineItems } from '../../entity-processor';
+import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
   EditItem, ElEditType,
@@ -40,7 +40,7 @@ import { deser, deserFrame, deserIframeEl } from './utils/deser';
 import { showOrHideEditsFromEl } from './utils/edits';
 import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
-import { areSerNodePropsDifferent, getDiffsOfImmediateChildren, getSerNodesAttrUpdates } from './utils/diffs/get-diffs';
+import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
 import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
@@ -426,15 +426,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
        * Check if the entire html needs to replaced or updated
        */
       const htmlEl = this.annotationLCM!.elFromPath('1')!;
-      if (tree1.attrs['f-id'] !== tree2.attrs['f-id'] || areSerNodePropsDifferent(tree1, tree2)) {
-        const newNode = this.deserElOrIframeEl(tree2, doc, version, {
-          partOfSvgEl: 0,
-          shadowParent: null,
-        })!;
-        (htmlEl as HTMLElement).replaceWith(newNode);
-        return true;
-      }
-
       const updates = getSerNodesAttrUpdates(tree1, tree2);
       applyUpdateDiff(updates, htmlEl);
 
@@ -703,6 +694,15 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
 
     /**
+     * If the entire HTML element is different,
+     * We navigate to that screen with annotation id
+     */
+    if (isSerNodeDifferent(currScreenData.docTree, goToScreenData.docTree,)) {
+      this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
+      return;
+    }
+
+    /**
      * Getting Screen edits
      */
 
@@ -719,12 +719,23 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
+      const startTime = performance.now();
+      const sentryTransaction = startTransaction({ name: 'getAndApplyDiffsTx' });
+
       const res = await this.getAndApplyDiffs(
         currScreenData.docTree,
         goToScreenData.docTree,
         doc,
         goToScreenData.version
       );
+
+      const timeTaken = performance.now() - startTime;
+      console.log('dt', timeTaken);
+      sentryTransaction.setData('screenIds', {
+        currScreenId: currScreen.id,
+        goToScreenId: goToScreen.id
+      });
+      sentryTransaction.finish();
 
       if (!res) {
         throw Error(`Animation failed between ${currScreen.id} and ${goToScreen.id}`);

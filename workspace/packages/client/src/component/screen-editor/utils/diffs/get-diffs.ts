@@ -1,4 +1,4 @@
-import { SerNode } from '@fable/common/dist/types';
+import { ScreenData, SerDoc, SerNode } from '@fable/common/dist/types';
 import { DiffsSerNode, Update } from './types';
 import { FABLE_CUSTOM_NODE } from '../deser';
 import { DeSerProps } from '../../preview';
@@ -266,4 +266,9 @@ export const areSerNodePropsDifferent = (serNodeOfTree1: SerNode, serNodeOfTree2
   }
 
   return !isDeepEqual(serNodeOfTree1.props, serNodeOfTree2.props);
+};
+
+export const isSerNodeDifferent = (tree1: SerNode, tree2: SerNode): boolean => {
+  const isDifferent = tree1.attrs['f-id'] !== tree2.attrs['f-id'] || areSerNodePropsDifferent(tree1, tree2);
+  return isDifferent;
 };
