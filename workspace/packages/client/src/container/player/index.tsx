@@ -177,27 +177,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     document.title = this.props.title;
-    const searchParams = new URLSearchParams(this.props.location.search);
-    const userEmail: string = searchParams.get('email') || '';
-    const firstName = searchParams.get('first_name') ?? undefined;
-    const lastName = searchParams.get('last_name') ?? undefined;
-    const org = searchParams.get('org') ?? undefined;
-    if (REACT_APP_ENVIRONMENT !== 'dev') {
-      (window as FWin).__fable_global_settings__ = {
-        ...((window as FWin).__fable_global_settings__ || {}),
-        shouldLogEvent: !this.props.staging
-      };
-    }
-
-    if (userEmail) {
-      emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, {
-        email: userEmail,
-        first_name: firstName,
-        last_name: lastName,
-        org
-      });
-    }
-
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
       !this.props.staging
@@ -417,6 +396,29 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  handleParams(): void {
+    const searchParams = new URLSearchParams(this.props.location.search);
+    const userEmail: string = searchParams.get('email') || '';
+    const firstName = searchParams.get('first_name') ?? undefined;
+    const lastName = searchParams.get('last_name') ?? undefined;
+    const org = searchParams.get('org') ?? undefined;
+    if (REACT_APP_ENVIRONMENT !== 'dev') {
+      (window as FWin).__fable_global_settings__ = {
+        ...((window as FWin).__fable_global_settings__ || {}),
+        shouldLogEvent: !this.props.staging
+      };
+    }
+
+    if (userEmail) {
+      emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, {
+        email: userEmail,
+        first_name: firstName,
+        last_name: lastName,
+        org
+      });
+    }
+  }
+
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
     const currTourLoaded = this.props.isTourLoaded;
@@ -429,6 +431,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
     let firstTimeTourLoading = false;
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
+      this.handleParams();
       firstTimeTourLoading = true;
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
       if (this.isJourneyAdded()) {
