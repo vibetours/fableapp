@@ -145,7 +145,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                       <ArrowRightOutlined /> Your invoice and transaction information would be emailed to you and would appear in this page soon.
                                     </p>
                                     <p>
-                                      <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:hello@sharefable.com">hello@sharefable.com</a>
+                                      <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a>
                                     </p>
                                   </div>
                                 ),
