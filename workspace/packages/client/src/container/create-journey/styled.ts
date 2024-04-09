@@ -1,4 +1,4 @@
-import { Select, Button, ColorPicker as AntColorPicker } from 'antd';
+import { Select, Button, ColorPicker as AntColorPicker, Checkbox } from 'antd';
 import styled from 'styled-components';
 
 export const CreateJourneyCon = styled.div`
@@ -39,6 +39,13 @@ export const EditorCon = styled.div`
 
   ::-webkit-scrollbar-thumb:hover {
     background-color: #555;
+  }
+
+  .hlpr {
+    font-size: 11px;
+    font-weight: 400;
+    padding-left: 1.5rem;
+    color: gray;
   }
 `;
 
@@ -155,6 +162,16 @@ export const CTAInputCon = styled.div`
   justify-content: space-between;
   align-items: center;
   margin: 1rem 0;
+`;
+
+export const HideModuleCheckbox = styled(Checkbox)`
+  &.ant-checkbox-wrapper {
+    flex-direction: row-reverse;
+  }
+
+  & span{
+    padding-inline-start: 0px;
+  }
 `;
 
 export const Header = styled.div`

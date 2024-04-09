@@ -23,14 +23,22 @@ export const JourneyCon = styled.div`
   border-radius: 8px;
   box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 2px, rgba(0, 0, 0, 0.3) 0px 0px 0px 1000vw;
   padding: 24px 0;
-  width: 418px;
+  width: 340px;
+
+  .superscript {
+    font-size: 11px;
+    opacity: 0.7;
+    transform: translate(-2px, -4px);
+    display: inline-block;
+  }
 `;
 
 interface FLowItemConf {
-  isCurrentFlow: boolean
+  isCurrentFlow: boolean;
+  disabled: boolean;
 }
 
-export const FLowItemCon = styled.div`
+export const FLowItemCon = styled.div<FLowItemConf>`
   cursor: pointer;
   display: flex;
   gap: 5px;
@@ -38,8 +46,9 @@ export const FLowItemCon = styled.div`
   margin: 0px;
   padding: 15px;
   position: relative;
+  opacity: ${props => (props.disabled ? 0.5 : 1)};
   background-color:${(p: FLowItemConf) => (p.isCurrentFlow ? '#dfdee8' : 'inherit')};
-
+  
   &:hover {
     background-color: #F6F5FF;
     border-radius: 5px;
@@ -48,16 +57,22 @@ export const FLowItemCon = styled.div`
 
 export const FLowTitle = styled.p`
   margin: 0;
-  margin-bottom: 24px;
-  font-size: 18px;
+  margin-bottom: 0.5rem;
   padding: 0px 16px;
+  font-size: 1.25rem;
+  font-weight: bold;
 `;
 
-export const FlowHeader1 = styled.p`
+export const FlowHeader1 = styled.div`
   margin: 0;
-  font-weight: 500;
+  font-weight: 600;
   font-size: 14px;
   font-family: "IBM Plex Sans", sans-serif;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  word-break: break-all;
+  line-height: 1rem;
   margin-bottom: 4px;
 `;
 
@@ -66,6 +81,7 @@ export const FlowHeader2 = styled.p`
   font-weight: 400;
   font-size: 14px;
   font-family: "IBM Plex Sans", sans-serif;
+  line-height: 1.2rem;
 `;
 
 export const IndexButton = styled(Button)`

@@ -1,5 +1,5 @@
-import { ArrowRightOutlined, BarsOutlined, CloseOutlined } from '@ant-design/icons';
-import { Dropdown } from 'antd';
+import { BarsOutlined, CloseOutlined, LockFilled, RightCircleFilled } from '@ant-design/icons';
+import { Dropdown, Tooltip } from 'antd';
 import React, { ReactElement, useEffect, useState } from 'react';
 import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } from '@fable/common/dist/types';
 import * as Tags from './styled';
@@ -20,14 +20,23 @@ interface Props {
     currScreenId: number;
 }
 
+interface FlowWithLastMandatory extends JourneyFlow{
+  lastMandatory: number
+}
+
+interface JourneyWithLastMandatory extends JourneyData {
+  flows: FlowWithLastMandatory[]
+}
+
 const getMenu = (
-  journey: JourneyData,
+  journey: JourneyWithLastMandatory,
   navigateToJourney: (main: string)=> void,
   navigateToCta: ()=> void,
   tourOpts: ITourDataOpts,
   currentFlowMain: string,
   journeyProgress: FlowProgress[],
-  updateJourneyMenu: (isMenuOpen: boolean)=> void
+  updateJourneyMenu: (isMenuOpen: boolean)=> void,
+  currentFlowIndex: number
 ) : ReactElement => {
   const getFlowProgress = (main: string) : FlowProgress => {
     const currenFlowProgress = journeyProgress.find(
@@ -36,39 +45,94 @@ const getMenu = (
     return currenFlowProgress;
   };
 
+  const getIsCurrentFlowDisabled = (navToIndex: number): boolean => {
+    const lastMandatoryFlowIdx = journey.flows[navToIndex].lastMandatory;
+
+    if (lastMandatoryFlowIdx === -1) {
+      return false;
+    }
+
+    const currentProgress = journeyProgress[lastMandatoryFlowIdx];
+    const isMandatoryModuleCompleted = currentProgress.completedSteps === currentProgress.totalSteps;
+    if (isMandatoryModuleCompleted) {
+      return false;
+    }
+
+    return true;
+  };
+
   return (
     <Tags.JourneyCon>
       <Tags.FLowTitle>
         {journey.title}
       </Tags.FLowTitle>
-      <div style={{ maxHeight: '50vh', overflow: 'auto' }}>
-        {journey.flows.map((flow) => (!isBlankString(flow.main)
-          ? (
-            <Tags.FLowItemCon
-              key={flow.header1}
-              onClick={() => {
-                navigateToJourney(flow.main);
-                updateJourneyMenu(false);
-              }}
-              isCurrentFlow={flow.main === currentFlowMain}
-            >
-              <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
-                <ProgressCircle
-                  totalmodules={getFlowProgress(flow.main).totalSteps}
-                  completedModules={getFlowProgress(flow.main).completedSteps}
-                  progressCircleSize={16}
-                />
-              </div>
-              <div style={{ marginLeft: '32px' }}>
-                <Tags.FlowHeader1> {flow.header1} </Tags.FlowHeader1>
-                <Tags.FlowHeader2>{flow.header2}</Tags.FlowHeader2>
-              </div>
-              <div style={{ position: 'absolute', bottom: '16px', right: '16px' }}>
-                <ArrowRightOutlined style={{ fontSize: 11, color: '#747474' }} />
-              </div>
-            </Tags.FLowItemCon>
-          )
-          : null))}
+      <div style={{ maxHeight: '45vh', overflow: 'auto' }}>
+        {journey.flows.map((flow, idx) => {
+          const isMenuDisabled = getIsCurrentFlowDisabled(idx);
+          const flowProgress = getFlowProgress(flow.main);
+          const lastMandatoryFlowIdx = journey.flows[idx].lastMandatory;
+          const lastMandatoryModule = (lastMandatoryFlowIdx > -1) ? journey.flows[lastMandatoryFlowIdx].header1 : '';
+          return (!isBlankString(flow.main)
+            ? (
+              <Tooltip
+                key={flow.header1}
+                title={isMenuDisabled ? (
+                  <>
+                    Please complete the <em>{lastMandatoryModule}</em> module before proceeding.
+                  </>
+                ) : null}
+                destroyTooltipOnHide
+                placement={journey.positioning === CreateJourneyPositioning.Left_Bottom ? 'right' : 'left'}
+                overlayStyle={{
+                  lineHeight: '1rem',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  borderRadius: '8px'
+                }}
+              >
+                <Tags.FLowItemCon
+                  key={flow.header1}
+                  onClick={() => {
+                    if (!isMenuDisabled) {
+                      navigateToJourney(flow.main);
+                      updateJourneyMenu(false);
+                    }
+                  }}
+                  isCurrentFlow={flow.main === currentFlowMain}
+                  disabled={isMenuDisabled}
+                >
+                  <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
+                    <ProgressCircle
+                      totalmodules={flowProgress.totalSteps}
+                      completedModules={flowProgress.completedSteps}
+                      progressCircleSize={16}
+                    />
+                  </div>
+                  <div style={{ marginLeft: '32px', flexGrow: 1 }}>
+                    <Tags.FlowHeader1>
+                      <div>
+                        {flow.header1}&nbsp;
+                        {journey.flows[idx].mandatory && (
+                          <span className="superscript">
+                            *
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#747474' }}>
+                        {isMenuDisabled ? (
+                          <LockFilled />
+                        ) : (
+                          <RightCircleFilled />
+                        )}
+                      </div>
+                    </Tags.FlowHeader1>
+                    <Tags.FlowHeader2>{flow.header2}</Tags.FlowHeader2>
+                  </div>
+                </Tags.FLowItemCon>
+              </Tooltip>
+            )
+            : null);
+        })}
       </div>
       {journey.cta && journey.cta.navigateTo && (
       <div style={{ margin: '24px 16px 0 16px' }}>
@@ -95,8 +159,23 @@ function getCurretFlowTitle(flows: JourneyFlow[], currentFlowMain: string): stri
 function JourneyMenu(props: Props): JSX.Element {
   const primaryColor = props.journey.primaryColor;
   const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number} | null>(null);
-
+  const [currentFlowIndex, setCurrentFlowIndex] = useState(0);
+  const [processedJourney, setProcessedJourney] = useState<null | JourneyWithLastMandatory>(null);
   const paddingFactor = 20;
+
+  useEffect(() => {
+    const flows = props.journey.flows;
+    let lastMandatory = -1;
+    (flows as FlowWithLastMandatory[]).forEach((flow, idx) => {
+      flow.lastMandatory = lastMandatory;
+      if (flow.mandatory) {
+        lastMandatory = idx;
+      }
+    });
+
+    const updatedJourney: JourneyWithLastMandatory = { ...props.journey, flows: flows as FlowWithLastMandatory[] };
+    setProcessedJourney(updatedJourney);
+  }, [props.journey]);
 
   useEffect(() => {
     if (props.currScreenId === -1) return;
@@ -113,6 +192,11 @@ function JourneyMenu(props: Props): JSX.Element {
     }
   }, [props.currScreenId]);
 
+  useEffect(() => {
+    const flowIndex = props.journey.flows.findIndex((flow) => flow.main === props.currentFlowMain);
+    setCurrentFlowIndex(flowIndex);
+  }, [props.currentFlowMain]);
+
   return (
     <Tags.DropdownCon
       transformTranslateX={dropdownPos?.transformTranslateX}
@@ -120,16 +204,18 @@ function JourneyMenu(props: Props): JSX.Element {
       top={dropdownPos?.top}
       positioning={props.journey.positioning}
     >
+      { processedJourney && (
       <Dropdown
         open={props.isJourneyMenuOpen}
         dropdownRender={() => getMenu(
-          props.journey!,
+          processedJourney,
           props.navigateToJourney,
           props.navigateToCta,
           props.tourOpts,
           props.currentFlowMain,
           props.journeyProgress,
-          props.updateJourneyMenu
+          props.updateJourneyMenu,
+          currentFlowIndex
         )}
         trigger={['click']}
         onOpenChange={(e) => { props.updateJourneyMenu(e); }}
@@ -162,6 +248,7 @@ function JourneyMenu(props: Props): JSX.Element {
           </Tags.IndexButton>
         )}
       </Dropdown>
+      )}
     </Tags.DropdownCon>
   );
 }

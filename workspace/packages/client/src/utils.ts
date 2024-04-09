@@ -497,7 +497,8 @@ export function getJourneyWithAnnotationsNormalized(
       header1: '',
       header2: '',
       main,
-      annsInOrder: main ? getOrderedAnnotaionFromMain(allAnns, main) : []
+      annsInOrder: main ? getOrderedAnnotaionFromMain(allAnns, main) : [],
+      mandatory: false
     };
     return [phoney];
   }
@@ -506,6 +507,7 @@ export function getJourneyWithAnnotationsNormalized(
     header1: '',
     header2: '',
     main: '',
+    mandatory: false,
     annsInOrder: annsOrderedByJourney.reduce((flatArr, journeysWithAnns) => {
       flatArr.push(...journeysWithAnns.annsInOrder);
       return flatArr;

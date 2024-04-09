@@ -326,11 +326,13 @@ export interface JourneyData {
   flows: JourneyFlow[];
   cta?: { size: AnnotationButtonSize; text: string; navigateTo: string; };
   primaryColor: string;
+  hideModuleOnLoad: boolean;
 }
 export interface JourneyFlow {
   header1: string;
   header2: string;
   main: string;
+  mandatory: boolean;
 }
 
 export enum CreateJourneyPositioning {

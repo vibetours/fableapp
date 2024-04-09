@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
   JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
-import { Input as CTAInput, Button as AntdButton, Select, Tooltip, Divider } from 'antd';
+import { Input as CTAInput, Button as AntdButton, Select, Tooltip, Divider, Checkbox } from 'antd';
 import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { getSampleJourneyData } from '@fable/common/dist/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
@@ -77,7 +77,11 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
       const updatedJourneyData = { ...prevState.journeyData };
       const updatedFlows = [...updatedJourneyData.flows];
 
-      updatedFlows[idx][key] = newValue;
+      if (key !== 'mandatory') {
+        updatedFlows[idx][key] = newValue as string;
+      } else {
+        updatedFlows[idx].mandatory = newValue as boolean;
+      }
       updatedJourneyData.flows = updatedFlows;
       return { journeyData: updatedJourneyData };
     });
@@ -98,7 +102,8 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     const flow = {
       header1: '',
       header2: '',
-      main: ''
+      main: '',
+      mandatory: false
     };
     this.setState((prevState) => ({
       journeyData: { ...prevState.journeyData, flows: [...prevState.journeyData.flows, flow] } }));
@@ -157,7 +162,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
             <Tags.EditorCon>
               <Tags.JourneyInnerCon>
                 <Input
-                  label="Module name"
+                  label="Heading"
                   defaultValue={this.state.journeyData.title}
                   onBlur={async (e) => {
                     this.setState(prevState => ({ journeyData: { ...prevState.journeyData, title: e.target.value } }));
@@ -241,12 +246,12 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                   </div>
                                   <Tags.FieldInputCon>
                                     <Input
-                                      label="Module title"
+                                      label="Module name"
                                       defaultValue={flow.header1}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header1', e.target.value); }}
                                     />
                                     <Input
-                                      label="Module subtitle"
+                                      label="Module description"
                                       defaultValue={flow.header2}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
                                     />
@@ -276,6 +281,20 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                         </Option>
                                       ))))}
                                     </Tags.FlowSelect>
+                                    <div>
+                                      <Checkbox
+                                        checked={flow.mandatory}
+                                        onChange={(e) => {
+                                          this.updateFlowAtIndex(idx, 'mandatory', e.target.checked);
+                                        }}
+                                      >Mandatory module
+                                      </Checkbox>
+                                      <div className="hlpr">
+                                        If a module is made <em>Mandatory</em>, user needs to finish this module before
+                                        they switch to a different module.
+                                        This is helpful when you have a <em>Lead Form</em> or an <em>introduction</em>.
+                                      </div>
+                                    </div>
                                   </Tags.FieldInputCon>
                                 </Tags.FieldCon>
                               </Tags.FieldOuterCon>
@@ -441,10 +460,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   </Tags.CTAInputCon>
                 </Tags.JourneyInnerCon>
                 <Divider style={{ margin: '24px 0' }} />
-                <Tags.JourneyInnerCon>
-                  <Tags.CTAText>Branding</Tags.CTAText>
+                <Tags.JourneyInnerCon style={{ marginBottom: '20px' }}>
                   <Tags.CTAInputCon>
-                    <GTags.Txt style={{ fontWeight: 500 }}>Primary color</GTags.Txt>
+                    <GTags.Txt>Primary color</GTags.Txt>
                     <Tags.ColorPicker
                       showText={(color) => color.toHexString()}
                       onChangeComplete={e => {
@@ -454,6 +472,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       defaultValue={this.state.journeyData.primaryColor}
                     />
                   </Tags.CTAInputCon>
+                  <Tags.HideModuleCheckbox
+                    checked={this.props.journey.hideModuleOnLoad}
+                    onChange={(e) => {
+                      this.setState((prevState) => ({ journeyData:
+                        { ...prevState.journeyData,
+                          hideModuleOnLoad: e.target.checked
+                        } }));
+                    }}
+                  >Minimize module on start
+                  </Tags.HideModuleCheckbox>
                 </Tags.JourneyInnerCon>
               </Tags.JourneyConfigCon>
               <Tags.OutlineButton

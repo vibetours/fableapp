@@ -95,7 +95,8 @@ export function getSampleJourneyData() {
     positioning: CreateJourneyPositioning.Left_Bottom,
     title: '',
     flows: [],
-    primaryColor: '#7567FF'
+    primaryColor: '#7567FF',
+    hideModuleOnLoad: false
   };
 }
 

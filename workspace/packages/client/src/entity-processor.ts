@@ -513,5 +513,9 @@ export function normalizeBackwardCompatibilityForJourney(
     journey.primaryColor = opts.primaryColor;
   }
 
+  if (!journey.hideModuleOnLoad) {
+    journey.hideModuleOnLoad = false;
+  }
+
   return journey;
 }

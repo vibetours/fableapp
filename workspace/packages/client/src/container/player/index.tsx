@@ -167,7 +167,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       initialScreenRid: '',
       initiallyPrerenderedScreens: {},
       isMinLoaderTimeDone: false,
-      isJourneyMenuOpen: true,
+      isJourneyMenuOpen: false,
       annotationSerialIdMap: {},
       currentFlowMain: ''
     };
@@ -434,14 +434,16 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       this.handleParams();
       firstTimeTourLoading = true;
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
+      let isJourneyMenuOpen = false;
       if (this.isJourneyAdded()) {
         this.setCurrentFlowMain();
+        isJourneyMenuOpen = !this.props.journey!.hideModuleOnLoad;
         annotationSerialIdMap = this.setSerialMapAndJoruneyProgress(annotationSerialIdMap);
       } else {
         annotationSerialIdMap = this.props.tourOpts
           ? getAnnotationSerialIdMap(this.props.tourOpts.main, this.props.allAnnotationsForTour) : {};
       }
-      this.setState({ annotationSerialIdMap });
+      this.setState({ annotationSerialIdMap, isJourneyMenuOpen });
       this.navigateToMain();
 
       emitEvent<Partial<Payload_DemoLoadingStarted>>(InternalEvents.DemoLoadingStarted, {});
