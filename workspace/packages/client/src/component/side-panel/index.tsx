@@ -78,19 +78,6 @@ export default function SidePanel(props: Props): JSX.Element {
           />
         </div>
       </Tags.ConNav>
-      <Tags.Footer style={{ marginBottom: '1.8rem' }}>
-        <Tags.FooterItem className={`footerItem ${props.selected === 'settings' ? 'selected' : ''}`}>
-          <p style={{ fontSize: '0.85rem', color: '#747474', opacity: '0.6' }}>
-            {props.subs && (
-              <>
-                <WalletFilled />&nbsp;
-                {props.subs.paymentPlan[0] + props.subs.paymentPlan.substring(1).toLowerCase()}
-              </>
-            )}
-            <span style={{ fontSize: '0.85rem', color: '#BDBDBD', opacity: '1' }}> - v{packageJSON.version}</span>
-          </p>
-        </Tags.FooterItem>
-      </Tags.Footer>
       <UserGuideDetails
         tourAvailable={props.tourAvailable as boolean}
         show={isUserGuideDetailsOpen}

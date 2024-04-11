@@ -1140,34 +1140,35 @@ const duplicateGivenTour = async (
   return processRawTourData(updatedTourResp.data, getState().default.commonConfig!);
 };
 
-export function createDefaultTour() {
-  return async (
-    dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetAllTours | TGenericLoading>,
-    getState: () => TState
-  ) => {
-    const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens[]>>('/conbtrs', {
-      auth: true, method: 'POST'
-    });
-    const duplicatedTours: P_RespTour[] = [];
+// INFO this is commented out as createDefaultTour performance is very slow
+// export function createDefaultTour() {
+//   return async (
+//     dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetAllTours | TGenericLoading>,
+//     getState: () => TState
+//   ) => {
+//     const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens[]>>('/conbtrs', {
+//       auth: true, method: 'POST'
+//     });
+//     const duplicatedTours: P_RespTour[] = [];
 
-    await Promise.all(data.data.map(async (tour) => {
-      const duplicatedTour = await duplicateGivenTour(tour, getState);
-      duplicatedTours.push(duplicatedTour);
-    }));
+//     await Promise.all(data.data.map(async (tour) => {
+//       const duplicatedTour = await duplicateGivenTour(tour, getState);
+//       duplicatedTours.push(duplicatedTour);
+//     }));
 
-    const state = getState();
-    const processedDuplicatedTours = duplicatedTours.filter(tr => !tr.inProgress);
-    const tours = [...processedDuplicatedTours, ...state.default.tours];
+//     const state = getState();
+//     const processedDuplicatedTours = duplicatedTours.filter(tr => !tr.inProgress);
+//     const tours = [...processedDuplicatedTours, ...state.default.tours];
 
-    dispatch({
-      type: ActionType.DEFAULT_TOUR_LOADED,
-    });
-    dispatch({
-      type: ActionType.ALL_TOURS_LOADED,
-      tours,
-    });
-  };
-}
+//     dispatch({
+//       type: ActionType.DEFAULT_TOUR_LOADED,
+//     });
+//     dispatch({
+//       type: ActionType.ALL_TOURS_LOADED,
+//       tours,
+//     });
+//   };
+// }
 
 export function addNewTourToAllTours(newTour: RespTour) {
   return async (

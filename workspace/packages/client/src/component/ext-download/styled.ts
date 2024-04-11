@@ -7,7 +7,19 @@ export const Container = styled.div<{setupGuideVisible: boolean}>`
   gap: 1rem;
   justify-content: flex-start;
   margin-top: 5.4rem;
-  margin-left: ${(props) => (props.setupGuideVisible ? '-2.5rem' : 0)};}
+
+  .ant-collapse-item {
+    border-bottom: none;
+  }
+
+  .ant-collapse {
+    border-radius: 0.5rem;
+  }
+
+  .ant-collapse .ant-collapse-content {
+    border-top: none;
+    background: whitesmoke;
+  }
 `;
 
 export const Con = styled.div`
@@ -52,7 +64,7 @@ export const EmptyCircle = styled.div`
   height: 16px;
   border-radius: 50%;
   margin-top: 5px;
-  border: 1px solid #7567FF;
+  border: 1px solid #9E9E9E;
 `;
 
 export const StepsCon = styled.div`
@@ -94,7 +106,11 @@ export const SetupGuideCon = styled.div`
   max-width: 350px;
   min-width: 300px;
 
-  p{
+  & > p {
+    font-weight: 500;
+  }
+
+  p {
     margin: 0;
     padding: 0;
   }

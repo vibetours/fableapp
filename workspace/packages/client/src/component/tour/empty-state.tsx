@@ -1,18 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { ChromeOutlined } from '@ant-design/icons';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { OnboardingTourForPrev, RespUser } from '@fable/common/dist/api-contract';
 import { Skeleton, Progress } from 'antd';
 import * as Tags from './styled';
 import Browser1 from '../../assets/tour/browser-1.png';
 import Browser3 from '../../assets/tour/browser-3.png';
 import ControlPill from '../../assets/tour/control-pill.png';
 import Button from '../button';
-import { P_RespTour } from '../../entity-processor';
-import SmallTourCard from './small-tour-card';
+import OnboardingDemos from './onboarding-demos';
 
 interface IProps {
   principal: RespUser | null;
-  defaultTours: P_RespTour[];
+  defaultTours: OnboardingTourForPrev[];
   extensionInstalled: boolean;
 }
 
@@ -21,57 +20,10 @@ function EmptyTourState({
   defaultTours: tours,
   extensionInstalled
 }: IProps): JSX.Element {
-  const [defaultTourLoadProgress, setDefaultTourLoadProgress] = useState(0);
-
-  useEffect(() => {
-    const incrementProgress = (): void => {
-      setDefaultTourLoadProgress((prev) => {
-        if (prev < 99) {
-          return prev + 1;
-        }
-        clearInterval(interval);
-        return 99;
-      });
-    };
-
-    const interval = setInterval(incrementProgress, 100);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const defaultTourLoaded = tours.length > 0;
   return (
     <Tags.EmptyToursContainer>
       <Tags.DefaultDemoCon>
-        <h2>
-          {defaultTourLoaded ? 'Sample demos created for you' : 'Creating sample demos for you...'}
-        </h2>
-        {
-          !defaultTourLoaded && <Progress
-            strokeLinecap="butt"
-            strokeColor="#7567ff"
-            percent={defaultTourLoadProgress}
-            style={{ maxWidth: '30vw' }}
-          />
-        }
-        {
-            !defaultTourLoaded && (
-              <Tags.DefaultTourContainer>
-                <Skeleton active />
-                <Skeleton active />
-              </Tags.DefaultTourContainer>
-            )
-          }
-        <Tags.DefaultTourContainer>
-          {
-          defaultTourLoaded && tours.map((tour, index) => (
-            index < 3 && <SmallTourCard
-              tour={tour}
-              key={tour.rid}
-            />
-          ))
-        }
-        </Tags.DefaultTourContainer>
+        <OnboardingDemos layout="row" previewTours={tours} />
       </Tags.DefaultDemoCon>
       {!extensionInstalled && (
         <Button

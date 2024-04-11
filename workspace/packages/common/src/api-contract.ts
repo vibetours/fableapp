@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-04-05 13:11:34.
+// Generated using typescript-generator version 2.35.1025 on 2024-04-11 08:52:05.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -35,6 +35,12 @@ export interface JobProcessingInfo extends MapSerializable {
 export interface MediaTypeEntityHolding extends EntityHoldingInfoBase {
     fullFilePaths: string[];
     deletable: boolean;
+}
+
+export interface OnboardingTourForPrev {
+    rid: string;
+    name: string;
+    description: string;
 }
 
 export interface PaymentTerms {

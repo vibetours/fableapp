@@ -1,10 +1,12 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, OnboardingTourForPrev, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { message, Modal } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import api from '@fable/common/dist/api';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   createNewTour,
   getAllTours,
@@ -12,7 +14,7 @@ import {
   duplicateTour,
   deleteTour,
   publishTour,
-  createDefaultTour,
+  // createDefaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -24,6 +26,7 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { Ops } from '../../types';
 import * as Tags from './styled';
+import OnboardingDemos from '../../component/tour/onboarding-demos';
 import Button from '../../component/button';
 import Input from '../../component/input';
 import TourCard from '../../component/tour/tour-card';
@@ -46,7 +49,6 @@ interface IDispatchProps {
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>,
-  createDefaultTour: () => void
 }
 
 export enum CtxAction {
@@ -65,12 +67,10 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   ),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
-  createDefaultTour: () => dispatch(createDefaultTour()),
 });
 
 interface IAppStateProps {
   tours: P_RespTour[];
-  defaultTours: P_RespTour[];
   userCreatedTours: P_RespTour[];
   subs: P_RespSubscription | null;
   allToursLoadingStatus: LoadingStatus;
@@ -82,8 +82,7 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
-  defaultTours: state.default.tours.filter(tour => tour.onboarding),
-  userCreatedTours: state.default.tours.filter(tour => !tour.onboarding),
+  userCreatedTours: state.default.tours,
   subs: state.default.subs,
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
@@ -101,6 +100,7 @@ interface IOwnStateProps {
   selectedTour: P_RespTour | null;
   ctxAction: CtxAction;
   isExtInstalled: boolean;
+  onboardingToursForPreview: OnboardingTourForPrev[]
 }
 const { confirm } = Modal;
 
@@ -113,10 +113,28 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   constructor(props: IProps) {
     super(props);
-    this.state = { showModal: false, selectedTour: null, ctxAction: CtxAction.NA, isExtInstalled: false };
+    this.state = {
+      showModal: false,
+      selectedTour: null,
+      ctxAction: CtxAction.NA,
+      isExtInstalled: false,
+      onboardingToursForPreview: []
+    };
   }
 
+  getPreviewTours = async () => {
+    try {
+      const resp = await api<null, ApiResp<OnboardingTourForPrev[]>>('/onbtrspreview', { auth: true });
+      this.setState({
+        onboardingToursForPreview: resp.data,
+      });
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+  };
+
   componentDidMount(): void {
+    this.getPreviewTours();
     this.props.getAllTours();
     document.title = this.props.title;
     isExtensionInstalled()
@@ -159,14 +177,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         this.renameOrDuplicateOrCreateIpRef.current!.focus();
         this.renameOrDuplicateOrCreateIpRef.current!.select();
       });
-    }
-
-    if (prevProps.allToursLoadingStatus !== this.props.allToursLoadingStatus
-      && this.props.allToursLoadingStatus === LoadingStatus.Done) {
-      const shouldCreateDefaultTour = this.props.tours.length === 0;
-      if (shouldCreateDefaultTour) {
-        this.props.createDefaultTour();
-      }
     }
   }
 
@@ -315,7 +325,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     this.props.userCreatedTours.length === 0 ? (
                       <EmptyTourState
                         principal={this.props.principal}
-                        defaultTours={this.props.defaultTours}
+                        defaultTours={this.state.onboardingToursForPreview}
                         extensionInstalled={this.state.isExtInstalled}
                       />
                     ) : (
@@ -351,10 +361,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           </Tags.BottomPanel>
                           <SelectorComponent userGuides={userGuides} />
                         </div>
-                        <ExtDownloadRemainder
-                          extensionInstalled={this.state.isExtInstalled}
-                          isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
-                        />
+                        <div>
+                          <ExtDownloadRemainder
+                            extensionInstalled={this.state.isExtInstalled}
+                            isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
+                          />
+                          <OnboardingDemos
+                            layout="column"
+                            previewTours={this.state.onboardingToursForPreview}
+                          />
+                        </div>
                       </>
                     )
                   }
