@@ -20,8 +20,8 @@ export const AnContent = styled.div<{
   --f-ann-border-radius: ${(p) => p.borderRadius}px;
   --f-ann-primary-color: ${(p) => p.primaryColor};
   --f-ann-font-color: ${(p) => p.fontColor};
-  --f-ann-border-y: ${(p) => p.padding[0]};
-  --f-ann-border-x: ${(p) => p.padding[0]};
+  --f-ann-padding-y: ${(p) => p.padding[0]};
+  --f-ann-padding-x: ${(p) => p.padding[1]};
 
   background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};
   font-size: 1.1rem;
@@ -52,8 +52,8 @@ export const AnContent = styled.div<{
     border-radius: var(--f-ann-border-radius);
     background-color: ${p => (getColorContrast(p.bgColor) === 'dark' ? '#ffffff1a' : '#bcbcbc1a')};
     border: none;
-    margin-top: calc(var(--f-ann-border-y) * 1px - 0.5rem);
-    padding: 0 calc(var(--f-ann-border-x) * 2px) calc(var(--f-ann-border-y) * 1px + 1rem) ;
+    margin-top: 0;
+    padding: 0 calc(var(--f-ann-padding-x) * 0.75px) 1.5rem
   }
 
   .LeadForm__container.focused {
