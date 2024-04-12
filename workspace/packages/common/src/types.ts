@@ -55,6 +55,7 @@ export interface PostProcess {
 }
 
 export interface SerDoc {
+  iriReferencedSvgEls: Record<string, string>;
   frameUrl: string;
   userAgent: string;
   name: string;

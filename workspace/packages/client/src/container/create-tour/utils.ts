@@ -517,7 +517,15 @@ async function postProcessSerDocs(
 
               let proxyiedUrl = assetUrlStr;
               let proxyiedContent: string = '';
-              if (shouldProxyAsset(assetUrl, svgSpriteUrls, proxyCache)) {
+
+              if (proxyAttr === 'style' && frame.iriReferencedSvgEls[pUrl]) {
+                proxyiedUrl = pUrl;
+              }
+
+              if (
+                !frame.iriReferencedSvgEls[pUrl]
+                && shouldProxyAsset(assetUrl, svgSpriteUrls, proxyCache)
+              ) {
                 try {
                   const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
                     method: 'POST',

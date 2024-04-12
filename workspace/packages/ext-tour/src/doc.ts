@@ -34,6 +34,16 @@ export function getPostProcessType(serNode: SerNode): PostProcess["type"] {
   }
 }
 
+const IRI_REFERENCED_SVG_ELS = [
+  "linearGradient",
+  "mask",
+  "clipPath",
+  "filter",
+  "marker",
+  "pattern",
+  "radialGradient"
+];
+
 const SER_DOC_SCHEMA_VERSION = 2;
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
@@ -64,6 +74,7 @@ export function getSearializedDom(
   const doc: Document = isTest ? testInjectedParams.doc : document;
 
   const postProcesses: Array<PostProcess> = [];
+  const iriReferencedSvgEls: Record<string, string> = {};
   const icons: Array<SerNodeWithPath> = [];
 
   function getRep(
@@ -130,6 +141,9 @@ export function getSearializedDom(
       case Node.ELEMENT_NODE:
         const tNode = node as HTMLElement;
         sNode.name = tNode instanceof SVGElement ? tNode.tagName : tNode.tagName.toLowerCase();
+        if (IRI_REFERENCED_SVG_ELS.includes(sNode.name)) {
+          iriReferencedSvgEls[`#${tNode.id}`] = "1";
+        }
         const attrNames = tNode.getAttributeNames();
         for (const name of attrNames) {
           const attrValue = tNode.getAttribute(name);
@@ -469,6 +483,7 @@ export function getSearializedDom(
 
   const isHTML5 = Boolean(Array.from(doc.childNodes).find(el => el.nodeType === Node.DOCUMENT_TYPE_NODE));
   return {
+    iriReferencedSvgEls,
     frameUrl,
     title: doc.title,
     userAgent: doc.defaultView?.navigator.userAgent || "",
