@@ -581,8 +581,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (!isBodyEl(el)) {
       scrollIntoView(el, {
         time: AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS,
-      }, (type: 'complete' | 'cancel') => {
-        if (type === 'complete') this.checkIfAllScrollsComplete(el, config);
+      }, (type: 'complete' | 'canceled') => {
+        this.checkIfAllScrollsComplete(el, config);
       });
     } else {
       this.win.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
