@@ -160,8 +160,6 @@ const MULTI_NODE_MODAL_WIDTH = ANN_NODE_WIDTH * ANN_EDITOR_ZOOM + 40;
 
 const SVG_ZOOM_EXTENT: [number, number] = [0.5, 2];
 
-let dragTimer = 0;
-
 const CONNECTOR_COLOR_NON_HOVERED = '#bdbdbd';
 const CONNECTOR_COLOR_HOVERED = '#000000';
 const CONNECTOR_HOTSPOT_COLOR_NON_HOVERED = 'transparent';
@@ -610,55 +608,49 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         });
 
         const [ox, oy] = fromPointer(event, document.body);
-        if (dragTimer) {
-          clearTimeout(dragTimer);
-        }
-        dragTimer = setTimeout(() => {
-          dragTimer = 0;
-          clearTimeout(dragTimer);
 
-          const els = document.elementsFromPoint(ox, oy);
-          const [dropTg] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('droptg'));
+        const els = document.elementsFromPoint(ox, oy);
+        const [dropTg] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('droptg'));
 
-          selectAll('rect.tg-show.sel').classed('sel', false);
-          reorderPropsRef.current = {
-            ...initialReorderPropsValue,
-            currentDraggedAnnotationId: reorderPropsRef.current.currentDraggedAnnotationId
-          };
+        selectAll('rect.tg-show.sel').classed('sel', false);
 
-          if (!dropTg) {
-            // Check if dropped on multi ann group
-            if (addToMultiAnnGroupRef.current) {
-              shouldShowOrHideMultiAnnGMarker(data, true, Tags.TILE_STROKE_COLORON_SELECT);
-              addToMultiAnnGroupRef.current = null;
-            }
+        reorderPropsRef.current = {
+          ...initialReorderPropsValue,
+          currentDraggedAnnotationId: reorderPropsRef.current.currentDraggedAnnotationId
+        };
 
-            const [dropMultiAnnGrp] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('marker-el'));
-            if (!dropMultiAnnGrp) { return; }
-
-            const addToGroupDropTarget = select<SVGRectElement, MultiAnnotationNode<dagre.Node>>(
-              dropMultiAnnGrp as SVGRectElement
-            );
-            const groupData = addToGroupDropTarget.datum();
-            addToMultiAnnGroupRef.current = groupData;
-            addToGroupDropTarget
-              .style('fill', Tags.TILE_STROKE_COLOR_ON_HOVER)
-              .style('fill-opacity', 0.8);
-
-            return;
+        if (!dropTg) {
+          // Check if dropped on multi ann group
+          if (addToMultiAnnGroupRef.current) {
+            shouldShowOrHideMultiAnnGMarker(data, true, Tags.TILE_STROKE_COLORON_SELECT);
+            addToMultiAnnGroupRef.current = null;
           }
 
-          const dropTarget = select<SVGRectElement, AnnotationNode<dagre.Node>>(dropTg as SVGRectElement);
-          const isLeft = dropTarget.classed('l');
-          const targetData = dropTarget.datum();
-          dropTarget.classed('sel', true);
+          const [dropMultiAnnGrp] = els.filter(elm => elm.nodeName === 'rect' && elm.classList.contains('marker-el'));
+          if (!dropMultiAnnGrp) { return; }
 
-          reorderPropsRef.current.destinationPosition = isLeft
-            ? DestinationAnnotationPosition.prev
-            : DestinationAnnotationPosition.next;
-          reorderPropsRef.current.destinationDraggedAnnotationId = targetData.id;
-          reorderPropsRef.current.isCursorOnDropTarget = true;
-        }, 16) as unknown as number;
+          const addToGroupDropTarget = select<SVGRectElement, MultiAnnotationNode<dagre.Node>>(
+              dropMultiAnnGrp as SVGRectElement
+          );
+          const groupData = addToGroupDropTarget.datum();
+          addToMultiAnnGroupRef.current = groupData;
+          addToGroupDropTarget
+            .style('fill', Tags.TILE_STROKE_COLOR_ON_HOVER)
+            .style('fill-opacity', 0.8);
+
+          return;
+        }
+
+        const dropTarget = select<SVGRectElement, AnnotationNode<dagre.Node>>(dropTg as SVGRectElement);
+        const isLeft = dropTarget.classed('l');
+        const targetData = dropTarget.datum();
+        dropTarget.classed('sel', true);
+
+        reorderPropsRef.current.destinationPosition = isLeft
+          ? DestinationAnnotationPosition.prev
+          : DestinationAnnotationPosition.next;
+        reorderPropsRef.current.destinationDraggedAnnotationId = targetData.id;
+        reorderPropsRef.current.isCursorOnDropTarget = true;
       })
       .on('end', function (
         event: D3DragEvent<SVGForeignObjectElement, AnnotationNode<dagre.Node>, AnnotationNode<dagre.Node>>,
