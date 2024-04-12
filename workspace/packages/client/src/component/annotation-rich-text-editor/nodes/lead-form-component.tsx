@@ -23,16 +23,65 @@ import { $isLeadFormNode, createLeadFormOption } from './lead-form-node';
 import type { Option, Options, LeadFormNode } from './lead-form-node';
 import Button from '../../button';
 import { parseFieldName } from '../../annotation/utils';
+import { LeadFormField, LeadFormFieldAutocompleteType } from '../utils/lead-form-node-utils';
 
-const LEAD_FORM_FIELDS = {
-  'First name': 'Enter your First Name {[ first_name ]}',
-  'Last name': 'Enter your Last Name {[ last_name ]}',
-  Country: 'Enter your Country {[ country ]}',
-  Industry: 'Enter your Industry {[ industry ]}',
-  Company: 'Enter your Company {[ org ]}',
-  Mobile: 'Enter your Mobile number {[ mobile ]}',
-  'Website URL': 'Enter your Website URL {[ website_url ]}',
-};
+export const LEAD_FORM_FIELDS: {
+  label: string,
+  placeholder: string,
+  autocompleteType: LeadFormFieldAutocompleteType,
+  type: LeadFormField,
+  isMandatory?: boolean,
+}[] = [
+  {
+    label: 'Email',
+    placeholder: 'Enter your Email {[email]}',
+    type: 'email',
+    autocompleteType: 'email',
+    isMandatory: true,
+  },
+  {
+    label: 'First name',
+    placeholder: 'Enter your First Name {[ first_name ]}',
+    autocompleteType: 'given-name',
+    type: 'text',
+  },
+  {
+    label: 'Last name',
+    placeholder: 'Enter your Last Name {[ last_name ]}',
+    autocompleteType: 'family-name',
+    type: 'text',
+  },
+  {
+    label: 'Country',
+    placeholder: 'Enter your Country {[ country ]}',
+    autocompleteType: 'country-name',
+    type: 'text',
+  },
+  {
+    label: 'Industry',
+    placeholder: 'Enter your Industry {[ industry ]}',
+    autocompleteType: 'on',
+    type: 'text',
+  },
+  {
+    label: 'Company',
+    placeholder: 'Enter your Company {[ org ]}',
+    autocompleteType: 'organization',
+    type: 'text',
+  },
+  {
+    label: 'Mobile',
+    placeholder: 'Enter your Mobile number {[ mobile ]}',
+    autocompleteType: 'tel',
+    type: 'text',
+  },
+  {
+    label: 'Website URL',
+    placeholder: 'Enter your Website URL {[ website_url ]}',
+    autocompleteType: 'on',
+    type: 'text',
+  }
+];
 
 interface LeadFormOptionProps {
   index: number;
@@ -183,9 +232,9 @@ export default function LeadFormComponent({
     return `Field ${maxCount + 1} {[field${maxCount + 1}]}`;
   };
 
-  const addOption = (value: string): void => {
+  const addOption = (value: string, type: LeadFormField, autocompleteType: LeadFormFieldAutocompleteType): void => {
     withLeadFormNode((node) => {
-      node.addOption(createLeadFormOption(value));
+      node.addOption(createLeadFormOption(value, type, autocompleteType));
     });
   };
 
@@ -201,9 +250,10 @@ export default function LeadFormComponent({
 
   const presentOptions = options.map(option => parseFieldName(option.text));
 
-  const availableOptions = Object.entries(LEAD_FORM_FIELDS)
-    .filter(([key, val]) => {
-      const res = !presentOptions.includes(parseFieldName(val));
+  const availableOptions = LEAD_FORM_FIELDS
+    .filter(field => {
+      if (field.type === 'email') return false;
+      const res = !presentOptions.includes(parseFieldName(field.placeholder));
       return res;
     });
 
@@ -211,22 +261,22 @@ export default function LeadFormComponent({
     <Popover
       content={(
         <div className="lead-form-options-popover">
-          {availableOptions.map(([fieldName, fieldVal]) => (
+          {availableOptions.map((field) => (
             <div
-              key={fieldName}
+              key={field.label}
               onClick={() => {
-                addOption(fieldVal);
+                addOption(field.placeholder, field.type, field.autocompleteType);
                 setPopoverOpen(false);
               }}
               className="option"
             >
-              {fieldName}
+              {field.label}
             </div>
           ))}
 
           <div
             onClick={() => {
-              addOption(getCustomOption());
+              addOption(getCustomOption(), 'text', 'on');
               setPopoverOpen(false);
             }}
             className="option"

@@ -6,13 +6,14 @@ import {
   LinkOutlined,
   LogoutOutlined,
   MoreOutlined,
+  QuestionCircleOutlined,
   SaveOutlined,
   ShareAltOutlined,
   WarningFilled
 } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
-import { Tooltip, Button as AntButton, Drawer } from 'antd';
+import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -24,11 +25,19 @@ import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
 import { TourMainValidity } from '../../types';
+import { LocalStoreUserGuideProps, getUserGuidesInArray, resetSkippedOrCompletedStatus } from '../../user-guides/utils';
+import { GuideStatus } from '../side-panel/user-guide-details';
+import UserGuideCard from '../side-panel/user-guide-card';
+import { getTourGuideCardColor, getUserGuideType } from '../side-panel/utils';
+import { UserGuideMsg } from '../../user-guides/types';
+import UserGuideListInPopover from './user-guide-list-in-popover';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
 
 interface IOwnProps {
+  showOnboardingGuides?: boolean;
+  userGuidesToShow?: string[];
   rBtnTxt?: string;
   shouldShowFullLogo?: boolean;
   navigateToWhenLogoIsClicked?: string;
@@ -77,6 +86,7 @@ function Header(props: IOwnProps): JSX.Element {
   const [screenName, setScreenName] = useState(props.titleText || '');
   const [showWarningDrawer, setShowWarningDrawer] = useState(false);
   const [isWarningPresent, setIsWarningPresent] = useState(false);
+  const [showUserGuidePopover, setShowUserGuidePopover] = useState(false);
 
   useEffect(() => {
     let isWarning = false;
@@ -364,6 +374,64 @@ function Header(props: IOwnProps): JSX.Element {
             </AntButton>
           </Tags.MenuItem>
           )}
+
+          {props.showOnboardingGuides && (
+            <Popover
+              open={showUserGuidePopover}
+              onOpenChange={visible => setShowUserGuidePopover(visible)}
+              trigger="click"
+              content={(
+                <div style={{ width: '30rem' }}>
+                  {props.userGuidesToShow?.length && props.tour && (
+                    <div onClick={() => {
+                      setShowUserGuidePopover(false);
+                      window.parent.postMessage({ type: UserGuideMsg.RESET_KEY }, '*');
+                    }}
+                    >
+                      <UserGuideListInPopover tour={props.tour} userGuidesToShow={props.userGuidesToShow} />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'baseline' }}>
+                    <a
+                      href="https://help.sharefable.com"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Help Center <LinkOutlined />
+                    </a>
+                    <a
+                      href="https://www.sharefable.com/contact-support"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Contact Us <LinkOutlined />
+                    </a>
+                  </div>
+                </div>
+              )}
+            >
+              <div
+                style={{
+                  color: 'white',
+                  fontSize: '0.7rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer',
+                  marginRight: '0.75rem'
+                }}
+              >
+                <AntButton
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<QuestionCircleOutlined style={{ color: 'white' }} />}
+                  onClick={() => setShowUserGuidePopover(prevState => !prevState)}
+                />
+              </div>
+            </Popover>
+          )}
+
           {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
             <Tags.StyledPopover

@@ -14,6 +14,7 @@ import {
   LeadFormNode,
 } from '../nodes/lead-form-node';
 import { INSERT_LEAD_FORM_COMMAND } from './toolbar-plugin';
+import { LEAD_FORM_FIELDS } from '../nodes/lead-form-component';
 
 export default function LeadFormPlugin(): JSX.Element | null {
   const [editor] = useLexicalComposerContext();
@@ -26,8 +27,15 @@ export default function LeadFormPlugin(): JSX.Element | null {
     return editor.registerCommand<string>(
       INSERT_LEAD_FORM_COMMAND,
       (payload) => {
+        const emailField = LEAD_FORM_FIELDS.find(field => field.type === 'email')!;
+
         const leadFormNode = $createLeadFormNode([
-          createLeadFormOption('Enter your Email {[email]}', true, 'email'),
+          createLeadFormOption(
+            emailField.placeholder,
+            emailField.type,
+            emailField.autocompleteType,
+            emailField.isMandatory
+          ),
         ]);
 
         $insertNodes([leadFormNode]);

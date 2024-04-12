@@ -14,7 +14,7 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { getRandomId } from '@fable/common/dist/utils';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
-import { LeadFormField, OPTION_INPUT_CLASSNAME, removeFieldNameDefinition } from '../utils/lead-form-node-utils';
+import { LeadFormField, LeadFormFieldAutocompleteType, OPTION_INPUT_CLASSNAME, removeFieldNameDefinition } from '../utils/lead-form-node-utils';
 import { parseFieldName } from '../../annotation/utils';
 import { rearrangeArray } from '../../../utils';
 
@@ -25,16 +25,23 @@ export type Option = Readonly<{
   uid: string;
   isMandatory: boolean;
   type: LeadFormField;
+  autocompleteType: LeadFormFieldAutocompleteType;
 }>;
 
 const LeadFormComponent = React.lazy(() => import('./lead-form-component'));
 
-export function createLeadFormOption(text = '', isMandatory = false, type: LeadFormField = 'text'): Option {
+export function createLeadFormOption(
+  text = '',
+  type: LeadFormField = 'text',
+  autocompleteType: LeadFormFieldAutocompleteType = 'on',
+  isMandatory = false,
+): Option {
   return {
     text,
     uid: getRandomId(),
     isMandatory,
-    type
+    type,
+    autocompleteType
   };
 }
 
@@ -46,7 +53,8 @@ function cloneOption(
     text,
     uid: option.uid,
     isMandatory: option.isMandatory,
-    type: option.type
+    type: option.type,
+    autocompleteType: option.autocompleteType,
   };
 }
 
@@ -178,11 +186,25 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
       optionCon.appendChild(optionInputWrapper);
       optionCon.appendChild(optionInputValidationWrapper);
 
+      const fieldName = parseFieldName(option.text);
+
       optionInput.classList.add(OPTION_INPUT_CLASSNAME);
       optionInput.setAttribute('fable-input-uid', option.uid);
-      optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, parseFieldName(option.text));
+      optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, fieldName);
       optionInput.type = 'text';
       optionInput.placeholder = removeFieldNameDefinition(option.text);
+
+      const autocompleteType = option.autocompleteType;
+      if (autocompleteType && autocompleteType !== 'on') {
+        optionInput.id = autocompleteType;
+        optionInput.name = autocompleteType;
+        optionInput.autocomplete = autocompleteType;
+      } else {
+        optionInput.id = parseFieldName(option.text);
+        optionInput.name = fieldName;
+        optionInput.autocomplete = 'on';
+      }
+
       optionInputWrapper.appendChild(optionInput);
     }
 

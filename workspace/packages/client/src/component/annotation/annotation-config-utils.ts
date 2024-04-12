@@ -19,6 +19,7 @@ import {
 import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { AnnotationMutation, AnnotationPerScreen } from '../../types';
 import { isVideoAnnotation } from '../../utils';
+import { isLeadFormPresentInHTMLStr } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
   screenId: number
@@ -38,6 +39,7 @@ export function updateAnnotationText<T extends IAnnotationConfig>(config: T, txt
   const newConfig = newConfigFrom(config);
   newConfig.bodyContent = txt;
   newConfig.displayText = displayText;
+  newConfig.isLeadFormPresent = isLeadFormPresentInHTMLStr(txt);
   return newConfig;
 }
 

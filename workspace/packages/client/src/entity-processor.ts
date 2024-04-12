@@ -40,6 +40,7 @@ import {
   IdxEncodingTypeInput
 } from './types';
 import { isVideoAnnotation as isVideoAnn } from './utils';
+import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 
 function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
@@ -313,6 +314,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     annCSSStyle: lc.annCSSStyle,
     customDims: lc.customDims,
     annotationSelectionColor: lc.annotationSelectionColor,
+    isLeadFormPresent: lc.isLeadFormPresent,
   };
 }
 
@@ -393,6 +395,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.zId === undefined || an.zId === null) {
     an.zId = an.refId;
+  }
+
+  if (an.isLeadFormPresent === undefined || an.isLeadFormPresent === null) {
+    an.isLeadFormPresent = isLeadFormPresentInHTMLStr(an.bodyContent);
   }
 
   const isVideoAnnotation = isVideoAnn(an as IAnnotationConfig);

@@ -72,7 +72,7 @@ export const guide: Guide = {
         onClick() {
           updateStepsTaken(guide.id, 3);
           getDOMElement(guide, () => document.getElementById('branding-tab'))?.click();
-          getDOMElement(guide, () => document.getElementById('hotspot-panel'))?.click();
+          getDOMElement(guide, () => document.getElementById('hotspot-panel'), false, false)?.click();
           getDOMElement(guide, () => document.getElementById('ann-creator-panel'))?.scroll({ top: 800, behavior: 'smooth' });
         },
       },
@@ -88,7 +88,7 @@ export const guide: Guide = {
     {
       title: 'Control the interactivity of the element that is highlighted',
       description: 'The highlighted element of each annotation is interactive and you can move through the demo by clicking on it (instead of the ‘Next’ button). The hotspot section allows you to make advanced changes like hiding the annotation box, focusing on the interactive element by adding a hotspot marker on it, etc.',
-      target: () => getDOMElement(guide, () => document.getElementsByClassName('hotspot-panel').item(0) as HTMLElement)!,
+      target: () => getDOMElement(guide, () => document.getElementsByClassName('hotspot-panel').item(0) as HTMLElement, false, false)!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 4);
@@ -127,7 +127,7 @@ export const guide: Guide = {
     {
       title: 'Adjusting the highlighted element selection',
       description: 'This advanced element picker enables you to change the highlighted element selection on which the annotation is applied. This will give you a greater degree of control over how an individual annotation is applied on the screen.',
-      target: () => getDOMElement(guide, () => document.getElementById('AEP-wrapper') as HTMLElement)!,
+      target: () => getDOMElement(guide, () => document.getElementById('AEP-wrapper') as HTMLElement, false, false)!,
       nextButtonProps: {
         onClick() {
           updateStepsTaken(guide.id, 6);

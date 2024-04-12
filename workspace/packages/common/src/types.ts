@@ -271,6 +271,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   targetElCssStyle: string;
   annCSSStyle: string;
   annotationSelectionColor: string;
+  isLeadFormPresent: boolean;
 }
 
 // TODO perform this conversion, client side

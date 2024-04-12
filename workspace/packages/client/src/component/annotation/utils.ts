@@ -286,3 +286,14 @@ export const showValidationError = (errorMsgEl: HTMLDivElement, message: string)
 export const hideValidationError = (errorMsgEl: HTMLDivElement): void => {
   if (errorMsgEl) (errorMsgEl as HTMLDivElement).style.visibility = 'hidden';
 };
+
+export const EMPTY_IFRAME_ID = 'fable-empty-iframe';
+
+export const createEmptyFableIframe = (): HTMLIFrameElement => {
+  const iframeEl = document.createElement('iframe');
+  iframeEl.name = EMPTY_IFRAME_ID;
+  iframeEl.style.display = 'none';
+  iframeEl.src = 'about:blank';
+  iframeEl.title = 'Fable Empty Iframe';
+  return iframeEl;
+};

@@ -126,6 +126,21 @@ export const AnContent = styled.div<{
     color: var(--f-ann-font-color) !important;
     opacity: 0.75 !important;
   }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: ${(p) => p.fontColor};
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent;
+  }
 `;
 
 const getAnnotationPadding = (annotationPadding: string): string => {

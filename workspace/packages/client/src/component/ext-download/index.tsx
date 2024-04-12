@@ -1,15 +1,24 @@
 import React from 'react';
 import { Collapse, Steps, Progress } from 'antd';
+import { ChromeOutlined } from '@ant-design/icons';
 import Button from '../button';
 import * as Tags from './styled';
 
 interface IProps {
   extensionInstalled: boolean;
   isAtleastOneTourPublished: boolean;
+  isAtleastOneDemoCreated: boolean;
 }
 
-function StepContainer({ extensionInstalled, isAtleastOneTourPublished }:
-  { extensionInstalled: boolean, isAtleastOneTourPublished: boolean }): JSX.Element {
+export function StepContainer({
+  extensionInstalled,
+  isAtleastOneTourPublished,
+  isAtleastOneDemoCreated
+}: {
+  extensionInstalled: boolean,
+  isAtleastOneTourPublished: boolean,
+  isAtleastOneDemoCreated: boolean
+}): JSX.Element {
   return (
     <Tags.StepsCon className="empty">
       <Steps
@@ -27,20 +36,20 @@ function StepContainer({ extensionInstalled, isAtleastOneTourPublished }:
                   <li>Product stories that resonates with your buyers & delivers instant value</li>
                 </ul>
                 <Button
+                  style={{ padding: '0.75rem 1.5rem' }}
                   onClick={() => {
                     window.open('https://chrome.google.com/webstore/detail/fable/ekmabenadlgfkjplmpldkjkhiikobaoc', '_blank');
                   }}
-                  style={{
-                    cursor: 'pointer'
-                  }}
+                  icon={<ChromeOutlined />}
+                  iconPlacement="left"
                 >
-                  Download Extension
+                  Install Fable's Chrome Extension
                 </Button>
               </div>
             ),
           },
           {
-            icon: <Tags.CheckFilledIcon style={{ color: '#9E9E9E' }} />,
+            icon: isAtleastOneDemoCreated ? <Tags.CheckFilledIcon style={{ color: '#9E9E9E' }} /> : <Tags.EmptyCircle />,
             title: 'Create your first demo',
             description: (
               <div style={{ lineHeight: '1.1rem' }}>Open your product website and click on Start Recording button in the extension.</div>
@@ -67,7 +76,11 @@ function shouldShowSetupGuide(
   return extensionInstalled && isAtleastOneTourPublished;
 }
 
-export default function ExtDownloadRemainder({ extensionInstalled, isAtleastOneTourPublished }: IProps): JSX.Element {
+export default function ExtDownloadRemainder({
+  extensionInstalled,
+  isAtleastOneTourPublished,
+  isAtleastOneDemoCreated
+}: IProps): JSX.Element {
   const setupGuideVisible = shouldShowSetupGuide(extensionInstalled, isAtleastOneTourPublished);
   return (
     <Tags.Container setupGuideVisible={setupGuideVisible}>
@@ -87,10 +100,12 @@ export default function ExtDownloadRemainder({ extensionInstalled, isAtleastOneT
               children: <StepContainer
                 extensionInstalled={extensionInstalled}
                 isAtleastOneTourPublished={isAtleastOneTourPublished}
+                isAtleastOneDemoCreated={isAtleastOneDemoCreated}
               />
             }]}
         />
         : <StepContainer
+            isAtleastOneDemoCreated={isAtleastOneDemoCreated}
             extensionInstalled={extensionInstalled}
             isAtleastOneTourPublished={isAtleastOneTourPublished}
         />}

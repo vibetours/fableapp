@@ -285,6 +285,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     return false;
   };
 
+  getIsAtleastOneDemoCreated = (): boolean => Boolean(this.props.tours.find(tour => tour.onboarding === false));
+
   render(): ReactElement {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
 
@@ -324,9 +326,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   {
                     this.props.userCreatedTours.length === 0 ? (
                       <EmptyTourState
+                        isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
                         principal={this.props.principal}
                         defaultTours={this.state.onboardingToursForPreview}
                         extensionInstalled={this.state.isExtInstalled}
+                        isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
                       />
                     ) : (
                       <>
@@ -363,6 +367,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         </div>
                         <div>
                           <ExtDownloadRemainder
+                            isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
                             extensionInstalled={this.state.isExtInstalled}
                             isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
                           />

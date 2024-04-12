@@ -115,6 +115,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
         <Tags.HeaderCon>
           <Header
+            userGuidesToShow={['Sharing or embedding your interactive demo']}
+            showOnboardingGuides
             manifestPath={this.props.manifestPath}
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"

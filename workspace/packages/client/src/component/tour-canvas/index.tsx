@@ -276,6 +276,7 @@ interface CreateJourneyModal {
 }
 
 export default function TourCanvas(props: CanvasProps): JSX.Element {
+  const [selectorComponentKey, setSelectorComponentKey] = useState(0);
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
   const addToMultiAnnGroupRef = useRef<MultiAnnotationNode<dagre.Node> |null>(null);
@@ -307,6 +308,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
+
+  useEffect(() => {
+    const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
+      if (e.data.type === UserGuideMsg.RESET_KEY) setSelectorComponentKey(Math.random());
+    };
+
+    window.addEventListener('message', receiveMessage, false);
+
+    return () => window.removeEventListener('message', receiveMessage, false);
+  }, []);
 
   useEffect(() => {
     const lookupMap = getAnnotationLookupMap(props.allAnnotationsForTour);
@@ -2533,6 +2544,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
+            showOnboardingGuides
+            userGuidesToShow={[
+              'Exploring Fable’s canvas',
+              'Editing the interactive demo that you have captured',
+              'Sharing or embedding your interactive demo'
+            ]}
             {...props.headerProps}
             publishTour={props.publishTour}
             canvasOptions={{
@@ -2608,6 +2625,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                         style={{
                           margin: 0,
                           border: '1px solid black',
+                          borderRadius: '4px',
                         }}
                       />
                     </div>
@@ -2628,6 +2646,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                         style={{
                           margin: 0,
                           border: '1px solid black',
+                          borderRadius: '4px',
                         }}
                       />
                     </div>
@@ -2649,6 +2668,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                         style={{
                           margin: 0,
                           border: '1px solid black',
+                          borderRadius: '4px',
                         }}
                       />
                     </div>
@@ -3001,7 +3021,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             </Tags.MultiNodeModalWrapper>
             )
           }
-          {props.timeline.length && <SelectorComponent userGuides={userGuides} />}
+          {props.timeline.length && <SelectorComponent key={selectorComponentKey} userGuides={userGuides} />}
         </GTags.BodyCon>
       </GTags.ColCon>
     </>

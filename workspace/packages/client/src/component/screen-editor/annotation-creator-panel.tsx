@@ -555,87 +555,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         )}
       </ActionPanel>
-      <ActionPanel title="Sizing & Positioning" icon={<img src={SizingIcon} alt="" />}>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
-          <Tags.ActionPaneSelect
-            defaultValue={isAnnCustomPosition(config.positioning) ? 'custom' : config.positioning}
-            value={config.positioning}
-            size="small"
-            bordered={false}
-            options={getAnnPositioningOptions(config).map(v => ({
-              value: v,
-              label: v,
-            }))}
-            onChange={(e) => {
-              if (e === 'custom') {
-                setShowCustomPositioningOption(true);
-                return;
-              }
-              setShowCustomPositioningOption(false);
-              setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)));
-            }}
-            suffixIcon={<CaretOutlined dir="down" />}
-          />
-        </div>
-        {
-          (isAnnCustomPosition(config.positioning) || showCustomPositioningOption) && (
-            <div style={{ ...commonActionPanelItemStyle, minHeight: '64px', height: 'auto' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', width: '70%' }}>
-                <GTags.Txt>
-                  Custom Positioning
-                </GTags.Txt>
-                <GTags.Txt style={{ fontWeight: 400, fontStyle: 'italic', fontSize: '10px' }}>
-                  This choice won't be regarded if there is no space for the annotation to be rendered.
-                  We would fallback to auto positioning in that case.
-                </GTags.Txt>
-              </div>
-              <AnnPositioningInput
-                fullWidth={64}
-                panelWidth={18}
-                onChange={(e) => {
-                  setConfig(c => updateAnnotationPositioning(c, e));
-                }}
-                selectedPos={config.positioning as CustomAnnotationPosition}
-              />
-            </div>
-          )
-        }
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Box sizing</GTags.Txt>
-          <Tags.ActionPaneSelect
-            defaultValue={config.size ?? 'small'}
-            size="small"
-            bordered={false}
-            options={Object.values(isVideoAnnotation(config)
-              ? ['medium', 'large', 'custom']
-              : ['small', 'medium', 'large', 'custom'])
-              .map(v => ({
-                value: v,
-                label: `${v}`
-              }))}
-            onChange={(e) => setConfig(c => updateAnnotationBoxSize(c, e as EAnnotationBoxSize))}
-            suffixIcon={<CaretOutlined dir="down" />}
-          />
-        </div>
-        {
-          config.size === 'custom' && (
-            <div style={commonActionPanelItemStyle}>
-              <GTags.Txt style={{}}>Custom width</GTags.Txt>
-              <Tags.InputNumberBorderRadius
-                min={0}
-                defaultValue={config.customDims.width}
-                addonAfter="px"
-                onChange={(e) => {
-                  const width = e ? +e : 0;
-                  setConfig(c => updateAnnotationCustomDims(c, { ...c.customDims, width }));
-                }}
-              />
-            </div>
-          )
-        }
-
-      </ActionPanel>
       <ActionPanel
         id="branding-tab"
         title="Branding"
@@ -663,16 +582,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Border color</GTags.Txt>
-          <Tags.ColorPicker
-            showText={(color) => color.toHexString()}
-            onChangeComplete={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
-            }}
-            defaultValue={opts.annotationBodyBorderColor}
-          />
-        </div>
-        <div style={commonActionPanelItemStyle}>
           <GTags.Txt>Font color</GTags.Txt>
           <Tags.ColorPicker
             showText={(color) => color.toHexString()}
@@ -681,131 +590,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             }}
             disabled={isVideoAnnotation(config)}
             defaultValue={opts.annotationFontColor}
-          />
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <div>
-            <GTags.Txt>Selection color</GTags.Txt>
-            <Tags.ApplyAllTxt
-              onClick={() => {
-                setApplyAllProperty({
-                  key: 'annotationSelectionColor',
-                  value: config.annotationSelectionColor
-                });
-              }}
-            >Apply to all
-            </Tags.ApplyAllTxt>
-          </div>
-          <Tags.ColorPicker
-            showText={(color) => color.toHexString()}
-            onChangeComplete={e => {
-              setConfig(c => updateSelectionColor(c, e.toHexString()));
-            }}
-            defaultValue={config.annotationSelectionColor}
-          />
-        </div>
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Font family</GTags.Txt>
-          <Tags.ActionPaneSelect
-            defaultValue={opts.annotationFontFamily}
-            placeholder="select font"
-            bordered={false}
-            options={webFonts.map(v => ({
-              value: v,
-              label: v,
-            }))}
-            onChange={(e) => {
-              if (e) {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
-                amplitudeAnnotationEdited('branding-font_family', e as string);
-              } else {
-                setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
-                amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
-              }
-            }}
-            onClick={loadWebFonts}
-            notFoundContent="No font found"
-            showSearch
-            allowClear={{ clearIcon: <CloseOutlined bgColor="white" /> }}
-            suffixIcon={<CaretOutlined dir="down" />}
-          />
-        </div>
-
-        <div style={commonActionPanelItemStyle}>
-          <div>
-            <GTags.Txt>Selection Effect</GTags.Txt>
-            <Tags.ApplyAllTxt
-              onClick={() => {
-                setApplyAllProperty({
-                  key: 'selectionEffect',
-                  value: config.selectionEffect
-                });
-              }}
-            >Apply to all
-            </Tags.ApplyAllTxt>
-          </div>
-          <Tags.ActionPaneSelect
-            title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
-            disabled={config.selectionShape === 'pulse'}
-            defaultValue={config.selectionEffect}
-            size="small"
-            bordered={false}
-            options={AnnotationSelectionEffect.map(v => ({
-              value: v,
-              label: v.charAt(0).toUpperCase() + v.slice(1),
-            }))}
-            onChange={(value) => {
-              setConfig(c => updateAnnotationSelectionEffect(c, value as AnnotationSelectionEffectType));
-            }}
-            suffixIcon={<CaretOutlined dir="down" />}
-          />
-        </div>
-
-        <div style={commonActionPanelItemStyle}>
-          <div>
-            <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
-            <Tags.ApplyAllTxt
-              onClick={() => {
-                setApplyAllProperty({
-                  key: 'selectionShape',
-                  value: config.selectionShape
-                });
-              }}
-            >Apply to all
-            </Tags.ApplyAllTxt>
-          </div>
-          <Tags.ActionPaneSelect
-            defaultValue={config.selectionShape}
-            size="small"
-            bordered={false}
-            options={AnnotationSelectionShape.map(v => ({
-              value: v,
-              label: v.charAt(0).toUpperCase() + v.slice(1),
-            }))}
-            onChange={(value) => {
-              setConfig(c => updateAnnotationSelectionShape(c, value as AnnotationSelectionShapeType));
-            }}
-            suffixIcon={<CaretOutlined dir="down" />}
-          />
-        </div>
-
-        <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
-          <Tags.InputText
-            placeholder="Enter padding"
-            defaultValue={opts.annotationPadding}
-            bordered={false}
-            disabled={isVideoAnnotation(config)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.keyCode === 13) {
-                setTourDataOpts(t => updateTourDataOpts(
-                  t,
-                  'annotationPadding',
-                  (e.target as HTMLInputElement).value
-                ));
-              }
-            }}
-            onChange={debouncedPaddingOnChangeHandler}
           />
         </div>
         <div style={commonActionPanelItemStyle}>
@@ -819,6 +603,160 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onChange={debouncedBorderRadiusOnChangeHandler}
           />
         </div>
+        <Collapse
+          expandIconPosition="end"
+          size="small"
+          bordered={false}
+          style={{
+            borderRadius: '4px',
+            marginTop: '10px'
+          }}
+          items={[
+            {
+              key: '1',
+              label: <span style={{ fontWeight: 500 }}>Advanced</span>,
+              children: (
+                <div>
+                  <div style={commonActionPanelItemStyle}>
+                    <GTags.Txt>Border color</GTags.Txt>
+                    <Tags.ColorPicker
+                      showText={(color) => color.toHexString()}
+                      onChangeComplete={e => {
+                        setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
+                      }}
+                      defaultValue={opts.annotationBodyBorderColor}
+                    />
+                  </div>
+                  <div style={commonActionPanelItemStyle}>
+                    <div>
+                      <GTags.Txt>Selection color</GTags.Txt>
+                      <Tags.ApplyAllTxt
+                        onClick={() => {
+                          setApplyAllProperty({
+                            key: 'annotationSelectionColor',
+                            value: config.annotationSelectionColor
+                          });
+                        }}
+                      >Apply to all
+                      </Tags.ApplyAllTxt>
+                    </div>
+                    <Tags.ColorPicker
+                      showText={(color) => color.toHexString()}
+                      onChangeComplete={e => {
+                        setConfig(c => updateSelectionColor(c, e.toHexString()));
+                      }}
+                      defaultValue={config.annotationSelectionColor}
+                    />
+                  </div>
+                  <div style={commonActionPanelItemStyle}>
+                    <GTags.Txt>Font family</GTags.Txt>
+                    <Tags.ActionPaneSelect
+                      defaultValue={opts.annotationFontFamily}
+                      placeholder="select font"
+                      bordered={false}
+                      options={webFonts.map(v => ({
+                        value: v,
+                        label: v,
+                      }))}
+                      onChange={(e) => {
+                        if (e) {
+                          setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
+                          amplitudeAnnotationEdited('branding-font_family', e as string);
+                        } else {
+                          setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
+                          amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
+                        }
+                      }}
+                      onClick={loadWebFonts}
+                      notFoundContent="No font found"
+                      showSearch
+                      allowClear={{ clearIcon: <CloseOutlined bgColor="white" /> }}
+                      suffixIcon={<CaretOutlined dir="down" />}
+                    />
+                  </div>
+                  <div style={commonActionPanelItemStyle}>
+                    <div>
+                      <GTags.Txt>Selection Effect</GTags.Txt>
+                      <Tags.ApplyAllTxt
+                        onClick={() => {
+                          setApplyAllProperty({
+                            key: 'selectionEffect',
+                            value: config.selectionEffect
+                          });
+                        }}
+                      >Apply to all
+                      </Tags.ApplyAllTxt>
+                    </div>
+                    <Tags.ActionPaneSelect
+                      title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
+                      disabled={config.selectionShape === 'pulse'}
+                      defaultValue={config.selectionEffect}
+                      size="small"
+                      bordered={false}
+                      options={AnnotationSelectionEffect.map(v => ({
+                        value: v,
+                        label: v.charAt(0).toUpperCase() + v.slice(1),
+                      }))}
+                      onChange={(value) => {
+                        setConfig(c => updateAnnotationSelectionEffect(c, value as AnnotationSelectionEffectType));
+                      }}
+                      suffixIcon={<CaretOutlined dir="down" />}
+                    />
+                  </div>
+                  <div style={commonActionPanelItemStyle}>
+                    <div>
+                      <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
+                      <Tags.ApplyAllTxt
+                        onClick={() => {
+                          setApplyAllProperty({
+                            key: 'selectionShape',
+                            value: config.selectionShape
+                          });
+                        }}
+                      >Apply to all
+                      </Tags.ApplyAllTxt>
+                    </div>
+                    <Tags.ActionPaneSelect
+                      defaultValue={config.selectionShape}
+                      size="small"
+                      bordered={false}
+                      options={AnnotationSelectionShape.map(v => ({
+                        value: v,
+                        label: v.charAt(0).toUpperCase() + v.slice(1),
+                      }))}
+                      onChange={(value) => {
+                        setConfig(c => updateAnnotationSelectionShape(c, value as AnnotationSelectionShapeType));
+                      }}
+                      suffixIcon={<CaretOutlined dir="down" />}
+                    />
+                  </div>
+                  <div style={commonActionPanelItemStyle}>
+                    <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
+                    <Tags.InputText
+                      placeholder="Enter padding"
+                      defaultValue={opts.annotationPadding}
+                      bordered={false}
+                      disabled={isVideoAnnotation(config)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.keyCode === 13) {
+                          setTourDataOpts(t => updateTourDataOpts(
+                            t,
+                            'annotationPadding',
+                            (e.target as HTMLInputElement).value
+                          ));
+                        }
+                      }}
+                      onChange={debouncedPaddingOnChangeHandler}
+                    />
+                  </div>
+                </div>
+              ),
+              style: {
+                border: 'none',
+              },
+            }
+          ]}
+        />
       </ActionPanel>
       <ActionPanel
         id="buttons-panel"
@@ -1218,6 +1156,166 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </Tags.ActionPaneBtn>
         </div>
       </ActionPanel>
+      <ActionPanel
+        title="Effects"
+        icon={<FireOutlined style={{ fontSize: '1.25rem' }} />}
+        helpText={effectsHelpText}
+      >
+        <Collapse
+          defaultActiveKey={['1']}
+          expandIconPosition="end"
+          size="small"
+          bordered={false}
+          style={{
+            borderRadius: '4px',
+          }}
+          items={[
+            {
+              key: '1',
+              label: <span style={{ fontWeight: 500 }}>On screen</span>,
+              children: <EffectSelector
+                key={props.config.refId}
+                config={props.config}
+                cssStr={props.config.targetElCssStyle}
+                onSubmit={cssStr => {
+                  unsubFn.current();
+                  unsubFn.current = () => { };
+                  const newConfig = updateTargetElCssStyle(config, cssStr);
+                  setConfig(newConfig);
+                }}
+                onPreview={cssStr => {
+                  const lcm = (window as any).__f_alcm__;
+                  if (!lcm || !props.selectedEl) return;
+                  unsubFn.current = lcm.previewCustomStyle(cssStr, props.selectedEl, props.config);
+                }}
+                effectFor={EffectFor.tel}
+              />,
+              style: {
+                border: 'none',
+              },
+              extra: getEffectPanelExtraIcons({
+                hasEffectApplied: !isStrBlank(config.targetElCssStyle),
+                effectType: 'screen',
+                onDelete: () => {
+                  const newConfig = updateTargetElCssStyle(config, '');
+                  setConfig(newConfig);
+                }
+              })
+            },
+            {
+              key: '2',
+              label: <span style={{ fontWeight: 500 }}>On annotation</span>,
+              children: <EffectSelector
+                key={props.config.refId}
+                config={props.config}
+                cssStr={props.config.annCSSStyle}
+                onSubmit={cssStr => {
+                  const newConfig = updateAnnCssStyle(config, cssStr);
+                  setConfig(newConfig);
+                }}
+                onPreview={cssStr => {
+                  const lcm = (window as any).__f_alcm__ as ALCM;
+                  if (!lcm) return;
+                  lcm.addAnnStyleTag(cssStr);
+                }}
+                effectFor={EffectFor.ann}
+              />,
+              style: {
+                borderTop: '1px solid lightgray',
+              },
+              extra: getEffectPanelExtraIcons({
+                hasEffectApplied: !isStrBlank(config.annCSSStyle),
+                effectType: 'annotation',
+                onDelete: () => {
+                  const newConfig = updateAnnCssStyle(config, '');
+                  setConfig(newConfig);
+                }
+              })
+            },
+          ]}
+        />
+      </ActionPanel>
+      <ActionPanel title="Sizing & Positioning" icon={<img src={SizingIcon} alt="" />}>
+        <div style={commonActionPanelItemStyle}>
+          <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
+          <Tags.ActionPaneSelect
+            defaultValue={isAnnCustomPosition(config.positioning) ? 'custom' : config.positioning}
+            value={config.positioning}
+            size="small"
+            bordered={false}
+            options={getAnnPositioningOptions(config).map(v => ({
+              value: v,
+              label: v,
+            }))}
+            onChange={(e) => {
+              if (e === 'custom') {
+                setShowCustomPositioningOption(true);
+                return;
+              }
+              setShowCustomPositioningOption(false);
+              setConfig(c => updateAnnotationPositioning(c, (e as AnnotationPositions | VideoAnnotationPositions)));
+            }}
+            suffixIcon={<CaretOutlined dir="down" />}
+          />
+        </div>
+        {
+          (isAnnCustomPosition(config.positioning) || showCustomPositioningOption) && (
+            <div style={{ ...commonActionPanelItemStyle, minHeight: '64px', height: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', width: '70%' }}>
+                <GTags.Txt>
+                  Custom Positioning
+                </GTags.Txt>
+                <GTags.Txt style={{ fontWeight: 400, fontStyle: 'italic', fontSize: '10px' }}>
+                  This choice won't be regarded if there is no space for the annotation to be rendered.
+                  We would fallback to auto positioning in that case.
+                </GTags.Txt>
+              </div>
+              <AnnPositioningInput
+                fullWidth={64}
+                panelWidth={18}
+                onChange={(e) => {
+                  setConfig(c => updateAnnotationPositioning(c, e));
+                }}
+                selectedPos={config.positioning as CustomAnnotationPosition}
+              />
+            </div>
+          )
+        }
+        <div style={commonActionPanelItemStyle}>
+          <GTags.Txt style={{}}>Box sizing</GTags.Txt>
+          <Tags.ActionPaneSelect
+            defaultValue={config.size ?? 'small'}
+            size="small"
+            bordered={false}
+            options={Object.values(isVideoAnnotation(config)
+              ? ['medium', 'large', 'custom']
+              : ['small', 'medium', 'large', 'custom'])
+              .map(v => ({
+                value: v,
+                label: `${v}`
+              }))}
+            onChange={(e) => setConfig(c => updateAnnotationBoxSize(c, e as EAnnotationBoxSize))}
+            suffixIcon={<CaretOutlined dir="down" />}
+          />
+        </div>
+        {
+          config.size === 'custom' && (
+            <div style={commonActionPanelItemStyle}>
+              <GTags.Txt style={{}}>Custom width</GTags.Txt>
+              <Tags.InputNumberBorderRadius
+                min={0}
+                defaultValue={config.customDims.width}
+                addonAfter="px"
+                onChange={(e) => {
+                  const width = e ? +e : 0;
+                  setConfig(c => updateAnnotationCustomDims(c, { ...c.customDims, width }));
+                }}
+              />
+            </div>
+          )
+        }
+
+      </ActionPanel>
       {
         props.screen.type === ScreenType.SerDom && config.type === 'default' && (
           <ActionPanel
@@ -1306,85 +1404,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           </ActionPanel>
         )
       }
-      <ActionPanel
-        title="Effects"
-        icon={<FireOutlined style={{ fontSize: '1.25rem' }} />}
-        helpText={effectsHelpText}
-      >
-        <Collapse
-          defaultActiveKey={['1']}
-          expandIconPosition="end"
-          size="small"
-          bordered={false}
-          style={{
-            borderRadius: '4px',
-          }}
-          items={[
-            {
-              key: '1',
-              label: <span style={{ fontWeight: 500 }}>On screen</span>,
-              children: <EffectSelector
-                key={props.config.refId}
-                config={props.config}
-                cssStr={props.config.targetElCssStyle}
-                onSubmit={cssStr => {
-                  unsubFn.current();
-                  unsubFn.current = () => { };
-                  const newConfig = updateTargetElCssStyle(config, cssStr);
-                  setConfig(newConfig);
-                }}
-                onPreview={cssStr => {
-                  const lcm = (window as any).__f_alcm__;
-                  if (!lcm || !props.selectedEl) return;
-                  unsubFn.current = lcm.previewCustomStyle(cssStr, props.selectedEl, props.config);
-                }}
-                effectFor={EffectFor.tel}
-              />,
-              style: {
-                border: 'none',
-              },
-              extra: getEffectPanelExtraIcons({
-                hasEffectApplied: !isStrBlank(config.targetElCssStyle),
-                effectType: 'screen',
-                onDelete: () => {
-                  const newConfig = updateTargetElCssStyle(config, '');
-                  setConfig(newConfig);
-                }
-              })
-            },
-            {
-              key: '2',
-              label: <span style={{ fontWeight: 500 }}>On annotation</span>,
-              children: <EffectSelector
-                key={props.config.refId}
-                config={props.config}
-                cssStr={props.config.annCSSStyle}
-                onSubmit={cssStr => {
-                  const newConfig = updateAnnCssStyle(config, cssStr);
-                  setConfig(newConfig);
-                }}
-                onPreview={cssStr => {
-                  const lcm = (window as any).__f_alcm__ as ALCM;
-                  if (!lcm) return;
-                  lcm.addAnnStyleTag(cssStr);
-                }}
-                effectFor={EffectFor.ann}
-              />,
-              style: {
-                borderTop: '1px solid lightgray',
-              },
-              extra: getEffectPanelExtraIcons({
-                hasEffectApplied: !isStrBlank(config.annCSSStyle),
-                effectType: 'annotation',
-                onDelete: () => {
-                  const newConfig = updateAnnCssStyle(config, '');
-                  setConfig(newConfig);
-                }
-              })
-            },
-          ]}
-        />
-      </ActionPanel>
       <ActionPanel
         id="advanced-creator-panel"
         title="Advanced"

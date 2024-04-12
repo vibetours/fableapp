@@ -862,6 +862,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           <Header
+            showOnboardingGuides
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"
             rightElGroups={[(

@@ -120,16 +120,23 @@ export const updateStepsTaken = (guideId: string, stepsTaken: number): void => {
   }
 };
 
-export const getDOMElement = (guide: Guide, domQuery: () => HTMLElement | null): HTMLElement | null => {
+export const getDOMElement = (
+  guide: Guide,
+  domQuery: () => HTMLElement | null,
+  shouldCloseUserGuide = true,
+  shouldSkipUserGuide = true
+): HTMLElement | null => {
   try {
     const el = domQuery();
     if (el) return el;
     throw new Error('El not found');
   } catch (e) {
-    console.error(e);
-    closeUserGuide();
-    skipUserGuide(guide);
-    sentryCaptureException(e as Error);
+    if (shouldCloseUserGuide && shouldSkipUserGuide) {
+      console.error(e);
+      closeUserGuide();
+      skipUserGuide(guide);
+      sentryCaptureException(e as Error);
+    }
   }
   return null;
 };

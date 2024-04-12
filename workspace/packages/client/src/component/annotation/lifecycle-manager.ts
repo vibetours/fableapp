@@ -12,6 +12,7 @@ import { isBodyEl, isVideoAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
   FABLE_RT_UMBRL,
+  createEmptyFableIframe,
   getFableRtUmbrlDiv,
   isPrevNextBtnLinksToVideoAnn,
   scrollToAnn
@@ -234,6 +235,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       umbrellaDiv.style.top = `${0}`;
       umbrellaDiv.style.setProperty('display', 'block', 'important');
       this.doc.body.appendChild(umbrellaDiv);
+
+      // This iframe was added to support autocomplete posting when lead form is present.
+      // This is how leadform values are saved in browser for autocomplete. Ref: https://stackoverflow.com/a/29885896
+      const iframeEl = createEmptyFableIframe();
+      umbrellaDiv.appendChild(iframeEl);
 
       const [con, root] = this.createContainerRoot('');
       const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');

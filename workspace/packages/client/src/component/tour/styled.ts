@@ -90,12 +90,12 @@ export const TourActionBtnCon = styled.div`
 
 export const EmptyToursContainer = styled.div`
   margin: auto;
-  max-width: 40rem;
+  width: 40rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.12rem;
-  padding: 50px 0;
+  gap: 1rem;
+  padding: 18px 0;
 `;
 
 export const HeaderMsgCon = styled.div`
@@ -237,6 +237,6 @@ export const TourCreated = styled.p`
 export const DefaultDemoCon = styled.div`
   border-bottom: 1px solid #EEEEEE;
   margin-bottom: 1rem;
-  padding-bottom: 2rem;
+  padding-bottom: 1.25rem;
   width: 100%;
 `;

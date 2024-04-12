@@ -13,7 +13,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
-import { generateShadeColor, isLeadFormPresent, validateInput } from './utils';
+import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 import {
   getTransparencyFromHexStr,
   isCoverAnnotation as isCoverAnn,
@@ -163,14 +163,29 @@ export class AnnotationContent extends React.PureComponent<{
         >
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
-          <Tags.AnTextContent
-            fontFamily={this.props.opts.annotationFontFamily}
-            fontColor={this.props.opts.annotationFontColor}
-            ref={this.contentRef}
-            borderRadius={this.props.opts.borderRadius}
-            dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
-            className="f-text"
-          />
+          {
+            this.props.config.isLeadFormPresent ? (
+              <form target={EMPTY_IFRAME_ID} action="about:blank">
+                <Tags.AnTextContent
+                  fontFamily={this.props.opts.annotationFontFamily}
+                  fontColor={this.props.opts.annotationFontColor}
+                  ref={this.contentRef}
+                  borderRadius={this.props.opts.borderRadius}
+                  dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
+                  className="f-text"
+                />
+              </form>
+            ) : (
+              <Tags.AnTextContent
+                fontFamily={this.props.opts.annotationFontFamily}
+                fontColor={this.props.opts.annotationFontColor}
+                ref={this.contentRef}
+                borderRadius={this.props.opts.borderRadius}
+                dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
+                className="f-text"
+              />
+            )
+          }
           {btns.length > 0 && (
             <Tags.ButtonCon
               justifyContent={btns.length > 1 ? 'space-between' : 'center'}
@@ -226,10 +241,10 @@ export class AnnotationContent extends React.PureComponent<{
                           emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
                         }, 16);
 
-                        this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                        setTimeout(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id), 0);
                       }
                     } else {
-                      this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                      setTimeout(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id), 0);
                     }
                   }}
                 >
