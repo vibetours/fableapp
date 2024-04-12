@@ -5,3 +5,4 @@ export const FABLE_LEAD_FORM_VALIDATION_FN = 'fable-x-f-vfn';
 export const SCREEN_EDITOR_ID = 'fable-ann-editorial-modal';
 export const FABLE_LEAD_FORM_FIELD_NAME = 'fable-lead-form-field-name';
 export const TOP_LOADER_DURATION = 4;
+export const SCREEN_SIZE_MSG = 'screen-size-data';

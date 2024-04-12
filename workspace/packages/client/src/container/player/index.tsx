@@ -1,7 +1,9 @@
 import React, { MutableRefObject, Suspense, lazy } from 'react';
 import { connect } from 'react-redux';
-import { JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
-  LoadingStatus, ScreenData } from '@fable/common/dist/types';
+import {
+  JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
+  LoadingStatus, ScreenData
+} from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { loadScreenAndData, loadTourAndData } from '../../action/creator';
@@ -24,6 +26,8 @@ import {
   JourneyNameIndexData,
   queryData,
   TourMainValidity,
+  ScreenSizeData,
+  IframePos,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -45,7 +49,7 @@ import {
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import { SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
 import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
@@ -137,6 +141,7 @@ interface IOwnStateProps {
   annotationSerialIdMap: AnnotationSerialIdMap;
   currentFlowMain: string;
   tourMainValidity: TourMainValidity;
+  screenSizeData: Record<string, ScreenSizeData>;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -169,11 +174,31 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isMinLoaderTimeDone: false,
       isJourneyMenuOpen: false,
       annotationSerialIdMap: {},
-      currentFlowMain: ''
+      currentFlowMain: '',
+      screenSizeData: {}
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
+
+  receiveMessage = (e: MessageEvent<{
+    type: typeof SCREEN_SIZE_MSG,
+    scaleFactor: number,
+    screenId: number,
+    iframePos: IframePos
+  }>): void => {
+    if (e.data.type === SCREEN_SIZE_MSG) {
+      this.setState(prevS => {
+        const currScreenData: ScreenSizeData = {
+          iframePos: e.data.iframePos,
+          scaleFactor: e.data.scaleFactor
+        };
+        return {
+          screenSizeData: { ...prevS.screenSizeData, [e.data.screenId]: currScreenData }
+        };
+      });
+    }
+  };
 
   componentDidMount(): void {
     document.title = this.props.title;
@@ -182,6 +207,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       !this.props.staging
     );
     window.addEventListener('beforeunload', removeSessionId);
+
+    window.addEventListener('message', this.receiveMessage, false);
   }
 
   createRenderSlotsBasedOnDomain(): Record<string, number> {
@@ -324,8 +351,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     main: string,
     totalSteps: number,
     currentTourId: number
-  ) : void => {
-    const flowProgress : FlowProgress = {
+  ): void => {
+    const flowProgress: FlowProgress = {
       main,
       completedSteps: 0,
       totalSteps
@@ -363,7 +390,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  setSerialMapAndJoruneyProgress = (annotationSerialIdMap: AnnotationSerialIdMap) : AnnotationSerialIdMap => {
+  setSerialMapAndJoruneyProgress = (annotationSerialIdMap: AnnotationSerialIdMap): AnnotationSerialIdMap => {
     this.props.journey!.flows.forEach((flow) => {
       const annotationSerialIdMapForFlow = getAnnotationSerialIdMap(flow.main, this.props.allAnnotationsForTour);
       for (const annRefId in annotationSerialIdMapForFlow) {
@@ -492,7 +519,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   initialScreenLoad(screenRid: string, tour: P_RespTour): void {
     const obj: Record<string, boolean> = {};
-    const startScreens : P_RespScreen[] = [];
+    const startScreens: P_RespScreen[] = [];
 
     const mainScreen = this.getScreenAtId(screenRid, 'rid');
     startScreens.push(mainScreen);
@@ -513,6 +540,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentWillUnmount(): void {
     window.removeEventListener('beforeunload', removeSessionId);
+    window.removeEventListener('message', this.receiveMessage, false);
   }
 
   isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;
@@ -602,16 +630,16 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   // eslint-disable-next-line class-methods-use-this
   shouldDiffApply(
     screen1Slot: {
-    screen: P_RespScreen,
-    data: ScreenData
-  },
+      screen: P_RespScreen,
+      data: ScreenData
+    },
     screen2Slot: {
-    screen: P_RespScreen,
-    data: ScreenData
-  }[]
+      screen: P_RespScreen,
+      data: ScreenData
+    }[]
   ): boolean {
     const isAnyOfThemScreenImg = screen1Slot.screen.type === ScreenType.Img
-    || screen2Slot.find(slot => slot.screen.type === ScreenType.Img);
+      || screen2Slot.find(slot => slot.screen.type === ScreenType.Img);
     const isCurrScreenOldVersioned = screen1Slot.data?.version !== SCREEN_DIFFS_SUPPORTED_VERSION;
     const isAdjacentScreensOldVersioned = screen2Slot
       .filter(slot => slot.data)
@@ -666,9 +694,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return true;
   }
 
-  isJourneyAdded = () : boolean => (this.props.journey !== null && this.props.journey.flows.length !== 0);
+  isJourneyAdded = (): boolean => (this.props.journey !== null && this.props.journey.flows.length !== 0);
 
-  addJourneyToGlobalData = (main: string) : void => {
+  addJourneyToGlobalData = (main: string): void => {
     let journeyIndex = -1;
     const journeyName = this.props.journey?.flows
       .find((flow, index) => {
@@ -716,7 +744,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 navigate={this.navFn}
                 playMode
                 stashAnnIfAny={false}
-                onBeforeFrameBodyDisplay={() => {}}
+                onBeforeFrameBodyDisplay={() => { }}
                 allAnnotationsForScreen={this.props.allAnnotations[config.screen.id]}
                 tourDataOpts={this.props.tourOpts!}
                 allEdits={config.screenEdits}
@@ -762,7 +790,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                     }
                   }
                 }}
-                closeJourneyMenu={() : void => {
+                closeJourneyMenu={(): void => {
                   if (this.state.isJourneyMenuOpen) { this.setState({ isJourneyMenuOpen: false }); }
                 }}
                 updateJourneyProgress={(annRefId: string) => {
@@ -778,27 +806,28 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         }
         <Suspense fallback={null}>
           {
-          this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (!this.queryData || !this.queryData.hm) && (
-            <JourneyMenu
-              currScreenId={this.getCurrScreenId()}
-              journey={this.props.journey!}
-              isJourneyMenuOpen={this.state.isJourneyMenuOpen}
-              navigateToJourney={this.navigateTo}
-              updateJourneyMenu={(isMenuOpen: boolean) : void => {
-                this.setState({ isJourneyMenuOpen: isMenuOpen });
-              }}
-              // navigateToCta={() => this.navFn(this.props.journey!.cta!.navigateTo, 'abs')}
-              navigateToCta={() => this.navigateToAndLogEvent(this.props.journey!, 'abs')}
-              tourOpts={this.props.tourOpts!}
-              currentFlowMain={this.state.currentFlowMain}
-              journeyProgress={this.localJourneyProgress[this.props.tour!.id]}
-            />
-          )
-        }
+            this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (!this.queryData || !this.queryData.hm) && (
+              <JourneyMenu
+                currScreenId={this.getCurrScreenId()}
+                journey={this.props.journey!}
+                isJourneyMenuOpen={this.state.isJourneyMenuOpen}
+                navigateToJourney={this.navigateTo}
+                updateJourneyMenu={(isMenuOpen: boolean): void => {
+                  this.setState({ isJourneyMenuOpen: isMenuOpen });
+                }}
+                // navigateToCta={() => this.navFn(this.props.journey!.cta!.navigateTo, 'abs')}
+                navigateToCta={() => this.navigateToAndLogEvent(this.props.journey!, 'abs')}
+                tourOpts={this.props.tourOpts!}
+                currentFlowMain={this.state.currentFlowMain}
+                journeyProgress={this.localJourneyProgress[this.props.tour!.id]}
+                screenSizeData={this.state.screenSizeData}
+              />
+            )
+          }
         </Suspense>
         {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
           && (
-          <FullScreenLoader data={this.props.tourLoaderData} />
+            <FullScreenLoader data={this.props.tourLoaderData} />
           )}
       </GTags.BodyCon>
     );

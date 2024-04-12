@@ -5,7 +5,7 @@ import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } fro
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import { getColorContrast, isBlankString } from '../../utils';
-import { FlowProgress } from '../../types';
+import { FlowProgress, ScreenSizeData } from '../../types';
 import { ProgressCircle } from '../progress-circle';
 
 interface Props {
@@ -18,6 +18,7 @@ interface Props {
     currentFlowMain: string;
     journeyProgress: FlowProgress[];
     currScreenId: number;
+    screenSizeData: Record<string, ScreenSizeData>;
 }
 
 interface FlowWithLastMandatory extends JourneyFlow{
@@ -36,7 +37,7 @@ const getMenu = (
   currentFlowMain: string,
   journeyProgress: FlowProgress[],
   updateJourneyMenu: (isMenuOpen: boolean)=> void,
-  currentFlowIndex: number
+  maxWidth: number
 ) : ReactElement => {
   const getFlowProgress = (main: string) : FlowProgress => {
     const currenFlowProgress = journeyProgress.find(
@@ -62,7 +63,9 @@ const getMenu = (
   };
 
   return (
-    <Tags.JourneyCon>
+    <Tags.JourneyCon
+      maxW={maxWidth === 0 ? '100vw' : `${maxWidth}px`}
+    >
       <Tags.FLowTitle>
         {journey.title}
       </Tags.FLowTitle>
@@ -158,10 +161,21 @@ function getCurretFlowTitle(flows: JourneyFlow[], currentFlowMain: string): stri
 
 function JourneyMenu(props: Props): JSX.Element {
   const primaryColor = props.journey.primaryColor;
-  const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number} | null>(null);
-  const [currentFlowIndex, setCurrentFlowIndex] = useState(0);
+  const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number, maxWidth: number} | null>(null);
   const [processedJourney, setProcessedJourney] = useState<null | JourneyWithLastMandatory>(null);
   const paddingFactor = 20;
+  const [scaleFactor, setScaleFactor] = useState<number>(1);
+
+  const [showDropdown, setShowDropdown] = useState(false);
+  useEffect(() => {
+    if (props.isJourneyMenuOpen) {
+      setTimeout(() => {
+        setShowDropdown(true);
+      }, 500);
+    } else {
+      setShowDropdown(false);
+    }
+  }, [props.isJourneyMenuOpen]);
 
   useEffect(() => {
     const flows = props.journey.flows;
@@ -178,24 +192,25 @@ function JourneyMenu(props: Props): JSX.Element {
   }, [props.journey]);
 
   useEffect(() => {
-    if (props.currScreenId === -1) return;
-    const iframe = document.querySelector(`.fable-iframe-${props.currScreenId}`);
-    if (iframe) {
-      const iframeRect = iframe.getBoundingClientRect();
-      const journeyTop = iframeRect.bottom - paddingFactor;
+    if (props.currScreenId === -1 || !props.screenSizeData[props.currScreenId]) {
+      setScaleFactor(1);
+      return;
+    }
+    const iframeRect = props.screenSizeData[props.currScreenId].iframePos;
+    const sftr = props.screenSizeData[props.currScreenId].scaleFactor;
+
+    if (iframeRect) {
+      const menuButtonHeight = 40;
+      const journeyTop = iframeRect.top + iframeRect.height - paddingFactor - menuButtonHeight;
       const journeyLeft = props.journey.positioning === CreateJourneyPositioning.Left_Bottom
         ? iframeRect.left + paddingFactor
-        : iframeRect.right - paddingFactor;
+        : iframeRect.left + iframeRect.width - paddingFactor;
       const journeyTransformTranslateX = props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 0 : -100;
 
-      setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX });
+      setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX, maxWidth: iframeRect.width });
     }
-  }, [props.currScreenId]);
-
-  useEffect(() => {
-    const flowIndex = props.journey.flows.findIndex((flow) => flow.main === props.currentFlowMain);
-    setCurrentFlowIndex(flowIndex);
-  }, [props.currentFlowMain]);
+    setScaleFactor(sftr || 1);
+  }, [props.currScreenId, props.screenSizeData]);
 
   return (
     <Tags.DropdownCon
@@ -205,49 +220,60 @@ function JourneyMenu(props: Props): JSX.Element {
       positioning={props.journey.positioning}
     >
       { processedJourney && (
-      <Dropdown
-        open={props.isJourneyMenuOpen}
-        dropdownRender={() => getMenu(
-          processedJourney,
-          props.navigateToJourney,
-          props.navigateToCta,
-          props.tourOpts,
-          props.currentFlowMain,
-          props.journeyProgress,
-          props.updateJourneyMenu,
-          currentFlowIndex
-        )}
-        trigger={['click']}
-        onOpenChange={(e) => { props.updateJourneyMenu(e); }}
-      >
-        {props.isJourneyMenuOpen ? (
-          <Tags.IndexButton
-            type="primary"
-            shape="circle"
-            color={primaryColor}
-            applywidth="true"
-            icon={<CloseOutlined />}
-          />
-        ) : (
-          <Tags.IndexButton
-            color={primaryColor}
-            type="primary"
-            applywidth="false"
-          >
-            <BarsOutlined style={{
-              color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
+        <Dropdown
+          open={props.isJourneyMenuOpen}
+          dropdownRender={() => getMenu(
+            processedJourney,
+            props.navigateToJourney,
+            props.navigateToCta,
+            props.tourOpts,
+            props.currentFlowMain,
+            props.journeyProgress,
+            props.updateJourneyMenu,
+            dropdownPos?.maxWidth || 0
+          )}
+          overlayStyle={showDropdown ? {
+            transform: `scale(${scaleFactor})`,
+            transformOrigin: props.journey.positioning === CreateJourneyPositioning.Left_Bottom
+              ? 'bottom left' : 'bottom right'
+          }
+            : { visibility: 'hidden' }}
+          trigger={['click']}
+          onOpenChange={(e) => { props.updateJourneyMenu(e); }}
+          placement={props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 'topLeft' : 'topRight'}
+        >
+          {props.isJourneyMenuOpen ? (
+            <Tags.IndexButton
+              type="primary"
+              shape="circle"
+              color={primaryColor}
+              applywidth="true"
+              icon={<CloseOutlined />}
+              scalefactor={scaleFactor}
+              positioning={props.journey.positioning}
             />
-            <Tags.IndexButtonContent>
-              <span style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.2' }}>
-                {getCurretFlowTitle(props.journey.flows, props.currentFlowMain)}
-              </span>
-              <span style={{ lineHeight: '1.2' }}>
-                {props.journey.title}
-              </span>
-            </Tags.IndexButtonContent>
-          </Tags.IndexButton>
-        )}
-      </Dropdown>
+          ) : (
+            <Tags.IndexButton
+              color={primaryColor}
+              type="primary"
+              applywidth="false"
+              scalefactor={scaleFactor}
+              positioning={props.journey.positioning}
+            >
+              <BarsOutlined style={{
+                color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
+              />
+              <Tags.IndexButtonContent>
+                <span style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.2' }}>
+                  {getCurretFlowTitle(props.journey.flows, props.currentFlowMain)}
+                </span>
+                <span style={{ lineHeight: '1.2' }}>
+                  {props.journey.title}
+                </span>
+              </Tags.IndexButtonContent>
+            </Tags.IndexButton>
+          )}
+        </Dropdown>
       )}
     </Tags.DropdownCon>
   );

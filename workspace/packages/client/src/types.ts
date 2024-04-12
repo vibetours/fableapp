@@ -300,3 +300,15 @@ export enum TourMainValidity {
   Main_Not_Present,
   Journey_Main_Not_Present,
 }
+
+export interface IframePos {
+  left: number,
+  top: number,
+  height: number,
+  width: number
+}
+
+export interface ScreenSizeData {
+  iframePos: IframePos,
+  scaleFactor: number
+}

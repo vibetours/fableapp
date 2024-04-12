@@ -14,16 +14,17 @@ export const DropdownCon = styled.div`
   z-index: 9999;
   position: absolute; 
   left: ${(p: DropdownConf) => (`${p.left}px` || '20px')};
-  transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, -100%)`)};
+  transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, 0%)`)};
   ${(p: DropdownConf) => ((p.top ? `top: ${p.top}px;` : 'bottom: 40px;'))};
 `;
 
-export const JourneyCon = styled.div`
+export const JourneyCon = styled.div<{maxW: string}>`
   background-color: #fff;
   border-radius: 8px;
   box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 2px, rgba(0, 0, 0, 0.3) 0px 0px 0px 1000vw;
   padding: 24px 0;
   width: 340px;
+  max-width: ${props => `${props.maxW}`};
 
   .superscript {
     font-size: 11px;
@@ -84,12 +85,12 @@ export const FlowHeader2 = styled.p`
   line-height: 1.2rem;
 `;
 
-export const IndexButton = styled(Button)`
+export const IndexButton = styled(Button)<IndexBtnConf>`
   height: 46px;
   padding: 5px 10px;
-  width:${(p: IndexBtnConf) => (p.applywidth === 'true' ? '46px !important' : 'auto')};
-  background: ${(p: IndexBtnConf) => (`${p.color} !important`)};
-  color: ${(p: IndexBtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')};
+  width: ${props => (props.applywidth === 'true' ? '46px !important' : 'auto')}; 
+  background: ${props => `${props.color} !important`};
+  color:  ${props => `${getColorContrast(props.color)} === 'dark' ? '#fff' : '#000'`};
   font-family: "IBM Plex Sans", sans-serif;
   border-radius: 4px;
   display: flex;
@@ -98,13 +99,18 @@ export const IndexButton = styled(Button)`
   box-shadow: 2px 2px 0 rgba(72, 5, 255, 0.06);
   transition: all 0.3s;
   &:hover{
-    color: ${(p: IndexBtnConf) => (getColorContrast(p.color) === 'dark' ? '#fff' : '#000')} !important;
+    color:  ${props => `${getColorContrast(props.color) === 'dark' ? '#fff' : '#000'} !important`};
   }
+  transform: ${props => `scale(${props.scalefactor})`};
+  transform-origin: ${props => (props.positioning === CreateJourneyPositioning.Left_Bottom
+    ? 'bottom left' : 'bottom right')};
 `;
 
 interface IndexBtnConf {
   color: string;
   applywidth: 'true' | 'false';
+  scalefactor: number;
+  positioning: CreateJourneyPositioning;
 }
 
 export const IndexButtonContent = styled.div`

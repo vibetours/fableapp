@@ -6,7 +6,8 @@ import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
 import { FABLE_RT_UMBRL, getFableRtUmbrlDiv } from '../annotation/utils';
-import { FABLE_IFRAME_GENERIC_CLASSNAME } from '../../constants';
+import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
+import { IframePos } from '../../types';
 
 export interface IOwnProps {
   screen: P_RespScreen;
@@ -154,6 +155,15 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     };
   }
 
+  sendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
+    window.postMessage({
+      scaleFactor,
+      screenId: this.props.screen.id,
+      type: SCREEN_SIZE_MSG,
+      iframePos
+    }, '*');
+  };
+
   handleScreenResponsiveness = (): void => {
     const frame = this.embedFrameRef.current;
     if (!frame) {
@@ -186,15 +196,26 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       frame.style.height = `${vpdH}px`;
 
       const viewPortAfterScaling = frame.getBoundingClientRect();
+
+      const iframePos = {
+        left: viewPortAfterScaling.left,
+        top: viewPortAfterScaling.top,
+        height: viewPortAfterScaling.height,
+        width: viewPortAfterScaling.width
+      };
+
       if (origFrameViewPort.width > viewPortAfterScaling.width) {
         frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
+        iframePos.left = (origFrameViewPort.width - viewPortAfterScaling.width) / 2;
       }
       if (origFrameViewPort.height > viewPortAfterScaling.height) {
         frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2}px`;
+        iframePos.top = (origFrameViewPort.height - viewPortAfterScaling.height) / 2;
       }
+
+      this.sendIframeScreenSizeData(scale, iframePos);
       return;
     }
-
     frame.style.width = `${origFrameViewPort.width}px`;
     frame.style.height = `${origFrameViewPort.height}px`;
     frame.style.left = '0';
@@ -202,6 +223,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = 1;
     frame.style.transform = 'scale(1)';
+    const iframePos = {
+      left: origFrameViewPort.left,
+      top: origFrameViewPort.top,
+      height: origFrameViewPort.height,
+      width: origFrameViewPort.width
+    };
+    this.sendIframeScreenSizeData(1, iframePos);
   };
 
   handleImgScreenResponsiveness = (): void => {
