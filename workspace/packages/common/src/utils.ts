@@ -167,7 +167,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
       hotspot: null
     }],
     buttonLayout: 'default',
-    selectionShape: 'pulse',
+    selectionShape: 'box',
     isLeadFormPresent: false,
   };
 };
