@@ -7,9 +7,11 @@ import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
 import { FABLE_RT_UMBRL, createEmptyFableIframe, getFableRtUmbrlDiv } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
-import { IframePos } from '../../types';
+import { IframePos, EditItem } from '../../types';
+import { applyEditsToSerDom } from './utils/edits';
 
 export interface IOwnProps {
+  allEdits: EditItem[];
   screen: P_RespScreen;
   screenData: ScreenData;
   hidden?: boolean;
@@ -76,10 +78,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
+        const screenData = applyEditsToSerDom(this.props.allEdits, this.props.screenData);
         deserFrame(
-          this.props.screenData.docTree,
+          screenData.docTree,
           doc,
-          this.props.screenData.version,
+          screenData.version,
           this.frameLoadingPromises,
           this.assetLoadingPromises,
           this.nestedFrames,

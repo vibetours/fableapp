@@ -1,3 +1,5 @@
+import { SerNode } from '@fable/common/dist/types';
+
 export const hideChildren = (el: HTMLElement): void => {
   Array.from(el.children).forEach(child => {
     const originalStyleAttrs = child.getAttribute('style');
@@ -6,6 +8,16 @@ export const hideChildren = (el: HTMLElement): void => {
       `${originalStyleAttrs || ''}
       visibility: hidden !important;`
     );
+  });
+};
+
+export const hideChildrenInSerDom = (node: SerNode): void => {
+  node.chldrn.forEach(child => {
+    const originalStyleAttrs = child.attrs.style;
+    child.attrs.style = `
+    ${originalStyleAttrs || ''};
+    visibility: hidden !important;
+    `;
   });
 };
 

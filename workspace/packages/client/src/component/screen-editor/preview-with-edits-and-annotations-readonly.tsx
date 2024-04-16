@@ -37,7 +37,7 @@ import { scrollIframeEls } from './scroll-util';
 import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserFrame, deserIframeEl } from './utils/deser';
-import { showOrHideEditsFromEl } from './utils/edits';
+import { applyEditsToSerDom, showOrHideEditsFromEl } from './utils/edits';
 import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
@@ -81,7 +81,7 @@ interface IOwnStateProps {
 
 export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   extends React.PureComponent<IOwnProps, IOwnStateProps> {
-  private static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
+  static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
   private static readonly GF_FONT_FAMILY_LINK_ATTR = 'fable-data-gfi';
 
@@ -151,99 +151,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
     this.initAnnotationLCM(params.nestedFrames);
-    this.applyEdits(this.props.allEdits);
     this.addFont();
     this.props.onBeforeFrameBodyDisplay(params);
   };
-
-  private applyEdits(allEdits: EditItem[]): void {
-    const ATTR_NAME = ScreenPreviewWithEditsAndAnnotationsReadonly.ATTR_ORIG_VAL_SAVE_ATTR_NAME;
-    const mem: Record<string, Node> = {};
-    const txtOrigValAttr = `${ATTR_NAME}-${ElEditType.Text}`;
-    const imgOrigValAttr = `${ATTR_NAME}-${ElEditType.Image}`;
-    const dispOrigValAttr = `${ATTR_NAME}-${ElEditType.Display}`;
-    const blurOrigValAttr = `${ATTR_NAME}-${ElEditType.Blur}`;
-    const inputOrigValAttr = `${ATTR_NAME}-${ElEditType.Input}`;
-
-    for (const edit of allEdits) {
-      const path = edit[IdxEditItem.PATH];
-      let el: Node;
-      if (path in mem) el = mem[path];
-      else {
-        el = this.annotationLCM!.elFromPath(path) as HTMLElement;
-        mem[path] = el;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
-        const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
-        const tEl = el as HTMLElement;
-        el.textContent = txtEncodingVal[IdxEncodingTypeText.NEW_VALUE];
-        tEl.setAttribute(txtOrigValAttr, txtEncodingVal[IdxEncodingTypeText.OLD_VALUE]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Input) {
-        const inputEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeInput;
-        const tEl = el as HTMLInputElement;
-        (el as HTMLInputElement).placeholder = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
-        tEl.setAttribute(inputOrigValAttr, inputEncodingVal[IdxEncodingTypeInput.OLD_VALUE]);
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
-        const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
-        const tEl = el as HTMLImageElement;
-        tEl.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
-        tEl.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
-        tEl.setAttribute(imgOrigValAttr, imgEncodingVal[IdxEncodingTypeImage.OLD_VALUE]);
-        const originalStyleAttrs = tEl.getAttribute('style');
-        tEl.setAttribute(
-          'style',
-          `${originalStyleAttrs || ''};
-          height: ${imgEncodingVal[IdxEncodingTypeImage.HEIGHT]} !important; 
-          width: ${imgEncodingVal[IdxEncodingTypeImage.WIDTH]} !important; 
-          object-fit: cover !important;
-          `
-        );
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
-        const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(blurOrigValAttr, blurEncodingVal[IdxEncodingTypeBlur.OLD_FILTER_VALUE]);
-        tEl.style.filter = blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE]!;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
-        const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
-        const tEl = el as HTMLElement;
-        tEl.setAttribute(dispOrigValAttr, dispEncodingVal[IdxEncodingTypeDisplay.OLD_VALUE]);
-        tEl.style.display = dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE]!;
-      }
-
-      if (edit[IdxEditItem.TYPE] === ElEditType.Mask) {
-        const maskEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeMask;
-        const tEl = el as HTMLElement;
-        const maskStyled = maskEncodingVal[IdxEncodingTypeMask.NEW_STYLE]!;
-
-        hideChildren(tEl);
-        tEl.setAttribute('style', maskStyled);
-      }
-    }
-  }
-
-  private removeEdits(allEdits: EditItem[]): void {
-    const mem: Record<string, Node> = {};
-    for (const edit of allEdits) {
-      const path = edit[IdxEditItem.PATH];
-      let el: Node;
-      if (path in mem) el = mem[path];
-      else {
-        el = this.annotationLCM!.elFromPath(path) as HTMLElement;
-        mem[path] = el;
-      }
-
-      showOrHideEditsFromEl(edit, false, el as HTMLElement);
-    }
-  }
 
   onFrameAssetLoad = async (): Promise<void> => {
     await scrollIframeEls(this.props.screenData.version, this.embedFrameRef.current?.contentDocument!);
@@ -668,7 +578,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const currScreenData = this.props.allScreensData![currScreenId];
 
-    const goToScreenData = this.props.allScreensData![goToScreenId];
+    let goToScreenData = this.props.allScreensData![goToScreenId];
 
     /**
      *  We are prerendering the next screens,
@@ -710,8 +620,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const currScreenEdits = this.props.editsAcrossScreens![currScreenId];
 
-    this.removeEdits(currScreenEdits);
-
     /**
      * Getting and applying diffs
      */
@@ -719,6 +627,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
+      goToScreenData = applyEditsToSerDom(goToScreenEdits, goToScreenData);
       const startTime = performance.now();
       const sentryTransaction = startTransaction({ name: 'getAndApplyDiffsTx' });
 
@@ -752,8 +661,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       this.annotationLCM!.resetCons();
       this.addFont();
       await scrollIframeEls(currScreenData.version, doc);
-
-      this.applyEdits(goToScreenEdits);
 
       this.annotationLCM!.updateNestedFrames(this.nestedFrames);
 
@@ -830,6 +737,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       refs.push(this.props.innerRef);
     }
     return <Preview
+      allEdits={this.props.allEdits}
       key={this.props.screen.rid}
       hidden={this.props.hidden}
       screen={this.props.screen}

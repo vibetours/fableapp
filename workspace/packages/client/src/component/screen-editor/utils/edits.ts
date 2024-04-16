@@ -1,16 +1,26 @@
+import { ScreenData, SerNode } from '@fable/common/dist/types';
+import { nanoid } from 'nanoid';
 import {
   EditItem,
   EditValueEncoding,
   ElEditType,
+  EncodingTypeBlur,
+  EncodingTypeDisplay,
+  EncodingTypeImage,
+  EncodingTypeInput,
+  EncodingTypeMask,
+  EncodingTypeText,
   IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
   IdxEncodingTypeInput,
-  IdxEncodingTypeMask
+  IdxEncodingTypeMask,
+  IdxEncodingTypeText
 } from '../../../types';
-import { hideChildren, unhideChildren } from './creator-actions';
+import { hideChildren, hideChildrenInSerDom, unhideChildren } from './creator-actions';
+import ScreenPreviewWithEditsAndAnnotationsReadonly from '../preview-with-edits-and-annotations-readonly';
 
 export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTMLElement): void => {
   if (el.dataset.deleted === 'true') return;
@@ -102,4 +112,111 @@ export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTM
     default:
       break;
   }
+};
+
+export const getSerNodeFromPath = (path: string, docTree: SerNode): SerNode => {
+  const pathArray = path.split('.');
+  let serNode = docTree;
+
+  if (path === '1') return serNode;
+
+  for (const id of pathArray.slice(1)) {
+    serNode = serNode.chldrn[+id];
+  }
+
+  return serNode;
+};
+
+export const applyEditsToSerDom = (allEdits: EditItem[], screenData: ScreenData): ScreenData => {
+  const ATTR_NAME = ScreenPreviewWithEditsAndAnnotationsReadonly.ATTR_ORIG_VAL_SAVE_ATTR_NAME;
+  const mem: Record<string, SerNode> = {};
+
+  for (const edit of allEdits) {
+    const path = edit[IdxEditItem.PATH];
+    let node: SerNode;
+    if (path in mem) node = mem[path];
+    else {
+      node = getSerNodeFromPath(path, screenData.docTree);
+      mem[path] = node;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+      const txtEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+      node.chldrn = [];
+
+      const commentSerNode: SerNode = {
+        type: Node.COMMENT_NODE,
+        name: '#comment',
+        attrs: {},
+        props: {
+          proxyUrlMap: {},
+          textContent: `textfid/${nanoid()}==ftext/${txtEncodingVal[IdxEncodingTypeText.NEW_VALUE]}`
+        },
+        chldrn: [],
+        sv: 2
+      };
+
+      const textSerNode: SerNode = {
+        type: Node.TEXT_NODE,
+        name: '#text',
+        attrs: {},
+        props: {
+          proxyUrlMap: {},
+          textContent: txtEncodingVal[IdxEncodingTypeText.NEW_VALUE]
+        },
+        chldrn: [],
+        sv: 2
+      };
+
+      node.chldrn.push(commentSerNode);
+      node.chldrn.push(textSerNode);
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Input) {
+      const inputEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeInput;
+      node.attrs.placeholder = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
+      const imgEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeImage;
+
+      node.attrs.src = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
+      node.attrs.srcset = imgEncodingVal[IdxEncodingTypeImage.NEW_VALUE]!;
+
+      const originalStyleAttrs = node.attrs.style;
+      node.attrs.style = `${originalStyleAttrs || ''};
+      height: ${imgEncodingVal[IdxEncodingTypeImage.HEIGHT]} !important;
+      width: ${imgEncodingVal[IdxEncodingTypeImage.WIDTH]} !important;
+      object-fit: cover !important;
+      `;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Blur) {
+      const blurEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeBlur;
+
+      const originalStyleAttrs = node.attrs.style;
+      node.attrs.style = `${originalStyleAttrs || ''};
+        filter: ${blurEncodingVal[IdxEncodingTypeBlur.NEW_FILTER_VALUE]!};
+      `;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Display) {
+      const dispEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeDisplay;
+
+      const originalStyleAttrs = node.attrs.style;
+      node.attrs.style = `${originalStyleAttrs || ''};
+        display: ${dispEncodingVal[IdxEncodingTypeDisplay.NEW_VALUE]!};
+      `;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.Mask) {
+      const maskEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeMask;
+      const maskStyled = maskEncodingVal[IdxEncodingTypeMask.NEW_STYLE]!;
+
+      hideChildrenInSerDom(node);
+      node.attrs.style = maskStyled;
+    }
+  }
+
+  return screenData;
 };
