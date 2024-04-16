@@ -472,6 +472,8 @@ async function postProcessSerDocs(
           }
         }
 
+        if (!frame.iriReferencedSvgEls) frame.iriReferencedSvgEls = {};
+
         if (node.props.base64Img) {
           const originalBlobUrl = node.props.proxyUrlMap.src![0];
 
