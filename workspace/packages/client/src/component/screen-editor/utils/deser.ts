@@ -1,5 +1,6 @@
 import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { DeSerProps } from '../preview';
 import { isHTTPS } from '../../../utils';
 
@@ -57,10 +58,15 @@ export const deser = (
       break;
 
     case FABLE_CUSTOM_NODE: {
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = serNode.props.content!;
-      node = wrapper.children[0];
-      node.setAttribute('f-id', serNode.attrs['f-id'] || nanoid());
+      try {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = serNode.props.content!;
+        node = wrapper.children[0];
+        node.setAttribute('f-id', serNode.attrs['f-id'] || nanoid());
+      } catch (err) {
+        raiseDeferredError(err as Error);
+        break;
+      }
       break;
     }
 

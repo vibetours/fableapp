@@ -504,13 +504,14 @@ async function postProcessSerDocs(
           const headNode = getNodeFromDocTree(frame.docTree!, 'head');
           for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
             for (const pUrl of proxyUrls) {
-              const assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
+              let assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
               let assetUrl;
               try {
                 assetUrl = new URL(assetUrlStr);
               } catch (e) {
                 raiseDeferredError(e as Error);
                 assetUrl = new URL(getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl));
+                assetUrlStr = assetUrl.href;
               }
 
               if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
