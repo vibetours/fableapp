@@ -48,7 +48,7 @@ export default function Header(props: Props): JSX.Element {
         </div>
       </div>
       {props.site.ctaText && (
-        <a href={props.site.ctaLink} onClick={props.captureConversion}>
+        <a href={props.site.ctaLink} onClick={props.captureConversion} target="_blank" rel="noreferrer">
           <Button
             size="small"
             className="sec-btn"
