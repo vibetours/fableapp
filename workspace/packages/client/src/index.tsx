@@ -12,6 +12,9 @@ import config from './store-config';
 import packageJSON from '../package.json';
 import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import Player from './container/player';
+import PreviewForCta from './container/preview-for-cta';
+import RedirectFromP from './container/redirect-from-p';
+import { IFRAME_BASE_URL, LIVE_BASE_URL } from './constants';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -37,7 +40,7 @@ if (document.location.pathname !== '/aboutblank') {
     console.log((e as Error).stack);
   }
 
-  if (window.location.pathname.includes('/p/')) {
+  if (window.location.pathname.includes('/embed/')) {
     sentryInit('client-preview', packageJSON.version);
   } else {
     sentryInit('client', packageJSON.version);
@@ -143,20 +146,40 @@ const router = createBrowserRouter([
     },
   },
   {
-    path: 'p/tour/:tourId',
+    path: 'embed/tour/:tourId',
     element: <Player staging={staging} title="Fable" />
+  },
+  {
+    path: 'embed/tour/:tourId/:screenRid/:annotationId',
+    element: <Player staging={staging} title="Fable" />
+  },
+  {
+    path: 'embed/demo/:tourId',
+    element: <Player staging={staging} title="Fable" />
+  },
+  {
+    path: 'embed/demo/:tourId/:screenRid/:annotationId',
+    element: <Player staging={staging} title="Fable" />
+  },
+  {
+    path: 'p/tour/:tourId',
+    element: <RedirectFromP />
   },
   {
     path: 'p/tour/:tourId/:screenRid/:annotationId',
-    element: <Player staging={staging} title="Fable" />
+    element: <RedirectFromP />
   },
   {
     path: 'p/demo/:tourId',
-    element: <Player staging={staging} title="Fable" />
+    element: <RedirectFromP />
   },
   {
     path: 'p/demo/:tourId/:screenRid/:annotationId',
-    element: <Player staging={staging} title="Fable" />
+    element: <RedirectFromP />
+  },
+  {
+    path: '/live/demo/:tourId',
+    element: <PreviewForCta title="Fable" />
   },
   {
     path: 'preptour',
@@ -317,14 +340,14 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: 'pp/demo/:tourId',
+        path: 'preview/demo/:tourId',
         async lazy() {
           const PublishPreview = await import('./container/publish-preview').then(module => module.default);
           return { Component: () => <PublishPreview title="Fable" /> };
         },
       },
       {
-        path: 'pp/tour/:tourId',
+        path: 'preview/tour/:tourId',
         async lazy() {
           const PublishPreview = await import('./container/publish-preview').then(module => module.default);
           return { Component: () => <PublishPreview title="Fable" /> };

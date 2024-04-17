@@ -18,7 +18,7 @@ import {
   ITourEntityHotspot,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import { Input, Popover, Tabs, Checkbox, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
+import { Input, Popover, Tabs, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
 import {
   DeleteOutlined,
   ExclamationCircleOutlined,
@@ -26,13 +26,18 @@ import {
   VideoCameraOutlined,
   ColumnWidthOutlined,
   ColumnHeightOutlined,
-  PlusOutlined,
   LoadingOutlined,
   ThunderboltOutlined,
   FireOutlined,
-  CheckOutlined,
+  LinkOutlined,
+  DisconnectOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  EditOutlined,
+  PlusCircleFilled,
+  DeleteFilled,
 } from '@ant-design/icons';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { Plan, ScreenType, Status } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import Button from '../button';
 import * as Tags from './styled';
@@ -48,7 +53,6 @@ import {
   updateButtonProp,
   updateTourDataOpts,
   updateAnnotationBoxSize,
-  updateAnnotationIsHotspot,
   updateAnnotationHideAnnotation,
   updateAnnotationHotspotElPath,
   updateAnnotationPositioning,
@@ -66,13 +70,12 @@ import {
   updateAnnotationSelectionEffect,
   newConfigFrom,
 } from '../annotation/annotation-config-utils';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
   IAnnotationConfigWithScreen,
   Timeline,
   TourDataChangeFn,
-  SCREEN_EDITOR_ID,
   onAnnCreateOrChangeFn,
 } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
@@ -87,23 +90,15 @@ import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
-import { getDefaultAnnCSSStyleText } from './utils/css-styles';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeScreenEdited } from '../../amplitude';
+import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeRemoveWatermark } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
 import ButtonIcon from '../../assets/icons/buttons.svg';
 import SizingIcon from '../../assets/icons/sizing-positioning.svg';
 import ThemeIcon from '../../assets/icons/theme.svg';
-import LinkIcon from '../../assets/icons/link.svg';
-import VisibilityIcon from '../../assets/icons/visible.svg';
-import EditIcon from '../../assets/icons/edit.svg';
-import CustomButtonIcon from '../../assets/icons/custombutton.svg';
 import DeleteIcon from '../../assets/icons/delete.svg';
-import DeleteDangerIcon from '../../assets/icons/delete-danger.svg';
 import ResetIcon from '../../assets/icons/reset.svg';
-import InvisibilityIcon from '../../assets/icons/invisibility.svg';
-import LinkInActiveIcon from '../../assets/icons/link-inactive.svg';
 import SettingsIcon from '../../assets/icons/settings.svg';
 import AnnPositioningInput from './ann-positioning-input';
 import EffectSelector, { EffectFor } from './effect-selection-and-builder';
@@ -113,6 +108,8 @@ import { calculatePopoverPlacement, isLinkButtonInViewport } from './scroll-util
 const { confirm } = Modal;
 
 interface IProps {
+  setShowPaymentModal: (show: boolean) => void;
+  subs: P_RespSubscription | null,
   screen: P_RespScreen,
   config: IAnnotationConfig,
   opts: ITourDataOpts,
@@ -143,8 +140,8 @@ interface IProps {
 }
 
 const commonInputStyles: React.CSSProperties = {
-  border: '1px solid #DDDDDD',
-  backgroundColor: '#f9f9f9',
+  background: '#fbf6ff',
+  border: '1px dashed #d0d0ff',
   padding: '0.4rem 0.6rem'
 };
 
@@ -154,8 +151,6 @@ const commonActionPanelItemStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   height: '44px',
   margin: '4px 0',
-  fontSize: '14px',
-  fontWeight: '500',
   color: '#212121',
 };
 
@@ -165,7 +160,7 @@ const buttonSecStyle: React.CSSProperties = {
   justifyContent: 'center',
   alignItems: 'center',
   background: 'white',
-  border: '1px solid #E8E8E8',
+  border: '1px dashed #bdbdbd',
   borderRadius: '8px',
   height: '44px',
   width: '44px',
@@ -397,7 +392,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         );
         props.applyAnnButtonLinkMutations(result);
       },
-      content: 'This annotation will get deleted and previous annotation will be connected to next annotation.',
+      content: (
+        <div className="typ-reg">
+          This annotation will get deleted and previous annotation will be connected to next annotation.
+        </div>
+      ),
     });
   };
 
@@ -524,8 +523,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
             <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>
-            <Tags.ActionPaneBtn
+            <GTags.DashedBtn
               type="text"
+              className="typ-reg"
               style={{
                 ...commonInputStyles,
                 border: 'none',
@@ -539,7 +539,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
             >
               {videoAnn ? 'Change Video' : 'Record/Upload Video'}
-            </Tags.ActionPaneBtn>
+            </GTags.DashedBtn>
             {isVideoAnnotation(config) && (
               <Tooltip title="Delete recorded video">
                 <DeleteOutlined style={{ cursor: 'pointer' }} onClick={showVideoDeleteConfirm} />
@@ -561,8 +561,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         icon={<img src={ThemeIcon} alt="" />}
       >
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Primary color</GTags.Txt>
-          <Tags.ColorPicker
+          <div>Primary color</div>
+          <GTags.ColorPicker
+            className="typ-ip"
             showText={(color) => color.toHexString()}
             onChangeComplete={e => {
               setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.toHexString()));
@@ -571,8 +572,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Background color</GTags.Txt>
-          <Tags.ColorPicker
+          <div>Background color</div>
+          <GTags.ColorPicker
+            className="typ-ip"
             showText={(color) => color.toHexString()}
             onChangeComplete={e => {
               setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.toHexString()));
@@ -582,8 +584,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt>Font color</GTags.Txt>
-          <Tags.ColorPicker
+          <div>Font color</div>
+          <GTags.ColorPicker
+            className="typ-ip"
             showText={(color) => color.toHexString()}
             onChangeComplete={e => {
               setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.toHexString()));
@@ -593,14 +596,35 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Border Radius</GTags.Txt>
+          <div style={commonActionPanelItemStyle}>Border Radius</div>
 
           <Tags.InputNumberBorderRadius
+            className="typ-ip"
             min={0}
             // bordered={false} // looks ugly
             defaultValue={opts.borderRadius}
             addonAfter="px"
             onChange={debouncedBorderRadiusOnChangeHandler}
+          />
+        </div>
+        <div style={commonActionPanelItemStyle}>
+          <div style={commonActionPanelItemStyle}>Show Fable Watermark</div>
+
+          <Tags.StyledSwitch
+            size="small"
+            style={{ backgroundColor: opts.showFableWatermark ? '#7567FF' : '#BDBDBD' }}
+            defaultChecked={opts.showFableWatermark}
+            checked={opts.showFableWatermark}
+            onChange={(e) => {
+              amplitudeRemoveWatermark('acp');
+
+              if (props.subs?.paymentPlan === Plan.SOLO && props.subs.status === Status.ACTIVE) {
+                props.setShowPaymentModal(true);
+                return;
+              }
+
+              setTourDataOpts(t => updateTourDataOpts(t, 'showFableWatermark', e));
+            }}
           />
         </div>
         <Collapse
@@ -614,12 +638,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           items={[
             {
               key: '1',
-              label: <span style={{ fontWeight: 500 }}>Advanced</span>,
+              label: <span className="typ-reg">Advanced</span>,
               children: (
                 <div>
                   <div style={commonActionPanelItemStyle}>
-                    <GTags.Txt>Border color</GTags.Txt>
-                    <Tags.ColorPicker
+                    <div className="typ-reg">Border color</div>
+                    <GTags.ColorPicker
+                      className="typ-ip"
                       showText={(color) => color.toHexString()}
                       onChangeComplete={e => {
                         setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
@@ -629,7 +654,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
-                      <GTags.Txt>Selection color</GTags.Txt>
+                      <div className="typ-reg">Selection color</div>
                       <Tags.ApplyAllTxt
                         onClick={() => {
                           setApplyAllProperty({
@@ -637,10 +662,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                             value: config.annotationSelectionColor
                           });
                         }}
+                        className="typ-sm"
                       >Apply to all
                       </Tags.ApplyAllTxt>
                     </div>
-                    <Tags.ColorPicker
+                    <GTags.ColorPicker
+                      className="typ-ip"
                       showText={(color) => color.toHexString()}
                       onChangeComplete={e => {
                         setConfig(c => updateSelectionColor(c, e.toHexString()));
@@ -649,8 +676,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
-                    <GTags.Txt>Font family</GTags.Txt>
-                    <Tags.ActionPaneSelect
+                    <div className="typ-reg">Font family</div>
+                    <GTags.FableSelect
+                      className="typ-ip"
                       defaultValue={opts.annotationFontFamily}
                       placeholder="select font"
                       bordered={false}
@@ -676,7 +704,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
-                      <GTags.Txt>Selection Effect</GTags.Txt>
+                      <div className="typ-reg">Selection Effect</div>
                       <Tags.ApplyAllTxt
                         onClick={() => {
                           setApplyAllProperty({
@@ -684,10 +712,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                             value: config.selectionEffect
                           });
                         }}
+                        className="typ-sm"
                       >Apply to all
                       </Tags.ApplyAllTxt>
                     </div>
-                    <Tags.ActionPaneSelect
+                    <GTags.FableSelect
+                      className="typ-ip"
                       title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
                       disabled={config.selectionShape === 'pulse'}
                       defaultValue={config.selectionEffect}
@@ -705,7 +735,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
-                      <GTags.Txt style={{}}>Selection Shape</GTags.Txt>
+                      <div className="typ-reg">Selection Shape</div>
                       <Tags.ApplyAllTxt
                         onClick={() => {
                           setApplyAllProperty({
@@ -713,10 +743,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                             value: config.selectionShape
                           });
                         }}
+                        className="typ-sm"
                       >Apply to all
                       </Tags.ApplyAllTxt>
                     </div>
-                    <Tags.ActionPaneSelect
+                    <GTags.FableSelect
+                      className="typ-ip"
                       defaultValue={config.selectionShape}
                       size="small"
                       bordered={false}
@@ -731,8 +763,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
-                    <GTags.Txt style={commonActionPanelItemStyle}>Padding</GTags.Txt>
+                    <div className="typ-reg" style={commonActionPanelItemStyle}>Padding</div>
                     <Tags.InputText
+                      className="typ-ip"
                       placeholder="Enter padding"
                       defaultValue={opts.annotationPadding}
                       bordered={false}
@@ -750,10 +783,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                 </div>
-              ),
-              style: {
-                border: 'none',
-              },
+              )
             }
           ]}
         />
@@ -764,7 +794,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         icon={<img src={ButtonIcon} alt="" />}
       >
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Button Layout</GTags.Txt>
+          <div>Button Layout</div>
           <div style={{ padding: '0.3rem 0' }}>
             <label htmlFor="default">
               <ColumnWidthOutlined />
@@ -792,368 +822,371 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </label>
           </div>
         </div>
-        {config.buttons.map(btnConf => {
-          const primaryColor = opts.primaryColor;
-          return (
-            <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''}>
-              <div className="a-head">
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <ATags.ABtn
-                    bg={opts.annotationBodyBackgroundColor}
-                    type="button"
-                    btnStyle={btnConf.style}
-                    color={primaryColor}
-                    size={btnConf.size}
-                    fontFamily={opts.annotationFontFamily}
-                    btnLayout={config.buttonLayout}
-                    borderRadius={opts.borderRadius}
-                  >
-                    {btnConf.text}
-                  </ATags.ABtn>
-                </div>
-                <Tags.ButtonSecCon>
-                  <Popover
-                    open={openConnectionPopover === btnConf.id && linkButtonVisible}
-                    onOpenChange={(newOpen: boolean) => {
-                      setIsUrlValid(true);
-                      if (newOpen) {
-                        const connectableAnnotations = props.getConnectableAnnotations(config.refId, btnConf.type);
-                        setConnectableAnns(connectableAnnotations);
-                        setOpenConnectionPopover(btnConf.id);
-                      } else {
-                        hideConnectionPopover();
-                      }
-                    }}
-                    trigger="click"
-                    placement={popoverPlacement}
-                    content={
-                      <div style={{
-                        fontSize: '1rem',
-                        width: '500px',
-                        height: activePopover === 'open' ? '20vh' : '55vh',
-                        transition: 'height 0.3s ease-in-out'
+        <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor}>
+          {config.buttons.map(btnConf => {
+            const primaryColor = opts.primaryColor;
+            return (
+              <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor}>
+                <div className="a-head">
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <ATags.ABtn
+                      bg={opts.annotationBodyBackgroundColor}
+                      type="button"
+                      btnStyle={btnConf.style}
+                      color={primaryColor}
+                      size={btnConf.size}
+                      fontFamily={opts.annotationFontFamily}
+                      btnLayout={config.buttonLayout}
+                      borderRadius={opts.borderRadius}
+                    >
+                      {btnConf.text}
+                    </ATags.ABtn>
+                  </div>
+                  <Tags.ButtonSecCon>
+                    <Popover
+                      open={openConnectionPopover === btnConf.id && linkButtonVisible}
+                      onOpenChange={(newOpen: boolean) => {
+                        setIsUrlValid(true);
+                        if (newOpen) {
+                          const connectableAnnotations = props.getConnectableAnnotations(config.refId, btnConf.type);
+                          setConnectableAnns(connectableAnnotations);
+                          setOpenConnectionPopover(btnConf.id);
+                        } else {
+                          hideConnectionPopover();
+                        }
                       }}
-                      >
-                        <GTags.Txt className="title2">
-                          Describe what will happen when the button is clicked
-                        </GTags.Txt>
-                        <Tabs
-                          defaultActiveKey="open"
-                          activeKey={activePopover}
-                          onTabClick={(e) => {
-                            setActivePopover(e as 'open' | 'navigate');
-                          }}
-                          style={{ fontSize: '0.95rem' }}
-                          size="small"
-                          items={[{
-                            key: 'open',
-                            label: 'Open a link',
-                            children: (
-                              <div>
-                                <Tags.CTALinkInputCont>
-                                  <div
-                                    style={{ width: '100%' }}
-                                  >
-                                    <FableInput
-                                      label="Enter a link that would open in new tab"
-                                      defaultValue={
-                                            btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                              ? btnConf.hotspot.actionValue
-                                              : ''
-                                          }
-                                      onBlur={(e) => {
-                                        setIsUrlValid(true);
-                                        if (!canAddExternalLinkToBtn(btnConf)) {
-                                          props.setAlertMsg(
-                                            'Cannot add link as this button is already connected to an annotation'
-                                          );
-                                          return;
-                                        }
-                                        const trimmedValue = (e.target.value || '').trim();
-                                        let hostspotConfig: ITourEntityHotspot | null = null;
-                                        // If user has entered an empty string then we delete the hotspot
-                                        if (trimmedValue) {
-                                          const validUrl = getValidUrl(trimmedValue);
-                                          setIsUrlValid(Boolean(validUrl));
-                                          if (validUrl) {
-                                            hostspotConfig = {
-                                              type: 'an-btn',
-                                              on: 'click',
-                                              target: '$this',
-                                              actionType: 'open',
-                                              actionValue: validUrl,
-                                            };
-                                          }
-                                        }
-                                        const thisAntn = updateButtonProp(
-                                          config,
-                                          btnConf.id,
-                                          'hotspot',
-                                          hostspotConfig
-                                        );
-                                        setConfig(thisAntn);
-                                        amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
-                                      }}
-                                      style={{ marginRight: '1rem' }}
-                                    />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    intent="primary"
-                                    onClick={() => {
-                                      if (!isUrlValid) return;
-                                      hideConnectionPopover();
-                                    }}
-                                    style={{ borderRadius: '8px' }}
-                                  >Submit
-                                  </Button>
-                                </Tags.CTALinkInputCont>
-                                {!isUrlValid && (
-                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
-                                  The url you have entered appears to be malformed. A correctly formed url would look like
-                                  &nbsp; <em>https://acme.com</em>
-                                </p>
-                                )}
-                              </div>
-                            )
-                          },
-                          ...(btnConf.type !== 'custom' ? [{
-                            key: 'navigate',
-                            label: 'Navigate to',
-                            children: (
-                              <Tags.NavigateToCon className={activePopover}>
-                                {btnConf.hotspot === null
-                                  ? (
-                                    <div>
-                                      <GTags.Txt className="title">
-                                        {connectableAnns.length === 0
-                                          ? 'No annotations avialable to which we can connect'
-                                          : 'Select annotation to make a connection'}
-                                      </GTags.Txt>
-                                      <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
-                                        <Tags.ConnectableAnnCon
-                                          key={ann.refId}
-                                          onClick={() => {
-                                            const fromMain = `${props.screen.id}/${config.refId}`;
-                                            const toMain = `${ann.screen.id}/${ann.refId}`;
-                                            if (btnConf.type === 'next') {
-                                              props.updateConnection(fromMain, toMain);
-                                            } else {
-                                              props.updateConnection(toMain, fromMain);
+                      trigger="click"
+                      placement={popoverPlacement}
+                      content={
+                        <div style={{
+                          fontSize: '1rem',
+                          width: '500px',
+                          height: activePopover === 'open' ? '20vh' : '55vh',
+                          transition: 'height 0.3s ease-in-out'
+                        }}
+                        >
+                          <div>
+                            Describe what will happen when the button is clicked
+                          </div>
+                          <Tabs
+                            defaultActiveKey="open"
+                            activeKey={activePopover}
+                            onTabClick={(e) => {
+                              setActivePopover(e as 'open' | 'navigate');
+                            }}
+                            className="typ-sm"
+                            size="small"
+                            items={[{
+                              key: 'open',
+                              label: 'Open a link',
+                              children: (
+                                <div>
+                                  <Tags.CTALinkInputCont>
+                                    <div
+                                      style={{ width: '100%' }}
+                                    >
+                                      <FableInput
+                                        label="Enter a link that would open in new tab"
+                                        defaultValue={
+                                              btnConf.hotspot && btnConf.hotspot.actionType === 'open'
+                                                ? btnConf.hotspot.actionValue
+                                                : ''
                                             }
-                                            hideConnectionPopover();
-                                          }}
-                                        >
-                                          <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
-                                            <img
-                                              src={ann.screen.thumbnailUri.href}
-                                              alt={ann.displayText}
-                                              style={{ width: '140px', height: '100px' }}
-                                            />
-                                          </div>
-                                          <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
-                                        </Tags.ConnectableAnnCon>
-                                      ))}
-                                      </Tags.ConnectableAnnsCon>
-                                    </div>
-                                  )
-                                  : (
-                                    <div>
-                                      <iframe
-                                        src="https://help.sharefable.com/Editing-Demos/Reordering-the-Demo"
-                                        width="480"
-                                        height="500"
-                                        title="recording demo"
-                                        style={{
-                                          border: 'none',
-                                          margin: 'auto',
-                                          display: 'block'
+                                        onBlur={(e) => {
+                                          setIsUrlValid(true);
+                                          if (!canAddExternalLinkToBtn(btnConf)) {
+                                            props.setAlertMsg(
+                                              'Cannot add link as this button is already connected to an annotation'
+                                            );
+                                            return;
+                                          }
+                                          const trimmedValue = (e.target.value || '').trim();
+                                          let hostspotConfig: ITourEntityHotspot | null = null;
+                                          // If user has entered an empty string then we delete the hotspot
+                                          if (trimmedValue) {
+                                            const validUrl = getValidUrl(trimmedValue);
+                                            setIsUrlValid(Boolean(validUrl));
+                                            if (validUrl) {
+                                              hostspotConfig = {
+                                                type: 'an-btn',
+                                                on: 'click',
+                                                target: '$this',
+                                                actionType: 'open',
+                                                actionValue: validUrl,
+                                              };
+                                            }
+                                          }
+                                          const thisAntn = updateButtonProp(
+                                            config,
+                                            btnConf.id,
+                                            'hotspot',
+                                            hostspotConfig
+                                          );
+                                          setConfig(thisAntn);
+                                          amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
                                         }}
+                                        style={{ marginRight: '1rem' }}
                                       />
                                     </div>
+                                    <Button
+                                      type="button"
+                                      intent="primary"
+                                      onClick={() => {
+                                        if (!isUrlValid) return;
+                                        hideConnectionPopover();
+                                      }}
+                                      style={{ borderRadius: '8px' }}
+                                    >Submit
+                                    </Button>
+                                  </Tags.CTALinkInputCont>
+                                  {!isUrlValid && (
+                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
+                                    The url you have entered appears to be malformed. A correctly formed url would look like
+                                    &nbsp; <em>https://acme.com</em>
+                                  </p>
                                   )}
-                              </Tags.NavigateToCon>
-                            )
-                          }] : [])
-                          ]}
-                        />
-                      </div>
+                                </div>
+                              )
+                            },
+                            ...(btnConf.type !== 'custom' ? [{
+                              key: 'navigate',
+                              label: 'Navigate to',
+                              children: (
+                                <Tags.NavigateToCon className={activePopover}>
+                                  {btnConf.hotspot === null
+                                    ? (
+                                      <div>
+                                        <GTags.Txt className="title">
+                                          {connectableAnns.length === 0
+                                            ? 'No annotations avialable to which we can connect'
+                                            : 'Select annotation to make a connection'}
+                                        </GTags.Txt>
+                                        <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
+                                          <Tags.ConnectableAnnCon
+                                            key={ann.refId}
+                                            onClick={() => {
+                                              const fromMain = `${props.screen.id}/${config.refId}`;
+                                              const toMain = `${ann.screen.id}/${ann.refId}`;
+                                              if (btnConf.type === 'next') {
+                                                props.updateConnection(fromMain, toMain);
+                                              } else {
+                                                props.updateConnection(toMain, fromMain);
+                                              }
+                                              hideConnectionPopover();
+                                            }}
+                                          >
+                                            <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
+                                              <img
+                                                src={ann.screen.thumbnailUri.href}
+                                                alt={ann.displayText}
+                                                style={{ width: '140px', height: '100px' }}
+                                              />
+                                            </div>
+                                            <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
+                                          </Tags.ConnectableAnnCon>
+                                        ))}
+                                        </Tags.ConnectableAnnsCon>
+                                      </div>
+                                    )
+                                    : (
+                                      <div>
+                                        <iframe
+                                          src="https://help.sharefable.com/Editing-Demos/Reordering-the-Demo"
+                                          width="480"
+                                          height="500"
+                                          title="recording demo"
+                                          style={{
+                                            border: 'none',
+                                            margin: 'auto',
+                                            display: 'block'
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+                                </Tags.NavigateToCon>
+                              )
+                            }] : [])
+                            ]}
+                          />
+                        </div>
 
-                    }
-                  >
-                    <div>
-                      <Tooltip
-                        placement="topRight"
-                        title={
-                          <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
-                            {
+                      }
+                    >
+                      <div>
+                        <Tooltip
+                          placement="topRight"
+                          title={
+                            <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
+                              {
+                                btnConf.hotspot
+                                  ? btnConf.hotspot.actionType === 'open'
+                                    ? 'Already connected to external link'
+                                    : 'Already connected to an annotation'
+                                  : 'No action defined for what would happen if user clicks this button'
+                              }
+                            </GTags.Txt>
+                          }
+                        >
+                          <AntButton
+                            id={`${btnConf.id}`}
+                            style={{
+                              opacity: btnConf.hotspot === null ? '1' : '0.55',
+                              ...buttonSecStyle
+                            }}
+                            icon={
                               btnConf.hotspot
-                                ? btnConf.hotspot.actionType === 'open'
-                                  ? 'Already connected to external link'
-                                  : 'Already connected to an annotation'
-                                : 'No action defined for what would happen if user clicks this button'
+                                ? <LinkOutlined />
+                                : <DisconnectOutlined />
                             }
-                          </GTags.Txt>
-                        }
-                      >
-                        <AntButton
-                          id={`${btnConf.id}`}
-                          style={{
-                            opacity: btnConf.hotspot === null ? '1' : '0.55',
-                            color: btnConf.hotspot ? '#7567FF' : '#FF7450',
-                            ...buttonSecStyle
-                          }}
-                          icon={
-                            btnConf.hotspot
-                              ? <img src={LinkIcon} alt="" />
-                              : <img src={LinkInActiveIcon} alt="" />
-                          }
-                          type="text"
-                          size="small"
-                        />
-                      </Tooltip>
-                    </div>
-                  </Popover>
-                  {
-                    btnConf.type === 'custom' ? (
-                      <Tooltip title="Remove button" overlayStyle={{ fontSize: '0.75rem' }}>
-                        <AntButton
-                          icon={<img src={DeleteIcon} alt="" />}
-                          type="text"
-                          size="small"
-                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
-                          onClick={() => {
-                            setConfig(c => removeButtonWithId(c, btnConf.id));
-                          }}
-                        />
-                      </Tooltip>
-                    ) : (
-                      <Tooltip
-                        title={btnConf.exclude ? 'Show button' : 'Hide button'}
-                        overlayStyle={{ fontSize: '0.75rem' }}
-                      >
-                        <AntButton
-                          icon={
-                            btnConf.exclude
-                              ? <img src={InvisibilityIcon} alt="" />
-                              : <img src={VisibilityIcon} alt="" />
-                          }
-                          type="text"
-                          size="small"
-                          style={{ color: '#bdbdbd', ...buttonSecStyle }}
-                          onClick={() => {
-                            amplitudeAnnotationEdited('hide_cta', btnConf.exclude!);
-                            setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
-                          }}
-                        />
-                      </Tooltip>
-                    )
-                  }
-                  <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
-                    <AntButton
-                      icon={<img src={EditIcon} alt="" />}
-                      type="text"
-                      size="small"
-                      style={{
-                        color: '#bdbdbd',
-                        ...buttonSecStyle
-                      }}
-                      onClick={() => {
-                        if (btnEditing === btnConf.id) setBtnEditing('');
-                        else setBtnEditing(btnConf.id);
-                      }}
-                    />
-                  </Tooltip>
-                </Tags.ButtonSecCon>
-              </div>
-              {btnConf.id === btnEditing && (
-                <div className="n-details">
-                  <div style={commonActionPanelItemStyle}>
-                    <GTags.Txt style={{ marginRight: '0.5rem' }}>Button style</GTags.Txt>
-                    <Tags.ActionPaneSelect
-                      defaultValue={btnConf.style}
-                      size="small"
-                      bordered={false}
-                      options={Object.values(AnnotationButtonStyle).map(v => ({
-                        value: v,
-                        label: v,
-                      }))}
-                      onSelect={(val) => {
-                        if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
-                        setConfig(c => updateButtonProp(c, btnConf.id, 'style', val as AnnotationButtonStyle));
-                      }}
-                      suffixIcon={<CaretOutlined dir="down" />}
-                    />
-                  </div>
-                  <div style={commonActionPanelItemStyle}>
-                    <div>
-                      <GTags.Txt style={{ marginRight: '0.5rem' }}>Button size</GTags.Txt>
-                      <Tags.ApplyAllTxt
-                        onClick={() => {
-                          setApplyAllProperty({
-                            key: 'size',
-                            value: btnConf.size
-                          });
+                            type="text"
+                            size="small"
+                          />
+                        </Tooltip>
+                      </div>
+                    </Popover>
+                    {
+                      btnConf.type === 'custom' ? (
+                        <Tooltip title="Remove button" overlayStyle={{ fontSize: '0.75rem' }}>
+                          <AntButton
+                            icon={<DeleteOutlined />}
+                            type="text"
+                            size="small"
+                            style={{ color: '#bdbdbd', ...buttonSecStyle }}
+                            onClick={() => {
+                              setConfig(c => removeButtonWithId(c, btnConf.id));
+                            }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Tooltip
+                          title={btnConf.exclude ? 'Show button' : 'Hide button'}
+                          overlayStyle={{ fontSize: '0.75rem' }}
+                        >
+                          <AntButton
+                            icon={
+                              btnConf.exclude
+                                ? <EyeInvisibleOutlined />
+                                : <EyeOutlined />
+                            }
+                            type="text"
+                            size="small"
+                            style={{ color: '#bdbdbd', ...buttonSecStyle }}
+                            onClick={() => {
+                              amplitudeAnnotationEdited('hide_cta', btnConf.exclude!);
+                              setConfig(c => toggleBooleanButtonProp(c, btnConf.id, 'exclude'));
+                            }}
+                          />
+                        </Tooltip>
+                      )
+                    }
+                    <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
+                      <AntButton
+                        icon={<EditOutlined />}
+                        type="text"
+                        size="small"
+                        style={{
+                          color: '#bdbdbd',
+                          ...buttonSecStyle
                         }}
-                      >Apply to all
-                      </Tags.ApplyAllTxt>
-                    </div>
-                    <Tags.ActionPaneSelect
-                      defaultValue={btnConf.size}
-                      size="small"
-                      bordered={false}
-                      options={Object.values(AnnotationButtonSize).map(v => ({
-                        value: v,
-                        label: v,
-                      }))}
-                      onSelect={(val) => {
-                        if (val !== btnConf.size) { amplitudeAnnotationEdited('cta-button_size', val as string); }
-                        setConfig(c => updateButtonProp(c, btnConf.id, 'size', val as AnnotationButtonSize));
-                      }}
-                      suffixIcon={<CaretOutlined dir="down" />}
-                    />
-                  </div>
-                  <div style={{ ...commonActionPanelItemStyle, marginTop: '4px' }}>
-                    <GTags.Txt>Button text</GTags.Txt>
-                    <Input
-                      defaultValue={btnConf.text}
-                      size="small"
-                      bordered={false}
-                      style={{
-                        flexGrow: 1,
-                        maxWidth: '140px',
-                        background: '#fff',
-                        borderRadius: '8px',
-                        height: '100%',
-                        border: '1px solid #E8E8E8',
-                      }}
-                      placeholder="Button text"
-                      onBlur={e => {
-                        if (e.target.value !== btnConf.text) {
-                          amplitudeAnnotationEdited('cta-button_text', e.target.value);
-                        }
-                        setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
-                      }}
-                    />
-                  </div>
+                        onClick={() => {
+                          if (btnEditing === btnConf.id) setBtnEditing('');
+                          else setBtnEditing(btnConf.id);
+                        }}
+                      />
+                    </Tooltip>
+                  </Tags.ButtonSecCon>
                 </div>
-              )}
-            </Tags.AABtnCtrlLine>
-          );
-        })}
+                {btnConf.id === btnEditing && (
+                  <div className="n-details">
+                    <div style={commonActionPanelItemStyle}>
+                      <div style={{ marginRight: '0.5rem' }}>Button style</div>
+                      <GTags.FableSelect
+                        defaultValue={btnConf.style}
+                        size="small"
+                        bordered={false}
+                        options={Object.values(AnnotationButtonStyle).map(v => ({
+                          value: v,
+                          label: v,
+                        }))}
+                        onSelect={(val) => {
+                          if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
+                          setConfig(c => updateButtonProp(c, btnConf.id, 'style', val as AnnotationButtonStyle));
+                        }}
+                        suffixIcon={<CaretOutlined dir="down" />}
+                      />
+                    </div>
+                    <div style={commonActionPanelItemStyle}>
+                      <div>
+                        <div style={{ marginRight: '0.5rem' }}>Button size</div>
+                        <Tags.ApplyAllTxt
+                          onClick={() => {
+                            setApplyAllProperty({
+                              key: 'size',
+                              value: btnConf.size
+                            });
+                          }}
+                          className="typ-sm"
+                        >Apply to all
+                        </Tags.ApplyAllTxt>
+                      </div>
+                      <GTags.FableSelect
+                        defaultValue={btnConf.size}
+                        size="small"
+                        bordered={false}
+                        options={Object.values(AnnotationButtonSize).map(v => ({
+                          value: v,
+                          label: v,
+                        }))}
+                        onSelect={(val) => {
+                          if (val !== btnConf.size) { amplitudeAnnotationEdited('cta-button_size', val as string); }
+                          setConfig(c => updateButtonProp(c, btnConf.id, 'size', val as AnnotationButtonSize));
+                        }}
+                        suffixIcon={<CaretOutlined dir="down" />}
+                      />
+                    </div>
+                    <div style={{ ...commonActionPanelItemStyle, marginTop: '4px' }}>
+                      <div>Button text</div>
+                      <Input
+                        className="typ-ip"
+                        defaultValue={btnConf.text}
+                        size="small"
+                        bordered={false}
+                        style={{
+                          flexGrow: 1,
+                          maxWidth: '140px',
+                          background: '#fff',
+                          borderRadius: '8px',
+                          height: '100%',
+                          border: '1px solid #E8E8E8',
+                        }}
+                        placeholder="Button text"
+                        onBlur={e => {
+                          if (e.target.value !== btnConf.text) {
+                            amplitudeAnnotationEdited('cta-button_text', e.target.value);
+                          }
+                          setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </Tags.AABtnCtrlLine>
+            );
+          })}
+        </Tags.BtnCtrlCon>
         <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem' }}>
-          <Tags.ActionPaneBtn
+          <GTags.DashedBtn
             type="text"
-            className="fullWidth"
-            icon={<img src={CustomButtonIcon} alt="" />}
+            className="fullWidth typ-reg"
+            icon={<PlusCircleFilled />}
             onClick={() => {
               amplitudeAnnotationEdited('add_new_cta', '');
               setConfig(c => addCustomBtn(c));
             }}
             style={{ color: '#7567FF' }}
           >
-            Create a custom button
-          </Tags.ActionPaneBtn>
+            Add another CTA
+          </GTags.DashedBtn>
         </div>
       </ActionPanel>
       <ActionPanel
@@ -1172,7 +1205,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           items={[
             {
               key: '1',
-              label: <span style={{ fontWeight: 500 }}>On screen</span>,
+              label: <span className="typ-reg">On screen</span>,
               children: <EffectSelector
                 key={props.config.refId}
                 config={props.config}
@@ -1204,7 +1237,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             },
             {
               key: '2',
-              label: <span style={{ fontWeight: 500 }}>On annotation</span>,
+              label: <span className="typ-reg">On annotation</span>,
               children: <EffectSelector
                 key={props.config.refId}
                 config={props.config}
@@ -1237,9 +1270,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       </ActionPanel>
       <ActionPanel title="Sizing & Positioning" icon={<img src={SizingIcon} alt="" />}>
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={commonActionPanelItemStyle}>Positioning</GTags.Txt>
-          <Tags.ActionPaneSelect
+          <div style={commonActionPanelItemStyle}>Positioning</div>
+          <GTags.FableSelect
             defaultValue={isAnnCustomPosition(config.positioning) ? 'custom' : config.positioning}
+            className="typ-ip"
             value={config.positioning}
             size="small"
             bordered={false}
@@ -1262,13 +1296,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           (isAnnCustomPosition(config.positioning) || showCustomPositioningOption) && (
             <div style={{ ...commonActionPanelItemStyle, minHeight: '64px', height: 'auto' }}>
               <div style={{ display: 'flex', flexDirection: 'column', width: '70%' }}>
-                <GTags.Txt>
+                <div>
                   Custom Positioning
-                </GTags.Txt>
-                <GTags.Txt style={{ fontWeight: 400, fontStyle: 'italic', fontSize: '10px' }}>
+                </div>
+                <div className="typ-sm" style={{ opacity: '0.75' }}>
                   This choice won't be regarded if there is no space for the annotation to be rendered.
                   We would fallback to auto positioning in that case.
-                </GTags.Txt>
+                </div>
               </div>
               <AnnPositioningInput
                 fullWidth={64}
@@ -1282,10 +1316,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           )
         }
         <div style={commonActionPanelItemStyle}>
-          <GTags.Txt style={{}}>Box sizing</GTags.Txt>
-          <Tags.ActionPaneSelect
+          <div>Box sizing</div>
+          <GTags.FableSelect
             defaultValue={config.size ?? 'small'}
             size="small"
+            className="typ-ip"
             bordered={false}
             options={Object.values(isVideoAnnotation(config)
               ? ['medium', 'large', 'custom']
@@ -1301,7 +1336,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         {
           config.size === 'custom' && (
             <div style={commonActionPanelItemStyle}>
-              <GTags.Txt style={{}}>Custom width</GTags.Txt>
+              <div>Custom width</div>
               <Tags.InputNumberBorderRadius
                 min={0}
                 defaultValue={config.customDims.width}
@@ -1314,7 +1349,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </div>
           )
         }
-
       </ActionPanel>
       {
         props.screen.type === ScreenType.SerDom && config.type === 'default' && (
@@ -1328,7 +1362,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               <>
                 <div style={{ ...commonActionPanelItemStyle, height: 'auto', marginTop: '0.5rem' }}>
                   <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
-                    <GTags.Txt>Hide annotation</GTags.Txt>
+                    <div>Hide annotation</div>
                     <Tags.StyledSwitch
                       size="small"
                       style={{ backgroundColor: config.hideAnnotation ? '#7567FF' : '#BDBDBD' }}
@@ -1338,16 +1372,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   </Tags.AnotCrtPanelSec>
                 </div>
                 <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
-                  <GTags.Txt>{!config.hotspotElPath ? 'Nested element' : 'Selected'}</GTags.Txt>
+                  <div>{!config.hotspotElPath ? 'Nested element' : 'Selected'}</div>
                   {
                     !config.hotspotElPath && (
-                      <Tags.ActionPaneBtn
+                      <GTags.DashedBtn
                         type="text"
                         size="small"
                         onClick={startSelectingHotspotEl}
+                        className="typ-ip"
                       >
                         Select
-                      </Tags.ActionPaneBtn>
+                      </GTags.DashedBtn>
                     )
                   }
                 </div>
@@ -1355,7 +1390,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   config.hotspotElPath && (
                     <div style={{ ...commonActionPanelItemStyle, height: 'auto' }}>
                       <Tags.AnotCrtPanelSec row style={{ justifyContent: 'space-between' }}>
-                        <GTags.Txt style={{ opacity: '0.65', margin: '0' }}>{hotspotElText.substring(0, 15)}</GTags.Txt>
+                        <div style={{ opacity: '0.65', margin: '0' }}>{hotspotElText.substring(0, 15)}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <Tooltip
                             title="Select other element"
@@ -1417,8 +1452,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             marginTop: '0.5rem'
           }}
         >
-          <GTags.Txt>Entry point</GTags.Txt>
-          <Checkbox
+          <div>Entry point</div>
+          <GTags.OurCheckbox
             style={{ marginLeft: '0.75rem' }}
             checked={opts.main === qualifiedAnnotationId}
             onChange={e => {
@@ -1435,7 +1470,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
           <div>
-            <GTags.Txt>Overlay</GTags.Txt>
+            <div>Overlay</div>
             <Tags.ApplyAllTxt
               onClick={() => {
                 setApplyAllProperty({
@@ -1443,6 +1478,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   value: config.showOverlay
                 });
               }}
+              className="typ-sm"
             >Apply to all
             </Tags.ApplyAllTxt>
           </div>
@@ -1455,15 +1491,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
       </ActionPanel>
       <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', margin: '0.5rem 1rem' }}>
-        <Tags.ActionPaneBtn
+        <GTags.DashedBtn
           type="text"
-          icon={<img src={DeleteDangerIcon} alt="" width="24" height="24" />}
+          icon={<DeleteFilled style={{ color: '#d64e4d' }} />}
           onClick={showDeleteConfirm}
           style={{ color: '#AB2424' }}
-          className="fullWidth"
+          className="fullWidth typ-reg"
         >
           Delete this annotation
-        </Tags.ActionPaneBtn>
+        </GTags.DashedBtn>
       </div>
       <GTags.BorderedModal
         title=""

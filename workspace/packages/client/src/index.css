@@ -3,10 +3,24 @@ html, body {
   padding: 0;
   height: 100%;
   width: 100%;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 16px;
+
+  @media screen and (max-width: 1290px) {
+    font-size: 90%;
+  }
+  @media screen and (max-width: 767px) {
+    font-size: 80%;
+  }
+}
+
+html, body, div, span, button, p, button, input {
+  font-family: 'IBM Plex Sans', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 0.95rem;
+}
+
+.cm-editor span, .cm-editor div, .cm-editor button {
+  font-family: "IBM Plex Mono", monospace !important;
 }
 
 * {
@@ -26,6 +40,9 @@ html, body {
   0%{opacity: .35;}
   50%{opacity: 1;}
   100%{opacity: .35;}
+}
+.ant-modal-centered {
+  scrollbar-color: var(--fable-scrollbar-color);
 }
 
 .ant-modal .ant-modal-content { 
@@ -67,8 +84,6 @@ html, body {
 
 .ant-modal-confirm-title {
   flex: auto !important;
-  font-weight: 600 !important;
-  line-height: 1.5 !important;
 }
 
 .ant-modal-confirm-content {
@@ -133,6 +148,71 @@ html, body {
   transform: translate(2px,-2px) !important;
 }
 
+.ant-popover .ant-popover-inner {
+  border-radius: 16px !important;
+  padding: 16px !important;
+}
+
+.ant-tour .ant-tour-inner {
+  border-radius: 16px;
+  padding: 8px;
+}
+
 :root {
   --AnnotationFontSizeMedium: 18px;
+  --fable-scrollbar-thumb: rgb(198 201 207);
+  --fable-scrollbar-track: rgb(238 238 238);
+  --fable-scrollbar-color: rgb(198 201 207) rgb(238 238 238);
+}
+
+.ant-tooltip-inner {
+  border-radius: 6px !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  line-height: 1rem !important;
+}
+
+
+.typ-h1, .ant-modal-confirm .ant-modal-confirm-body .ant-modal-confirm-title  {
+  font-size: 1.65rem;
+  font-weight: 400;
+  line-height: 1.8rem;
+}
+
+.typ-h2 {
+  font-size: 1.45rem;
+  font-weight: 300;
+  line-height: 1.6rem;
+}
+
+.typ-reg,.ant-modal-confirm-content {
+  font-size: 1.1rem;
+  font-weight: 300;
+  line-height: 1.4rem;
+}
+
+.typ-ip, .ant-select-selection-item {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  font-family: "IBM Plex Mono", monospace !important;
+}
+
+.typ-btn {
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.2rem;
+}
+
+.typ-sm {
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 14px;
+
+}
+
+.err-line {
+  color: white;
+  background: #d64d4d;
+  padding: 2px 4px;
+  border-radius: 4px;
 }

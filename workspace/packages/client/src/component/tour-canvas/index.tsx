@@ -38,7 +38,7 @@ import {
 } from '../annotation/ops';
 import newScreenDark from '../../assets/new-screen-dark.svg';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
   AnnotationPerScreen,
@@ -46,6 +46,7 @@ import {
   EditItem,
   ElEditType,
   IAnnotationConfigWithScreen,
+  JourneyOrOptsDataChange,
   MultiNodeModalData,
   NavFn,
   ScreenPickerData,
@@ -99,6 +100,8 @@ const { confirm } = Modal;
 const userGuides = [ExploringCanvasGuide, ShareEmbedDemoGuide, EditingInteractiveDemoGuidePart1];
 
 type CanvasProps = {
+  setShowPaymentModal: (show: boolean) => void;
+  subs: P_RespSubscription | null;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
   allAnnotationsForTour: AnnotationPerScreen[];
   navigate: NavFn;
@@ -125,9 +128,10 @@ type CanvasProps = {
   isScreenLoaded: boolean;
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;
-  onTourJourneyChange: (newJourney: JourneyData, tx?: Tx)=> void;
+  onTourJourneyChange: JourneyOrOptsDataChange;
   headerProps: HeaderProps,
-  journey: JourneyData
+  journey: JourneyData,
+  manifestPath: string;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -2505,7 +2509,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     let mdData = '';
 
     const { displayName: title, description } = props.tour;
-    mdData += getTourIntroMDStr(title, description, props.headerProps.manifestPath);
+    mdData += getTourIntroMDStr(title, description, props.manifestPath);
 
     const isJourney = props.journey.flows.length > 0;
     if (isJourney) {
@@ -2561,6 +2565,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               setShowAnnText,
               downloadTourData,
             }}
+            tourOpts={props.tourOpts}
+            setShowPaymentModal={props.setShowPaymentModal}
+            subs={props.subs}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon
@@ -2641,7 +2648,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     <div>
                       <Button
                         onClick={() => setShowLoaderEditor(true)}
-                        icon={<HourglassOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
+                        icon={<HourglassOutlined style={{ fontSize: '1.4rem', color: 'black' }} />}
                         size="middle"
                         style={{
                           margin: 0,
@@ -2857,6 +2864,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 {
                   props.isScreenLoaded && (
                   <ScreenEditor
+                    setShowPaymentModal={props.setShowPaymentModal}
+                    subs={props.subs}
+                    journey={props.journey}
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
                     screen={props.screen!}
@@ -2922,6 +2932,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   {
                 props.isScreenLoaded && showScreenEditor && (
                   <ScreenEditor
+                    setShowPaymentModal={props.setShowPaymentModal}
+                    subs={props.subs}
+                    journey={props.journey}
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
                     screen={props.screen!}

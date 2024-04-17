@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Modal } from 'antd';
+import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select } from 'antd';
 import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
@@ -23,10 +23,6 @@ export interface TxtProp {
 
 export const Txt = styled.div`
   color: ${(props: TxtProp) => (props.color ? props.color : 'unset')};
-  &.head {
-    font-size: ${(props) => props.theme.typography.size.heading};
-    font-weight: bold;
-  }
 
   &.editable {
     cursor: text;
@@ -112,6 +108,9 @@ export const BodyCon = styled.div`
     justify-content: center;
     align-items: center;
   }
+
+  scrollbar-color: var(--fable-scrollbar-color);
+  scrollbar-width: thin;
 `;
 
 export const SidePanelCon = styled.aside`
@@ -126,6 +125,9 @@ export const MainCon = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+
+  scrollbar-color: var(--fable-scrollbar-color);
+  scrollbar-width: thin;
 `;
 
 export const HeaderCon = styled.div`
@@ -153,13 +155,13 @@ export const EditPanelCon = styled.div`
   flex-direction: column;
   background: #fff;
   border-left: 1px solid #ddd;
-  scrollbar-color: #7567FF #E5E7EB;
+  scrollbar-color: var(fable-scrollbar-color);
   scrollbar-width: thin;
   overflow-y: auto;
 
   &::-webkit-scrollbar-track {
     padding: 2px 0;
-    background-color: #e5e7eb;
+    background-color: var(--fable-scrollbar-track);
     border-radius: 10px;
     border: 1px solid #F3F4F6;
   }
@@ -172,7 +174,7 @@ export const EditPanelCon = styled.div`
 
   &::-webkit-scrollbar-thumb {
     border-radius: 10px;
-    background-color: #646e82;
+    background-color: var(--fable-scrollbar-thumb);
   }
 `;
 
@@ -186,7 +188,6 @@ export const PopoverMenuItem = styled.div<{ nonit?: boolean }>`
   cursor: ${props => (props.nonit ? 'default' : 'pointer')};
   padding: 0.25rem 0.75rem;
   border-radius: 2px;
-  font-size: 0.85rem;
   &:hover {
     background: ${props => (props.nonit ? 'initial' : '#eaeaea')};
   }
@@ -208,10 +209,13 @@ export const Avatar = styled.img<{ sl?: boolean, glow?: boolean }>`
   box-shadow: ${props => (props.glow ? '0 0 1px 1px white' : 'none')}
 `;
 
-export const BorderedModal = styled(Modal)`
+export const BorderedModal = styled(Modal)<{
+  donotShowHeaderStip?: boolean;
+  containerBg?: string;
+}>`
     border-radius: 15px;
     border-top: double 4px transparent;
-    background-image: linear-gradient(white, white), linear-gradient(to right,  #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%);
+    background-image: ${props => (props.donotShowHeaderStip ? undefined : 'linear-gradient(white, white), linear-gradient(to right,  #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%)')};
     background-clip: padding-box, border-box;
 
     .ant-modal-content {
@@ -220,6 +224,7 @@ export const BorderedModal = styled(Modal)`
       -o-box-shadow: none;
       box-shadow: none;
       border-radius: 15px;
+      background: ${props => props.containerBg}
     }
 
     .modal-title {
@@ -276,3 +281,135 @@ export interface CTABtnConf {
   color: string;
   borderRadius: number;
 }
+
+interface CheckboxProps {
+  showafterlabel?: string;
+}
+
+export const OurCheckbox = styled(Checkbox)<CheckboxProps>`
+  .ant-checkbox.ant-checkbox-checked > .ant-checkbox-inner {
+    border-color: #747474;
+    background-color: #747474;
+  }
+
+  .ant-checkbox > .ant-checkbox-inner {
+    border-color: #747474;
+    background-color: transparent;
+  }
+
+  &.ant-checkbox-wrapper {
+    flex-direction: ${(props: CheckboxProps) => (props.showafterlabel ? 'row-reverse' : 'unset')};
+  }
+
+  & span{
+    padding-inline-start: ${(props: CheckboxProps) => (props.showafterlabel ? '0px' : '8px')};
+  }
+`;
+
+export const SimpleInput = styled(Input)`
+  padding: 4px 11px;
+  background-color: white;
+  border: 1px dashed #BDBDBD !important;
+  border-radius: 8px;
+  cursor: text;
+  height: 50px;
+
+  &:hover {
+    border: 1px solid #747474 !important;
+  }
+`;
+
+export const ColorPicker = styled(AntColorPicker)`
+  background: #fff;
+  border: 1px dashed #BDBDBD;
+  min-width: 140px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: flex-start;
+  height: 40px;
+  position: relative;
+  .ant-color-picker-color-block{ 
+    border-radius: 50% !important;
+    position: absolute;
+    right: 10px;
+  }
+  .ant-color-picker-color-block-inner,
+  .ant-color-picker-color-block {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  &:hover {
+    border: 1px solid #747474 ;
+  }
+`;
+
+export const DashedBtn = styled(Button)`
+  color: black !important;
+
+  .ant-btn-icon {
+    color: #747474;
+  }
+
+  &.fullWidth {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px dashed #bdbdbd;
+    background: #FFF;
+    width: 100%;
+    height: 48px;
+  }
+
+  &:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+    background: transparent !important;
+    transition: none !important;
+  } 
+`;
+
+export const FableSelect = styled(Select)`
+  border-radius: 8px;
+  background: #fff;
+  border: 1px dashed #bdbdbd;
+  height: 40px;
+  min-width: 140px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  &:hover {
+    box-shadow: 0 0 0 1px #747474 !important;
+  }
+  
+  .ant-select-clear {
+    transform: translate(-100%, -100%);
+  }
+
+  .ant-select-selector {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    font-family: inherit !important;
+  }
+`;
+
+export const BottomPanel = styled.div`
+  flex-grow: 1;
+  margin: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fable-scrollbar-color);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--fable-scrollbar-thumb);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #F1F1F1;
+  }
+`;

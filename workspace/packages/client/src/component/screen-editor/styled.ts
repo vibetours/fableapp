@@ -1,4 +1,4 @@
-import { Button, Select, Slider, ColorPicker as AntColorPicker, InputNumber, Input, Switch } from 'antd';
+import { Select, Slider, InputNumber, Input, Switch } from 'antd';
 import styled from 'styled-components';
 
 export const EditPanelSec = styled.div`
@@ -31,7 +31,6 @@ export const CtrlTxtEditBox = styled(Input.TextArea)`
   border-radius: 8px;
   border: 2px solid #ddd;
   padding: 0.875rem 1rem;
-  font-size: 1rem;
 `;
 
 export const EditLICon = styled.div`
@@ -76,39 +75,50 @@ export const AnotCrtPanelSec = styled.div`
   margin-bottom: 0.25rem;
 `;
 
-export const AABtnCtrlLine = styled.div`
- display: flex;
- flex-direction: column;
- margin-bottom: 0.15rem;
- margin-top: 0.15rem;
- padding: 0.15rem;
- border-radius: 4px;
+export const BtnCtrlCon = styled.div<{ annBgColor: string }>`
+  background-color: #fff;
+  opacity: 0.8;
+  background-image:  ${props => `repeating-radial-gradient( circle at 0 0, transparent 0, color-mix(in srgb, ${props.annBgColor} 50%, white) 7px ), repeating-linear-gradient( ${props.annBgColor}55, ${props.annBgColor} );`};
 
-
- .a-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between ;
- }
-
- .n-vis {
-   visibility: hidden;
- }
-
- .n-details {
-  padding: 0.15rem;
-  margin: 0.15rem;
- }
-
- &:hover {
-  .n-vis {
-    visibility: visible;
+  .ant-btn-icon {
+    color: black !important;
   }
- }
+  padding: 4px;
+  border-radius: 4px;
+`;
 
- &.sel {
-  /* background: #f5f5f5; */
- }
+export const AABtnCtrlLine = styled.div<{ annBgColor: string }>`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.15rem;
+  margin-top: 0.15rem;
+  padding: 0.15rem;
+  border-radius: 4px;
+
+  .a-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between ;
+  }
+
+  .n-vis {
+    visibility: hidden;
+  }
+
+  .n-details {
+    padding: 0.15rem;
+    margin: 0.15rem;
+  }
+
+  &:hover {
+    .n-vis {
+      visibility: visible;
+    }
+  }
+
+  &.sel {
+    /* background: #f5f5f5; */
+  }
 `;
 
 export const ActionMenuCon = styled.div`
@@ -151,8 +161,6 @@ export const CreateNewAnnotationBtn = styled.div`
   justify-content: center;
   flex-direction: column;
   gap: 8px;
-  font-size: 11px;
-  font-weight: 400;
 
   p {
     text-align: center;
@@ -178,33 +186,18 @@ export const AnnotationBtnCtn = styled.div`
   margin-top: 8px;
 `;
 
-export const InputContainer = styled.div`
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 export const InfoText = styled.p`
   padding: 0 1rem;
   margin: 2px 0 0 1.5rem;
-  line-height: 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 400;
   color: #333333;
   text-align: left;
-  font-size: 12px;
 `;
 
 export const AnimatedInfoText = styled.p`
   padding: 0 1rem;
   margin: 0 0 0 1.5rem;
-  line-height: 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 400;
   color: #333333;
   text-align: left;
-  font-size: 12px;
   display: inline-block;
 `;
 
@@ -245,7 +238,7 @@ export const ActionPanelTitleCon = styled.div`
   justify-content: space-between;
   align-items: center;
   opacity: 0.65;
-  font-size: 1rem;
+  // font-size: 1rem;
 
   .ht-icn {
     font-size: 0.75rem;
@@ -265,47 +258,9 @@ export const ActionPanelTitleCon = styled.div`
   }
 
   .title {
-    font-weight: 600;
+    // font-weight: 600;
     display: flex;
     align-items: center;
-  }
-`;
-
-export const ActionPaneBtn = styled(Button)`
-
-  &.fullWidth {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    border: 1px solid #E8E8E8;
-    background: #FFF;
-    width: 100%;
-    height: 48px;
-  }
-
-  &:hover {
-    box-shadow: 0 0 0 1px #747474 !important;
-    background: transparent !important;
-    transition: none !important;
-  } 
-`;
-
-export const ActionPaneSelect = styled(Select)`
-  background-color: white;
-  border-radius: 8px;
-  border: 1px solid #E8E8E8;
-  height: 40px;
-  min-width: 140px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  &:hover {
-    box-shadow: 0 0 0 1px #747474 !important;
-  }
-  
-  .ant-select-clear {
-    transform: translate(-100%, -100%);
   }
 `;
 
@@ -341,35 +296,9 @@ export const CTALinkInputCont = styled.div`
   gap: 0.5rem;
 `;
 
-export const ColorPicker = styled(AntColorPicker)`
-  border: 1px solid #E8E8E8;
-  background: white;
-  min-width: 140px;
-  border-radius: 8px;
-  display: flex;
-  justify-content: flex-start;
-  height: 40px;
-  font-weight: 400;
-  position: relative;
-  .ant-color-picker-color-block{ 
-    border-radius: 50% !important;
-    position: absolute;
-    right: 10px;
-  }
-  .ant-color-picker-color-block-inner,
-  .ant-color-picker-color-block {
-    width: 20px !important;
-    height: 20px !important;
-  }
-
-  &:hover {
-    border: 1px solid #747474 ;
-  }
-`;
-
 export const InputText = styled(Input)`
   border-radius: 8px;
-  border: 1px solid #E8E8E8;
+  border: 1px dashed #BDBDBD;
   height: 100%;
   width: 140px;
   background: white;
@@ -384,7 +313,7 @@ export const InputNumberBorderRadius = styled(InputNumber)`
   width: 140px;
   height: 100%;
   border-radius: 8px;
-  border: 1px solid #E8E8E8;
+  border: 1px dashed #BDBDBD;
 
   .ant-input-number,
   .ant-input-number-wrapper, 
@@ -408,7 +337,12 @@ export const StyledSwitch = styled(Switch)`
     height: 16px ;
     width: 16px;
   }
- 
+
+  &.ant-switch-checked {
+    background: #757575 !important;
+    background-color: #757575 !important;
+  }
+
   &:where(.css-dev-only-do-not-override-byeoj0).ant-switch.ant-switch-checked .ant-switch-handle {
     inset-inline-start: calc(100% - 18px);
   }
@@ -495,7 +429,7 @@ export const AnnPositionInputBox = styled.div<{ isSelected: boolean }>`
   div {
     width: 50%;
     height: 50%;
-    background-color: ${props => (props.isSelected ? '#160245' : '#bbb4fa')};
+    background-color: ${props => (props.isSelected ? '#160245' : '#bdbdbd')};
     border-radius: 2px;
   }
 
@@ -510,7 +444,7 @@ export const AnnPositionInputBox = styled.div<{ isSelected: boolean }>`
 
 export const AnnotationLI = styled.div`
   position: relative;
-  background: #F7F7F7;
+  background: #fff;
   padding: 0.65rem 0 0.25rem;
   border-radius: 2px;
   display: flex;
@@ -533,7 +467,6 @@ export const AnotCrtPanelSecLabel = styled.div`
 `;
 
 export const AnnDisplayText = styled.div`
-  line-height: 1.25rem;
   color: #212121;
   display: flex;
   flex-direction: column;
@@ -541,9 +474,8 @@ export const AnnDisplayText = styled.div`
   margin-right: 10px;
 
   .steps {
-    font-weight: 600;
     display: inline-block;
-    font-size: 1.1rem;
+    font-weight: 500;
   }
 
   .head {
@@ -551,15 +483,12 @@ export const AnnDisplayText = styled.div`
     overflow: hidden;
     width: 100%;
     text-overflow: ellipsis;
-    font-size: 0.95rem;
   }
 `;
 
 export const ApplyAllTxt = styled.div`
   margin: 0px;
   color: #aaa; 
-  font-weight: 400;
-  font-size: 12px;
   &:hover {
     text-decoration: underline;
     cursor: pointer;
@@ -575,6 +504,7 @@ export const ConnectableAnnsCon = styled.div`
 export const NavigateToCon = styled.div`
   max-height: 45vh;
   overflow-y: scroll;
+  scrollbar-color: var(--fable-scrollbar-color);
   scrollbar-width: unset !important;
   opacity: 0;
   animation-name: fadeIn;
@@ -604,7 +534,7 @@ export const NavigateToCon = styled.div`
 
   &::-webkit-scrollbar-thumb {
     border-radius: 10px;
-    background-color: #646e82;
+    background-color: var(--fable-scrollbar-thumb);
   }
 `;
 

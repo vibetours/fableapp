@@ -20,6 +20,7 @@ import MuteIcon from '../../assets/mute.png';
 import UnmuteIcon from '../../assets/unmute.png';
 
 interface IProps {
+  borderRadius: string;
   conf: IAnnoationDisplayConfig;
   playMode: boolean,
   annFollowPositions: { top: number, left: number, dir: AnimEntryDir },
@@ -234,6 +235,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
         <div style={{ position: 'relative', display: 'flex' }}>
           <Tags.AnVideo
+            style={{ borderRadius: this.props.borderRadius }}
             loop={this.state.firstTimeClick}
             autoPlay
             muted={this.state.isMuted}
@@ -256,6 +258,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
           </Tags.AnVideo>
 
           <Tags.AnVideoControls
+            style={{ borderRadius: this.props.borderRadius }}
             showOverlay={this.state.showControls}
           >
             {!this.props.conf.prerender && (

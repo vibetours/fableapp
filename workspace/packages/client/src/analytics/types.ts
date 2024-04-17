@@ -29,7 +29,7 @@ export enum AnalyticsEventsDirect {
 export interface AnnotationBtnClickedPayload {
   tour_id: number;
   ann_id: string;
-  btn_type: IAnnotationButtonType;
+  btn_type: IAnnotationButtonType | CtaFrom;
   btn_id: string;
 }
 
@@ -68,6 +68,7 @@ export interface CtaClickedAnalytics {
 export enum CtaFrom {
   Annotation = 'annotation',
   Journey = 'journey',
+  Header = 'header',
 }
 
 export interface PayloadTypeMap {

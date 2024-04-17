@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useState } from 'react';
 import styled from 'styled-components';
 
 const LinkCon = styled.div`
@@ -7,7 +7,7 @@ const LinkCon = styled.div`
     cursor: pointer;
 
     span {
-      border-bottom: 2px dotted #7568ff;
+      border-bottom: 2px solid transparent;
 
       &:hover, &.sel {
         border-bottom: 2px solid #7568ff;
@@ -42,7 +42,7 @@ export default function Tabs(props: IProps): JSX.Element {
         className="l-title"
         onMouseUp={() => setShowDetails(!showDetails)}
       >
-        <span className={showDetails ? 'sel' : ''}>{props.title}</span>
+        <div className={showDetails ? 'sel' : ''}>{props.title}</div>
       </div>
       {showDetails && (
         <div className="l-body">

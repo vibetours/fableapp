@@ -1,4 +1,3 @@
-import { Button } from 'antd';
 import styled, { keyframes } from 'styled-components';
 
 export const CenteredLoaderLogoDiv = styled.div`
@@ -94,39 +93,20 @@ export const FieldName = styled.div`
 
     p {
         color: #212121;
-        font-weight: 600;
-        font-size: 1.1rem;
         padding: 0;
         margin: 0;
     }
 `;
 
-export const PrimaryButton = styled(Button)`
-    background-color: #7567FF;
-    padding-block: 0.75rem;
-    height: fit-content;
-    border-radius: 4px;
-    transition: transform 0.2s ease-out;
-  
-     &:hover {
-        background: #7567FF !important;
-        transform: translate(2px, -2px);
-    }
-`;
-
 export const HeaderTitle = styled.p`
-    font-size: 1.25rem;
     color: #222;
-    font-weight: 700;
     padding-left: 16px;
     text-align: center;
     padding: 0;
     margin: 1rem 0 0 0;
-    color: #222;
 `;
 
 export const Error = styled.p`
-    font-size: 1rem;
     text-align: center;
     color: red;
 `;

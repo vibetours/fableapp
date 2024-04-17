@@ -10,6 +10,9 @@ import { P_RespTour } from '../../entity-processor';
 import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
 import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from './share-modal';
+import { IFRAME_BASE_URL } from '../../constants';
+import { SiteData } from '../../types';
+import { amplitudeShareModalOpen } from '../../amplitude';
 
 interface Props {
   selectedDisplaySize: DisplaySize;
@@ -19,7 +22,7 @@ interface Props {
   handleReplayClick: () => void;
   showShareModal: boolean;
   setShowShareModal: (showShareModal: boolean) => void;
-  manifestPath: string;
+  onSiteDataChange: (site: SiteData)=> void;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -51,7 +54,11 @@ export default function PublishOptions(props: Props): JSX.Element {
             <img className="action-icon" src={ScreenshotMonitorIcon} alt="" />
           </Popover>
           <Tooltip title="Embed" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-            <div onClick={() => props.setShowShareModal(true)}>
+            <div onClick={() => {
+              amplitudeShareModalOpen('preview');
+              props.setShowShareModal(true);
+            }}
+            >
               <img className="action-icon" src={ShareIcon} alt="" />
             </div>
           </Tooltip>
@@ -74,23 +81,29 @@ export default function PublishOptions(props: Props): JSX.Element {
               publishTour={props.publishTour}
               tour={props.tour}
               size="medium"
-              openShareModal={() => props.setShowShareModal(true)}
+              openShareModal={() => {
+                props.setShowShareModal(true);
+                amplitudeShareModalOpen('preview');
+              }}
             />
           </div>
         </div>
 
         {props.tour && <ShareTourModal
           publishTour={props.publishTour}
-          manifestPath={props.manifestPath}
           tour={props.tour!}
           height={height}
           width={width}
-          relativeUrl={`/p/demo/${props.tour?.rid}`}
+          relativeUrl={`/demo/${props.tour?.rid}`}
           isModalVisible={props.showShareModal}
           closeModal={() => props.setShowShareModal(false)}
-          openShareModal={() => props.setShowShareModal(true)}
-          copyUrl={getIframeShareCode(height, width, `/p/demo/${props.tour?.rid}`)}
-          embedClickedFrom="header"
+          openShareModal={() => {
+            props.setShowShareModal(true);
+            amplitudeShareModalOpen('preview');
+          }}
+          copyUrl={getIframeShareCode(height, width, `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
+          tourOpts={null}
+          onSiteDataChange={props.onSiteDataChange}
         />}
       </Tags.Header>
     </>

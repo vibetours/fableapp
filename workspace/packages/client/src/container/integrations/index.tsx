@@ -150,7 +150,6 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
-            manifestPath=""
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

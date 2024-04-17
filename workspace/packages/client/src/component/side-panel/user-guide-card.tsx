@@ -81,12 +81,12 @@ export default function UserGuideCard(props: Props): JSX.Element {
           <BulbOutlined />
         </div>
         <Tags.UserGuideTextcon>
-          <Tags.UserGuideTitle>
+          <div className="typ-reg">
             {props.guide.name}
-          </Tags.UserGuideTitle>
-          <Tags.UserGuideDesc>
+          </div>
+          <div className="typ-sm">
             {props.guide.desc.toursCreated}
-          </Tags.UserGuideDesc>
+          </div>
         </Tags.UserGuideTextcon>
       </div>
       <Tooltip

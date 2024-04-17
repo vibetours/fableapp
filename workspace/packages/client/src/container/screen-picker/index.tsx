@@ -138,7 +138,7 @@ function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenCo
       <Tags.ScreenThumbnail src={screen.thumbnailUri.href} alt={screen.displayName} />
       <Tags.ScreenContent>
         <Tags.ScreenTitleIconCon>
-          <GTags.Txt className="card-title">{screen.displayName}</GTags.Txt>
+          <div className="card-title">{screen.displayName}</div>
           <div>
             {
               screen.type === ScreenType.SerDom ? <FileTextOutlined /> : <FileImageOutlined />
@@ -154,13 +154,13 @@ function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenCo
             }}
             >
               <ArrowUpOutlined style={{ color: '#7567ff', transform: 'rotate(45deg)' }} />
-              <GTags.Txt className="subtitle">{screen.url}</GTags.Txt>
+              <div className="typ-sm">{screen.url}</div>
             </Tags.ScreenLink>)
         }
         <Tags.ScreenTitleIconCon>
-          <GTags.Txt className="subtitle">
+          <div className="typ-sm">
             Created {getDisplayableTime(screen.createdAt)}
-          </GTags.Txt>
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <GTags.Avatar src={screen.createdBy.avatar} alt="profile" />
             {duplicateScreenToTour && (
@@ -176,7 +176,7 @@ function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenCo
                       onMouseDown={(e) => handleAddScreen(screen)}
                     >
                       <div className="title">Add existing screen</div>
-                      <div className="desc">
+                      <div className="typ-sm">
                         This screen is already added in the demo, click here to add it again.
                         All the edits would be kept intact.
                       </div>
@@ -185,7 +185,7 @@ function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenCo
                       onMouseDown={(e) => duplicateScreenToTour(screen)}
                     >
                       <div className="title">Copy and add screen</div>
-                      <div className="desc">
+                      <div className="typ-sm">
                         Copy a new version of the same screen and add to the demo.
                         Edits on screen will be discarded
                       </div>
@@ -352,8 +352,8 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
           {this.props.screenLoadingFinished && (
             <>
               <Tags.MsgCon>
-                <Tags.Heading>Choose screens to add in this demo</Tags.Heading>
-                <Tags.SubHeading>
+                <Tags.Heading className="typ-h1">Choose screens to add in this demo</Tags.Heading>
+                <Tags.SubHeading className="typ-sm">
                   You can upload images from your system and add those in this demos.
                   You can also use our chrome extension to record your product and add it as part of this demo.
                 </Tags.SubHeading>
@@ -368,7 +368,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                 >
                   <Tags.UploadImgCont>
                     <UploadOutlined style={{ fontSize: '3rem' }} />
-                    <GTags.Txt className="title2">Upload image</GTags.Txt>
+                    <div className="typ-ip">Upload image</div>
                   </Tags.UploadImgCont>
                 </Tags.Screen>
                 {this.state.screensPartOfTour.map(screen => (

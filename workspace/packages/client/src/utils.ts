@@ -4,25 +4,25 @@ import {
   ITourEntityHotspot,
   SerNode,
   JourneyFlow,
-  IAnnotationButtonType,
   ITourDataOpts,
-  JourneyData
+  JourneyData,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { RespTour } from '@fable/common/dist/api-contract';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
   IAnnotationConfigWithScreen,
   JOURNEY_PROGRESS_LOCAL_STORE_KEY,
   FlowProgress,
-  GlobalAppData,
-  GlobalWin,
   ExtMsg,
   Timeline,
   JourneyModuleWithAnns,
   queryData,
   AnnInverseLookupIndex,
-  TourMainValidity
+  TourMainValidity,
+  SiteData,
+  SiteThemePresets
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour } from './entity-processor';
@@ -711,4 +711,19 @@ export function preloadImagesInTour(
       document.head.appendChild(link);
     });
   });
+}
+
+export function getDefaultSiteData(tour: RespTour): SiteData {
+  return {
+    logo: '../../favicon.png',
+    navLink: 'https://www.sharefable.com',
+    title: tour.displayName,
+    ctaText: 'Book a demo',
+    ctaLink: 'https://www.sharefable.com/get-a-demo',
+    themePreset: 'white',
+    bg1: SiteThemePresets.white.bg1,
+    bg2: SiteThemePresets.white.bg2,
+    headerBg: 'auto',
+    v: 1,
+  };
 }

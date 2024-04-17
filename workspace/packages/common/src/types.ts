@@ -113,6 +113,7 @@ export interface ITourDataOpts extends IChronoUpdatable {
   annotationFontColor: string;
   main: string;
   borderRadius: number;
+  showFableWatermark: boolean;
   annotationPadding: string;
 }
 

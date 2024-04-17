@@ -28,10 +28,18 @@ export function isCrossOrigin(url1: string, url2: string): boolean {
     return false;
   }
 
-  const u1 = new URL(url1);
-  const u2 = new URL(url2);
+  try {
+    const u1 = new URL(url1);
+    const u2 = new URL(url2);
 
-  return u1.protocol !== u2.protocol || u1.host !== u2.host;
+    return u1.protocol !== u2.protocol || u1.host !== u2.host;
+  } catch (e) {
+    setTimeout(() => {
+      // throw error in next frame
+      throw e;
+    }, 0);
+    return false;
+  }
 }
 
 export function getCookieHeaderForUrl(cookies: chrome.cookies.Cookie[], pageUrl: URL): String {

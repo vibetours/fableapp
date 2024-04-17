@@ -19,5 +19,12 @@ export enum AMPLITUDE_EVENTS {
     ANNOTATION_EDITED='annotation_edited',
     ANNOTATION_APPLY_ALL='annotation_apply_all',
     DEMO_PUBLISHED='demo_published',
-    SIDE_PANEL_TAB_CLICKED='side_panel_tab_clicked'
+    SIDE_PANEL_TAB_CLICKED='side_panel_tab_clicked',
+    SHARE_MODAL_OPEN='share_modal_open',
+    OPEN_CTA_LINK='open_cta_link',
+    CTA_LINK_SITE_CONFIG_CHANGED='cta_link_site_config_changed',
+    REMOVE_WATERMARK='remove_watermark',
+    SHARE_MODAL_SECTION_CLICKED_EMBED_DEMO='share_modal_section_clicked_embed_demo',
+    SHARE_MODAL_SECTION_CLICKED_CTA_SHARE='share_modal_section_clicked_cta_share',
+    SHARE_MODAL_SECTION_CLICKED_INTERNAL_SHARE='share_modal_section_clicked_internal_share'
 }

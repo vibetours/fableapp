@@ -1,4 +1,3 @@
-import { Coords, ITourDataOpts } from '@fable/common/dist/types';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig } from '../base/hightligher-base';

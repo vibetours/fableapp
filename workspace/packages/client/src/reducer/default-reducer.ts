@@ -12,7 +12,7 @@ import {
   ITourLoaderData,
   LoadingStatus,
   ScreenData,
-  TourData
+  TourData,
 } from '@fable/common/dist/types';
 import ActionType from '../action/type';
 import {
@@ -40,8 +40,10 @@ import {
   TSaveTourLoader,
   TAutosavingLoader,
   TScreenUpdate,
+  TShowPaymentModal,
+  TTourPublished,
 } from '../action/creator';
-import { remoteToLocalAnnotationConfigMap, P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
+import { P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, Ops } from '../types';
 
 export const initialState: {
@@ -88,6 +90,7 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus;
   journey: JourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
+  isPaymentModalShown: boolean;
 } = {
   inited: false,
   commonConfig: null,
@@ -129,6 +132,7 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
+  isPaymentModalShown: false,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -265,6 +269,13 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TOpsInProgress;
       const newState = { ...state };
       newState.opsInProgress = tAction.ops;
+      return newState;
+    }
+
+    case ActionType.SHOW_PAYMENT_MODAL: {
+      const tAction = action as TShowPaymentModal;
+      const newState = { ...state };
+      newState.isPaymentModalShown = tAction.show;
       return newState;
     }
 
@@ -412,6 +423,7 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.remoteTourOpts = tAction.opts;
       newState.tourLoaded = true;
       newState.journey = tAction.journey;
+
       if (tAction.allCorrespondingScreens && tAction.tour.screens) {
         newState.allScreens = tAction.tour.screens;
       }
@@ -485,6 +497,14 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.DEFAULT_TOUR_LOADED: {
       const newState = { ...state };
       newState.defaultTourLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.TOUR_LOADED: {
+      const tAction = action as TTourPublished;
+      const newState = { ...state };
+      newState.currentTour = tAction.tour;
+
       return newState;
     }
 

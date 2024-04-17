@@ -24,7 +24,7 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
         <Tags.ActionPanelTitleCon
           id={props.id}
           onClick={() => setCollapsed(!collapsed)}
-          className={collapsed ? '' : 'selected'}
+          className={`typ-h2 ${collapsed ? '' : 'selected'}`}
         >
           <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
             <div className="title">
@@ -60,7 +60,7 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
         </Tags.ActionPanelTitleCon>
       )}
       {!collapsed && (
-        <div className="body" style={{ padding: '0.25rem 0' }}>
+        <div className="body typ-reg" style={{ padding: '0.25rem 0' }}>
           {props.children}
         </div>
       )}

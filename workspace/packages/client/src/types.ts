@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
@@ -300,6 +300,41 @@ export enum TourMainValidity {
   Main_Not_Present,
   Journey_Main_Not_Present,
 }
+
+export type JourneyOrOptsDataChange = (
+  newOpts: ITourDataOpts | null,
+  newJourney: JourneyData | null, tx?: Tx
+  )=> void;
+
+export const SiteThemePresets = {
+  light_green: { bg1: '#6DE195', bg2: '#C4E759' },
+  dark_green: { bg1: '#41C7AF', bg2: '#54E38E' },
+  light_blue: { bg1: '#ABC7FF', bg2: '#C1E3FF' },
+  med_blue: { bg1: '#6CACFF', bg2: '#8DEBFF' },
+  dark_blue: { bg1: '#5583EE', bg2: '#41D8DD' },
+  violet: { bg1: '#A16BFE', bg2: '#DEB0DF' },
+  viloet_pink: { bg1: '#D279EE', bg2: '#F8C390' },
+  orange_yellow: { bg1: '#F78FAD', bg2: '#FDEB82' },
+  maroon_violet: { bg1: '#BC3D2F', bg2: '#A16BFE' },
+  pink_red: { bg1: '#A43AB2', bg2: '#E13680' },
+  dark_red: { bg1: '#9D2E7D', bg2: '#E16E93' },
+  light_pink: { bg1: '#F5CCF6', bg2: '#F1EEF9' },
+  white: { bg1: '#F0EFF0', bg2: '#FAF8F9' },
+  black: { bg1: '#121317', bg2: '#323B42' }
+};
+
+export interface SiteData {
+    logo: string;
+    title: string;
+    navLink: string;
+    ctaText: string;
+    ctaLink: string;
+    themePreset?: keyof typeof SiteThemePresets;
+    bg1: string;
+    bg2: string;
+    headerBg: string;
+    v: number;
+  }
 
 export interface IframePos {
   left: number,

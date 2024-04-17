@@ -11,9 +11,7 @@ export const TabItemsCon = styled.div`
 
 export const TabItem = styled.div`
   text-align: center;
-  font-weight: 500;
   cursor: pointer;
-  line-height: 20px;
   margin-left: 1.5rem;
 `;
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Tooltip } from 'antd';
-import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
+import { CheckOutlined, CopyFilled, CopyOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
+import { CheckFilledIcon } from '../ext-download/styled';
 
 interface IProps {
   copyUrl: string;
@@ -20,13 +21,16 @@ export default function (props: IProps): JSX.Element {
         open={copyButtonClicked || showTooltip}
       >
         {copyButtonClicked
-          ? <CheckOutlined
+          ? <CheckFilledIcon
               className="check-outline"
               onMouseLeave={() => {
                 setShowTooltip(false);
               }}
           />
-          : <CopyOutlined
+          : <CopyFilled
+              style={{
+                color: 'white'
+              }}
               className="copy-outline"
               onClick={() => {
                 setCopyButtonClicked(true);

@@ -61,12 +61,13 @@ export const MenuItem = styled.div`
   }
 `;
 
-export const CodeCon = styled.code`
+export const CodeCon = styled.div`
   display: block;
   border: 1px solid lightgray;
   padding: 0.5rem;
   border-radius: 12px;
   position: relative;
+  background: #2e3440;
 `;
 
 export const CanvasOptionsCon = styled.div`
@@ -129,5 +130,16 @@ export const WarningIcon = styled(WarningFilled)`
 
   :hover {
     color: #ff9800;
+  }
+`;
+
+export const HelpCenterLink = styled.a`
+  color: #424242;
+  text-decoration: dotted underline;
+  display: block;
+  margin-bottom: 1rem;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;

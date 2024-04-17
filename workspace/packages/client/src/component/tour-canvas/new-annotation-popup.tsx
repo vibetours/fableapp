@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useState } from 'react';
+import React, { ReactElement } from 'react';
 import {
   FullscreenOutlined,
   FileTextOutlined,
@@ -21,9 +21,9 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
     <>
       <div>
         <div>
-          <GTags.Txt className="title2">
+          <div className="typ-btn">
             Create a new annotation&nbsp;
-          </GTags.Txt>
+          </div>
           <div style={{
             borderTop: '1px solid #ddd',
             padding: '0.5rem 0',
@@ -32,26 +32,29 @@ export default function NewAnnotationPopup(props: Props): ReactElement {
             gap: '0.25rem'
           }}
           >
-            <GTags.PopoverMenuItem onClick={() => {
-              amplitudeNewAnnotationCreated(
-                propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
-              );
-              props.updateOriginAnnPos && props.updateOriginAnnPos(props.position);
-              props.hidePopup();
-            }}
-
+            <GTags.PopoverMenuItem
+              onClick={() => {
+                amplitudeNewAnnotationCreated(
+                  propertyCreatedFromWithType.CANVAS_PLUS_ICON_COVER_SAME_SCREEN
+                );
+                props.updateOriginAnnPos && props.updateOriginAnnPos(props.position);
+                props.hidePopup();
+              }}
+              className="typ-sm"
             >
               <FullscreenOutlined />&nbsp;&nbsp;&nbsp;On this screen
             </GTags.PopoverMenuItem>
-            <GTags.PopoverMenuItem onClick={() => {
-              props.shouldShowScreenPicker({
-                position: props.position,
-                annotation: props.annotation,
-                screenPickerMode: 'create',
-                showCloseButton: true
-              });
-              props.hidePopup();
-            }}
+            <GTags.PopoverMenuItem
+              onClick={() => {
+                props.shouldShowScreenPicker({
+                  position: props.position,
+                  annotation: props.annotation,
+                  screenPickerMode: 'create',
+                  showCloseButton: true
+                });
+                props.hidePopup();
+              }}
+              className="typ-sm"
             >
               <FileTextOutlined />&nbsp;&nbsp;&nbsp;By adding a new screen
             </GTags.PopoverMenuItem>

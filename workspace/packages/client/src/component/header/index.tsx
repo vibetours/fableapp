@@ -12,7 +12,7 @@ import {
   WarningFilled
 } from '@ant-design/icons';
 import { RespUser } from '@fable/common/dist/api-contract';
-import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -20,15 +20,13 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
 import * as GTags from '../../common-styled';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
-import { TourMainValidity } from '../../types';
-import { LocalStoreUserGuideProps, getUserGuidesInArray, resetSkippedOrCompletedStatus } from '../../user-guides/utils';
-import { GuideStatus } from '../side-panel/user-guide-details';
-import UserGuideCard from '../side-panel/user-guide-card';
-import { getTourGuideCardColor, getUserGuideType } from '../side-panel/utils';
+import { JourneyOrOptsDataChange, SiteData, TourMainValidity } from '../../types';
+import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
+import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
 
@@ -45,7 +43,6 @@ interface IOwnProps {
   leftElGroups?: ReactElement[];
   rightElGroups?: ReactElement[];
   principal?: RespUser | null;
-  manifestPath: string;
   titleText?: string;
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
@@ -64,6 +61,11 @@ interface IOwnProps {
   isJourneyCTASet?: boolean;
   lastAnnHasCTA?: boolean;
   screenDiagnostics?: ScreenDiagnostics[];
+  tourOpts?: ITourDataOpts | null;
+  onSiteDataChange?: (site: SiteData) => void;
+  onOptsDataChange?: JourneyOrOptsDataChange;
+  setShowPaymentModal?: (show: boolean) => void;
+  subs?: P_RespSubscription | null;
 }
 
 export type HeaderProps = IOwnProps;
@@ -119,6 +121,7 @@ function Header(props: IOwnProps): JSX.Element {
   };
 
   const showModal = (): void => {
+    amplitudeShareModalOpen('editor');
     setIsModalVisible(true);
   };
 
@@ -134,7 +137,10 @@ function Header(props: IOwnProps): JSX.Element {
             {props.shouldShowFullLogo ? (
               <Tags.ConLogoImg src={FableLogo} alt="Fable logo" />
             ) : (
-              <Link onClick={() => props.onLogoClicked && props.onLogoClicked()} to={props.navigateToWhenLogoIsClicked!}>
+              <Link
+                onClick={() => props.onLogoClicked && props.onLogoClicked()}
+                to={props.navigateToWhenLogoIsClicked!}
+              >
                 <Tags.ConLogoImg
                   id="fable-logo-screen-editor"
                   src={FableQuill}
@@ -194,6 +200,7 @@ function Header(props: IOwnProps): JSX.Element {
             ))}
           </Tags.MenuItem>
           )}
+
           {props.tour && (
           <div style={{
             display: 'flex',
@@ -229,7 +236,7 @@ function Header(props: IOwnProps): JSX.Element {
                     <AntButton
                       id="step-1"
                       size="small"
-                      className="sec-btn"
+                      className="sec-btn typ-btn"
                       type="default"
                       icon={<CaretRightOutlined
                         style={{ color: 'white' }}
@@ -239,7 +246,9 @@ function Header(props: IOwnProps): JSX.Element {
                         height: '30px',
                         borderRadius: '16px',
                         backgroundColor: '#160245',
-                        color: 'white'
+                        color: 'white',
+                        fontSize: '1rem',
+                        fontWeight: 500
                       }}
                       onClick={(e) => {
                         import('@fable/common/dist/amplitude').then((amp) => {
@@ -249,7 +258,7 @@ function Header(props: IOwnProps): JSX.Element {
                         }).catch((err) => {
                           console.log('error in amplitude event', err);
                         });
-                        window.open(`/pp/demo/${props.tour?.rid}`)?.focus();
+                        window.open(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}`)?.focus();
                       }}
                     >
                       Preview
@@ -360,7 +369,10 @@ function Header(props: IOwnProps): JSX.Element {
                 publishTour={props.publishTour}
                 tour={props.tour}
                 size="medium"
-                openShareModal={() => setIsModalVisible(true)}
+                openShareModal={() => {
+                  amplitudeShareModalOpen('editor');
+                  setIsModalVisible(true);
+                }}
               />
             </div>
             )}
@@ -380,8 +392,12 @@ function Header(props: IOwnProps): JSX.Element {
               open={showUserGuidePopover}
               onOpenChange={visible => setShowUserGuidePopover(visible)}
               trigger="click"
+              placement="topRight"
               content={(
-                <div style={{ width: '30rem' }}>
+                <div style={{ width: '25rem' }}>
+                  <div className="typ-h2" style={{ marginBottom: '1rem' }}>
+                    Learn how to use Fable
+                  </div>
                   {props.userGuidesToShow?.length && props.tour && (
                     <div onClick={() => {
                       setShowUserGuidePopover(false);
@@ -391,22 +407,22 @@ function Header(props: IOwnProps): JSX.Element {
                       <UserGuideListInPopover tour={props.tour} userGuidesToShow={props.userGuidesToShow} />
                     </div>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'baseline' }}>
-                    <a
-                      href="https://help.sharefable.com"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Help Center <LinkOutlined />
-                    </a>
-                    <a
-                      href="https://www.sharefable.com/contact-support"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Contact Us <LinkOutlined />
-                    </a>
-                  </div>
+                  <Tags.HelpCenterLink
+                    className="typ-h2"
+                    href="https://help.sharefable.com"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <LinkOutlined /> Get help from our help center
+                  </Tags.HelpCenterLink>
+                  <Tags.HelpCenterLink
+                    className="typ-h2"
+                    href="https://www.sharefable.com/contact-support"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <LinkOutlined /> Contact us
+                  </Tags.HelpCenterLink>
                 </div>
               )}
             >
@@ -480,14 +496,20 @@ function Header(props: IOwnProps): JSX.Element {
           publishTour={props.publishTour}
           tour={props.tour!}
           height="100%"
-          manifestPath={props.manifestPath}
           width="100%"
-          relativeUrl={`/p/demo/${props.tour?.rid}`}
+          relativeUrl={`/demo/${props.tour?.rid}`}
           isModalVisible={isModalVisible}
           closeModal={closeModal}
-          openShareModal={() => setIsModalVisible(true)}
-          copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${props.tour?.rid}`)}
-          embedClickedFrom="header"
+          openShareModal={() => {
+            setIsModalVisible(true);
+            amplitudeShareModalOpen('editor');
+          }}
+          copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
+          tourOpts={props.tourOpts || null}
+          onSiteDataChange={props.onSiteDataChange}
+          onOptsDataChange={props.onOptsDataChange}
+          setShowPaymentModal={props.setShowPaymentModal}
+          subs={props.subs}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

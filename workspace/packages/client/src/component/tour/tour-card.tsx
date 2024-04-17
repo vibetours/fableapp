@@ -20,19 +20,26 @@ import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from '../publish-preview/share-modal';
 import * as Tags from './styled';
 import FableLogo from '../../assets/fable-rounded-icon.svg';
+import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
+import { SiteData } from '../../types';
+import { amplitudeShareModalOpen } from '../../amplitude';
 
 interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
-  manifestPath: string;
+  updateSiteData: (rid: string, site: SiteData)=> void;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, manifestPath
+  tour, handleShowModal, handleDelete, publishTour, updateSiteData
 }: Props): JSX.Element {
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
+
+  const onSiteDataChange = (site: SiteData): void => {
+    updateSiteData(tour.rid, site);
+  };
 
   return (
     <>
@@ -77,7 +84,7 @@ export default function TourCard({
                   preview_clicked_from: 'tours',
                   tour_url: createIframeSrc(`/demo/${tour.rid}`)
                 }, [CmnEvtProp.EMAIL]);
-                window.open(`/pp/demo/${tour.rid}`)?.focus();
+                window.open(`/${PREVIEW_BASE_URL}/demo/${tour.rid}`)?.focus();
               }}
             />
           </Tooltip>
@@ -107,7 +114,10 @@ export default function TourCard({
               }}
               >
                 <GTags.PopoverMenuItem
-                  onMouseDown={e => setIsShareModalVisible(true)}
+                  onMouseDown={e => {
+                    setIsShareModalVisible(true);
+                    amplitudeShareModalOpen('tours');
+                  }}
                 >
                   <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Demo
                 </GTags.PopoverMenuItem>
@@ -155,14 +165,17 @@ export default function TourCard({
         height="100%"
         width="100%"
         isModalVisible={isShareModalVisible}
-        relativeUrl={`/p/demo/${tour?.rid}`}
+        relativeUrl={`/demo/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}
-        embedClickedFrom="tours"
-        manifestPath={manifestPath}
         publishTour={publishTour}
-        openShareModal={() => setIsShareModalVisible(true)}
+        openShareModal={() => {
+          setIsShareModalVisible(true);
+          amplitudeShareModalOpen('tours');
+        }}
         tour={tour}
-        copyUrl={getIframeShareCode('100%', '100%', `/p/demo/${tour?.rid}`)}
+        copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${tour?.rid}`)}
+        tourOpts={null}
+        onSiteDataChange={onSiteDataChange}
       />
     </>
   );

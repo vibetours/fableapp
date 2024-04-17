@@ -15,6 +15,7 @@ import {
   deleteTour,
   publishTour,
   // createDefaultTour,
+  updateSiteData,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -24,7 +25,7 @@ import SkipLink from '../../component/skip-link';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { Ops } from '../../types';
+import { Ops, SiteData } from '../../types';
 import * as Tags from './styled';
 import OnboardingDemos from '../../component/tour/onboarding-demos';
 import Button from '../../component/button';
@@ -49,6 +50,7 @@ interface IDispatchProps {
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>,
+  updateSiteData: (rid: string, site: SiteData)=> void;
 }
 
 export enum CtxAction {
@@ -67,6 +69,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   ),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
+  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site)),
 });
 
 interface IAppStateProps {
@@ -76,8 +79,6 @@ interface IAppStateProps {
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
   opsInProgress: Ops;
-  pubTourAssetPath: string;
-  manifestFileName: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -87,8 +88,6 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
-  pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
-  manifestFileName: state.default.commonConfig?.manifestFileName || '',
 });
 
 interface IOwnProps {
@@ -304,7 +303,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
-            manifestPath=""
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
@@ -351,7 +349,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                               Create a demo
                             </Button>
                           </Tags.TopPanel>
-                          <Tags.BottomPanel style={{ overflow: 'auto' }}>
+                          <GTags.BottomPanel style={{ overflow: 'auto' }}>
                             {this.props.tours.map((tour) => (
                               <TourCard
                                 publishTour={this.props.publishTour}
@@ -359,10 +357,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 tour={tour}
                                 handleShowModal={this.handleShowModal}
                                 handleDelete={this.handleDelete}
-                                manifestPath={`${this.props.pubTourAssetPath}${tour.rid}/${this.props.manifestFileName}`}
+                                updateSiteData={this.props.updateSiteData}
                               />
                             ))}
-                          </Tags.BottomPanel>
+                          </GTags.BottomPanel>
                           <SelectorComponent userGuides={userGuides} />
                         </div>
                         <div>

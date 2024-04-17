@@ -1,5 +1,4 @@
 import React, { RefObject } from 'react';
-import { Select } from 'antd';
 import type { SelectProps } from 'antd';
 
 import * as Tags from './styled';

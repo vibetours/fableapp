@@ -10,12 +10,12 @@ export default function FileInput({ innerRef, label, style, ...rest }: Props): J
   const [selectedFileName, setSelectedFileName] = useState<string>('No file chosen');
 
   return (
-    <Tags.InputContainer htmlFor={rest.id} style={style}>
+    <Tags.InputContainer htmlFor={rest.id} style={style} className="typ-ip">
       {label || 'Click to upload:'} {selectedFileName}
 
       <input
         ref={innerRef}
-        style={{ opacity: 0 }}
+        style={{ opacity: 0, display: 'none' }}
         type="file"
         {...rest}
         onChange={(e) => {

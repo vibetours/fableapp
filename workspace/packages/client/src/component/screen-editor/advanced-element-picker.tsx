@@ -136,7 +136,7 @@ const AEPCon = styled.div`
   width: 100%;
   display: flex;
   height: 100%;
-  background: #e9e9e9;
+  background: #616161;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -162,17 +162,28 @@ const AEPCon = styled.div`
     display: inline-flex;
     align-items: center;
     padding: 0 0.35rem 0 0.35rem;
-    color: #757575;
+    color: #fff;
     cursor: pointer;
     white-space: nowrap;
+    border-radius: 4px;
+    margin: 0 2px;
+    position: relative;
+
+    &:not(:nth-last-child(-n+2)):after {
+      content: '●';
+      opacity: 0.85;
+      font-size: 8px;
+      right: -4px;
+      position: absolute;
+    }
 
     &:hover {
-      background: #bdbdbd54;
+      background: #9e96fa;
     }
 
     &.sel {
-      background: #bdbdbd54;
-      color: #616161;
+      background: #7567FF;
+      color: #fff;
       font-weight: 500;
     }
     &.invalid {

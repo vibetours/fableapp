@@ -8,7 +8,7 @@ import {
   ScreenData,
   ScreenDiagnostics,
   TourDataWoScheme,
-  TourScreenEntity
+  TourScreenEntity,
 } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -31,8 +31,10 @@ import {
   renameScreen,
   saveEditChunks,
   saveTourData,
+  showPaymentModal,
   startAutosaving,
   updateScreen,
+  updateSiteData,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
@@ -40,7 +42,7 @@ import {
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
 import Canvas from '../../component/tour-canvas';
-import { mergeEdits, mergeTourData, P_RespScreen, P_RespTour } from '../../entity-processor';
+import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
@@ -56,6 +58,7 @@ import {
   ScreenPickerData,
   Timeline,
   TourMainValidity,
+  SiteData,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -96,6 +99,8 @@ interface IDispatchProps {
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
   startAutoSaving: () => void;
   updateScreen: UpdateScreenFn;
+  setShowPaymentModal: (show: boolean) => void;
+  updateSiteData: (rid: string, site: SiteData)=> void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -117,7 +122,9 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   renameScreen: (screen: P_RespScreen, newVal: string) => dispatch(renameScreen(screen, newVal)),
   clearRelayScreenAndAnnAdd: () => dispatch(clearRelayScreenAndAnnAdd()),
   startAutoSaving: () => dispatch(startAutosaving()),
-  updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue))
+  updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue)),
+  setShowPaymentModal: (show: boolean) => dispatch(showPaymentModal(show)),
+  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site))
 });
 
 const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline => {
@@ -177,6 +184,7 @@ const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline
 };
 
 interface IAppStateProps {
+  subs: P_RespSubscription | null;
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
   screenData: ScreenData | null;
@@ -265,6 +273,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   }
 
   return {
+    subs: state.default.subs,
     tour: state.default.currentTour,
     isTourLoaded: state.default.tourLoaded,
     screen: state.default.currentScreen,
@@ -621,6 +630,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         >
           <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Canvas
+              setShowPaymentModal={this.props.setShowPaymentModal}
+              subs={this.props.subs}
               publishTour={this.props.publishTour}
               applyAnnGrpIdMutations={
                 (mutations: AnnUpdateType, tx: Tx) => this.applyAnnGrpIdMutations(mutations, tx)
@@ -659,10 +670,9 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 this.props.match.params.screenId && !this.props.match.params.annotationId
               )}
               updateScreen={this.props.updateScreen}
-              onTourJourneyChange={this.onTourJourneyChange}
+              onTourJourneyChange={this.onOptsOrJourneyDataChange}
               headerProps={{
                 navigateToWhenLogoIsClicked: '/demos',
-                manifestPath: `${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`,
                 titleElOnLeft: this.getHeaderTxtEl(),
                 leftElGroups: this.getHeaderLeftGroup(),
                 principal: this.props.principal,
@@ -674,9 +684,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isAutoSaving: this.props.isAutoSaving,
                 tour: this.props.tour,
                 isJourneyCTASet: this.state.isJourneyCTASet,
-                lastAnnHasCTA: this.state.lastAnnHasCTA
+                lastAnnHasCTA: this.state.lastAnnHasCTA,
+                onSiteDataChange: this.onSiteDataChange,
+                onOptsDataChange: this.onOptsOrJourneyDataChange
               }}
               journey={this.props.journey!}
+              manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}
             />
 
           </div>
@@ -897,13 +910,19 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.saveEditChunks(forScreen, mergedEditChunks!);
   };
 
-  private onTourJourneyChange = (newJourney: JourneyData, tx?: Tx): void => {
+  private onOptsOrJourneyDataChange = (
+    newOpts: ITourDataOpts | null,
+    newJourney: JourneyData | null,
+    tx?: Tx
+  ): void => {
     this.props.startAutoSaving();
 
-    const journey = { ...newJourney, flows: newJourney.flows.filter((flow) => !isBlankString(flow.main)) };
+    const journey = newJourney
+      ? { ...newJourney, flows: newJourney.flows.filter((flow) => !isBlankString(flow.main)) } : this.props.journey!;
+
     const partialTourData: Partial<TourDataWoScheme> = {
       journey,
-      opts: this.props.tourOpts,
+      opts: newOpts || this.props.tourOpts,
       entities: {}
     };
 
@@ -918,7 +937,12 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
       },
       tx
     );
+
     if (!tx) this.props.saveTourData(this.props.tour!, mergedData!);
+  };
+
+  private onSiteDataChange = (site: SiteData): void => {
+    this.props.updateSiteData(this.props.tour!.rid, site);
   };
 }
 

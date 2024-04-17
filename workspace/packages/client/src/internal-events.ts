@@ -19,6 +19,7 @@ import { P_RespTour } from './entity-processor';
 import { getUUID, logEvent, logEventDirect } from './analytics/utils';
 import { CBCtaClickEvent, CBEventBase, CBEvents, logEventToCblt } from './analytics/handlers';
 import { FableLeadContactProps, getGlobalData, saveGlobalUser } from './global';
+import { IFRAME_BASE_URL } from './constants';
 
 type Payload_IE_AnnotationNav = AnnotationBtnClickedPayload;
 type Payload_IE_JourneySwitch = Payload_JourneySwitch;
@@ -103,27 +104,29 @@ export function initInternalEvents() : void {
     const ctaClickedPayload = payload as CtaClickedInternal;
     const demo = getGlobalData('demo') as P_RespTour;
     const lead = ((window as FWin).__fable_global_user__ || {}) as FableLeadContactProps;
-    if (!lead.email) return;
+    if (demo) {
+      logEventDirect(AnalyticsEventsDirect.CTA_CLICKED, {
+        ctaFrom: ctaClickedPayload.ctaFrom,
+        btnId: ctaClickedPayload.btnId,
+        url: ctaClickedPayload.url,
+        tourId: demo.id
+      });
 
-    logEventDirect(AnalyticsEventsDirect.CTA_CLICKED, {
-      ctaFrom: ctaClickedPayload.ctaFrom,
-      btnId: ctaClickedPayload.btnId,
-      url: ctaClickedPayload.url,
-      tourId: demo.id
-    });
+      if (!lead.email) return;
 
-    logEventToCblt<CBCtaClickEvent>({
-      event: CBEvents.CTA_CLICKED,
-      payload: {
-        cta_url: ctaClickedPayload.url,
-        cta_txt: ctaClickedPayload.btnTxt,
-        our_event_id: getUUID(),
-        demo_url: `${process.env.REACT_APP_CLIENT_ENDPOINT}/p/demo/${demo.rid}`,
-        demo_name: demo.displayName,
-        ti: demo.id,
-        email: lead.email
-      }
-    }, demo.rid);
+      logEventToCblt<CBCtaClickEvent>({
+        event: CBEvents.CTA_CLICKED,
+        payload: {
+          cta_url: ctaClickedPayload.url,
+          cta_txt: ctaClickedPayload.btnTxt,
+          our_event_id: getUUID(),
+          demo_url: `${process.env.REACT_APP_CLIENT_ENDPOINT}/${IFRAME_BASE_URL}/demo/${demo.rid}`,
+          demo_name: demo.displayName,
+          ti: demo.id,
+          email: lead.email
+        }
+      }, demo.rid);
+    }
   });
 
   registerListenerForInternalEvent(InternalEvents.JourneySwitch, (payload: Payload_IE_All) => {

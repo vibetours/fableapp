@@ -44,27 +44,6 @@ export const LoadingToast = styled.div`
     bottom: 7.75rem;
 `;
 
-export const ModalContainer = styled.div`
-    margin: 2.5rem 1rem 1.5rem 1rem;
-`;
-
-export const PrimaryButton = styled.button<{ main?: boolean}>`
-    background: #7567FF;
-    color: white;
-    border: 1px solid #7567FF;
-    display: block;
-    width: 80%;
-    cursor: pointer;
-    padding: 1rem 3rem;
-    font-weight: 600;
-    border-radius: 2.5rem;
-    font-size: 1.2rem;
-    
-    span {
-        margin-left: 0.5rem;
-    }
-`;
-
 export const SecondaryButton = styled.button<{ main?: boolean }>`
     background: #FFFFFF;
     border: 1px solid #16023E;
@@ -103,15 +82,6 @@ export const DangerButton = styled.button`
     }
   }
 
-`;
-
-export const InputLabel = styled.label`
-    font-weight: 700;
-    font-size: 1rem;
-    line-height: 21px;
-    color: #16023E;
-    margin-bottom: 1.5rem;
-    display: inline-block;
 `;
 
 export const NameTourInputContainer = styled.div`

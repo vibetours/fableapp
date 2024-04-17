@@ -32,8 +32,8 @@ export default function ImageMaskUploadModal({
       style={{ position: 'relative', height: '10px' }}
       footer={null}
     >
-      <Tags.ModalContainer>
-        <h2>Upload Image Mask</h2>
+      <div>
+        <h2 className="typ-h2">Upload Image Mask</h2>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -81,7 +81,7 @@ export default function ImageMaskUploadModal({
             {error}
           </Tags.ErrorMsg>
         </form>
-      </Tags.ModalContainer>
+      </div>
     </GTags.BorderedModal>
   );
 }

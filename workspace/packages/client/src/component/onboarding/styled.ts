@@ -9,6 +9,7 @@ export const RootLayoutCon = styled.div<{equalSpaced: boolean, abs: boolean, ful
   justify-content: ${props => (props.abs ? 'unset' : 'center')};
   height: 100%;
   overflow-y: ${props => (props.fullheight ? 'auto' : 'hidden')};
+  scrollbar-color: var(--fable-scrollbar-color);
 `;
 
 export const ContentWrapper = styled.div`

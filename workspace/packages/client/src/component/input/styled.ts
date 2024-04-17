@@ -7,7 +7,7 @@ export const InputContainer = styled.div<{ size: 'large' | 'medium', inline?: bo
   input {
     height: ${props => (props.size === 'large' ? 48 : 42)}px;
     width: 100%;
-    border: 1px solid #D9D9D9;
+    border: 1px dashed #BDBDBD;
     border-radius: 8px;
     box-sizing: border-box;
     padding: 16px;
@@ -25,19 +25,18 @@ export const InputContainer = styled.div<{ size: 'large' | 'medium', inline?: bo
     align-items: center;
     pointer-events: none;
   }
-  
-  input,
-  .label .text {
-    font-size: 16px;
-  }
-  
+
   input:focus {
     outline: none;
-    border: 2px solid #7567ff;
+    border: 1px solid #747474;
   }
 
   input:active {
-    border: 2px solid #7567ff;
+    border: 1px solid #747474;
+  }
+
+  input:hover {
+    border: 1px solid #747474;
   }
   
   input:focus+.label .text {

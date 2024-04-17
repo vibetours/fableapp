@@ -4,7 +4,8 @@ import {
   ITourDataOpts,
   ScreenData,
   SerNode,
-  JourneyFlow
+  JourneyFlow,
+  JourneyData
 } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
@@ -47,6 +48,7 @@ import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/appl
 import { NavToAnnByRefIdFn } from './types';
 
 export interface IOwnProps {
+  journey: JourneyData | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
@@ -58,7 +60,7 @@ export interface IOwnProps {
   tourDataOpts: ITourDataOpts;
   allEdits: EditItem[];
   toAnnotationId: string;
-  hidden?: boolean;
+  hidden: boolean;
   stashAnnIfAny: boolean;
   onFrameAssetLoad: FrameAssetLoadFn;
   allAnnotationsForTour: AnnotationPerScreen[];
@@ -737,6 +739,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       refs.push(this.props.innerRef);
     }
     return <Preview
+      journey={this.props.journey!}
+      showWatermark={this.props.tourDataOpts.showFableWatermark}
       allEdits={this.props.allEdits}
       key={this.props.screen.rid}
       hidden={this.props.hidden}

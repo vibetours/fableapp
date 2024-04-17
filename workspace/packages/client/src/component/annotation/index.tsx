@@ -1,6 +1,8 @@
 import {
   AnnotationButtonStyle,
+  AnnotationPositions,
   CoverAnnotationPositions,
+  CustomAnnotationPosition,
   IAnnotationButton,
   IAnnotationButtonType,
   IAnnotationConfig,
@@ -34,6 +36,29 @@ import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 import { FableLeadContactProps, getGlobalData } from '../../global';
+import AnnotationWatermark from '../watermark/annotation-watermark';
+
+export type Positions = AnnotationPositions
+  | VideoAnnotationPositions
+  | CustomAnnotationPosition
+  | CoverAnnotationPositions;
+
+const getBorderRadius = (
+  positioning: Positions,
+  isCoverAnnotation: boolean,
+  showWatermark: boolean,
+  arrowDir: AnimEntryDir,
+  borderRadius: number
+): string => {
+  if (!showWatermark) return `${borderRadius}px`;
+
+  if (arrowDir === 't') {
+    if (isCoverAnnotation || positioning === 'center') return `${borderRadius}px ${borderRadius}px 0px 0px`;
+    return `0px 0px ${borderRadius}px ${borderRadius}px`;
+  }
+
+  return `${borderRadius}px ${borderRadius}px 0px 0px`;
+};
 
 const AnnotationVideo = lazy(() => import('./video-player'));
 interface NavigateToAnnMessage<T> extends MessageEvent{
@@ -151,7 +176,13 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
           fontSize: '18px',
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
-          borderRadius: this.props.opts.borderRadius,
+          borderRadius: getBorderRadius(
+            this.props.config.positioning,
+            isCoverAnn(this.props.config),
+            this.props.opts.showFableWatermark,
+            this.props.dir,
+            this.props.opts.borderRadius
+          ),
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
         id={this.props.isProbing ? '' : 'fable-ann-card-rendered'}
@@ -862,6 +893,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 ? 'none' : `translate(${tx}px, ${ty}px)`,
             }}
           >
+            {/* this is arrow head */}
             {
             this.shouldShowArrowHead() && !isUltrawideBox && (
               <AnnotationIndicator
@@ -884,10 +916,18 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
           }
+            {/* this is video annotation */}
             <Suspense fallback={null}>
               {
                 isVideoAnnotation && (
                 <AnnotationVideo
+                  borderRadius={getBorderRadius(
+                    this.props.annotationDisplayConfig.config.positioning,
+                    isCoverAnnotation,
+                    this.props.annotationDisplayConfig.opts.showFableWatermark,
+                    dir,
+                    this.props.annotationDisplayConfig.opts.borderRadius
+                  )}
                   conf={this.props.annotationDisplayConfig}
                   playMode={this.props.playMode}
                   annFollowPositions={{
@@ -903,6 +943,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 )
               }
             </Suspense>
+            {/* this is normal annotation content */}
             {
             !isVideoAnnotation && (
               <AnnotationContent
@@ -919,8 +960,28 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               />
             )
           }
+
+            {!displayConfig.prerender
+            && this.props.annotationDisplayConfig.opts.showFableWatermark
+            && (
+              <AnnotationWatermark
+                borderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+                isVideoAnn={isVideoAnn(config)}
+                bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor}
+                fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor}
+                top={t}
+                left={l}
+                height={h}
+                width={w}
+                arrowDir={dir}
+                isCoverAnn={isCoverAnn(config)}
+                positioning={this.props.annotationDisplayConfig.config.positioning}
+              />
+            )}
           </div>
         )}
+
+        {/* this is focus bubble */}
         {
           config.selectionShape === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && <FocusBubble
             diameter={this.SELECTION_BUBBLE_DIAMETER}
@@ -931,6 +992,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             selColor={config.annotationSelectionColor}
           />
         }
+
+        {/* this is selection effect */}
         {
           config.selectionEffect === 'blinking'
           && config.selectionShape !== 'pulse'

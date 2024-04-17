@@ -23,6 +23,7 @@ export default function Input({ label, sz = 'large', id, innerRef, icon, inline,
         {...rest}
         ref={innerRef}
         style={{ paddingLeft: (icon ? '2.5rem' : '1rem') }}
+        className="typ-ip"
       />
       <label className="label" htmlFor={id} style={{ paddingLeft: (icon ? '1.5rem' : '0rem') }}>
         <div className="text">{label}</div>

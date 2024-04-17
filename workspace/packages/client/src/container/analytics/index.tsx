@@ -109,7 +109,7 @@ function getConversionPercentage(
     if (buttons && buttons.length !== 0) {
       let sum = 0;
       for (let i = 0; i < openLinkBtnId.length; i++) {
-        const button = buttons.find(b => b !== undefined && b.btnId === openLinkBtnId[i]);
+        const button = buttons.find(b => b !== undefined && (b.btnId === openLinkBtnId[i] || b.btnId === '$journey_cta' || b.btnId === '$header_cta'));
         if (button) {
           sum += button.totalClicks;
         }
@@ -890,7 +890,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               </div>
             }
             leftElGroups={[]}
-            manifestPath=""
             principal={this.props.principal}
           />
         </GTags.HeaderCon>

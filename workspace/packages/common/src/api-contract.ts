@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-04-11 08:52:05.
+// Generated using typescript-generator version 2.35.1025 on 2024-04-12 10:13:19.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -247,6 +247,7 @@ export interface ReqThumbnailCreation {
 
 export interface ReqTourPropUpdate {
     tourRid: string;
+    site?: { [index: string]: any };
     inProgress?: boolean;
 }
 
@@ -386,6 +387,7 @@ export interface RespTour extends ResponseBase {
     pubLoaderFileName: string;
     pubEditFileName: string;
     pubTourEntityFileName: string;
+    site: { [index: string]: any };
 }
 
 export interface RespTourAnnViews {

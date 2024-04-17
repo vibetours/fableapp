@@ -8,5 +8,6 @@
     "javascriptreact",
     "typescript",
     "typescriptreact"
-  ]
+  ],
+  "svg.preview.background": "dark-transparent"
 }

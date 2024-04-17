@@ -2,9 +2,9 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
-import { Tooltip, Button as AntButton } from 'antd';
-import { ArrowLeftOutlined, EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
-import { clearCurrentTourSelection, loadTourAndData, publishTour } from '../../action/creator';
+import { Button as AntButton } from 'antd';
+import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
+import { clearCurrentTourSelection, loadTourAndData, publishTour, updateSiteData } from '../../action/creator';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
@@ -14,6 +14,8 @@ import BackgroundGradient from '../../component/publish-preview/bg-gradient';
 import Header from '../../component/header';
 import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
+import { IFRAME_BASE_URL } from '../../constants';
+import { SiteData } from '../../types';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -21,28 +23,26 @@ interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   publishTour: (tour: P_RespTour) => Promise<boolean>,
   clearCurrentTour: () => void;
+  updateSiteData: (rid: string, site: SiteData)=> void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true, true)),
   publishTour: (tour) => dispatch(publishTour(tour)),
-  clearCurrentTour: () => dispatch(clearCurrentTourSelection())
+  clearCurrentTour: () => dispatch(clearCurrentTourSelection()),
+  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site))
 });
 
 interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   isTourLoaded: boolean;
-  manifestPath: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
-  manifestPath: (state.default.commonConfig && state.default.currentTour)
-    ? `${state.default.commonConfig.pubTourAssetPath + state.default.currentTour.rid}/${state.default.commonConfig.manifestFileName}`
-    : '',
 });
 
 interface IOwnProps {
@@ -106,6 +106,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ showReplayOverlay: false, previewIframeKey: Math.random() });
   };
 
+  private onSiteDataChange = (site: SiteData): void => {
+    this.props.updateSiteData(this.props.tour!.rid, site);
+  };
+
   render(): JSX.Element {
     const displaySize = this.props.searchParams.get('s') || '0';
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
@@ -117,7 +121,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
           <Header
             userGuidesToShow={['Sharing or embedding your interactive demo']}
             showOnboardingGuides
-            manifestPath={this.props.manifestPath}
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
@@ -142,7 +145,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             principal={this.props.principal}
             tour={this.props.tour}
             publishOptions={<PublishOptions
-              manifestPath={this.props.manifestPath}
               showShareModal={this.state.showShareModal}
               setShowShareModal={(showShareModal: boolean) => this.setState({ showShareModal })}
               handleReplayClick={this.handleReplayClick}
@@ -150,7 +152,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               tour={this.props.tour}
               selectedDisplaySize={+displaySize}
               setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
+              onSiteDataChange={this.onSiteDataChange}
             />}
+            tourOpts={null}
+            onSiteDataChange={this.onSiteDataChange}
           />
         </Tags.HeaderCon>
 
@@ -191,7 +196,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={`${baseURL}/p/demo/${this.props.tour?.rid}?staging=true`}
+              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true`}
               title="hello"
             />
           )}

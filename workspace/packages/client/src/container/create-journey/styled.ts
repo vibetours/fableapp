@@ -1,4 +1,3 @@
-import { Select, Button, ColorPicker as AntColorPicker, Checkbox } from 'antd';
 import styled from 'styled-components';
 
 export const CreateJourneyCon = styled.div`
@@ -29,11 +28,11 @@ export const EditorCon = styled.div`
   }
 
   ::-webkit-scrollbar-track {
-    background-color: #f5f5f5;
+    background-color: var(--fable-scrollbar-track);
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: #888;
+    background-color: var(--fable-scrollbar-thumb);
     border-radius: 4px;
   }
 
@@ -42,9 +41,7 @@ export const EditorCon = styled.div`
   }
 
   .hlpr {
-    font-size: 11px;
-    font-weight: 400;
-    padding-left: 1.5rem;
+    padding-left: 2.1rem;
     color: gray;
   }
 `;
@@ -68,20 +65,6 @@ export const FieldInputCon = styled.div`
     margin-top: 8px;
 `;
 
-export const FieldName = styled.div`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    p {
-        color: #212121;
-        font-weight: 600;
-        font-size: 1.1rem;
-        padding: 0;
-        margin: 0;
-    }
-`;
-
 export const JourneyInnerCon = styled.div`
     width: 100%;
 `;
@@ -98,80 +81,11 @@ export const FlowCon = styled.div`
     flex-direction: column;
 `;
 
-export interface OutlineButtonProp {
-  color?: string
-}
-
-export const OutlineButton = styled(Button)`
-    padding-block: 0.75rem;
-    height: fit-content;
-    border-radius: 8px;
-    color: ${(props: OutlineButtonProp) => (props.color ? props.color : '#7567FF')};
-    border-color: ${(props: OutlineButtonProp) => (props.color ? props.color : '#7567FF')};
-    width: 100%;
-
-    &:hover {
-      color: ${(props: OutlineButtonProp) => (props.color ? `${props.color} !important` : '#7567FF !important')};
-      border-color: ${(props: OutlineButtonProp) => (props.color
-    ? `${props.color} !important` : '#7567FF !important')};  
-    }
-`;
-
-export const HeaderTitle = styled.p`
-    font-size: 1.25rem;
-    color: #222;
-    font-weight: 700;
-    padding-left: 16px;
-    text-align: center;
-    padding: 0;
-    margin: 1rem 0 0 0;
-    color: #222;
-`;
-
-export const Error = styled.p`
-    font-size: 1rem;
-    text-align: center;
-    color: red;
-`;
-
-export const PosRelCon = styled.div`
-  position: relative;
-`;
-
-export const FileInputCon = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-`;
-
-export const FlowSelect = styled(Select)`
-  .ant-select-selector{
-    border: 1px solid #ddd !important;
-    border-radius: 8px !important;
-  }
-`;
-
-export const CTAStyleSelect = styled(Select)`
-  &:hover {
-    box-shadow: 0 0 0 1px #747474 !important;
-  } 
-`;
-
 export const CTAInputCon = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin: 1rem 0;
-`;
-
-export const HideModuleCheckbox = styled(Checkbox)`
-  &.ant-checkbox-wrapper {
-    flex-direction: row-reverse;
-  }
-
-  & span{
-    padding-inline-start: 0px;
-  }
 `;
 
 export const Header = styled.div`
@@ -211,37 +125,4 @@ export const JourneyConfigCon = styled.div`
   padding: 0 16px;
   border-radius: 8px;
   border: 1px solid var(--Outline-1, #DDD);
-`;
-
-export const CTAText = styled.p`
-  color: #16023E;
-  font-family: IBM Plex Sans;
-  font-size: 16px;
-  font-style: normal;
-  font-weight: 600;
-  line-height: normal;
-`;
-
-export const ColorPicker = styled(AntColorPicker)`
-  border: 1px solid #E8E8E8;
-  background: white;
-  min-width: 140px;
-  border-radius: 8px;
-  display: flex;
-  justify-content: flex-start;
-  height: 100%;
-  font-weight: 400;
-  height: 44px;
-  position: relative;
-  .ant-color-picker-color-block{ 
-    border-radius: 50% !important;
-    position: absolute;
-    right: 12px;
-  }
-  .ant-color-picker-color-block-inner,
-  .ant-color-picker-color-block {
-    width: 20px !important;
-    height: 20px !important;
-  }
-
 `;

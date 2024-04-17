@@ -53,7 +53,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
       footer={null}
       zIndex={9999}
     >
-      <Tags.ModalContainer>
+      <div>
         <h2>Upload Image Screen</h2>
         <form onSubmit={handleSubmit} id="screen-picker-form">
           <Tags.FlexColCon>
@@ -87,7 +87,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
             {error}
           </Tags.ErrorMsg>
         </form>
-      </Tags.ModalContainer>
+      </div>
     </GTags.BorderedModal>
   );
 }

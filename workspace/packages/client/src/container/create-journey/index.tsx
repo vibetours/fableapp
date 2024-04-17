@@ -2,8 +2,8 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
   JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
-import { Input as CTAInput, Button as AntdButton, Select, Tooltip, Divider, Checkbox } from 'antd';
-import { DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
+import { Button as AntdButton, Select, Tooltip, Divider } from 'antd';
+import { DeleteFilled, DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { getSampleJourneyData } from '@fable/common/dist/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { withRouter, WithRouterProps } from '../../router-hoc';
@@ -12,11 +12,12 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import CloseIcon from '../../assets/tour/close.svg';
 import Input from '../../component/input';
-import { IAnnotationConfigWithScreen } from '../../types';
+import { IAnnotationConfigWithScreen, JourneyOrOptsDataChange } from '../../types';
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
 import Focus from '../../assets/icons/focus.svg';
 import { getValidUrl } from '../../utils';
+import Button from '../../component/button';
 
 interface IDispatchProps {
 }
@@ -34,7 +35,7 @@ interface IOwnProps {
     closeEditor: () => void;
     firstAnnotations: IAnnotationConfigWithScreen[];
     getAnnInView: (refId: string) => void;
-    onTourJourneyChange: (newJourney: JourneyData, tx?: Tx)=> void;
+    onTourJourneyChange: JourneyOrOptsDataChange;
     tourOpts: ITourDataOpts;
     journey: JourneyData;
 }
@@ -68,7 +69,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevState.journeyData !== this.state.journeyData) {
-      this.props.onTourJourneyChange(this.state.journeyData);
+      this.props.onTourJourneyChange(null, this.state.journeyData);
     }
   }
 
@@ -137,8 +138,8 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
           !(this.state.journeyData.flows.length !== 0 || this.state.journeyData.title.length !== 0) ? (
             <Tags.NoJourneyCon>
               <img src={CreateJourneyEmptyIcon} alt="no module created" />
-              <div>
-                <p style={{ margin: 0, fontSize: '20px', fontWeight: 700, textAlign: 'center' }}>You don't have any modules yet.</p>
+              <div className="typ-reg">
+                <p style={{ margin: 0, textAlign: 'center', marginBottom: '2rem' }} className="typ-h1">You don't have any modules yet.</p>
                 <p style={{ margin: '10px 0', textAlign: 'center' }}>
                   Modules help you to split your demo in multiple logical small demos instead of one large demo.
                 </p>
@@ -146,17 +147,14 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   Your buyer can choose which demo they want to see right from the UI.
                 </p>
               </div>
-              <AntdButton
-                type="primary"
-                size="large"
-                icon={<PlusOutlined />}
-                style={{
-                  backgroundColor: '#7567FF', borderRadius: '4px', width: '200px', fontSize: '14px'
-                }}
+              <Button
+                intent="primary"
                 onClick={this.addNewFlow}
+                icon={<PlusOutlined />}
+                iconPlacement="left"
               >
                 Create a module
-              </AntdButton>
+              </Button>
             </Tags.NoJourneyCon>
           ) : (
             <Tags.EditorCon>
@@ -255,7 +253,8 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                       defaultValue={flow.header2}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
                                     />
-                                    <Tags.FlowSelect
+                                    <GTags.FableSelect
+                                      bordered={false}
                                       size="large"
                                       defaultValue={flow.main || undefined}
                                       style={{ width: '100%', borderRadius: '8px' }}
@@ -280,16 +279,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                           <b>{ann.stepNumber}</b>: {ann.displayText}
                                         </Option>
                                       ))))}
-                                    </Tags.FlowSelect>
+                                    </GTags.FableSelect>
                                     <div>
-                                      <Checkbox
+                                      <GTags.OurCheckbox
                                         checked={flow.mandatory}
                                         onChange={(e) => {
                                           this.updateFlowAtIndex(idx, 'mandatory', e.target.checked);
                                         }}
                                       >Mandatory module
-                                      </Checkbox>
-                                      <div className="hlpr">
+                                      </GTags.OurCheckbox>
+                                      <div className="typ-sm hlpr">
                                         If a module is made <em>Mandatory</em>, user needs to finish this module before
                                         they switch to a different module.
                                         This is helpful when you have a <em>Lead Form</em> or an <em>introduction</em>.
@@ -306,10 +305,15 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                     )}
                   </Droppable>
                 </DragDropContext>
-                <Tags.CTAInputCon>
-                  <Tags.OutlineButton icon={<PlusOutlined />} onClick={this.addNewFlow}>
+                <Tags.CTAInputCon style={{ margin: '0.5rem' }}>
+                  <GTags.DashedBtn
+                    className="fullWidth typ-reg"
+                    icon={<PlusOutlined />}
+                    onClick={this.addNewFlow}
+                    type="text"
+                  >
                     Add another module
-                  </Tags.OutlineButton>
+                  </GTags.DashedBtn>
                 </Tags.CTAInputCon>
               </Tags.JourneyInnerCon>
               <Divider style={{ margin: '16px 0 32px 0' }} />
@@ -317,7 +321,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 {
                   this.state.journeyData.cta === undefined ? (
                     <Tags.CTAInputCon>
-                      <Tags.OutlineButton
+                      <GTags.DashedBtn
                         onClick={() => {
                           const newCta = {
                             size: AnnotationButtonSize.Medium,
@@ -326,14 +330,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                           };
                           this.setState((prevState) => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
                         }}
+                        className="fullWidth typ-reg"
+                        type="text"
                       >
                         Create CTA
-                      </Tags.OutlineButton>
+                      </GTags.DashedBtn>
                     </Tags.CTAInputCon>
                   ) : (
                     <Tags.JourneyInnerCon>
                       <Tags.CTAInputCon>
-                        <Tags.CTAText style={{ marginTop: 0 }}>Button settings</Tags.CTAText>
+                        <div className="typ-reg" style={{ marginTop: 0 }}>Button settings</div>
                         <GTags.CTABtn
                           style={{ width: '50%' }}
                           size={this.state.journeyData.cta.size}
@@ -344,15 +350,13 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         </GTags.CTABtn>
                       </Tags.CTAInputCon>
                       <Tags.CTAInputCon>
-                        <GTags.Txt style={{ fontWeight: 500 }}>Text</GTags.Txt>
-                        <CTAInput
+                        <div className="typ-reg">Text</div>
+                        <GTags.SimpleInput
                           defaultValue={this.state.journeyData.cta.text}
                           size="small"
                           style={{
                             width: '50%',
-                            background: '#fff',
-                            padding: '10px 14px',
-                            borderRadius: '8px'
+                            height: '40px'
                           }}
                           placeholder="Button text"
                           onBlur={e => {
@@ -362,11 +366,13 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                             };
                             this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
                           }}
+                          className="typ-ip"
                         />
                       </Tags.CTAInputCon>
                       <Tags.CTAInputCon>
-                        <GTags.Txt style={{ fontWeight: 500 }}>Size</GTags.Txt>
-                        <Tags.FlowSelect
+                        <div className="typ-reg">Size</div>
+                        <GTags.FableSelect
+                          bordered={false}
                           style={{ width: '50%' }}
                           size="large"
                           defaultValue={this.state.journeyData.cta.size}
@@ -381,19 +387,18 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                             };
                             this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
                           }}
+                          className="typ-ip"
                         />
                       </Tags.CTAInputCon>
                       <div>
                         <Tags.CTAInputCon>
-                          <GTags.Txt style={{ fontWeight: 500 }}>Navigate to</GTags.Txt>
-                          <CTAInput
+                          <div className="typ-reg">Navigate to</div>
+                          <GTags.SimpleInput
                             defaultValue={this.state.journeyData.cta.navigateTo}
                             size="small"
                             style={{
                               width: '50%',
-                              background: '#fff',
-                              padding: '10px 14px',
-                              borderRadius: '8px'
+                              height: '40px'
                             }}
                             placeholder="Open Url when clicked"
                             onBlur={e => {
@@ -407,6 +412,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                               };
                               this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
                             }}
+                            className="typ-ip"
                           />
                         </Tags.CTAInputCon>
                         {!this.state.isUrlValid && (
@@ -416,21 +422,24 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         </p>
                         )}
                       </div>
-                      <Tags.OutlineButton
-                        color="red"
+                      <GTags.DashedBtn
+                        className="fullWidth typ-reg"
+                        style={{ color: '#AB2424' }}
+                        type="text"
                         onClick={() => {
                           this.setState((prevState) => ({ journeyData: { ...prevState.journeyData, cta: undefined } }));
                         }}
+                        icon={<DeleteFilled style={{ color: '#d64e4d' }} />}
                       >
                         Delete CTA
-                      </Tags.OutlineButton>
+                      </GTags.DashedBtn>
                     </Tags.JourneyInnerCon>
                   )
                 }
                 <Divider style={{ margin: '24px 0' }} />
                 <Tags.JourneyInnerCon>
-                  <Tags.CTAText>Module Box Positioning</Tags.CTAText>
-                  <Tags.CTAInputCon>
+                  <div className="typ-reg">Module Box Positioning</div>
+                  <Tags.CTAInputCon className="typ-ip">
                     <label htmlFor={CreateJourneyPositioning.Left_Bottom}>
                       <input
                         id={CreateJourneyPositioning.Left_Bottom}
@@ -444,7 +453,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       />
                       <span>Bottom Left</span>
                     </label>
-                    <label htmlFor={CreateJourneyPositioning.Right_Bottom}>
+                    <label htmlFor={CreateJourneyPositioning.Right_Bottom} className="typ-ip">
                       <input
                         id={CreateJourneyPositioning.Right_Bottom}
                         type="radio"
@@ -462,8 +471,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 <Divider style={{ margin: '24px 0' }} />
                 <Tags.JourneyInnerCon style={{ marginBottom: '20px' }}>
                   <Tags.CTAInputCon>
-                    <GTags.Txt>Primary color</GTags.Txt>
-                    <Tags.ColorPicker
+                    <div className="typ-reg">Primary color</div>
+                    <GTags.ColorPicker
+                      className="typ-ip"
                       showText={(color) => color.toHexString()}
                       onChangeComplete={e => {
                         this.setState(prevState => ({ journeyData: {
@@ -472,7 +482,8 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       defaultValue={this.state.journeyData.primaryColor}
                     />
                   </Tags.CTAInputCon>
-                  <Tags.HideModuleCheckbox
+                  <GTags.OurCheckbox
+                    showafterlabel="true"
                     checked={this.props.journey.hideModuleOnLoad}
                     onChange={(e) => {
                       this.setState((prevState) => ({ journeyData:
@@ -481,18 +492,22 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         } }));
                     }}
                   >Minimize module on start
-                  </Tags.HideModuleCheckbox>
+                  </GTags.OurCheckbox>
                 </Tags.JourneyInnerCon>
               </Tags.JourneyConfigCon>
-              <Tags.OutlineButton
-                color="red"
-                style={{ marginTop: '32px' }}
-                onClick={() => {
-                  this.setState({
-                    journeyData: getSampleJourneyData() });
-                }}
-              > Delete Module
-              </Tags.OutlineButton>
+              <div style={{ width: '99%', marginBottom: '20px' }}>
+                <GTags.DashedBtn
+                  className="fullWidth typ-reg"
+                  style={{ color: '#AB2424' }}
+                  type="text"
+                  onClick={() => {
+                    this.setState({
+                      journeyData: getSampleJourneyData() });
+                  }}
+                  icon={<DeleteFilled style={{ color: '#d64e4d' }} />}
+                > Delete Module
+                </GTags.DashedBtn>
+              </div>
             </Tags.EditorCon>
 
           )

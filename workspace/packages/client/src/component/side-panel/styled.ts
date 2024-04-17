@@ -116,6 +116,7 @@ export const UserGuideDetailsCon = styled.div`
   z-index: 1;
   padding: 1rem 2rem;
   overflow-y: auto;
+  scrollbar-color: var(--fable-scrollbar-color);
   border: 1px solid lightgray;
   flex-direction: column;
   box-shadow: rgba(0, 0, 0, 0.06) 1px 0px 2px;
@@ -145,17 +146,6 @@ export const UserGuideTextcon = styled.div`
   & > * {
     margin: 0;
   }
-`;
-
-export const UserGuideTitle = styled.h2`
-  font-size: 0.875rem;
-  font-weight: 500;
-`;
-
-export const UserGuideDesc = styled.p`
-  font-weight: 400;
-  font-size: 0.75rem;
-  color: #595959;
 `;
 
 export const StyledCloseOutlined = styled(CloseOutlined)`

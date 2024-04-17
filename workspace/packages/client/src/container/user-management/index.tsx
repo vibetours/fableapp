@@ -47,7 +47,6 @@ interface IAppStateProps {
   principal: RespUser | null;
   usersLoaded: boolean;
   users: RespUser[];
-  manifestPath: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -55,7 +54,6 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   usersLoaded: state.default.allUsersLoadingStatus === LoadingStatus.Done,
   users: state.default.users,
-  manifestPath: '',
 });
 
 interface IOwnProps {
@@ -98,7 +96,6 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
-            manifestPath={this.props.manifestPath}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
@@ -125,7 +122,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                       Invite a user
                     </Button>
                   </div>
-                  <Tags.BottomPanel style={{ overflow: 'auto' }}>
+                  <GTags.BottomPanel style={{ overflow: 'auto' }}>
                     {this.props.users.map((user) => (
                       <Tags.UserCardCon key={user.id} active={user.active}>
                         <Tags.Avatar>
@@ -160,7 +157,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                         </Tags.ActionBtnCon>
                       </Tags.UserCardCon>
                     ))}
-                  </Tags.BottomPanel>
+                  </GTags.BottomPanel>
                 </div>
               ) : (
                 <div style={{ width: '100%' }}>

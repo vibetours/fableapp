@@ -15,6 +15,7 @@ import {
   IAnnotationButtonType,
   IAnnotationConfig,
   ITourDataOpts,
+  JourneyData,
   ScreenData
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
@@ -30,7 +31,7 @@ import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
 import NewMultiAnnotation from '../../assets/creator-panel/new_multi_annotation.svg';
 import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
 import * as GTags from '../../common-styled';
-import { P_RespScreen, P_RespTour } from '../../entity-processor';
+import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
   AnnotationPerScreen,
@@ -135,6 +136,9 @@ enum TabList {
 }
 
 interface IOwnProps {
+  setShowPaymentModal: (show: boolean) => void;
+  subs: P_RespSubscription | null;
+  journey: JourneyData | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   navigate: NavFn;
@@ -419,10 +423,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Tags.EditLICon>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <FontSizeOutlined />
-              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
-              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
+              <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Edited to</div>
+              <div className="typ-sm" style={{ flexShrink: 2, margin: '0 4px' }}>
                 {encoding[IdxEditEncodingText.NEW_VALUE]}
-              </GTags.Txt>
+              </div>
             </div>
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
           </Tags.EditLICon>
@@ -433,10 +437,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Tags.EditLICon>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <RetweetOutlined />
-              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Placeholder changed to</div>
-              <GTags.Txt className="oneline subsubhead" style={{ flexShrink: 2, margin: '0 4px' }}>
+              <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Placeholder changed to</div>
+              <div className="typ-sm" style={{ flexShrink: 2, margin: '0 4px' }}>
                 {encoding[IdxEncodingTypeInput.NEW_VALUE]}
-              </GTags.Txt>
+              </div>
             </div>
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
           </Tags.EditLICon>
@@ -448,7 +452,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <FilterOutlined />
-                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Blured text</div>
+                <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Blured text</div>
               </div>
               {shouldShowLoading && <LoadingOutlined title="Saving..." />}
             </div>
@@ -460,7 +464,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <EyeOutlined />
-                <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Hide element</div>
+                <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Hide element</div>
               </div>
               {shouldShowLoading && <LoadingOutlined title="Saving..." />}
             </div>
@@ -472,7 +476,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Tags.EditLICon>
             <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
               <PictureOutlined />
-              <div style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Image edited</div>
+              <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Image edited</div>
             </div>
             {shouldShowLoading && <LoadingOutlined title="Saving..." />}
           </Tags.EditLICon>
@@ -909,7 +913,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const CommonOptions = (
       <>
         <Tags.EditCtrlLI>
-          <Tags.EditCtrlLabel>Show Element</Tags.EditCtrlLabel>
+          <Tags.EditCtrlLabel className="typ-reg">Show Element</Tags.EditCtrlLabel>
           <Switch
             checkedChildren={<EyeOutlined />}
             unCheckedChildren={<EyeInvisibleOutlined />}
@@ -939,7 +943,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         </Tags.EditCtrlLI>
 
         <Tags.EditCtrlLI>
-          <Tags.EditCtrlLabel>Blur Element</Tags.EditCtrlLabel>
+          <Tags.EditCtrlLabel className="typ-reg">Blur Element</Tags.EditCtrlLabel>
           <Switch
             checkedChildren={<EyeOutlined />}
             unCheckedChildren={<EyeInvisibleOutlined />}
@@ -994,10 +998,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         {restrictCrtlType(this.state.selectedEl!, ['img'])
           && (
             <Tags.EditCtrlLI>
-              <Tags.EditCtrlLabel>Mask Element</Tags.EditCtrlLabel>
+              <Tags.EditCtrlLabel className="typ-reg">Mask Element</Tags.EditCtrlLabel>
               <button
                 onClick={() => this.setState({ showImageMaskUploadModal: true })}
                 type="button"
+                className="typ-ip"
                 style={{
                   backgroundColor: '#DDD',
                   border: '1px solid transparent',
@@ -1006,7 +1011,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   borderRadius: '2px',
                   color: '#000000d9',
                   borderColor: '#DDDDDD',
-                  fontSize: '14px',
                   cursor: 'pointer',
                 }}
               >
@@ -1022,7 +1026,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return (
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI>
-              <Tags.EditCtrlLabel>Replace image</Tags.EditCtrlLabel>
+              <Tags.EditCtrlLabel className="typ-reg">Replace image</Tags.EditCtrlLabel>
               <UploadButton
                 accept="image/png, image/jpeg, image/webp, image/svg+xml"
                 onChange={this.handleSelectedImageChange(this.state.selectedEl!)}
@@ -1036,8 +1040,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return (
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
-              <Tags.EditCtrlLabel>Update Text</Tags.EditCtrlLabel>
+              <Tags.EditCtrlLabel className="typ-reg">Update Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
+                className="typ-ip"
                 defaultValue={this.state.targetEl?.textContent!}
                 autoFocus
                 onBlur={() => this.flushMicroEdits()}
@@ -1070,8 +1075,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return (
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
-              <Tags.EditCtrlLabel>Update Placeholder Text</Tags.EditCtrlLabel>
+              <Tags.EditCtrlLabel className="typ-reg">Update Placeholder Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
+                className="typ-ip"
                 defaultValue={(this.state.targetEl as HTMLInputElement)?.placeholder}
                 autoFocus
                 onBlur={() => this.flushMicroEdits()}
@@ -1375,6 +1381,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             ref={this.frameConRef}
           >
             {this.props.isScreenLoaded && <PreviewWithEditsAndAnRO
+              journey={this.props.journey}
               annotationSerialIdMap={this.props.annotationSerialIdMap}
               key={this.props.screen.rid}
               screen={this.props.screen}
@@ -1454,12 +1461,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       <div>
                         <div style={{ position: 'relative', overflow: 'hidden' }}>
                           <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
-                          <Tags.AnimatedInfoText key="info">{helpText}</Tags.AnimatedInfoText>
+                          <Tags.AnimatedInfoText className="typ-sm" key="info">{helpText}</Tags.AnimatedInfoText>
                         </div>
                       </div>
                       <Tags.AnnotationBtnCtn>
                         {this.showCreateDefaultAnnButton() && (
                         <Tags.CreateNewAnnotationBtn
+                          className="typ-sm"
                           onClick={() => this.createDefaultAnnotation('default')}
                         >
                           <img src={NewAnnotation} alt="new default annotation" />
@@ -1467,6 +1475,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         </Tags.CreateNewAnnotationBtn>)}
                         {!this.state.selectedAnnotationId && (
                         <Tags.CreateNewAnnotationBtn
+                          className="typ-sm"
                           id="cover-annotation-btn"
                           onClick={() => {
                             amplitudeNewAnnotationCreated(propertyCreatedFromWithType.COVER_ANN_BTN);
@@ -1482,6 +1491,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         )}
                         {this.showCreateDefaultAnnButton() && this.props.toAnnotationId && (
                           <Tags.CreateNewAnnotationBtn
+                            className="typ-sm"
                             onClick={() => this.createDefaultAnnotation('multi-ann')}
                           >
                             <img src={NewMultiAnnotation} alt="new multi annotation" />
@@ -1514,7 +1524,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             }
                           }}
                         >
-                          <Tags.AnnDisplayText>
+                          <Tags.AnnDisplayText className="typ-reg">
                             <span className="steps">
                               {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
                               <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
@@ -1537,6 +1547,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                            showAnnCreatorPanel && (
                            <>
                              <AnnotationCreatorPanel
+                               setShowPaymentModal={this.props.setShowPaymentModal}
+                               subs={this.props.subs}
                                setAlertMsg={this.props.setAlert}
                                opts={this.props.tourDataOpts}
                                selectedEl={this.state.selectedEl}
@@ -1602,11 +1614,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
                   {/* this is edits panel */}
                   {this.state.activeTab === TabList.Edits && (
-                  <>
+                  <div style={{ paddingTop: '1rem' }}>
                     {this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
-                        <Tags.InfoText>
+                        <Tags.InfoText className="typ-sm">
                           Click on an element to edit. Click again to reselect.
                         </Tags.InfoText>
                       </>
@@ -1616,14 +1628,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <Tags.ScreenResponsiveIpCon>
-                          <GTags.Txt className="title" style={{ fontSize: '1rem' }}>Responsive Screen</GTags.Txt>
+                          <div className="typ-reg">Responsive Screen</div>
                           <Tags.StyledSwitch
                             style={{ backgroundColor: this.props.screen.responsive ? '#7567FF' : '#BDBDBD' }}
                             defaultChecked={this.props.screen.responsive}
                             onChange={(e) => this.props.updateScreen(this.props.screen, 'responsive', e)}
                           />
                         </Tags.ScreenResponsiveIpCon>
-                        <Tags.InfoText>
+                        <Tags.InfoText className="typ-sm">
                           A webpage can be made responsive for different viewport sizes by making
                           use of web technologies.
                           Turn this on to check if your application is made responsive.
@@ -1635,8 +1647,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     this.props.screen.type === ScreenType.Img && (
                       <>
                         <Tags.ScreenResponsiveIpCon>
-                          <GTags.Txt className="title" style={{ fontSize: '1rem' }}>Fit to screen</GTags.Txt>
-                          <div style={{ padding: '0.3rem 0', display: 'flex', gap: '0.5rem' }}>
+                          <div className="typ-reg">Fit to screen</div>
+                          <div style={{ padding: '0.3rem 0', display: 'flex', gap: '0.5rem' }} className="typ-ip">
                             <label htmlFor="default">
                               <input
                                 id="default"
@@ -1704,7 +1716,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       </>
                     )
                   }
-                  </>
+                  </div>
                   )}
                 </Tags.EditPanelSec>
               </div>

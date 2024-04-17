@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as GTags from '../../common-styled';
 import { elEffects, annEffects, getEffectFromString } from './effects';
-import { ActionPaneSelect } from './styled';
 import CaretOutlined from '../icons/caret-outlined';
 import CssEditor from '../css-editor';
 import ALCM from '../annotation/lifecycle-manager';
@@ -46,10 +45,10 @@ export default function EffectSelector(props: IProps): JSX.Element {
 
   return (
     <div>
-      <GTags.Txt style={{ fontWeight: 400, fontSize: '10px', lineHeight: '12px' }}>
+      <div className="typ-sm">
         {DescText[props.effectFor]}&nbsp;
         You can choose from our preset effect or you can build your own effect using css.
-      </GTags.Txt>
+      </div>
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -63,8 +62,8 @@ export default function EffectSelector(props: IProps): JSX.Element {
           alignItems: 'center'
         }}
         >
-          <div>Choose a preset</div>
-          <ActionPaneSelect
+          <div className="typ-reg">Choose a preset</div>
+          <GTags.FableSelect
             bordered={false}
             defaultValue={stylePreset}
             style={{
@@ -76,17 +75,17 @@ export default function EffectSelector(props: IProps): JSX.Element {
                 value: effect.id,
                 label: (
                   <div>
-                    <GTags.Txt>{effect.displayName}</GTags.Txt>
-                    <GTags.Txt style={{
-                      fontWeight: 400,
-                      fontSize: '10px',
-                      lineHeight: '12px',
-                      wordWrap: 'break-word',
-                      whiteSpace: 'pre-wrap'
-                    }}
+                    <div className="typ-ip">{effect.displayName}</div>
+                    <div
+                      className="typ-sm"
+                      style={{
+                        lineHeight: '12px',
+                        wordWrap: 'break-word',
+                        whiteSpace: 'pre-wrap'
+                      }}
                     >
                       {effect.desc}
-                    </GTags.Txt>
+                    </div>
                   </div>
                 )
               }))

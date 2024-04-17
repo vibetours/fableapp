@@ -88,6 +88,7 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   annotationFontFamily: null,
   borderRadius: 4,
   annotationPadding: '14 14',
+  showFableWatermark: true
 });
 
 export function getSampleJourneyData() {

@@ -20,9 +20,15 @@ export const SelectInputContainer = styled.div`
 
 export const SelectInput = styled(Select as React.FC<SelectProps>)`
   width: 100%;
+  border: 1px dashed #BDBDBD !important;
 
+  &:hover {
+    border: 1px solid #747474 !important;
+  }
+  
   .ant-select-selector {
     height: 48px !important;
+    border: none !important;
   }
   
   .ant-select-selection-item {

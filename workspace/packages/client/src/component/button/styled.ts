@@ -14,8 +14,6 @@ export const ButtonCon = styled.button<ButtonConProps>`
   align-items: center;
   gap: 0.65rem;
   border-radius: ${({ size }) => (size === 'medium' ? '24px' : '60px')};
-  font: inherit;
-  font-weight: 500;
   justify-content: center;
   cursor: pointer;
   transition: transform 0.2s ease-out;

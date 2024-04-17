@@ -1,16 +1,13 @@
 import {
   RespCommonConfig,
-  RespConversion,
   RespScreen,
   RespSubscription,
   RespTour,
   RespTourWithScreens,
-  SchemaVersion
 } from '@fable/common/dist/api-contract';
 import {
   DEFAULT_ANN_DIMS,
   deepcopy,
-  getDefaultTourOpts,
   getDisplayableTime,
   getSampleJourneyData
 } from '@fable/common/dist/utils';
@@ -23,10 +20,9 @@ import {
   TourData,
   TourDataWoScheme,
   TourScreenEntity,
-  VideoAnnotationPositions
+  VideoAnnotationPositions,
 } from '@fable/common/dist/types';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
-import { TState } from './reducer';
 import {
   AllEdits,
   EditItem,
@@ -37,9 +33,10 @@ import {
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask,
-  IdxEncodingTypeInput
+  IdxEncodingTypeInput,
+  SiteData
 } from './types';
-import { isVideoAnnotation as isVideoAnn } from './utils';
+import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 
 function getNumberOfDaysFromNow(d: Date): [string, number] {
@@ -150,6 +147,7 @@ export interface P_RespTour extends RespTour {
   isPlaceholder: boolean;
   screens?: P_RespScreen[];
   loaderFileUri: URL;
+  site: SiteData
 }
 
 function getDataFileUri(tour: RespTour | RespTourWithScreens, config: RespCommonConfig, publishForTour?: RespTour): URL {
@@ -188,7 +186,7 @@ export function processRawTourData(
 
   const dataFileUri = getDataFileUri(tour, config, publishForTour);
   const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
-
+  const site = normalizeBackwardCompatibilityForBrandData(tour);
   return {
     ...tour,
     createdAt: new Date(tour.createdAt),
@@ -198,6 +196,7 @@ export function processRawTourData(
     dataFileUri,
     loaderFileUri,
     isPlaceholder,
+    site
   } as P_RespTour;
 }
 
@@ -470,6 +469,7 @@ export function mergeTourData(
   if (incoming.journey) {
     newMaster.journey = incoming.journey;
   }
+
   return newMaster;
 }
 
@@ -504,6 +504,10 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     newOpts.annotationPadding = '14 14';
   }
 
+  if (newOpts.showFableWatermark === undefined || newOpts.showFableWatermark === null) {
+    newOpts.showFableWatermark = true;
+  }
+
   return newOpts;
 }
 
@@ -524,4 +528,14 @@ export function normalizeBackwardCompatibilityForJourney(
   }
 
   return journey;
+}
+
+export function normalizeBackwardCompatibilityForBrandData(
+  tour: RespTour
+): SiteData {
+  const defaultSiteData = getDefaultSiteData(tour);
+  return {
+    ...defaultSiteData,
+    ...(tour.site || {})
+  };
 }

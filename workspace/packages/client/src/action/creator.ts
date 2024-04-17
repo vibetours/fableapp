@@ -36,7 +36,6 @@ import {
   RespTourAnnViews,
   RespTourLeads,
   RespLeadActivityUrl,
-  SchemaVersion,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -48,9 +47,9 @@ import {
   ScreenData,
   TourData,
   TourDataWoScheme,
-  TourScreenEntity
+  TourScreenEntity,
 } from '@fable/common/dist/types';
-import { deepcopy, getCurrentUtcUnixTime, getImgScreenData, sleep } from '@fable/common/dist/utils';
+import { deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -75,7 +74,8 @@ import {
   ElEditType,
   LeadActivityData,
   Ops,
-  STORAGE_PREFIX_KEY_QUERY_PARAMS
+  STORAGE_PREFIX_KEY_QUERY_PARAMS,
+  SiteData
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
@@ -755,7 +755,7 @@ export interface TTourWithData {
   annotations: Record<string, IAnnotationConfig[]>;
   opts: ITourDataOpts;
   allCorrespondingScreens: boolean,
-  journey: JourneyData,
+  journey: JourneyData
 }
 
 export interface TTourWithLoader {
@@ -768,9 +768,14 @@ export function loadTourAndData(
   tourRid: string,
   shouldGetScreens = false,
   isFreshLoading = true,
-  loadPublishedData = false
+  loadPublishedData = false,
+  ts: string | null = null,
+  shouldGetOnlyTour = false
 ) {
-  return async (dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize>, getState: () => TState) => {
+  return async (
+    dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize | TTourPublished>,
+    getState: () => TState
+  ) => {
     const state = getState();
     if (isFreshLoading) {
       dispatch({
@@ -779,9 +784,11 @@ export function loadTourAndData(
     }
 
     let tour: P_RespTour;
+    const newTs = ts || +new Date();
+
     try {
       const data = loadPublishedData
-        ? await api<null, ApiResp<RespTour>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${+new Date()}`)
+        ? await api<null, ApiResp<RespTour>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
         : await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
 
       let config: RespCommonConfig;
@@ -801,6 +808,13 @@ export function loadTourAndData(
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
 
+    if (shouldGetOnlyTour) {
+      dispatch({
+        type: ActionType.TOUR_LOADED,
+        tour,
+      });
+      return newTs;
+    }
     const loader = await api<null, ITourLoaderData>(tour!.loaderFileUri.href);
 
     dispatch({
@@ -820,7 +834,13 @@ export function loadTourAndData(
       allCorrespondingScreens: shouldGetScreens,
       journey: annotationAndOpts.journey
     });
+    return newTs;
   };
+}
+
+export interface TTourPublished {
+  type: ActionType.TOUR_LOADED;
+  tour: P_RespTour;
 }
 
 export function publishTour(tour: P_RespTour) {
@@ -939,6 +959,20 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
       idMap: annotationAndOpts.annotationsIdMap,
       isLocal: true,
       journey: annotationAndOpts.journey
+    });
+  };
+}
+
+export interface TShowPaymentModal {
+  type: ActionType.SHOW_PAYMENT_MODAL,
+  show: boolean,
+}
+
+export function showPaymentModal(show: boolean) {
+  return async (dispatch: Dispatch<TShowPaymentModal>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.SHOW_PAYMENT_MODAL,
+      show
     });
   };
 }
@@ -1301,5 +1335,26 @@ export function getLeadActivityForTour(rid: string, aid: string) {
       leadData: activityData,
     });
     return Promise.resolve(activityData);
+  };
+}
+
+export function updateSiteData(rid: string, site: SiteData) {
+  return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
+    const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespTour>>('/updtrprop', {
+      auth: true,
+      body: {
+        tourRid: rid,
+        site
+      },
+      method: 'POST'
+    });
+
+    const processedTour = processRawTourData(updatedTourResp.data, getState().default.commonConfig!);
+    dispatch({
+      type: ActionType.TOUR,
+      tour: processedTour,
+      oldTourRid: rid,
+      performedAction: 'edit',
+    });
   };
 }

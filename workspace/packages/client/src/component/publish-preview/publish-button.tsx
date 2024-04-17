@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Tooltip } from 'antd';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import Button from '../button';
@@ -13,6 +12,7 @@ interface Props {
   setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
   setIsPublishFailed: React.Dispatch<React.SetStateAction<boolean>>;
   size?: 'medium' | 'large';
+  minWidth?: string;
 }
 
 export default function PublishButton(props: Props): JSX.Element {
@@ -36,19 +36,13 @@ export default function PublishButton(props: Props): JSX.Element {
   };
 
   return (
-    <Tooltip
-      title="Publish your demo for your buyers to experience."
-      overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}
-      placement="bottom"
+    <Button
+      size={props.size || 'large'}
+      disabled={!props.tour}
+      style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem', minWidth: props.minWidth }}
+      onMouseUp={handleClick}
     >
-      <Button
-        size={props.size || 'large'}
-        disabled={!props.tour}
-        style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem' }}
-        onMouseUp={handleClick}
-      >
-        {buttonTitle}
-      </Button>
-    </Tooltip>
+      {buttonTitle}
+    </Button>
   );
 }

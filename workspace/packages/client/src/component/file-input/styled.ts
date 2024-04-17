@@ -1,12 +1,16 @@
 import styled from 'styled-components';
 
 export const InputContainer = styled.label`
-  padding: 0.75rem 1rem;
-  background-color: #7567ff55;
-  border: 1px dashed #7567ff;
+  padding: 4px 11px;
+  background-color: white;
+  border: 1px dashed #BDBDBD;
   border-radius: 8px;
-  font-size: 16px;
   cursor: pointer;
-  display: block;
-  height: 30px;
+  display: flex;
+  align-items: center;
+  height: 40px;
+
+  &:hover {
+    border: 1px solid #747474;
+  }
 `;

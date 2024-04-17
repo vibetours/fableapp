@@ -45,6 +45,7 @@ import { amplitudeAddScreensToTour } from '../../amplitude';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { createIframeSrc, setEventCommonState } from '../../utils';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
+import { PREVIEW_BASE_URL } from '../../constants';
 
 const reactanimated = require('react-animated-css');
 
@@ -340,7 +341,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
     }
 
-    this.props.navigate(`/pp/demo/${tour.data.rid}`);
+    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}`);
   };
 
   saveInExistingTour = async (value: string | null): Promise<void> => {

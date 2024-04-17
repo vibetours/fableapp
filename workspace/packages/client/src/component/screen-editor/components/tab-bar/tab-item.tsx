@@ -14,7 +14,7 @@ interface Props {
 
 export default function TabItem({ title, active, onClick, helpText, id }: Props): JSX.Element {
   return (
-    <Tags.TabItem onClick={onClick} id={id}>
+    <Tags.TabItem onClick={onClick} id={id} className="typ-reg">
       <Tags.TabTitle active={active}>
         <div style={{
           display: 'flex',
@@ -28,7 +28,7 @@ export default function TabItem({ title, active, onClick, helpText, id }: Props)
           <Tooltip
             placement="bottomRight"
             title={
-              <GTags.Txt className="subsubhead" color="#fff">{helpText}</GTags.Txt>
+              <div color="#fff">{helpText}</div>
           }
           >
             <QuestionCircleOutlined className="ht-icn" />

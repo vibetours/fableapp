@@ -72,7 +72,7 @@ function LoaderEditor(props: Props): JSX.Element {
             <Tags.CloseIcon alt="" src={CloseIcon} onClick={props.closeEditor} />
           </div>
         </Tags.Header>
-        <Tags.HeaderTitle>Design your loader </Tags.HeaderTitle>
+        <Tags.HeaderTitle className="typ-h1">Design your loader </Tags.HeaderTitle>
         <Tags.EditorCon>
           <Tags.PreviewPanel>
             <Tags.PreviewCon>
@@ -81,13 +81,13 @@ function LoaderEditor(props: Props): JSX.Element {
           </Tags.PreviewPanel>
           <Tags.EditPanel>
             <Tags.FieldCon>
-              <Tags.FieldName>
+              <Tags.FieldName className="typ-h2">
                 <p>Logo</p>
               </Tags.FieldName>
               <Tabs items={[
                 {
                   key: '1',
-                  label: <><UploadOutlined />Upload</>,
+                  label: <div className="typ-reg"><UploadOutlined />Upload</div>,
                   children: (
                     <Tags.FileInputCon>
                       <FileInput
@@ -123,7 +123,7 @@ function LoaderEditor(props: Props): JSX.Element {
                 },
                 {
                   key: '2',
-                  label: <><LinkOutlined />Link</>,
+                  label: <div className="typ-reg"><LinkOutlined />Link</div>,
                   children: (
                     <div style={{ marginTop: '0.45rem' }}>
                       <Input
@@ -144,16 +144,16 @@ function LoaderEditor(props: Props): JSX.Element {
                 },
               ]}
               />
-              {isLogoUrlEmpty && <Tags.Error>Logo is required</Tags.Error>}
+              {isLogoUrlEmpty && <Tags.Error className="typ-reg">Logo is required</Tags.Error>}
             </Tags.FieldCon>
             <Tags.FieldCon>
-              <Tags.FieldName>
+              <Tags.FieldName className="typ-h2">
                 <p>Upload Gif or Lottie</p>
               </Tags.FieldName>
               <Tabs items={[
                 {
                   key: '1',
-                  label: <>Gif</>,
+                  label: <div className="typ-reg">Gif</div>,
                   children: (
                     <Tags.FileInputCon>
                       <FileInput
@@ -176,7 +176,7 @@ function LoaderEditor(props: Props): JSX.Element {
                 },
                 {
                   key: '2',
-                  label: <>Lottie file</>,
+                  label: <div className="typ-reg">Lottie file</div>,
                   children: (
                     <Tags.FileInputCon>
                       <FileInput

@@ -1,4 +1,4 @@
-import { ScreenData } from '@fable/common/dist/types';
+import { CreateJourneyPositioning, JourneyData, ScreenData } from '@fable/common/dist/types';
 import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { P_RespScreen } from '../../entity-processor';
@@ -7,14 +7,17 @@ import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
 import { FABLE_RT_UMBRL, createEmptyFableIframe, getFableRtUmbrlDiv } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
+import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem } from '../../types';
 import { applyEditsToSerDom } from './utils/edits';
 
 export interface IOwnProps {
+  journey: JourneyData | null;
+  showWatermark: boolean;
   allEdits: EditItem[];
   screen: P_RespScreen;
   screenData: ScreenData;
-  hidden?: boolean;
+  hidden: boolean;
   innerRefs?: React.MutableRefObject<HTMLIFrameElement | null>[];
   onBeforeFrameBodyDisplay: (params: { nestedFrames: HTMLIFrameElement[] }) => void;
   onFrameAssetLoad: () => void;
@@ -39,6 +42,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   scaleFactor: number = 1;
 
   embedFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
+  watermarkRef: React.MutableRefObject<HTMLAnchorElement | null> = React.createRef();
 
   nestedFrames: Array<HTMLIFrameElement> = [];
 
@@ -101,6 +106,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   };
 
   componentDidUpdate(prevProps: Readonly<IOwnProps>, prevState: Readonly<{}>, snapshot?: any): void {
+    if (this.props.showWatermark && (prevProps.showWatermark !== this.props.showWatermark)) {
+      this.handleScreenResponsiveness();
+    }
+
     if (prevProps.screen.responsive !== this.props.screen.responsive) {
       this.handleScreenResponsiveness();
     }
@@ -160,6 +169,27 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     };
   }
 
+  handleWatermarkPositioning = (top: number, height: number, left: number, width: number): void => {
+    const watermarkEl = this.watermarkRef.current;
+    const HORIZONTAL_PADDING_FACTOR = 20;
+    const VERTICAL_PADDING_FACTOR = 16;
+    if (!watermarkEl) return;
+
+    if (
+      this.props.journey
+      && this.props.journey.flows.length
+      && this.props.journey.positioning === CreateJourneyPositioning.Right_Bottom
+    ) {
+      watermarkEl.style.left = `${Math.round((left) + (HORIZONTAL_PADDING_FACTOR * this.scaleFactor))}px`;
+      watermarkEl.style.transform = 'translate(0%, -100%)';
+    } else {
+      watermarkEl.style.left = `${Math.round((left) + (width * this.scaleFactor) - (HORIZONTAL_PADDING_FACTOR * this.scaleFactor))}px`;
+    }
+
+    watermarkEl.style.top = `${Math.round((top) + (height * this.scaleFactor) - (VERTICAL_PADDING_FACTOR * this.scaleFactor))}px`;
+    watermarkEl.style.scale = this.scaleFactor.toString();
+  };
+
   sendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
     window.postMessage({
       scaleFactor,
@@ -218,6 +248,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         iframePos.top = (origFrameViewPort.height - viewPortAfterScaling.height) / 2;
       }
 
+      this.handleWatermarkPositioning(
+        (origFrameViewPort.height - viewPortAfterScaling.height) / 2,
+        vpdH,
+        (origFrameViewPort.width - viewPortAfterScaling.width) / 2,
+        vpdW
+      );
+
       this.sendIframeScreenSizeData(scale, iframePos);
       return;
     }
@@ -228,6 +265,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = 1;
     frame.style.transform = 'scale(1)';
+
+    this.handleWatermarkPositioning(
+      0,
+      origFrameViewPort.height,
+      0,
+      origFrameViewPort.width
+    );
     const iframePos = {
       left: origFrameViewPort.left,
       top: origFrameViewPort.top,
@@ -257,24 +301,28 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
   render(): JSX.Element {
     return (
-      <Tags.EmbedFrame
-        key={this.props.screen.rid}
-        src="about:blank"
-        title={this.props.screen.displayName}
-        id={ROOT_EMBED_IFRAME_ID}
-        className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
-        style={{
-          visibility: this.props.hidden ? 'hidden' : 'visible',
-          borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
-        }}
-        ref={ref => {
-          this.embedFrameRef.current = ref;
-          if (this.props.innerRefs) {
-            this.props.innerRefs.forEach(r => r.current = ref);
-          }
-        }}
-        srcDoc={IFRAME_DEFAULT_DOC}
-      />
+      <>
+        <Tags.EmbedFrame
+          key={this.props.screen.rid}
+          src="about:blank"
+          title={this.props.screen.displayName}
+          id={ROOT_EMBED_IFRAME_ID}
+          className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
+          style={{
+            visibility: this.props.hidden ? 'hidden' : 'visible',
+            borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
+          }}
+          ref={ref => {
+            this.embedFrameRef.current = ref;
+            if (this.props.innerRefs) {
+              this.props.innerRefs.forEach(r => r.current = ref);
+            }
+          }}
+          srcDoc={IFRAME_DEFAULT_DOC}
+        />
+
+        {this.props.showWatermark && <LogoWatermark isHidden={this.props.hidden} watermarkRef={this.watermarkRef} />}
+      </>
     );
   }
 }

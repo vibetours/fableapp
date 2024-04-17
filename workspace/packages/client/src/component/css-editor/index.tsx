@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, EyeOutlined, SaveOutlined } from '@ant-design/icons';
+import { EyeOutlined, SaveOutlined } from '@ant-design/icons';
 import React, { ReactElement, useEffect, useRef, useState } from 'react';
 import * as Tags from './styled';
 
@@ -46,7 +46,7 @@ export default function CssEditor(props: IProps): JSX.Element {
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
         <Tags.EditorBtn
-          className="link"
+          className="link typ-reg"
           onClick={() => {
             props.onVisibilitySwitch(!!props.hidden);
           }}

@@ -37,13 +37,11 @@ const mapDispatchToProps = (dispatch: any) => ({
 interface IAppStateProps {
   subs: P_RespSubscription | null;
   principal: RespUser | null;
-  manifestPath: string;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   principal: state.default.principal,
-  manifestPath: '',
 });
 
 interface IOwnProps {
@@ -92,7 +90,6 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
-            manifestPath={this.props.manifestPath}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

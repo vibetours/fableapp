@@ -1,4 +1,4 @@
-import { Coords, ITourDataOpts } from '@fable/common/dist/types';
+import { Coords } from '@fable/common/dist/types';
 import { ROOT_EMBED_IFRAME_ID } from '../screen-editor/preview';
 import { getFableRtUmbrlDiv } from '../annotation/utils';
 

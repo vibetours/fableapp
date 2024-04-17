@@ -43,8 +43,6 @@ export const InfoTextCon = styled.div`
 `;
 
 export const EditorBtn = styled.span`
-  font-size: 12px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease-out;
 
@@ -54,18 +52,18 @@ export const EditorBtn = styled.span`
 
 
   &.primary {
-    border: 1px solid #7566ff;
-    background: #7566ff;
+    border: 1px solid #757575;
+    background: #757575;
     color: white;
     padding: 2px 4px;
     border-radius: 4px;
   }
 
   &.outline {
-    border: 1px solid #7566ff;
+    border: 1px solid #757575;
     padding: 2px 4px;
     border-radius: 4px;
-    color: #7566ff;
+    color: #757575;
   }
 
   &.link {

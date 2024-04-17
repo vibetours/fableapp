@@ -18,6 +18,7 @@ export default function Button({
 }: Props): JSX.Element {
   return (
     <Tags.ButtonCon
+      className="typ-btn"
       intent={intent}
       size={size}
       {...rest}

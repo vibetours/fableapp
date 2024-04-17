@@ -49,24 +49,24 @@ import {
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import { SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
+import { HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
-import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
+import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../analytics/types';
 import { FableLeadContactProps, addToGlobalAppData } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 
-const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
+export const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean) => void,
+  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData) => dispatch(
-    loadTourAndData(rid, true, true, loadPublishedData)
+  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null) => dispatch(
+    loadTourAndData(rid, true, true, loadPublishedData, ts)
   ),
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
@@ -144,6 +144,23 @@ interface IOwnStateProps {
   screenSizeData: Record<string, ScreenSizeData>;
 }
 
+interface ScreenInfo {
+  type: typeof SCREEN_SIZE_MSG,
+  scaleFactor: number,
+  screenId: number,
+  iframePos: IframePos
+}
+
+interface HeaderCta {
+  type: typeof HEADER_CTA,
+  ctaFrom: CtaFrom,
+  btnId: string,
+  url: string,
+  btnTxt: string,
+  tourId: number,
+  annId: string
+}
+
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private adjList: ScreenAdjacencyList | null = null;
 
@@ -181,30 +198,45 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
 
-  receiveMessage = (e: MessageEvent<{
-    type: typeof SCREEN_SIZE_MSG,
-    scaleFactor: number,
-    screenId: number,
-    iframePos: IframePos
-  }>): void => {
+  receiveMessage = (e: MessageEvent<ScreenInfo | HeaderCta>): void => {
     if (e.data.type === SCREEN_SIZE_MSG) {
+      const data = e.data as ScreenInfo;
       this.setState(prevS => {
         const currScreenData: ScreenSizeData = {
-          iframePos: e.data.iframePos,
-          scaleFactor: e.data.scaleFactor
+          iframePos: data.iframePos,
+          scaleFactor: data.scaleFactor
         };
         return {
-          screenSizeData: { ...prevS.screenSizeData, [e.data.screenId]: currScreenData }
+          screenSizeData: { ...prevS.screenSizeData, [data.screenId]: currScreenData }
         };
+      });
+    }
+
+    if (e.data.type === HEADER_CTA) {
+      const data = e.data as HeaderCta;
+      emitEvent<CtaClickedInternal>(InternalEvents.OnCtaClicked, {
+        ctaFrom: data.ctaFrom,
+        btnId: data.btnId,
+        url: data.url,
+        btnTxt: data.btnTxt
+      });
+
+      emitEvent<AnnotationBtnClickedPayload>(InternalEvents.OnAnnotationNav, {
+        tour_id: data.tourId,
+        ann_id: data.annId,
+        btn_type: data.ctaFrom,
+        btn_id: data.btnId
       });
     }
   };
 
   componentDidMount(): void {
     document.title = this.props.title;
+    const ts = this.props.searchParams.get('_ts');
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
-      !this.props.staging
+      !this.props.staging,
+      ts
     );
     window.addEventListener('beforeunload', removeSessionId);
 
@@ -549,7 +581,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const [screenId, anId] = qualifiedAnnotaionUri.split('/');
     const screen = this.props.allScreens.find(s => s.id === +screenId);
     if (screen) {
-      const url = `/p/demo/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
+      const url = `/${IFRAME_BASE_URL}/demo/${this.props.tour!.rid}/${screen.rid}${anId ? `/${anId}` : ''}${window.location.search}`;
       this.props.navigate(url);
       if (anId && this.isJourneyAdded()) {
         this.setCurrentFlowMain(anId);
@@ -576,6 +608,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           btnId: '$journey_cta',
           url: journeyData.cta!.navigateTo,
           btnTxt: journeyData.cta!.text
+        });
+
+        emitEvent<AnnotationBtnClickedPayload>(InternalEvents.OnAnnotationNav, {
+          tour_id: this.props.tour!.id,
+          ann_id: '$journey',
+          btn_type: CtaFrom.Journey,
+          btn_id: '$journey_cta'
         });
       }
     }, 0);
@@ -734,6 +773,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
+                journey={this.props.journey!}
                 annotationSerialIdMap={this.state.annotationSerialIdMap}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
                 key={config.screen.id}

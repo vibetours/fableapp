@@ -6,3 +6,7 @@ export const SCREEN_EDITOR_ID = 'fable-ann-editorial-modal';
 export const FABLE_LEAD_FORM_FIELD_NAME = 'fable-lead-form-field-name';
 export const TOP_LOADER_DURATION = 4;
 export const SCREEN_SIZE_MSG = 'screen-size-data';
+export const IFRAME_BASE_URL = 'embed';
+export const LIVE_BASE_URL = 'live';
+export const PREVIEW_BASE_URL = 'preview';
+export const HEADER_CTA = 'header_cta';
