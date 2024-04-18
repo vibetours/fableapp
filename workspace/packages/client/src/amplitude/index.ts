@@ -75,7 +75,7 @@ export const amplitudeShareModalOpen = (
   shareModalClickedFrom: 'tours' | 'editor' | 'preview'
 ): void => {
   traceEvent(
-    AMPLITUDE_EVENTS.ANNOTATION_APPLY_ALL,
+    AMPLITUDE_EVENTS.SHARE_MODAL_OPEN,
     { share_modal_clicked_from: shareModalClickedFrom },
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );
