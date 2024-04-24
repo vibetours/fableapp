@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import Button from '../button';
@@ -13,6 +13,7 @@ interface Props {
   setIsPublishFailed: React.Dispatch<React.SetStateAction<boolean>>;
   size?: 'medium' | 'large';
   minWidth?: string;
+  isPublishing?: boolean;
 }
 
 export default function PublishButton(props: Props): JSX.Element {
@@ -22,11 +23,9 @@ export default function PublishButton(props: Props): JSX.Element {
     props.setIsPublishing(true);
     props.setIsPublishFailed(false);
     props.openShareModal();
-    setButtonTitle('Publishing...');
 
     const res = await props.publishTour(props.tour!);
     props.setIsPublishing(false);
-    setButtonTitle('Publish');
 
     traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
 
@@ -34,6 +33,14 @@ export default function PublishButton(props: Props): JSX.Element {
       props.setIsPublishFailed(true);
     }
   };
+
+  useEffect(() => {
+    if (props.isPublishing) {
+      setButtonTitle('Publishing...');
+    } else {
+      setButtonTitle('Publish');
+    }
+  }, [props.isPublishing]);
 
   return (
     <Button

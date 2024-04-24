@@ -373,6 +373,7 @@ function Header(props: IOwnProps): JSX.Element {
                   amplitudeShareModalOpen('editor');
                   setIsModalVisible(true);
                 }}
+                isPublishing={isPublishing}
               />
             </div>
             )}
@@ -510,6 +511,8 @@ function Header(props: IOwnProps): JSX.Element {
           onOptsDataChange={props.onOptsDataChange}
           setShowPaymentModal={props.setShowPaymentModal}
           subs={props.subs}
+          isPublishing={isPublishing}
+          setIsPublishing={setIsPublishing}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

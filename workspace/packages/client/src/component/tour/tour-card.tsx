@@ -35,6 +35,7 @@ interface Props {
 export default function TourCard({
   tour, handleShowModal, handleDelete, publishTour, updateSiteData
 }: Props): JSX.Element {
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
   const onSiteDataChange = (site: SiteData): void => {
@@ -176,6 +177,8 @@ export default function TourCard({
         copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${tour?.rid}`)}
         tourOpts={null}
         onSiteDataChange={onSiteDataChange}
+        setIsPublishing={setIsPublishing}
+        isPublishing={isPublishing}
       />
     </>
   );

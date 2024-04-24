@@ -85,6 +85,7 @@ export default function PublishOptions(props: Props): JSX.Element {
                 props.setShowShareModal(true);
                 amplitudeShareModalOpen('preview');
               }}
+              isPublishing={isPublishing}
             />
           </div>
         </div>
@@ -104,6 +105,8 @@ export default function PublishOptions(props: Props): JSX.Element {
           copyUrl={getIframeShareCode(height, width, `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
           tourOpts={null}
           onSiteDataChange={props.onSiteDataChange}
+          isPublishing={isPublishing}
+          setIsPublishing={setIsPublishing}
         />}
       </Tags.Header>
     </>

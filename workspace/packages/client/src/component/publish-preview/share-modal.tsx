@@ -58,6 +58,8 @@ interface Props {
   onOptsDataChange?: JourneyOrOptsDataChange;
   setShowPaymentModal?: (show: boolean) => void;
   subs?: P_RespSubscription | null;
+  isPublishing: boolean;
+  setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const enum SearchParamBy {
@@ -312,7 +314,6 @@ function CTAInfo({ iframeUrl,
 }
 
 export default function ShareTourModal(props: Props): JSX.Element {
-  const [isPublishing, setIsPublishing] = useState(false);
   const [isPublishFailed, setIsPublishFailed] = useState(false);
   const [showHelpDrawer, setShowHelpDrawer] = useState(false);
   const [searchParams, setSearchParams] = useState<Record<SearchParamBy, ParamType>>({
@@ -388,7 +389,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
         footer={null}
       >
         <Tags.ModalBodyCon>
-          {isPublishing ? (
+          {props.isPublishing ? (
             <div className="typ-h1 sec-head">Publishing...</div>
           ) : (
             <div className="section-con">
@@ -423,7 +424,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       tour={props.tour}
                       publishTour={props.publishTour}
                       openShareModal={props.openShareModal}
-                      setIsPublishing={setIsPublishing}
+                      setIsPublishing={props.setIsPublishing}
                     />
                   </div>
                 </>
@@ -460,7 +461,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       tour={props.tour}
                       publishTour={props.publishTour}
                       openShareModal={props.openShareModal}
-                      setIsPublishing={setIsPublishing}
+                      setIsPublishing={props.setIsPublishing}
                     />
                   </div>
                 </>
