@@ -314,6 +314,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (!this.isPlayMode) {
       return;
     }
+    this.updateConfig('selectionColor', 'transparent');
     this.con!.style.visibility = 'hidden';
     this.createFullScreenMask();
   };
@@ -627,7 +628,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
-        if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
+        if (
+          annotationDisplayConfig.config.selectionShape === 'pulse'
+          || annotationDisplayConfig.config.selectionEffect === 'blinking'
+        ) {
+          this.updateConfig('selectionColor', 'transparent');
+        } else if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
           this.updateConfig('selectionColor', '#ffffff00');
         } else {
           this.updateConfig('selectionColor', annotationDisplayConfig.config.annotationSelectionColor);
@@ -640,13 +646,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         } else if (annotationDisplayConfig.isElVisible) {
           this.selectElementInDoc(el, el.ownerDocument);
         }
-      }
-
-      if (
-        annotationDisplayConfig.config.selectionShape === 'pulse'
-        || annotationDisplayConfig.config.selectionEffect === 'blinking'
-      ) {
-        this.updateConfig('selectionColor', 'transparent');
       }
 
       if (this.maskEl) {
