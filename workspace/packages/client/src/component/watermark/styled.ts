@@ -1,16 +1,13 @@
 import styled from 'styled-components';
 
 export const WatermarkCon = styled.a`
-  position: absolute;
   font-size: 12px;
-  border-radius: 4px;
   display: flex;
   place-items: center;
   gap: 0.5rem;
   cursor: pointer;
   text-decoration: none !important;
   justify-content: end;
-  padding: 4px 0;
   
   &:hover {
     text-decoration: underline !important;

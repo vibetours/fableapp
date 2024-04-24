@@ -102,6 +102,8 @@ export default function AnnotationWatermark(props: Props): JSX.Element {
     <Tags.WatermarkCon
       className="fable-watermark-con"
       style={{
+        padding: '4px 0',
+        position: 'absolute',
         width: props.width,
         backgroundColor: props.bgColor,
         color: props.fontColor,
@@ -114,6 +116,14 @@ export default function AnnotationWatermark(props: Props): JSX.Element {
       rel="noopener noreferrer"
       href="https://sharefable.com"
     >
+      <WatermarkText />
+    </Tags.WatermarkCon>
+  );
+}
+
+export function WatermarkText(): JSX.Element {
+  return (
+    <>
       <span>
         Powered by
       </span>
@@ -121,14 +131,19 @@ export default function AnnotationWatermark(props: Props): JSX.Element {
         style={{
           display: 'flex',
           placeItems: 'center',
-          gap: '4px',
           background: '#170545',
           margin: '0.25rem 0',
-          marginRight: '16px'
+          borderRadius: '4px',
+          marginRight: '16px',
+          padding: '2px'
         }}
       >
-        <img src={FableLogoWithQuill} alt="" style={{ width: '60px', objectFit: 'cover', height: '18px' }} />
+        <img
+          src={FableLogoWithQuill}
+          alt=""
+          height={18}
+        />
       </div>
-    </Tags.WatermarkCon>
+    </>
   );
 }

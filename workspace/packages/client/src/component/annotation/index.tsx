@@ -12,6 +12,7 @@ import {
 import React, { Suspense, lazy } from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
 import { ArrowLeftOutlined } from '@ant-design/icons';
+import FableLogoWithQuill from '../../assets/fableLogo.svg';
 import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
@@ -36,7 +37,8 @@ import { isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 import { FableLeadContactProps, getGlobalData } from '../../global';
-import AnnotationWatermark from '../watermark/annotation-watermark';
+import AnnotationWatermark, { WatermarkText } from '../watermark/annotation-watermark';
+import { WatermarkCon } from '../watermark/styled';
 
 export type Positions = AnnotationPositions
   | VideoAnnotationPositions
@@ -168,6 +170,7 @@ export class AnnotationContent extends React.PureComponent<{
         padding={this.props.opts.annotationPadding.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14)) as [number, number]}
         bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
+          flexDirection: 'column',
           minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,
           width: `${this.props.width}px`,
           display: this.props.isInDisplay ? 'flex' : 'none',
@@ -176,13 +179,7 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
           fontSize: '18px',
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
-          borderRadius: getBorderRadius(
-            this.props.config.positioning,
-            isCoverAnn(this.props.config),
-            this.props.opts.showFableWatermark,
-            this.props.dir,
-            this.props.opts.borderRadius
-          ),
+          borderRadius: this.props.opts.borderRadius,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
         id={this.props.isProbing ? '' : 'fable-ann-card-rendered'}
@@ -293,6 +290,24 @@ export class AnnotationContent extends React.PureComponent<{
             </Tags.ButtonCon>
           )}
         </Tags.AnInnerContainer>
+
+        {/* Watermark */}
+        {this.props.opts.showFableWatermark
+        && !isVideoAnn(this.props.config)
+        && (
+          <WatermarkCon
+            style={{
+              padding: '10px',
+              color: this.props.opts.annotationFontColor,
+            }}
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://sharefable.com"
+          >
+            <WatermarkText />
+          </WatermarkCon>
+        )}
+
       </Tags.AnContent>
     );
   }
@@ -963,6 +978,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
             {!displayConfig.prerender
             && this.props.annotationDisplayConfig.opts.showFableWatermark
+            && isVideoAnnotation
             && (
               <AnnotationWatermark
                 borderRadius={this.props.annotationDisplayConfig.opts.borderRadius}

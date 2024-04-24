@@ -29,8 +29,6 @@ export const AnContent = styled.div<{
   border-radius: 4px;
   padding: 0;
   margin: 0;
-  justify-items: center;
-  align-items: center;
 
   a {
     color: inherit;
@@ -176,7 +174,6 @@ interface AnInnerConProps {
 export const AnInnerContainer = styled.div`
   display:flex;
   flex-direction:column;
-  width: 100%;
   padding: ${(props: AnInnerConProps) => `${getAnnotationPadding(props.anPadding)}`};
 `;
 
