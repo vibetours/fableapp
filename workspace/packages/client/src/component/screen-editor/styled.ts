@@ -553,3 +553,27 @@ export const ConnectableAnnText = styled.p`
   padding: 0;
   font-family: "IBM Plex Sans", sans-serif;
 `;
+
+export const TitleCon = styled.div`
+  display: flex;
+  gap: 6px;
+
+  .ht-icn {
+    font-size: 0.75rem;
+  }
+`;
+
+export const BackBtnHelpText = styled.div`
+  font-size: 10px;
+  line-height: 14px;
+  background: #ffffffba;
+  padding: 1px 3px;
+  margin-top: 4px;
+  border-radius: 4px;
+`;
+
+export const ABtnConf = styled.div`
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+`;

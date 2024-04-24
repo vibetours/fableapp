@@ -36,6 +36,8 @@ import {
   EditOutlined,
   PlusCircleFilled,
   DeleteFilled,
+  QuestionCircleOutlined,
+  ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { Plan, ScreenType, Status } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -82,7 +84,7 @@ import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AEP from './advanced-element-picker';
 import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
-import { effectsHelpText, hotspotHelpText } from './helptexts';
+import { effectsHelpText, hotspotHelpText, globalPropertyHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
 import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
@@ -215,6 +217,22 @@ function getEffectPanelExtraIcons(props: {
         }}
       />
     </Tooltip>
+  );
+}
+
+function GlobalTitle({ title }: {title: string}) : JSX.Element {
+  return (
+    <Tags.TitleCon className="typ-reg">
+      {title}
+      <Tooltip
+        placement="bottomRight"
+        title={
+          <GTags.Txt className="subsubhead" color="#fff">{globalPropertyHelpText}</GTags.Txt>
+        }
+      >
+        <QuestionCircleOutlined className="ht-icn" />
+      </Tooltip>
+    </Tags.TitleCon>
   );
 }
 
@@ -561,7 +579,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         icon={<img src={ThemeIcon} alt="" />}
       >
         <div style={commonActionPanelItemStyle}>
-          <div>Primary color</div>
+          <GlobalTitle title="Primary color" />
           <GTags.ColorPicker
             className="typ-ip"
             showText={(color) => color.toHexString()}
@@ -572,7 +590,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <div>Background color</div>
+          <GlobalTitle title="Background color" />
           <GTags.ColorPicker
             className="typ-ip"
             showText={(color) => color.toHexString()}
@@ -584,7 +602,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <div>Font color</div>
+          <GlobalTitle title="Font color" />
           <GTags.ColorPicker
             className="typ-ip"
             showText={(color) => color.toHexString()}
@@ -596,8 +614,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <div style={commonActionPanelItemStyle}>Border Radius</div>
-
+          <GlobalTitle title="Border Radius" />
           <Tags.InputNumberBorderRadius
             className="typ-ip"
             min={0}
@@ -608,8 +625,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <div style={commonActionPanelItemStyle}>Show Fable Watermark</div>
-
+          <GlobalTitle title="Show Fable Watermark" />
           <Tags.StyledSwitch
             size="small"
             style={{ backgroundColor: opts.showFableWatermark ? '#7567FF' : '#BDBDBD' }}
@@ -642,7 +658,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               children: (
                 <div>
                   <div style={commonActionPanelItemStyle}>
-                    <div className="typ-reg">Border color</div>
+                    <GlobalTitle title="Border color" />
                     <GTags.ColorPicker
                       className="typ-ip"
                       showText={(color) => color.toHexString()}
@@ -676,7 +692,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
-                    <div className="typ-reg">Font family</div>
+                    <GlobalTitle title="Font family" />
                     <GTags.FableSelect
                       className="typ-ip"
                       defaultValue={opts.annotationFontFamily}
@@ -763,7 +779,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     />
                   </div>
                   <div style={commonActionPanelItemStyle}>
-                    <div className="typ-reg" style={commonActionPanelItemStyle}>Padding</div>
+                    <GlobalTitle title="Padding" />
                     <Tags.InputText
                       className="typ-ip"
                       placeholder="Enter padding"
@@ -824,11 +840,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
         <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor}>
           {config.buttons.map(btnConf => {
+            const showHelpText = btnConf.type === 'prev' && config.buttonLayout === 'default';
             const primaryColor = opts.primaryColor;
             return (
               <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor}>
                 <div className="a-head">
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Tags.ABtnConf>
                     <ATags.ABtn
                       bg={opts.annotationBodyBackgroundColor}
                       type="button"
@@ -841,7 +858,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     >
                       {btnConf.text}
                     </ATags.ABtn>
-                  </div>
+                    { showHelpText && (
+                      <Tags.BackBtnHelpText>Back button is displayed as <ArrowLeftOutlined /> </Tags.BackBtnHelpText>
+                    )}
+                  </Tags.ABtnConf>
                   <Tags.ButtonSecCon>
                     <Popover
                       open={openConnectionPopover === btnConf.id && linkButtonVisible}
