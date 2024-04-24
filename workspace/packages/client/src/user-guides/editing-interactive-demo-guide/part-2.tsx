@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Tour from '../../component/user-guide-tour';
+import Tour, { NextBtnPropChildren, PrevBtnPropChildren } from '../../component/user-guide-tour';
 import {
   closeUserGuide,
   completeUserGuide,
@@ -26,6 +26,7 @@ export const guide: Guide = {
       description: 'This text box is where you can set the message that is shown in the annotation box. You can include images and gifs as a part of the annotation along with text. You can even replace the text annotation box with a video annotation which you can either record within Fable or upload a recorded video file.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('annotation-rte').item(0) as HTMLElement)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 1);
           getDOMElement(guide, () => document.getElementById('branding-tab'))?.click();
@@ -33,7 +34,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -47,6 +48,7 @@ export const guide: Guide = {
       description: 'You don’t have to limit the look and feel of the demo to what you selected at the time of capture. These options under branding will help you modify it any way you want.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('branding-tab').item(0) as HTMLElement)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           getDOMElement(guide, () => document.getElementById('branding-tab'))?.click();
           getDOMElement(guide, () => document.getElementById('buttons-panel'))?.click();
@@ -55,7 +57,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -69,6 +71,7 @@ export const guide: Guide = {
       description: 'The default ‘Back’ and ‘Next’ buttons let you move between two annotations and can be either displayed or hidden (and the text of those can also be set to something else if you prefer). You can even add custom buttons with a specific URL.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('buttons-panel').item(0) as HTMLElement)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 3);
           getDOMElement(guide, () => document.getElementById('branding-tab'))?.click();
@@ -77,7 +80,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -90,6 +93,7 @@ export const guide: Guide = {
       description: 'The highlighted element of each annotation is interactive and you can move through the demo by clicking on it (instead of the ‘Next’ button). The hotspot section allows you to make advanced changes like hiding the annotation box, focusing on the interactive element by adding a hotspot marker on it, etc.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('hotspot-panel').item(0) as HTMLElement, false, false)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 4);
           getDOMElement(guide, () => document.getElementById('advanced-creator-panel'))?.click();
@@ -97,7 +101,7 @@ export const guide: Guide = {
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -111,12 +115,13 @@ export const guide: Guide = {
       description: 'It is important that you don’t miss out on setting the first step of your interactive demo. By default, it is set to the first annotation which was created at the time of recording but you can change the flow of the interactive demo and set any step as the first step.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('advanced-creator-panel').item(0) as HTMLElement)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 5);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -129,12 +134,13 @@ export const guide: Guide = {
       description: 'This advanced element picker enables you to change the highlighted element selection on which the annotation is applied. This will give you a greater degree of control over how an individual annotation is applied on the screen.',
       target: () => getDOMElement(guide, () => document.getElementById('AEP-wrapper') as HTMLElement, false, false)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 6);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -155,13 +161,14 @@ export const guide: Guide = {
       ),
       target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           getDOMElement(guide, () => document.getElementById('advanced-creator-panel'))?.click();
           updateStepsTaken(guide.id, 7);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -181,12 +188,13 @@ export const guide: Guide = {
       ),
       target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 8);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);

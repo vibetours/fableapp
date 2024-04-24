@@ -8,11 +8,14 @@ export enum UserGuideMsg {
   RESET_KEY = 'fable-guide-reset-key'
 }
 
+export type UserGuideCustomPosition = 'bottom-left';
+
 export interface TourStepPropsWithElHotspotConfig extends TourStepProps {
   hotspot?: boolean;
   hideNavButtons?: boolean;
   hotspotTarget?: () => Element;
   width?: string;
+  customPosition?: UserGuideCustomPosition;
 }
 
 export interface Guide {

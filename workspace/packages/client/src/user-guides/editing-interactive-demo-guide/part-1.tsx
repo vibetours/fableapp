@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Tour from '../../component/user-guide-tour';
+import Tour, { NextBtnPropChildren, PrevBtnPropChildren } from '../../component/user-guide-tour';
 import {
   closeUserGuide,
   completeUserGuide,
@@ -24,35 +24,36 @@ export const guide: Guide = {
     {
       title: 'The auto-stitched flow of your interactive demo',
       description: 'Fable auto-magically stitches together the entire flow of your interactive demo based on the actions carried out by you at the time of capture and presents it in the canvas as shown.',
-      target: () => getDOMElement(guide, () => document.getElementById('fab-tour-canvas-main'))! as HTMLElement,
+      target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 1);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
         }
       },
       width: '25rem',
-      placement: 'bottom'
+      customPosition: 'bottom-left'
     },
     {
       title: 'Click on a screen to open up the annotation',
       description: 'When you click on an individual screen in the flow, you open up the annotation associated with it and will be able to make all the changes that you’d like.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('node').item(0) as HTMLElement)!,
       nextButtonProps: {
-        children: 'Next',
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 2);
           window.parent.postMessage({ type: UserGuideMsg.OPEN_ANNOTATION }, '*');
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -85,10 +86,8 @@ function EditingInteractiveDemoGuidePart1(props: GuideProps): JSX.Element {
           onClick() {
             window.parent.postMessage({ type: UserGuideMsg.RESET_ZOOM }, '*');
             setShowIntroCard(false);
-            setTimeout(() => {
-              setStartTour(true);
-              hotspotManager.updateHotspot(0);
-            }, 1500);
+            setStartTour(true);
+            hotspotManager.updateHotspot(0);
           },
         }}
         rejectButtonProps={{

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Tour from '../component/user-guide-tour';
+import Tour, { NextBtnPropChildren, PrevBtnPropChildren } from '../component/user-guide-tour';
 import {
   closeUserGuide,
   completeUserGuide,
@@ -25,21 +25,22 @@ export const guide: Guide = {
     {
       title: 'The auto-stitched flow of your interactive demo',
       description: 'Fable auto-magically stitches together the entire flow of your interactive demo based on the actions carried out by you at the time of capture and presents it in the canvas as shown.',
-      target: () => getDOMElement(guide, () => document.getElementById('fab-tour-canvas-main'))! as HTMLElement,
+      target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 1);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
         }
       },
       width: '20rem',
-      placement: 'bottom'
+      customPosition: 'bottom-left'
     },
     {
       title: 'Drag annotation to reorder',
@@ -53,12 +54,13 @@ export const guide: Guide = {
       ),
       target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 2);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -71,12 +73,13 @@ export const guide: Guide = {
       description: 'You can add an existing screen that was captured as a part of a different interactive demo or upload an image to add it to this interactive demo.',
       target: () => getDOMElement(guide, () => document.getElementById('new-screen-btn'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 4);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -95,12 +98,13 @@ export const guide: Guide = {
       ),
       target: () => getDOMElement(guide, () => document.getElementById('loader-btn'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 5);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -114,12 +118,13 @@ export const guide: Guide = {
       description: 'When you have multiple flows within the same interactive demo to showcase different modules, you can use the module feature so that your buyers can navigate between different flows/modules very easily. Think of it like the index of a book where there are multiple chapters. 😉',
       target: () => getDOMElement(guide, () => document.getElementById('journey-btn'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 6);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);

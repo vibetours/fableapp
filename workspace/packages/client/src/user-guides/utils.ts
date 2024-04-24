@@ -1,6 +1,13 @@
 /* eslint-disable class-methods-use-this */
 import { sentryCaptureException } from '@fable/common/dist/sentry';
-import { Guide, GuideInfo, GuideProps, TourStepPropsWithElHotspotConfig, USER_GUIDE_LOCAL_STORE_KEY } from './types';
+import {
+  Guide,
+  GuideInfo,
+  GuideProps,
+  TourStepPropsWithElHotspotConfig,
+  USER_GUIDE_LOCAL_STORE_KEY,
+  UserGuideCustomPosition
+} from './types';
 import { insertAllUserGuides } from '.';
 
 export interface LocalStoreUserGuideProps {
@@ -315,6 +322,35 @@ export class UserGuideHotspotManager {
     }, this.POLL_INTERVAL);
   };
 
+  applyCustomPosition = (customPosition: UserGuideCustomPosition): void => {
+    let timeElapsed = 0;
+    const intervalId = setInterval(() => {
+      const guideCard = document.getElementsByClassName('ant-tour').item(0) as HTMLElement;
+
+      timeElapsed += this.POLL_INTERVAL;
+
+      if (guideCard) {
+        setTimeout(() => {
+          const guideCardRect = guideCard.getBoundingClientRect();
+          switch (customPosition) {
+            case 'bottom-left':
+              guideCard.style.setProperty(
+                'transform',
+                `translate(-${guideCardRect.x - 16}px, ${window.innerHeight - (guideCardRect.top + guideCardRect.height) - 16}px)`,
+                'important'
+              );
+
+              break;
+            default:
+              break;
+          }
+        }, 250);
+      }
+
+      if (timeElapsed > this.POLL_DURATION || guideCard) clearInterval(intervalId);
+    }, this.POLL_INTERVAL);
+  };
+
   cleanupHotspot = (): void => {
     if (this.hotspotEl) this.removeHotspot(this.hotspotEl!);
   };
@@ -340,5 +376,6 @@ export class UserGuideHotspotManager {
     }
 
     this.applyWidth(currentStep.width || this.DEFAULT_WIDTH);
+    if (currentStep.customPosition) this.applyCustomPosition(currentStep.customPosition);
   }
 }

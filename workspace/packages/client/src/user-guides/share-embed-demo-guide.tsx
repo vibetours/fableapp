@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Tour from '../component/user-guide-tour';
+import Tour, { NextBtnPropChildren, PrevBtnPropChildren } from '../component/user-guide-tour';
 import {
   closeUserGuide,
   completeUserGuide,
@@ -25,33 +25,35 @@ export const guide: Guide = {
     {
       title: 'The final flow of your interactive demo',
       description: 'After you have made all the edits to your demo, you can see the entire flow in the canvas.',
-      target: () => getDOMElement(guide, () => document.getElementById('fab-tour-canvas-main') as HTMLElement)!,
+      target: null,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 1);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
         }
       },
       width: '20rem',
-      placement: 'bottom'
+      customPosition: 'bottom-left'
     },
     {
       title: 'Preview of an interactive demo',
       description: 'You can check the preview of the demo that you have created by clicking on the preview button. This essentially shows you the final output that your buyers will experience.',
       target: () => getDOMElement(guide, () => document.getElementById('step-1'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 2);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -64,13 +66,14 @@ export const guide: Guide = {
       description: 'The sharing options of your interactive demo can be accessed by clicking on the share button that you see in the top right corner of your canvas.',
       target: () => getDOMElement(guide, () => document.getElementById('step-2'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 3);
           emulateHotspotClick(document.getElementById('step-2')!);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -82,19 +85,21 @@ export const guide: Guide = {
       description: 'This is the embed code as well as the unique URL for the interactive demo that you have created. You can either embed it on a landing page or share it as a link with your buyer.',
       target: () => getDOMElement(guide, () => document.getElementsByClassName('ant-modal-content').item(0) as HTMLElement)!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 4);
           getDOMElement(guide, () => document.getElementsByClassName('ant-modal-close').item(0) as HTMLElement)?.click();
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
         }
       },
-      placement: 'right'
+      placement: 'right',
+      width: '14rem'
     },
   ]
 };

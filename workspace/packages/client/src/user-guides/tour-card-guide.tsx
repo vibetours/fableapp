@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
-import Tour from '../component/user-guide-tour';
-import { closeUserGuide, completeUserGuide, getDOMElement, skipUserGuide, updateStepsTaken, UserGuideHotspotManager } from './utils';
+import Tour, { NextBtnPropChildren, PrevBtnPropChildren } from '../component/user-guide-tour';
+import {
+  closeUserGuide,
+  completeUserGuide,
+  getDOMElement,
+  skipUserGuide,
+  updateStepsTaken,
+  UserGuideHotspotManager
+} from './utils';
 import { Guide, GuideInfo, GuideProps } from './types';
 import IntroCard from '../component/user-guide-tour/intro-card';
 import { useUserNickname } from '../hooks/useUserNickname';
@@ -19,12 +26,13 @@ export const guide: Guide = {
       description: 'You can check out the preview of the interactive demo that you have created by clicking on the preview button. This essentially shows you the final output that your buyers will experience.',
       target: () => getDOMElement(guide, () => document.getElementById('TG-1'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 1);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -36,12 +44,13 @@ export const guide: Guide = {
       description: 'You can dig into the analytics of the demo you have created by clicking on the analytics icon. You can find all the details of how an interactive demo has performed here.',
       target: () => getDOMElement(guide, () => document.getElementById('TG-2'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 2);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
@@ -53,12 +62,13 @@ export const guide: Guide = {
       description: 'You can rename, duplicate, or delete a demo by using the options available under this icon. These options will help you manage your library of interactive demos the way you want.',
       target: () => getDOMElement(guide, () => document.getElementById('TG-3'))!,
       nextButtonProps: {
+        children: <NextBtnPropChildren />,
         onClick() {
           updateStepsTaken(guide.id, 3);
         },
       },
       prevButtonProps: {
-        children: 'Skip guide',
+        children: <PrevBtnPropChildren />,
         onClick() {
           closeUserGuide();
           skipUserGuide(guide);
