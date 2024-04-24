@@ -2951,6 +2951,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     resetNewAnnPos={() => setNewAnnPos(null)}
                     onTourDataChange={props.onTourDataChange}
                     updateConnection={updateConnectionFromPannel}
+                    shouldCreateNewFlow
                   />
                   )
                 }
@@ -3020,6 +3021,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     resetNewAnnPos={() => setNewAnnPos(null)}
                     onTourDataChange={props.onTourDataChange}
                     updateConnection={updateConnectionFromPannel}
+                    shouldCreateNewFlow={false}
                   />
                 )
               }

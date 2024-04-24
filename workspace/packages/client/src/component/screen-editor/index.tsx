@@ -164,6 +164,7 @@ interface IOwnProps {
   resetNewAnnPos: ()=>void;
   onTourDataChange: TourDataChangeFn;
   updateConnection: (fromMain: string, toMain: string)=> void;
+  shouldCreateNewFlow: boolean;
 }
 
 const enum ElSelReqType {
@@ -782,7 +783,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   createNewDefaultAnnotation(id: string): IAnnotationConfig | null {
     let conf = null;
     const opts: ITourDataOpts = this.props.tourDataOpts;
-    if (this.props.allAnnotationsForScreen.length) {
+    if (this.props.allAnnotationsForScreen.length && !this.props.shouldCreateNewFlow) {
       const [destAnn, pos, shouldAddAnn] = this.findPositionToAddAnnotation();
       if (shouldAddAnn) {
         conf = addNewAnn(
@@ -812,7 +813,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   createNewCoverAnnotation(): void {
     let conf;
-    if (this.props.allAnnotationsForScreen.length) {
+    if (this.props.allAnnotationsForScreen.length && !this.props.shouldCreateNewFlow) {
       // check if position is present, if yes create new ann wrt that position
       const currentAnn = getAnnotationByRefId(this.props.toAnnotationId, this.props.allAnnotationsForTour);
 
