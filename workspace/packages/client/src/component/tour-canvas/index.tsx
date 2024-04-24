@@ -146,6 +146,10 @@ const canvasGrid: CanvasGrid = {
   }
 };
 
+const MODULE_TITLE_HEIGHT = 25;
+const MODULE_TITLE_PADDING = 5;
+const MODULE_EDITOR_TOP_GAP = MODULE_TITLE_HEIGHT + MODULE_TITLE_PADDING + 10;
+
 const ANN_NODE_HEIGHT_WIDTH_RATIO = 1.77765625;
 const ANN_NODE_WIDTH = canvasGrid.gridSize * 5;
 const ANN_NODE_HEIGHT = ANN_NODE_WIDTH / ANN_NODE_HEIGHT_WIDTH_RATIO;
@@ -1234,7 +1238,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         width: ANN_NODE_WIDTH,
         height: ANN_NODE_HEIGHT,
         gap: MULTI_ANN_NODE_GAP
-      }
+      },
+      props.journey,
     );
 
     if (nodesWithDims.length === 0 && !props.shouldShowOnlyScreen) {
@@ -1340,6 +1345,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     } = dagreAutoLayoutTimeline();
 
     const g = select(rootG);
+
+    showOrHideModuleTitle(true);
 
     const gBoundData = g
       .selectAll<SVGGElement, number>('g.connectors')
@@ -1493,7 +1500,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .enter()
       .append('g')
       .attr('class', 'node')
-      .style('filter', 'drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4))')
       .style('cursor', 'pointer')
       .on('mouseover', null)
       .on('mouseover', function () {
@@ -1542,6 +1548,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         // background rect which covers the entire annotation node
         p.append('rect')
           .attr('class', 'bg')
+          .style('filter', 'drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4))')
           .attr('rx', ANN_NODE_BORDER_RADIUS)
           .attr('ry', ANN_NODE_BORDER_RADIUS)
           .attr('x', '0')
@@ -1566,6 +1573,13 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
         p.append('foreignObject')
           .attr('class', 'ann-info')
+          .call(fo => {
+            fo.append('xhtml:p');
+          });
+
+        p
+          .append('foreignObject')
+          .attr('class', 'module-title')
           .call(fo => {
             fo.append('xhtml:p');
           });
@@ -1757,6 +1771,42 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .text(d => `${d.stepNumber.substring(0, 30)}${d.stepNumber.length > 30 ? '...' : ''}`);
           });
 
+        const moduleTextCon = p
+          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.module-title')
+          .data(p.data(), d => d.id);
+
+        moduleTextCon
+          .merge(moduleTextCon)
+          .style('display', (d) => (d.journeyTitle === undefined ? 'none' : 'block'))
+          .attr('width', '100%')
+          .attr('height', MODULE_TITLE_HEIGHT)
+          .attr('x', 0)
+          .attr('y', -(MODULE_TITLE_HEIGHT + MODULE_TITLE_PADDING))
+          .on('mousedown', e => prevent(e))
+          .on('mouseup', e => prevent(e))
+          .on('mouseover', e => prevent(e))
+          .call(fo => {
+            const moduleTitle = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .data(p.data(), d => d.id);
+
+            moduleTitle
+              .merge(moduleTitle)
+              .style('width', 'fit-content')
+              .style('margin', 0)
+              .style('padding', '0 0.5rem')
+              .style('border-radius', '4px')
+              .style('font-size', '16px')
+              .style('display', 'flex')
+              .style('align-items', 'center')
+              .style('justify-content', 'center')
+              .style('text-align', 'center')
+              .style('background', '#fedf64')
+              .style('box-shadow', '1px 1px 0px 0px #9E9E9E')
+              .style('color', 'black')
+              .style('cursor', 'default')
+              .text(d => `Module: ${d.journeyTitle}`);
+          });
+
         const annTextCon = p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
           .data(p.data(), d => d.id);
@@ -1803,6 +1853,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       .remove();
   }
 
+  function showOrHideModuleTitle(show: boolean): void {
+    const g = select(rootGRef.current!);
+    g
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('g.node')
+      .selectAll<SVGGElement, AnnotationNode<dagre.Node>>('foreignObject.module-title')
+      .style('display', (d) => ((show && d.journeyTitle !== undefined) ? 'block' : 'none'));
+  }
+
   function renderTimelineInSingleLine(timelineNodeY: number): void {
     const g = select(rootGRef.current!);
 
@@ -1823,6 +1881,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const multiNodeG = g.selectAll<SVGGElement, MultiAnnotationNode<dagre.Node>>('g.multi-node');
     const newMultiAnnGNodesWithPositions = multiNodeG.data();
 
+    showOrHideModuleTitle(false);
     const updatedMultiNodeGData = newMultiAnnGNodesWithPositions
       .map(node => {
         if (node.data.anns.find(a => a.annotation.grpId === timelineId)) {
@@ -2416,14 +2475,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     if (selectedMultiNodeData.size() === 0) return;
     const annCoords = selectedMultiNodeData.datum().storedData!;
     const timelineY = annCoords.y - annCoords.height / 2;
-    const newY = (-timelineY * ANN_EDITOR_ZOOM);
+    const newY = ((-timelineY + MODULE_EDITOR_TOP_GAP) * ANN_EDITOR_ZOOM);
 
     const nodeX = annCoords.x - annCoords.width;
     const newX = -(nodeX * ANN_EDITOR_ZOOM) + CREATE_JOURNEY_MODAL_WIDTH;
 
     const [currK] = zoomPanState.get();
     const translateXWithoutZoom = CREATE_JOURNEY_MODAL_WIDTH - (nodeX * currK!);
-    const translateYWithoutZoom = timelineY * currK!;
+    const translateYWithoutZoom = timelineY + MODULE_EDITOR_TOP_GAP * currK!;
     if (createJourneyModal) {
       const { x: zoomAfterAnnModalShownX, y: zoomAfterAnnModalShownY } = createJourneyModal.newSvgZoom;
       const startY = zoomAfterAnnModalShownY + annCoords.y * ANN_EDITOR_ZOOM - (annCoords.height * ANN_EDITOR_ZOOM) / 2;

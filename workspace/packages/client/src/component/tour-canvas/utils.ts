@@ -1,4 +1,4 @@
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, JourneyData } from '@fable/common/dist/types';
 import { AnnotationNode, Box, Point, MultiAnnotationNode, GroupedAnns, GroupEdge } from './types';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen, Timeline } from '../../types';
 import { getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
@@ -26,11 +26,15 @@ function getGroupedAnnNodesFromAnnNodeBoxArr(timeline: Timeline): GroupedAnns[] 
 
 export function getMultiAnnNodesAndEdges(
   data: Timeline,
-  dim: {width: number, height: number, gap: number}
+  dim: {width: number, height: number, gap: number},
+  journey: JourneyData,
 ): [MultiAnnotationNode<Box>[], GroupEdge[]] {
   const groupedAnnNodes = getGroupedAnnNodesFromAnnNodeBoxArr(data);
   const multiAnnNodes: MultiAnnotationNode<Box>[] = [];
   const edges: GroupEdge[] = [];
+
+  const annIdJourneyMap: Record<string, string> = {};
+  journey.flows.forEach(flow => annIdJourneyMap[flow.main] = flow.header1);
 
   groupedAnnNodes.forEach((group, groupIdx) => {
     const annsWithNewDims: AnnotationNode<Box>[] = group.anns.map((annotation, annIdx) => {
@@ -70,6 +74,7 @@ export function getMultiAnnNodesAndEdges(
         y: newY,
         storedData: dimData,
         origStoredData: dimData,
+        journeyTitle: annIdJourneyMap[annId],
         sameMultiAnnGroupAnnRids: group
           .anns
           .filter(ann => ann.refId !== annotation.refId)

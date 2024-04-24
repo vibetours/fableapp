@@ -12,6 +12,7 @@ export interface AnnotationNode<T> extends CanvasNode {
   origStoredData: T;
   sameMultiAnnGroupAnnRids?: string[],
   annotation: IAnnotationConfigWithScreen;
+  journeyTitle?: string;
 }
 
 export interface GroupedAnns {
