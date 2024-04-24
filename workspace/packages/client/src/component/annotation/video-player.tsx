@@ -2,6 +2,7 @@ import React, { RefObject, ReactElement } from 'react';
 import Hls from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
+  ArrowLeftOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
@@ -299,9 +300,12 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               >
                 {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                   <Tags.ABtn
+                    style={{
+                      border: btnConf.type === 'prev' ? 'none' : '',
+                      background: btnConf.type === 'prev' ? '#00000040' : ''
+                    }}
                     bg={generateShadeColor(this.props.conf.opts.primaryColor,)}
                     idx={idx}
-                    style={{ visibility: btnConf.type === 'next' ? 'visible' : 'hidden' }}
                     key={btnConf.id}
                     btnStyle={btnConf.style}
                     color={this.props.conf.opts.primaryColor}
@@ -318,7 +322,8 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                         raiseDeferredError(new Error('Custom button for video is not implemented'));
                       }
                     }}
-                  > {btnConf.text}
+                  >
+                    { btnConf.type === 'next' ? btnConf.text : <ArrowLeftOutlined />}
                   </Tags.ABtn>
                 ))}
               </Tags.NavButtonCon>

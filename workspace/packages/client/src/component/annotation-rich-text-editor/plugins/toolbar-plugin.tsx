@@ -36,9 +36,10 @@ import {
   EditOutlined,
   FontSizeOutlined,
   DownOutlined,
-  FormOutlined
+  FormOutlined,
+  LineHeightOutlined
 } from '@ant-design/icons';
-import { Dropdown, Select } from 'antd';
+import { Dropdown, Popover, Select } from 'antd';
 import { AnnotationFontSize } from '@fable/common/dist/types';
 import { BorderedModal } from '../../../common-styled';
 import Input from '../../input';
@@ -326,78 +327,95 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
 
   return (
     <div className="toolbar" ref={toolbarRef}>
-      <button
-        type="button"
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
-        }}
-        className={`toolbar-item spaced ${isBold ? 'active' : ''}`}
-        aria-label="Format Bold"
-      >
-        <BoldOutlined className="format" />
-      </button>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <Popover
+          trigger="click"
+          content={(
+            <div style={{ display: 'flex' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
+                }}
+                className={`toolbar-item ${isBold ? 'active' : ''}`}
+                aria-label="Format Bold"
+              >
+                <BoldOutlined className="format" />
+              </button>
 
-      <Dropdown
-        menu={{
-          onClick: (e) => handleDropdownItemClick(`${e.key}px`),
-          items: fontSizeOptions,
-        }}
-        trigger={['click']}
-      >
-        <button type="button" className="toolbar-item spaced " onClick={e => e.preventDefault()}>
-          <FontSizeOutlined /> <DownOutlined className="down-outline" />
+              <Dropdown
+                menu={{
+                  onClick: (e) => handleDropdownItemClick(`${e.key}px`),
+                  items: fontSizeOptions,
+                }}
+                trigger={['click']}
+              >
+                <button type="button" className="toolbar-item" onClick={e => e.preventDefault()}>
+                  <FontSizeOutlined /> <DownOutlined className="down-outline" />
+                </button>
+              </Dropdown>
+
+              <button
+                type="button"
+                onClick={() => {
+                  editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
+                }}
+                className={`toolbar-item ${isItalic ? 'active' : ''}`}
+                aria-label="Format Italics"
+              >
+                <ItalicOutlined className="format" />
+              </button>
+
+              <Select
+                bordered={false}
+                value={alignment}
+                onChange={(value) => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value)}
+                options={[
+                  { value: 'left', label: <AlignLeftOutlined className="format" /> },
+                  { value: 'center', label: <AlignCenterOutlined className="format" /> },
+                  { value: 'right', label: <AlignRightOutlined className="format" /> },
+                ]}
+              />
+            </div>
+        )}
+        >
+          <button
+            type="button"
+            className="toolbar-item "
+            aria-label="Text Options"
+          >
+            <LineHeightOutlined />
+          </button>
+        </Popover>
+
+        <button
+          type="button"
+          onClick={insertLink}
+          className={`toolbar-item ${isLink ? 'active' : ''}`}
+          aria-label="Insert Link"
+        >
+          <LinkOutlined className="format" />
         </button>
-      </Dropdown>
 
-      <button
-        type="button"
-        onClick={() => {
-          editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
-        }}
-        className={`toolbar-item spaced ${isItalic ? 'active' : ''}`}
-        aria-label="Format Italics"
-      >
-        <ItalicOutlined className="format" />
-      </button>
+        {isLink && createPortal(<FloatingLinkEditor editor={editor} />, document.body)}
 
-      <button
-        type="button"
-        onClick={insertLink}
-        className={`toolbar-item spaced ${isLink ? 'active' : ''}`}
-        aria-label="Insert Link"
-      >
-        <LinkOutlined className="format" />
-      </button>
-
-      {isLink && createPortal(<FloatingLinkEditor editor={editor} />, document.body)}
-
-      <Select
-        bordered={false}
-        value={alignment}
-        onChange={(value) => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, value)}
-        options={[
-          { value: 'left', label: <AlignLeftOutlined className="format" /> },
-          { value: 'center', label: <AlignCenterOutlined className="format" /> },
-          { value: 'right', label: <AlignRightOutlined className="format" /> },
-        ]}
-      />
-
-      <button
-        type="button"
-        onClick={() => modalControls.showModal()}
-        className="toolbar-item spaced"
-        aria-label="Image Upload"
-      >
-        <PictureOutlined className="format" />
-      </button>
+        <button
+          type="button"
+          onClick={() => modalControls.showModal()}
+          className="toolbar-item"
+          aria-label="Image Upload"
+        >
+          <PictureOutlined className="format" />
+        </button>
+      </div>
 
       <button
         type="button"
         onClick={() => editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')}
-        className="toolbar-item spaced"
+        className="toolbar-item"
         aria-label="Lead Form"
       >
-        @
+        <FormOutlined /> &nbsp; Lead Form
       </button>
     </div>
   );

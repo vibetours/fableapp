@@ -136,10 +136,10 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                       <ArrowRightOutlined /> If you have made a payment it might take couple of minutes to upadate the subscription information.
                                     </p>
                                     <p>
-                                      <ArrowRightOutlined /> If your payment fails, you would receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
+                                      <ArrowRightOutlined /> If your payment fails, you will receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
                                     </p>
                                     <p>
-                                      <ArrowRightOutlined /> Your invoice and transaction information would be emailed to you and would appear in this page soon.
+                                      <ArrowRightOutlined /> Your invoice and transaction information will be emailed to you and will appear in this page soon.
                                     </p>
                                     <p>
                                       <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a>
@@ -169,7 +169,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                       }}
                     >
                       <InfoCircleOutlined /> &nbsp;
-                      Your payment's invoice would  be mailed to you. Invoices would appear here soon.
+                      Your payment's invoice will  be mailed to you. Invoices will appear here soon.
                     </span>
                   </div>
                   <div style={{
