@@ -1,4 +1,4 @@
-import { Select, Slider, InputNumber, Input, Switch } from 'antd';
+import { Slider, InputNumber, Input, Switch, Collapse } from 'antd';
 import styled from 'styled-components';
 
 export const EditPanelSec = styled.div`
@@ -161,6 +161,14 @@ export const CreateNewAnnotationBtn = styled.div`
   justify-content: center;
   flex-direction: column;
   gap: 8px;
+  opacity: 1;
+  animation: fade 1s ease;
+
+  @keyframes fade{
+    0%{opacity: 0;}
+    25%{opacity: 0;}
+    100%{opacity: 1;}
+  }
 
   p {
     text-align: center;
@@ -184,6 +192,25 @@ export const AnnotationBtnCtn = styled.div`
   justify-content: center;
   gap: 16px;
   margin-top: 8px;
+  position: absolute;
+  left: 0;
+  right: 0;
+`;
+
+export const AnnotationPanelCollapse = styled(Collapse)`
+  border-radius: 4px;
+  margin-top: 1.5rem;
+  border-top: 1px solid rgb(221, 221, 221);
+  border-bottom: 1px solid rgb(221, 221, 221);
+  z-index: 1;
+  
+  .ant-collapse-header {
+    padding: 0.75rem 0 0 0 !important;
+  }
+
+  .ant-collapse-content-box {
+    padding: 0 0 0.75rem 0 !important;
+  }
 `;
 
 export const InfoText = styled.p`
@@ -231,6 +258,14 @@ export const ActionPanel = styled.div<{ gutter: boolean }>`
   padding: ${props => (props.gutter ? '0.75rem 1.5rem 0.75rem' : '0.75rem 1rem 0.75rem')};
   border-bottom: 1px solid #dddddd;
   cursor: pointer;
+
+  .ant-collapse-header {
+    padding: 8px 12px !important;
+  }
+
+  .ant-collapse-content-box {
+    padding: 4px 12px 12px 12px !important;
+  }
 `;
 
 export const ActionPanelTitleCon = styled.div`
@@ -467,7 +502,6 @@ export const AnotCrtPanelSecLabel = styled.div`
 `;
 
 export const AnnDisplayText = styled.div`
-  color: #212121;
   display: flex;
   flex-direction: column;
   width: calc(100% - 2rem);

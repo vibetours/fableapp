@@ -19,7 +19,7 @@ import {
   ScreenData
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
-import { Modal, Switch, Tooltip } from 'antd';
+import { Collapse, Modal, Switch, Tooltip } from 'antd';
 import React from 'react';
 import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -1458,7 +1458,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     }}
                     className="t1"
                   >
-                    <div style={{ paddingTop: '1rem' }}>
+                    <div style={{ paddingTop: '1rem', position: 'relative' }}>
                       <div>
                         <div style={{ position: 'relative', overflow: 'hidden' }}>
                           <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
@@ -1504,110 +1504,127 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
                     {
                     this.props.toAnnotationId && configOfParamsAnnId && (
-                      <Tags.AnnotationLI
-                        className="fable-li"
+                      <Tags.AnnotationPanelCollapse
+                        size="small"
+                        bordered={false}
                         style={{
-                          paddingBottom: '0.25rem',
-                          opacity: 1,
-                          width: '100%',
-                          marginTop: '1rem',
+                          backgroundColor: showAnnCreatorPanel ? 'white' : '#616161',
+                          transition: showAnnCreatorPanel ? 'none' : 'background-color 3s ease',
+                          padding: 0,
                         }}
-                      >
-                        <Tags.AnotCrtPanelSecLabel
-                          className="fable-label"
-                          style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}
-                          onClick={() => {
-                            if (this.state.selectedAnnotationId) {
-                              this.resetSelectedAnnotation();
-                              this.goToSelectionMode()();
-                            } else {
-                              this.setState({ selectedAnnotationId: this.props.toAnnotationId });
-                            }
-                          }}
-                        >
-                          <Tags.AnnDisplayText className="typ-reg">
-                            <span className="steps">
-                              {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
-                              <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
-                                <HomeOutlined style={{ background: 'none' }} />&nbsp;
-                              </Tooltip>
-                              )}
-                              Step {configOfParamsAnnId.stepNumber}
-                            </span>
-                          </Tags.AnnDisplayText>
-                          {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
+                        activeKey={showAnnCreatorPanel ? '1' : ''}
+                        defaultActiveKey="1"
+                        onChange={selectedItems => {
+                          const isAnnSelected = selectedItems.length > 0;
+                          if (isAnnSelected) {
+                            this.setState({ selectedAnnotationId: this.props.toAnnotationId });
+                          } else {
+                            this.resetSelectedAnnotation();
+                            this.goToSelectionMode()();
+                          }
+                        }}
+                        items={[
                           {
-                            showAnnCreatorPanel ? (
-                              <CaretOutlined dir="down" />
-                            ) : (
-                              <CaretOutlined dir="up" />
+                            key: '1',
+                            showArrow: false,
+                            label: (
+                              <Tags.AnotCrtPanelSecLabel
+                                className="fable-label"
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  marginBottom: '0.5rem',
+                                }}
+                              >
+                                <Tags.AnnDisplayText
+                                  className="typ-reg"
+                                  style={{
+                                    color: showAnnCreatorPanel ? '#212121' : 'white',
+                                    transition: showAnnCreatorPanel ? 'none' : 'color 0.5s ease',
+                                  }}
+                                >
+                                  <span className="steps">
+                                    {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
+                                    <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
+                                      <HomeOutlined style={{ background: 'none' }} />&nbsp;
+                                    </Tooltip>
+                                    )}
+                                    Step {configOfParamsAnnId.stepNumber}
+                                  </span>
+                                </Tags.AnnDisplayText>
+                                {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
+                                {
+                                  showAnnCreatorPanel ? (
+                                    <CaretOutlined dir="down" color={showAnnCreatorPanel ? '' : 'white'} />
+                                  ) : (
+                                    <CaretOutlined dir="up" color={showAnnCreatorPanel ? '' : 'white'} />
+                                  )
+                                }
+                              </Tags.AnotCrtPanelSecLabel>
+                            ),
+                            children: (
+                              <>
+                                <AnnotationCreatorPanel
+                                  setShowPaymentModal={this.props.setShowPaymentModal}
+                                  subs={this.props.subs}
+                                  setAlertMsg={this.props.setAlert}
+                                  opts={this.props.tourDataOpts}
+                                  selectedEl={this.state.selectedEl}
+                                  busy={!this.props.isScreenLoaded}
+                                  allAnnotationsForTour={this.props.allAnnotationsForTour}
+                                  screen={this.props.screen}
+                                  onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
+                                  config={configOfParamsAnnId}
+                                  tour={this.props.tour}
+                                  applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
+                                  selectedHotspotEl={this.state.selectedHotspotEl}
+                                  selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
+                                  selectedAnnotationCoords={this.state.selectedAnnotationCoords}
+                                  setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
+                                    this.setState({ selectionMode: mode });
+                                  }}
+                                  domElPicker={this.iframeElManager}
+                                  onConfigChange={async (conf, actionType, opts) => {
+                                    if (actionType === 'upsert') {
+                                      this.setState({ selectedAnnotationId: conf.refId });
+                                    }
+                                    this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                                  }}
+                                  onDeleteAnnotation={(deletedAnnRid: string) => {
+                                    this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
+                                  }}
+                                  resetSelectedAnnotationElements={() => {
+                                    this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
+                                  }}
+                                  timeline={this.props.timeline}
+                                  onTourDataChange={this.props.onTourDataChange}
+                                  commitTx={this.props.commitTx}
+                                  getConnectableAnnotations={(refId, btnType) => {
+                                    const connectableAnnotations: IAnnotationConfigWithScreen[] = [];
+                                    if (btnType === 'next') {
+                                      this.props.timeline.forEach((flow) => {
+                                        if (flow[flow.length - 1].refId !== refId) {
+                                          connectableAnnotations.push(flow[0]);
+                                        }
+                                      });
+                                    }
+                                    if (btnType === 'prev') {
+                                      this.props.timeline.forEach((flow) => {
+                                        if (flow[0].refId !== refId) {
+                                          connectableAnnotations.push(flow[flow.length - 1]);
+                                        }
+                                      });
+                                    }
+                                    return connectableAnnotations;
+                                  }}
+                                  updateConnection={this.props.updateConnection}
+                                />
+                                <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
+                              </>
                             )
                           }
-                        </Tags.AnotCrtPanelSecLabel>
-                        {
-                           showAnnCreatorPanel && (
-                           <>
-                             <AnnotationCreatorPanel
-                               setShowPaymentModal={this.props.setShowPaymentModal}
-                               subs={this.props.subs}
-                               setAlertMsg={this.props.setAlert}
-                               opts={this.props.tourDataOpts}
-                               selectedEl={this.state.selectedEl}
-                               busy={!this.props.isScreenLoaded}
-                               allAnnotationsForTour={this.props.allAnnotationsForTour}
-                               screen={this.props.screen}
-                               onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
-                               config={configOfParamsAnnId}
-                               tour={this.props.tour}
-                               applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
-                               selectedHotspotEl={this.state.selectedHotspotEl}
-                               selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
-                               selectedAnnotationCoords={this.state.selectedAnnotationCoords}
-                               setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
-                                 this.setState({ selectionMode: mode });
-                               }}
-                               domElPicker={this.iframeElManager}
-                               onConfigChange={async (conf, actionType, opts) => {
-                                 if (actionType === 'upsert') {
-                                   this.setState({ selectedAnnotationId: conf.refId });
-                                 }
-                                 this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
-                               }}
-                               onDeleteAnnotation={(deletedAnnRid: string) => {
-                                 this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
-                               }}
-                               resetSelectedAnnotationElements={() => {
-                                 this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
-                               }}
-                               timeline={this.props.timeline}
-                               onTourDataChange={this.props.onTourDataChange}
-                               commitTx={this.props.commitTx}
-                               getConnectableAnnotations={(refId, btnType) => {
-                                 const connectableAnnotations: IAnnotationConfigWithScreen[] = [];
-                                 if (btnType === 'next') {
-                                   this.props.timeline.forEach((flow) => {
-                                     if (flow[flow.length - 1].refId !== refId) {
-                                       connectableAnnotations.push(flow[0]);
-                                     }
-                                   });
-                                 }
-                                 if (btnType === 'prev') {
-                                   this.props.timeline.forEach((flow) => {
-                                     if (flow[0].refId !== refId) {
-                                       connectableAnnotations.push(flow[flow.length - 1]);
-                                     }
-                                   });
-                                 }
-                                 return connectableAnnotations;
-                               }}
-                               updateConnection={this.props.updateConnection}
-                             />
-                             <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
-                           </>
-                           )
-                        }
-
-                      </Tags.AnnotationLI>
+                        ]}
+                      />
                     )
                   }
                   </div>

@@ -1,7 +1,8 @@
 import React from 'react';
 
 interface Props {
-    dir: 'up' | 'down'
+    dir: 'up' | 'down';
+    color?: string;
 }
 
 function CaretOutlined(props: Props): JSX.Element {
@@ -14,7 +15,13 @@ function CaretOutlined(props: Props): JSX.Element {
       fill="none"
       style={{ transform: `${props.dir === 'up' ? 'rotate(180deg)' : 'none'}` }}
     >
-      <path d="M13 1L7 7L1 1" stroke="#16023E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M13 1L7 7L1 1"
+        stroke={props.color || '#16023E'}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
