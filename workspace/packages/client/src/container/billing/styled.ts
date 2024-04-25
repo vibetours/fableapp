@@ -55,6 +55,8 @@ export const FeatTitle = styled.div`
 export const FeatList = styled.ul`
   list-style-type: none;
   padding: 0;
+  max-height: 280px;
+  overflow: scroll;
 
   & > li:not(:last-child) {
     margin-bottom: 0.4rem;
@@ -65,4 +67,26 @@ export const FeatCon = styled.div`
   margin-top: 1rem;
   filter: saturate(0.5);
   opacity: 0.8;
+
+  &:after {
+    content: '↓ Scroll for more';
+    font-size: 12px;
+    color: #757575;
+  }
+`;
+
+export const ABtn = styled.a`
+  text-decoration: none;
+  color: black;
+  background: rgb(255, 188, 0);
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background 0.3s ease-out;
+  flex: 0 1 auto;
+
+  &:hover {
+    background: rgb(255, 238, 78);
+  }
 `;

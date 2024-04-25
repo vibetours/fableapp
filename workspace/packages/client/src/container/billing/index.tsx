@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Plan, RespUser } from '@fable/common/dist/api-contract';
+import { Interval, Plan, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
@@ -17,7 +17,7 @@ import { P_RespSubscription } from '../../entity-processor';
 import { checkout } from '../../action/creator';
 import * as Tags from './styled';
 import Button from '../../component/button';
-import { IPriceDetails, PriceDetailsData } from './plans';
+import { IPriceDetails, LifetimePriceDetailsData, PriceDetailsData } from './plans';
 import TopLoader from '../../component/loader/top-loader';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TOP_LOADER_DURATION } from '../../constants';
@@ -30,8 +30,17 @@ interface IDispatchProps {
   checkout: typeof checkout
 }
 
+const appsumoPricingMap = {
+  1: 49,
+  2: 119,
+  3: 249
+};
+
 const mapDispatchToProps = (dispatch: any) => ({
-  checkout: (chosenPlan: 'solo' | 'startup' | 'business', chosenInterval: 'annual' | 'monthly') => dispatch(checkout(chosenPlan, chosenInterval)),
+  checkout: (
+    chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
+    chosenInterval: 'annual' | 'monthly' | 'lifetime',
+  ) => dispatch(checkout(chosenPlan, chosenInterval)),
 });
 
 interface IAppStateProps {
@@ -77,12 +86,22 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
       : 'priceMonthly';
     let isSameInterval = false;
     let currentPlan = '';
+    let tier = '';
+    let isLifetimePlan = false;
     if (this.props.subs) {
+      isLifetimePlan = this.props.subs.paymentInterval === Interval.LIFETIME;
       isSameInterval = this.props.subs.paymentInterval === this.state.tabSelected.toUpperCase();
       currentPlan = this.props.subs.paymentPlan === Plan.STARTUP ? 'startup' : (this.props.subs.paymentPlan === Plan.SOLO ? 'solo' : 'business');
+
+      if (isLifetimePlan) {
+        tier = this.props.subs.paymentPlan.at(-1) || '';
+      }
     }
     return (
-      <GTags.ColCon>
+      <GTags.ColCon style={{
+        background: isLifetimePlan ? '#fbf6ff' : undefined
+      }}
+      >
         {this.props.loadingState === 'loading' && <TopLoader duration={TOP_LOADER_DURATION} showLogo={false} showOverlay />}
         <div style={{ height: '48px' }}>
           <Header
@@ -100,77 +119,135 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }}>
               {this.props.subs ? (
                 <div style={{
-                  margin: '1rem',
                   display: 'flex',
                   flexDirection: 'column',
                   width: '100%'
                 }}
                 >
-                  <div style={{ maxWidth: '43.5rem' }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                    >
-                      <Tags.Heading style={{ fontWeight: 400 }}>Upgrade / Downgrade Plan</Tags.Heading>
-                      <Button
-                        icon={<CreditCardFilled />}
-                        iconPlacement="left"
-                        onClick={() => {
-                          const cbInstance = Chargebee.getInstance();
-                          cbInstance.openCheckout({
-                            hostedPage() {
-                              return api('/genchckouturl', {
-                                method: 'POST'
-                              });
-                            },
-                            loaded() { },
-                            error(e: Error) { raiseDeferredError(e); },
-                            close() {
-                              confirm({
-                                title: 'Billing Information',
-                                content: (
-                                  <div>
-                                    <p>
-                                      <ArrowRightOutlined /> If you have made a payment it might take couple of minutes to upadate the subscription information.
-                                    </p>
-                                    <p>
-                                      <ArrowRightOutlined /> If your payment fails, you will receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
-                                    </p>
-                                    <p>
-                                      <ArrowRightOutlined /> Your invoice and transaction information will be emailed to you and will appear in this page soon.
-                                    </p>
-                                    <p>
-                                      <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a>
-                                    </p>
-                                  </div>
-                                ),
-                                icon: <InfoCircleOutlined />,
-                                onOk() { },
-                                onCancel() { },
-                                okType: 'primary'
-                              });
-                            },
-                            success() { },
-                            step() { }
-                          });
-                        }}
+                  {isLifetimePlan && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '3rem 0 3rem',
+                    margin: '0 0 3rem',
+                    borderBottom: '1px solid #eaeaea',
+                    background: 'white'
+                  }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                      <div className="typ-h1">You are on Fable's Lifetime plan</div>
+                      <div className="typ-reg">You can upgrade / downgrade Fable directly from AppSumo</div>
+                      <Tags.ABtn href="https://appsumo.com/products/fable" className="typ-btn" target="_blank">
+                        View listing
+                      </Tags.ABtn>
+                      <Tags.PriceCon style={{
+                        marginTop: '1rem'
+                      }}
                       >
-                        Make Payment
-                      </Button>
+                        {LifetimePriceDetailsData.map((plan: IPriceDetails) => (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                            }}
+                            key={plan.id}
+                          >
+                            <div style={{
+                              fontWeight: 400,
+                              fontSize: '2rem'
+                            }}
+                            >{plan.planName}
+                              {plan.id === +tier && (
+                              <span style={{
+                                background: 'rgb(255, 238, 78)',
+                                border: '2px solid rgb(255, 188, 0)',
+                                padding: '1px 10px',
+                                marginLeft: '0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '12px'
+                              }}
+                              >
+                                Active
+                              </span>
+                              )}
+                            </div>
+                            <Tags.PlanPrice>${plan.priceLifetime}</Tags.PlanPrice>
+                            <Tags.FeatCon>
+                              <Tags.FeatTitle>
+                                {plan.featTitle}
+                              </Tags.FeatTitle>
+                              <Tags.FeatList>
+                                {plan.featList.map((f, i) => (
+                                  <li key={i}>
+                                    <HeartFilled style={{ color: '#7567FF', marginRight: '0.5rem' }} /> {f.feat}
+                                  </li>
+                                ))}
+                              </Tags.FeatList>
+                            </Tags.FeatCon>
+                          </div>
+                        ))}
+                      </Tags.PriceCon>
                     </div>
                   </div>
-                  <div style={{ margin: '1rem 0 3rem' }}>
-                    <span
-                      style={{
-                        fontSize: '0.85rem',
-                        fontStyle: 'italic',
+                  )}
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: `${isLifetimePlan ? 0 : '3rem'} 0 3rem`,
+                    gap: '1rem'
+                  }}
+                  >
+                    <div className="typ-h1">
+                      {isLifetimePlan ? 'Subscribe to our SaaS plans' : 'Upgrade / Downgrade Plan'}
+                    </div>
+                    <Button
+                      icon={<CreditCardFilled />}
+                      iconPlacement="left"
+                      onClick={() => {
+                        const cbInstance = Chargebee.getInstance();
+                        cbInstance.openCheckout({
+                          hostedPage() {
+                            return api('/genchckouturl', {
+                              method: 'POST'
+                            });
+                          },
+                          loaded() { },
+                          error(e: Error) { raiseDeferredError(e); },
+                          close() {
+                            confirm({
+                              title: 'Billing Information',
+                              content: (
+                                <div>
+                                  <p>
+                                    <ArrowRightOutlined /> If you have made a payment it might take couple of minutes to upadate the subscription information.
+                                  </p>
+                                  <p>
+                                    <ArrowRightOutlined /> If your payment fails, you will receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
+                                  </p>
+                                  <p>
+                                    <ArrowRightOutlined /> Your invoice and transaction information will be emailed to you and will appear in this page soon.
+                                  </p>
+                                  <p>
+                                    <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a>
+                                  </p>
+                                </div>
+                              ),
+                              icon: <InfoCircleOutlined />,
+                              onOk() { },
+                              onCancel() { },
+                              okType: 'primary'
+                            });
+                          },
+                          success() { },
+                          step() { }
+                        });
                       }}
                     >
-                      <InfoCircleOutlined /> &nbsp;
-                      Your payment's invoice will  be mailed to you. Invoices will appear here soon.
-                    </span>
+                      Make Payment
+                    </Button>
                   </div>
                   <div style={{
                     display: 'flex',

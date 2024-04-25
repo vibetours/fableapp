@@ -1,6 +1,6 @@
 import React from 'react';
 import { ThunderboltOutlined } from '@ant-design/icons';
-import { Plan, Status } from '@fable/common/dist/api-contract';
+import { Interval, Plan, Status } from '@fable/common/dist/api-contract';
 import * as Tags from './styled';
 import { P_RespSubscription } from '../../entity-processor';
 
@@ -23,6 +23,16 @@ const getPlanBadgeText = (subs: P_RespSubscription) : badgeText => {
     type: 'warn',
     hide: false
   };
+
+  if (subs.paymentInterval === Interval.LIFETIME) {
+    const tier = +(subs.paymentPlan.at(-1) || '1');
+    return {
+      title: `License Tier ${tier}`,
+      subTitle: tier < 3 ? 'Upgrade license' : '',
+      type: tier < 3 ? 'warn' : 'normal',
+      hide: false
+    };
+  }
 
   if (subs.paymentPlan === Plan.SOLO) {
     badgeText.title = 'Upgrade now';

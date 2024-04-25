@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-04-12 10:13:19.
+// Generated using typescript-generator version 2.35.1025 on 2024-04-24 05:56:40.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -239,6 +239,7 @@ export interface ReqScreenTour {
 export interface ReqSubscriptionInfo {
     pricingPlan: Plan;
     pricingInterval: Interval;
+    lifetimeLicense?: string;
 }
 
 export interface ReqThumbnailCreation {
@@ -623,11 +624,15 @@ export const enum Plan {
     SOLO = "SOLO",
     STARTUP = "STARTUP",
     BUSINESS = "BUSINESS",
+    LIFETIME_TIER1 = "LIFETIME_TIER1",
+    LIFETIME_TIER2 = "LIFETIME_TIER2",
+    LIFETIME_TIER3 = "LIFETIME_TIER3",
 }
 
 export const enum Interval {
     MONTHLY = "MONTHLY",
     YEARLY = "YEARLY",
+    LIFETIME = "LIFETIME",
 }
 
 export const enum Status {

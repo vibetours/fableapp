@@ -228,7 +228,11 @@ export interface TSubs {
   subs: P_RespSubscription;
 }
 
-export function checkout(chosenPlan: 'solo' | 'startup' | 'business', chosenInterval: 'annual' | 'monthly') {
+export function checkout(
+  chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
+  chosenInterval: 'annual' | 'monthly' | 'lifetime',
+  license?: string,
+) {
   return async (dispatch: Dispatch<TSubs>, getState: () => TState) => {
     let plan: PaymentTermsPlan | null = null;
     switch (chosenPlan.toUpperCase()) {
@@ -241,6 +245,11 @@ export function checkout(chosenPlan: 'solo' | 'startup' | 'business', chosenInte
 
       case 'BUSINESS':
         plan = PaymentTermsPlan.BUSINESS;
+        break;
+
+      case 'LIFETIME':
+        // just a placeholder for api compatibility. license is used to determine the plan (or tier)
+        plan = PaymentTermsPlan.LIFETIME_TIER1;
         break;
 
       default:
@@ -258,6 +267,10 @@ export function checkout(chosenPlan: 'solo' | 'startup' | 'business', chosenInte
         interval = PaymentTermsInterval.MONTHLY;
         break;
 
+      case 'LIFETIME':
+        interval = PaymentTermsInterval.LIFETIME;
+        break;
+
       default:
         interval = null;
         break;
@@ -268,9 +281,15 @@ export function checkout(chosenPlan: 'solo' | 'startup' | 'business', chosenInte
       body: {
         pricingPlan: plan!,
         pricingInterval: interval!,
+        lifetimeLicense: license
       }
     });
     const subs = data.data;
+
+    if (license) {
+      // must delete a license key if it's present once the processing is done
+      localStorage.removeItem('fable/asll');
+    }
 
     dispatch({
       type: ActionType.SUBS,
@@ -283,11 +302,14 @@ export function getSubscriptionOrCheckoutNew(org: RespOrg) {
   return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout>>, getState: () => TState) => {
     const data = await api<null, ApiResp<RespSubscription>>('/subs', { auth: true });
     const subs = data.data;
-    if (subs) {
+    const appsumoLicense = localStorage.getItem('fable/asll') || '';
+    if (!appsumoLicense && subs) {
       dispatch({
         type: ActionType.SUBS,
         subs: processRawSubscriptionData(subs),
       });
+    } else if (appsumoLicense) {
+      dispatch(checkout('lifetime', 'lifetime', appsumoLicense));
     } else {
       const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
       const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';

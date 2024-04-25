@@ -196,6 +196,13 @@ const router = createBrowserRouter([
     },
   },
   {
+    path: 'aslp',
+    async lazy() {
+      const AppSumoLandingPage = await import('./container/appsumo-landing-page').then(module => module.default);
+      return { Component: () => <AppSumoLandingPage title="Fable <> AppSumo" /> };
+    }
+  },
+  {
     path: '/',
     async lazy() {
       const ProtectedRoutes = await import('./container/protected-routes').then(module => module.default);
