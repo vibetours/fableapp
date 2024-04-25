@@ -26,5 +26,6 @@ export enum AMPLITUDE_EVENTS {
     REMOVE_WATERMARK='remove_watermark',
     SHARE_MODAL_SECTION_CLICKED_EMBED_DEMO='share_modal_section_clicked_embed_demo',
     SHARE_MODAL_SECTION_CLICKED_CTA_SHARE='share_modal_section_clicked_cta_share',
-    SHARE_MODAL_SECTION_CLICKED_INTERNAL_SHARE='share_modal_section_clicked_internal_share'
+    SHARE_MODAL_SECTION_CLICKED_INTERNAL_SHARE='share_modal_section_clicked_internal_share',
+    SAMPLE_DEMO_CLICKED='sample_demo_clicked'
 }

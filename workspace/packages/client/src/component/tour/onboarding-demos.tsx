@@ -1,7 +1,10 @@
 import { OnboardingTourForPrev } from '@fable/common/dist/api-contract';
 import React from 'react';
 import styled from 'styled-components';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import FableLogo from '../../assets/fable-rounded-icon.svg';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { createIframeSrc } from '../../utils';
 
 interface Props {
   layout: 'row' | 'column',
@@ -20,7 +23,19 @@ export default function OnboardingDemos(props: Props) {
       }}
       >
         {props.previewTours.map((tour, i) => (
-          <PreviewCard href={`/p/demo/${tour.rid}`} target="_blank" rel="noreferrer" key={tour.rid}>
+          <PreviewCard
+            href={`/live/demo/${tour.rid}`}
+            target="_blank"
+            rel="noreferrer"
+            key={tour.rid}
+            onClick={() => {
+              traceEvent(
+                AMPLITUDE_EVENTS.SAMPLE_DEMO_CLICKED,
+                { tour_url: createIframeSrc(`/demo/${tour.rid}`) },
+                []
+              );
+            }}
+          >
             <img src={`/${ICONS[i % ICONS.length]}.svg`} alt={tour.name} width={36} />
             <div className="con">
               <div className="title">{tour.name}</div>

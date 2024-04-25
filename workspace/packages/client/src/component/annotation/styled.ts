@@ -175,6 +175,7 @@ export const AnInnerContainer = styled.div`
   display:flex;
   flex-direction:column;
   padding: ${(props: AnInnerConProps) => `${getAnnotationPadding(props.anPadding)}`};
+  z-index: 9999;
 `;
 
 interface AnTextContentProps {

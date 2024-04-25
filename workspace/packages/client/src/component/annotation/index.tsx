@@ -297,7 +297,6 @@ export class AnnotationContent extends React.PureComponent<{
         && (
           <WatermarkCon
             style={{
-              padding: '10px',
               color: this.props.opts.annotationFontColor,
             }}
             target="_blank"
