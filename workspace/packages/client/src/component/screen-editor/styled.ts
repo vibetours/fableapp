@@ -197,7 +197,7 @@ export const AnnotationBtnCtn = styled.div`
   right: 0;
 `;
 
-export const AnnotationPanelCollapse = styled(Collapse)`
+export const AnnotationPanelCollapse = styled(Collapse)<{ bg: string }>`
   border-radius: 4px;
   margin-top: 1.5rem;
   border-top: 1px solid rgb(221, 221, 221);
@@ -206,6 +206,7 @@ export const AnnotationPanelCollapse = styled(Collapse)`
   
   .ant-collapse-header {
     padding: 0.75rem 0 0 0 !important;
+    background: ${props => props.bg}
   }
 
   .ant-collapse-content-box {
@@ -510,6 +511,7 @@ export const AnnDisplayText = styled.div`
   .steps {
     display: inline-block;
     font-weight: 500;
+    display: flex;
   }
 
   .head {

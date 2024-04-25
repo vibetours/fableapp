@@ -524,6 +524,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   };
 
   waitForAssetLoading = async (): Promise<void> => {
+    while (this.frameLoadingPromises.length) {
+      await this.frameLoadingPromises.shift();
+    }
+
     while (this.assetLoadingPromises.length) {
       await this.assetLoadingPromises.shift();
     }

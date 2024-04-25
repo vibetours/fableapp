@@ -2918,7 +2918,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   role="button"
                   tabIndex={0}
                   onClick={resetSelectedAnn}
-                  style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+                  style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '2', border: 'none' }}
                 />
                 {
                   props.isScreenLoaded && (
@@ -2987,7 +2987,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     role="button"
                     tabIndex={0}
                     onClick={resetSelectedAnn}
-                    style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '1', border: 'none' }}
+                    style={{ position: 'absolute', top: '4px', right: '12px', zIndex: '2', border: 'none' }}
                   />
                   {
                 props.isScreenLoaded && showScreenEditor && (

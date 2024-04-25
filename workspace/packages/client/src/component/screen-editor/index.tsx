@@ -1507,11 +1507,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       <Tags.AnnotationPanelCollapse
                         size="small"
                         bordered={false}
+                        bg={showAnnCreatorPanel ? 'white' : '#616161'}
                         style={{
-                          backgroundColor: showAnnCreatorPanel ? 'white' : '#616161',
+                          background: 'white',
                           transition: showAnnCreatorPanel ? 'none' : 'background-color 3s ease',
                           padding: 0,
                         }}
+                        destroyInactivePanel
                         activeKey={showAnnCreatorPanel ? '1' : ''}
                         defaultActiveKey="1"
                         onChange={selectedItems => {
@@ -1550,6 +1552,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                     </Tooltip>
                                     )}
                                     Step {configOfParamsAnnId.stepNumber}
+                                    {!showAnnCreatorPanel && (
+                                      <span style={{
+                                        fontSize: '10px',
+                                        marginLeft: '0.5rem'
+                                      }}
+                                      >- Click here to open this annotation
+                                      </span>
+                                    )}
                                   </span>
                                 </Tags.AnnDisplayText>
                                 {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}

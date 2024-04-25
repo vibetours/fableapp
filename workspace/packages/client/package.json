@@ -1,6 +1,6 @@
 {
   "name": "@fable/client",
-  "version": "1.6.22",
+  "version": "1.6.23",
   "description": "Fable app UI",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "private": true,
@@ -28,9 +28,6 @@
     "d3-time": "^3.1.0",
     "d3-time-format": "^4.1.0",
     "d3-transition": "^3.0.1",
-    "@uiw/codemirror-theme-nord": "^4.21.25",
-    "@uiw/react-codemirror": "^4.21.25",
-    "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-html": "^6.0.1",
     "d3-zoom": "^3.0.0",
     "dagre": "^0.8.5",

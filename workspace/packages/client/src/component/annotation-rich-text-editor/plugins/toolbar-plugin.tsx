@@ -39,7 +39,7 @@ import {
   FormOutlined,
   LineHeightOutlined
 } from '@ant-design/icons';
-import { Dropdown, Popover, Select } from 'antd';
+import { Dropdown, Popover, Select, Tooltip } from 'antd';
 import { AnnotationFontSize } from '@fable/common/dist/types';
 import { BorderedModal } from '../../../common-styled';
 import Input from '../../input';
@@ -384,39 +384,48 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
             className="toolbar-item "
             aria-label="Text Options"
           >
-            <LineHeightOutlined />
+            <Tooltip title="Select text and format">
+              <LineHeightOutlined />
+              <DownOutlined className="down-outline" />
+            </Tooltip>
           </button>
         </Popover>
 
-        <button
-          type="button"
-          onClick={insertLink}
-          className={`toolbar-item ${isLink ? 'active' : ''}`}
-          aria-label="Insert Link"
-        >
-          <LinkOutlined className="format" />
-        </button>
+        <Tooltip title="Select text and hyperlink">
+          <button
+            type="button"
+            onClick={insertLink}
+            className={`toolbar-item ${isLink ? 'active' : ''}`}
+            aria-label="Insert Link"
+          >
+            <LinkOutlined className="format" />
+          </button>
+        </Tooltip>
 
         {isLink && createPortal(<FloatingLinkEditor editor={editor} />, document.body)}
 
-        <button
-          type="button"
-          onClick={() => modalControls.showModal()}
-          className="toolbar-item"
-          aria-label="Image Upload"
-        >
-          <PictureOutlined className="format" />
-        </button>
+        <Tooltip title="Upload an image/gif">
+          <button
+            type="button"
+            onClick={() => modalControls.showModal()}
+            className="toolbar-item"
+            aria-label="Image Upload"
+          >
+            <PictureOutlined className="format" />
+          </button>
+        </Tooltip>
       </div>
 
-      <button
-        type="button"
-        onClick={() => editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')}
-        className="toolbar-item"
-        aria-label="Lead Form"
-      >
-        <FormOutlined /> &nbsp; Lead Form
-      </button>
+      <Tooltip title="Add a lead form">
+        <button
+          type="button"
+          onClick={() => editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')}
+          className="toolbar-item"
+          aria-label="Lead Form"
+        >
+          <FormOutlined /> &nbsp; Lead Form
+        </button>
+      </Tooltip>
     </div>
   );
 }
