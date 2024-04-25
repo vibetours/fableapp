@@ -1506,6 +1506,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     this.props.toAnnotationId && configOfParamsAnnId && (
                       <Tags.AnnotationPanelCollapse
                         size="small"
+                        key={this.state.selectedAnnotationId || this.props.toAnnotationId}
                         bordered={false}
                         bg={showAnnCreatorPanel ? 'white' : '#616161'}
                         style={{
