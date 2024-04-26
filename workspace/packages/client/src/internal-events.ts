@@ -104,6 +104,9 @@ export function initInternalEvents() : void {
     const ctaClickedPayload = payload as CtaClickedInternal;
     const demo = getGlobalData('demo') as P_RespTour;
     const lead = ((window as FWin).__fable_global_user__ || {}) as FableLeadContactProps;
+
+    if (!lead.email) return;
+
     if (demo) {
       logEventDirect(AnalyticsEventsDirect.CTA_CLICKED, {
         ctaFrom: ctaClickedPayload.ctaFrom,
@@ -111,8 +114,6 @@ export function initInternalEvents() : void {
         url: ctaClickedPayload.url,
         tourId: demo.id
       });
-
-      if (!lead.email) return;
 
       logEventToCblt<CBCtaClickEvent>({
         event: CBEvents.CTA_CLICKED,
