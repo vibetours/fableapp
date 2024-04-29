@@ -812,7 +812,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           data: getConversionPercentage(
             data,
             state.extLinkOpenBtnIds,
-            totalViewData.totalViews?.viewsAll ?? 0
+            totalViewData.totalViews ?? 0
           )
         }
       }));
@@ -955,7 +955,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               <div style={{ display: 'flex', gap: '1rem', flex: '1 1 auto' }}>
                 <Tags.KPICon style={{ border: '2px dashed #160245', flex: '1 1 auto' }}>
                   <Tags.KPIHead>
-                    <div className="val">{this.state.countVisitors.data?.totalViews?.viewsAll ?? 0}</div>
+                    <div className="val">{this.state.countVisitors.data?.totalViews ?? 0}</div>
                     <div className="label">Total Sessions</div>
                   </Tags.KPIHead>
                   {this.state.countVisitors.status !== LoadingStatus.Loaded && (
@@ -972,7 +972,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 </Tags.KPICon>
                 <Tags.KPICon style={{ flex: '1 1 auto' }}>
                   <Tags.KPIHead>
-                    <div className="val">{this.state.countVisitors.data?.totalViews?.viewsUnique ?? 0}</div>
+                    <div className="val">{this.state.countVisitors.data?.uniqueViews ?? 0}</div>
                     <div className="label">Unique Visitors</div>
                   </Tags.KPIHead>
                   {this.state.countVisitors.status !== LoadingStatus.Loaded && (
