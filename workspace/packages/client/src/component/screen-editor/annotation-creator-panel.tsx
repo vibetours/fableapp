@@ -1269,7 +1269,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 onPreview={cssStr => {
                   const lcm = (window as any).__f_alcm__ as ALCM;
                   if (!lcm) return;
-                  lcm.addAnnStyleTag(cssStr);
+                  lcm.addAnnStyleTag(cssStr, config);
                 }}
                 effectFor={EffectFor.ann}
               />,

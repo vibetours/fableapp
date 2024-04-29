@@ -106,6 +106,18 @@ export const elEffects: Effect[] = process([{
 }
 `.trim()
 }, {
+  id: 'colorswap',
+  displayName: 'Color Swap',
+  desc: 'Change background color',
+  css: `
+{{f-actn-idr--selected-subtree-hss}} {
+  --bg1: var(--fable-ann-bg-color);
+  --bg2: var(--fable-ann-bg-color);
+
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bg1)  90%, white) 0%, color-mix(in srgb, var(--bg2) 90%, black) 100%);
+}
+`.trim()
+}, {
   id: 'custom',
   displayName: 'Custom',
   desc: 'Write your custom effect via css3',
@@ -130,20 +142,21 @@ export const annEffects: Effect[] = process([{
   desc: 'Wave effect on annotation',
   css: `
 {{f-actn-idr--ann-card-con}} {
-  overflow: hidden;
+  --wave-bg-front: #4242421f;
+  --wave-bg-back: #4242421f;
 
+  overflow: hidden;
   &::before {
     z-index:0;
     position: absolute;
     content: '';
     bottom: 76px;
-    background: antiquewhite;
     width: 200%;
     height: 150%;
     left: -50%;
     margin-top: -10px;
     border-radius: 40%;
-    background: #4242421f;
+    background: var(--wave-bg-back);
     animation: wave 8s infinite ease-out;
   }
 
@@ -152,13 +165,12 @@ export const annEffects: Effect[] = process([{
     position: absolute;
     content: '';
     bottom: 66px;
-    background: antiquewhite;
     width: 210%;
     height: 150%;
     left: -51%;
     margin-top: -10px;
     border-radius: 42%;
-    background: #4242421f;
+    background: var(--wave-bg-front);
     animation: wave2 10s infinite ease-out;
   }
 }
@@ -188,11 +200,16 @@ export const annEffects: Effect[] = process([{
   desc: 'Bend a ligher color through the edge',
   css: `
 {{f-actn-idr--ann-card-con}} {
+  --bg: #45454547;
+  --btm-offset: 55;
+  --gap: 4%;
+  --width: 96%;
+
   &::before {
     content: '';
     position: absolute;
-    background: #45454547;
-    height: calc(100% - var(--fable-ann-con-pad-y) * 1px - 55px);
+    background: var(--bg);
+    height: calc(100% - var(--fable-ann-con-pad-y) * 1px - var(--btm-offset) * 1px);
     top: 0;
     border-radius: calc(var(--fable-ann-border-radius) * 1px);
     z-index: 0;
@@ -200,8 +217,8 @@ export const annEffects: Effect[] = process([{
 
   &.dir-b, &.dir-t {
     &::before {
-      width: 96%;
-      left: 2%;
+      width: var(--width);
+      left: var(--gap);
       border-bottom-right-radius: 65px;
       border-bottom-left-radius: 65px;
     }
@@ -209,8 +226,8 @@ export const annEffects: Effect[] = process([{
 
   &.dir-r {
     &::before {
-      width: 98%;
-      right: 2%;
+      width: var(--width);
+      right: var(--gap);
       border-bottom-right-radius: 65px;
       border-bottom-left-radius: 0px;
     }
@@ -218,8 +235,8 @@ export const annEffects: Effect[] = process([{
 
   &.dir-l {
     &::before {
-      width: 98%;
-      left: 2%;
+      width: var(--width);
+      left: var(--gap);
       border-bottom-left-radius: 65px;
       border-bottom-right-radius: 0px;
     }
@@ -239,11 +256,14 @@ export const annEffects: Effect[] = process([{
   desc: 'Bleed a opposite color from edge',
   css: `
 {{f-actn-idr--ann-card-con}} {
+  --filter: hue-rotate(180deg);
+  --bg: var(--fable-ann-bg-color);
+
   &::before {
     content: '';
     position: absolute;
-    filter: hue-rotate(180deg);
-    background: var(--fable-ann-bg-color);
+    filter: var(--filter);
+    background: var(--bg);
   }
 
   &.dir-t {

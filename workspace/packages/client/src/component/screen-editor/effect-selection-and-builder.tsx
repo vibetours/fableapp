@@ -105,7 +105,7 @@ export default function EffectSelector(props: IProps): JSX.Element {
         <CssEditor
           effectId={currentEffect.id}
           annKey={props.config.refId}
-          content={ALCM.compileCSSForEffect(currentEffect.css, props.config)}
+          content={currentEffect.css}
           infoText=<div />
           hidden={showCssEditor === ShowCssEditorState.SystemHide}
           onSubmit={props.onSubmit}

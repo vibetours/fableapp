@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-04-24 05:56:40.
+// Generated using typescript-generator version 2.35.1025 on 2024-04-26 12:39:17.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -51,6 +51,7 @@ export interface ReqNewLog {
     logType: LogType;
     forObjectType: ForObjectType;
     forObjectId: number;
+    forObjectKey?: string;
     logLine: any;
 }
 
@@ -250,6 +251,7 @@ export interface ReqTourPropUpdate {
     tourRid: string;
     site?: { [index: string]: any };
     inProgress?: boolean;
+    responsive?: boolean;
 }
 
 export interface ReqTourRid {
@@ -389,6 +391,7 @@ export interface RespTour extends ResponseBase {
     pubEditFileName: string;
     pubTourEntityFileName: string;
     site: { [index: string]: any };
+    responsive: boolean;
 }
 
 export interface RespTourAnnViews {
@@ -602,10 +605,12 @@ export const enum ErrorCode {
 
 export const enum LogType {
     WEBHOOK_EXEC = "WEBHOOK_EXEC",
+    SUBSCRIPTION = "SUBSCRIPTION",
 }
 
 export const enum ForObjectType {
     TENANT_INTEGRATION = "TENANT_INTEGRATION",
+    LIFETIME_LICENSE_KEY = "LIFETIME_LICENSE_KEY",
 }
 
 export const enum LeadInfoKey {

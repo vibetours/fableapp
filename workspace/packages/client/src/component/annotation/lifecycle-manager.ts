@@ -437,7 +437,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       styleTag.setAttribute('id', 'f-fable-override-eph-style');
       if (doc.body) doc.body.appendChild(styleTag);
     }
-    styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar() + styleStr;
+    const compiledStyleStr = AnnotationLifecycleManager.compileCSSForEffect(styleStr, config);
+    styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar() + compiledStyleStr;
 
     return () => {
       if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar();
@@ -456,7 +457,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     };
   }
 
-  addAnnStyleTag(styleStr: string):void {
+  addAnnStyleTag(styleStr: string, config: IAnnotationConfig):void {
     const fableAnnOverrideStyleTagId = 'f-fable-override-ann-style';
     let styleTag = this.doc.getElementById(fableAnnOverrideStyleTagId);
     if (!styleTag) {
@@ -465,14 +466,15 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       styleTag.setAttribute('id', fableAnnOverrideStyleTagId);
       umbrlDiv.prepend(styleTag);
     }
-    styleTag.innerHTML = this.exportTourThemeAsCssVar() + styleStr;
+    const compiledStyleStr = AnnotationLifecycleManager.compileCSSForEffect(styleStr, config);
+    styleTag.innerHTML = this.exportTourThemeAsCssVar() + compiledStyleStr;
   }
 
   private onScrollComplete = (el: HTMLElement, config: IAnnotationConfig): void => {
     this.mode = AnnotationViewMode.Show;
     this.setElVisibilityInAnnElMap(el, true);
     this.render();
-    this.addAnnStyleTag(config.annCSSStyle);
+    this.addAnnStyleTag(config.annCSSStyle, config);
     this.con!.style.visibility = 'visible';
     const undo1 = this.addCustomStyleSheetFor(el, config, config.targetElCssStyle);
     const undo2 = this.setCssSelectorForHighestProbalbleSpecificity(el, config);
