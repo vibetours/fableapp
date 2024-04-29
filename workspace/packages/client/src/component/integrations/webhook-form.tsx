@@ -5,6 +5,7 @@ import { json } from '@codemirror/lang-json';
 import { DeleteOutlined, FileTextOutlined, SaveOutlined } from '@ant-design/icons';
 import {
   ApiResp,
+  PlatformIntegrationType,
   ReqCreateOrUpdateTenantIntegration,
   RespPlatformIntegration,
   RespTenantIntegration
@@ -14,8 +15,6 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as Tags from './styled';
 import Button from '../button';
 import { isValidUrl } from '../../utils';
-
-export const WEBHOOK_INTEGRATION_TYPE = 'fable-webhook';
 
 interface TenentConfig {
   name: string;
@@ -34,7 +33,7 @@ const DEFAULT_REQUEST_BODY_CODE = JSON.stringify({
     givenName: '{{ first_name }}',
     familyName: '{{ last_name }}',
   },
-  demoUrl: '{{ demo_url }}',
+  demoUrl: '{{ demo_rid }}',
   id: 1234
 }, null, 2);
 
@@ -111,7 +110,7 @@ export default function WebhookForm(props: Props): JSX.Element {
       const resp = await api<ReqCreateWebhookConfig, ApiResp<RespPlatformIntegration[]>>('/tenant_integration', {
         auth: true,
         body: {
-          integrationType: WEBHOOK_INTEGRATION_TYPE,
+          integrationType: PlatformIntegrationType.FableWebhook,
           event,
           tenantIntegrationId: props.webhook.id,
           tenantConfig: {

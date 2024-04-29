@@ -1,4 +1,4 @@
-import { ApiOutlined, CreditCardOutlined, NodeIndexOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
+import { ApiOutlined, CreditCardOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
@@ -58,6 +58,14 @@ export default function SidePanel(props: Props): JSX.Element {
         >
           <CreditCardOutlined />
           <p>Billing</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn
+          className={props.selected === 'settings' ? 'selected' : ''}
+          to="/settings"
+          onClick={() => sendEvntToAmplitude('billing')}
+        >
+          <SettingOutlined />
+          <p>Settings</p>
         </Tags.ConNavBtn>
 
         <div style={{ marginTop: 'auto' }}>

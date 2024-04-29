@@ -1,9 +1,9 @@
 import React from 'react';
-import { RespLinkedApps } from '@fable/common/dist/api-contract';
+import { PlatformIntegrationType, RespLinkedApps, RespPlatformIntegration } from '@fable/common/dist/api-contract';
 import * as Tags from './styled';
 
 interface Props {
-  appConfig: RespLinkedApps;
+  appConfig: RespLinkedApps | RespPlatformIntegration;
   onClick: () => void;
 }
 
@@ -29,7 +29,7 @@ const Desc = {
       </ul>
     </>
   ),
-  'fable-webhook': (
+  [PlatformIntegrationType.FableWebhook]: (
     <>
       <p>
         Fable helps you configure your webhooks here to receive data as and when an event happens in a demo.
@@ -51,6 +51,28 @@ const Desc = {
         </a>
       </p>
     </>
+  ),
+  [PlatformIntegrationType.Zapier]: (
+    <>
+      <p>
+        Trigger a zap (zapier workflow) whenever an event happens inside Fable
+      </p>
+      <ul>
+        <li>When a lead submits a form</li>
+        <li>When a lead information is passed to Fable</li>
+      </ul>
+      <p>
+        If you need any other custom event data posted to zapier webhook, please contact us via our in-app chat or write to us at&nbsp;
+        <a
+          href="mailto:support@sharefable.com?subject=Add event for zapier"
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          support@sharefable.com
+        </a>
+      </p>
+    </>
   )
 };
 
@@ -64,7 +86,8 @@ export default function IntegrationCard(props: Props): JSX.Element {
             {props.appConfig.name}
           </div>
           <div className="mini">
-            {props.appConfig.connected && (
+            {/* TODO  the following force casting to any is done because RespPlatformIntegration does not have content property */}
+            {(props.appConfig as any).connected && (
               <>
                 <span style={{ color: '#4CAF50', fontSize: '1rem' }}>●</span>&nbsp;
                 <span>Connected</span>

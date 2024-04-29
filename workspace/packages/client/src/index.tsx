@@ -185,7 +185,7 @@ const router = createBrowserRouter([
     path: 'preptour',
     async lazy() {
       const PrepTour = await import('./container/create-tour/prep-tour').then(module => module.default);
-      return { Component: () => <PrepTour title="Fable" /> };
+      return { Component: () => <PrepTour title="Creating demo | Fable" /> };
     },
   },
   {
@@ -213,7 +213,14 @@ const router = createBrowserRouter([
         path: 'integrations',
         async lazy() {
           const Integrations = await import('./container/integrations').then(module => module.default);
-          return { Component: () => <Integrations title="Fable - Integrations" /> };
+          return { Component: () => <Integrations title="Integrations | Fable" /> };
+        },
+      },
+      {
+        path: 'settings',
+        async lazy() {
+          const Settings = await import('./container/settings').then(module => module.default);
+          return { Component: () => <Settings title="Settings | Fable" /> };
         },
       },
       {
@@ -262,21 +269,21 @@ const router = createBrowserRouter([
         path: 'users',
         async lazy() {
           const UserManagement = await import('./container/user-management').then(module => module.default);
-          return { Component: () => <UserManagement title="Fable - User Management" /> };
+          return { Component: () => <UserManagement title="User Management | Fable" /> };
         },
       },
       {
         path: 'billing',
         async lazy() {
           const Billing = await import('./container/billing').then(module => module.default);
-          return { Component: () => <Billing title="Fable - Billing & Subscription" /> };
+          return { Component: () => <Billing title="Billing & Subscription | Fable" /> };
         }
       },
       {
         path: 'tour/:tourId',
         async lazy() {
           const TourEditor = await import('./container/tour-editor').then(module => module.default);
-          return { Component: () => <TourEditor title="Fable - Demo editor" /> };
+          return { Component: () => <TourEditor title="Demo editor | Fable" /> };
         },
 
         children: [
@@ -296,7 +303,7 @@ const router = createBrowserRouter([
         path: 'demo/:tourId',
         async lazy() {
           const TourEditor2 = (await import('./container/tour-editor')).default;
-          return { Component: () => <TourEditor2 title="Fable - Demo editor" /> };
+          return { Component: () => <TourEditor2 title="Demo editor | Fable" /> };
         },
         children: [
           {
@@ -336,28 +343,28 @@ const router = createBrowserRouter([
         path: 'login',
         async lazy() {
           const Login = await import('./component/auth/login').then(module => module.default);
-          return { Component: () => <Login title="Fable - Login" /> };
+          return { Component: () => <Login title="Login | Fable" /> };
         },
       },
       {
         path: 'logout',
         async lazy() {
           const Logout = await import('./component/auth/logout').then(module => module.default);
-          return { Component: () => <Logout title="Fable - Logout" /> };
+          return { Component: () => <Logout title="Logout | Fable" /> };
         },
       },
       {
         path: 'preview/demo/:tourId',
         async lazy() {
           const PublishPreview = await import('./container/publish-preview').then(module => module.default);
-          return { Component: () => <PublishPreview title="Fable" /> };
+          return { Component: () => <PublishPreview title="Preview | Fable" /> };
         },
       },
       {
         path: 'preview/tour/:tourId',
         async lazy() {
           const PublishPreview = await import('./container/publish-preview').then(module => module.default);
-          return { Component: () => <PublishPreview title="Fable" /> };
+          return { Component: () => <PublishPreview title="Preview | Fable" /> };
         },
       }
     ]

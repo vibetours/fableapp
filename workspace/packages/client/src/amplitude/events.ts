@@ -12,6 +12,7 @@ export enum AMPLITUDE_EVENTS {
     EMBED_TOUR='embed_tour',
     EDGE_CONNECTION_DELETED='edge_connection_deleted',
     ANNOTATION_MOVED='annotation_moved',
+    API_KEY_GENERATED = 'api_key_generated',
     ANNOTATION_DELETED='annotation_deleted',
     ADVANCED_EL_PICKER_USED='advanced_el_picker_used',
     SCREEN_TAB_SELECTED='screen_tab_selected',

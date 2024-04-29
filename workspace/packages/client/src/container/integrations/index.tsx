@@ -4,6 +4,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import {
   ApiResp,
+  PlatformIntegrationType,
   RespAccountToken,
   RespLinkedApps,
   RespPlatformIntegration,
@@ -24,7 +25,6 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 import Webhook from './webhook';
-import { WEBHOOK_INTEGRATION_TYPE } from '../../component/integrations/webhook-form';
 
 interface IDispatchProps { }
 
@@ -172,7 +172,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                   </p>
                 </div>
               )}
-              {this.state.listOfLinkedApps.filter(app => app.type !== 'salesforce').map(appConfig => (
+              {this.state.listOfLinkedApps.map(appConfig => (
                 <IntegrationCard
                   key={appConfig.slug}
                   appConfig={appConfig}
@@ -185,29 +185,29 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
               open={this.state.modalOpen}
               onCancel={() => this.setState({ selectedApp: null, modalOpen: false })}
               footer={null}
-              width={this.state.selectedApp && this.state.selectedApp.startsWith('fable-') ? 750 : undefined}
+              width={this.state.selectedApp && this.state.selectedApp.startsWith('Fable') ? 750 : undefined}
               centered
               afterOpenChange={(open) => {
                 // TODO: this has been written in a hurry
                 // ideally, the better approach is to use redux state
                 if (open
                   && this.state.selectedApp
-                  && this.state.selectedApp.startsWith('fable-')
-                  && this.state.selectedApp === 'fable-webhook'
+                  && this.state.selectedApp.startsWith('Fable')
+                  && this.state.selectedApp === PlatformIntegrationType.FableWebhook
                 ) {
                   this.getListOfLinkedCobaltApps();
                 }
               }}
             >
               {this.state.selectedApp && (
-                this.state.selectedApp.startsWith('fable-') ? (
-                  (this.state.selectedApp === 'fable-webhook' && (
+                this.state.selectedApp.startsWith('Fable') ? (
+                  (this.state.selectedApp === PlatformIntegrationType.FableWebhook && (
                     <Webhook
                       config={this.state.listOfLinkedApps.find(f => f.type === this.state.selectedApp) as RespPlatformIntegration | undefined}
                       deleteWebhook={(id: number) => {
                         this.setState(state => {
                           const webhookApp = state.listOfLinkedApps
-                            .findIndex(app => app.type === WEBHOOK_INTEGRATION_TYPE);
+                            .findIndex(app => app.type === PlatformIntegrationType.FableWebhook);
 
                           const tis = (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration)
                             .tenantIntegrations.filter(ti => ti.id !== id);
