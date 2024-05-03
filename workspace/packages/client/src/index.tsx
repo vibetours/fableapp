@@ -40,14 +40,14 @@ if (document.location.pathname !== '/aboutblank') {
     console.log((e as Error).stack);
   }
 
-  if (window.location.pathname.includes('/embed/')) {
+  if (window.location.pathname.includes('/embed/') || window.location.pathname.includes('/live/')) {
     sentryInit('client-preview', packageJSON.version);
   } else {
     sentryInit('client', packageJSON.version);
     addChargebeeScript();
     addReditusTrackingScript();
     import('@fable/common/dist/amplitude').then((res) => {
-      res.initAmplitude();
+      res.initProductAnalytics();
     }).catch((error) => {
       console.log("Couldn't load Amplitude Script ", error);
     });

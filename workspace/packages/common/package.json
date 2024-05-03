@@ -16,7 +16,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^2.2.3"
+    "@amplitude/analytics-browser": "^2.2.3",
+    "posthog-js": "^1.130.1"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.193",

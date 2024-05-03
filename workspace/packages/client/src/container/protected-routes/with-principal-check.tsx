@@ -5,7 +5,7 @@ import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
 import { RespUser, Status, UserOrgAssociation } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
-import { resetAmplitude, setAmplitudeUserId } from '@fable/common/dist/amplitude';
+import { resetProductAnalytics, setProductAnalyticsUserId } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { isProdEnv } from '@fable/common/dist/utils';
 import { TState } from '../../reducer';
@@ -99,10 +99,10 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       setEventCommonState(CmnEvtProp.LAST_NAME, this.props.principal.lastName);
 
       try {
-        setAmplitudeUserId(this.props.principal.email);
+        setProductAnalyticsUserId(this.props.principal.email);
         if (ENV === 'prod') addSupportBot(this.props.principal?.firstName, this.props.principal?.email);
         if (!this.props.auth0.isAuthenticated) {
-          resetAmplitude();
+          resetProductAnalytics();
         }
       } catch (e) {
         raiseDeferredError(e as Error);
