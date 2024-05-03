@@ -416,6 +416,10 @@ async function postProcessSerDocs(
           // If we find a unique frame record with url then we take the entry
           // Sometimes the <iframe src="" /> from inside iframe
           subFrame = subFrames[0];
+        } else if ((subFrames = lookupWithProp.find('urlBase', node.attrs[urlLookupProp])).length === 1) {
+          // If we find a unique frame record with url then we take the entry
+          // Sometimes the <iframe src="" /> from inside iframe
+          subFrame = subFrames[0];
         } else if (
           node.props.rect
           && (subFrames = lookupWithProp.find('dim', `${node.props.rect.width}:${node.props.rect.height}`)).length === 1
@@ -721,11 +725,12 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string, frameUrl: string
   }
 }
 
-type LookupWithPropType = 'name' | 'url' | 'dim' | 'frameId';
+type LookupWithPropType = 'name' | 'url' | 'urlBase' | 'dim' | 'frameId';
 class CreateLookupWithProp<T> {
   private static globalRec: Record<LookupWithPropType, Record<string, object[]>> = {
     name: {},
     url: {},
+    urlBase: {},
     dim: {},
     frameId: {},
   };
@@ -733,14 +738,15 @@ class CreateLookupWithProp<T> {
   private rec: Record<LookupWithPropType, Record<string, T[]>> = {
     name: {},
     url: {},
+    urlBase: {},
     dim: {},
     frameId: {},
   };
 
-  static getNormalizedUrlStr(urlStr: string): string {
+  static getNormalizedUrlStr(urlStr: string, justHost: boolean = true): string {
     try {
       const url = new URL(urlStr);
-      urlStr = `${url.origin}${url.pathname}`;
+      urlStr = `${url.origin}${justHost ? '' : url.pathname}`;
     } catch (e) {
       /* noop */
     }
@@ -767,8 +773,8 @@ class CreateLookupWithProp<T> {
     if (key === null || key === undefined) {
       key = '';
     }
-    if (prop === 'url') {
-      key = CreateLookupWithProp.getNormalizedUrlStr(key);
+    if (prop === 'url' || prop === 'urlBase') {
+      key = CreateLookupWithProp.getNormalizedUrlStr(key, prop === 'urlBase');
     }
     if (!(key in this.rec[prop])) {
       if (!(key in CreateLookupWithProp.globalRec[prop])) {
