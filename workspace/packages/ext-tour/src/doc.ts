@@ -269,24 +269,24 @@ export function getSearializedDom(
 
     if (sNode.name === "image") {
       const tNode = node as SVGImageElement;
-      const href = tNode.href || "";
+      const href = tNode.href.baseVal || "";
       const xlinkHref = tNode.getAttribute("xlink:href") || "";
 
       let hrefBase64: string = "";
-      if (href.baseVal.startsWith("blob:")) {
+      if (href.startsWith("blob:")) {
         hrefBase64 = blobToDataUrl(tNode, tNode.width.baseVal.value, tNode.height.baseVal.value);
       }
 
       sNode.props.base64Img = hrefBase64;
 
       if (href && xlinkHref) {
-        sNode.props.proxyUrlMap.href = [href.baseVal];
+        sNode.props.proxyUrlMap.href = [href];
         sNode.props.proxyUrlMap["xlink:href"] = [xlinkHref];
         return { serNode: sNode, postProcess: true };
       }
 
       if (href) {
-        sNode.props.proxyUrlMap.href = [href.baseVal];
+        sNode.props.proxyUrlMap.href = [href];
         return { serNode: sNode, postProcess: true };
       }
 
