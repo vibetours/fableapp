@@ -998,14 +998,23 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
         {/* this is focus bubble */}
         {
-          config.selectionShape === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && <FocusBubble
-            diameter={this.SELECTION_BUBBLE_DIAMETER}
-            style={{
-              position: 'absolute',
-              ...this.getFocusBubbleStyles(maskBoxRect, dir)
+          config.selectionShape === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && (
+          <div
+            onClick={() => {
+              const btnConf = config.buttons.filter(button => button.type === 'next')[0];
+              this.props.navigateToAdjacentAnn('next', btnConf.id);
             }}
-            selColor={config.annotationSelectionColor}
-          />
+          >
+            <FocusBubble
+              diameter={this.SELECTION_BUBBLE_DIAMETER}
+              style={{
+                position: 'absolute',
+                ...this.getFocusBubbleStyles(maskBoxRect, dir)
+              }}
+              selColor={config.annotationSelectionColor}
+            />
+          </div>
+          )
         }
 
         {/* this is selection effect */}
@@ -1022,6 +1031,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             scrollX={this.props.win.scrollX}
             scrollY={this.props.win.scrollY}
             style={{ borderRadius: getComputedStyle(this.props.el).borderRadius || '2px' }}
+            onClick={() => {
+              const btnConf = config.buttons.filter(button => button.type === 'next')[0];
+              this.props.navigateToAdjacentAnn('next', btnConf.id);
+            }}
           />
         }
       </>
