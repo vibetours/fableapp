@@ -14,6 +14,7 @@ import {
   IUser,
   ReqScreenshotData,
   ScreenSerDataFromCS,
+  ScreenSerStartData,
   ScriptInitReportedData,
   ScriptInitRequiredData,
   SerializeFrameData,
@@ -372,15 +373,21 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       break;
     }
 
-    case Msg.FRAME_SERIALIZED: {
-      const tMsg = msg as MsgPayload<ScreenSerDataFromCS>;
+    case Msg.FRAME_SERIALIZATION_START: {
+      const tMsg = msg as MsgPayload<ScreenSerStartData>;
       const frameId = sender.frameId === undefined ? -1 : sender.frameId;
       if (tMsg.data.eventType === "source") {
-        await chrome.tabs.sendMessage<MsgPayload<SerializeFrameData>>(
+        chrome.tabs.sendMessage<MsgPayload<SerializeFrameData>>(
           sender.tab!.id!,
           { type: Msg.SERIALIZE_FRAME, data: { srcFrameId: frameId, id: tMsg.data.id } }
         );
       }
+      break;
+    }
+
+    case Msg.FRAME_SERIALIZED: {
+      const tMsg = msg as MsgPayload<ScreenSerDataFromCS>;
+      const frameId = sender.frameId === undefined ? -1 : sender.frameId;
       await addFrameDataToProcessList(tMsg.data.id, {
         frameId,
         oid: tMsg.data.id,

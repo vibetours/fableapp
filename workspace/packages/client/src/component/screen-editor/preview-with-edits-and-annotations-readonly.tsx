@@ -23,7 +23,7 @@ import {
   EncodingTypeImage,
   EncodingTypeInput,
   EncodingTypeMask,
-  EncodingTypeText, FrameAssetLoadFn, IdxEditItem,
+  EncodingTypeText, FrameAssetLoadFn, HiddenEls, IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
   IdxEncodingTypeImage,
@@ -43,7 +43,7 @@ import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../a
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
-import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain } from '../../utils';
+import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain, makeVisibleAllParentsInHierarchy, undoMakeVisibleAllParentsInHierarchy } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { NavToAnnByRefIdFn } from './types';
 
@@ -98,6 +98,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   private assetLoadingPromises: Promise<unknown>[] = [];
 
   private nestedFrames: Array<HTMLIFrameElement> = [];
+
+  private hiddenEls: HiddenEls = { displayNoneEls: [], visibilityHiddenEls: [] };
 
   constructor(props: IOwnProps) {
     super(props);
@@ -243,7 +245,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } else if (this.props.screen.type === ScreenType.Img) {
       targetEl = this.embedFrameRef?.current?.contentDocument?.body.querySelector('img')!;
     } else {
-      targetEl = this.annotationLCM.elFromPath(conf.id);
+      targetEl = this.annotationLCM.elFromPath(conf.id)!;
+      /** if this element or its parent has display none, we change it to display block.
+       * this will create a problem if the original display was other than block (eg, inline, flex) */
+      this.hiddenEls = makeVisibleAllParentsInHierarchy(targetEl);
     }
     const annsofSameMultiAnnGrp = getAnnsOfSameMultiAnnGrp(conf.zId, this.props.allAnnotationsForTour)
       .filter(ann => ann.refId !== conf.refId);
@@ -551,6 +556,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const areDiffsAppliedToCurrIframe = currScreen.type === ScreenType.SerDom
     && currScreen.rid !== this.props.screenRidOnWhichDiffsAreApplied!;
+
+    undoMakeVisibleAllParentsInHierarchy(this.hiddenEls);
+    this.hiddenEls = { displayNoneEls: [], visibilityHiddenEls: [] };
 
     /**
      * If the annotation is on the same screen,

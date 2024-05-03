@@ -347,3 +347,8 @@ export interface ScreenSizeData {
   iframePos: IframePos,
   scaleFactor: number
 }
+
+export interface HiddenEls {
+  displayNoneEls: HTMLElement[];
+  visibilityHiddenEls: HTMLElement[];
+}

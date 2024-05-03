@@ -5,6 +5,7 @@ import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
   ReqScreenshotData,
   ScreenSerDataFromCS,
+  ScreenSerStartData,
   ScriptInitReportedData,
   ScriptInitRequiredData,
   SerializeFrameData,
@@ -57,10 +58,19 @@ const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
 };
 
 function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null) {
+  chrome.runtime.sendMessage<MsgPayload<ScreenSerStartData>>({
+    type: Msg.FRAME_SERIALIZATION_START,
+    data: {
+      eventType: isSource ? "source" : "cascade",
+      id,
+    }
+  });
+
   chrome.runtime.sendMessage<MsgPayload<ReqScreenshotData>>({
     type: Msg.TAKE_SCREENSHOT,
     data: { id }
   });
+
   addFableIdsToAllEls();
   if (el) {
     elPath = calculatePathFromEl(el as Node, []).join(".");
@@ -83,7 +93,9 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
 
 const onClickHandler = async (e: MouseEvent) => {
   if ((e.target as HTMLElement).classList.contains(FABLE_CONTROL_PILL)) return;
-  const elPath = calculatePathFromEl(e.target as Node, []).join(".");
+  // const elPath = calculatePathFromEl(e.target as Node, []).join(".");
+  // TODO ask siddhi why is this required when the method is already calculating elPath
+  const elPath = "";
   serialize(elPath, true, snowflake(), e.target);
 };
 

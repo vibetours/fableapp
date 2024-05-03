@@ -35,13 +35,18 @@ export interface ScriptInitReportedData {
   frameId: number;
 }
 
-export interface ScreenSerDataFromCS {
+export interface ScreenSerStartData {
   // A monotonically increasing number with approximately nearby values incase generated too quickly inside 1ms
   id: number;
   // When an element in frame is clicked, the content script send messages to the whole background page with serialized
   // version of the frame. In this stage the eventType is source.
   // In order to get the rest serialized version of the rest of the frames, background sends further message to all the
   // frames to get their serialized dom. While answering to that message the eventType is cascade.
+  eventType: "source" | "cascade";
+}
+
+export interface ScreenSerDataFromCS extends ScreenSerStartData {
+  id: number;
   eventType: "source" | "cascade";
   // elPath: string;
   // Determines if this is the last screen to be captured. This is triggered by user wanting to stop the extension

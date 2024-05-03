@@ -22,7 +22,8 @@ import {
   AnnInverseLookupIndex,
   TourMainValidity,
   SiteData,
-  SiteThemePresets
+  SiteThemePresets,
+  HiddenEls
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour } from './entity-processor';
@@ -726,4 +727,46 @@ export function getDefaultSiteData(tour: RespTour): SiteData {
     headerBg: 'auto',
     v: 1,
   };
+}
+
+const displayBlockStr = ';display:block';
+const visibilityVisibleStr = ';visibility:visible';
+
+export const makeVisibleAllParentsInHierarchy = (element: HTMLElement): HiddenEls => {
+  let parent: HTMLElement | null = element;
+  const displayNoneEls: HTMLElement[] = [];
+  const visibilityHiddenEls: HTMLElement[] = [];
+  while (parent) {
+    const computedStyle = getComputedStyle(parent);
+    if (computedStyle.display === 'none') {
+      addInlineStyle(parent, displayBlockStr);
+      displayNoneEls.push(parent);
+    }
+    if (computedStyle.visibility === 'hidden') {
+      addInlineStyle(parent, visibilityVisibleStr);
+      visibilityHiddenEls.push(parent);
+    }
+    parent = parent.parentElement;
+  }
+  return { displayNoneEls, visibilityHiddenEls };
+};
+
+export const undoMakeVisibleAllParentsInHierarchy = (hiddenEls: HiddenEls): void => {
+  hiddenEls.visibilityHiddenEls.forEach(el => removeInlineStyle(el, visibilityVisibleStr));
+  hiddenEls.displayNoneEls.forEach(el => removeInlineStyle(el, displayBlockStr));
+};
+
+function removeLastNCharacters(str: string, n: number): string {
+  return str.substring(0, str.length - n);
+}
+
+function addInlineStyle(el: HTMLElement, style: string): void {
+  el.setAttribute('style', `${el.getAttribute('style')}${style}`);
+}
+
+function removeInlineStyle(el: HTMLElement, style: string): void {
+  const styleAttrVal = el.getAttribute('style') || '';
+  if (styleAttrVal.endsWith(style)) {
+    el.setAttribute('style', removeLastNCharacters(styleAttrVal, style.length));
+  }
 }

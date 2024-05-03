@@ -121,7 +121,7 @@ export const deser = (
             });
             frameLoadingPromises.push(p);
           } else {
-            console.warn('Iframe nodes are not as expected', child.chldrn);
+            // console.warn('Iframe nodes are not as expected', child.chldrn);
           }
         } else if (serNode.name === 'select') {
           // For select node the value property need to be set after the child is attached

@@ -199,6 +199,7 @@ export const AnnContentOverlay = styled.div`
     height: 100%;
     background: rgba(33, 33, 33, 0.60);
     display: flex;
+    z-index: 100000;
     justify-content: center;
     align-items: center;
     opacity: 0;

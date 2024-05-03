@@ -140,6 +140,9 @@ export function WatermarkText(): JSX.Element {
       >
         <img
           src={FableLogoWithQuill}
+          style={{
+            maxHeight: '18px'
+          }}
           alt=""
           height={18}
         />

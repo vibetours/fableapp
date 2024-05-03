@@ -723,6 +723,13 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string, frameUrl: string
 
 type LookupWithPropType = 'name' | 'url' | 'dim' | 'frameId';
 class CreateLookupWithProp<T> {
+  private static globalRec: Record<LookupWithPropType, Record<string, object[]>> = {
+    name: {},
+    url: {},
+    dim: {},
+    frameId: {},
+  };
+
   private rec: Record<LookupWithPropType, Record<string, T[]>> = {
     name: {},
     url: {},
@@ -749,6 +756,11 @@ class CreateLookupWithProp<T> {
     } else {
       this.rec[prop][key] = [val];
     }
+    if (key in CreateLookupWithProp.globalRec) {
+      (CreateLookupWithProp.globalRec as Record<LookupWithPropType, Record<string, T[]>>)[prop][key].push(val);
+    } else {
+      (CreateLookupWithProp.globalRec as Record<LookupWithPropType, Record<string, T[]>>)[prop][key] = [val];
+    }
   };
 
   find = (prop: LookupWithPropType, key: string | null | undefined): T[] => {
@@ -759,7 +771,10 @@ class CreateLookupWithProp<T> {
       key = CreateLookupWithProp.getNormalizedUrlStr(key);
     }
     if (!(key in this.rec[prop])) {
-      return [];
+      if (!(key in CreateLookupWithProp.globalRec[prop])) {
+        return [];
+      }
+      return CreateLookupWithProp.globalRec[prop][key] as T[];
     }
 
     return this.rec[prop][key];
