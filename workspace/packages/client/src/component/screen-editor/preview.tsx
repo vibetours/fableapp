@@ -311,6 +311,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           style={{
             visibility: this.props.hidden ? 'hidden' : 'visible',
             borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
+            background: 'white'
           }}
           ref={ref => {
             this.embedFrameRef.current = ref;

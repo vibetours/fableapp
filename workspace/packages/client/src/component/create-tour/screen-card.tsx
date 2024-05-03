@@ -35,7 +35,7 @@ export default function ScreenCard({ frameData, favicon }: Props) {
       </Tags.TitleCon>
       <Tags.LinkCon>
         <img src={ArrowTopRight} alt="" />
-        <Tags.Link href={serDomFrameData.frameUrl}>{serDomFrameData.frameUrl}</Tags.Link>
+        <Tags.Link href={serDomFrameData.frameUrl} target="_blank">{serDomFrameData.frameUrl}</Tags.Link>
       </Tags.LinkCon>
       <Tags.TimestampCon>
         <Tags.Timestamp>Created {getDisplayableTime(new Date())}</Tags.Timestamp>
