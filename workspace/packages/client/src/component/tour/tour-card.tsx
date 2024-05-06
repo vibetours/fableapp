@@ -87,7 +87,7 @@ export default function TourCard({
                 fontWeight: 500
               }}
               >
-                Embed
+                Share
               </span>
             </Tags.EmbedBtn>
           </Tooltip>

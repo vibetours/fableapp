@@ -85,9 +85,10 @@ export default abstract class HighlighterBase {
 
   static getMaskBoxRect(elSize: Rect, win: Window, dx: number, dy: number): Rect {
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
+    const body = win.document.body;
 
-    const top = elSize.top + win.scrollY + dy;
-    const left = elSize.left + win.scrollX + dx;
+    const top = elSize.top + win.scrollY + dy + body.scrollTop;
+    const left = elSize.left + win.scrollX + dx + body.scrollLeft;
 
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
     // the boundary is checked against the main window not iframe's window

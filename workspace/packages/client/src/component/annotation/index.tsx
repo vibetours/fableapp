@@ -893,8 +893,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     if (!isCoverAnnotation) {
-      t += this.props.win.scrollY;
-      l += this.props.win.scrollX;
+      const body = this.props.win.document.body;
+      t += this.props.win.scrollY + body.scrollTop;
+      l += this.props.win.scrollX + body.scrollLeft;
     }
 
     return (
@@ -913,8 +914,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               <AnnotationIndicator
                 box={{
                   ...this.props.box,
-                  top: this.props.box.top + this.props.win.scrollY,
-                  left: this.props.box.left + this.props.win.scrollX,
+                  top: this.props.box.top + this.props.win.scrollY + this.props.win.document.body.scrollTop,
+                  left: this.props.box.left + this.props.win.scrollX + this.props.win.document.body.scrollLeft,
                 }}
                 pos={dir}
                 maskBoxRect={maskBoxRect}
