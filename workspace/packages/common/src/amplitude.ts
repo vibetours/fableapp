@@ -8,13 +8,13 @@ export const initProductAnalytics = (): void => {
   if (!isProdEnv()) {
     return;
   }
-  const API_KEY = process.env.REACT_APP_AMPLITUDE_KEY;
+  const AMPLITUDE_KEY = process.env.REACT_APP_AMPLITUDE_KEY;
   const POSTHOG_KEY = process.env.REACT_APP_POSTHOG_KEY;
 
-  if (!API_KEY) {
+  if (!AMPLITUDE_KEY) {
     raiseDeferredError(new Error('amplitude api key is not defined'));
   } else {
-    init(API_KEY, {
+    init(AMPLITUDE_KEY, {
       defaultTracking: false,
     });
   }
@@ -42,6 +42,10 @@ export const traceEvent = (eventName: string, eventProperties: Record<string, st
   commonEventProperties?.forEach((property) => {
     finalEvenProperties[property] = data[property];
   });
+
+  if (data.email && data.email.endsWith('@sharefable.com')) {
+    return;
+  }
   setTimeout(() => {
     track(eventName, finalEvenProperties);
     posthog.capture(eventName, finalEvenProperties);
@@ -53,10 +57,15 @@ export const setProductAnalyticsUserId = (userId: string) => {
     return;
   }
   posthog.identify(
-    'user_id',
+    userId,
     { email: userId }
   );
   setUserId(userId);
+  if (userId.endsWith('@sharefable.com')) {
+    posthog.opt_out_capturing();
+  } else if (posthog.has_opted_out_capturing()) {
+    posthog.opt_in_capturing();
+  }
 };
 
 export const resetProductAnalytics = () => {

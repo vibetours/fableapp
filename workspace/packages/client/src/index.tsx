@@ -40,7 +40,9 @@ if (document.location.pathname !== '/aboutblank') {
     console.log((e as Error).stack);
   }
 
-  if (window.location.pathname.includes('/embed/') || window.location.pathname.includes('/live/')) {
+  if (window.location.pathname.includes('/embed/')
+    || window.location.pathname.includes('/live/')
+    || window.location.pathname.includes('/p/')) {
     sentryInit('client-preview', packageJSON.version);
   } else {
     sentryInit('client', packageJSON.version);
