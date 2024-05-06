@@ -12,6 +12,9 @@ export const Con = styled.div`
   align-items: center;
   height: 100%;
   background: ${(props) => props.theme.colors.dark.idle.background};
+  position: relative;
+  z-index: 9;
+  box-shadow: 0 1px 4px -2px ${(props) => props.theme.colors.dark.idle.background};
 `;
 
 export const LogoCon = styled.div`

@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 import { ModalPosition } from './types';
 
-export const TILE_STROKE_COLOR_ON_HOVER = '#7566ff';
+export const TILE_STROKE_COLOR_ON_HOVER = '#160245';
 export const TILE_STROKE_COLOR_DEFAULT = '#E0E0E0';
-export const TILE_STROKE_COLORON_SELECT = '#9f96fa';
-export const MENU_ICN_DOTS_COLOR = '#16023E';
+export const TILE_STROKE_COLORON_SELECT = '#160245';
+export const MENU_ICN_DOTS_COLOR = '#160245';
 export const MENU_ICN_BG_COLOR = '#E6E6E6';
 
 export const SVGCanvas = styled.svg`
@@ -64,17 +64,37 @@ export const SVGCanvas = styled.svg`
 
 export const CanvasMenuCon = styled.div`
   position: absolute;
-  background: #D0D0FF;
+  background: white;
   left: 30px;
   position: absolute;
   top: 30px;
   border-radius: 8px;
   padding: 30px 0px 0px 0px;
-  box-shadow: 0 0 4px -1px #7567ff;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  &:before {
+    content: '';
+    width: 100%;
+    position: absolute;
+    height: 30px;
+    top: 0;
+    background: #cdcdcd;
+    border-top-right-radius: 8px;
+    border-top-left-radius: 8px;
+  }
+
+  & > div:first-child {
+    margin-top: 0.75rem;
+  }
 
   & > div:last-child {
     border-bottom-right-radius: 8px;
     border-bottom-left-radius: 8px;
+    margin-bottom: 0.75rem;
   }
 `;
 
@@ -82,7 +102,7 @@ export const CanvasMenuItemCon = styled.div`
   display: flex;
   background: white;
   flex-direction: column;
-  padding: 1rem;
+  padding: 0 0.5rem;
   border-top-left-radius: 0px;
   border-top-right-radius: 0px;
 `;
@@ -171,7 +191,7 @@ export const AnnEditorModalWrapper = styled.div<{top: number}>`
   background-color: white;
   transition: all 0.3s ease;
   border-radius: 20px;
-  box-shadow: #9e96fa 0px 0px 1px 2px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px -2px 5px -1px, rgba(0, 0, 0, 0.3) 0px -1px 3px -1px, rgba(0, 0, 0, 0.5) 0px 1px 0px 0px;
 `;
 
 export const AnnEditorModal = styled.div`

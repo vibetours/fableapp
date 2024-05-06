@@ -103,7 +103,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             <SidePanel selected="user-management" subs={this.props.subs} />
           </GTags.SidePanelCon>
           <GTags.MainCon>
-            <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }}>
+            <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll', paddingLeft: '3%' }}>
               {this.props.usersLoaded ? (
                 <div style={{ maxWidth: '43.5rem' }}>
                   <div style={{

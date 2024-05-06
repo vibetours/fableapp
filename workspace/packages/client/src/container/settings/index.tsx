@@ -106,7 +106,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.SidePanelCon>
             <SidePanel selected="settings" subs={this.props.subs} />
           </GTags.SidePanelCon>
-          <GTags.MainCon style={{ overflow: 'auto' }}>
+          <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%' }}>
             <Tags.Con>
               <div className="typ-h1">API Key</div>
               <br />

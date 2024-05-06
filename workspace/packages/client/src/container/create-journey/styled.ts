@@ -3,6 +3,7 @@ import styled from 'styled-components';
 export const CreateJourneyCon = styled.div`
     width: 360px;
     position: fixed;
+    z-index: 10;
     top: 0;
     left: 0;
     height: 100%;

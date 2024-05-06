@@ -8,6 +8,55 @@ interface Props {
 }
 
 const Desc = {
+  pipedrive: (
+    <>
+      <p>
+        Fable's integration with Pipedrive CRM helps you by:
+      </p>
+      <ul>
+        <li>Adds or updates <em>lead</em> information in Pipedrive whenever a lead form is filled up</li>
+        <li>Adds or updates <em>lead</em> information in Pipedrive whenever lead information is passed to Fable</li>
+      </ul>
+      <p>You can then proceed to send your nurture drip campaigns to engage your leads and convert them to customers</p>
+    </>
+  ),
+  slack: (
+    <>
+      <p>
+        Fable's integration with slack allows you to get real-time messages when:
+      </p>
+      <ul>
+        <li>A lead form is filled up in the demo</li>
+        <li>A lead information is passed to Fable</li>
+      </ul>
+      <p>In an event that the same person views the demo again, you'll receive another alert on the slack channel.</p>
+      <p>This integration unfurls the demo link with CTA whenever your viewers share the demo link in a slack channel</p>
+    </>
+  ),
+  salesforce: (
+    <>
+      <p>
+        Fable's integration with Salesforce helps you by:
+      </p>
+      <ul>
+        <li>When a lead submits a form</li>
+        <li>When a lead information is passed to Fable</li>
+      </ul>
+      <p>You can then proceed to send your nurture drip campaigns to engage your leads and convert them to customers.</p>
+    </>
+  ),
+  mailchimp: (
+    <>
+      <p>
+        Fable's integration with MailChimp helps you by:
+      </p>
+      <ul>
+        <li>Adding / updating contact  in your audience list when a lead submits a form</li>
+        <li>Adding / updating contact  in your audience list when lead information is passed to Fable</li>
+      </ul>
+      <p>You can then proceed to send your nurture drip campaigns to engage your leads and convert them to customers.</p>
+    </>
+  ),
   hubspot: (
     <>
       <p>
@@ -55,14 +104,14 @@ const Desc = {
   [PlatformIntegrationType.Zapier]: (
     <>
       <p>
-        Trigger a zap (zapier workflow) whenever an event happens inside Fable
+        Fable's integration with Zapier lets you trigger a zap (zapier workflow) whenever a following event occurs:
       </p>
       <ul>
         <li>When a lead submits a form</li>
         <li>When a lead information is passed to Fable</li>
       </ul>
       <p>
-        If you need any other custom event data posted to zapier webhook, please contact us via our in-app chat or write to us at&nbsp;
+        If you need any other custom event data posted to Zapier, please contact us via our in-app chat or write to us at&nbsp;
         <a
           href="mailto:support@sharefable.com?subject=Add event for zapier"
           onClick={(e) => {

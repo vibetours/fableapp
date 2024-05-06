@@ -72,7 +72,7 @@ const theme = {
         color: '#d0d0ff',
       },
       selection: {
-        background: '#7567ff',
+        background: '#160245',
         color: '#fff',
       },
     },

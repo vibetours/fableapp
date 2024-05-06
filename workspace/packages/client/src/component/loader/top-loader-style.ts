@@ -29,7 +29,7 @@ export const LoaderLogo = styled.div`
 
 export const LoaderBar = styled.div`
     height: 4px;
-    background-color: #ccc;
+    background-color: transparent;
     width: 100%;
     top: 0;
     left: 0;
@@ -40,4 +40,5 @@ export const LoaderProgress = styled.div`
     height: 100%;
     border-radius: 10px;
     background-color: #7567FF;
+    transition: width 0.2s ease-out;
 `;

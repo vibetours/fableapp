@@ -118,6 +118,7 @@ export const SidePanelCon = styled.aside`
   min-width: 260px;
   max-width: 260px;
   width: 260px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 `;
 
 export const MainCon = styled.div`
@@ -133,7 +134,6 @@ export const MainCon = styled.div`
 export const HeaderCon = styled.div`
   width: 100%;
   height: 48px; 
-  border-bottom: 1px solid #E0E0E0;
 `;
 
 export const PreviewAndActionCon = styled.div`

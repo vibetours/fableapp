@@ -54,7 +54,21 @@ interface IOwnStateProps {
   modalOpen: boolean
 }
 
+const IntegrationOrder = [
+  PlatformIntegrationType.Zapier,
+  'slack',
+  'pipedrive',
+  PlatformIntegrationType.FableWebhook,
+  'hubspot',
+  'salesforce',
+  'pardot',
+  'mailchimp',
+  'outreach'
+];
+
 class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
+  private cobaltConfigWrapperRef: React.RefObject<HTMLDivElement> = React.createRef();
+
   constructor(props: IProps) {
     super(props);
 
@@ -100,11 +114,16 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
         auth: true,
       });
 
-      this.setState({ listOfLinkedApps: resp.data.concat(await this.getPlatformIntegrations()) });
-      return resp.data;
+      const data = resp.data
+        .concat(await this.getPlatformIntegrations())
+        .sort((m, n) => IntegrationOrder.indexOf(m.type) - IntegrationOrder.indexOf(n.type));
+      this.setState({ listOfLinkedApps: data });
+      return data;
     } catch (e) {
       raiseDeferredError(e as Error);
-      this.setState({ hasIntegrationLoadingErr: true, listOfLinkedApps: await this.getPlatformIntegrations() });
+      this.setState({ hasIntegrationLoadingErr: true,
+        listOfLinkedApps: (await this.getPlatformIntegrations())
+          .sort((m, n) => IntegrationOrder.indexOf(m.type) - IntegrationOrder.indexOf(n.type)) });
       return [];
     }
   };
@@ -136,7 +155,30 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
     this.getListOfLinkedCobaltApps();
   }
 
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
+    if (!(this.state.selectedApp === PlatformIntegrationType.FableWebhook
+      || this.state.selectedApp === PlatformIntegrationType.Zapier
+    ) && this.state.selectedApp !== prevState.selectedApp) {
+      let timeElapsed = 0;
+      const interval = 80;
+      const intervalId = setInterval((): void => {
+        const buttons = this.cobaltConfigWrapperRef.current?.getElementsByTagName('button');
+
+        if (buttons && buttons.item(buttons.length - 1)) {
+          buttons.item(buttons.length - 1)?.classList.add('fable-color');
+          clearInterval(intervalId);
+          return;
+        }
+
+        if (timeElapsed > 5000) clearInterval(intervalId);
+
+        timeElapsed += interval;
+      }, interval);
+    }
+  }
+
   render(): JSX.Element {
+    this.state.listOfLinkedApps.forEach(app => console.log(app.type));
     return (
       <GTags.ColCon>
         {this.props.loadingState === 'loading' && <TopLoader
@@ -157,7 +199,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
             <SidePanel selected="integrations" subs={this.props.subs} />
           </GTags.SidePanelCon>
           <GTags.MainCon style={{ overflow: 'auto' }}>
-            <Tags.IntegrationCardCon>
+            <Tags.IntegrationCardCon style={{ paddingLeft: '3%' }}>
               {this.state.hasIntegrationLoadingErr && (
                 <div className="err-msg">
                   <h3>Couldn't load some integrations</h3>
@@ -237,7 +279,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                     />
                   ))
                 ) : (
-                  <Tags.CobaltConfigWrapper>
+                  <Tags.CobaltConfigWrapper ref={this.cobaltConfigWrapperRef}>
                     <Provider
                       sessionToken={this.state.cobaltSessionToken}
                     >

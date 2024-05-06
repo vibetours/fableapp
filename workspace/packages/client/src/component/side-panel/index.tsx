@@ -68,7 +68,7 @@ export default function SidePanel(props: Props): JSX.Element {
           <p>Settings</p>
         </Tags.ConNavBtn>
 
-        <div style={{ marginTop: 'auto' }}>
+        <div style={{ margin: 'auto 8px 0' }}>
           {props.subs && !isBuisnessPlan && <PlanBadge
             subs={props.subs}
             onClick={() => {

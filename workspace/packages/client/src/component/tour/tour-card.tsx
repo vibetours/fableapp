@@ -70,6 +70,28 @@ export default function TourCard({
           }
         </Tags.CardDataCon>
         <Tags.TourActionBtnCon>
+          {tour.lastPublishedDate && (
+          <Tooltip title="Copy Embed Link" overlayStyle={{ fontSize: '0.75rem' }}>
+            <Tags.EmbedBtn
+              type="submit"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsShareModalVisible(true);
+                amplitudeShareModalOpen('tours');
+              }}
+            >
+              <ShareAltOutlined />&nbsp;&nbsp;
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 500
+              }}
+              >
+                Embed
+              </span>
+            </Tags.EmbedBtn>
+          </Tooltip>
+          )}
           <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
             <Button
               id="TG-1"

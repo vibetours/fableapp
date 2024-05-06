@@ -316,7 +316,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon
-              style={{ height: '100%', overflowY: 'auto', flexDirection: 'row', gap: '3rem' }}
+              style={{ height: '100%', overflowY: 'auto', flexDirection: 'row', gap: '3rem', paddingLeft: '3%' }}
               id="main"
             >
               {toursLoaded ? (
@@ -379,7 +379,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 </>
               ) : (
-                <div style={{ width: '100%', position: 'relative' }}>
+                <div style={{ width: '100%', position: 'relative', transform: 'translate(-3%, 0px)' }}>
                   <TopLoader duration={TOP_LOADER_DURATION} showLogo text="Loading demos for you" />
                 </div>
               )}

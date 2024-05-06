@@ -70,7 +70,11 @@ export const WebhookConfCon = styled.div`
 `;
 
 export const CobaltConfigWrapper = styled.div`
-  button {
+  .fable-color {
     background-color: #7567FF;
+  }
+
+  .fable-color:hover {
+    background-color: #16023E;
   }
 `;

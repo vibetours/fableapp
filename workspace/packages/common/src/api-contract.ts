@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-04-29 15:06:14.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-02 08:55:57.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -12,6 +12,11 @@ export interface ApiResp<T> {
 export interface ButtonClicks {
     btnId: string;
     totalClicks: number;
+}
+
+export interface CreateGifJobInfo extends JobProcessingInfo {
+    manifestFilePath: string;
+    gifFilePath: string;
 }
 
 export interface EntityHoldingInfoBase extends Serializable {
@@ -253,6 +258,7 @@ export interface ReqTourPropUpdate {
     site?: { [index: string]: any };
     inProgress?: boolean;
     responsive?: boolean;
+    responsive2?: Responsiveness;
 }
 
 export interface ReqTourRid {
@@ -399,6 +405,7 @@ export interface RespTour extends ResponseBase {
     pubTourEntityFileName: string;
     site: { [index: string]: any };
     responsive: boolean;
+    responsive2: Responsiveness;
 }
 
 export interface RespTourAnnViews {
@@ -454,11 +461,6 @@ export interface AuthInputMap {
     options: string[];
 }
 
-export interface ConnectedAccounts {
-    identifier: Identifiers;
-    connectedAt: string;
-}
-
 export interface Identifiers {
     portalId: number;
     appId: number;
@@ -482,7 +484,7 @@ export interface LinkedApps {
     slug: string;
     app_id: string;
     auth_type: string;
-    connected_accounts?: ConnectedAccounts[];
+    connected_accounts?: any[];
     auth_input_map?: AuthInputMap[];
     reauth_required: boolean;
 }
@@ -563,6 +565,7 @@ export const enum JobProcessingStatus {
 export const enum JobType {
     TRANSCODE_VIDEO = "TRANSCODE_VIDEO",
     RESIZE_IMG = "RESIZE_IMG",
+    CREATE_DEMO_GIF = "CREATE_DEMO_GIF",
     DELETE_ASSET = "DELETE_ASSET",
     REFRESH_CRAWLER = "REFRESH_CRAWLER",
     REFRESH_CRAWLER_FOR_ANN_USER_ASSIGN = "REFRESH_CRAWLER_FOR_ANN_USER_ASSIGN",
@@ -595,6 +598,7 @@ export const enum MediaType {
     VIDEO_HLS = "VIDEO_HLS",
     VIDEO_MP4 = "VIDEO_MP4",
     IMG_MULTI = "IMG_MULTI",
+    GIF = "GIF",
 }
 
 export const enum ResponseStatus {
@@ -647,6 +651,12 @@ export const enum Interval {
     MONTHLY = "MONTHLY",
     YEARLY = "YEARLY",
     LIFETIME = "LIFETIME",
+}
+
+export const enum Responsiveness {
+    NoChoice = "NoChoice",
+    NoResponsive = "NoResponsive",
+    Responsive = "Responsive",
 }
 
 export const enum Status {

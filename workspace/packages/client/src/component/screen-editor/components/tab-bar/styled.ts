@@ -19,7 +19,8 @@ export const TabTitle = styled.span`
   display: inline-block;
   padding: 10px 0;    
   position: relative;
-  color: ${(props: TabActiveProp) => (props.active ? '#7567FF' : '#000')};
+  color: #000;
+  text-shadow: ${(props: TabActiveProp) => (props.active ? '1px 0 #9E9E9E' : 'none')};
 
   .ht-icn {
     visibility: hidden;
@@ -37,7 +38,7 @@ export const TabActiveHighlight = styled.div`
   position: absolute;
   width: calc(100% - 16px);
   height: ${(props: TabActiveProp) => (props.active ? '3px' : '0px')};
-  background-color: #7567FF;
+  background-color: #160245;
   border-radius: 1.5px;
   bottom: -3px;
 `;

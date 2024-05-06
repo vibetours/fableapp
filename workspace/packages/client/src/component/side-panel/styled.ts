@@ -4,7 +4,7 @@ import { CloseOutlined } from '@ant-design/icons';
 
 export const Con = styled.div`
   height: 100%;
-  background-color: #f5f5f5;
+  background-color: white;
   color: #000;
   display: flex;
   flex-direction: column;
@@ -31,11 +31,12 @@ export const ConNavBtn = styled(Link)`
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: all 0.3s ease-out;
   position: relative;
   color: #000;
   font-weight: 500;
   text-decoration: none;
+  border-radius: 8px;
+  margin: 0 8px;
 
   &:hover,
   &.selected {
@@ -194,6 +195,7 @@ export const PlanBadgeCon = styled.div`
   justify-content: space-around;
   transition: background-color 0.2s ease-in;
   cursor: pointer;
+  border-radius: 8px;
 
   &:hover {
     background-color: white;

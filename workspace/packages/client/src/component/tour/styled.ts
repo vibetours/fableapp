@@ -84,6 +84,24 @@ export const TourActionBtnCon = styled.div`
   gap: 0.5rem;
 `;
 
+export const EmbedBtn = styled.button`
+  background: #fff;
+  border: none;
+  color: black;
+  text-decoration: none;
+  padding: 4px 11px;
+  border-radius: 6px;
+  box-shadow: rgb(22 2 69 / 25%) 0px 1px 1px, rgb(22 2 69 / 13%) 0px 0px 1px 1px;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease-out;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    box-shadow: rgb(22 2 69 / 100%) 0px 1px 1px, rgb(22 2 69 / 100%) 0px 0px 1px 1px;
+  }
+`;
+
 // ~~~~~~~~~~~~~~~~~~~~~~ TOUR CARD ~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~~~~~~~~~~ EMPTY STATE ~~~~~~~~~~~~~~~~~~~~~~

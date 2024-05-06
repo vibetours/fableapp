@@ -3,6 +3,8 @@ import { nanoid } from 'nanoid';
 import {
   BarsOutlined,
   DisconnectOutlined,
+  FileAddFilled,
+  HourglassFilled,
   HourglassOutlined,
   SisternodeOutlined,
 } from '@ant-design/icons';
@@ -137,7 +139,7 @@ type CanvasProps = {
 type AnnoationLookupMap = Record<string, [number, number]>;
 
 const canvasGrid: CanvasGrid = {
-  gridSize: 36,
+  gridSize: 72,
   gridDotSize: 2,
   initial: {
     tx: 260,
@@ -151,11 +153,11 @@ const MODULE_TITLE_PADDING = 5;
 const MODULE_EDITOR_TOP_GAP = MODULE_TITLE_HEIGHT + MODULE_TITLE_PADDING + 10;
 
 const ANN_NODE_HEIGHT_WIDTH_RATIO = 1.77765625;
-const ANN_NODE_WIDTH = canvasGrid.gridSize * 5;
+const ANN_NODE_WIDTH = canvasGrid.gridSize * 2.5;
 const ANN_NODE_HEIGHT = ANN_NODE_WIDTH / ANN_NODE_HEIGHT_WIDTH_RATIO;
 const ANN_NODE_BORDER_RADIUS = 16;
 const ANN_NODE_PADDING = 0;
-const ANN_NODE_SEP = canvasGrid.gridSize * 2;
+const ANN_NODE_SEP = canvasGrid.gridSize * 1;
 const ANN_EDITOR_ZOOM = 0.75;
 const ANN_NODE_TOP_MARGIN_FOR_EDITOR = 20 * ANN_EDITOR_ZOOM;
 const ANN_NODE_BOTTOM_MARGIN_FOR_EDITOR = 40 * ANN_EDITOR_ZOOM;
@@ -179,6 +181,8 @@ const DROP_TARGET_PEEK_GUTTER = ANN_NODE_SEP / 4;
 const CREATE_JOURNEY_MODAL_WIDTH = 360;
 
 const ANN_EDITOR_ANIM_DUR = 750;
+
+const CANVAS_MENU_ITEM_STYLE = { fontSize: '1.5rem', color: '#616161' };
 
 function isMenuModalVisible(xy: [number | null, number | null, LRPostion]): boolean {
   return !(xy[0] === null || xy[1] === null);
@@ -2665,7 +2669,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 <path d="M 0 0 5 5 0 10 Z" style={{ fill: CONNECTOR_COLOR_NON_HOVERED }} />
               </marker>
             </defs>
-            <rect width="100%" height="100%" fill="#FAFAFA" />
+            <rect width="100%" height="100%" fill="#F5F5F5" />
             <rect id="pattern-fill" width="100%" height="100%" />
             <g id="fab-tour-canvas-main" ref={rootGRef} />
           </Tags.SVGCanvas>
@@ -2683,18 +2687,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
-                    <div>
-                      <Button
-                        onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
-                        icon={<img src={newScreenDark} alt="new screen" />}
-                        size="middle"
-                        style={{
-                          margin: 0,
-                          border: '1px solid black',
-                          borderRadius: '4px',
-                        }}
-                      />
-                    </div>
+                    <Button
+                      onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
+                      icon={<FileAddFilled style={CANVAS_MENU_ITEM_STYLE} />}
+                      size="large"
+                      type="text"
+                      style={{
+                        margin: 0,
+                        borderRadius: '4px',
+                      }}
+                    />
                   </Tooltip>
                 </Tags.CanvasMenuItemCon>
 
@@ -2704,18 +2706,16 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
-                    <div>
-                      <Button
-                        onClick={() => setShowLoaderEditor(true)}
-                        icon={<HourglassOutlined style={{ fontSize: '1.4rem', color: 'black' }} />}
-                        size="middle"
-                        style={{
-                          margin: 0,
-                          border: '1px solid black',
-                          borderRadius: '4px',
-                        }}
-                      />
-                    </div>
+                    <Button
+                      onClick={() => setShowLoaderEditor(true)}
+                      icon={<HourglassFilled style={CANVAS_MENU_ITEM_STYLE} />}
+                      size="large"
+                      type="text"
+                      style={{
+                        margin: 0,
+                        borderRadius: '4px',
+                      }}
+                    />
                   </Tooltip>
                 </Tags.CanvasMenuItemCon>
 
@@ -2725,15 +2725,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
-                    <div style={{ position: 'relative' }}>
-                      {props.journey.flows.length !== 0 && !showJourneyEditor && <Tags.JourneyAddedIcon />}
+                    <div style={{
+                      background: props.journey.flows.length !== 0 && !showJourneyEditor ? '#EEEEEE' : 'transparent',
+                      borderRadius: '8px'
+                    }}
+                    >
                       <Button
                         onClick={() => getFirstAnnotations()}
-                        icon={<BarsOutlined style={{ fontSize: '1.4rem', fontWeight: 500, color: 'black' }} />}
-                        size="middle"
+                        icon={<BarsOutlined style={CANVAS_MENU_ITEM_STYLE} />}
+                        size="large"
+                        type="text"
                         style={{
                           margin: 0,
-                          border: '1px solid black',
                           borderRadius: '4px',
                         }}
                       />
@@ -2972,7 +2975,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 style={{ verticalAlign: 'bottom' }}
               >
                 <path
-                  fill="#9f96fa"
+                  fill="#cdcdcd"
                   d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
                 />
               </Tags.AnnEditorModalArrow>

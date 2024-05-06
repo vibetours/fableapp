@@ -42,6 +42,7 @@ export const FullScreenCon = styled.div<{bg ?: string}>`
     left: 0;
     width: 100vw;
     height: 100vh;
+    z-index: 10;
     background-color: ${props => `${props.bg || 'transparent'}`};
 `;
 
