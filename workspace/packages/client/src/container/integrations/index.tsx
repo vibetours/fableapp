@@ -25,6 +25,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 import Webhook from './webhook';
+import Button from '../../component/button';
 
 interface IDispatchProps { }
 
@@ -61,7 +62,7 @@ const IntegrationOrder = [
   PlatformIntegrationType.FableWebhook,
   'hubspot',
   'salesforce',
-  'pardot',
+  'salesforce_pardot',
   'mailchimp',
   'outreach'
 ];
@@ -177,8 +178,89 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  getIntegrationConfig(selectedApp: PlatformIntegrationType) {
+    if (selectedApp === PlatformIntegrationType.FableWebhook) {
+      return (
+        <Webhook
+          config={this.state.listOfLinkedApps.find(f => f.type === selectedApp) as RespPlatformIntegration | undefined}
+          deleteWebhook={(id: number) => {
+            this.setState(state => {
+              const webhookApp = state.listOfLinkedApps
+                .findIndex(app => app.type === PlatformIntegrationType.FableWebhook);
+
+              const tis = (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration)
+                .tenantIntegrations.filter(ti => ti.id !== id);
+
+              (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration) = {
+                ...((state.listOfLinkedApps[webhookApp]) as RespPlatformIntegration),
+                tenantIntegrations: tis
+              };
+
+              return ({ listOfLinkedApps: state.listOfLinkedApps.slice(0) });
+            });
+          }}
+          createNewPlaceholderWebhook={(localId) => {
+            const idx = this.state.listOfLinkedApps.findIndex(f => f.type === this.state.selectedApp);
+            const app = this.state.listOfLinkedApps[idx] as RespPlatformIntegration;
+            const webhooks = app.tenantIntegrations.concat({
+              relay: localId,
+            } as RespTenantIntegration);
+            this.setState(state => ({
+              ...state,
+              listOfLinkedApps: state.listOfLinkedApps.slice(0, idx).concat({
+                ...app,
+                tenantIntegrations: webhooks
+              }, ...state.listOfLinkedApps.slice(idx + 1))
+            }));
+          }}
+        />
+      );
+    } if (selectedApp === PlatformIntegrationType.Zapier) {
+      return (
+        <div>
+          <div className="typ-h1">Connect 6000+ apps to Fable via Zapier</div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '1rem',
+            marginTop: '2rem',
+          }}
+          >
+            <Button
+              style={{
+                background: '#ff5c1a',
+              }}
+              onClick={() => {
+                window.open('https://zapier.com/developer/public-invite/203718/7fb7052ae2d580fa46cebae57027d92d/', '_blank');
+              }}
+            >
+              Connect to Zapier
+            </Button>
+            <Button
+              intent="secondary"
+              onClick={() => {
+                window.open('https://help.sharefable.com/Integrations/Zapier', '_blank');
+              }}
+            >
+              Read how to connect to Zapier
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return <></>;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  isOurIntegration(selectedApp: string | undefined) {
+    if (!selectedApp) false;
+    return selectedApp!.startsWith('Fable') || selectedApp!.startsWith('Zapier');
+  }
+
   render(): JSX.Element {
-    this.state.listOfLinkedApps.forEach(app => console.log(app.type));
+    // this.state.listOfLinkedApps.forEach(app => console.log(app.type));
     return (
       <GTags.ColCon>
         {this.props.loadingState === 'loading' && <TopLoader
@@ -222,12 +304,11 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                 />
               ))}
             </Tags.IntegrationCardCon>
-
             <GTags.BorderedModal
               open={this.state.modalOpen}
               onCancel={() => this.setState({ selectedApp: null, modalOpen: false })}
               footer={null}
-              width={this.state.selectedApp && this.state.selectedApp.startsWith('Fable') ? 750 : undefined}
+              width={this.state.selectedApp && this.isOurIntegration(this.state.selectedApp) ? 750 : undefined}
               centered
               afterOpenChange={(open) => {
                 // TODO: this has been written in a hurry
@@ -242,42 +323,8 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
               }}
             >
               {this.state.selectedApp && (
-                this.state.selectedApp.startsWith('Fable') ? (
-                  (this.state.selectedApp === PlatformIntegrationType.FableWebhook && (
-                    <Webhook
-                      config={this.state.listOfLinkedApps.find(f => f.type === this.state.selectedApp) as RespPlatformIntegration | undefined}
-                      deleteWebhook={(id: number) => {
-                        this.setState(state => {
-                          const webhookApp = state.listOfLinkedApps
-                            .findIndex(app => app.type === PlatformIntegrationType.FableWebhook);
-
-                          const tis = (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration)
-                            .tenantIntegrations.filter(ti => ti.id !== id);
-
-                          (state.listOfLinkedApps[webhookApp] as RespPlatformIntegration) = {
-                            ...((state.listOfLinkedApps[webhookApp]) as RespPlatformIntegration),
-                            tenantIntegrations: tis
-                          };
-
-                          return ({ listOfLinkedApps: state.listOfLinkedApps.slice(0) });
-                        });
-                      }}
-                      createNewPlaceholderWebhook={(localId) => {
-                        const idx = this.state.listOfLinkedApps.findIndex(f => f.type === this.state.selectedApp);
-                        const app = this.state.listOfLinkedApps[idx] as RespPlatformIntegration;
-                        const webhooks = app.tenantIntegrations.concat({
-                          relay: localId,
-                        } as RespTenantIntegration);
-                        this.setState(state => ({
-                          ...state,
-                          listOfLinkedApps: state.listOfLinkedApps.slice(0, idx).concat({
-                            ...app,
-                            tenantIntegrations: webhooks
-                          }, ...state.listOfLinkedApps.slice(idx + 1))
-                        }));
-                      }}
-                    />
-                  ))
+                (this.isOurIntegration(this.state.selectedApp)) ? (
+                  this.getIntegrationConfig(this.state.selectedApp as PlatformIntegrationType)
                 ) : (
                   <Tags.CobaltConfigWrapper ref={this.cobaltConfigWrapperRef}>
                     <Provider

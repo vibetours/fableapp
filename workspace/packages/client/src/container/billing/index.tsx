@@ -97,6 +97,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
         tier = this.props.subs.paymentPlan.at(-1) || '';
       }
     }
+    isLifetimePlan = true;
     return (
       <GTags.ColCon style={{
         background: isLifetimePlan ? '#fbf6ff' : undefined
@@ -138,8 +139,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
                       <div className="typ-h1">You are on Fable's Lifetime plan</div>
                       <div className="typ-reg">You can upgrade / downgrade Fable directly from AppSumo</div>
-                      <Tags.ABtn href="https://appsumo.com/products/fable" className="typ-btn" target="_blank">
-                        View listing
+                      <Tags.ABtn href="https://appsumo.com/account/products/" className="typ-btn" target="_blank">
+                        Manage AppSumo License
                       </Tags.ABtn>
                       <Tags.PriceCon style={{
                         marginTop: '1rem'
