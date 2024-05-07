@@ -28,9 +28,9 @@ export const AnContent = styled.div<{
   --f-font-huge: 30px;
 
   @media screen and (max-width: 389px) {
-    --f-font-normal: 16px;
-    --f-font-large: 21px;
-    --f-font-huge: 26px;
+    --f-font-normal: 14px;
+    --f-font-large: 18px;
+    --f-font-huge: 22px;
   }
 
   background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};

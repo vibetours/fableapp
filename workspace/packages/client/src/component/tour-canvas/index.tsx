@@ -2773,16 +2773,22 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
-                    <Button
-                      onClick={() => setShowMobileResponsivenessDrawer(true)}
-                      icon={<MobileFilled style={CANVAS_MENU_ITEM_STYLE} />}
-                      size="large"
-                      type="text"
-                      style={{
-                        margin: 0,
-                        borderRadius: '4px',
-                      }}
-                    />
+                    <div style={{
+                      background: isTourResponsive(props.tour) ? '#EEEEEE' : 'transparent',
+                      borderRadius: '8px'
+                    }}
+                    >
+                      <Button
+                        onClick={() => setShowMobileResponsivenessDrawer(true)}
+                        icon={<MobileFilled style={CANVAS_MENU_ITEM_STYLE} />}
+                        size="large"
+                        type="text"
+                        style={{
+                          margin: 0,
+                          borderRadius: '4px',
+                        }}
+                      />
+                    </div>
                   </Tooltip>
                 </Tags.CanvasMenuItemCon>
               </Tags.CanvasMenuCon>

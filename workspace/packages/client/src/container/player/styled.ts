@@ -21,6 +21,7 @@ export const CenteredSection = styled.div`
   justify-content: center;
   align-items: center;
   gap: 1rem;
+  text-align: center;
 
   h2 {
     font-size: 2rem;

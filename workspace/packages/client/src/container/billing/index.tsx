@@ -97,7 +97,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
         tier = this.props.subs.paymentPlan.at(-1) || '';
       }
     }
-    isLifetimePlan = true;
+
     return (
       <GTags.ColCon style={{
         background: isLifetimePlan ? '#fbf6ff' : undefined

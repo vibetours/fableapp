@@ -20,7 +20,7 @@ interface Props {
 export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
   return (
     <Tags.StyledDrawer
-      title={(<><MobileOutlined /> &nbsp; Mobile Responsiveness Strategy</>)}
+      title={(<><MobileOutlined /> &nbsp; Mobile Responsiveness</>)}
       open={props.showMobileResponsivenessDrawer}
       onClose={() => props.setShowMobileResponsivenessDrawer(false)}
       placement="left"
@@ -41,51 +41,44 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
         }}
       >
         <OurRadio value={Responsiveness.Responsive}>
-          <p className="typ-h2">My app is responsive in Mobile</p>
+          <p className="typ-h2">My application is mobile responsive</p>
           <p style={{ fontSize: '0.75rem' }}>
-            Check this if your app adapts to Mobile and Desktop (different screen sizes) gracefully.
-            App developer might be using media query to achieve this.
+            Choose this option if your application adapts to different screen sizes (desktop & mobile).
+            Do note that responsiveness is based on the application development by your team.
             <br />
-            If you don't know if your app is responsive or not, you can check this guide for verification.
           </p>
 
           {props.selectedResponsivenessStrategy === Responsiveness.Responsive && (
           <>
             <p className="typ-reg">
-              Responsiveness is a subjective choice and the implementation varies wildly. If your app is
-              responsive on mobile devices, press the button below, Fable will manage your demo on mobile
-              gracefully.
+              If your application is mobile responsive, please click the button below.
+              Fable will manage your demo on mobile gracefully.
             </p>
-
             <FableButton
               onClick={() => props.updateResponsiveness(Responsiveness.Responsive)}
               disabled={isTourResponsive(props.tour)}
             >
               {isTourResponsive(props.tour)
                 ? 'Your app is made responsive'
-                : 'Make this Fable responsive for Mobile devices'}
+                : 'Make this demo mobile responsive'}
 
             </FableButton>
-            <p className="typ-reg">
-              Don't worry you can always go back to non responsive mode later on.
-            </p>
 
             {isTourResponsive(props.tour) && (
             <>
               <p className="typ-reg">
-                All your screens are made responsive. You can visit each screen now and check
-                if annotations are displayed properly in mobile.
-              </p>
-
-              <p className="typ-reg">
-                If they are not (this might happen in case your app adapts to different layout
-                for different devices), you can readjust the annotation for different devices.
+                Note: All your screens are now made responsive. If needed, you can check each screen now and
+                see if the guides are displayed properly in mobile.
+                If they are not (this might happen in case your application
+                adapts to different layouts for different devices),
+                you can readjust the guide for different devices.
               </p>
 
               <OurLink
                 href={`/preview/demo/${props.tour.rid}?s=3`}
                 target="_blank"
                 rel="noreferrer"
+                className="highlighted-link"
               >
                 Checkout how this demo would look on Mobile devices
               </OurLink>
@@ -97,32 +90,23 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
         </OurRadio>
 
         <OurRadio value={Responsiveness.NoResponsive}>
-          <p className="typ-h2">My app is NOT responsive in Mobile</p>
+          <p className="typ-h2">My application is not mobile responsive</p>
           {props.selectedResponsivenessStrategy === Responsiveness.NoResponsive && (
           <>
             <p className="typ-reg">
-              If your app is not responsive on mobile devices, Fable still tries to provide
-              a convienient experience when someone opens the demo on mobile
+              If your application is not mobile responsive, Fable tries to provide a
+              standard experience when your demo is viewed on mobile.
             </p>
 
             <p className="typ-reg" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <MobileOutlined style={{ fontSize: '1.5rem' }} /> On portrait mode we show the following warning
+              <MobileOutlined style={{ fontSize: '1.5rem' }} /> In portrait mode
             </p>
 
             <div style={{ marginLeft: '1.75rem', }}>
-              <div style={{
-                textAlign: 'center',
-                backgroundColor: '#F5F5F5',
-                padding: '1.5rem 2rem'
-              }}
-              >
-                <p className="typ-reg">
-                  This demo is best viewed on
-                  Desktop or you can rotate your
-                  screen for a better experience.
-                </p>
-                <OurLink>Continue to demo in this mode</OurLink>
-              </div>
+              <p className="typ-reg">
+                In this mode, we show the following warning: You can rotate your screen for a better experience.
+                Alternatively, you can view this demo on a desktop.
+              </p>
               <OurLink
                 style={{
                   marginTop: '0.5rem',
@@ -138,10 +122,18 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
 
             <p className="typ-reg" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: 0 }}>
               <MobileOutlined rotate={270} style={{ fontSize: '1.5rem' }} />
-              On landscape mode we show a managed version of the demo
+              In landscape mode
             </p>
 
-            <div style={{ marginLeft: '1.75rem', }}>
+            <div
+              style={{
+                marginLeft: '1.75rem',
+                marginTop: '1rem',
+              }}
+            >
+              <p className="typ-reg">
+                In this mode, we show a scaled version of the demo.
+              </p>
               <OurLink
                 href={`/preview/demo/${props.tour.rid}?s=4`}
                 target="_blank"
@@ -149,18 +141,6 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
               >
                 Checkout how this demo would look on Landscape mode
               </OurLink>
-              <div style={{
-                marginTop: '1rem',
-                backgroundColor: '#F5F5F5',
-                padding: '1.25rem'
-              }}
-              >
-                <p className="typ-reg" style={{ margin: 0, padding: 0 }}>
-                  If your app is not responsive, but renders on mobile (via js)
-                  you can use our extension to record mobile version of your
-                  app and embed different demos based on device type
-                </p>
-              </div>
             </div>
           </>
           )}

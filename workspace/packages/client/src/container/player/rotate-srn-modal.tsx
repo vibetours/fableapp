@@ -12,8 +12,8 @@ function RotateScreenModal(props: Props): JSX.Element {
       <Tags.CenteredSection>
         <RotateLeftOutlined style={{ fontSize: '2rem' }} />
         <h2>Rotate your screen</h2>
-        <p>Please rotate your screen for a better demo experience</p>
-        <Tags.SecondaryBtn onClick={props.closeModal}>Skip rotating</Tags.SecondaryBtn>
+        <p>You can rotate your screen for a better experience. Alternatively, you can view this demo on a desktop.</p>
+        <Tags.SecondaryBtn onClick={props.closeModal}>Continue without rotating</Tags.SecondaryBtn>
       </Tags.CenteredSection>
     </Tags.FullScreenModal>
   );

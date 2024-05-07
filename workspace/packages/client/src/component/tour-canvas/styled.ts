@@ -369,4 +369,13 @@ export const StyledDrawer = styled(Drawer)`
   h4 {
     font-weight: 400;
   }
+
+  .highlighted-link {
+    color: white;
+    background: #7567ff;
+    font-weight: 500;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
 `;
