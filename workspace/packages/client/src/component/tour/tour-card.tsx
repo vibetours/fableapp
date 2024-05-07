@@ -11,6 +11,7 @@ import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { Button, Popover, Tooltip } from 'antd';
 import React, { useState } from 'react';
+import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import * as GTags from '../../common-styled';
 import { CtxAction } from '../../container/tours';
@@ -29,17 +30,21 @@ interface Props {
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
   handleDelete: (tour: P_RespTour | null) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
-  updateSiteData: (rid: string, site: SiteData)=> void;
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, updateSiteData
+  tour, handleShowModal, handleDelete, publishTour, updateTourProp
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
 
   const onSiteDataChange = (site: SiteData): void => {
-    updateSiteData(tour.rid, site);
+    updateTourProp(tour.rid, 'site', site);
   };
 
   return (

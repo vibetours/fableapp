@@ -8,7 +8,7 @@ import {
   JourneyData
 } from '@fable/common/dist/types';
 import React from 'react';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
 import { captureException, startTransaction } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
@@ -17,37 +17,38 @@ import { sleep } from '@fable/common/dist/utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
-  EditItem, ElEditType,
-  EncodingTypeBlur,
-  EncodingTypeDisplay,
-  EncodingTypeImage,
-  EncodingTypeInput,
-  EncodingTypeMask,
-  EncodingTypeText, FrameAssetLoadFn, HiddenEls, IdxEditItem,
-  IdxEncodingTypeBlur,
-  IdxEncodingTypeDisplay,
-  IdxEncodingTypeImage,
-  IdxEncodingTypeInput,
-  IdxEncodingTypeMask,
-  IdxEncodingTypeText,
+  HiddenEls,
+  EditItem,
+  FrameAssetLoadFn,
+  ElPathKey,
   NavFn,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
-import { hideChildren } from './utils/creator-actions';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
-import { deser, deserFrame, deserIframeEl } from './utils/deser';
-import { applyEditsToSerDom, showOrHideEditsFromEl } from './utils/edits';
+import { deser, deserIframeEl } from './utils/deser';
+import { applyEditsToSerDom } from './utils/edits';
 import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
-import { getChildElementByFid, getFidOfNode, getFidOfSerNode, getCurrentFlowMain, makeVisibleAllParentsInHierarchy, undoMakeVisibleAllParentsInHierarchy } from '../../utils';
+import {
+  getChildElementByFid,
+  getFidOfNode,
+  getFidOfSerNode,
+  getCurrentFlowMain,
+  makeVisibleAllParentsInHierarchy,
+  undoMakeVisibleAllParentsInHierarchy,
+  debounce,
+  isTourResponsive,
+  RESP_MOBILE_SRN_WIDTH_LIMIT
+} from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { NavToAnnByRefIdFn } from './types';
 
 export interface IOwnProps {
+  resizeSignal: number;
   journey: JourneyData | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
@@ -76,9 +77,15 @@ export interface IOwnProps {
   screenRidOnWhichDiffsAreApplied?: string;
   updateJourneyProgress: (annRefId: string)=> void;
   areDiffsAppliedSrnMap?: Map<string, boolean>;
+  isResponsive: boolean;
+  elpathKey: ElPathKey;
+  updateElPathKey: (elPath: ElPathKey)=> void;
+  handleMenuOnScreenResize?: ()=> void;
 }
 
 interface IOwnStateProps {
+  resizeSignal: number;
+  currentAnn: string;
 }
 
 export default class ScreenPreviewWithEditsAndAnnotationsReadonly
@@ -104,6 +111,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   constructor(props: IOwnProps) {
     super(props);
     this.embedFrameRef = React.createRef();
+    this.state = {
+      resizeSignal: this.props.resizeSignal,
+      currentAnn: this.props.toAnnotationId
+    };
   }
 
   addFont = (): void => {
@@ -194,7 +205,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
           this.props.updateCurrentFlowMain,
-          this.props.updateJourneyProgress
+          this.props.updateJourneyProgress,
+          this.props.elpathKey
         );
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.
@@ -228,7 +240,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     clearTimeout(this.timer);
     this.timer = setTimeout(() => {
-      if (an) this.showAnnotation(an, this.props.tourDataOpts);
+      if (an) this.showAnnotation(an, this.props.tourDataOpts, this.props.elpathKey);
       else if (this.props.playMode) this.annotationLCM?.hideAnnButKeepMask();
       else this.annotationLCM?.hide();
       this.timer = 0;
@@ -237,7 +249,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     return annFound;
   }
 
-  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts): Promise<void> {
+  async showAnnotation(conf: IAnnotationConfig, opts: ITourDataOpts, elpathKey: ElPathKey): Promise<void> {
     if (!this.annotationLCM) return;
     let targetEl = null;
     if (conf.type === 'cover') {
@@ -245,7 +257,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     } else if (this.props.screen.type === ScreenType.Img) {
       targetEl = this.embedFrameRef?.current?.contentDocument?.body.querySelector('img')!;
     } else {
-      targetEl = this.annotationLCM.elFromPath(conf.id)!;
+      targetEl = this.annotationLCM.elFromPath(conf[elpathKey])!;
       /** if this element or its parent has display none, we change it to display block.
        * this will create a problem if the original display was other than block (eg, inline, flex) */
       this.hiddenEls = makeVisibleAllParentsInHierarchy(targetEl);
@@ -261,10 +273,19 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     );
   }
 
+  componentDidMount(): void {
+    window.addEventListener('resize', this.handleScreenResize);
+  }
+
   async componentDidUpdate(prevProps: IOwnProps): Promise<void> {
+    if (this.annotationLCM && this.props.elpathKey !== prevProps.elpathKey) {
+      this.annotationLCM.updateElPathKey(this.props.elpathKey);
+      if (this.props.playMode) this.reachAnnotation(this.state.currentAnn);
+    }
     if (this.props.playMode) {
       // In player, stop useless rerender leading to flashing
       if (this.props.toAnnotationId && prevProps.toAnnotationId !== this.props.toAnnotationId) {
+        this.setState({ currentAnn: this.props.toAnnotationId });
         this.reachAnnotation(this.props.toAnnotationId);
       }
       if (prevProps.toAnnotationId && !this.props.toAnnotationId) {
@@ -293,6 +314,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (prevOpts.annotationFontFamily !== opts.annotationFontFamily) {
       this.addFont();
     }
+
+    if (prevProps.resizeSignal !== this.props.resizeSignal) {
+      this.setState({ resizeSignal: this.props.resizeSignal });
+    }
   }
 
   componentWillUnmount(): void {
@@ -300,7 +325,25 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.timer = 0;
     this.disposeAndAnnotationLCM();
     this.props.onDispose && this.props.onDispose();
+    window.removeEventListener('resize', this.handleScreenResize);
   }
+
+  handleScreenResize = debounce(() => {
+    this.setState({ resizeSignal: Math.random() });
+    this.props.handleMenuOnScreenResize && this.props.handleMenuOnScreenResize();
+
+    if (isTourResponsive(this.props.tour)) {
+      const doc = this.annotationLCM!.getDoc();
+      const win = doc.defaultView!;
+      const newKey = win.innerWidth <= RESP_MOBILE_SRN_WIDTH_LIMIT ? 'm_id' : 'id';
+
+      if (newKey !== this.props.elpathKey) {
+        this.props.updateElPathKey(newKey);
+        return;
+      }
+    }
+    this.reachAnnotation(this.state.currentAnn);
+  }, 100);
 
   getScreenById = (id: number): P_RespScreen | undefined => this.props.allScreens!.find(screen => screen.id === id);
 
@@ -544,6 +587,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     isGoToVideoAnn: boolean
   ): Promise<void> => {
     const [goToScreenId, goToAnnId] = goToAnnIdWithScreenId.split('/');
+    this.setState({ currentAnn: goToAnnId });
 
     const { screenId: currScreenId } = getAnnotationByRefId(currAnnId, this.props.allAnnotationsForTour)!;
 
@@ -683,7 +727,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       try {
         const ann = getAnnotationByRefId(goToAnnId, this.props.allAnnotationsForTour)!;
         if (ann.type === 'default') {
-          const targetEl = this.annotationLCM!.elFromPath(ann.id);
+          const targetEl = this.annotationLCM!.elFromPath(ann[this.props.elpathKey]);
           targetEl!.getBoundingClientRect();
         }
       } catch (err) {
@@ -750,7 +794,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (this.props.innerRef) {
       refs.push(this.props.innerRef);
     }
+
     return <Preview
+      resizeSignal={this.state.resizeSignal}
       journey={this.props.journey!}
       showWatermark={this.props.tourDataOpts.showFableWatermark}
       allEdits={this.props.allEdits}
@@ -763,6 +809,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       onFrameAssetLoad={this.onFrameAssetLoad}
       isScreenPreview={false}
       playMode={this.props.playMode}
+      isResponsive={this.props.isResponsive}
     />;
   }
 }

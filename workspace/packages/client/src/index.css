@@ -216,3 +216,17 @@ html, body, div, span, button, p, button, input {
   padding: 2px 4px;
   border-radius: 4px;
 }
+
+.device-dropdown{
+  border-radius: 16px;
+  border: 1px solid #EAEAEA;
+  background: white;
+  box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.08);
+  color: #16023E;
+  padding: 0.5rem;
+  width: 240px;
+}
+
+.device-dropdown .ant-dropdown-menu{
+  box-shadow: none;
+}

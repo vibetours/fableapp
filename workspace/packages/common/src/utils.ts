@@ -88,7 +88,7 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   annotationFontFamily: null,
   borderRadius: 4,
   annotationPadding: '14 14',
-  showFableWatermark: true
+  showFableWatermark: true,
 });
 
 export function getSampleJourneyData() {
@@ -170,6 +170,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     buttonLayout: 'default',
     selectionShape: 'box',
     isLeadFormPresent: false,
+    m_id: elPath
   };
 };
 

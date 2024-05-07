@@ -12,6 +12,7 @@ import { IframePos, EditItem } from '../../types';
 import { applyEditsToSerDom } from './utils/edits';
 
 export interface IOwnProps {
+  resizeSignal: number;
   journey: JourneyData | null;
   showWatermark: boolean;
   allEdits: EditItem[];
@@ -23,6 +24,7 @@ export interface IOwnProps {
   onFrameAssetLoad: () => void;
   isScreenPreview: boolean;
   playMode: boolean;
+  isResponsive: boolean;
 }
 
 export interface DeSerProps {
@@ -110,7 +112,22 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       this.handleScreenResponsiveness();
     }
 
+    if (prevProps.isResponsive !== this.props.isResponsive) {
+      this.handleScreenResponsiveness();
+    }
+
+    /**
+     * In the previous code fit height / fit width
+     * was determined for an image screen from responsive column of screen db.
+     * Right now responsiveness of demo and screen fit-height & fit-width are two independent things
+     * and could be applied with one another. We haven't changed the name of the column hence we are still
+     * using screen.responsive property, but in reality it's just 1/true -> fit-height and 0/false -> fit-width
+     */
     if (prevProps.screen.responsive !== this.props.screen.responsive) {
+      this.handleImgScreenResponsiveness();
+    }
+
+    if (prevProps.resizeSignal !== this.props.resizeSignal) {
       this.handleScreenResponsiveness();
     }
   }
@@ -208,12 +225,14 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
     frame.style.position = 'absolute';
     frame.style.transformOrigin = '0 0';
+    frame.style.top = '0px';
+    frame.style.left = '0px';
 
     if (this.props.screen.type === ScreenType.Img) {
       this.handleImgScreenResponsiveness();
     }
 
-    if (this.props.screen.type === ScreenType.Img || (this.props.screen.type === ScreenType.SerDom && !this.props.screen.responsive)) {
+    if (!this.props.isResponsive) {
       // INFO for now we use a constant image scaling size of 1280 / 720 (with ratio 16:9)
       const vpdW = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.w : 1280;
       const vpdH = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.h : 720;

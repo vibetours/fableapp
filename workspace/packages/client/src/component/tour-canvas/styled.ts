@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import { Drawer } from 'antd';
 import { ModalPosition } from './types';
 
 export const TILE_STROKE_COLOR_ON_HOVER = '#160245';
@@ -350,4 +351,22 @@ export const MultiNodeModalClose = styled.div`
   flex-direction: row-reverse; 
   margin: 0px 10px;
   height: 20px;
+`;
+
+export const StyledDrawer = styled(Drawer)`
+  .ant-radio {
+    align-self: unset;
+  }
+
+  .ant-drawer-header-title {
+    flex-direction: row-reverse;
+  }
+
+  h3 {
+    font-weight: 500;
+  }
+
+  h4 {
+    font-weight: 400;
+  }
 `;

@@ -27,7 +27,6 @@ import {
   Interval as PaymentTermsInterval,
   RespSubscription,
   ReqActivateOrDeactivateUser,
-  ReqUpdateScreenProperty,
   ResponseStatus,
   ReqTourPropUpdate,
   RespTourView,
@@ -36,6 +35,8 @@ import {
   RespTourAnnViews,
   RespTourLeads,
   RespLeadActivityUrl,
+  Responsiveness,
+  ReqUpdateScreenProperty,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -72,6 +73,7 @@ import {
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
+  ElPathKey,
   LeadActivityData,
   Ops,
   STORAGE_PREFIX_KEY_QUERY_PARAMS,
@@ -1360,13 +1362,17 @@ export function getLeadActivityForTour(rid: string, aid: string) {
   };
 }
 
-export function updateSiteData(rid: string, site: SiteData) {
+export function updateTourProp<T extends keyof ReqTourPropUpdate>(
+  rid: string,
+  tourProp: T,
+  value: ReqTourPropUpdate[T]
+) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
     const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespTour>>('/updtrprop', {
       auth: true,
       body: {
         tourRid: rid,
-        site
+        [tourProp]: value
       },
       method: 'POST'
     });
@@ -1377,6 +1383,20 @@ export function updateSiteData(rid: string, site: SiteData) {
       tour: processedTour,
       oldTourRid: rid,
       performedAction: 'edit',
+    });
+  };
+}
+
+export interface TElpath {
+  type: ActionType.UPDATE_ELPATH;
+  elPath: ElPathKey;
+}
+
+export function updateElPathKey(newElPath: ElPathKey) {
+  return async (dispatch: Dispatch<TElpath>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.UPDATE_ELPATH,
+      elPath: newElPath
     });
   };
 }

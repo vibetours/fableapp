@@ -20,7 +20,6 @@ import {
   IdxEncodingTypeText
 } from '../../../types';
 import { hideChildren, hideChildrenInSerDom, unhideChildren } from './creator-actions';
-import ScreenPreviewWithEditsAndAnnotationsReadonly from '../preview-with-edits-and-annotations-readonly';
 
 export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTMLElement): void => {
   if (el.dataset.deleted === 'true') return;
@@ -128,7 +127,6 @@ export const getSerNodeFromPath = (path: string, docTree: SerNode): SerNode => {
 };
 
 export const applyEditsToSerDom = (allEdits: EditItem[], screenData: ScreenData): ScreenData => {
-  const ATTR_NAME = ScreenPreviewWithEditsAndAnnotationsReadonly.ATTR_ORIG_VAL_SAVE_ATTR_NAME;
   const mem: Record<string, SerNode> = {};
 
   for (const edit of allEdits) {

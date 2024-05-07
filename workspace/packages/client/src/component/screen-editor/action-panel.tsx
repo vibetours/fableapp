@@ -34,9 +34,8 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
             {props.helpText && (
               <Tooltip
                 placement="bottomRight"
-                title={
-                  <GTags.Txt className="subsubhead" color="#fff">{props.helpText}</GTags.Txt>
-                }
+                overlayStyle={{ fontSize: '0.75rem' }}
+                title={props.helpText}
               >
                 <QuestionCircleOutlined className="ht-icn" />
               </Tooltip>

@@ -752,7 +752,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           config={getSampleConfig('$', '')}
                           opts={getThemeAnnotationOpts(color)}
                           isInDisplay
-                          width={200}
+                          width={320}
                           dir="l"
                           tourId={0}
                           top={0}
@@ -815,7 +815,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           config={getSampleConfig('$', '')}
                           opts={getThemeAnnotationOpts(this.state.selectedColor, r)}
                           isInDisplay
-                          width={200}
+                          width={320}
                           dir="l"
                           tourId={0}
                           top={0}
@@ -878,7 +878,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
                     )}
                     isInDisplay
-                    width={200}
+                    width={320}
                     dir="l"
                     tourId={0}
                     top={0}

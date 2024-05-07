@@ -7,7 +7,7 @@ import { getDefaultTourOpts, sleep } from '@fable/common/dist/utils';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
-import { AnnotationPerScreen, NavFn } from '../../types';
+import { AnnotationPerScreen, ElPathKey, NavFn } from '../../types';
 import { isBodyEl, isVideoAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
@@ -83,6 +83,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private iframeElsScrollTimeoutId: number;
 
+  private elPathKey: ElPathKey;
+
   private updateJourneyProgress: (annRefId: string)=> void;
 
   static getFablePrefixedClsName(cls: string): string {
@@ -151,9 +153,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     config: HighlighterBaseConfig,
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
     updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
-    updateJourneyProgress: (annRefId: string) => void
+    updateJourneyProgress: (annRefId: string) => void,
+    elPathKey: ElPathKey
   ) {
     super(doc, nestedFrames, config);
+    this.elPathKey = elPathKey;
     this.annElsVisibilityObserver = new AnnElsVisibilityObserver(this.elVisibleHandler, this.elNotVisibleHandler);
     this.nav = opts.navigate;
     this.navigateToAnnByRefIdOnSameScreen = opts.navigateToAnnByRefIdOnSameScreen;
@@ -722,7 +726,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     prerender: boolean = false,
   ): IAnnoationDisplayConfig {
     const key = config.id;
-    const el = this.getElFromAnnConfig(config);
+    const el = this.getElFromAnnConfig(config, this.elPathKey);
     const vp = this.getVp();
 
     const displayConf = {
@@ -749,14 +753,14 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return displayConf;
   }
 
-  private getElFromAnnConfig(config: IAnnotationConfig): HTMLElement {
+  private getElFromAnnConfig(config: IAnnotationConfig, elPathKey: ElPathKey): HTMLElement {
     let el: HTMLElement;
     if (this.screenType === ScreenType.Img && config.type === 'default') {
       el = this.doc.querySelector('img')!;
     } else if (config.type === 'cover') {
       el = this.doc.querySelector('body')!;
     } else {
-      el = this.elFromPath(config.id)!;
+      el = this.elFromPath(config[elPathKey])!;
     }
     return el;
   }
@@ -825,12 +829,33 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     );
   }
 
-  private async probeForAnnotationSize(config: IAnnotationConfig, opts: ITourDataOpts): Promise<AllDimsForAnnotation> {
+  private getAnnWidths(annType: 'default' | 'cover')
+  : {smallWidth: number, mediumWidth: number, largeWidth: number} {
     const vp = this.getVp();
 
-    const smallWidth = AnnotationContent.MIN_WIDTH;
-    const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 3.5 | 0);
-    const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 2.5 | 0);
+    if (this.elPathKey === 'id') {
+      const smallWidth = AnnotationContent.MIN_WIDTH;
+      const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 3.5 | 0);
+      const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 2.5 | 0);
+
+      return {
+        smallWidth,
+        mediumWidth,
+        largeWidth
+      };
+    }
+
+    const width = annType === 'default' ? AnnotationContent.WIDTH_MOBILE : (vp.w - 60);
+    return {
+      smallWidth: width,
+      mediumWidth: width,
+      largeWidth: width
+    };
+  }
+
+  private async probeForAnnotationSize(config: IAnnotationConfig, opts: ITourDataOpts): Promise<AllDimsForAnnotation> {
+    const { smallWidth, mediumWidth, largeWidth } = this.getAnnWidths(config.type);
+
     const customWidth = config.customDims.width;
 
     try {
@@ -971,5 +996,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       this.annElsVisibilityObserver.unobserveAllEls();
       super.dispose();
     });
+  }
+
+  public updateElPathKey(newElPath: ElPathKey) : void {
+    this.elPathKey = newElPath;
   }
 }

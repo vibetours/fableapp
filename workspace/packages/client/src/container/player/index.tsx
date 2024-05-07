@@ -5,8 +5,8 @@ import {
   LoadingStatus, ScreenData
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { ScreenType } from '@fable/common/dist/api-contract';
-import { loadScreenAndData, loadTourAndData } from '../../action/creator';
+import { Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { loadScreenAndData, loadTourAndData, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
@@ -28,6 +28,7 @@ import {
   TourMainValidity,
   ScreenSizeData,
   IframePos,
+  ElPathKey,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -41,7 +42,10 @@ import {
   updateAllAnnotations,
   getSearchParamData,
   getTourMainValidity,
-  preloadImagesInTour
+  preloadImagesInTour,
+  isTourResponsive,
+  RESP_MOBILE_SRN_WIDTH_LIMIT,
+  isLandscapeMode
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -55,6 +59,7 @@ import MainValidityInfo from './main-validity-info';
 import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../analytics/types';
 import { FableLeadContactProps, addToGlobalAppData } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
+import RotateScreenModal from './rotate-srn-modal';
 
 export const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
 
@@ -62,6 +67,7 @@ const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
+  updateElpathKey: (elPathKey: ElPathKey) => void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -71,6 +77,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
   ),
+  updateElpathKey: (elPathKey: ElPathKey) => dispatch(updateElPathKey(elPathKey))
 });
 
 interface IAppStateProps {
@@ -85,6 +92,7 @@ interface IAppStateProps {
   allAnnotationsForTour: AnnotationPerScreen[];
   tourLoaderData: ITourLoaderData | null;
   journey: JourneyData | null;
+  elpathKey: ElPathKey;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -116,6 +124,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     editsAcrossScreens: state.default.remoteEdits,
     allAnnotationsForTour,
     journey: state.default.journey,
+    elpathKey: state.default.elpathKey
   };
 };
 
@@ -142,6 +151,7 @@ interface IOwnStateProps {
   currentFlowMain: string;
   tourMainValidity: TourMainValidity;
   screenSizeData: Record<string, ScreenSizeData>;
+  showRotateScreenModal: boolean;
 }
 
 interface ScreenInfo {
@@ -192,7 +202,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isJourneyMenuOpen: false,
       annotationSerialIdMap: {},
       currentFlowMain: '',
-      screenSizeData: {}
+      screenSizeData: {},
+      showRotateScreenModal: false
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -478,6 +489,28 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  handleResponsiveness = (): void => {
+    if (window.innerWidth > RESP_MOBILE_SRN_WIDTH_LIMIT) return;
+
+    if (this.props.tour && isTourResponsive(this.props.tour)) {
+      this.props.updateElpathKey('m_id');
+      return;
+    }
+
+    if (!isLandscapeMode(window.screen.orientation.type)) {
+      this.setState({ showRotateScreenModal: true });
+      window.screen.orientation.addEventListener('change', this.screenOrientationChangeListener);
+    }
+  };
+
+  screenOrientationChangeListener = (e: ScreenOrientationEventMap['change']): void => {
+    const evTarget = e.target as ScreenOrientation;
+    if (evTarget.type.includes('landscape')) {
+      this.setState({ showRotateScreenModal: false });
+      window.screen.orientation.removeEventListener('change', this.screenOrientationChangeListener);
+    }
+  };
+
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
     const currTourLoaded = this.props.isTourLoaded;
@@ -492,11 +525,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
       this.handleParams();
       firstTimeTourLoading = true;
+
+      this.handleResponsiveness();
+
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
       let isJourneyMenuOpen = false;
       if (this.isJourneyAdded()) {
         this.setCurrentFlowMain();
-        isJourneyMenuOpen = !this.props.journey!.hideModuleOnLoad;
+        isJourneyMenuOpen = this.isJourneyMenuDefaultOpen();
         annotationSerialIdMap = this.setSerialMapAndJoruneyProgress(annotationSerialIdMap);
       } else {
         annotationSerialIdMap = this.props.tourOpts
@@ -735,6 +771,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   isJourneyAdded = (): boolean => (this.props.journey !== null && this.props.journey.flows.length !== 0);
 
+  isJourneyMenuDefaultOpen = (): boolean => Boolean(this.props.journey && !this.props.journey.hideModuleOnLoad);
+
   addJourneyToGlobalData = (main: string): void => {
     let journeyIndex = -1;
     const journeyName = this.props.journey?.flows
@@ -773,6 +811,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
+                resizeSignal={1}
                 journey={this.props.journey!}
                 annotationSerialIdMap={this.state.annotationSerialIdMap}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
@@ -841,6 +880,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 flows={this.props.journey?.flows || []}
                 areDiffsAppliedSrnMap={this.areDiffsAppliedSrnMap}
+                isResponsive={isTourResponsive(this.props.tour!)}
+                elpathKey={this.props.elpathKey}
+                updateElPathKey={this.props.updateElpathKey}
+                handleMenuOnScreenResize={() => {
+                  if (this.state.isJourneyMenuOpen) {
+                    this.setState({ isJourneyMenuOpen: false });
+                    setTimeout(() => {
+                      this.setState({ isJourneyMenuOpen: true });
+                    }, 100);
+                  }
+                }}
               />
             ))
         }
@@ -869,6 +919,18 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           && (
             <FullScreenLoader data={this.props.tourLoaderData} />
           )}
+
+        {
+          this.state.showRotateScreenModal && <RotateScreenModal
+            closeModal={() => {
+              const journeyMenuOpen = this.isJourneyMenuDefaultOpen();
+              this.setState({
+                showRotateScreenModal: false,
+                isJourneyMenuOpen: journeyMenuOpen
+              });
+            }}
+          />
+        }
       </GTags.BodyCon>
     );
   }

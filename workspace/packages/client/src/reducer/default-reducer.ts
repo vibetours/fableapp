@@ -42,9 +42,10 @@ import {
   TScreenUpdate,
   TShowPaymentModal,
   TTourPublished,
+  TElpath,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
-import { AllEdits, EditItem, ElEditType, Ops } from '../types';
+import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
 
 export const initialState: {
   inited: boolean;
@@ -91,6 +92,7 @@ export const initialState: {
   journey: JourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
   isPaymentModalShown: boolean;
+  elpathKey: ElPathKey;
 } = {
   inited: false,
   commonConfig: null,
@@ -133,6 +135,7 @@ export const initialState: {
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
   isPaymentModalShown: false,
+  elpathKey: 'id'
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -504,6 +507,14 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TTourPublished;
       const newState = { ...state };
       newState.currentTour = tAction.tour;
+
+      return newState;
+    }
+
+    case ActionType.UPDATE_ELPATH: {
+      const tAction = action as TElpath;
+      const newState = { ...state };
+      newState.elpathKey = tAction.elPath;
 
       return newState;
     }

@@ -100,6 +100,8 @@ export class AnnotationContent extends React.PureComponent<{
 }> {
   static readonly MIN_WIDTH = DEFAULT_ANN_DIMS.width;
 
+  static readonly WIDTH_MOBILE = 240;
+
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
 
   private readonly contentRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -171,7 +173,7 @@ export class AnnotationContent extends React.PureComponent<{
         bgColor={this.props.opts.annotationBodyBackgroundColor}
         style={{
           flexDirection: 'column',
-          minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.MIN_WIDTH}px`,
+          minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.WIDTH_MOBILE}px`,
           width: `${this.props.width}px`,
           display: this.props.isInDisplay ? 'flex' : 'none',
           visibility: 'visible',
@@ -329,6 +331,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   private SELECTION_BUBBLE_MARGIN = 8;
 
+  private isInitialTransitionDone = false;
+
   componentDidMount(): void {
     if (!this.props.annotationDisplayConfig.prerender) {
       window.addEventListener('message', this.receiveMessage, false);
@@ -342,16 +346,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<{}>, snapshot?: any): void {
-    const prevConfig = prevProps.annotationDisplayConfig.config;
-    const currConfig = this.props.annotationDisplayConfig.config;
-    if (prevConfig.positioning !== currConfig.positioning) {
-      setTimeout(() => {
-        if (this.conRef.current) {
-          this.conRef.current.style.transform = 'translate(0px, 0px)';
-        }
-      }, 0);
-    }
-
     if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized
        && this.props.annotationDisplayConfig.isMaximized) {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
@@ -391,6 +385,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       this.conRef.current!.style.transition = 'transform 0.3s ease-out';
       this.conRef.current!.style.transform = 'translate(0px, 0px)';
     }, 48);
+    this.isInitialTransitionDone = true;
   };
 
   getAnnWidthHeight = ():{
@@ -896,6 +891,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       const body = this.props.win.document.body;
       t += this.props.win.scrollY + body.scrollTop;
       l += this.props.win.scrollX + body.scrollLeft;
+    }
+
+    if (this.isInitialTransitionDone) {
+      tx = 0;
+      ty = 0;
     }
 
     return (

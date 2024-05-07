@@ -279,9 +279,11 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
       const nodeAlignment = ($isElementNode(node) ? node.getFormatType() : parent?.getFormatType()) || 'left';
       setAlignment(nodeAlignment);
 
-      setFontSize(
-        $getSelectionStyleValueForProperty(selection, 'font-size', AnnotationFontSize.normal)
-      );
+      setFontSize($getSelectionStyleValueForProperty(
+        selection,
+        'font-size',
+        AnnotationFontSize.normal
+      ));
     }
   }, [editor]);
 
@@ -345,7 +347,7 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
 
               <Dropdown
                 menu={{
-                  onClick: (e) => handleDropdownItemClick(`${e.key}px`),
+                  onClick: (e) => handleDropdownItemClick(e.key),
                   items: fontSizeOptions,
                 }}
                 trigger={['click']}

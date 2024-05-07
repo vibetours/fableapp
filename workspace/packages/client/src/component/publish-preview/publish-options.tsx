@@ -148,6 +148,18 @@ function DisplaySizeMenu(props: DisplaySizeMenuProps): JSX.Element {
       >
         Small
       </Tags.PopoverMenuItem>
+      <Tags.PopoverMenuItem
+        onClick={() => handleMenuItemClick(DisplaySize.MOBILE_PORTRAIT)}
+        selected={props.selectedDisplaySize === DisplaySize.MOBILE_PORTRAIT}
+      >
+        Mobile (Portrait)
+      </Tags.PopoverMenuItem>
+      <Tags.PopoverMenuItem
+        onClick={() => handleMenuItemClick(DisplaySize.MOBILE_LANDSCAPE)}
+        selected={props.selectedDisplaySize === DisplaySize.MOBILE_LANDSCAPE}
+      >
+        Mobile (Landscape)
+      </Tags.PopoverMenuItem>
     </Tags.PopoverCon>
   );
 }

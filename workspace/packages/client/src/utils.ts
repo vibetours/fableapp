@@ -8,7 +8,7 @@ import {
   JourneyData,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespTour } from '@fable/common/dist/api-contract';
+import { RespTour, Responsiveness } from '@fable/common/dist/api-contract';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
@@ -34,6 +34,9 @@ export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
 export const AEP_HEIGHT = 25;
 export const ANN_EDIT_PANEL_WIDTH = 350;
+export const RESP_MOBILE_SRN_WIDTH_LIMIT = 490;
+export const RESP_MOBILE_SRN_WIDTH = 390;
+export const RESP_MOBILE_SRN_HEIGHT = 844;
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -279,6 +282,8 @@ export const enum DisplaySize {
   FIT_TO_SCREEN = 0,
   MEDIUM,
   SMALL,
+  MOBILE_PORTRAIT,
+  MOBILE_LANDSCAPE
 }
 
 export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { height: string; width: string } => {
@@ -289,6 +294,10 @@ export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { hei
       return { height: '563px', width: '1000px' };
     case DisplaySize.SMALL:
       return { height: '450px', width: '800px' };
+    case DisplaySize.MOBILE_PORTRAIT:
+      return { height: `${RESP_MOBILE_SRN_HEIGHT}px`, width: `${RESP_MOBILE_SRN_WIDTH}px` };
+    case DisplaySize.MOBILE_LANDSCAPE:
+      return { width: `${RESP_MOBILE_SRN_HEIGHT}px`, height: `${RESP_MOBILE_SRN_WIDTH}px` };
     default:
       return { height: '100%', width: '100%' };
   }
@@ -770,3 +779,32 @@ function removeInlineStyle(el: HTMLElement, style: string): void {
     el.setAttribute('style', removeLastNCharacters(styleAttrVal, style.length));
   }
 }
+export const isTourResponsive = (tour: P_RespTour): boolean => {
+  const res = tour.responsive2 === Responsiveness.Responsive;
+  return res;
+};
+
+export function getMobileOperatingSystem(): 'Windows Phone' | 'Android' | 'iOS' | 'unknown' {
+  const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+
+  // Windows Phone must come first because its UA also contains "Android"
+  if (/windows phone/i.test(userAgent)) {
+    return 'Windows Phone';
+  }
+
+  if (/android/i.test(userAgent)) {
+    return 'Android';
+  }
+
+  // iOS detection from: http://stackoverflow.com/a/9039885/177710
+  if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
+    return 'iOS';
+  }
+
+  return 'unknown';
+}
+
+export const isLandscapeMode = (screenOrientation: OrientationType): boolean => {
+  const isLandscape = screenOrientation === 'landscape-primary' || screenOrientation === 'landscape-secondary';
+  return isLandscape;
+};

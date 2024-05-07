@@ -207,7 +207,12 @@ function JourneyMenu(props: Props): JSX.Element {
         : iframeRect.left + iframeRect.width - paddingFactor;
       const journeyTransformTranslateX = props.journey.positioning === CreateJourneyPositioning.Left_Bottom ? 0 : -100;
 
-      setDropdownPos({ top: journeyTop, left: journeyLeft, transformTranslateX: journeyTransformTranslateX, maxWidth: iframeRect.width });
+      setDropdownPos({
+        top: journeyTop,
+        left: journeyLeft,
+        transformTranslateX: journeyTransformTranslateX,
+        maxWidth: iframeRect.width - paddingFactor - iframeRect.left - 10
+      });
     }
     setScaleFactor(sftr || 1);
   }, [props.currScreenId, props.screenSizeData]);

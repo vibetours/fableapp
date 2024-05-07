@@ -76,6 +76,16 @@
   line-height: 20px;
   font-weight: 400;
   text-align: left;
+
+  --f-font-normal: 18px;
+  --f-font-large: 24px;
+  --f-font-huge: 30px;
+
+  @media screen and (max-width: 389px) {
+    --f-font-normal: 16px;
+    --f-font-large: 21px;
+    --f-font-huge: 26px;
+  }
 }
 
 .editor-inner {

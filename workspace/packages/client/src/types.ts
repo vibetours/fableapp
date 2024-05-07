@@ -352,3 +352,10 @@ export interface HiddenEls {
   displayNoneEls: HTMLElement[];
   visibilityHiddenEls: HTMLElement[];
 }
+
+export const enum ScreenMode {
+  DESKTOP = 'Desktop',
+  MOBILE = 'Mobile'
+}
+
+export type ElPathKey = 'm_id' | 'id';

@@ -1,4 +1,7 @@
 import {
+  AimOutlined,
+  ArrowsAltOutlined,
+  DesktopOutlined,
   ExclamationCircleOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
@@ -6,10 +9,11 @@ import {
   FontSizeOutlined,
   HomeOutlined,
   LoadingOutlined,
+  MobileOutlined,
   PictureOutlined,
   RetweetOutlined
 } from '@ant-design/icons';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
 import {
   CmnEvtProp,
   IAnnotationButtonType,
@@ -19,7 +23,7 @@ import {
   ScreenData
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
-import { Collapse, Modal, Switch, Tooltip } from 'antd';
+import { Collapse, Dropdown, MenuProps, Modal, Radio, Switch, Tooltip } from 'antd';
 import React from 'react';
 import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -38,6 +42,7 @@ import {
   DestinationAnnotationPosition, EditItem,
   EditValueEncoding,
   ElEditType,
+  ElPathKey,
   FrameAssetLoadFn, IAnnotationConfigWithScreen, IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
@@ -46,6 +51,7 @@ import {
   IdxEncodingTypeInput,
   IdxEncodingTypeMask,
   NavFn,
+  ScreenMode,
   Timeline,
   TourDataChangeFn,
   onAnnCreateOrChangeFn
@@ -55,7 +61,7 @@ import {
   IAnnotationConfigWithScreenId,
   updateAnnotationZId,
 } from '../annotation/annotation-config-utils';
-import { AnnotationSerialIdMap, addNewAnn, getAnnotationBtn } from '../annotation/ops';
+import { AnnotationSerialIdMap, addNewAnn } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
 import { AnnUpdateType } from '../annotation/types';
 import AEP from './advanced-element-picker';
@@ -77,18 +83,21 @@ import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import {
   AEP_HEIGHT,
   ANN_EDIT_PANEL_WIDTH,
+  RESP_MOBILE_SRN_HEIGHT,
+  RESP_MOBILE_SRN_WIDTH,
   doesBtnOpenALink,
   getAnnotationWithScreenAndIdx,
+  isTourResponsive,
 } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 import Loader from '../loader';
-import { UpdateScreenFn } from '../../action/creator';
 import CaretOutlined from '../icons/caret-outlined';
 import FocusBubble from '../annotation/focus-bubble';
 import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interactive-demo-guide/part-2';
 import SelectorComponent from '../../user-guides/selector-component';
 import { UserGuideMsg } from '../../user-guides/types';
+import { UpdateScreenFn } from '../../action/creator';
 
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
@@ -165,6 +174,15 @@ interface IOwnProps {
   onTourDataChange: TourDataChangeFn;
   updateConnection: (fromMain: string, toMain: string)=> void;
   shouldCreateNewFlow: boolean;
+  screenMode: ScreenMode;
+  setScreenMode: React.Dispatch<React.SetStateAction<ScreenMode>>;
+  elpathKey: ElPathKey;
+  updateElPathKey: (elPath: ElPathKey)=> void;
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void;
 }
 
 const enum ElSelReqType {
@@ -175,6 +193,7 @@ const enum ElSelReqType {
 }
 
 interface IOwnStateProps {
+  viewScale: number;
   selectorComponentKey: number;
   isInElSelectionMode: boolean;
   elSelRequestedBy: ElSelReqType;
@@ -187,7 +206,7 @@ interface IOwnStateProps {
   stashAnnIfAny: boolean;
   selectedHotspotEl: HTMLElement | null;
   selectedAnnReplaceEl: HTMLElement | null;
-  selectionMode: 'hotspot' | 'annotation' | 'replace';
+  selectionMode: 'hotspot' | 'annotation' | 'replace' | 'reselect';
   activeTab: TabList;
   showImageMaskUploadModal: boolean;
   imageMaskUploadModalError: string;
@@ -195,6 +214,7 @@ interface IOwnStateProps {
   selectedAnnotationCoords: string | null;
   isAssetLoaded: boolean;
   selectedCoords: string | null;
+  reselectedEl: HTMLElement | null;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -217,6 +237,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.microEdits = {};
 
     this.state = {
+      viewScale: 1,
       selectorComponentKey: 0,
       isInElSelectionMode: true,
       elSelRequestedBy: ElSelReqType.AnnotateEl,
@@ -237,6 +258,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imageMaskUploadModalIsUploading: false,
       isAssetLoaded: false,
       selectedCoords: null,
+      reselectedEl: null
     };
   }
 
@@ -728,6 +750,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
     }
 
+    if (this.state.reselectedEl !== prevState.reselectedEl && this.state.reselectedEl) {
+      window.removeEventListener('click', this.callback);
+      this.handleReselectAnn(this.state.selectedEl!, this.state.reselectedEl, 'reselect');
+      this.iframeElManager!.clearMask(HighlightMode.Pinned);
+      this.setState({ reselectedEl: null });
+    }
+
     if (this.state.activeTab === TabList.Annotations) {
       if (!this.state.selectedAnnotationId
         && prevState.selectedEl !== this.state.selectedEl
@@ -736,7 +765,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       ) {
         // If an element from screen is selected an no selectedAnnotationId is in state i.e. element is selected by
         // clicking on screen; probable intent is to create a new annotaiton or edit element
-        const annId = this.getAnnotatonIdForEl(this.state.selectedEl!);
+        const annId = this.getAnnotatonIdForEl(this.state.selectedEl!, this.props.elpathKey);
         if (annId) {
           // Check if an existing annotation is attached to the element, if yes then don't create new annotation,
           // instead navigate to already created annotation. As we don't support adding multiple annotation to same
@@ -746,7 +775,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }
       }
 
-      if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId) {
+      if (prevState.selectedAnnotationId !== this.state.selectedAnnotationId
+        || this.props.elpathKey !== prevProps.elpathKey) {
         if (this.state.selectedAnnotationId) {
           this.selectElementIfAnnoted();
           this.setState({ elSelRequestedBy: ElSelReqType.AnnotateEl });
@@ -777,6 +807,53 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         { screen_tab: this.state.activeTab === 0 ? 'annotation' : 'edit' },
         [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
       );
+    }
+
+    if (prevProps.screenMode !== this.props.screenMode) {
+      if (this.props.screenMode === ScreenMode.DESKTOP) {
+        this.setState({ viewScale: 1 });
+        this.props.updateElPathKey('id');
+      } else {
+        this.props.updateElPathKey('m_id');
+        setTimeout(() => {
+          const vpdW = RESP_MOBILE_SRN_WIDTH;
+          const vpdH = RESP_MOBILE_SRN_HEIGHT;
+
+          const frameConRect = this.frameConRef.current?.getBoundingClientRect();
+
+          const scaleX = frameConRect ? frameConRect.width / vpdW : 1;
+          const scaleY = frameConRect ? frameConRect.height / vpdH : 1;
+          const scale = Math.min(scaleX, scaleY);
+
+          this.setState({ viewScale: scale });
+        }, 50);
+      }
+    }
+
+    if (
+      isTourResponsive(this.props.tour)
+      && prevProps.tour.responsive2 !== this.props.tour.responsive2
+    ) {
+      this.setState({ viewScale: 1 });
+      this.props.setScreenMode(ScreenMode.DESKTOP);
+    }
+  }
+
+  callback = (e: MouseEvent): void => this.handleClickOutside(e, this.props.screen.id);
+
+  handleClickOutside(e: Event, screenId: number) : void {
+    const elem = document.querySelector(`.fable-iframe-${screenId}`);
+    if (elem && !elem.contains(e.target as Node)) {
+      this.setState({ stashAnnIfAny: false, selectionMode: 'annotation' });
+      this.iframeElManager!.clearMask(HighlightMode.Pinned);
+      if (!this.state.selectedEl) {
+        this.handleTabOnClick(this.state.activeTab);
+      } else if (this.state.activeTab === TabList.Edits || !this.state.selectedAnnotationId) {
+        setTimeout(() => {
+          this.highlightEditElIfSelected(this.state.selectedEl);
+        });
+      }
+      window.removeEventListener('click', this.callback);
     }
   }
 
@@ -844,9 +921,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
   }
 
-  getAnnnotationFromEl(el: HTMLElement): IAnnotationConfig | null {
+  getAnnnotationFromEl(el: HTMLElement, elPathKey: ElPathKey): IAnnotationConfig | null {
     const path = this.iframeElManager?.elPath(el);
-    const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an.id === path);
+    const existingAnnotaiton = this.props.allAnnotationsForScreen.filter(an => an[elPathKey] === path);
     let conf: IAnnotationConfig | null = null;
     if (existingAnnotaiton.length) {
       conf = existingAnnotaiton[0];
@@ -864,8 +941,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return an.length >= 1 ? an[0].type : 'default';
   }
 
-  getAnnotatonIdForEl(el: HTMLElement): string {
-    const ann = this.getAnnnotationFromEl(el);
+  getAnnotatonIdForEl(el: HTMLElement, elPathKey: ElPathKey): string {
+    const ann = this.getAnnnotationFromEl(el, elPathKey);
     return ann ? ann.refId : '';
   }
 
@@ -891,6 +968,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!annId) {
       return;
     }
+    const ann = getAnnotationByRefId(this.state.selectedAnnotationId, this.props.allAnnotationsForTour);
+    if (!ann) {
+      return;
+    }
 
     if (this.props.screen.type === ScreenType.Img && type === 'default') {
       const [x, y, width, height] = annId.split('-');
@@ -899,15 +980,19 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     }
 
     if (this.props.screen.type === ScreenType.SerDom && type === 'default') {
-      const el = this.iframeElManager?.elFromPath(annId) as HTMLElement | null;
+      const el = this.iframeElManager?.elFromPath(ann[this.props.elpathKey]) as HTMLElement | null;
       if (el) {
         this.iframeElManager?.selectElement(el, HighlightMode.Pinned, true);
       }
     }
   }
 
-  getEditingCtrlForElType(type: EditTargetType): JSX.Element {
-    if (!this.state.selectedEl) {
+  getEditingCtrlForElType(
+    type: EditTargetType,
+    selectedEl: HTMLElement | null,
+    targetEl: HTMLElement | null
+  ): JSX.Element {
+    if (!selectedEl) {
       return <></>;
     }
 
@@ -918,7 +1003,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Switch
             checkedChildren={<EyeOutlined />}
             unCheckedChildren={<EyeInvisibleOutlined />}
-            defaultChecked={!!this.state.selectedEl && getComputedStyle(this.state.selectedEl).display !== 'none'}
+            defaultChecked={!!selectedEl && getComputedStyle(selectedEl).display !== 'none'}
             size="small"
             onChange={((t) => (checked) => {
               const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
@@ -939,7 +1024,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
               this.flushMicroEdits();
               amplitudeScreenEdited('show_or_hide_el', checked);
-            })(this.state.selectedEl!)}
+            })(selectedEl!)}
           />
         </Tags.EditCtrlLI>
 
@@ -949,8 +1034,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             checkedChildren={<EyeOutlined />}
             unCheckedChildren={<EyeInvisibleOutlined />}
             defaultChecked={
-              !!this.state.selectedEl
-              && ScreenEditor.getBlurValueFromFilter(getComputedStyle(this.state.selectedEl).filter) === 3
+              !!selectedEl
+              && ScreenEditor.getBlurValueFromFilter(getComputedStyle(selectedEl).filter) === 3
             }
             onChange={((t) => (checked) => {
               const filterStyle = getComputedStyle(t).filter;
@@ -991,12 +1076,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               ]);
               this.flushMicroEdits();
               amplitudeScreenEdited('blur_el', checked);
-            })(this.state.selectedEl!)}
+            })(selectedEl!)}
             size="small"
           />
         </Tags.EditCtrlLI>
 
-        {restrictCrtlType(this.state.selectedEl!, ['img'])
+        {restrictCrtlType(selectedEl!, ['img'])
           && (
             <Tags.EditCtrlLI>
               <Tags.EditCtrlLabel className="typ-reg">Mask Element</Tags.EditCtrlLabel>
@@ -1030,7 +1115,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <Tags.EditCtrlLabel className="typ-reg">Replace image</Tags.EditCtrlLabel>
               <UploadButton
                 accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                onChange={this.handleSelectedImageChange(this.state.selectedEl!)}
+                onChange={this.handleSelectedImageChange(selectedEl!)}
               />
             </Tags.EditCtrlLI>
             {CommonOptions}
@@ -1044,7 +1129,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <Tags.EditCtrlLabel className="typ-reg">Update Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
                 className="typ-ip"
-                defaultValue={this.state.targetEl?.textContent!}
+                defaultValue={targetEl?.textContent!}
                 autoFocus
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
@@ -1059,7 +1144,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
 
                   t.textContent = e.target.value;
-                })(this.state.targetEl!)}
+                })(targetEl!)}
               />
             </Tags.EditCtrlLI>
             {CommonOptions}
@@ -1068,8 +1153,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
       case EditTargetType.Input: {
         if (
-          this.state.targetEl?.nodeName.toLowerCase() === 'input'
-          && INPUT_TYPE_WITHOUT_PLACEHOLDER.includes(this.state.targetEl.getAttribute('type') || '')
+          targetEl?.nodeName.toLowerCase() === 'input'
+          && INPUT_TYPE_WITHOUT_PLACEHOLDER.includes(targetEl.getAttribute('type') || '')
         ) {
           return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
         }
@@ -1079,7 +1164,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <Tags.EditCtrlLabel className="typ-reg">Update Placeholder Text</Tags.EditCtrlLabel>
               <Tags.CtrlTxtEditBox
                 className="typ-ip"
-                defaultValue={(this.state.targetEl as HTMLInputElement)?.placeholder}
+                defaultValue={(targetEl as HTMLInputElement)?.placeholder}
                 autoFocus
                 onBlur={() => this.flushMicroEdits()}
                 onChange={((t) => (e) => {
@@ -1095,7 +1180,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   this.addToMicroEdit(path, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value]);
 
                   (t as HTMLInputElement).placeholder = e.target.value;
-                })(this.state.targetEl!)}
+                })(targetEl!)}
               />
             </Tags.EditCtrlLI>
             {CommonOptions}
@@ -1163,7 +1248,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           isInElSelectionMode: true,
           activeTab: tab,
           selectedAnnotationId: '',
-          editItemSelected: ''
+          editItemSelected: '',
+          selectedEl: null
         }));
         break;
       default:
@@ -1201,7 +1287,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       });
     } else {
       this.setState(state => {
-        let conf = this.getAnnnotationFromEl(state.selectedEl!);
+        let conf = this.getAnnnotationFromEl(state.selectedEl!, this.props.elpathKey);
         let selectedAnnotationId = state.selectedAnnotationId;
         if (!conf) {
           amplitudeNewAnnotationCreated(propertyCreatedFromWithType.DOM_EL_PICKER);
@@ -1247,29 +1333,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     return existingEdit.length !== 0;
   }
 
-  aepElSelect(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick: boolean): void {
-    // don't call when in edits tab or while using AEP during creating new ann
-    if (!selectedOnClick || this.state.selectedAnnotationId) {
-      this.iframeElManager!.clearMask(HighlightMode.Pinned);
-    }
-    if (newSelEl === oldSelEl) {
-      if (!this.state.selectedAnnotationId || this.state.activeTab === TabList.Edits) {
-        this.highlightEditElIfSelected(newSelEl);
-      }
-      this.setState({ stashAnnIfAny: false });
-      return;
-    }
-
+  handleReselectAnn(oldSelEl: HTMLElement, newSelEl: HTMLElement, from: 'reselect' | 'aep'): void {
     if (this.state.activeTab === TabList.Annotations) {
-      const annOnOldEl = this.getAnnnotationFromEl(oldSelEl);
-      const annOnNewEl = this.getAnnnotationFromEl(newSelEl);
+      const annOnOldEl = this.getAnnnotationFromEl(oldSelEl, this.props.elpathKey);
+      const annOnNewEl = this.getAnnnotationFromEl(newSelEl, this.props.elpathKey);
       // If there is annotation on top of new element then don't do anything
       if (!annOnNewEl) {
-        traceEvent(AMPLITUDE_EVENTS.ADVANCED_EL_PICKER_USED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
-
+        if (from === 'aep') {
+          traceEvent(AMPLITUDE_EVENTS.ADVANCED_EL_PICKER_USED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+        }
         if (annOnOldEl) {
           const newElPath = this.iframeElManager!.elPath(newSelEl)!;
-          const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl);
+          const replaceWithAnn = shallowCloneAnnotation(newElPath, annOnOldEl, this.props.elpathKey);
           const tx = new Tx();
           tx.start();
           const updates: Array<
@@ -1297,6 +1372,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       } else if (annOnNewEl) {
         this.navigateToAnnotation(`${this.props.screen.id}/${annOnNewEl.refId}`);
       }
+
+      if (!this.state.selectedAnnotationId && from === 'reselect') {
+        setTimeout(() => this.highlightEditElIfSelected(newSelEl), 0);
+      }
     } else {
       const editOnOldEl = this.editExistOnEl(oldSelEl);
       const editOnNewEl = this.editExistOnEl(newSelEl);
@@ -1304,9 +1383,29 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return;
       }
     }
+
     this.setState({
       stashAnnIfAny: false,
       selectedEl: newSelEl,
+    });
+  }
+
+  aepElSelect(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick: boolean): void {
+    // don't call when in edits tab or while using AEP during creating new ann
+    if (!selectedOnClick || this.state.selectedAnnotationId) {
+      this.iframeElManager!.clearMask(HighlightMode.Pinned);
+    }
+    if (newSelEl === oldSelEl) {
+      if (!this.state.selectedAnnotationId || this.state.activeTab === TabList.Edits) {
+        this.highlightEditElIfSelected(newSelEl);
+      }
+      this.setState({ stashAnnIfAny: false });
+      return;
+    }
+
+    this.handleReselectAnn(oldSelEl, newSelEl, 'aep');
+
+    this.setState({
       elSelRequestedBy: ElSelReqType.ElPicker
     });
   }
@@ -1318,6 +1417,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   resetSelectedEdits(): void {
     this.setState({ editItemSelected: '', targetEl: null, editTargetType: EditTargetType.None });
   }
+
+  handleScreenModeChange(newScreenMode: ScreenMode): void {
+    this.props.setScreenMode(newScreenMode);
+  }
+
+  startSelectingMobileEl = (): void => {
+    if (!this.state.stashAnnIfAny) {
+      this.setState({ stashAnnIfAny: true, selectionMode: 'reselect' });
+      this.iframeElManager!.setSelectionMode();
+      setTimeout(() => {
+        window.addEventListener('click', this.callback);
+      }, 10);
+    }
+  };
 
   render(): React.ReactNode {
     let startAnnotaitonId = '';
@@ -1343,35 +1456,125 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         : 'Select an element from the screen on left or create';
     }
 
+    const items: MenuProps['items'] = isTourResponsive(this.props.tour)
+      ? [
+        {
+          label: (
+            <Tags.ScreenModeItems
+              onClick={() => {
+                this.props.updateTourProp(this.props.tour.rid, 'responsive2', Responsiveness.NoResponsive);
+              }}
+            >
+              <p className="typ-sm"> <ArrowsAltOutlined /> Make this demo non-responsive</p>
+            </Tags.ScreenModeItems>
+          ),
+          key: 'make-responsive',
+        },
+        {
+          label: (
+            <Tags.ScreenModeItems
+              onClick={() => this.handleScreenModeChange(ScreenMode.DESKTOP)}
+            >
+              <p className="typ-sm"> <DesktopOutlined /> {ScreenMode.DESKTOP} view</p>
+            </Tags.ScreenModeItems>
+          ),
+          key: ScreenMode.DESKTOP,
+        },
+        {
+          label: (
+            <Tags.ScreenModeItems
+              onClick={() => this.handleScreenModeChange(ScreenMode.MOBILE)}
+            >
+              <p className="typ-sm"> <MobileOutlined /> {ScreenMode.MOBILE} view</p>
+            </Tags.ScreenModeItems>
+          ),
+          key: ScreenMode.MOBILE,
+        }
+      ] : [
+        {
+          label: (
+            <Tags.ScreenModeItems onClick={() => {
+              this.props.updateTourProp(this.props.tour.rid, 'responsive2', Responsiveness.Responsive);
+              this.handleScreenModeChange(ScreenMode.DESKTOP);
+            }}
+            >
+              <div style={{ lineHeight: '1.1rem', marginBottom: '0.25rem' }}>
+                Make this demo responsive
+              </div>
+              <div style={{ fontSize: '10px', lineHeight: '12px', opacity: '0.65' }}>
+                This demo is currently not mobile responsive, click this button to check if your application is mobile responsive.
+              </div>
+            </Tags.ScreenModeItems>
+          ),
+          key: 'not-responsive',
+        }
+      ];
+
+    const shouldHideAEP = configOfParamsAnnId?.type === 'cover'
+    || this.props.screen.type === ScreenType.Img || !this.state.selectedEl;
+
     return (
       <>
         <GTags.PreviewAndActionCon style={{ borderRadius: '20px' }}>
-          {this.props.screen.type === ScreenType.SerDom && this.state.selectedEl && (
-            <div
-              id="AEP-wrapper"
-              style={{
-                position: 'absolute',
-                width: `calc(100% - ${ANN_EDIT_PANEL_WIDTH}px)`,
-                height: `${AEP_HEIGHT}px`,
-                bottom: '0',
-                left: '0',
-                borderRadius: '2px',
-                zIndex: '100'
+          <div
+            id="AEP-wrapper"
+            style={{
+              position: 'absolute',
+              width: `calc(100% - ${ANN_EDIT_PANEL_WIDTH}px)`,
+              height: `${AEP_HEIGHT}px`,
+              bottom: '0',
+              left: '0',
+              borderRadius: '2px',
+              zIndex: '100',
+              display: 'flex',
+            }}
+          >
+            {!shouldHideAEP && <AEP
+              selectedEl={this.state.selectedEl!}
+              domElPicker={this.iframeElManager!}
+              disabled={this.state.aepSyncing || this.state.selectionMode === 'reselect'}
+              onOverElPicker={() => {
+                this.setState({ stashAnnIfAny: true });
               }}
-            >
-              <AEP
-                selectedEl={this.state.selectedEl}
-                domElPicker={this.iframeElManager!}
-                disabled={this.state.aepSyncing}
-                onOverElPicker={() => {
-                  this.setState({ stashAnnIfAny: true });
-                }}
-                onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick?: boolean) => {
-                  this.aepElSelect(newSelEl, oldSelEl, selectedOnClick || false);
-                }}
-              />
-            </div>
-          )}
+              onElSelect={(newSelEl: HTMLElement, oldSelEl: HTMLElement, selectedOnClick?: boolean) => {
+                this.aepElSelect(newSelEl, oldSelEl, selectedOnClick || false);
+              }}
+            />}
+            <Tags.ResponsiveIpCon>
+              <Tooltip
+                title="Reselect element from screen"
+                overlayStyle={{ fontSize: '0.75rem' }}
+              >
+                <Tags.DeviceCon
+                  style={{
+                    visibility: shouldHideAEP ? 'hidden' : 'visible'
+                  }}
+                  onClick={this.startSelectingMobileEl}
+                >
+                  <AimOutlined />
+                </Tags.DeviceCon>
+              </Tooltip>
+              <Dropdown
+                menu={{ items }}
+                trigger={['click']}
+                placement="topRight"
+                overlayClassName="device-dropdown"
+                arrow
+              >
+                <Tags.DeviceCon>
+                  <Tooltip
+                    title={`Showing ${this.props.screenMode} view, click to switch to 
+                        ${this.props.screenMode === ScreenMode.DESKTOP ? ScreenMode.MOBILE : ScreenMode.DESKTOP} view
+                    `}
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <MobileOutlined />
+                  </Tooltip>
+                </Tags.DeviceCon>
+              </Dropdown>
+            </Tags.ResponsiveIpCon>
+          </div>
           <GTags.EmbedCon
             style={{
               overflow: 'hidden',
@@ -1381,33 +1584,50 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             }}
             ref={this.frameConRef}
           >
-            {this.props.isScreenLoaded && <PreviewWithEditsAndAnRO
-              journey={this.props.journey}
-              annotationSerialIdMap={this.props.annotationSerialIdMap}
-              key={this.props.screen.rid}
-              screen={this.props.screen}
-              screenData={this.props.screenData}
-              navigate={this.props.navigate}
-              innerRef={this.embedFrameRef}
-              playMode={false}
-              onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
-              allAnnotationsForScreen={this.props.allAnnotationsForScreen}
-              tourDataOpts={this.props.tourDataOpts}
-              allEdits={this.props.allEdits}
-              toAnnotationId={this.state.selectedAnnotationId}
-              stashAnnIfAny={this.state.stashAnnIfAny}
-              onFrameAssetLoad={this.onFrameAssetLoad}
-              allAnnotationsForTour={this.props.allAnnotationsForTour}
-              tour={this.props.tour}
-              hidden={!this.state.isAssetLoaded}
-              onDispose={() => {
-                this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
-                this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
+            {this.props.isScreenLoaded && (
+            <div
+              style={{
+                width: this.props.screenMode === ScreenMode.DESKTOP ? '100%' : `${RESP_MOBILE_SRN_WIDTH}px`,
+                height: this.props.screenMode === ScreenMode.DESKTOP ? '100%' : `${RESP_MOBILE_SRN_HEIGHT}px`,
+                left: '50%',
+                transform: `translateX(-50%) scale(${this.state.viewScale})`,
+                transformOrigin: '50% 0',
+                position: 'absolute'
               }}
-              updateCurrentFlowMain={(btnType: IAnnotationButtonType, main?:string) => {}}
-              updateJourneyProgress={(annRefid: string) => {}}
-              flows={[]}
-            />}
+            >
+              <PreviewWithEditsAndAnRO
+                resizeSignal={this.props.screenMode === ScreenMode.DESKTOP ? 1 : 0}
+                journey={this.props.journey}
+                annotationSerialIdMap={this.props.annotationSerialIdMap}
+                key={this.props.screen.rid}
+                screen={this.props.screen}
+                screenData={this.props.screenData}
+                navigate={this.props.navigate}
+                innerRef={this.embedFrameRef}
+                playMode={false}
+                onBeforeFrameBodyDisplay={this.onBeforeFrameBodyDisplay}
+                allAnnotationsForScreen={this.props.allAnnotationsForScreen}
+                tourDataOpts={this.props.tourDataOpts}
+                allEdits={this.props.allEdits}
+                toAnnotationId={this.state.selectedAnnotationId}
+                stashAnnIfAny={this.state.stashAnnIfAny}
+                onFrameAssetLoad={this.onFrameAssetLoad}
+                allAnnotationsForTour={this.props.allAnnotationsForTour}
+                tour={this.props.tour}
+                hidden={!this.state.isAssetLoaded}
+                onDispose={() => {
+                    this.embedFrameRef?.current!.removeEventListener('mouseout', this.onMouseOutOfIframe);
+                    this.embedFrameRef?.current!.removeEventListener('mouseenter', this.onMouseEnterOnIframe);
+                }}
+                updateCurrentFlowMain={(btnType: IAnnotationButtonType, main?:string) => {}}
+                updateJourneyProgress={(annRefid: string) => {}}
+                flows={[]}
+                elpathKey={this.props.elpathKey}
+                isResponsive={isTourResponsive(this.props.tour)}
+                updateElPathKey={this.props.updateElPathKey}
+              />
+            </div>
+            )}
             {!this.isScreenAndAssetLoaded() && <Loader width="80px" txtBefore="Loading screen" />}
           </GTags.EmbedCon>
           {/* this is the annotation creator panel */}
@@ -1531,47 +1751,49 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             key: '1',
                             showArrow: false,
                             label: (
-                              <Tags.AnotCrtPanelSecLabel
-                                className="fable-label"
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  marginBottom: '0.5rem',
-                                }}
-                              >
-                                <Tags.AnnDisplayText
-                                  className="typ-reg"
+                              <>
+                                <Tags.AnotCrtPanelSecLabel
+                                  className="fable-label"
                                   style={{
-                                    color: showAnnCreatorPanel ? '#212121' : 'white',
-                                    transition: showAnnCreatorPanel ? 'none' : 'color 0.5s ease',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    marginBottom: '0.5rem',
                                   }}
                                 >
-                                  <span className="steps">
-                                    {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
-                                    <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
-                                      <HomeOutlined style={{ background: 'none' }} />&nbsp;
-                                    </Tooltip>
-                                    )}
-                                    Step {configOfParamsAnnId.stepNumber}
-                                    {!showAnnCreatorPanel && (
+                                  <Tags.AnnDisplayText
+                                    className="typ-reg"
+                                    style={{
+                                      color: showAnnCreatorPanel ? '#212121' : 'white',
+                                      transition: showAnnCreatorPanel ? 'none' : 'color 0.5s ease',
+                                    }}
+                                  >
+                                    <span className="steps">
+                                      {this.props.tourDataOpts.main.split('/')[1] === this.state.selectedAnnotationId && (
+                                      <Tooltip title="Tour starts here!" overlayStyle={{ fontSize: '0.75rem' }}>
+                                        <HomeOutlined style={{ background: 'none' }} />&nbsp;
+                                      </Tooltip>
+                                      )}
+                                      Step {configOfParamsAnnId.stepNumber}
+                                      {!showAnnCreatorPanel && (
                                       <span style={{
                                         fontSize: '10px',
                                         marginLeft: '0.5rem'
                                       }}
                                       >- Click here to open this annotation
                                       </span>
-                                    )}
-                                  </span>
-                                </Tags.AnnDisplayText>
-                                {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
-                                {
+                                      )}
+                                    </span>
+                                  </Tags.AnnDisplayText>
+                                  {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
+                                  {
                                   showAnnCreatorPanel ? (
                                     <CaretOutlined dir="down" color={showAnnCreatorPanel ? '' : 'white'} />
                                   ) : (
                                     <CaretOutlined dir="up" color={showAnnCreatorPanel ? '' : 'white'} />
                                   )
                                 }
-                              </Tags.AnotCrtPanelSecLabel>
+                                </Tags.AnotCrtPanelSecLabel>
+                              </>
                             ),
                             children: (
                               <>
@@ -1605,7 +1827,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                     this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
                                   }}
                                   resetSelectedAnnotationElements={() => {
-                                    this.setState({ selectedAnnReplaceEl: null, selectedAnnotationCoords: null });
+                                    this.setState({
+                                      selectedAnnReplaceEl: null,
+                                      selectedAnnotationCoords: null,
+                                      stashAnnIfAny: false
+                                    });
                                   }}
                                   timeline={this.props.timeline}
                                   onTourDataChange={this.props.onTourDataChange}
@@ -1629,6 +1855,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                     return connectableAnnotations;
                                   }}
                                   updateConnection={this.props.updateConnection}
+                                  elpathKey={this.props.elpathKey}
                                 />
                                 <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
                               </>
@@ -1652,26 +1879,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         </Tags.InfoText>
                       </>
                     )}
-
-                    {
-                    this.props.screen.type === ScreenType.SerDom && (
-                      <>
-                        <Tags.ScreenResponsiveIpCon>
-                          <div className="typ-reg">Responsive Screen</div>
-                          <Tags.StyledSwitch
-                            style={{ backgroundColor: this.props.screen.responsive ? '#7567FF' : '#BDBDBD' }}
-                            defaultChecked={this.props.screen.responsive}
-                            onChange={(e) => this.props.updateScreen(this.props.screen, 'responsive', e)}
-                          />
-                        </Tags.ScreenResponsiveIpCon>
-                        <Tags.InfoText className="typ-sm">
-                          A webpage can be made responsive for different viewport sizes by making
-                          use of web technologies.
-                          Turn this on to check if your application is made responsive.
-                        </Tags.InfoText>
-                      </>
-                    )
-                  }
                     {
                     this.props.screen.type === ScreenType.Img && (
                       <>
@@ -1712,7 +1919,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         <Tags.EditTabCon style={{ margin: '0 1rem 1rem 1rem' }}>
                           {/* this show the edit controls like toggles for blur/hide
                       and textarea for changing text content */}
-                          {this.getEditingCtrlForElType(this.state.editTargetType)}
+                          {this.getEditingCtrlForElType(this.state.editTargetType, this.state.selectedEl, this.state.targetEl)}
                         </Tags.EditTabCon>
 
                         {/* this is edits list */}
@@ -1854,6 +2061,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     if (this.state.selectionMode === 'replace') {
       this.setState({ selectedAnnReplaceEl: el, selectionMode: 'annotation' });
+      return;
+    }
+
+    if (this.state.selectionMode === 'reselect') {
+      this.setState({ reselectedEl: el, selectionMode: 'annotation' });
       return;
     }
     this.setState({ selectedEl: el });

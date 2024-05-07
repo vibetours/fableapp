@@ -5,7 +5,7 @@ import Header from '../../component/preview-for-cta/header';
 import { loadTourAndData } from '../../action/creator';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { getDimensionsBasedOnDisplaySize } from '../../utils';
+import { getDimensionsBasedOnDisplaySize, getMobileOperatingSystem, isLandscapeMode } from '../../utils';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { HEADER_CTA, IFRAME_BASE_URL } from '../../constants';
@@ -52,6 +52,8 @@ interface IOwnStateProps {
   previewIframeKey: number;
   ts: null | number;
   iframeUrl: string;
+  isIOSPhone: boolean;
+  isLandscapeMode: boolean;
 }
 
 class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
@@ -63,7 +65,9 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
       showReplayOverlay: false,
       previewIframeKey: 0,
       ts: null,
-      iframeUrl: ''
+      iframeUrl: '',
+      isIOSPhone: getMobileOperatingSystem() === 'iOS',
+      isLandscapeMode: isLandscapeMode(window.screen.orientation.type),
     };
   }
 
@@ -79,7 +83,14 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
     });
 
     window.addEventListener('message', this.receiveMessage, false);
+
+    window.screen.orientation.addEventListener('change', this.screenOrientationChangeListener);
   }
+
+  screenOrientationChangeListener = (e: ScreenOrientationEventMap['change']): void => {
+    const evTarget = e.target as ScreenOrientation;
+    this.setState({ isLandscapeMode: isLandscapeMode(evTarget.type) });
+  };
 
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     if (prevProps.searchParams.get('s') !== this.props.searchParams.get('s')) {
@@ -99,6 +110,7 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentWillUnmount(): void {
     window.removeEventListener('message', this.receiveMessage, false);
+    window.screen.orientation.removeEventListener('change', this.screenOrientationChangeListener);
   }
 
   handleReplayClick = (): void => {
@@ -128,12 +140,18 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
       <>
         {this.props.site && (
         <Tags.Con siteData={this.props.site}>
-          <Tags.HeaderCon>
-            <Header
-              site={this.props.site}
-              captureConversion={this.captureConversion}
-            />
-          </Tags.HeaderCon>
+          {
+            !(this.state.isIOSPhone && this.state.isLandscapeMode) && (
+            <Tags.HeaderCon>
+              <Header
+                site={this.props.site}
+                captureConversion={this.captureConversion}
+                showFullScreenOption={!this.state.isIOSPhone && this.state.isLandscapeMode}
+                makeEmbedFrameFullScreen={() => this.previewFrameRef.current!.requestFullscreen()}
+              />
+            </Tags.HeaderCon>
+            )
+          }
           <Tags.PreviewFrameWrapper
             showOverlay={this.state.showReplayOverlay}
           >

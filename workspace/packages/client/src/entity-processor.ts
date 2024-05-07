@@ -314,6 +314,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     customDims: lc.customDims,
     annotationSelectionColor: lc.annotationSelectionColor,
     isLeadFormPresent: lc.isLeadFormPresent,
+    m_id: lc.m_id
   };
 }
 
@@ -335,10 +336,24 @@ export function remoteToLocalAnnotationConfigMap(
   return config2;
 }
 
+const replaceAbsoluteFontSizesWithCSSVars = (bodyContent: string): string => {
+  const result = bodyContent
+    .replaceAll('font-size: 18px', 'font-size: var(--f-font-normal)')
+    .replaceAll('font-size: 24px', 'font-size: var(--f-font-large)')
+    .replaceAll('font-size: 30px', 'font-size: var(--f-font-huge)');
+  return result;
+};
+
+const DEMO_RESP_SUPPORTED_VERSION = 1714472243;
+
 export function normalizeBackwardCompatibility(
   an: IAnnotationOriginConfig,
   opts: ITourDataOpts
 ): IAnnotationOriginConfig {
+  if (an.createdAt < DEMO_RESP_SUPPORTED_VERSION) {
+    an.bodyContent = replaceAbsoluteFontSizesWithCSSVars(an.bodyContent);
+  }
+
   if (an.annotationSelectionColor === undefined || an.annotationSelectionColor === null) {
     // annotationSelectionColor was present in tour opts previous versions and now this config is moved to annotation cofnig
     const tOpts = opts as ITourDataOpts & { annotationSelectionColor?: string };
@@ -413,6 +428,10 @@ export function normalizeBackwardCompatibility(
     } else {
       an.showOverlay = true;
     }
+  }
+
+  if (an.m_id === undefined || an.m_id === null) {
+    an.m_id = an.id;
   }
 
   return an;

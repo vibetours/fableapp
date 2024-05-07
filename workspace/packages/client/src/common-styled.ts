@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select } from 'antd';
+import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio } from 'antd';
 import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
@@ -303,6 +303,29 @@ export const OurCheckbox = styled(Checkbox)<CheckboxProps>`
 
   & span{
     padding-inline-start: ${(props: CheckboxProps) => (props.showafterlabel ? '0px' : '8px')};
+  }
+`;
+
+export const OurRadio = styled(Radio)`
+  .ant-radio-checked {
+    border-color: #747474;
+    background-color: #747474;
+  }
+
+  .ant-radio > .ant-radio-inner {
+    border-color: #747474;
+    background-color: transparent;
+  }
+`;
+
+export const OurLink = styled.a`
+  color: #424242;
+  text-decoration: dotted underline;
+  display: block;
+  margin-bottom: 1rem;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;
 

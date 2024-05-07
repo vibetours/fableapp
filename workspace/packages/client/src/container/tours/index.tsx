@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ApiResp, OnboardingTourForPrev, RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -14,8 +14,8 @@ import {
   duplicateTour,
   deleteTour,
   publishTour,
+  updateTourProp,
   // createDefaultTour,
-  updateSiteData,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -50,7 +50,11 @@ interface IDispatchProps {
   duplicateTour: (tour: P_RespTour, displayName: string) => void;
   deleteTour: (tourRid: string) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>,
-  updateSiteData: (rid: string, site: SiteData)=> void;
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void
 }
 
 export enum CtxAction {
@@ -69,7 +73,11 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   ),
   duplicateTour: (tour: P_RespTour, displayName: string) => dispatch(duplicateTour(tour, displayName)),
   deleteTour: (tourRid: string) => dispatch(deleteTour(tourRid)),
-  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site)),
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => dispatch(updateTourProp(rid, tourProp, value))
 });
 
 interface IAppStateProps {
@@ -357,7 +365,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 tour={tour}
                                 handleShowModal={this.handleShowModal}
                                 handleDelete={this.handleDelete}
-                                updateSiteData={this.props.updateSiteData}
+                                updateTourProp={this.props.updateTourProp}
                               />
                             ))}
                           </GTags.BottomPanel>

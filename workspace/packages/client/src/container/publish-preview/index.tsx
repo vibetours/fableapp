@@ -1,14 +1,19 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
 import { Button as AntButton } from 'antd';
 import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
-import { clearCurrentTourSelection, loadTourAndData, publishTour, updateSiteData } from '../../action/creator';
+import { clearCurrentTourSelection, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
+import {
+  DisplaySize,
+  RESP_MOBILE_SRN_HEIGHT,
+  RESP_MOBILE_SRN_WIDTH,
+  getDimensionsBasedOnDisplaySize
+} from '../../utils';
 import * as Tags from './styled';
 import BackgroundGradient from '../../component/publish-preview/bg-gradient';
 import Header from '../../component/header';
@@ -23,14 +28,22 @@ interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
   publishTour: (tour: P_RespTour) => Promise<boolean>,
   clearCurrentTour: () => void;
-  updateSiteData: (rid: string, site: SiteData)=> void;
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true, true)),
   publishTour: (tour) => dispatch(publishTour(tour)),
   clearCurrentTour: () => dispatch(clearCurrentTourSelection()),
-  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site))
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => dispatch(updateTourProp(rid, tourProp, value))
 });
 
 interface IAppStateProps {
@@ -58,10 +71,13 @@ interface IOwnStateProps {
   showReplayOverlay: boolean;
   previewIframeKey: number;
   showShareModal: boolean;
+  viewScale: number;
 }
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   private previewFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
+  private frameConRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
 
   constructor(props: IProps) {
     super(props);
@@ -69,6 +85,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       showReplayOverlay: false,
       previewIframeKey: 0,
       showShareModal: false,
+      viewScale: 1,
     };
   }
 
@@ -87,6 +104,26 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     if (prevProps.searchParams.get('s') !== this.props.searchParams.get('s')) {
       this.setState({ previewIframeKey: Math.random(), showReplayOverlay: false });
+    }
+
+    if (this.props.searchParams.get('s') !== '3') {
+      this.setState({ viewScale: 1 });
+    } else {
+      setTimeout(() => {
+        const vpdW = RESP_MOBILE_SRN_WIDTH;
+        const vpdH = RESP_MOBILE_SRN_HEIGHT;
+        const headerHeight = 76;
+
+        const frameConRect = this.frameConRef.current?.getBoundingClientRect();
+
+        if (frameConRect && (frameConRect.width < vpdW || frameConRect.height < vpdH)) {
+          const scaleX = frameConRect.width / vpdW;
+          const scaleY = (frameConRect.height - headerHeight) / vpdH;
+          const scale = Math.round(Math.min(scaleX, scaleY) * 100) / 100;
+
+          this.setState({ viewScale: scale });
+        }
+      }, 50);
     }
   }
 
@@ -107,14 +144,14 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   private onSiteDataChange = (site: SiteData): void => {
-    this.props.updateSiteData(this.props.tour!.rid, site);
+    this.props.updateTourProp(this.props.tour!.rid, 'site', site);
   };
 
   render(): JSX.Element {
     const displaySize = this.props.searchParams.get('s') || '0';
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
     return (
-      <Tags.Con>
+      <Tags.Con ref={this.frameConRef}>
         <BackgroundGradient />
 
         <Tags.HeaderCon>
@@ -161,6 +198,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
         <Tags.PreviewFrameWrapper
           showOverlay={this.state.showReplayOverlay}
+          style={{ transform: `scale(${this.state.viewScale})` }}
         >
           {this.state.showReplayOverlay && (
             <div className="replay-overlay" style={{ height, width }}>

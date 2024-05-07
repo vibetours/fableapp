@@ -273,6 +273,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   annCSSStyle: string;
   annotationSelectionColor: string;
   isLeadFormPresent: boolean;
+  m_id: string;
 }
 
 // TODO perform this conversion, client side
@@ -288,9 +289,9 @@ export interface Coords {
 }
 
 export enum AnnotationFontSize {
-  normal = '18',
-  large = '24',
-  huge = '30'
+  normal = 'var(--f-font-normal)',
+  large = 'var(--f-font-large)',
+  huge = 'var(--f-font-huge)'
 }
 
 export interface ThemeCandidature {

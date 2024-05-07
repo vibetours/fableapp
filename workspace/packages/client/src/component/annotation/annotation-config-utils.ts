@@ -4,7 +4,6 @@ import {
   AnnotationPositions,
   IAnnotationButton,
   IAnnotationConfig,
-  ITourEntityHotspot,
   IChronoUpdatable,
   ITourDataOpts,
   EAnnotationBoxSize,
@@ -16,8 +15,8 @@ import {
   AnnotationSelectionEffectType,
   CoverAnnotationPositions,
 } from '@fable/common/dist/types';
-import { deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
-import { AnnotationMutation, AnnotationPerScreen } from '../../types';
+import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
+import { ElPathKey } from '../../types';
 import { isVideoAnnotation } from '../../utils';
 import { isLeadFormPresentInHTMLStr } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
@@ -213,6 +212,15 @@ export function updateTourDataOpts(
   return newOpts;
 }
 
+export function updateAnnotationMobileElPath<T extends IAnnotationConfig>(
+  config: T,
+  elPath: string
+): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.m_id = elPath;
+  return newConfig;
+}
+
 export function newConfigFrom<T extends IChronoUpdatable>(c: T): T {
   const newConfig = { ...c };
   newConfig.monoIncKey++;
@@ -302,10 +310,14 @@ export function addCustomBtn<T extends IAnnotationConfig>(config: T): T {
   return newConfig;
 }
 
-export function shallowCloneAnnotation(elPath: string, from: IAnnotationConfig): IAnnotationConfig {
+export function shallowCloneAnnotation(
+  elPath: string,
+  from: IAnnotationConfig,
+  elPathKey: ElPathKey
+): IAnnotationConfig {
   const newConf: IAnnotationConfig = {
     ...from,
-    id: elPath,
+    [elPathKey]: elPath,
     updatedAt: getCurrentUtcUnixTime(),
   };
   return newConf;

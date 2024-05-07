@@ -1,4 +1,4 @@
-import { Slider, InputNumber, Input, Switch, Collapse } from 'antd';
+import { Slider, InputNumber, Input, Switch, Collapse, Dropdown } from 'antd';
 import styled from 'styled-components';
 
 export const EditPanelSec = styled.div`
@@ -612,4 +612,39 @@ export const ABtnConf = styled.div`
   display: flex;
   align-items: flex-start;
   flex-direction: column;
+`;
+
+export const ScreenModeItems = styled.div`
+  color: #16023E;
+
+  p {
+    margin: 0;
+    display: flex;
+    gap: 15px;
+  }
+`;
+
+export const ResponsiveIpCon = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0 2px;
+  flex-grow: 1;
+  background: #616161;
+  color: white;
+  border-top-right-radius: 4px;
+  border-top-left-radius: 4px;
+`;
+
+export const DeviceCon = styled.div`
+  margin: 3px;
+  padding: 3px;
+  cursor: pointer;
+
+  &:hover{
+    color: #616161;
+    background: white;
+    margin: 3px;
+    border-radius: 4px;
+  }
 `;

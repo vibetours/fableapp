@@ -18,6 +18,7 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
   align-items: center;
   margin: 1rem;
   position: relative;
+  transform-origin: 50% 0;
 
   .replay-overlay {
     position: absolute;    

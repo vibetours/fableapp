@@ -13,7 +13,7 @@ import {
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { Tooltip, Button, Alert } from 'antd';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -33,8 +33,9 @@ import {
   saveTourData,
   showPaymentModal,
   startAutosaving,
+  updateElPathKey,
   updateScreen,
-  updateSiteData,
+  updateTourProp,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import {
@@ -59,6 +60,7 @@ import {
   Timeline,
   TourMainValidity,
   SiteData,
+  ElPathKey,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -100,7 +102,12 @@ interface IDispatchProps {
   startAutoSaving: () => void;
   updateScreen: UpdateScreenFn;
   setShowPaymentModal: (show: boolean) => void;
-  updateSiteData: (rid: string, site: SiteData)=> void;
+  updateElPathKey: (elPath: ElPathKey)=> void;
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -124,7 +131,12 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   startAutoSaving: () => dispatch(startAutosaving()),
   updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue)),
   setShowPaymentModal: (show: boolean) => dispatch(showPaymentModal(show)),
-  updateSiteData: (rid: string, site: SiteData) => dispatch(updateSiteData(rid, site))
+  updateElPathKey: (elPath: ElPathKey) => dispatch(updateElPathKey(elPath)),
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => dispatch(updateTourProp(rid, tourProp, value)),
 });
 
 const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline => {
@@ -206,6 +218,7 @@ interface IAppStateProps {
   journey: JourneyData | null;
   pubTourAssetPath: string;
   manifestFileName: string;
+  elpathKey: ElPathKey;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -295,6 +308,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     journey: state.default.journey,
     pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
     manifestFileName: state.default.commonConfig?.manifestFileName || '',
+    elpathKey: state.default.elpathKey
   };
 };
 
@@ -630,6 +644,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         >
           <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Canvas
+              updateTourProp={this.props.updateTourProp}
               setShowPaymentModal={this.props.setShowPaymentModal}
               subs={this.props.subs}
               publishTour={this.props.publishTour}
@@ -690,6 +705,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}
+              elpathKey={this.props.elpathKey}
+              updateElPathKey={this.props.updateElPathKey}
             />
 
           </div>
@@ -942,7 +959,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   private onSiteDataChange = (site: SiteData): void => {
-    this.props.updateSiteData(this.props.tour!.rid, site);
+    this.props.updateTourProp(this.props.tour!.rid, 'site', site);
   };
 }
 

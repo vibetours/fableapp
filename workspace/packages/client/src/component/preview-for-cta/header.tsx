@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from 'antd';
+import { FullscreenOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import { SiteData } from '../../types';
 import FableLogo from '../../assets/fable-logo-2.svg';
@@ -8,6 +9,8 @@ import { getColorContrast } from '../../utils';
 interface Props {
   site: SiteData;
   captureConversion: () => void;
+  showFullScreenOption: boolean;
+  makeEmbedFrameFullScreen: () => void;
 }
 
 export default function Header(props: Props): JSX.Element {
@@ -48,21 +51,29 @@ export default function Header(props: Props): JSX.Element {
         </div>
       </div>
       {props.site.ctaText && (
-        <a href={props.site.ctaLink} onClick={props.captureConversion} target="_blank" rel="noreferrer">
-          <Button
-            size="small"
-            className="sec-btn"
-            type="default"
+        <div>
+          {props.showFullScreenOption && <FullscreenOutlined
+            onClick={props.makeEmbedFrameFullScreen}
             style={{
-              padding: '0 0.8rem',
-              height: '30px',
-              borderRadius: '16px',
-              backgroundColor: 'transparent',
+              margin: '0 1rem'
             }}
-          >
-            {props.site.ctaText}
-          </Button>
-        </a>
+          />}
+          <a href={props.site.ctaLink} onClick={props.captureConversion} target="_blank" rel="noreferrer">
+            <Button
+              size="small"
+              className="sec-btn"
+              type="default"
+              style={{
+                padding: '0 0.8rem',
+                height: '30px',
+                borderRadius: '16px',
+                backgroundColor: 'transparent',
+              }}
+            >
+              {props.site.ctaText}
+            </Button>
+          </a>
+        </div>
       )}
     </Tags.HeaderCon>
   );

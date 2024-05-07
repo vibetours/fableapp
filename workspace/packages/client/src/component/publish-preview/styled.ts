@@ -2,7 +2,7 @@ import { Collapse, Popover } from 'antd';
 import styled from 'styled-components';
 
 export const PopoverCon = styled.div`
-  width: 180px;
+  width: 220px;
 
   .title {
     margin-bottom: 0.75rem;

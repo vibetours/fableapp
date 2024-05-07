@@ -146,7 +146,9 @@ const AEPCon = styled.div`
   opacity: 1;
   font-family: IBM Plex Sans, sans-serif;
   border-bottom-left-radius: 20px;
-
+  border-top-right-radius: 4px;
+  border-top-left-radius: 4px;
+  
   &.disabled {
     opacity: 0.4;
   }

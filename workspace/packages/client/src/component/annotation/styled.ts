@@ -23,6 +23,16 @@ export const AnContent = styled.div<{
   --f-ann-padding-y: ${(p) => p.padding[0]};
   --f-ann-padding-x: ${(p) => p.padding[1]};
 
+  --f-font-normal: 18px;
+  --f-font-large: 24px;
+  --f-font-huge: 30px;
+
+  @media screen and (max-width: 389px) {
+    --f-font-normal: 16px;
+    --f-font-large: 21px;
+    --f-font-huge: 26px;
+  }
+
   background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};
   font-size: 1.1rem;
   position: absolute;
@@ -197,7 +207,7 @@ export const AnTextContent = styled.div`
   }
 
   p {
-    font-size: ${AnnotationFontSize.normal}px;
+    font-size: ${AnnotationFontSize.normal};
     font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'};
     color: ${(p: AnTextContentProps) => `${p.fontColor}`};
   }

@@ -39,7 +39,7 @@ import {
   QuestionCircleOutlined,
   ArrowLeftOutlined,
 } from '@ant-design/icons';
-import { Plan, ScreenType, Status } from '@fable/common/dist/api-contract';
+import { Plan, Responsiveness, ScreenType, Status } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import Button from '../button';
 import * as Tags from './styled';
@@ -71,10 +71,12 @@ import {
   updateSelectionColor,
   updateAnnotationSelectionEffect,
   newConfigFrom,
+  updateAnnotationMobileElPath,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
   AnnotationPerScreen,
+  ElPathKey,
   IAnnotationConfigWithScreen,
   Timeline,
   TourDataChangeFn,
@@ -86,7 +88,7 @@ import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { effectsHelpText, hotspotHelpText, globalPropertyHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce } from '../../utils';
+import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce, isTourResponsive } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
@@ -139,6 +141,7 @@ interface IProps {
   commitTx: (tx: Tx) => void;
   getConnectableAnnotations: (annRefId: string, btnType: IAnnotationButtonType) => IAnnotationConfigWithScreen[];
   updateConnection: (fromMain: string, toMain: string) => void;
+  elpathKey: ElPathKey;
 }
 
 const commonInputStyles: React.CSSProperties = {
@@ -196,11 +199,8 @@ function getEffectPanelExtraIcons(props: {
   return (
     <Tooltip
       placement="topRight"
-      title={
-        <GTags.Txt className="subsubhead" color="#fff">
-          Effects are applied. Click here to delete any active effects.
-        </GTags.Txt>
-      }
+      overlayStyle={{ fontSize: '0.75rem' }}
+      title="Effects are applied. Click here to delete any active effects."
     >
       <DeleteOutlined
         onClick={() => {
@@ -226,9 +226,8 @@ function GlobalTitle({ title }: {title: string}) : JSX.Element {
       {title}
       <Tooltip
         placement="bottomRight"
-        title={
-          <GTags.Txt className="subsubhead" color="#fff">{globalPropertyHelpText}</GTags.Txt>
-        }
+        overlayStyle={{ fontSize: '0.75rem' }}
+        title={globalPropertyHelpText}
       >
         <QuestionCircleOutlined className="ht-icn" />
       </Tooltip>
@@ -257,6 +256,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [popoverPlacement, setPopoverPlacement] = useState<'leftBottom' | 'left' | 'leftTop'>('leftBottom');
   const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
   const [activePopover, setActivePopover] = useState<'open'|'navigate'>('open');
+
   const unsubFn = useRef(() => { });
 
   const prevConfig = usePrevious(config);
@@ -456,7 +456,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   const startSelectingHotspotEl = (): void => {
     props.setSelectionMode('hotspot');
-    const boundedEl = domElPicker.elFromPath(props.config.id);
+    const boundedEl = domElPicker.elFromPath(config[props.elpathKey]);
     domElPicker.setSelectedBoundedEl(boundedEl!);
     domElPicker.setSelectionMode();
     setNewHotspotSelected(true);
@@ -1034,17 +1034,14 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     >
                       <div>
                         <Tooltip
+                          overlayStyle={{ fontSize: '0.75rem' }}
                           placement="topRight"
                           title={
-                            <GTags.Txt style={{ color: '#fff' }} className="subsubhead">
-                              {
-                                btnConf.hotspot
-                                  ? btnConf.hotspot.actionType === 'open'
-                                    ? 'Already connected to external link'
-                                    : 'Already connected to an annotation'
-                                  : 'No action defined for what would happen if user clicks this button'
-                              }
-                            </GTags.Txt>
+                            btnConf.hotspot
+                              ? btnConf.hotspot.actionType === 'open'
+                                ? 'Already connected to external link'
+                                : 'Already connected to an annotation'
+                              : 'No action defined for what would happen if user clicks this button'
                           }
                         >
                           <AntButton
@@ -1442,7 +1439,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                     <AEP
                       selectedEl={selectedHotspotEl}
                       disabled={false}
-                      boundEl={domElPicker.elFromPath(props.config.id)!}
+                      boundEl={domElPicker.elFromPath(config[props.elpathKey])!}
                       domElPicker={domElPicker}
                       onElSelect={(newSelEl: HTMLElement, prevSelEl: HTMLElement) => {
                         props.selectedEl && domElPicker.clearMask(HighlightMode.Pinned);

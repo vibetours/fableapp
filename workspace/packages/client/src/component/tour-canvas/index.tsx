@@ -6,6 +6,7 @@ import {
   FileAddFilled,
   HourglassFilled,
   HourglassOutlined,
+  MobileFilled,
   SisternodeOutlined,
 } from '@ant-design/icons';
 import {
@@ -16,7 +17,8 @@ import {
   ITourEntityHotspot,
   ScreenData
 } from '@fable/common/dist/types';
-import { Modal, Button, Tooltip } from 'antd';
+import { Modal, Button, Tooltip, Drawer, Radio } from 'antd';
+import { ReqTourPropUpdate, Responsiveness } from '@fable/common/dist/api-contract';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
@@ -27,6 +29,7 @@ import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { getRandomId } from '@fable/common/dist/utils';
+import FableButton from '../button';
 import * as GTags from '../../common-styled';
 import {
   updateGrpIdForTimelineTillEnd,
@@ -47,10 +50,12 @@ import {
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
+  ElPathKey,
   IAnnotationConfigWithScreen,
   JourneyOrOptsDataChange,
   MultiNodeModalData,
   NavFn,
+  ScreenMode,
   ScreenPickerData,
   Timeline,
   TourDataChangeFn,
@@ -60,6 +65,7 @@ import {
   IAnnotationConfigWithScreenId,
   updateAnnotationZId,
   updateButtonProp,
+  updateTourDataOpts,
 } from '../annotation/annotation-config-utils';
 import { AnnUpdateType } from '../annotation/types';
 import { dSaveZoomPanState } from './deferred-tasks';
@@ -79,7 +85,7 @@ import {
   getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
   getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
 } from './utils';
-import { doesBtnOpenALink, isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
+import { doesBtnOpenALink, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -87,7 +93,6 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import LoaderEditor from '../../container/loader-editor';
 import ScreenEditor from '../screen-editor';
 import CloseIcon from '../../assets/tour/close.svg';
-import { UpdateScreenFn } from '../../action/creator';
 import CreateJourney from '../../container/create-journey';
 import Header, { HeaderProps } from '../header';
 import DeleteIcon from '../../assets/icons/canvas-delete.svg';
@@ -96,12 +101,19 @@ import ExploringCanvasGuide from '../../user-guides/exploring-canvas-guide';
 import { UserGuideMsg } from '../../user-guides/types';
 import { SCREEN_EDITOR_ID } from '../../constants';
 import 'd3-transition';
+import { UpdateScreenFn } from '../../action/creator';
+import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
 
 const { confirm } = Modal;
 
 const userGuides = [ExploringCanvasGuide, ShareEmbedDemoGuide, EditingInteractiveDemoGuidePart1];
 
 type CanvasProps = {
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => void;
   setShowPaymentModal: (show: boolean) => void;
   subs: P_RespSubscription | null;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
@@ -134,6 +146,8 @@ type CanvasProps = {
   headerProps: HeaderProps,
   journey: JourneyData,
   manifestPath: string;
+  elpathKey: ElPathKey;
+  updateElPathKey: (elPath: ElPathKey)=> void;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -288,6 +302,8 @@ interface CreateJourneyModal {
 }
 
 export default function TourCanvas(props: CanvasProps): JSX.Element {
+  const [showMobileResponsivenessDrawer, setShowMobileResponsivenessDrawer] = useState(false);
+  const [selectedResponsivenessStrategy, setSelectedResponsivenessStrategy] = useState(props.tour.responsive2);
   const [selectorComponentKey, setSelectorComponentKey] = useState(0);
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
@@ -316,6 +332,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [multiNodeModalData, setMultiNodeModalData] = useState(initialMultiNodeModalData);
   const [allAnnsLookupMap, setAllAnnsLookupMap] = useState<AnnoationLookupMap>({});
   const dagreGraphRef = useRef<dagre.graphlib.Graph>();
+  const [screenMode, setScreenMode] = useState<ScreenMode>(ScreenMode.DESKTOP);
 
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
@@ -2417,6 +2434,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const resetSelectedAnn = (): void => {
     setSelectedAnnId('');
     props.navigateBackToTour();
+    resetScreenModeAndElPathKey();
   };
 
   const selectAnn = (annQualificationUri: string): void => {
@@ -2606,6 +2624,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     );
   };
 
+  const resetScreenModeAndElPathKey = (): void => {
+    setScreenMode(ScreenMode.DESKTOP);
+    props.updateElPathKey('id');
+  };
+
   return (
     <>
       <GTags.ColCon>
@@ -2741,6 +2764,25 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                         }}
                       />
                     </div>
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
+
+                <Tags.CanvasMenuItemCon>
+                  <Tooltip
+                    title="Mobile Responsiveness Strategy"
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <Button
+                      onClick={() => setShowMobileResponsivenessDrawer(true)}
+                      icon={<MobileFilled style={CANVAS_MENU_ITEM_STYLE} />}
+                      size="large"
+                      type="text"
+                      style={{
+                        margin: 0,
+                        borderRadius: '4px',
+                      }}
+                    />
                   </Tooltip>
                 </Tags.CanvasMenuItemCon>
               </Tags.CanvasMenuCon>
@@ -2955,6 +2997,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onTourDataChange={props.onTourDataChange}
                     updateConnection={updateConnectionFromPannel}
                     shouldCreateNewFlow
+                    screenMode={screenMode}
+                    setScreenMode={setScreenMode}
+                    elpathKey={props.elpathKey}
+                    updateElPathKey={props.updateElPathKey}
+                    updateTourProp={props.updateTourProp}
                   />
                   )
                 }
@@ -3025,6 +3072,11 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onTourDataChange={props.onTourDataChange}
                     updateConnection={updateConnectionFromPannel}
                     shouldCreateNewFlow={false}
+                    screenMode={screenMode}
+                    setScreenMode={setScreenMode}
+                    elpathKey={props.elpathKey}
+                    updateElPathKey={props.updateElPathKey}
+                    updateTourProp={props.updateTourProp}
                   />
                 )
               }
@@ -3099,6 +3151,18 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             )
           }
           {props.timeline.length && <SelectorComponent key={selectorComponentKey} userGuides={userGuides} />}
+
+          <ResponsiveStrategyDrawer
+            showMobileResponsivenessDrawer={showMobileResponsivenessDrawer}
+            setShowMobileResponsivenessDrawer={setShowMobileResponsivenessDrawer}
+            selectedResponsivenessStrategy={selectedResponsivenessStrategy}
+            setSelectedResponsivenessStrategy={setSelectedResponsivenessStrategy}
+            tour={props.tour}
+            updateResponsiveness={(responsiveness: Responsiveness) => {
+              props.updateTourProp(props.tour.rid, 'responsive2', responsiveness);
+              resetScreenModeAndElPathKey();
+            }}
+          />
         </GTags.BodyCon>
       </GTags.ColCon>
     </>
