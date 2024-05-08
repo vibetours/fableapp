@@ -28,5 +28,11 @@ export enum AMPLITUDE_EVENTS {
     SHARE_MODAL_SECTION_CLICKED_EMBED_DEMO='share_modal_section_clicked_embed_demo',
     SHARE_MODAL_SECTION_CLICKED_CTA_SHARE='share_modal_section_clicked_cta_share',
     SHARE_MODAL_SECTION_CLICKED_INTERNAL_SHARE='share_modal_section_clicked_internal_share',
-    SAMPLE_DEMO_CLICKED='sample_demo_clicked'
+    SAMPLE_DEMO_CLICKED='sample_demo_clicked',
+    OPEN_MOBILE_RESPONSIVENESS_DRAWER='open_mobile_responsiveness_drawer',
+    MOBILE_RESPONSIVENESS_SELECT_RADIO='mobile_responsiveness_select_radio',
+    MOBILE_RESPONSIVENESS_CHANGE='mobile_responsiveness_change',
+    DEVICE_MODE_CHANGED='device_mode_changed',
+    RESELECT_ELEMENT='reselect_element',
+    INTEGRATION_MODAL_OPENED='integration_modal_opened',
 }

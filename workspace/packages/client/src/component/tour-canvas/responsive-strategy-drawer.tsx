@@ -7,6 +7,7 @@ import { P_RespTour } from '../../entity-processor';
 import { isTourResponsive } from '../../utils';
 import FableButton from '../button';
 import { OurLink, OurRadio } from '../../common-styled';
+import { amplitudeResponsivenessChange, amplitudeResponsivenessSelectRadio } from '../../amplitude';
 
 interface Props {
   showMobileResponsivenessDrawer: boolean;
@@ -30,13 +31,14 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
       <Radio.Group
         value={props.selectedResponsivenessStrategy}
         onChange={e => {
+          amplitudeResponsivenessSelectRadio(e.target.value);
           if (
             e.target.value === Responsiveness.NoResponsive
           && props.tour.responsive2 !== Responsiveness.NoResponsive
           ) {
             props.updateResponsiveness(Responsiveness.NoResponsive);
+            amplitudeResponsivenessChange(Responsiveness.NoResponsive, 'canvas-menu-item-drawer');
           }
-
           props.setSelectedResponsivenessStrategy(e.target.value);
         }}
       >
@@ -55,7 +57,10 @@ export default function ResponsiveStrategyDrawer(props: Props): JSX.Element {
               Fable will manage your demo on mobile gracefully.
             </p>
             <FableButton
-              onClick={() => props.updateResponsiveness(Responsiveness.Responsive)}
+              onClick={() => {
+                props.updateResponsiveness(Responsiveness.Responsive);
+                amplitudeResponsivenessChange(Responsiveness.Responsive, 'canvas-menu-item-drawer');
+              }}
               disabled={isTourResponsive(props.tour)}
             >
               {isTourResponsive(props.tour)

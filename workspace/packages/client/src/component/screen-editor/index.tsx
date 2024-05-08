@@ -90,7 +90,7 @@ import {
   isTourResponsive,
 } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeNewAnnotationCreated, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
+import { amplitudeDeviceModeChange, amplitudeNewAnnotationCreated, amplitudeReselectElement, amplitudeResponsivenessChange, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
 import Loader from '../loader';
 import CaretOutlined from '../icons/caret-outlined';
 import FocusBubble from '../annotation/focus-bubble';
@@ -1463,6 +1463,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             <Tags.ScreenModeItems
               onClick={() => {
                 this.props.updateTourProp(this.props.tour.rid, 'responsive2', Responsiveness.NoResponsive);
+                amplitudeResponsivenessChange(Responsiveness.NoResponsive, 'annotation-editor');
               }}
             >
               <p className="typ-sm"> <ArrowsAltOutlined /> Make this demo non-responsive</p>
@@ -1473,7 +1474,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         {
           label: (
             <Tags.ScreenModeItems
-              onClick={() => this.handleScreenModeChange(ScreenMode.DESKTOP)}
+              onClick={() => {
+                this.handleScreenModeChange(ScreenMode.DESKTOP);
+                amplitudeDeviceModeChange(ScreenMode.DESKTOP);
+              }}
             >
               <p className="typ-sm"> <DesktopOutlined /> {ScreenMode.DESKTOP} view</p>
             </Tags.ScreenModeItems>
@@ -1483,7 +1487,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         {
           label: (
             <Tags.ScreenModeItems
-              onClick={() => this.handleScreenModeChange(ScreenMode.MOBILE)}
+              onClick={() => {
+                this.handleScreenModeChange(ScreenMode.MOBILE);
+                amplitudeDeviceModeChange(ScreenMode.MOBILE);
+              }}
             >
               <p className="typ-sm"> <MobileOutlined /> {ScreenMode.MOBILE} view</p>
             </Tags.ScreenModeItems>
@@ -1496,6 +1503,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             <Tags.ScreenModeItems onClick={() => {
               this.props.updateTourProp(this.props.tour.rid, 'responsive2', Responsiveness.Responsive);
               this.handleScreenModeChange(ScreenMode.DESKTOP);
+              amplitudeResponsivenessChange(Responsiveness.Responsive, 'annotation-editor');
             }}
             >
               <div style={{ lineHeight: '1.1rem', marginBottom: '0.25rem' }}>
@@ -1549,7 +1557,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   style={{
                     visibility: shouldHideAEP ? 'hidden' : 'visible'
                   }}
-                  onClick={this.startSelectingMobileEl}
+                  onClick={() => {
+                    this.startSelectingMobileEl();
+                    amplitudeReselectElement();
+                  }}
                 >
                   <AimOutlined />
                 </Tags.DeviceCon>

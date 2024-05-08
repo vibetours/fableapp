@@ -43,9 +43,9 @@ export const traceEvent = (eventName: string, eventProperties: Record<string, st
     finalEvenProperties[property] = data[property];
   });
 
-  if (data.email && data.email.endsWith('@sharefable.com')) {
-    return;
-  }
+  // if (data.email && data.email.endsWith('@sharefable.com')) {
+  //   return;
+  // }
   setTimeout(() => {
     track(eventName, finalEvenProperties);
     posthog.capture(eventName, finalEvenProperties);
@@ -61,11 +61,11 @@ export const setProductAnalyticsUserId = (userId: string) => {
     { email: userId }
   );
   setUserId(userId);
-  if (userId.endsWith('@sharefable.com')) {
-    posthog.opt_out_capturing();
-  } else if (posthog.has_opted_out_capturing()) {
-    posthog.opt_in_capturing();
-  }
+  // if (userId.endsWith('@sharefable.com')) {
+  //   posthog.opt_out_capturing();
+  // } else if (posthog.has_opted_out_capturing()) {
+  //   posthog.opt_in_capturing();
+  // }
 };
 
 export const resetProductAnalytics = () => {

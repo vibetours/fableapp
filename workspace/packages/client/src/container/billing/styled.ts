@@ -52,24 +52,25 @@ export const FeatTitle = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-export const FeatList = styled.ul`
+export const FeatList = styled.ul<{isScrollable: boolean}>`
   list-style-type: none;
   padding: 0;
-  max-height: 280px;
-  overflow: scroll;
+  max-height: ${props => (props.isScrollable ? '280px' : 'max-content')};
+  overflow: ${props => (props.isScrollable ? 'scroll' : 'auto')};
 
   & > li:not(:last-child) {
     margin-bottom: 0.4rem;
   }
 `;
 
-export const FeatCon = styled.div`
+export const FeatCon = styled.div<{showScrollMore: boolean}>`
   margin-top: 1rem;
   filter: saturate(0.5);
   opacity: 0.8;
 
   &:after {
     content: '↓ Scroll for more';
+    display: ${props => (props.showScrollMore ? 'block' : 'none')};
     font-size: 12px;
     color: #757575;
   }

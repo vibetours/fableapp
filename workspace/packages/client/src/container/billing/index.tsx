@@ -174,11 +174,11 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                               )}
                             </div>
                             <Tags.PlanPrice>${plan.priceLifetime}</Tags.PlanPrice>
-                            <Tags.FeatCon>
+                            <Tags.FeatCon showScrollMore>
                               <Tags.FeatTitle>
                                 {plan.featTitle}
                               </Tags.FeatTitle>
-                              <Tags.FeatList>
+                              <Tags.FeatList isScrollable>
                                 {plan.featList.map((f, i) => (
                                   <li key={i}>
                                     <HeartFilled style={{ color: '#7567FF', marginRight: '0.5rem' }} /> {f.feat}
@@ -329,11 +329,11 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                               {plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 'Subscribed' : 'Choose'}
                             </Button>
                           </div>
-                          <Tags.FeatCon>
+                          <Tags.FeatCon showScrollMore={false}>
                             <Tags.FeatTitle>
                               {plan.featTitle}
                             </Tags.FeatTitle>
-                            <Tags.FeatList>
+                            <Tags.FeatList isScrollable={false}>
                               {plan.featList.map((f, i) => (
                                 <li key={i}>
                                   <HeartFilled style={{ color: '#7567FF', marginRight: '0.5rem' }} /> {f.feat}

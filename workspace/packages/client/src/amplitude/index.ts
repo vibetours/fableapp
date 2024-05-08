@@ -1,7 +1,8 @@
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
+import { Responsiveness } from '@fable/common/dist/api-contract';
 import { AMPLITUDE_EVENTS } from './events';
-import { SiteData } from '../types';
+import { ScreenMode, SiteData } from '../types';
 
 export const enum propertyCreatedFromWithType {
   CANVAS_PLUS_ICON_COVER_NEW_SCREEN = 'canvas_plus_icon_cover_new_screen',
@@ -99,5 +100,71 @@ export const amplitudeRemoveWatermark = (
     AMPLITUDE_EVENTS.REMOVE_WATERMARK,
     { remove_watermark_from: from },
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeOpenResponsivenessDrawer = (): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.OPEN_MOBILE_RESPONSIVENESS_DRAWER,
+    {},
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeResponsivenessSelectRadio = (
+  value: Responsiveness.NoResponsive | Responsiveness.Responsive
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.MOBILE_RESPONSIVENESS_SELECT_RADIO,
+    {
+      value,
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeResponsivenessChange = (
+  value: Responsiveness.NoResponsive | Responsiveness.Responsive,
+  source: 'canvas-menu-item-drawer' | 'annotation-editor'
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.MOBILE_RESPONSIVENESS_CHANGE,
+    {
+      value,
+      source,
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeDeviceModeChange = (
+  value: ScreenMode.DESKTOP | ScreenMode.MOBILE,
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEVICE_MODE_CHANGED,
+    {
+      value,
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeReselectElement = (): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.RESELECT_ELEMENT,
+    {},
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeIntegrationModalOpened = (
+  name: string
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.INTEGRATION_MODAL_OPENED,
+    {
+      value: name,
+    },
+    [CmnEvtProp.EMAIL]
   );
 };

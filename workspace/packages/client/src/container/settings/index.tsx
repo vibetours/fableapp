@@ -42,6 +42,7 @@ interface IOwnStateProps {
   copyMsg: string;
   timer: ReturnType<typeof setTimeout> | null;
   opsInProgress: boolean;
+  isLoading: boolean;
 }
 
 class Settings extends React.PureComponent<IProps, IOwnStateProps> {
@@ -53,6 +54,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
       copyMsg: 'Click to copy to clipboard',
       timer: null,
       opsInProgress: false,
+      isLoading: true,
     };
   }
 
@@ -66,7 +68,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
       const resp = await api<any, ApiResp<RespApiKey | null>>('/apikey', {
         auth: true,
       });
-      this.setState({ apiKey: resp.data });
+      this.setState({ apiKey: resp.data, isLoading: false });
     } catch (e) {
       raiseDeferredError(e as Error);
       this.setState({ apiKey: null });
@@ -116,86 +118,100 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
               <p className="typ-reg">
                 API Keys are critical, make sure the key is not leaked. You can always generate a new key in case you think a previous key has been compromised.
               </p>
-              {this.state.apiKey ? (
-                <Tags.ApiKeyDetails>
-                  <Tags.ApiKeyTxt
-                    className="typ-btn"
-                    copyMsg={this.state.copyMsg}
-                    onMouseUp={() => {
-                      navigator.clipboard.writeText(this.state.apiKey!.apiKey);
-                      if (this.state.timer) clearTimeout(this.state.timer);
-                      const timer = setTimeout(() => {
-                        this.setState({
-                          copyMsg: 'Click to copy to clipboard'
-                        });
-                      }, 5000);
-                      this.setState({
-                        copyMsg: 'Copied to clipboard',
-                        timer,
-                      });
-                    }}
-                  >
-                    {this.state.apiKey.apiKey}
-                  </Tags.ApiKeyTxt>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  >
-                    Created by
-                    <img className="avatar" alt="avatar" src={this.state.apiKey.createdBy.avatar} />
-                    {this.state.apiKey.createdBy.firstName} {this.state.apiKey.createdBy.lastName}
-                    &nbsp;
-                    on {dateTimeFormat(new Date(this.state.apiKey.createdAt))}
-                  </div>
-                  <div style={{
-                    marginTop: '0.5rem'
-                  }}
-                  >
-                    <Button
-                      intent="secondary"
-                      size="small"
-                      onClick={() => confirm({
-                        title: 'Are you sure you want to generate a new API Key?',
-                        content: `
+              {
+                this.state.isLoading && (
+                  <p className="typ-reg">
+                    <LoadingOutlined style={{ marginRight: '0.5rem' }} />
+                    Loading...
+                  </p>
+                )
+              }
+              {
+                !this.state.isLoading && (
+                <>
+                  {this.state.apiKey ? (
+                    <Tags.ApiKeyDetails>
+                      <Tags.ApiKeyTxt
+                        className="typ-btn"
+                        copyMsg={this.state.copyMsg}
+                        onMouseUp={() => {
+                          navigator.clipboard.writeText(this.state.apiKey!.apiKey);
+                          if (this.state.timer) clearTimeout(this.state.timer);
+                          const timer = setTimeout(() => {
+                            this.setState({
+                              copyMsg: 'Click to copy to clipboard'
+                            });
+                          }, 5000);
+                          this.setState({
+                            copyMsg: 'Copied to clipboard',
+                            timer,
+                          });
+                        }}
+                      >
+                        {this.state.apiKey.apiKey}
+                      </Tags.ApiKeyTxt>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      >
+                        Created by
+                        <img className="avatar" alt="avatar" src={this.state.apiKey.createdBy.avatar} />
+                        {this.state.apiKey.createdBy.firstName} {this.state.apiKey.createdBy.lastName}
+                        &nbsp;
+                        on {dateTimeFormat(new Date(this.state.apiKey.createdAt))}
+                      </div>
+                      <div style={{
+                        marginTop: '0.5rem'
+                      }}
+                      >
+                        <Button
+                          intent="secondary"
+                          size="small"
+                          onClick={() => confirm({
+                            title: 'Are you sure you want to generate a new API Key?',
+                            content: `
                           If you generate a new API key, the current key will cease to exist.
                           If you've used this key in integrations, you have to manually update the API Key
                         `,
-                        okText: this.state.opsInProgress ? 'Generating...' : 'Generate New API Key',
-                        okType: 'danger',
-                        onOk: async () => {
-                          traceEvent(
-                            AMPLITUDE_EVENTS.API_KEY_GENERATED,
-                            {
-                              regenerated: true
+                            okText: this.state.opsInProgress ? 'Generating...' : 'Generate New API Key',
+                            okType: 'danger',
+                            onOk: async () => {
+                              traceEvent(
+                                AMPLITUDE_EVENTS.API_KEY_GENERATED,
+                                {
+                                  regenerated: true
+                                },
+                                [CmnEvtProp.EMAIL]
+                              );
+                              this.setState({ opsInProgress: true });
+                              await this.genApiKey();
+                              this.setState({ opsInProgress: false });
                             },
-                            [CmnEvtProp.EMAIL]
-                          );
-                          this.setState({ opsInProgress: true });
-                          await this.genApiKey();
-                          this.setState({ opsInProgress: false });
-                        },
-                        onCancel() { }
-                      })}
-                    >Create a New API Key
+                            onCancel() { }
+                          })}
+                        >Create a New API Key
+                        </Button>
+                      </div>
+                    </Tags.ApiKeyDetails>
+                  ) : (
+                    <Button
+                      intent="primary"
+                      disabled={this.state.opsInProgress}
+                      icon={this.state.opsInProgress ? <LoadingOutlined /> : <PlusOutlined />}
+                      iconPlacement="left"
+                      onClick={async () => {
+                        this.setState({ opsInProgress: true });
+                        await this.genApiKey();
+                        this.setState({ opsInProgress: false });
+                      }}
+                    >
+                      Create a New API Key
                     </Button>
-                  </div>
-                </Tags.ApiKeyDetails>
-              ) : (
-                <Button
-                  intent="primary"
-                  disabled={this.state.opsInProgress}
-                  icon={this.state.opsInProgress ? <LoadingOutlined /> : <PlusOutlined />}
-                  iconPlacement="left"
-                  onClick={async () => {
-                    this.setState({ opsInProgress: true });
-                    await this.genApiKey();
-                    this.setState({ opsInProgress: false });
-                  }}
-                >
-                  Create a New API Key
-                </Button>
-              )}
+                  )}
+                </>
+                )
+              }
             </Tags.Con>
           </GTags.MainCon>
         </GTags.RowCon>

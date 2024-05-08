@@ -39,7 +39,7 @@ import {
 import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 
-function getNumberOfDaysFromNow(d: Date): [string, number] {
+export function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
   const days = Math.floor(msDiffs / (1000 * 60 * 60 * 24));
   const hours = Math.floor((msDiffs / (1000 * 60 * 60)) % 24);

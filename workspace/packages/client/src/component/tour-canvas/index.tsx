@@ -103,6 +103,7 @@ import { SCREEN_EDITOR_ID } from '../../constants';
 import 'd3-transition';
 import { UpdateScreenFn } from '../../action/creator';
 import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
+import { amplitudeOpenResponsivenessDrawer } from '../../amplitude';
 
 const { confirm } = Modal;
 
@@ -2769,7 +2770,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
                 <Tags.CanvasMenuItemCon>
                   <Tooltip
-                    title="Mobile Responsiveness Strategy"
+                    title="Mobile Responsiveness"
                     overlayStyle={{ fontSize: '0.75rem' }}
                     placement="right"
                   >
@@ -2779,7 +2780,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     }}
                     >
                       <Button
-                        onClick={() => setShowMobileResponsivenessDrawer(true)}
+                        onClick={() => {
+                          setShowMobileResponsivenessDrawer(true);
+                          amplitudeOpenResponsivenessDrawer();
+                        }}
                         icon={<MobileFilled style={CANVAS_MENU_ITEM_STYLE} />}
                         size="large"
                         type="text"

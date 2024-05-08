@@ -5,7 +5,7 @@ import { Plan, Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import packageJSON from '../../../package.json';
 import * as Tags from './styled';
-import { P_RespSubscription } from '../../entity-processor';
+import { P_RespSubscription, getNumberOfDaysFromNow } from '../../entity-processor';
 import UserGuideProgress from './user-guide-progess';
 import UserGuideDetails from './user-guide-details';
 import PlanBadge from './plan-badge';
@@ -30,6 +30,13 @@ export default function SidePanel(props: Props): JSX.Element {
   const [isUserGuideDetailsOpen, setIsUserGuideDetailsOpen] = useState<boolean>(false);
   const navigate = useNavigate();
   const isBuisnessPlan = props.subs && props.subs.status === Status.ACTIVE && props.subs.paymentPlan === Plan.BUSINESS;
+
+  if (props.subs) props.subs.status = Status.CANCELLED;
+  const isTrialAndEndGreaterThanOneYear = (): boolean => {
+    if (!props.subs) return false;
+    const [_, days] = getNumberOfDaysFromNow(new Date(props.subs.trialEndsOn));
+    return days > 365 && props.subs.status === Status.IN_TRIAL;
+  };
 
   return (
     <Tags.Con>
@@ -69,7 +76,7 @@ export default function SidePanel(props: Props): JSX.Element {
         </Tags.ConNavBtn>
 
         <div style={{ margin: 'auto 8px 0' }}>
-          {props.subs && !isBuisnessPlan && <PlanBadge
+          {props.subs && !isBuisnessPlan && !isTrialAndEndGreaterThanOneYear() && <PlanBadge
             subs={props.subs}
             onClick={() => {
               sendEvntToAmplitude('billing');

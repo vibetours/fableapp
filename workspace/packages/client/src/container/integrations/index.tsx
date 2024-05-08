@@ -26,6 +26,7 @@ import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 import Webhook from './webhook';
 import Button from '../../component/button';
+import { amplitudeIntegrationModalOpened } from '../../amplitude';
 
 interface IDispatchProps { }
 
@@ -300,7 +301,10 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                 <IntegrationCard
                   key={appConfig.slug}
                   appConfig={appConfig}
-                  onClick={() => this.setState({ selectedApp: appConfig.slug, modalOpen: true })}
+                  onClick={() => {
+                    this.setState({ selectedApp: appConfig.slug, modalOpen: true });
+                    amplitudeIntegrationModalOpened(appConfig.name);
+                  }}
                 />
               ))}
             </Tags.IntegrationCardCon>
