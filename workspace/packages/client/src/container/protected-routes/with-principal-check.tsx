@@ -110,17 +110,19 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  shouldNavigateToBillingRoute = ():boolean => {
-    if (!isProdEnv()) return false;
-    if (this.props.location.pathname.includes('billing')) return false;
-    if (!this.props.subs) return false;
+  shouldNavigateToBillingRoute = (): boolean => {
+    // if (!isProdEnv()) return false;
+    // if (this.props.location.pathname.includes('billing')) return false;
+    // if (!this.props.subs) return false;
 
-    const currBillingStatus = this.props.subs.status;
-    if (currBillingStatus === Status.CANCELLED || currBillingStatus === Status.PAUSED) {
-      return true;
-    }
+    // const currBillingStatus = this.props.subs.status;
+    // if (currBillingStatus === Status.CANCELLED || currBillingStatus === Status.PAUSED) {
+    //   return true;
+    // }
+    this.props.subs;
+    const res = false;
 
-    return false;
+    return res;
   };
 
   render(): JSX.Element {
