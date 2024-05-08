@@ -27,12 +27,21 @@ export default function LogIn(props: Props): JSX.Element {
   useEffect(() => {
     document.title = props.title;
 
+    let isSignup = false;
+    if (searchParams.get('s') === '1') {
+      isSignup = true;
+    }
+
     const errorType = searchParams.get('t');
     if (!errorType) {
       setHeading('');
       setBtns([]);
       setShowLoader(true);
-      loginWithRedirect();
+      loginWithRedirect({
+        authorizationParams: {
+          screen_hint: isSignup ? 'signup' : 'login'
+        }
+      });
     }
   }, [searchParams]);
 
