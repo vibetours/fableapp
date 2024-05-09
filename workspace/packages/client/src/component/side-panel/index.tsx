@@ -31,7 +31,6 @@ export default function SidePanel(props: Props): JSX.Element {
   const navigate = useNavigate();
   const isBuisnessPlan = props.subs && props.subs.status === Status.ACTIVE && props.subs.paymentPlan === Plan.BUSINESS;
 
-  if (props.subs) props.subs.status = Status.CANCELLED;
   const isTrialAndEndGreaterThanOneYear = (): boolean => {
     if (!props.subs) return false;
     const [_, days] = getNumberOfDaysFromNow(new Date(props.subs.trialEndsOn));
