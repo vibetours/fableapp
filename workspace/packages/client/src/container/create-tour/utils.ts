@@ -602,39 +602,56 @@ async function postProcessSerDocs(
     }
   }
 
-  let data: RespScreen;
+  let data: RespScreen | null = null;
+  let replaceWithImgScreen = false;
   if (isMainFrameFound) {
     const mainFrameData = mainFrame!.data as SerDoc;
-    await process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
-    const screenBody: ScreenData = {
-      version: '2023-07-27',
-      vpd: {
-        h: mainFrameData.rect.height,
-        w: mainFrameData.rect.width,
-      },
-      docTree: mainFrameData.docTree!,
-    };
-
     try {
-      const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-        method: 'POST',
-        body: {
-          name: (mainFrameData.title || '').substring(0, 48),
-          url: mainFrameData.frameUrl,
-          thumbnail: imageData,
-          body: JSON.stringify(screenBody),
-          favIcon: iconPath,
-          type: ScreenType.SerDom,
-        },
-      });
-      data = resp.data;
+      await process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
     } catch (e) {
+      replaceWithImgScreen = true;
       raiseDeferredError(e as Error);
-      return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+      sentryCaptureException(
+        new Error('Error while processing data'),
+        JSON.stringify(results),
+        'screendata.txt'
+      );
+    }
+    if (!replaceWithImgScreen) {
+      const screenBody: ScreenData = {
+        version: '2023-07-27',
+        vpd: {
+          h: mainFrameData.rect.height,
+          w: mainFrameData.rect.width,
+        },
+        docTree: mainFrameData.docTree!,
+      };
+
+      try {
+        const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+          method: 'POST',
+          body: {
+            name: (mainFrameData.title || '').substring(0, 48),
+            url: mainFrameData.frameUrl,
+            thumbnail: imageData,
+            body: JSON.stringify(screenBody),
+            favIcon: iconPath,
+            type: ScreenType.SerDom,
+          },
+        });
+        data = resp.data;
+      } catch (e) {
+        raiseDeferredError(e as Error);
+        return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+      }
     }
   } else if (!imageData) {
     return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
   } else {
+    replaceWithImgScreen = true;
+  }
+
+  if (replaceWithImgScreen) {
     try {
       const screenImgFile = dataURLtoFile(imageData, 'img.png');
       const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
