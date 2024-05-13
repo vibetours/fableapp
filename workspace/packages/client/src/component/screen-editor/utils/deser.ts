@@ -184,11 +184,20 @@ export const createHtmlElement = (
 
   let attrKey;
   let attrValue;
+  /**
+   * For integrity:
+   // Since we proxy assets, the css files sometimes are edited with proxied url;
+   // hence the integrity attribute might throw error https://stackoverflow.com/a/34429101
+   * For dxdy & cdxdy:
+   // We tried recording a fable's screen editor demo with amplitude's screen,
+   // the iframes had a dxdy applied to it already
+   // but after we record a demo of it, we will need to recalculate all those dxdy, for that we are skipping the attrs
+   // Ref: https://sharefable.slack.com/archives/C0491PEEPPZ/p1715333327007159
+   */
+  const attrsToSkip = ['integrity', 'dxdy', 'cdxdy'];
   for ([attrKey, attrValue] of Object.entries(node.attrs)) {
     try {
-    // Since we proxy assets, the css files sometimes are edited with proxied url;
-    // hence the integrity attribute might throw error https://stackoverflow.com/a/34429101
-      if ((attrKey || '').toLowerCase() === 'integrity') continue;
+      if (attrsToSkip.includes(attrKey.toLowerCase())) continue;
       if (node.name === 'iframe' && attrKey === 'loading') continue;
       if (node.name === 'iframe' && attrKey === 'src') {
         const isHTML5 = node.chldrn.find(child => child.type === Node.DOCUMENT_TYPE_NODE);

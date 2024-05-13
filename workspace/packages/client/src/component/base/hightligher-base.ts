@@ -157,11 +157,11 @@ export default abstract class HighlighterBase {
 
   protected getCumulativeDxdy(doc: Document): [number, number] {
     let val;
-    if (val = doc.body.getAttribute('cdxcy')) {
+    if (val = doc.body.getAttribute('cdxdy')) {
       return val.split(',').map(d => +d) as [number, number];
     }
     const calculatedVal = this.calculateCumulativeDxdy(doc);
-    doc.body.setAttribute('cdxcy', calculatedVal.join(','));
+    doc.body.setAttribute('cdxdy', calculatedVal.join(','));
     return calculatedVal;
   }
 
