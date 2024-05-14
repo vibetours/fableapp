@@ -314,7 +314,8 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     customDims: lc.customDims,
     annotationSelectionColor: lc.annotationSelectionColor,
     isLeadFormPresent: lc.isLeadFormPresent,
-    m_id: lc.m_id
+    m_id: lc.m_id,
+    scrollAdjustment: lc.scrollAdjustment,
   };
 }
 
@@ -393,6 +394,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.selectionEffect === undefined || an.selectionEffect === null) {
     an.selectionEffect = 'regular';
+  }
+
+  if (an.scrollAdjustment === undefined || an.scrollAdjustment === null) {
+    an.scrollAdjustment = 'auto';
   }
 
   if (an.targetElCssStyle === undefined || an.targetElCssStyle === null) {

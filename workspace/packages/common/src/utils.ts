@@ -170,7 +170,8 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     buttonLayout: 'default',
     selectionShape: 'box',
     isLeadFormPresent: false,
-    m_id: elPath
+    m_id: elPath,
+    scrollAdjustment: 'auto',
   };
 };
 

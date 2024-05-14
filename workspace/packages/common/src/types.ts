@@ -243,6 +243,9 @@ export declare type AnnotationSelectionShapeType = typeof AnnotationSelectionSha
 export const AnnotationSelectionEffect = ['regular', 'blinking'] as const;
 export declare type AnnotationSelectionEffectType = typeof AnnotationSelectionEffect[number];
 
+export const ScrollAdjustment = ['auto', 'scroll'] as const;
+export declare type ScrollAdjustmentType = typeof ScrollAdjustment[number];
+
 export type CustomAnnDims = {
   width: number,
 }
@@ -274,6 +277,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   annotationSelectionColor: string;
   isLeadFormPresent: boolean;
   m_id: string;
+  scrollAdjustment: ScrollAdjustmentType;
 }
 
 // TODO perform this conversion, client side

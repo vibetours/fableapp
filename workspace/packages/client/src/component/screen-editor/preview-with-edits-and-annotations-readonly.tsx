@@ -591,6 +591,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const { screenId: currScreenId } = getAnnotationByRefId(currAnnId, this.props.allAnnotationsForTour)!;
 
+    const currScreenData = this.props.allScreensData![currScreenId];
+    const goToAnnConfig = getAnnotationByRefId(goToAnnId, this.props.allAnnotationsForTour)!;
+
     this.reachAnnotation('');
 
     this.props.closeJourneyMenu!();
@@ -610,6 +613,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      * Thus, directly go to annotation
      */
     if (+goToScreenId === currScreenId) {
+      await this.scrollIframeElsIfRequired(goToAnnConfig, currScreenData);
       this.reachAnnotation(goToAnnId);
       if (isGoToVideoAnn && !areDiffsAppliedToCurrIframe) {
         playVideoAnn(goToScreenId, goToAnnId);
@@ -633,9 +637,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     /**
      * Getting Screen data
      */
-
-    const currScreenData = this.props.allScreensData![currScreenId];
-
     let goToScreenData = this.props.allScreensData![goToScreenId];
 
     /**
@@ -718,7 +719,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       this.annotationLCM!.resetCons();
       this.addFont();
-      await scrollIframeEls(currScreenData.version, doc);
+      await this.scrollIframeElsIfRequired(goToAnnConfig, currScreenData);
 
       this.annotationLCM!.updateNestedFrames(this.nestedFrames);
 
@@ -748,6 +749,12 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       captureException(err);
       this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
     }
+  };
+
+  scrollIframeElsIfRequired = async (config: IAnnotationConfig, screenData: ScreenData): Promise<void> => {
+    if (config.scrollAdjustment === 'auto') return;
+    const doc = this.annotationLCM!.getDoc();
+    await scrollIframeEls(screenData.version, doc);
   };
 
   navigateAndGoToAnn = (goToAnnIdWithScreenId: string, isGoToVideoAnn: boolean): void => {

@@ -16,7 +16,9 @@ import {
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot,
-  VideoAnnotationPositions
+  VideoAnnotationPositions,
+  ScrollAdjustment,
+  ScrollAdjustmentType
 } from '@fable/common/dist/types';
 import { Input, Popover, Tabs, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
 import {
@@ -71,7 +73,7 @@ import {
   updateSelectionColor,
   updateAnnotationSelectionEffect,
   newConfigFrom,
-  updateAnnotationMobileElPath,
+  updateAnnotationScrollAdjustment,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
@@ -95,7 +97,7 @@ import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeRemoveWatermark } from '../../amplitude';
+import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeRemoveWatermark, amplitudeScrollAdjustmentChanged } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
 import ButtonIcon from '../../assets/icons/buttons.svg';
@@ -317,6 +319,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       }
       if (prevConfig.selectionShape !== config.selectionShape) {
         amplitudeAnnotationEdited('branding-selection_shape', config.selectionShape);
+      }
+      if (prevConfig.scrollAdjustment !== config.scrollAdjustment) {
+        amplitudeScrollAdjustmentChanged(
+          config.scrollAdjustment,
+          `${process.env.REACT_APP_CLIENT_ENDPOINT}/demo/${props.tour.rid}/${props.screen.rid}/${config.refId}`
+        );
       }
       props.onConfigChange(config, 'upsert', opts);
     }
@@ -1504,6 +1512,23 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
             defaultChecked={config.showOverlay}
             onChange={(e) => setConfig(c => updateOverlay(c, e))}
+          />
+        </div>
+        <div style={commonActionPanelItemStyle}>
+          <div style={commonActionPanelItemStyle}>Scroll Adjustment</div>
+          <GTags.FableSelect
+            className="typ-ip"
+            defaultValue={config.scrollAdjustment}
+            size="small"
+            bordered={false}
+            options={ScrollAdjustment.map(v => ({
+              value: v,
+              label: v.charAt(0).toUpperCase() + v.slice(1),
+            }))}
+            onChange={(value) => {
+              setConfig(c => updateAnnotationScrollAdjustment(c, value as ScrollAdjustmentType));
+            }}
+            suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
       </ActionPanel>

@@ -1,5 +1,5 @@
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { CmnEvtProp } from '@fable/common/dist/types';
+import { CmnEvtProp, ScrollAdjustmentType } from '@fable/common/dist/types';
 import { Responsiveness } from '@fable/common/dist/api-contract';
 import { AMPLITUDE_EVENTS } from './events';
 import { ScreenMode, SiteData } from '../types';
@@ -166,5 +166,19 @@ export const amplitudeIntegrationModalOpened = (
       value: name,
     },
     [CmnEvtProp.EMAIL]
+  );
+};
+
+export const amplitudeScrollAdjustmentChanged = (
+  value: ScrollAdjustmentType,
+  demoUrl: string,
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.SCROLL_ADJUSTMENT_CHANGED,
+    {
+      demo_url: demoUrl,
+      value,
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );
 };

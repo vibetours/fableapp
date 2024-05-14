@@ -14,6 +14,7 @@ import {
   AnnotationSelectionShapeType,
   AnnotationSelectionEffectType,
   CoverAnnotationPositions,
+  ScrollAdjustmentType,
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { ElPathKey } from '../../types';
@@ -132,6 +133,15 @@ export function updateAnnotationSelectionEffect<T extends IAnnotationConfig>(
 ): T {
   const newConfig = newConfigFrom(config);
   newConfig.selectionEffect = selectionEffect;
+  return newConfig;
+}
+
+export function updateAnnotationScrollAdjustment<T extends IAnnotationConfig>(
+  config: T,
+  scrollAdjustment: ScrollAdjustmentType
+): T {
+  const newConfig = newConfigFrom(config);
+  newConfig.scrollAdjustment = scrollAdjustment;
   return newConfig;
 }
 
