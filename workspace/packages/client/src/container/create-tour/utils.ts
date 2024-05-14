@@ -374,6 +374,7 @@ async function postProcessSerDocs(
       !(data.name === undefined || data.name === null || data.name === '')
         && lookupWithProp.push('name', data.name, r);
       lookupWithProp.push('url', data.frameUrl, r);
+      lookupWithProp.push('urlBase', data.frameUrl, r);
       lookupWithProp.push('dim', `${data.rect.width}:${data.rect.height}`, r);
     }
   }
@@ -772,8 +773,8 @@ class CreateLookupWithProp<T> {
   }
 
   push = (prop: LookupWithPropType, key: string, val: T) => {
-    if (prop === 'url') {
-      key = CreateLookupWithProp.getNormalizedUrlStr(key);
+    if (prop === 'url' || prop === 'urlBase') {
+      key = CreateLookupWithProp.getNormalizedUrlStr(key, prop === 'urlBase');
     }
     if (key in this.rec) {
       this.rec[prop][key].push(val);
