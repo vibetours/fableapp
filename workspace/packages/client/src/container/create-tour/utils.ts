@@ -380,11 +380,7 @@ async function postProcessSerDocs(
 
   if (!(mainFrame && mainFrame.data)) {
     isMainFrameFound = false;
-    sentryCaptureException(
-      new Error('Main frame not found, this should never happen'),
-      JSON.stringify(results),
-      'screendata.txt'
-    );
+    sentryCaptureExceptionWithData('Main frame not found, this should never happen');
   }
 
   let elPath = '';
@@ -431,6 +427,7 @@ async function postProcessSerDocs(
         if (!subFrame) {
           console.warn('Node', node);
           raiseDeferredError(new Error(`No sub frame present for node ^^^. src=${node.attrs.src}`));
+          sentryCaptureExceptionWithData(`No sub frame present for node ^^^. src=${node.attrs.src}`);
         } else {
           const subFrameData = subFrame.data as SerDoc;
           if (subFrameData.isHTML5) {
@@ -603,21 +600,12 @@ async function postProcessSerDocs(
   }
 
   let data: RespScreen | null = null;
-  let replaceWithImgScreen = false;
+  let shouldReplaceWithImgScreen = true;
   if (isMainFrameFound) {
     const mainFrameData = mainFrame!.data as SerDoc;
     try {
       await process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
-    } catch (e) {
-      replaceWithImgScreen = true;
-      raiseDeferredError(e as Error);
-      sentryCaptureException(
-        new Error('Error while processing data'),
-        JSON.stringify(results),
-        'screendata.txt'
-      );
-    }
-    if (!replaceWithImgScreen) {
+      shouldReplaceWithImgScreen = false;
       const screenBody: ScreenData = {
         version: '2023-07-27',
         vpd: {
@@ -627,31 +615,34 @@ async function postProcessSerDocs(
         docTree: mainFrameData.docTree!,
       };
 
-      try {
-        const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
-          method: 'POST',
-          body: {
-            name: (mainFrameData.title || '').substring(0, 48),
-            url: mainFrameData.frameUrl,
-            thumbnail: imageData,
-            body: JSON.stringify(screenBody),
-            favIcon: iconPath,
-            type: ScreenType.SerDom,
-          },
-        });
-        data = resp.data;
-      } catch (e) {
-        raiseDeferredError(e as Error);
+      const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
+        method: 'POST',
+        body: {
+          name: (mainFrameData.title || '').substring(0, 48),
+          url: mainFrameData.frameUrl,
+          thumbnail: imageData,
+          body: JSON.stringify(screenBody),
+          favIcon: iconPath,
+          type: ScreenType.SerDom,
+        },
+      });
+      data = resp.data;
+    } catch (e) {
+      raiseDeferredError(e as Error);
+      // eslint-disable-next-line max-len
+      sentryCaptureExceptionWithData('Error while processing screens data, will replace serdom screen with image screen');
+      if (!shouldReplaceWithImgScreen) {
+        // in this case the process call is successful but for some reason the screen has not been created
         return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
       }
     }
+    // }
   } else if (!imageData) {
+    sentryCaptureExceptionWithData('Screen skipped, could not find image data when main frame was not found');
     return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
-  } else {
-    replaceWithImgScreen = true;
   }
 
-  if (replaceWithImgScreen) {
+  if (shouldReplaceWithImgScreen && imageData) {
     try {
       const screenImgFile = dataURLtoFile(imageData, 'img.png');
       const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
@@ -674,8 +665,10 @@ async function postProcessSerDocs(
       });
       elPath = '$';
       replacedWithImgScreen = true;
+      sentryCaptureExceptionWithData('Screen replaced with image screen.');
     } catch (e) {
       raiseDeferredError(e as Error);
+      sentryCaptureExceptionWithData('Screen skipped, could not replace with image screen');
       return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
     }
   }
@@ -683,6 +676,14 @@ async function postProcessSerDocs(
   // TODO error handling with data
 
   return { data, elPath, replacedWithImgScreen, skipped: false };
+
+  function sentryCaptureExceptionWithData(errStr: string): void {
+    sentryCaptureException(
+      new Error(errStr),
+      JSON.stringify(results),
+      'screendata.txt'
+    );
+  }
 }
 
 function getAllPossibleCssUrlReplace(str: string, replaceThisUrl: string, replaceWithUrl: string): string {
