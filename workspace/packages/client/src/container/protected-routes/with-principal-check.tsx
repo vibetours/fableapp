@@ -19,27 +19,28 @@ import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 export const ENV = process.env.REACT_APP_ENVIRONMENT;
 
-function addSupportBot(name?: string, email?: string): void {
-  const id = 'f-twk-sp-bt';
+function addSupportBot(name: string, email: string, createdAt: Date): void {
+  const id = 'fable-support-bot';
 
-  let script = document.getElementById('f-twk-sp-bt');
+  let script = document.getElementById(id);
   if (script) return;
 
   script = document.createElement('script');
   script.setAttribute('id', id);
-  script.innerHTML = `var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-Tawk_API.visitor = {
-  name: "${name}",
-  email: "${email}"
-};
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/65fa9dad1ec1082f04d93afb/1hpdffrng';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();`;
+  script.innerHTML = `
+  window.intercomSettings = {
+    api_base: "https://api-iam.intercom.io",
+    app_id: "btay1o4i",
+    user_id: "${email}",
+    name: "${name}",
+    email: "${email}",
+    created_at: "${createdAt}"
+  };
+
+
+ // We pre-filled your app ID in the widget URL: 'https://widget.intercom.io/widget/btay1o4i'
+  (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/btay1o4i';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
+  `;
   document.body.appendChild(script);
 }
 
@@ -100,7 +101,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
 
       try {
         setProductAnalyticsUserId(this.props.principal.email);
-        if (ENV === 'prod') addSupportBot(this.props.principal?.firstName, this.props.principal?.email);
+        /* if (ENV === 'prod') */ addSupportBot(this.props.principal.firstName, this.props.principal.email, this.props.principal.createdAt);
         if (!this.props.auth0.isAuthenticated) {
           resetProductAnalytics();
         }
