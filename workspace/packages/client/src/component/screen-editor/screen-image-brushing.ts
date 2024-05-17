@@ -147,6 +147,12 @@ export default class ScreenImageBrusher extends DomElementPicker {
     return this;
   }
 
+  selectBoxInDoc(scaleCoords: Coords): void {
+    super.selectBoxInDoc(scaleCoords);
+    this.highlightMode = HighlightMode.Pinned;
+    this.setBodyCursor('auto');
+  }
+
   private startDrawingBox(e: MouseEvent) {
     this.imageBoxDrawingData.coords.startX = e.pageX - (e.currentTarget as HTMLImageElement).offsetLeft;
     this.imageBoxDrawingData.coords.startY = e.pageY - (e.currentTarget as HTMLImageElement).offsetTop;
@@ -172,7 +178,7 @@ export default class ScreenImageBrusher extends DomElementPicker {
 
     this.imageBoxDrawingData.scaleCoords = { ...relCoords };
 
-    this.selectBoxInDoc(relCoords);
+    super.selectBoxInDoc(relCoords);
 
     return this;
   }
