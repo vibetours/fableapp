@@ -1,7 +1,7 @@
 import { hexToRGB } from "@fable/common/dist/utils";
 import { DEFAULT_BORDER_RADIUS } from "@fable/common/dist/types";
 
-export const FABLE_CONTROL_PILL = "fable-dont-ser";
+export const FABLE_DONT_SER_CLASSNAME = "fable-dont-ser";
 /**
  * If the app being recorded is heavy with a lot of elements,
  * batching of 5 screens together was also exceeding the limit.
@@ -75,33 +75,6 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string) {
     }
     return baseUrl + urlStr;
   }
-}
-
-export function addStyleProperty(element: HTMLElement, style: string) {
-  const originalStyles = element.getAttribute("style") || "";
-  const newStyles = `
-    ${originalStyles}
-    ${style}
-  `;
-  element.setAttribute("style", newStyles);
-}
-
-export function createImgNode(src: string, alt: string, height: number, width: number, classList: Array<string>) {
-  const imgNode = document.createElement("img");
-  imgNode.setAttribute("src", src);
-  imgNode.setAttribute("alt", alt);
-  imgNode.setAttribute("height", `${height}`);
-  imgNode.setAttribute("width", `${width}`);
-  imgNode.classList.add(...classList);
-
-  const impStyles = `
-    width: ${width}px !important;
-    height: ${height}px !important;
-  `;
-
-  addStyleProperty(imgNode, impStyles);
-
-  return imgNode;
 }
 
 export function isCaseInsensitiveEqual(str1: string | null | undefined, str2: string | null | undefined): boolean {
@@ -218,4 +191,24 @@ export const blobToDataUrl = (
   canvas.remove();
 
   return base64;
+};
+
+export const createShadowDOM = (
+  hostId: string,
+  innerHTML: string
+): { hostCon: HTMLElement; shadowRoot: ShadowRoot } => {
+  const hostCon = document.createElement("div");
+  hostCon.setAttribute("id", hostId);
+
+  const shadowRoot = hostCon.attachShadow({
+    mode: "open",
+  });
+  shadowRoot.innerHTML = innerHTML;
+
+  hostCon.classList.add(FABLE_DONT_SER_CLASSNAME);
+  shadowRoot.querySelectorAll("*").forEach((el) => {
+    el.classList.add(FABLE_DONT_SER_CLASSNAME);
+  });
+
+  return { hostCon, shadowRoot };
 };

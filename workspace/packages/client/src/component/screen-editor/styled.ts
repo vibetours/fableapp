@@ -648,3 +648,76 @@ export const DeviceCon = styled.div`
     border-radius: 4px;
   }
 `;
+
+export const CreatorPanelTopMenuCon = styled.div`
+  margin-right: 0.5rem;
+`;
+
+export const FPOCon = styled.div`
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .divider {
+    width: 100%;
+    border-top: 1px solid lightgray;
+  }
+
+  .copy-item {
+    cursor: pointer;
+    opacity: 0.75;
+
+    &:hover {
+      opacity: 1;
+
+      .del {
+        visibility: visible;
+      }
+    }
+
+    .del {
+      display: inline-block;
+      visibility: hidden;
+      margin-left: 0.5rem;
+      padding: 0 2px;
+      border-radius: 4px;
+
+      &:hover {
+        box-shadow: 0 0 0 1px gray;
+      }
+    }
+  }
+
+  .color-view {
+    height: 10px;
+    width: 10px;
+    display: inline-block;
+    border-radius: 10px;
+  }
+
+  .selble {
+    padding: 4px 8px;
+    cursor: pointer;
+    border: 1px dashed lightgray;
+    border-radius: 8px;
+
+    &:hover {
+      border: 1px solid gray;
+    }
+  }
+`;
+
+export const OneAndMultiBtn = styled.div<{more?: boolean}>`
+  display: inline-block;
+  position: relative;
+  transform: translate(${props => (props.more ? '-0.25rem' : '0px')}, 0px);
+  transition: transform 0.2s ease-out;
+
+  button:after {
+    content: '...';
+    position: absolute;
+    transform: rotate(-90deg) translate(-1px, -12px);
+    visibility: ${props => (props.more ? 'visible' : 'hidden')};
+  }
+`;

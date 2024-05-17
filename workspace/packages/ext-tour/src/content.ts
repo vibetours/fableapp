@@ -11,9 +11,10 @@ import {
   SerializeFrameData,
   StopRecordingData
 } from "./types";
-import { createStickyControlPill } from "./components/control-pill";
-import { FABLE_CONTROL_PILL } from "./utils";
+import { FABLE_DONT_SER_CLASSNAME } from "./utils";
 import { version } from "../package.json";
+import { CountDownModal } from "./components/countdown-modal";
+import { ExtensionInfoModal } from "./components/extension-info-modal";
 
 sentryInit("extension", version);
 
@@ -92,7 +93,7 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
 }
 
 const onClickHandler = async (e: MouseEvent) => {
-  if ((e.target as HTMLElement).classList.contains(FABLE_CONTROL_PILL)) return;
+  if ((e.target as HTMLElement).classList.contains(FABLE_DONT_SER_CLASSNAME)) return;
   // const elPath = calculatePathFromEl(e.target as Node, []).join(".");
   // TODO ask siddhi why is this required when the method is already calculating elPath
   const elPath = "";
@@ -212,12 +213,14 @@ function init() {
         // a frame reaches the specific frame, not all the other frames
         if (tMsg.data.scriptId === initData.scriptId) {
           initData.frameId = tMsg.data.frameId;
-
-          if (tMsg.data.frameId === 0) {
-            const stickyControlPill = createStickyControlPill();
-            document.body.appendChild(stickyControlPill);
-          }
         }
+        break;
+      }
+
+      case Msg.SHOW_COUNTDOWN_MODAL: {
+        const countDownModal = new CountDownModal(() => {
+          const extensionInfoModal = new ExtensionInfoModal();
+        });
         break;
       }
 

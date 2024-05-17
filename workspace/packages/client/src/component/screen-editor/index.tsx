@@ -7,6 +7,8 @@ import {
   EyeOutlined,
   FilterOutlined,
   FontSizeOutlined,
+  FormatPainterFilled,
+  FormatPainterOutlined,
   HomeOutlined,
   LoadingOutlined,
   MobileOutlined,
@@ -15,20 +17,30 @@ import {
 } from '@ant-design/icons';
 import { ReqTourPropUpdate, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
 import {
+  AnnotationButtonLayoutType,
+  AnnotationPositions,
+  AnnotationSelectionEffectType,
+  AnnotationSelectionShapeType,
   CmnEvtProp,
+  CoverAnnotationPositions,
+  CustomAnnotationPosition,
+  EAnnotationBoxSize,
   IAnnotationButtonType,
   IAnnotationConfig,
+  IAnnotationOriginConfig,
   ITourDataOpts,
   JourneyData,
-  ScreenData
+  ScreenData,
+  VideoAnnotationPositions
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
-import { Collapse, Dropdown, MenuProps, Modal, Radio, Switch, Tooltip } from 'antd';
+import { Button, Collapse, Dropdown, MenuProps, Modal, Popover, Radio, Switch, Tooltip } from 'antd';
 import React from 'react';
 import { nanoid } from 'nanoid';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
@@ -98,6 +110,8 @@ import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interact
 import SelectorComponent from '../../user-guides/selector-component';
 import { UserGuideMsg } from '../../user-guides/types';
 import { UpdateScreenFn } from '../../action/creator';
+import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste } from './types';
+import FormatPasteOptions from './format-paste';
 
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
@@ -127,6 +141,19 @@ const enum EditTargetType {
   Input = 'inp',
   Mixed = 'm',
   None = 'n',
+}
+
+const PASTE_STYLE_STORAGE_KEY = 'fable/psh';
+
+function getStoredStyleForFormatPasting(): StoredStyleForFormatPaste | null {
+  try {
+    const str = sessionStorage.getItem(PASTE_STYLE_STORAGE_KEY);
+    if (!str) return null;
+    return JSON.parse(str);
+  } catch (e) {
+    raiseDeferredError(e as Error);
+  }
+  return null;
 }
 
 type EditTargets = Record<string, Array<HTMLElement | Text | HTMLImageElement | HTMLInputElement >>;
@@ -215,6 +242,8 @@ interface IOwnStateProps {
   isAssetLoaded: boolean;
   selectedCoords: string | null;
   reselectedEl: HTMLElement | null;
+  formatPasteStyle: StoredStyleForFormatPaste | null;
+  showFormatPastePopup: boolean;
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -258,7 +287,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imageMaskUploadModalIsUploading: false,
       isAssetLoaded: false,
       selectedCoords: null,
-      reselectedEl: null
+      reselectedEl: null,
+      formatPasteStyle: getStoredStyleForFormatPasting(),
+      showFormatPastePopup: false,
     };
   }
 
@@ -1410,6 +1441,30 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     });
   }
 
+  storeFormatPasteStyle(config: IAnnotationConfig): StoredStyleForFormatPaste {
+    const style: StyleObjForFormatPaste = {};
+    for (const prop of StyleKeysToBeStored) {
+      const value = config[prop];
+      if (typeof value !== 'boolean' && !value) continue;
+      style[prop] = value;
+    }
+
+    const data: StoredStyleForFormatPaste = {
+      tourId: this.props.tour.id,
+      tourRid: this.props.tour.rid,
+      screnId: this.props.screen.id,
+      annotationId: config.refId,
+      style,
+    };
+
+    sessionStorage.setItem(PASTE_STYLE_STORAGE_KEY, JSON.stringify(data));
+    return data;
+  }
+
+  isFormatPasteSourceEmptyOrSource(config: IAnnotationConfig) {
+    return this.state.formatPasteStyle === null || this.state.formatPasteStyle.annotationId === config.refId;
+  }
+
   resetSelectedAnnotation(): void {
     this.setState({ selectedAnnotationId: '', selectedEl: null });
   }
@@ -1798,7 +1853,66 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   {configOfParamsAnnId.syncPending && (<LoadingOutlined />)}
                                   {
                                   showAnnCreatorPanel ? (
-                                    <CaretOutlined dir="down" color={showAnnCreatorPanel ? '' : 'white'} />
+                                    <>
+                                      <Tags.CreatorPanelTopMenuCon onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                      }}
+                                      >
+                                        {configOfParamsAnnId.type === 'default' && (
+                                          <Popover
+                                            placement="bottomRight"
+                                            open={this.state.showFormatPastePopup}
+                                            onOpenChange={open => this.setState({ showFormatPastePopup: open && !this.isFormatPasteSourceEmptyOrSource(configOfParamsAnnId) })}
+                                            content={
+                                              <FormatPasteOptions
+                                                pasteFormatStyle={this.state.formatPasteStyle}
+                                                applyStyle={(pasteFormat: StoredStyleForFormatPaste) => {
+                                                  const style = pasteFormat.style;
+                                                  const conf = {
+                                                    ...configOfParamsAnnId
+                                                  };
+                                                  for (const [key, value] of Object.entries(style)) {
+                                                    (conf as any)[key] = value;
+                                                  }
+                                                  this.props.onAnnotationCreateOrChange(null, conf, 'upsert', this.props.tourDataOpts);
+                                                  this.setState({ showFormatPastePopup: false });
+                                                }}
+                                                copyStyle={() => {
+                                                  const formatPasteStyle = this.storeFormatPasteStyle(configOfParamsAnnId);
+                                                  this.setState({ formatPasteStyle, showFormatPastePopup: false });
+                                                }}
+                                              />
+                                            }
+                                          >
+                                            <Tags.OneAndMultiBtn
+                                              more={!this.isFormatPasteSourceEmptyOrSource(configOfParamsAnnId)}
+                                              onClick={
+                                                (e) => {
+                                                  if (this.isFormatPasteSourceEmptyOrSource(configOfParamsAnnId)) {
+                                                    // no format pasting style selected
+                                                    const formatPasteStyle = this.storeFormatPasteStyle(configOfParamsAnnId);
+                                                    this.setState({ formatPasteStyle });
+                                                  } else {
+                                                    // this.setState({ showFormatPastePopup: true });
+                                                  }
+                                                }
+                                            }
+                                            >
+                                              <Button
+                                                type="text"
+                                                size="small"
+                                                icon={<FormatPainterOutlined />}
+                                              >{
+                                                this.isFormatPasteSourceEmptyOrSource(configOfParamsAnnId) ? '' : ' '
+                                              }
+                                              </Button>
+                                            </Tags.OneAndMultiBtn>
+                                          </Popover>
+                                        )}
+                                      </Tags.CreatorPanelTopMenuCon>
+                                      <CaretOutlined dir="down" color={showAnnCreatorPanel ? '' : 'white'} />
+                                    </>
                                   ) : (
                                     <CaretOutlined dir="up" color={showAnnCreatorPanel ? '' : 'white'} />
                                   )

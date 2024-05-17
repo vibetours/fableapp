@@ -12,6 +12,7 @@ import { Msg, MsgPayload } from "./msg";
 import {
   IExtStoredState,
   IUser,
+  RecordingStatus,
   ReqScreenshotData,
   ScreenSerDataFromCS,
   ScreenSerStartData,
@@ -35,11 +36,6 @@ const TABS_TO_TRACK = "app_update_listnr_for_tab_ids";
 const FRAMES_IN_TAB = "frames_in_tab";
 const SCREEN_DATA_FINISHED = "screen_data_finished";
 const SCREEN_STYLE_DATA = "screen_style_data";
-
-const enum RecordingStatus {
-  Idle = 1,
-  Started,
-}
 
 interface FrameDataToBeProcessed {
   oid: number;
@@ -218,6 +214,9 @@ function finishAppRecording(
       throw e;
     } finally {
       await resetAppState();
+      await chrome.runtime.sendMessage({
+        type: Msg.RECORDING_CREATE_OR_DELETE_COMPLETED,
+      });
     }
   };
 }
@@ -240,7 +239,7 @@ async function getPersistentExtState(): Promise<IExtStoredState> {
 
   return {
     identity: identity || null,
-    isRecordingStarted: recordingStatus === RecordingStatus.Started
+    recordingStatus,
   };
 }
 
@@ -412,7 +411,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
     case Msg.START_RECORDING: {
       await resetAppState();
       await chrome.storage.local.set({
-        [APP_RECORDING_STATE]: RecordingStatus.Started,
+        [APP_RECORDING_STATE]: RecordingStatus.Recording,
       });
       await startRecording();
       break;
@@ -428,13 +427,16 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
     }
 
     case Msg.DELETE_RECORDING: {
+      await chrome.storage.local.set({
+        [APP_RECORDING_STATE]: RecordingStatus.Deleting,
+      });
       endMsg = "sigskip";
     }
 
     // eslint-disable-next-line no-fallthrough
     case Msg.STOP_RECORDING: {
       await chrome.storage.local.set({
-        [APP_RECORDING_STATE]: RecordingStatus.Idle,
+        [APP_RECORDING_STATE]: RecordingStatus.Stopping,
       });
       await stopRecording();
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
@@ -502,7 +504,7 @@ function showLoadingIcon(tabId: number) {
   return Promise.all([
     chrome.action.setBadgeText({
       tabId,
-      text: "....",
+      text: "🔘",
     }),
     chrome.action.setBadgeBackgroundColor({
       tabId,
@@ -554,6 +556,7 @@ async function onTabStateUpdate(tabId: number, info: chrome.tabs.TabChangeInfo) 
       [TABS_TO_TRACK]: tabsToLookFor
     });
     await injectContentScriptInCrossOriginFrames({ id: tabId, url: tab.url || "" });
+    await showLoadingIcon(tabId);
   }
 }
 
@@ -569,6 +572,7 @@ async function onTabActive(activeInfo: chrome.tabs.TabActiveInfo) {
     [TABS_TO_TRACK]: tabsToLookFor
   });
   await injectContentScriptInCrossOriginFrames({ id: activeInfo.tabId, url: tab.url || "" });
+  await showLoadingIcon(activeInfo.tabId);
 }
 
 async function startRecording(): Promise<void> {
@@ -584,7 +588,8 @@ async function startRecording(): Promise<void> {
       [TABS_TO_TRACK]: { [tab.id]: tab.url }
     }),
     await showLoadingIcon(tab.id),
-    await injectContentScriptInCrossOriginFrames({ id: tab.id!, url: tab.url! })
+    await injectContentScriptInCrossOriginFrames({ id: tab.id!, url: tab.url! }),
+    await chrome.tabs.sendMessage(tab.id!, { type: Msg.SHOW_COUNTDOWN_MODAL }),
   ]);
 }
 

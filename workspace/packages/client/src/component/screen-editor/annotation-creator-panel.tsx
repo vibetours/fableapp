@@ -40,6 +40,7 @@ import {
   DeleteFilled,
   QuestionCircleOutlined,
   ArrowLeftOutlined,
+  FormatPainterOutlined,
 } from '@ant-design/icons';
 import { Plan, Responsiveness, ScreenType, Status } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';

@@ -3,10 +3,10 @@ import { createRoot } from "react-dom/client";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import { Msg, MsgPayload } from "../msg";
 import "./index.less";
-import { IExtStoredState, IUser } from "../types";
-import { RootContext } from "./ctx";
+import { IExtStoredState, RecordingStatus } from "../types";
 import Loader from "./components/loader";
 import { version } from "../../package.json";
+import DisabledStopDelActionBtns from "./components/disabled-action-btns";
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -14,11 +14,17 @@ sentryInit("extension", version);
 
 type Props = {};
 
+const RecordBtnText = "Record a new demo";
+const StopBtnText = "Stop Recording";
+const DeleteBtnText = "Delete Recording";
+const StoppingBtnText = "Finishing...";
+const DeletingBtnText = "Deleting...";
+
 interface State {
   // This state is true when all the data is retrieved for the extension to work.
   // In this case logged in user, org etc
   inited: boolean;
-  isRecordingStarted: boolean;
+  recordingStatus: RecordingStatus,
 }
 
 class Root extends Component<Props, State> {
@@ -26,7 +32,7 @@ class Root extends Component<Props, State> {
     super(props);
     this.state = {
       inited: false,
-      isRecordingStarted: false
+      recordingStatus: RecordingStatus.Idle,
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
@@ -39,8 +45,13 @@ class Root extends Component<Props, State> {
         const tMsg = msg as MsgPayload<IExtStoredState>;
         this.setState({
           inited: true,
-          isRecordingStarted: tMsg.data.isRecordingStarted
+          recordingStatus: tMsg.data.recordingStatus
         });
+        break;
+
+      case Msg.RECORDING_CREATE_OR_DELETE_COMPLETED:
+        this.setState({ recordingStatus: RecordingStatus.Idle });
+        window.close();
         break;
 
       default:
@@ -49,7 +60,7 @@ class Root extends Component<Props, State> {
   };
 
   startRecording = () => {
-    this.setState({ isRecordingStarted: true });
+    this.setState({ recordingStatus: RecordingStatus.Recording });
     chrome.runtime.sendMessage({ type: Msg.START_RECORDING });
     setTimeout(() => {
       window.close();
@@ -57,12 +68,17 @@ class Root extends Component<Props, State> {
   };
 
   stopRecording = () => {
-    this.setState({ isRecordingStarted: false });
+    this.setState({ recordingStatus: RecordingStatus.Stopping });
     chrome.runtime.sendMessage({ type: Msg.STOP_RECORDING });
   };
 
+  deleteRecording = () => {
+    this.setState({ recordingStatus: RecordingStatus.Deleting });
+    chrome.runtime.sendMessage({ type: Msg.DELETE_RECORDING });
+  };
+
   resetState = () => {
-    this.setState({ isRecordingStarted: false });
+    this.setState({ recordingStatus: RecordingStatus.Idle });
     chrome.runtime.sendMessage({ type: Msg.RESET_STATE });
     setTimeout(() => {
       window.close();
@@ -97,35 +113,71 @@ class Root extends Component<Props, State> {
         )}
         {this.state.inited && (
           <div className="action-con">
-            <img alt="illustration" style={{ margin: "0.5rem 0" }} width={100} src="./illustration-extension.png" />
+            <button
+              type="button"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer"
+              }}
+              onClick={this.openLinkInNewTab("demos")}
+            >
+              <img
+                alt="illustration"
+                style={{ margin: "0.5rem 0" }}
+                width={100}
+                src="./illustration-extension.png"
+              />
+            </button>
             <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
-              <div className="as-p title">Fable helps you create an interactive demo in 5 minutes</div>
+              <div className="as-p title">Create stunning interactive demos in 5 minutes</div>
               <div className="as-p description">
-                <ol>
-                  <li>Click on “Start Recording”</li>
-                  <li>You can now click through your product to create a demo. Fable will record all the screens & capture all the interactions that you perform to create a guided demo.</li>
-                  <li>Do not worry if you’ve made a mistake while recording the demo. You can edit / delete any of these items later on from our demo editor.</li>
-                  <li>Once you are done with the recording, click on “Stop Recording” from the extension menu here or click on the “tick sign” from the control pill that you see on the screen.</li>
-                  <li>You’ll then be redirected to your dashboard from where you can edit your recorded interactive demo and publish it to go live.</li>
-                </ol>
+                <ul style={{
+                  listStyleType: "none"
+                }}
+                >
+                  <li>✅ For marketing teams to create interactive tours</li>
+                  <li>✅ For sales teams to create personalized demos</li>
+                  <li>✅ For support to create interactive guides</li>
+                </ul>
               </div>
             </div>
 
-            {this.state.isRecordingStarted
-              ? (
-                <button type="button" className="btn-primary" onClick={this.stopRecording}>
-                  Stop Recording
+            {
+              this.state.recordingStatus === RecordingStatus.Idle && (
+                <button type="button" className="btn-primary" onClick={this.startRecording}>
+                  {RecordBtnText}
                 </button>
               )
-              : (
-                <button type="button" className="btn-primary" onClick={this.startRecording}>
-                  Start Recording
-                </button>
-              )}
-
-            <button type="button" className="btn-secondary" onClick={this.openLinkInNewTab("demos")}>
-              See all demos
-            </button>
+            }
+            {
+              this.state.recordingStatus === RecordingStatus.Recording && (
+                <>
+                  <button type="button" className="btn-primary" onClick={this.stopRecording}>
+                    {StopBtnText}
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={this.deleteRecording}>
+                    {DeleteBtnText}
+                  </button>
+                </>
+              )
+            }
+            {
+              this.state.recordingStatus === RecordingStatus.Stopping && (
+                <DisabledStopDelActionBtns
+                  stopBtnText={StoppingBtnText}
+                  deleteBtnText={DeleteBtnText}
+                />
+              )
+            }
+            {
+              this.state.recordingStatus === RecordingStatus.Deleting && (
+                <DisabledStopDelActionBtns
+                  stopBtnText={StopBtnText}
+                  deleteBtnText={DeletingBtnText}
+                />
+              )
+            }
           </div>
         )}
         <div className="header-pills">

@@ -7,7 +7,7 @@ import {
 import { nanoid } from "nanoid";
 import { rgbToHex } from "@fable/common/dist/utils";
 import {
-  FABLE_CONTROL_PILL,
+  FABLE_DONT_SER_CLASSNAME,
   isCrossOrigin,
   isContentEmpty,
   isCaseInsensitiveEqual,
@@ -200,7 +200,7 @@ export function getSearializedDom(
       return { serNode: sNode, shouldSkip: true };
     }
 
-    if (sNode.attrs.class?.includes(FABLE_CONTROL_PILL)) {
+    if (sNode.attrs.class?.includes(FABLE_DONT_SER_CLASSNAME)) {
       return { serNode: sNode, shouldSkip: true };
     }
 
@@ -730,7 +730,7 @@ export function getScreenStyle(
 
     if (node.nodeType === Node.ELEMENT_NODE
       && node.nodeName.toLowerCase() in NODE_NAME
-      && !tNode.classList.contains("fable-dont-ser")) {
+      && !tNode.classList.contains(FABLE_DONT_SER_CLASSNAME)) {
       const colorMap = nodeColor[node.nodeName.toLowerCase() as NODE_NAME];
       const borderRadiusForNode = nodeBorderRadius[node.nodeName.toLowerCase() as NODE_NAME];
 

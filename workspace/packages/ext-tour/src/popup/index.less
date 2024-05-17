@@ -7,6 +7,7 @@ body {
   padding: 0px;
   font-family: 'IBM Plex Sans', sans-serif;
   font-size: 0.85rem;
+  background: #F5F5F5;
 }
 
 .header-pills {
@@ -69,17 +70,16 @@ body {
 }
 
 .title {
+  font-size: 1.35rem;
   font-weight: 600;
-  font-size: 1rem;
-  line-height: 1.25rem;
   color: #16023E;
 }
 
 .description {
-  background: rgba(236, 235, 244, 0.49);
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
   border-radius: 8px;
   padding: 0.5rem;
-  color: #16023E;
+  background: white;
   line-height: 1.375rem;
   font-size: 0.875rem;
   text-align: left;
@@ -110,11 +110,6 @@ body {
     padding: 2px 8px 2px 5px;
     border-radius: 3px;
   }
-
-  &::before {
-    content: url("/recording-icon.svg");
-    margin-right: 0.5rem;
-  }
 }
 
 .btn-secondary {
@@ -131,5 +126,10 @@ body {
 button {
   &:hover {
     cursor: pointer;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: no-drop;
   }
 }

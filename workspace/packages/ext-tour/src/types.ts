@@ -7,9 +7,16 @@ export interface IUser {
   };
 }
 
+export const enum RecordingStatus {
+  Idle = 1,
+  Recording,
+  Stopping,
+  Deleting,
+}
+
 export interface IExtStoredState {
   identity: IUser | null;
-  isRecordingStarted: boolean;
+  recordingStatus: RecordingStatus;
 }
 
 export interface ReqScreenshotData {
