@@ -1,5 +1,6 @@
 import {
   BarChartOutlined,
+  CalendarOutlined,
   CaretDownOutlined,
   CaretRightOutlined,
   EditOutlined,
@@ -66,6 +67,8 @@ interface IOwnProps {
   onOptsDataChange?: JourneyOrOptsDataChange;
   setShowPaymentModal?: (show: boolean) => void;
   subs?: P_RespSubscription | null;
+  showCalendar?: boolean;
+  minimalHeader?: boolean;
 }
 
 export type HeaderProps = IOwnProps;
@@ -211,7 +214,7 @@ function Header(props: IOwnProps): JSX.Element {
           }}
           >
             {
-              isWarningPresent && (
+              !props.minimalHeader && isWarningPresent && (
                 <Tags.MenuItem>
                   <AntButton
                     size="small"
@@ -387,19 +390,44 @@ function Header(props: IOwnProps): JSX.Element {
             </AntButton>
           </Tags.MenuItem>
           )}
-
-          {props.showOnboardingGuides && (
-            <Popover
-              open={showUserGuidePopover}
-              onOpenChange={visible => setShowUserGuidePopover(visible)}
-              trigger="click"
-              placement="topRight"
-              content={(
-                <div style={{ width: '25rem' }}>
-                  <div className="typ-h2" style={{ marginBottom: '1rem' }}>
-                    Learn how to use Fable
+          {!props.minimalHeader && (
+            <>
+              {props.showCalendar && (
+                <Tooltip title="Book a free consultation" overlayStyle={{ fontSize: '0.75rem' }}>
+                  <div
+                    style={{
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      marginRight: '0.75rem'
+                    }}
+                  >
+                    <a
+                      href="https://www.sharefable.com/get-a-demo"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: 'none', color: 'white' }}
+                    >
+                      <CalendarOutlined />
+                    </a>
                   </div>
-                  {props.userGuidesToShow?.length && props.tour && (
+                </Tooltip>
+
+              )}
+              {props.showOnboardingGuides && (
+              <Popover
+                open={showUserGuidePopover}
+                onOpenChange={visible => setShowUserGuidePopover(visible)}
+                trigger="click"
+                placement="topRight"
+                content={(
+                  <div style={{ width: '25rem' }}>
+                    <div className="typ-h2" style={{ marginBottom: '1rem' }}>
+                      Learn how to use Fable
+                    </div>
+                    {props.userGuidesToShow?.length && props.tour && (
                     <div onClick={() => {
                       setShowUserGuidePopover(false);
                       window.parent.postMessage({ type: UserGuideMsg.RESET_KEY }, '*');
@@ -407,48 +435,49 @@ function Header(props: IOwnProps): JSX.Element {
                     >
                       <UserGuideListInPopover tour={props.tour} userGuidesToShow={props.userGuidesToShow} />
                     </div>
-                  )}
-                  <Tags.HelpCenterLink
-                    className="typ-h2"
-                    href="https://help.sharefable.com"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <LinkOutlined /> Get help from our help center
-                  </Tags.HelpCenterLink>
-                  <Tags.HelpCenterLink
-                    className="typ-h2"
-                    href="https://www.sharefable.com/contact-support"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <LinkOutlined /> Contact us
-                  </Tags.HelpCenterLink>
-                </div>
+                    )}
+                    <GTags.HelpCenterLink
+                      className="typ-h2"
+                      href="https://help.sharefable.com"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <LinkOutlined /> Get help from our help center
+                    </GTags.HelpCenterLink>
+                    <GTags.HelpCenterLink
+                      className="typ-h2"
+                      href="https://www.sharefable.com/contact-support"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <LinkOutlined /> Contact us
+                    </GTags.HelpCenterLink>
+                  </div>
               )}
-            >
-              <div
-                style={{
-                  color: 'white',
-                  fontSize: '0.7rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  marginRight: '0.75rem'
-                }}
               >
-                <AntButton
-                  size="small"
-                  shape="circle"
-                  type="text"
-                  icon={<QuestionCircleOutlined style={{ color: 'white' }} />}
-                  onClick={() => setShowUserGuidePopover(prevState => !prevState)}
-                />
-              </div>
-            </Popover>
+                <div
+                  style={{
+                    color: 'white',
+                    fontSize: '0.7rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                    marginRight: '0.75rem'
+                  }}
+                >
+                  <AntButton
+                    size="small"
+                    shape="circle"
+                    type="text"
+                    icon={<QuestionCircleOutlined style={{ color: 'white' }} />}
+                    onClick={() => setShowUserGuidePopover(prevState => !prevState)}
+                  />
+                </div>
+              </Popover>
+              )}
+            </>
           )}
-
           {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
             <Tags.StyledPopover

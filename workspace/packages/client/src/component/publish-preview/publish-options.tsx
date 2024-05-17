@@ -23,6 +23,7 @@ interface Props {
   showShareModal: boolean;
   setShowShareModal: (showShareModal: boolean) => void;
   onSiteDataChange: (site: SiteData)=> void;
+  minimalHeader: boolean;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -53,41 +54,45 @@ export default function PublishOptions(props: Props): JSX.Element {
           >
             <img className="action-icon" src={ScreenshotMonitorIcon} alt="" />
           </Popover>
-          <Tooltip title="Embed" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-            <div onClick={() => {
-              amplitudeShareModalOpen('preview');
-              props.setShowShareModal(true);
-            }}
-            >
-              <img className="action-icon" src={ShareIcon} alt="" />
-            </div>
-          </Tooltip>
-          <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-            <Link to={props.tour ? `/a/demo/${props.tour.rid}` : ''}>
-              <AntButton
-                size="small"
-                shape="circle"
-                type="text"
-                icon={<BarChartOutlined
-                  style={{ color: 'white' }}
-                />}
-              />
-            </Link>
-          </Tooltip>
-          <div className="publish-btn">
-            <PublishButton
-              setIsPublishFailed={setIsPublishFailed}
-              setIsPublishing={setIsPublishing}
-              publishTour={props.publishTour}
-              tour={props.tour}
-              size="medium"
-              openShareModal={() => {
-                props.setShowShareModal(true);
-                amplitudeShareModalOpen('preview');
-              }}
-              isPublishing={isPublishing}
-            />
-          </div>
+          {!props.minimalHeader && (
+            <>
+              <Tooltip title="Embed" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
+                <div onClick={() => {
+                  amplitudeShareModalOpen('preview');
+                  props.setShowShareModal(true);
+                }}
+                >
+                  <img className="action-icon" src={ShareIcon} alt="" />
+                </div>
+              </Tooltip>
+              <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
+                <Link to={props.tour ? `/a/demo/${props.tour.rid}` : ''}>
+                  <AntButton
+                    size="small"
+                    shape="circle"
+                    type="text"
+                    icon={<BarChartOutlined
+                      style={{ color: 'white' }}
+                    />}
+                  />
+                </Link>
+              </Tooltip>
+              <div className="publish-btn">
+                <PublishButton
+                  setIsPublishFailed={setIsPublishFailed}
+                  setIsPublishing={setIsPublishing}
+                  publishTour={props.publishTour}
+                  tour={props.tour}
+                  size="medium"
+                  openShareModal={() => {
+                    props.setShowShareModal(true);
+                    amplitudeShareModalOpen('preview');
+                  }}
+                  isPublishing={isPublishing}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {props.tour && <ShareTourModal

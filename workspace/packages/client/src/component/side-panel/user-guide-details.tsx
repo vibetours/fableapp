@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LinkOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import {
   resetSkippedOrCompletedStatus,
@@ -8,6 +9,7 @@ import {
 import { getTourGuideCardColor, getUserGuideType } from './utils';
 import openBookIcons from '../../assets/icons/open-book.svg';
 import UserGuideCard from './user-guide-card';
+import * as GTags from '../../common-styled';
 
 interface Props {
   close: () => void;
@@ -82,7 +84,22 @@ export default function UserGuideDetails(props: Props): JSX.Element {
           ))}
         </div>
       </div>
-
+      <GTags.HelpCenterLink
+        className="typ-reg"
+        href="https://help.sharefable.com"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <LinkOutlined /> Get help from our help center
+      </GTags.HelpCenterLink>
+      <GTags.HelpCenterLink
+        className="typ-reg"
+        href="https://www.sharefable.com/contact-support"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <LinkOutlined /> Contact us
+      </GTags.HelpCenterLink>
       {/* TODO: add these later */}
       {/* <IntroFableGuides /> */}
 

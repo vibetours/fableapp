@@ -72,6 +72,7 @@ interface IOwnStateProps {
   previewIframeKey: number;
   showShareModal: boolean;
   viewScale: number;
+  minimalHeader: boolean;
 }
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
@@ -86,6 +87,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       previewIframeKey: 0,
       showShareModal: false,
       viewScale: 1,
+      minimalHeader: false
     };
   }
 
@@ -99,11 +101,24 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
 
     window.addEventListener('message', this.receiveMessage, false);
+
+    this.showMinimalHeaderIfReq();
+  }
+
+  showMinimalHeaderIfReq(): void {
+    const isMinimalHeader = this.props.searchParams.get('i');
+    if (isMinimalHeader === '1') {
+      this.setState({ minimalHeader: true });
+    }
   }
 
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     if (prevProps.searchParams.get('s') !== this.props.searchParams.get('s')) {
       this.setState({ previewIframeKey: Math.random(), showReplayOverlay: false });
+    }
+
+    if (prevProps.searchParams.get('i') !== this.props.searchParams.get('i')) {
+      this.showMinimalHeaderIfReq();
     }
 
     if (this.props.searchParams.get('s') !== '3') {
@@ -162,18 +177,11 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             navigateToWhenLogoIsClicked="/tours"
             titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
             rightElGroups={[(
-              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
+              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'black' }}>
                 <AntButton
                   size="small"
-                  className="sec-btn"
+                  className="edit-btn"
                   type="default"
-                  style={{
-                    padding: '0 0.8rem',
-                    height: '30px',
-                    borderRadius: '16px',
-                    backgroundColor: '#160245',
-                    color: 'white'
-                  }}
                 >
                   Edit demo
                 </AntButton>
@@ -190,9 +198,12 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               selectedDisplaySize={+displaySize}
               setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
               onSiteDataChange={this.onSiteDataChange}
+              minimalHeader={this.state.minimalHeader}
             />}
             tourOpts={null}
             onSiteDataChange={this.onSiteDataChange}
+            showCalendar
+            minimalHeader={this.state.minimalHeader}
           />
         </Tags.HeaderCon>
 

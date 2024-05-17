@@ -62,6 +62,21 @@ export const MenuItem = styled.div`
     color: white !important;
     transform: translate(2px, -2px);
   }
+
+  .edit-btn {
+    font-weight: 500;
+    border: 1px solid #212121 !important;
+    padding: 0px 0.8rem;
+    height: 30px;
+    border-radius: 16px;
+    background-color: #7ceaf3;
+    color: black;
+  }
+
+  .edit-btn:hover {
+    transform: translate(2px, -2px);
+    color: black !important;
+  }
 `;
 
 export const CodeCon = styled.div`
@@ -133,16 +148,5 @@ export const WarningIcon = styled(WarningFilled)`
 
   :hover {
     color: #ff9800;
-  }
-`;
-
-export const HelpCenterLink = styled.a`
-  color: #424242;
-  text-decoration: dotted underline;
-  display: block;
-  margin-bottom: 1rem;
-
-  &:hover {
-    text-decoration: underline;
   }
 `;

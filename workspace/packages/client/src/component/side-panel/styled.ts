@@ -27,7 +27,7 @@ export const ConNav = styled.div`
 `;
 
 export const ConNavBtn = styled(Link)`
-  padding: 0.6rem 2rem;
+  padding: 0.6rem 1rem;
   display: flex;
   align-items: center;
   cursor: pointer;

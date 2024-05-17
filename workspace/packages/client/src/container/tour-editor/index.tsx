@@ -701,7 +701,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isJourneyCTASet: this.state.isJourneyCTASet,
                 lastAnnHasCTA: this.state.lastAnnHasCTA,
                 onSiteDataChange: this.onSiteDataChange,
-                onOptsDataChange: this.onOptsOrJourneyDataChange
+                onOptsDataChange: this.onOptsOrJourneyDataChange,
+                showCalendar: true
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}

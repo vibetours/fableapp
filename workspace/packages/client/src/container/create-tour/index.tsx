@@ -341,7 +341,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
     }
 
-    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}`);
+    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}?i=1`);
   };
 
   saveInExistingTour = async (value: string | null): Promise<void> => {

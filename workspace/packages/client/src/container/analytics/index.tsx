@@ -869,15 +869,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
                 <Button
                   size="small"
-                  className="sec-btn"
+                  className="edit-btn"
                   type="default"
-                  style={{
-                    padding: '0 0.8rem',
-                    height: '30px',
-                    borderRadius: '16px',
-                    backgroundColor: '#160245',
-                    color: 'white'
-                  }}
                 >
                   Edit demo
                 </Button>
@@ -891,6 +884,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             }
             leftElGroups={[]}
             principal={this.props.principal}
+            showCalendar
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

@@ -1,4 +1,4 @@
-import { ApiOutlined, CreditCardOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
+import { ApiOutlined, CalendarOutlined, CreditCardOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
@@ -73,7 +73,13 @@ export default function SidePanel(props: Props): JSX.Element {
           <SettingOutlined />
           <p>Settings</p>
         </Tags.ConNavBtn>
-
+        <Tags.ConNavBtn
+          to="https://www.sharefable.com/get-a-demo"
+          target="_blank"
+        >
+          <CalendarOutlined />
+          <p>Free demo consultation</p>
+        </Tags.ConNavBtn>
         <div style={{ margin: 'auto 8px 0' }}>
           {props.subs && !isBuisnessPlan && !isTrialAndEndGreaterThanOneYear() && <PlanBadge
             subs={props.subs}

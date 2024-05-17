@@ -115,9 +115,9 @@ export const BodyCon = styled.div`
 
 export const SidePanelCon = styled.aside`
   height: 100%;
-  min-width: 260px;
-  max-width: 260px;
-  width: 260px;
+  min-width: 280px;
+  max-width: 280px;
+  width: 280px;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
 `;
 
@@ -434,5 +434,16 @@ export const BottomPanel = styled.div`
 
   &::-webkit-scrollbar-thumb:hover {
     background-color: #F1F1F1;
+  }
+`;
+
+export const HelpCenterLink = styled.a`
+  color: #424242;
+  text-decoration: dotted underline;
+  display: block;
+  margin-bottom: 1rem;
+
+  &:hover {
+    text-decoration: underline;
   }
 `;
