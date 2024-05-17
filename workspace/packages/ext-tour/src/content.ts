@@ -218,9 +218,12 @@ function init() {
       }
 
       case Msg.SHOW_COUNTDOWN_MODAL: {
-        const countDownModal = new CountDownModal(() => {
-          const extensionInfoModal = new ExtensionInfoModal();
-        });
+        const isRootFrame = window === window.parent;
+        if (isRootFrame) {
+          const countDownModal = new CountDownModal(() => {
+            const extensionInfoModal = new ExtensionInfoModal();
+          });
+        }
         break;
       }
 

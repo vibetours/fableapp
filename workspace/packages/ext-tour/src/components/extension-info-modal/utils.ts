@@ -16,6 +16,7 @@ export const EXT_INFO_MODAL_INNERHTML = `
     right: 0;
     bottom: 0;
     z-index: calc(Infinity);
+    background: rgb(33 33 33 / 60%);
   }
   .info-con {
     font-family: sans-serif;
@@ -98,7 +99,7 @@ export const EXT_INFO_MODAL_INNERHTML = `
       <p>
         This message will be auto dismissed in 5 seconds.
         <br/>
-        Click here to dismiss the message now.
+        Click anywhere to dismiss the message.
       </p>
     </div>
   </div>
