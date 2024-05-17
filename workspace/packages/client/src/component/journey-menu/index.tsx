@@ -164,18 +164,20 @@ function JourneyMenu(props: Props): JSX.Element {
   const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number, maxWidth: number} | null>(null);
   const [processedJourney, setProcessedJourney] = useState<null | JourneyWithLastMandatory>(null);
   const paddingFactor = 20;
-  const [scaleFactor, setScaleFactor] = useState<number>(1);
+  const [scaleFactor, setScaleFactor] = useState<number | null>(null);
 
   const [showDropdown, setShowDropdown] = useState(false);
   useEffect(() => {
-    if (props.isJourneyMenuOpen) {
-      setTimeout(() => {
-        setShowDropdown(true);
-      }, 500);
-    } else {
-      setShowDropdown(false);
+    if (scaleFactor) {
+      if (props.isJourneyMenuOpen) {
+        setTimeout(() => {
+          setShowDropdown(true);
+        }, 500);
+      } else {
+        setShowDropdown(false);
+      }
     }
-  }, [props.isJourneyMenuOpen]);
+  }, [props.isJourneyMenuOpen, scaleFactor]);
 
   useEffect(() => {
     const flows = props.journey.flows;
@@ -254,7 +256,7 @@ function JourneyMenu(props: Props): JSX.Element {
               color={primaryColor}
               applywidth="true"
               icon={<CloseOutlined />}
-              scalefactor={scaleFactor}
+              scalefactor={scaleFactor || 1}
               positioning={props.journey.positioning}
             />
           ) : (
@@ -262,7 +264,7 @@ function JourneyMenu(props: Props): JSX.Element {
               color={primaryColor}
               type="primary"
               applywidth="false"
-              scalefactor={scaleFactor}
+              scalefactor={scaleFactor || 1}
               positioning={props.journey.positioning}
             >
               <BarsOutlined style={{
