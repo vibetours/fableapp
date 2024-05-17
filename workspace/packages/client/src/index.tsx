@@ -149,35 +149,67 @@ const router = createBrowserRouter([
   },
   {
     path: 'embed/tour/:tourId',
-    element: <Player staging={staging} title="Fable" />
-  },
-  {
-    path: 'embed/tour/:tourId/:screenRid/:annotationId',
-    element: <Player staging={staging} title="Fable" />
+    element: <Player staging={staging} title="Fable" />,
+    children: [
+      {
+        path: ':screenRid',
+        element: <Outlet />,
+        children: [
+          {
+            path: ':annotationId',
+            element: <Outlet />,
+          }
+        ]
+      },
+    ]
   },
   {
     path: 'embed/demo/:tourId',
-    element: <Player staging={staging} title="Fable" />
-  },
-  {
-    path: 'embed/demo/:tourId/:screenRid/:annotationId',
-    element: <Player staging={staging} title="Fable" />
+    element: <Player staging={staging} title="Fable" />,
+    children: [
+      {
+        path: ':screenRid',
+        element: <Outlet />,
+        children: [
+          {
+            path: ':annotationId',
+            element: <Outlet />,
+          }
+        ]
+      },
+    ]
   },
   {
     path: 'p/tour/:tourId',
-    element: <RedirectFromP />
-  },
-  {
-    path: 'p/tour/:tourId/:screenRid/:annotationId',
-    element: <RedirectFromP />
+    element: <RedirectFromP />,
+    children: [
+      {
+        path: ':screenRid',
+        element: <Outlet />,
+        children: [
+          {
+            path: ':annotationId',
+            element: <Outlet />,
+          }
+        ]
+      },
+    ]
   },
   {
     path: 'p/demo/:tourId',
-    element: <RedirectFromP />
-  },
-  {
-    path: 'p/demo/:tourId/:screenRid/:annotationId',
-    element: <RedirectFromP />
+    element: <RedirectFromP />,
+    children: [
+      {
+        path: ':screenRid',
+        element: <Outlet />,
+        children: [
+          {
+            path: ':annotationId',
+            element: <Outlet />,
+          }
+        ]
+      },
+    ]
   },
   {
     path: '/live/demo/:tourId',
