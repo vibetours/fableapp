@@ -222,18 +222,23 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                 icon={<EditOutlined />}
                 iconPlacement="left"
                 onClick={() => this.props.navigate(`/demo/${this.props.tour?.rid}`)}
+                style={{ background: '#7ceaf3' }}
               >
                 Edit
               </Button>
 
-              <Button
-                intent="primary"
-                icon={<ShareAltOutlined />}
-                iconPlacement="left"
-                onClick={() => this.setState({ showShareModal: true })}
-              >
-                Share
-              </Button>
+              {
+                !this.state.minimalHeader && (
+                <Button
+                  intent="primary"
+                  icon={<ShareAltOutlined />}
+                  iconPlacement="left"
+                  onClick={() => this.setState({ showShareModal: true })}
+                >
+                  Share
+                </Button>
+                )
+              }
             </div>
           )}
 
