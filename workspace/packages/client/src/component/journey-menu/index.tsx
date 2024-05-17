@@ -199,7 +199,7 @@ function JourneyMenu(props: Props): JSX.Element {
       return;
     }
     const iframeRect = props.screenSizeData[props.currScreenId].iframePos;
-    const sftr = props.screenSizeData[props.currScreenId].scaleFactor;
+    const sftr = Math.min(props.screenSizeData[props.currScreenId].scaleFactor * 1.25, 1);
 
     if (iframeRect) {
       const menuButtonHeight = 40;

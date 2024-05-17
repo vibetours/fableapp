@@ -72,7 +72,7 @@ export const FlowHeader1 = styled.div`
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  word-break: break-all;
+  word-break: break-word;
   line-height: 1rem;
   margin-bottom: 4px;
 `;
