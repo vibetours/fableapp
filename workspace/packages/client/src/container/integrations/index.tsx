@@ -7,6 +7,7 @@ import {
   PlatformIntegrationType,
   RespAccountToken,
   RespLinkedApps,
+  RespOrg,
   RespPlatformIntegration,
   RespTenantIntegration,
   RespUser
@@ -35,11 +36,13 @@ const mapDispatchToProps = (dispatch: any) => ({});
 interface IAppStateProps {
   subs: P_RespSubscription | null;
   principal: RespUser | null;
+  org: RespOrg | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   principal: state.default.principal,
+  org: state.default.org
 });
 
 interface IOwnProps {
@@ -261,7 +264,6 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   render(): JSX.Element {
-    // this.state.listOfLinkedApps.forEach(app => console.log(app.type));
     return (
       <GTags.ColCon>
         {this.props.loadingState === 'loading' && <TopLoader
@@ -271,6 +273,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
         />}
         <div style={{ height: '48px' }}>
           <Header
+            org={this.props.org}
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}

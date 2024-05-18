@@ -10,9 +10,10 @@ import {
   QuestionCircleOutlined,
   SaveOutlined,
   ShareAltOutlined,
+  SwapOutlined,
   WarningFilled
 } from '@ant-design/icons';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
@@ -44,6 +45,7 @@ interface IOwnProps {
   leftElGroups?: ReactElement[];
   rightElGroups?: ReactElement[];
   principal?: RespUser | null;
+  org: RespOrg | null;
   titleText?: string;
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
@@ -493,7 +495,22 @@ function Header(props: IOwnProps): JSX.Element {
                     {`${props.principal.firstName} ${props.principal.lastName}`}
                     <div style={{ fontSize: '0.65rem' }}>{props.principal.email}</div>
                   </GTags.PopoverMenuItem>
-                  <GTags.PopoverMenuItemDivider />
+                  {props.org && (
+                    <>
+                      <GTags.PopoverMenuItemDivider />
+                      <GTags.PopoverMenuItem nonit>
+                        <div style={{ fontSize: '0.65rem' }}>Active Organization</div>
+                        <b>{props.org.displayName}</b>
+                      </GTags.PopoverMenuItem>
+                      <GTags.PopoverMenuItemDivider />
+                      <GTags.PopoverMenuItem onClick={() => {
+                        window.location.href = '/select-org';
+                      }}
+                      >
+                        <SwapOutlined />&nbsp;&nbsp;Switch organization
+                      </GTags.PopoverMenuItem>
+                    </>
+                  )}
                   <GTags.PopoverMenuItem onClick={() => {
                     window.location.href = '/logout';
                   }}

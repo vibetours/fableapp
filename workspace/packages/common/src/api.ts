@@ -1,5 +1,6 @@
 import { fsec } from './fsec';
 import { LogoutType } from './constants';
+import { UnauthorizedReason } from './api-contract';
 
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
 const API_VERSION = '/v1';
@@ -34,7 +35,9 @@ export default async function api<T, M>(
     // TODO error handling in case the user is not logged in or there is a token invalidation exception
     try {
       const token = await fsec.getAccessToken();
-      (headers as any).Authorization = `Bearer ${token}`;
+      const orgId = localStorage.getItem('fable/oid');
+      const prefix = orgId ? `${orgId}:` : '';
+      (headers as any).Authorization = `Bearer ${prefix}${token}`;
     } catch (e) {
       // TODO
       console.log('>> login again. msg', (e as Error).message);
@@ -67,7 +70,16 @@ export default async function api<T, M>(
 
   if ((resp.status === 401 || resp.status === 403) && path.startsWith(apiPath)) {
     // take user to logout page
-    window.location.replace(`/logout?t=${LogoutType.APINotAutorized}`);
+    let reason: UnauthorizedReason | undefined;
+    try {
+      const data = await resp.json();
+      const msg = JSON.parse(data.message);
+      reason = msg.r;
+    } catch (e) {
+      /* noop */
+    }
+    console.log('>> reason', reason);
+    window.location.replace(`/logout?t=${LogoutType.APINotAutorized}&r=${reason || ''}`);
   }
 
   if (resp.status >= 500) {

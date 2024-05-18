@@ -30,7 +30,7 @@ import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
 import SkeletonCard from '../../component/create-tour/skeleton-card';
 import Loader from '../../component/loader';
-import RootLayout from '../../component/onboarding/root-layout';
+import RootLayout from '../../component/ext-onboarding/root-layout';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';

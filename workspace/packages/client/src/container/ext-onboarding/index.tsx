@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import { Outlet } from 'react-router-dom';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import RootLayout from '../../component/onboarding/root-layout';
+import RootLayout from '../../component/ext-onboarding/root-layout';
 
-export const ONBOARDING_PAGE_ROUTES = ['/onboarding/extension-installed', '/onboarding/create-interactive-demos'];
+export const ONBOARDING_PAGE_ROUTES = ['/onboarding/extension-installed'];
 
 interface IDispatchProps {}
 

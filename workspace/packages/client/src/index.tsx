@@ -14,7 +14,7 @@ import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import Player from './container/player';
 import PreviewForCta from './container/preview-for-cta';
 import RedirectFromP from './container/redirect-from-p';
-import { IFRAME_BASE_URL, LIVE_BASE_URL } from './constants';
+import { USER_ONBOARDING_ROUTE } from './container/user-onboarding';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -102,30 +102,24 @@ const router = createBrowserRouter([
     path: '/',
     element: <Navigate to="/demos" />
   },
+
   { path: '/onboarding',
     async lazy() {
-      const Onboarding = await import('./container/onboarding').then(module => module.default);
+      const Onboarding = await import('./container/ext-onboarding').then(module => module.default);
       return { Component: Onboarding };
     },
     children: [
       {
         path: 'extension-installed',
         async lazy() {
-          const PinExt = await import('./component/onboarding/pages/pin-ext').then(module => module.default);
+          const PinExt = await import('./component/ext-onboarding/pages/pin-ext').then(module => module.default);
           return { Component: () => <PinExt title="Onboarding - Extension installed | Fable" /> };
-        }
-      },
-      {
-        path: 'create-interactive-demos',
-        async lazy() {
-          const ToursPage = await import('./component/onboarding/pages/tours').then(module => module.default);
-          return { Component: () => <ToursPage title="Onboarding - Create stunning interactive demos | Fable" /> };
         }
       },
       {
         path: 'go-to-app',
         async lazy() {
-          const ProductTours = await import('./component/onboarding/pages/product-tours')
+          const ProductTours = await import('./component/ext-onboarding/pages/product-tours')
             .then(module => module.default);
           return { Component: () => <ProductTours title="Onboarding - Go to the app | Fable" /> };
         }
@@ -244,6 +238,13 @@ const router = createBrowserRouter([
     },
     children: [
       {
+        path: 'join/org',
+        async lazy() {
+          const UserInvite = await import('./container/invite-user').then(module => module.default);
+          return { Component: () => <UserInvite /> };
+        },
+      },
+      {
         path: 'integrations',
         async lazy() {
           const Integrations = await import('./container/integrations').then(module => module.default);
@@ -272,25 +273,11 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: 'user-details',
+        path: USER_ONBOARDING_ROUTE,
         async lazy() {
-          const IAMDetails = await import('./container/org/iam-details').then(module => module.default);
-          return { Component: () => <IAMDetails title="User details | Fable" /> };
+          const UserOnboarding = await import('./container/user-onboarding').then(module => module.default);
+          return { Component: UserOnboarding };
         },
-      },
-      {
-        path: 'organization-details',
-        async lazy() {
-          const NewOrgCreation = await import('./container/org/new-org-creation').then(module => module.default);
-          return { Component: () => <NewOrgCreation title="Organization details | Fable" /> };
-        },
-      },
-      {
-        path: 'organization-join',
-        async lazy() {
-          const DefaultOrgAssignment = await import('./container/org/default-org-assignment').then(module => module.default);
-          return { Component: () => <DefaultOrgAssignment title="Organization available | Fable" /> };
-        }
       },
       {
         path: 'demos',
@@ -385,6 +372,13 @@ const router = createBrowserRouter([
         async lazy() {
           const Logout = await import('./component/auth/logout').then(module => module.default);
           return { Component: () => <Logout title="Logout | Fable" /> };
+        },
+      },
+      {
+        path: 'select-org',
+        async lazy() {
+          const SelectOrg = await import('./component/auth/select-org').then(module => module.default);
+          return { Component: () => <SelectOrg /> };
         },
       },
       {

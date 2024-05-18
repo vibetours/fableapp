@@ -10,3 +10,4 @@ export const IFRAME_BASE_URL = 'embed';
 export const LIVE_BASE_URL = 'live';
 export const PREVIEW_BASE_URL = 'preview';
 export const HEADER_CTA = 'header_cta';
+export const FABLE_LOCAL_STORAGE_ORG_ID_KEY = 'fable/oid';

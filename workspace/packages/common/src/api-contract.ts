@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-02 08:55:57.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-16 14:14:20.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -30,6 +30,11 @@ export interface ImgResizingJobInfo extends JobProcessingInfo {
     resolution: string;
 }
 
+export interface InviteCode {
+    invitedEmail: string;
+    orgId: number;
+}
+
 export interface JobProcessingInfo extends MapSerializable {
     __id: number;
     duration: string;
@@ -46,6 +51,11 @@ export interface OnboardingTourForPrev {
     rid: string;
     name: string;
     description: string;
+}
+
+export interface OrgInfo {
+    useCases: string[];
+    othersText: string;
 }
 
 export interface PaymentTerms {
@@ -131,6 +141,10 @@ export interface ReqAddOrUpdateLeadInfo {
     key: LeadInfoKey;
 }
 
+export interface ReqAssignOrgToUser {
+    orgId: number;
+}
+
 export interface ReqCobaltEvent {
     event: string;
     payload: { [index: string]: string };
@@ -190,6 +204,12 @@ export interface ReqLeadActivityDataPost {
 export interface ReqMediaProcessing {
     path: string;
     assn: ReqEntityAssetAssn;
+}
+
+export interface ReqNewInvite {
+    invitedEmail: string;
+    expiryTimeUnit?: ExpiryTimeUnit;
+    expireAfter?: number;
 }
 
 export interface ReqNewLinkedAccount {
@@ -265,6 +285,10 @@ export interface ReqTourRid {
     tourRid: string;
 }
 
+export interface ReqUpdateOrg {
+    orgInfo: OrgInfo;
+}
+
 export interface ReqUpdateScreenProperty {
     rid: string;
     propName: string;
@@ -335,10 +359,17 @@ export interface RespMediaProcessingInfo extends ResponseBase {
     failureReason: string;
 }
 
+export interface RespNewInvite {
+    code: string;
+}
+
 export interface RespOrg extends ResponseBase {
+    id: number;
     rid: string;
     displayName: string;
     thumbnail: string;
+    info: OrgInfo;
+    createdBy: RespUser;
 }
 
 export interface RespPlatformIntegration extends ResponseBase {
@@ -450,6 +481,7 @@ export interface RespUser extends ResponseBase {
     personalEmail: boolean;
     orgAssociation: UserOrgAssociation;
     active: boolean;
+    orgs: RespOrg[];
 }
 
 export interface AuthInputMap {
@@ -499,6 +531,9 @@ export interface Org extends EntityBaseWithReadableId {
     displayName: string;
     thumbnail: string;
     domain: string;
+    createdBy: User;
+    info: OrgInfo;
+    users: User[];
 }
 
 export interface PlatformIntegration extends EntityBase {
@@ -534,6 +569,18 @@ export interface Lead360 extends EntityBase {
     ctaClickRate: number;
 }
 
+export interface User extends EntityBase {
+    authId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    avatar: string;
+    domainBlacklisted: boolean;
+    belongsToOrg: number;
+    active: boolean;
+    orgs: Org[];
+}
+
 export interface EntityBaseWithReadableId extends EntityBase {
     rid: string;
 }
@@ -542,6 +589,10 @@ export interface EntityBase {
     createdAt: Date;
     updatedAt: Date;
     id: number;
+}
+
+export const enum UnauthorizedReason {
+    OrgSuggestedButInvalidAssociation = "OrgSuggestedButInvalidAssociation",
 }
 
 export const enum EntityType {
@@ -629,6 +680,11 @@ export const enum LeadInfoKey {
 export const enum PlatformIntegrationType {
     FableWebhook = "FableWebhook",
     Zapier = "Zapier",
+}
+
+export const enum ExpiryTimeUnit {
+    d = "d",
+    h = "h",
 }
 
 export const enum NfEvents {

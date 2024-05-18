@@ -2,21 +2,20 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Navigate, Outlet } from 'react-router-dom';
 import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
-import { RespUser, Status, UserOrgAssociation } from '@fable/common/dist/api-contract';
+import { RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
 import { resetProductAnalytics, setProductAnalyticsUserId } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { isProdEnv } from '@fable/common/dist/utils';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-// import Auth0Config from '../../component/auth/auth0-config.json';
 import { iam } from '../../action/creator';
 import { setEventCommonState } from '../../utils';
 import { P_RespSubscription } from '../../entity-processor';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
+import { OnboardingSteps, USER_ONBOARDING_ROUTE } from '../user-onboarding';
+import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../../constants';
 
-const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 export const ENV = process.env.REACT_APP_ENVIRONMENT;
 
 function addSupportBot(name: string, email: string, createdAt: Date): void {
@@ -45,7 +44,7 @@ function addSupportBot(name: string, email: string, createdAt: Date): void {
 }
 
 interface IDispatchProps {
-  iam: () => void;
+  iam: () => Promise<void>;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -55,19 +54,17 @@ const mapDispatchToProps = (dispatch: any) => ({
 interface IAppStateProps {
   isPrincipalLoaded: boolean;
   principal: RespUser | null;
-  subs: P_RespSubscription | null,
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   isPrincipalLoaded: state.default.principalLoadingStatus === LoadingStatus.Done,
   principal: state.default.principal,
-  subs: state.default.subs,
 });
 
 interface IOwnProps { }
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithAuth0Props & WithRouterProps;
 
-interface IOwnStateProps { }
+interface IOwnStateProps {}
 
 class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
   constructor(props: IProps) {
@@ -82,6 +79,8 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       });
       return accessToken;
     });
+
+    this.state = {};
   }
 
   componentDidMount(): void {
@@ -101,7 +100,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
 
       try {
         setProductAnalyticsUserId(this.props.principal.email);
-        /* if (ENV === 'prod') */ addSupportBot(this.props.principal.firstName, this.props.principal.email, this.props.principal.createdAt);
+        if (ENV === 'prod') addSupportBot(this.props.principal.firstName, this.props.principal.email, this.props.principal.createdAt);
         if (!this.props.auth0.isAuthenticated) {
           resetProductAnalytics();
         }
@@ -111,60 +110,38 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
-  shouldNavigateToBillingRoute = (): boolean => {
-    // if (!isProdEnv()) return false;
-    // if (this.props.location.pathname.includes('billing')) return false;
-    // if (!this.props.subs) return false;
-
-    // const currBillingStatus = this.props.subs.status;
-    // if (currBillingStatus === Status.CANCELLED || currBillingStatus === Status.PAUSED) {
-    //   return true;
-    // }
-    this.props.subs;
-    const res = false;
-
-    return res;
+  getQueryParmsStrWithQuestionMark = () => {
+    const queryParamStr = this.props.searchParams.toString();
+    return queryParamStr ? `?${queryParamStr}` : '';
   };
 
   render(): JSX.Element {
+    const inviteCode = this.props.searchParams.get('ic');
+
     if (this.props.auth0.isLoading) {
       return <FullPageTopLoader showLogo />;
     }
     if (!this.props.auth0.isAuthenticated) {
-      window.location.replace('/login');
-      return <div />;
+      return <Navigate to={`/login${this.getQueryParmsStrWithQuestionMark()}`} />;
     }
     if (!this.props.isPrincipalLoaded) {
-      return <div />;
+      return <FullPageTopLoader showLogo />;
     }
     if (!this.props.principal) {
-      window.location.replace('/login');
-      return <div />;
+      return <Navigate to={`/login${this.getQueryParmsStrWithQuestionMark()}`} />;
     }
 
+    const localStorageOrgId = localStorage.getItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY);
     if (!this.props.principal.firstName) {
       // If user details are not yet completed
-      if (!document.location.pathname.startsWith('/user-details')) {
-        window.location.replace('/user-details');
-        return <FullPageTopLoader showLogo />;
+      if (!document.location.pathname.startsWith(`/${USER_ONBOARDING_ROUTE}`)) {
+        return <Navigate to={`/${USER_ONBOARDING_ROUTE}${this.getQueryParmsStrWithQuestionMark()}#${OnboardingSteps.USER_DETAILS}`} />;
       }
-    } else if (this.props.principal.orgAssociation !== UserOrgAssociation.Explicit) {
-      try {
-        // @ts-ignore
-        window.gr('track', 'conversion', { email: this.props.principal.email });
-      } catch (e) {
-        raiseDeferredError(new Error('User not defined for Reditus logging'));
+    } else if (!localStorageOrgId || inviteCode) {
+      // User has entered details, but hasnt selected org
+      if (!document.location.pathname.startsWith(`/${USER_ONBOARDING_ROUTE}`)) {
+        return <Navigate to={`/${USER_ONBOARDING_ROUTE}${this.getQueryParmsStrWithQuestionMark()}#${OnboardingSteps.ORGANIZATION_DETAILS}`} />;
       }
-      // If org creation is not yet done then create org first
-      if (!document.location.pathname.startsWith('/organization-')) {
-        window.location.replace(
-          this.props.principal.orgAssociation === UserOrgAssociation.Implicit ? '/organization-join' : '/organization-details'
-        );
-      }
-    }
-
-    if (this.shouldNavigateToBillingRoute()) {
-      return <Navigate to="/billing" />;
     }
 
     return (

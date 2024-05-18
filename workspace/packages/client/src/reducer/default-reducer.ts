@@ -27,7 +27,7 @@ import {
   TTour,
   TTourWithData,
   TIAm,
-  TGetOrg,
+  TOrg,
   TOpsInProgress,
   TAddScreenEntities,
   AnnAdd,
@@ -43,11 +43,13 @@ import {
   TShowPaymentModal,
   TTourPublished,
   TElpath,
+  TGetAllUserOrgs,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
 
 export const initialState: {
+  allUserOrgs: RespOrg[] | null;
   inited: boolean;
   commonConfig: RespCommonConfig | null;
   rootScreens: Array<P_RespScreen>;
@@ -94,6 +96,7 @@ export const initialState: {
   isPaymentModalShown: boolean;
   elpathKey: ElPathKey;
 } = {
+  allUserOrgs: null,
   inited: false,
   commonConfig: null,
   rootScreens: [],
@@ -192,6 +195,13 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
+    case ActionType.ALL_USER_ORGS_LOADED: {
+      const tAction = action as TGetAllUserOrgs;
+      const newState = { ...state };
+      newState.allUserOrgs = tAction.orgs;
+      return newState;
+    }
+
     case ActionType.ORG_LOADING: {
       const newState = { ...state };
       newState.orgsLoadingStatus = LoadingStatus.InProgress;
@@ -199,7 +209,7 @@ export default function projectReducer(state = initialState, action: Action) {
     }
 
     case ActionType.ORG: {
-      const tAction = action as TGetOrg;
+      const tAction = action as TOrg;
       const newState = { ...state };
       newState.org = tAction.org;
       newState.orgsLoadingStatus = LoadingStatus.Done;

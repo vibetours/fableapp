@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Interval, Plan, RespUser } from '@fable/common/dist/api-contract';
+import { Interval, Plan, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
@@ -45,11 +45,13 @@ const mapDispatchToProps = (dispatch: any) => ({
 
 interface IAppStateProps {
   subs: P_RespSubscription | null;
+  org: RespOrg | null;
   principal: RespUser | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
+  org: state.default.org,
   principal: state.default.principal,
 });
 
@@ -107,6 +109,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
+            org={this.props.org}
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { LoadingStatus } from '@fable/common/dist/types';
 import { PlusOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
 import { Button as AntBtn, Tooltip } from 'antd';
@@ -18,6 +18,7 @@ import UrlCodeShare from '../../component/publish-preview/url-code-share';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
+import InviteUserForm from '../../component/user-management/invite-user-form';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -47,9 +48,11 @@ interface IAppStateProps {
   principal: RespUser | null;
   usersLoaded: boolean;
   users: RespUser[];
+  org: RespOrg | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
+  org: state.default.org,
   subs: state.default.subs,
   principal: state.default.principal,
   usersLoaded: state.default.allUsersLoadingStatus === LoadingStatus.Done,
@@ -95,6 +98,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}
+            org={this.props.org}
             leftElGroups={[]}
           />
         </div>
@@ -168,6 +172,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
           </GTags.MainCon>
         </GTags.RowCon>
         <GTags.BorderedModal
+          destroyOnClose
           style={{ height: '10px' }}
           open={this.state.showModal}
           onOk={() => { this.setState({ showModal: false }); }}
@@ -175,12 +180,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
           footer={null}
         >
           <div className="modal-content-cont">
-            <div className="modal-title">Invite a user</div>
-            Please copy the following link and share it with your team member to join this organization in Fable.
-
-            <div style={{ margin: '2rem 0 1rem 0' }}>
-              <UrlCodeShare url={`${baseURL}/invite/${getRandomId()}`} />
-            </div>
+            <InviteUserForm />
           </div>
         </GTags.BorderedModal>
       </GTags.ColCon>

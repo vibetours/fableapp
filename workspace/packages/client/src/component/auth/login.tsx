@@ -8,6 +8,10 @@ interface Props {
   title: string,
 }
 
+interface AppState {
+  ic?: string;
+}
+
 export const enum LoginErrorType {
   UserUsedPersonalEmail = '1',
 }
@@ -32,6 +36,11 @@ export default function LogIn(props: Props): JSX.Element {
       isSignup = true;
     }
 
+    const appState: AppState = {};
+
+    const inviteCode = searchParams.get('ic');
+    if (inviteCode) appState.ic = inviteCode;
+
     const errorType = searchParams.get('t');
     if (!errorType) {
       setHeading('');
@@ -40,7 +49,8 @@ export default function LogIn(props: Props): JSX.Element {
       loginWithRedirect({
         authorizationParams: {
           screen_hint: isSignup ? 'signup' : 'login'
-        }
+        },
+        appState,
       });
     }
   }, [searchParams]);

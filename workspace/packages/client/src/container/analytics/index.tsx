@@ -2,6 +2,7 @@ import { ClockCircleOutlined, DownOutlined, LoadingOutlined, QuestionCircleOutli
 import {
   ButtonClicks,
   RespConversion,
+  RespOrg,
   RespTourAnnViews,
   RespTourAnnWithPercentile,
   RespTourLeads,
@@ -84,6 +85,7 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   // orderedAnn: IAnnotationConfigWithLocation[];
+  org: RespOrg | null;
   allAnnotationsForTour: AnnotationPerScreen[];
   journey: JourneyData | null;
   isTourLoaded: boolean;
@@ -233,6 +235,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allAnnotationsForTour,
     opts: state.default.remoteTourOpts,
     tour: state.default.currentTour,
+    org: state.default.org,
     principal: state.default.principal,
     journey: state.default.journey,
     isTourLoaded: state.default.tourLoaded,
@@ -865,6 +868,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             showOnboardingGuides
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"
+            org={this.props.org}
             rightElGroups={[(
               <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
                 <Button

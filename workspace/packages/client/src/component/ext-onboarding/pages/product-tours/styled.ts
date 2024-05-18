@@ -10,23 +10,6 @@ export const CardCon = styled.div`
   align-items: center;
 `;
 
-export const Btn = styled.button`
-  border-radius: 24px;
-  background-color: #E6E6E6;
-  display: flex;
-  align-items: center;
-  border: none;
-  padding: 0.625rem 1rem;
-  font: inherit;
-  font-weight: 600;
-  color: #555555;
-  justify-content: space-between;
-  gap: 0.25rem;
-  line-height: 24px;
-  min-width: 115px;
-  cursor: pointer;
-`;
-
 export const CardTitle = styled.div`
   font-weight: 600;
   font-size: 1.125rem;

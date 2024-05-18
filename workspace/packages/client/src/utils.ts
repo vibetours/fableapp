@@ -29,6 +29,7 @@ import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/o
 import { P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
+import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;

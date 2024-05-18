@@ -13,7 +13,7 @@ import {
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { Tooltip, Button, Alert } from 'antd';
-import { ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { getDefaultTourOpts } from '@fable/common/dist/utils';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -197,6 +197,7 @@ const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline
 
 interface IAppStateProps {
   subs: P_RespSubscription | null;
+  org: RespOrg | null;
   tour: P_RespTour | null;
   screen: P_RespScreen | null;
   screenData: ScreenData | null;
@@ -287,6 +288,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
 
   return {
     subs: state.default.subs,
+    org: state.default.org,
     tour: state.default.currentTour,
     isTourLoaded: state.default.tourLoaded,
     screen: state.default.currentScreen,
@@ -691,6 +693,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 titleElOnLeft: this.getHeaderTxtEl(),
                 leftElGroups: this.getHeaderLeftGroup(),
                 principal: this.props.principal,
+                org: this.props.org,
                 titleText: this.props.screen?.displayName,
                 renameScreen: (newVal: string) => this.props.renameScreen(this.props.screen!, newVal),
                 showRenameIcon: this.isInCanvas(),

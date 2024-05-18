@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons';
-import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -87,6 +87,7 @@ interface IAppStateProps {
   allToursLoadingStatus: LoadingStatus;
   principal: RespUser | null;
   opsInProgress: Ops;
+  org: RespOrg | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -94,6 +95,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   userCreatedTours: state.default.tours,
   subs: state.default.subs,
   principal: state.default.principal,
+  org: state.default.org,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
 });
@@ -310,6 +312,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}
+            org={this.props.org}
             leftElGroups={[]}
           />
         </div>

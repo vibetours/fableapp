@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { ReqTourPropUpdate, RespUser } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
 import { Button as AntButton } from 'antd';
 import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
@@ -48,6 +48,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 
 interface IAppStateProps {
   tour: P_RespTour | null;
+  org: RespOrg | null;
   principal: RespUser | null;
   isTourLoaded: boolean;
 }
@@ -56,6 +57,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
+  org: state.default.org
 });
 
 interface IOwnProps {
@@ -171,6 +173,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
         <Tags.HeaderCon>
           <Header
+            org={this.props.org}
             userGuidesToShow={['Sharing or embedding your interactive demo']}
             showOnboardingGuides
             onLogoClicked={() => this.props.clearCurrentTour()}

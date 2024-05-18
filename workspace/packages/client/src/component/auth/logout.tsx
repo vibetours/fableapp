@@ -1,11 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { LogoutType } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { UnauthorizedReason } from '@fable/common/dist/api-contract';
 import Loader from '../loader';
 import InfoCon, { InfoBtn } from '../info-con';
 import FullPageTopLoader from '../loader/full-page-top-loader';
+import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../../constants';
 
 interface Props {
   title: string,
@@ -15,6 +17,7 @@ const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 export default function Logout(props: Props): JSX.Element {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { logout } = useAuth0();
   const [msg, setMsg] = useState(<></>);
   const [heading, setHeading] = useState('');
@@ -26,7 +29,11 @@ export default function Logout(props: Props): JSX.Element {
 
     const logoutTypeRaw = searchParams.get('t');
     let logoutType = 0;
+
     if (logoutTypeRaw) logoutType = +logoutTypeRaw;
+    // For force logout always clear org so that switch is easier
+    else localStorage.removeItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY);
+
     switch (logoutType) {
       case LogoutType.AccessTokenInvalidated:
         setHeading('Insufficient permission');
@@ -49,7 +56,7 @@ export default function Logout(props: Props): JSX.Element {
         raiseDeferredError(new Error(`Forced user to logout page for logoutType=${logoutType}`));
         break;
 
-      case LogoutType.APINotAutorized:
+      case LogoutType.APINotAutorized: {
         setHeading('Insufficient permission');
         setMsg(
           <p>
@@ -57,17 +64,30 @@ export default function Logout(props: Props): JSX.Element {
           </p>
         );
         setShowLoader(false);
-        setBtns([{
+        const actionBtns: InfoBtn[] = [{
           type: 'primary',
-          text: 'Logout',
-          linkTo: '/logout'
+          text: 'Select organization',
+          linkTo: '/select-org'
         }, {
           type: 'secondary',
-          text: 'See all demos',
-          linkTo: '/demos'
-        }]);
+          text: 'Logout',
+          linkTo: '/logout'
+        }];
+        const reason = searchParams.get('r');
+        if (reason !== UnauthorizedReason.OrgSuggestedButInvalidAssociation) {
+          actionBtns.push({
+            type: 'secondary',
+            text: 'See all demos',
+            linkTo: '/demos'
+          });
+        } else {
+          localStorage.removeItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY);
+        }
+        setBtns(actionBtns);
+
         raiseDeferredError(new Error(`Forced user to logout page for logoutType=${logoutType}`));
         break;
+      }
 
       default:
         setHeading('Logging out...');

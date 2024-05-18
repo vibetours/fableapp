@@ -40,7 +40,7 @@ class AuthCallback extends React.PureComponent<IProps, IOwnStateProps> {
         this.props.navigate('/create-interactive-demo');
       }
       this.props.navigate('/demos');
-    }, 2000);
+    }, 200);
   }
 
   render(): React.ReactNode {

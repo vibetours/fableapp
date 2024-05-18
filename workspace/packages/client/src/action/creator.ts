@@ -37,6 +37,9 @@ import {
   RespLeadActivityUrl,
   Responsiveness,
   ReqUpdateScreenProperty,
+  ReqUpdateUser,
+  ReqAssignOrgToUser,
+  ReqUpdateOrg,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -81,6 +84,7 @@ import {
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
+import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -167,19 +171,38 @@ export function iam() {
     if (user.orgAssociation === UserOrgAssociation.Explicit) {
       dispatch(fetchOrg());
     }
+
+    return Promise.resolve();
+  };
+}
+
+export function updateUser(firstName: string, lastName: string) {
+  return async (dispatch: Dispatch<TIAm>) => {
+    const data = await api<ReqUpdateUser, ApiResp<RespUser>>('/userprop', {
+      auth: true,
+      body: {
+        firstName,
+        lastName
+      }
+    });
+
+    dispatch({
+      type: ActionType.IAM,
+      user: data.data
+    });
+
+    return Promise.resolve();
   };
 }
 
 /* ************************************************************************* */
 
-export interface TCreateNewOrg {
-  type: ActionType.CREATE_NEW_ORG;
-  org: RespOrg;
-}
-
 export function createOrg(displayName: string) {
-  return async (dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGenericLoading>, getState: () => TState) => {
-    const data2 = await api<ReqNewOrg, ApiResp<RespOrg>>('/neworg', {
+  return async (dispatch: Dispatch<TOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew> >, getState: () => TState) => {
+    dispatch({
+      type: ActionType.ORG_LOADING,
+    });
+    const data = await api<ReqNewOrg, ApiResp<RespOrg>>('/neworg', {
       auth: true,
       body: {
         displayName,
@@ -187,23 +210,26 @@ export function createOrg(displayName: string) {
       },
     });
 
-    if (data2.status === ResponseStatus.Success) {
-      window.location.replace('/demos');
-    }
+    localStorage.setItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY, data.data.id.toString());
+    await dispatch(getSubscriptionOrCheckoutNew());
+
+    dispatch({
+      type: ActionType.ORG,
+      org: data.data,
+    });
+    return Promise.resolve(data.data);
   };
 }
 
-export interface TGetOrg {
+export interface TOrg {
   type: ActionType.ORG;
   org: RespOrg | null;
 }
 
 export function fetchOrg(fetchImplicitOrg = false) {
   return async (
-    dispatch: Dispatch<TGetOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew>>,
-    getState: () => TState
+    dispatch: Dispatch<TOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew>>,
   ) => {
-    const state = getState();
     dispatch({
       type: ActionType.ORG_LOADING,
     });
@@ -213,13 +239,56 @@ export function fetchOrg(fetchImplicitOrg = false) {
       type: ActionType.ORG,
       org: org.rid ? org : null,
     });
-    if (!fetchImplicitOrg) dispatch(getSubscriptionOrCheckoutNew(org));
+    if (!fetchImplicitOrg) dispatch(getSubscriptionOrCheckoutNew());
   };
 }
 
-export function assignImplicitOrgToUser() {
-  return async () => {
-    const data = await api<null, ApiResp<RespOrg>>('/assgnimplorg', { auth: true, method: 'POST' });
+export function assignOrgToUser(orgId: number) {
+  return async (
+    dispatch: Dispatch<TOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew>>
+  ) => {
+    dispatch({
+      type: ActionType.ORG_LOADING,
+    });
+    const data = await api<ReqAssignOrgToUser, ApiResp<RespOrg>>('/orgstouser', {
+      auth: true,
+      body: {
+        orgId
+      },
+    });
+
+    localStorage.setItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY, orgId.toString());
+    await dispatch(getSubscriptionOrCheckoutNew());
+
+    dispatch({
+      type: ActionType.ORG,
+      org: data.data,
+    });
+
+    return Promise.resolve(data.data);
+  };
+}
+
+export function updateUseCasesForOrg(useCases: string[], othersText: string) {
+  return async (
+    dispatch: Dispatch<TOrg | TGenericLoading>
+  ) => {
+    const data = await api<ReqUpdateOrg, ApiResp<RespOrg>>('/updtorgprops', {
+      auth: true,
+      body: {
+        orgInfo: {
+          useCases,
+          othersText
+        },
+      }
+    });
+
+    dispatch({
+      type: ActionType.ORG,
+      org: data.data,
+    });
+
+    return Promise.resolve();
   };
 }
 
@@ -297,29 +366,33 @@ export function checkout(
       type: ActionType.SUBS,
       subs: processRawSubscriptionData(subs),
     });
+
+    return Promise.resolve();
   };
 }
 
-export function getSubscriptionOrCheckoutNew(org: RespOrg) {
-  return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout>>, getState: () => TState) => {
+export function getSubscriptionOrCheckoutNew() {
+  return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout>>) => {
     const data = await api<null, ApiResp<RespSubscription>>('/subs', { auth: true });
     const subs = data.data;
     const appsumoLicense = localStorage.getItem('fable/asll') || '';
     if (!appsumoLicense && subs) {
-      dispatch({
+      await dispatch({
         type: ActionType.SUBS,
         subs: processRawSubscriptionData(subs),
       });
     } else if (appsumoLicense) {
-      dispatch(checkout('lifetime', 'lifetime', appsumoLicense));
+      await dispatch(checkout('lifetime', 'lifetime', appsumoLicense));
     } else {
       const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
       const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';
-      dispatch(checkout(chosenPlan as any, chosenInterval as any));
+      await dispatch(checkout(chosenPlan as any, chosenInterval as any));
     }
 
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
+
+    return Promise.resolve();
   };
 }
 
@@ -656,6 +729,24 @@ export function getAllTours(shouldRefreshIfPresent = true) {
 }
 
 /* ************************************************************************* */
+
+export interface TGetAllUserOrgs {
+  type: ActionType.ALL_USER_ORGS_LOADED;
+  orgs: Array<RespOrg>;
+}
+
+export function getAllUserOrgs(): (dispatch: Dispatch<TGetAllUserOrgs>, getState: () => TState) => Promise<void> {
+  return async (dispatch: Dispatch<TGetAllUserOrgs>, getState: () => TState) => {
+    const data = await api<null, ApiResp<RespOrg[]>>('/orgsfruser', {
+      auth: true,
+    });
+
+    dispatch({
+      type: ActionType.ALL_USER_ORGS_LOADED,
+      orgs: data.data,
+    });
+  };
+}
 
 type SupportedPerformedAction = 'new' | 'get' | 'rename' | 'replace' | 'publish' | 'edit';
 export interface TTour {

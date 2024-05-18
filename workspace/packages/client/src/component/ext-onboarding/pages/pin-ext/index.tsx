@@ -2,11 +2,9 @@ import React from 'react-dom';
 import { useEffect } from 'react';
 import { Link, useNavigation } from 'react-router-dom';
 import ArrowRight from '../../../../assets/onboarding/arrow-right.svg';
-import StepDot from '../../step-dot';
 import * as CTags from '../../styled';
 import LoveEyesEmoji from '../../../../assets/onboarding/love-eyes.png';
 import CurvedArrow from '../../../../assets/onboarding/curved-arrow.svg';
-import { ONBOARDING_PAGE_ROUTES } from '../../../../container/onboarding';
 import Button from '../../../button';
 import Browser from '../../../../assets/onboarding/pin-ext-browser.png';
 import TopLoader from '../../../loader/top-loader';
@@ -62,14 +60,10 @@ export default function PinExt(props: Props): JSX.Element {
               Pinning your Fable extension will keep it handy when you want to create your interactive demos.😄
             </CTags.Subtitle>
           </CTags.FlexColContainer>
-          <Link to="/onboarding/create-interactive-demos" style={{ textDecoration: 'none' }}>
+          <Link to="/login?redirect=onboarding/go-to-app" style={{ textDecoration: 'none' }}>
             <Button icon={<img src={ArrowRight} alt="" />} iconPlacement="right">Next</Button>
           </Link>
         </CTags.MotionDivWrapper>
-
-        <CTags.StepDotsWrapper>
-          {[...Array(2)].map((item, idx) => <StepDot key={idx} selected={idx === 0} to={ONBOARDING_PAGE_ROUTES[idx]} />)}
-        </CTags.StepDotsWrapper>
       </CTags.ContentWrapper>
       <CTags.BrowserCon
         src={Browser}

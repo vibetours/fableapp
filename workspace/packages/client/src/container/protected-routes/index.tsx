@@ -42,6 +42,14 @@ class ProtectedRoutes extends React.PureComponent<IProps, IOwnStateProps> {
           audience: process.env.REACT_APP_AUTH0_AUD,
           redirect_uri: `${APP_CLIENT_ENDPOINT}/cb/auth`,
           scope: 'openid profile email',
+
+        }}
+        onRedirectCallback={(appState) => {
+          if (appState?.ic) {
+            this.props.navigate(`/join/org?ic=${appState.ic}`, { replace: true });
+          } else {
+            this.props.navigate('/', { replace: true });
+          }
         }}
       >
         {

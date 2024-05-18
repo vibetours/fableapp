@@ -28,6 +28,7 @@ const mapDispatchToProps = (dispatch: any) => ({ });
 const mapStateToProps = (state: TState) => ({
   subs: state.default.subs,
   principal: state.default.principal,
+  org: state.default.org
 });
 
 interface IOwnProps {
@@ -99,6 +100,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
         <div style={{ height: '48px' }}>
           <Header
             tour={null}
+            org={this.props.org}
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
