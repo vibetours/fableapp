@@ -28,6 +28,7 @@ import { TOP_LOADER_DURATION } from '../../constants';
 import Webhook from './webhook';
 import Button from '../../component/button';
 import { amplitudeIntegrationModalOpened } from '../../amplitude';
+import { FeatureForPlan } from '../../plans';
 
 interface IDispatchProps { }
 
@@ -37,12 +38,14 @@ interface IAppStateProps {
   subs: P_RespSubscription | null;
   principal: RespUser | null;
   org: RespOrg | null;
+  featureForPlan: FeatureForPlan | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   principal: state.default.principal,
-  org: state.default.org
+  org: state.default.org,
+  featureForPlan: state.default.featurForPlan
 });
 
 interface IOwnProps {
@@ -56,7 +59,8 @@ interface IOwnStateProps {
   listOfLinkedApps: (RespLinkedApps | RespPlatformIntegration)[];
   hasIntegrationLoadingErr: boolean;
   selectedApp: string | null;
-  modalOpen: boolean
+  modalOpen: boolean,
+  integrationsAvailableForPlan: string[]
 }
 
 const IntegrationOrder = [
@@ -82,7 +86,8 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
       listOfLinkedApps: [],
       hasIntegrationLoadingErr: false,
       selectedApp: null,
-      modalOpen: false
+      modalOpen: false,
+      integrationsAvailableForPlan: []
     };
   }
 
@@ -158,6 +163,9 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
 
     this.getCobaltSessionToken();
     this.getListOfLinkedCobaltApps();
+    if (this.props.featureForPlan) {
+      this.handleIntegrationAvailable();
+    }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -179,6 +187,18 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
 
         timeElapsed += interval;
       }, interval);
+    }
+
+    if (this.props.featureForPlan && this.props.featureForPlan !== prevProps.featureForPlan) {
+      this.handleIntegrationAvailable();
+    }
+  }
+
+  handleIntegrationAvailable(): void {
+    const integrationFeature = this.props.featureForPlan!.integration;
+    if (integrationFeature) {
+      const integrationsAvailable = integrationFeature.value as string[];
+      this.setState({ integrationsAvailableForPlan: integrationsAvailable });
     }
   }
 
@@ -300,16 +320,22 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                   </p>
                 </div>
               )}
-              {this.state.listOfLinkedApps.map(appConfig => (
-                <IntegrationCard
+              {this.state.listOfLinkedApps.map(appConfig => {
+                const enableIntegration = this.state.integrationsAvailableForPlan.includes(appConfig.slug)
+                 || this.state.integrationsAvailableForPlan.includes('*');
+                return <IntegrationCard
                   key={appConfig.slug}
                   appConfig={appConfig}
+                  subs={this.props.subs}
                   onClick={() => {
-                    this.setState({ selectedApp: appConfig.slug, modalOpen: true });
-                    amplitudeIntegrationModalOpened(appConfig.name);
+                    if (enableIntegration) {
+                      this.setState({ selectedApp: appConfig.slug, modalOpen: true });
+                      amplitudeIntegrationModalOpened(appConfig.name);
+                    }
                   }}
-                />
-              ))}
+                  disable={!enableIntegration}
+                />;
+              })}
             </Tags.IntegrationCardCon>
             <GTags.BorderedModal
               open={this.state.modalOpen}

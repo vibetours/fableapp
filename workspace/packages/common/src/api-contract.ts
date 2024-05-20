@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-16 14:14:20.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-19 20:15:29.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -402,6 +402,10 @@ export interface RespScreen extends ResponseBase {
     responsive: boolean;
     type: ScreenType;
     uploadUrl?: string;
+}
+
+export interface RespSubsValidation {
+    cardPresent: boolean;
 }
 
 export interface RespSubscription extends ResponseBase {

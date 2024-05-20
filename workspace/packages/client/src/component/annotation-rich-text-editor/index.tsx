@@ -22,6 +22,7 @@ import { ExtendedTextNode } from './plugins/extended-text-node';
 import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
 import LeadFormPlugin from './plugins/lead-form-plugin';
 import { LeadFormNode } from './nodes/lead-form-node';
+import { P_RespSubscription } from '../../entity-processor';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -46,6 +47,8 @@ const editorConfig = {
 interface Props {
   defaultValue: string;
   throttledChangeHandler: (bodyContent: string, displayText: string) => void;
+  leadFormFeatureAvailable: boolean;
+  subs: P_RespSubscription | null;
 }
 
 interface PluginProps {
@@ -79,7 +82,9 @@ interface AnnotationContent {
 
 export default function AnnotationRichTextEditor({
   defaultValue,
-  throttledChangeHandler
+  throttledChangeHandler,
+  leadFormFeatureAvailable,
+  subs
 }: React.PropsWithChildren<Props>): ReactElement {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -119,7 +124,7 @@ export default function AnnotationRichTextEditor({
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <div className="editor-container">
-        <ToolbarPlugin modalControls={modalControls} />
+        <ToolbarPlugin modalControls={modalControls} leadFormFeatureAvailable={leadFormFeatureAvailable} subs={subs} />
         <div className="editor-inner">
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}

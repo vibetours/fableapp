@@ -40,6 +40,8 @@ import {
   ReqUpdateUser,
   ReqAssignOrgToUser,
   ReqUpdateOrg,
+  Plan,
+  Status,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -69,6 +71,7 @@ import {
   P_RespScreen,
   P_RespSubscription,
   P_RespTour,
+  mergeAndTransformFeaturePerPlan,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -85,6 +88,8 @@ import {
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
+import { FeatureForPlan, FeaturePerPlan } from '../plans';
+import { mapPlanIdAndIntervals } from '../utils';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -150,8 +155,13 @@ export interface TIAm {
   user: RespUser;
 }
 
+export interface TLcOrgId {
+  type: ActionType.LC_ORG_ID,
+  orgId: number
+}
+
 export function iam() {
-  return async (dispatch: Dispatch<TIAm | TGenericLoading | ReturnType<typeof fetchOrg>>) => {
+  return async (dispatch: Dispatch<TIAm | TLcOrgId | TGenericLoading | ReturnType<typeof fetchOrg>>) => {
     dispatch({
       type: ActionType.USER_LOADING,
     });
@@ -168,8 +178,12 @@ export function iam() {
       user
     });
 
-    if (user.orgAssociation === UserOrgAssociation.Explicit) {
-      dispatch(fetchOrg());
+    let orgId;
+    if (orgId = localStorage.getItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY)) {
+      dispatch({
+        type: ActionType.LC_ORG_ID,
+        orgId: +orgId
+      });
     }
 
     return Promise.resolve();
@@ -305,47 +319,7 @@ export function checkout(
   license?: string,
 ) {
   return async (dispatch: Dispatch<TSubs>, getState: () => TState) => {
-    let plan: PaymentTermsPlan | null = null;
-    switch (chosenPlan.toUpperCase()) {
-      case 'SOLO':
-        plan = PaymentTermsPlan.SOLO;
-        break;
-      case 'STARTUP':
-        plan = PaymentTermsPlan.STARTUP;
-        break;
-
-      case 'BUSINESS':
-        plan = PaymentTermsPlan.BUSINESS;
-        break;
-
-      case 'LIFETIME':
-        // just a placeholder for api compatibility. license is used to determine the plan (or tier)
-        plan = PaymentTermsPlan.LIFETIME_TIER1;
-        break;
-
-      default:
-        plan = null;
-        break;
-    }
-
-    let interval: PaymentTermsInterval | null = null;
-    switch (chosenInterval.toUpperCase()) {
-      case 'ANNUAL':
-        interval = PaymentTermsInterval.YEARLY;
-        break;
-
-      case 'MONTHLY':
-        interval = PaymentTermsInterval.MONTHLY;
-        break;
-
-      case 'LIFETIME':
-        interval = PaymentTermsInterval.LIFETIME;
-        break;
-
-      default:
-        interval = null;
-        break;
-    }
+    const { plan, interval } = mapPlanIdAndIntervals(chosenPlan, chosenInterval);
 
     const data = await api<ReqSubscriptionInfo, ApiResp<RespSubscription>>('/checkout', {
       method: 'POST',
@@ -367,14 +341,14 @@ export function checkout(
       subs: processRawSubscriptionData(subs),
     });
 
-    return Promise.resolve();
+    return Promise.resolve(subs);
   };
 }
 
 export function getSubscriptionOrCheckoutNew() {
-  return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout>>) => {
+  return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout> | ReturnType<typeof getFeaturePlan>>) => {
     const data = await api<null, ApiResp<RespSubscription>>('/subs', { auth: true });
-    const subs = data.data;
+    let subs = data.data;
     const appsumoLicense = localStorage.getItem('fable/asll') || '';
     if (!appsumoLicense && subs) {
       await dispatch({
@@ -382,13 +356,14 @@ export function getSubscriptionOrCheckoutNew() {
         subs: processRawSubscriptionData(subs),
       });
     } else if (appsumoLicense) {
-      await dispatch(checkout('lifetime', 'lifetime', appsumoLicense));
+      subs = (await dispatch(checkout('lifetime', 'lifetime', appsumoLicense))) as unknown as RespSubscription;
     } else {
       const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
       const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';
-      await dispatch(checkout(chosenPlan as any, chosenInterval as any));
+      subs = (await dispatch(checkout(chosenPlan as any, chosenInterval as any))) as unknown as RespSubscription;
     }
 
+    dispatch(getFeaturePlan(subs));
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
 
@@ -1078,20 +1053,6 @@ export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   };
 }
 
-export interface TShowPaymentModal {
-  type: ActionType.SHOW_PAYMENT_MODAL,
-  show: boolean,
-}
-
-export function showPaymentModal(show: boolean) {
-  return async (dispatch: Dispatch<TShowPaymentModal>, getState: () => TState) => {
-    dispatch({
-      type: ActionType.SHOW_PAYMENT_MODAL,
-      show
-    });
-  };
-}
-
 export interface TSaveTourLoader {
   type: ActionType.SAVE_TOUR_LOADER,
   tour: P_RespTour,
@@ -1488,6 +1449,28 @@ export function updateElPathKey(newElPath: ElPathKey) {
     dispatch({
       type: ActionType.UPDATE_ELPATH,
       elPath: newElPath
+    });
+  };
+}
+
+export interface TFeaturePlan {
+  type: ActionType.SET_FEATURE_FOR_PLAN;
+  featureForPlan: FeatureForPlan;
+}
+
+export function getFeaturePlan(subs: RespSubscription) {
+  return async (dispatch: Dispatch<TFeaturePlan>, getState: ()=> TState) => {
+    let plan = PaymentTermsPlan.SOLO;
+    if (subs.paymentPlan !== PaymentTermsPlan.SOLO && (subs.status === Status.ACTIVE || subs.status === Status.IN_TRIAL)) {
+      plan = subs.paymentPlan;
+    }
+
+    const data = await api<null, ApiResp<FeaturePerPlan>>('/featureplanmtx');
+    const featurePerPlan = (data.data ? data.data : {});
+    const featurePlanForOrg = mergeAndTransformFeaturePerPlan(featurePerPlan, {}, plan);
+    dispatch({
+      type: ActionType.SET_FEATURE_FOR_PLAN,
+      featureForPlan: featurePlanForOrg
     });
   };
 }

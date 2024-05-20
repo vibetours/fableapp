@@ -16,8 +16,11 @@ import { IAnnotationConfigWithScreen, JourneyOrOptsDataChange } from '../../type
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
 import Focus from '../../assets/icons/focus.svg';
-import { getValidUrl } from '../../utils';
+import { getValidUrl, isFeatureAvailable } from '../../utils';
 import Button from '../../component/button';
+import { FeatureForPlan } from '../../plans';
+import Upgrade from '../../component/upgrade';
+import { P_RespSubscription } from '../../entity-processor';
 
 interface IDispatchProps {
 }
@@ -26,9 +29,11 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 });
 
 interface IAppStateProps {
+  subs: P_RespSubscription | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
+  subs: state.default.subs,
 });
 
 interface IOwnProps {
@@ -38,6 +43,7 @@ interface IOwnProps {
     onTourJourneyChange: JourneyOrOptsDataChange;
     tourOpts: ITourDataOpts;
     journey: JourneyData;
+    featurePlan: FeatureForPlan | null;
 }
 
 type IProps = IOwnProps &
@@ -128,13 +134,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     this.repositionFlows(result.source.index, result.destination.index);
   }
 
+  advanceBranchingFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'advanced_branching');
+
   render():JSX.Element {
     return (
       <Tags.CreateJourneyCon>
         <Tags.Header>
           <Tags.CloseIcon alt="close" src={CloseIcon} onClick={this.props.closeEditor} />
         </Tags.Header>
-        {
+        <div style={{ overflow: 'auto' }}>
+          {
           !(this.state.journeyData.flows.length !== 0 || this.state.journeyData.title.length !== 0) ? (
             <Tags.NoJourneyCon>
               <img src={CreateJourneyEmptyIcon} alt="no module created" />
@@ -147,17 +156,24 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   Your buyer can choose which demo they want to see right from the UI.
                 </p>
               </div>
-              <Button
-                intent="primary"
-                onClick={this.addNewFlow}
-                icon={<PlusOutlined />}
-                iconPlacement="left"
-              >
-                Create a module
-              </Button>
+              {!this.advanceBranchingFeatureAvailable ? (
+                <div style={{ position: 'relative', height: '100px' }}>
+                  <Upgrade subs={this.props.subs} />
+                </div>)
+                : (
+                  <Button
+                    intent="primary"
+                    onClick={this.addNewFlow}
+                    icon={<PlusOutlined />}
+                    iconPlacement="left"
+                  >
+                    Create a module
+                  </Button>
+                )}
             </Tags.NoJourneyCon>
           ) : (
-            <Tags.EditorCon>
+            <Tags.EditorCon className={this.advanceBranchingFeatureAvailable ? '' : 'upgrade-plan'}>
+              {!this.advanceBranchingFeatureAvailable && <Upgrade subs={this.props.subs} />}
               <Tags.JourneyInnerCon>
                 <Input
                   label="Heading"
@@ -512,7 +528,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
 
           )
         }
-
+        </div>
       </Tags.CreateJourneyCon>
     );
   }

@@ -230,3 +230,24 @@ html, body, div, span, button, p, button, input {
 .device-dropdown .ant-dropdown-menu{
   box-shadow: none;
 }
+
+.upgrade-plan{
+  position: relative;
+  max-height: 100vh;
+  max-width: 100vw;
+}
+
+.upgrade-plan>*{
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+.upgrade-con {
+  position: absolute;
+  top: 50%;
+  left: 49%;
+  transform: translate(-50%, -50%);
+  filter: blur(0);
+  pointer-events: all;
+  z-index: 1000;
+}

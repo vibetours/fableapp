@@ -35,11 +35,13 @@ import EmptyTourState from '../../component/tour/empty-state';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
-import { createIframeSrc, isExtensionInstalled } from '../../utils';
+import { createIframeSrc, isExtensionInstalled, isFeatureAvailable } from '../../utils';
 import ExtDownloadRemainder from '../../component/ext-download';
 import TextArea from '../../component/text-area';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
+import { FeatureForPlan } from '../../plans';
+import UpgradeModal from '../../component/upgrade/upgrade-modal';
 
 const userGuides = [TourCardGuide];
 
@@ -88,6 +90,7 @@ interface IAppStateProps {
   principal: RespUser | null;
   opsInProgress: Ops;
   org: RespOrg | null;
+  featurePlan: FeatureForPlan | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -98,6 +101,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   org: state.default.org,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
+  featurePlan: state.default.featurForPlan
 });
 
 interface IOwnProps {
@@ -110,6 +114,8 @@ interface IOwnStateProps {
   ctxAction: CtxAction;
   isExtInstalled: boolean;
   onboardingToursForPreview: OnboardingTourForPrev[]
+  showUpgradeModal: boolean;
+  createNewDemoFeatureAvailable: boolean;
 }
 const { confirm } = Modal;
 
@@ -127,7 +133,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       selectedTour: null,
       ctxAction: CtxAction.NA,
       isExtInstalled: false,
-      onboardingToursForPreview: []
+      onboardingToursForPreview: [],
+      showUpgradeModal: false,
+      createNewDemoFeatureAvailable: true
     };
   }
 
@@ -157,6 +165,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           this.setState({ isExtInstalled });
         }), 5000);
     } else this.clearExtensionInstallInterval();
+
+    if (this.props.featurePlan) {
+      this.handleFeatureAvailable();
+    }
   }
 
   clearExtensionInstallInterval = () : void => {
@@ -187,6 +199,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         this.renameOrDuplicateOrCreateIpRef.current!.select();
       });
     }
+
+    if ((this.props.featurePlan !== prevProps.featurePlan || this.props.tours !== prevProps.tours)
+       && this.props.tours && this.props.featurePlan) {
+      this.handleFeatureAvailable();
+    }
+  }
+
+  handleFeatureAvailable(): void {
+    const isAvailable = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.length);
+    this.setState({ createNewDemoFeatureAvailable: isAvailable });
   }
 
   handleShowModal = (tour: P_RespTour | null, ctxAction: CtxAction): void => {
@@ -361,7 +383,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             </Button>
                           </Tags.TopPanel>
                           <GTags.BottomPanel style={{ overflow: 'auto' }}>
-                            {this.props.tours.map((tour) => (
+                            {this.props.tours.map((tour, index) => (
                               <TourCard
                                 publishTour={this.props.publishTour}
                                 key={tour.rid}
@@ -369,6 +391,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 handleShowModal={this.handleShowModal}
                                 handleDelete={this.handleDelete}
                                 updateTourProp={this.props.updateTourProp}
+                                disable={index >= this.props.tours.length - 1 ? false
+                                  : !this.state.createNewDemoFeatureAvailable}
+                                showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
                               />
                             ))}
                           </GTags.BottomPanel>
@@ -444,6 +469,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           </GTags.BorderedModal>
         )}
+        <UpgradeModal
+          showUpgradePlanModal={this.state.showUpgradeModal}
+          setShowUpgradePlanModal={(upgrade: boolean) => { this.setState({ showUpgradeModal: upgrade }); }}
+          subs={this.props.subs}
+        />
       </GTags.ColCon>
     );
   }

@@ -1,10 +1,11 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { Interval, Plan, RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubsValidation, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import { Modal } from 'antd';
 import api from '@fable/common/dist/api';
@@ -21,6 +22,7 @@ import { IPriceDetails, LifetimePriceDetailsData, PriceDetailsData } from './pla
 import TopLoader from '../../component/loader/top-loader';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TOP_LOADER_DURATION } from '../../constants';
+import { mapPlanIdAndIntervals } from '../../utils';
 
 const { confirm } = Modal;
 
@@ -63,6 +65,8 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   tabSelected: 'Monthly' | 'Yearly';
+  shouldBlock: boolean;
+  reqPlanId: IPriceDetails['planId'] | null,
 }
 
 class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStateProps> {
@@ -71,6 +75,8 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
 
     this.state = {
       tabSelected: 'Yearly',
+      shouldBlock: false,
+      reqPlanId: null
     };
   }
 
@@ -81,6 +87,63 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
       site: process.env.REACT_APP_CHARGEBEE_SITE,
     });
   }
+
+  // eslint-disable-next-line class-methods-use-this
+  checkSubscriptionValidation = async (): Promise<RespSubsValidation> => {
+    const data = await api<null, ApiResp<RespSubsValidation>>('/subsvalid', {
+      auth: true
+    });
+    return data.data;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  openCheckout = (planDetails?: {
+    planId: 'solo' | 'startup' | 'business' | 'lifetime',
+    interval: 'monthly' | 'annual'
+  }, fn?: () => void) => {
+    const cbInstance = Chargebee.getInstance();
+    const details = planDetails ? mapPlanIdAndIntervals(planDetails.planId, planDetails.interval) : undefined;
+    cbInstance.openCheckout({
+      hostedPage() {
+        return api<ReqSubscriptionInfo | undefined, null>('/genchckouturl', {
+          method: 'POST',
+          body: (details && details.interval && details.plan) ? {
+            pricingPlan: details.plan,
+            pricingInterval: details.interval
+          } : undefined
+        });
+      },
+      loaded() { },
+      error(e: Error) { raiseDeferredError(e); },
+      close() {
+        confirm({
+          title: 'Billing Information',
+          content: (
+            <div>
+              <p>
+                <ArrowRightOutlined /> If you have made a payment it might take couple of minutes to update the subscription information.
+              </p>
+              <p>
+                <ArrowRightOutlined /> If your payment fails, you will receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
+              </p>
+              <p>
+                <ArrowRightOutlined /> Your invoice and transaction information will be emailed to you and will appear in this page soon.
+              </p>
+              <p>
+                <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a> or use the in app chat.
+              </p>
+            </div>
+          ),
+          icon: <InfoCircleOutlined />,
+          onOk() { },
+          onCancel() { },
+          okType: 'primary'
+        });
+      },
+      success() { fn && fn(); },
+      step() { }
+    });
+  };
 
   render(): JSX.Element {
     const priceFor: 'priceAnnual' | 'priceMonthly' | undefined = this.state.tabSelected === 'Yearly'
@@ -211,43 +274,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                       icon={<CreditCardFilled />}
                       iconPlacement="left"
                       onClick={() => {
-                        const cbInstance = Chargebee.getInstance();
-                        cbInstance.openCheckout({
-                          hostedPage() {
-                            return api('/genchckouturl', {
-                              method: 'POST'
-                            });
-                          },
-                          loaded() { },
-                          error(e: Error) { raiseDeferredError(e); },
-                          close() {
-                            confirm({
-                              title: 'Billing Information',
-                              content: (
-                                <div>
-                                  <p>
-                                    <ArrowRightOutlined /> If you have made a payment it might take couple of minutes to upadate the subscription information.
-                                  </p>
-                                  <p>
-                                    <ArrowRightOutlined /> If your payment fails, you will receive email regrading the reason of failure and the next steps. We allow couple of days before we cancel the subscription in case of payment failure.
-                                  </p>
-                                  <p>
-                                    <ArrowRightOutlined /> Your invoice and transaction information will be emailed to you and will appear in this page soon.
-                                  </p>
-                                  <p>
-                                    <ArrowRightOutlined /> In case of any queries reach out to <a href="mailto:support@sharefable.com">support@sharefable.com</a>
-                                  </p>
-                                </div>
-                              ),
-                              icon: <InfoCircleOutlined />,
-                              onOk() { },
-                              onCancel() { },
-                              okType: 'primary'
-                            });
-                          },
-                          success() { },
-                          step() { }
-                        });
+                        this.openCheckout();
                       }}
                     >
                       Make Payment
@@ -316,17 +343,35 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                           <div>
                             <Button
                               intent="secondary"
+                              iconPlacement="left"
+                              icon={this.state.shouldBlock && plan.planId === this.state.reqPlanId ? <LoadingOutlined /> : undefined}
+                              className={this.state.shouldBlock ? 'disabled' : ''}
                               style={{
                                 pointerEvents: plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 'none' : 'all',
                                 opacity: plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 0.55 : 1,
                               }}
-                              onClick={() => {
+                              onClick={async () => {
                                 if (plan.planId === 'enterprise') {
                                   window.open(plan.buttonLink!, '__blank');
                                   return;
                                 }
                                 const interval = this.state.tabSelected === 'Monthly' ? 'monthly' : 'annual';
-                                this.props.checkout(plan.planId, interval);
+                                this.setState({ shouldBlock: true, reqPlanId: plan.planId });
+
+                                const validation = await this.checkSubscriptionValidation();
+                                const planId = plan.planId;
+                                if (validation.cardPresent) {
+                                  await this.props.checkout(planId, interval);
+                                  this.setState({ shouldBlock: false, reqPlanId: null });
+                                } else {
+                                  this.openCheckout({
+                                    planId,
+                                    interval
+                                  }, async () => {
+                                    await this.props.checkout(planId, interval);
+                                    this.setState({ shouldBlock: false, reqPlanId: null });
+                                  });
+                                }
                               }}
                             >
                               {plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 'Subscribed' : 'Choose'}

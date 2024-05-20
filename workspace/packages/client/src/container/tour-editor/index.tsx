@@ -31,7 +31,6 @@ import {
   renameScreen,
   saveEditChunks,
   saveTourData,
-  showPaymentModal,
   startAutosaving,
   updateElPathKey,
   updateScreen,
@@ -86,6 +85,7 @@ import { AnnUpdateType } from '../../component/annotation/types';
 import Loader from '../../component/loader';
 import ScreenPicker from '../screen-picker';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
+import { FeatureForPlan } from '../../plans';
 
 interface IDispatchProps {
   publishTour: (tour: P_RespTour) => Promise<boolean>,
@@ -101,7 +101,6 @@ interface IDispatchProps {
   renameScreen: (screen: P_RespScreen, newVal: string) => void;
   startAutoSaving: () => void;
   updateScreen: UpdateScreenFn;
-  setShowPaymentModal: (show: boolean) => void;
   updateElPathKey: (elPath: ElPathKey)=> void;
   updateTourProp: <T extends keyof ReqTourPropUpdate>(
     rid: string,
@@ -130,7 +129,6 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   clearRelayScreenAndAnnAdd: () => dispatch(clearRelayScreenAndAnnAdd()),
   startAutoSaving: () => dispatch(startAutosaving()),
   updateScreen: (screen, propName, propValue) => dispatch(updateScreen(screen, propName, propValue)),
-  setShowPaymentModal: (show: boolean) => dispatch(showPaymentModal(show)),
   updateElPathKey: (elPath: ElPathKey) => dispatch(updateElPathKey(elPath)),
   updateTourProp: <T extends keyof ReqTourPropUpdate>(
     rid: string,
@@ -220,6 +218,7 @@ interface IAppStateProps {
   pubTourAssetPath: string;
   manifestFileName: string;
   elpathKey: ElPathKey;
+  featurePlan: FeatureForPlan | null;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -310,7 +309,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     journey: state.default.journey,
     pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
     manifestFileName: state.default.commonConfig?.manifestFileName || '',
-    elpathKey: state.default.elpathKey
+    elpathKey: state.default.elpathKey,
+    featurePlan: state.default.featurForPlan
   };
 };
 
@@ -647,7 +647,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
           <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Canvas
               updateTourProp={this.props.updateTourProp}
-              setShowPaymentModal={this.props.setShowPaymentModal}
               subs={this.props.subs}
               publishTour={this.props.publishTour}
               applyAnnGrpIdMutations={
@@ -704,13 +703,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isJourneyCTASet: this.state.isJourneyCTASet,
                 lastAnnHasCTA: this.state.lastAnnHasCTA,
                 onSiteDataChange: this.onSiteDataChange,
-                onOptsDataChange: this.onOptsOrJourneyDataChange,
                 showCalendar: true
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}
               elpathKey={this.props.elpathKey}
               updateElPathKey={this.props.updateElPathKey}
+              featurePlan={this.props.featurePlan}
             />
 
           </div>

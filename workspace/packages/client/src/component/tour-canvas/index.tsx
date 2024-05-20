@@ -85,7 +85,7 @@ import {
   getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
   getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
 } from './utils';
-import { doesBtnOpenALink, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
+import { doesBtnOpenALink, isFeatureAvailable, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -104,6 +104,7 @@ import 'd3-transition';
 import { UpdateScreenFn } from '../../action/creator';
 import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
 import { amplitudeOpenResponsivenessDrawer } from '../../amplitude';
+import { FeatureForPlan } from '../../plans';
 
 const { confirm } = Modal;
 
@@ -115,7 +116,6 @@ type CanvasProps = {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
-  setShowPaymentModal: (show: boolean) => void;
   subs: P_RespSubscription | null;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
   allAnnotationsForTour: AnnotationPerScreen[];
@@ -149,6 +149,7 @@ type CanvasProps = {
   manifestPath: string;
   elpathKey: ElPathKey;
   updateElPathKey: (elPath: ElPathKey)=> void;
+  featurePlan: FeatureForPlan | null;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -338,6 +339,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
+  const multiAnnFeatureAvailable = isFeatureAvailable(props.featurePlan, 'advanced_branching');
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
@@ -762,22 +764,36 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         if (addToMultiAnnGroupRef.current) {
           const groupData = addToMultiAnnGroupRef.current;
           if (groupData.data.anns.length > 0) {
-            confirm({
-              title: 'Do you want to create multi annotation?',
-              icon: <SisternodeOutlined />,
-              onOk() {
-                const newGroupId = groupData.data.zId;
-                const toBeAddedToGroupAnn = data.annotation;
+            if (multiAnnFeatureAvailable) {
+              confirm({
+                title: 'Do you want to create multi annotation?',
+                icon: <SisternodeOutlined />,
+                onOk() {
+                  const newGroupId = groupData.data.zId;
+                  const toBeAddedToGroupAnn = data.annotation;
 
-                const updatedConfig = updateAnnotationZId(toBeAddedToGroupAnn, newGroupId);
-                props.onAnnotationCreateOrChange(updatedConfig.screen.id, updatedConfig, 'upsert', props.tourOpts);
+                  const updatedConfig = updateAnnotationZId(toBeAddedToGroupAnn, newGroupId);
+                  props.onAnnotationCreateOrChange(updatedConfig.screen.id, updatedConfig, 'upsert', props.tourOpts);
 
-                addToMultiAnnGroupRef.current = null;
-              },
-              onCancel() {
-                addToMultiAnnGroupRef.current = null;
-              },
-            });
+                  addToMultiAnnGroupRef.current = null;
+                },
+                onCancel() {
+                  addToMultiAnnGroupRef.current = null;
+                },
+              });
+            } else {
+              confirm({
+                title: 'Upgrade to create multi ann',
+                icon: <SisternodeOutlined />,
+                onOk() {
+                  addToMultiAnnGroupRef.current = null;
+                },
+                cancelButtonProps: {
+                  hidden: true,
+                  disabled: true,
+                }
+              });
+            }
           }
         }
         addToMultiAnnGroupRef.current = null;
@@ -2653,8 +2669,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               downloadTourData,
             }}
             tourOpts={props.tourOpts}
-            setShowPaymentModal={props.setShowPaymentModal}
-            subs={props.subs}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon
@@ -2978,8 +2992,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 {
                   props.isScreenLoaded && (
                   <ScreenEditor
-                    setShowPaymentModal={props.setShowPaymentModal}
-                    subs={props.subs}
                     journey={props.journey}
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -2988,6 +3000,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     screenData={props.screenData!}
                     allEdits={props.allEdits}
                     toAnnotationId={selectedAnnId}
+                    subs={props.subs}
                     navigate={props.navigate}
                     setAlert={props.setAlert}
                     timeline={props.timeline}
@@ -3012,6 +3025,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     elpathKey={props.elpathKey}
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
+                    featurePlan={props.featurePlan}
                   />
                   )
                 }
@@ -3052,8 +3066,6 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   {
                 props.isScreenLoaded && showScreenEditor && (
                   <ScreenEditor
-                    setShowPaymentModal={props.setShowPaymentModal}
-                    subs={props.subs}
                     journey={props.journey}
                     annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -3061,6 +3073,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     tour={props.tour!}
                     screenData={props.screenData!}
                     allEdits={props.allEdits}
+                    subs={props.subs}
                     toAnnotationId={selectedAnnId}
                     navigate={props.navigate}
                     setAlert={props.setAlert}
@@ -3087,6 +3100,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     elpathKey={props.elpathKey}
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
+                    featurePlan={props.featurePlan}
                   />
                 )
               }
@@ -3103,6 +3117,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               onTourJourneyChange={props.onTourJourneyChange}
               tourOpts={props.tourOpts}
               journey={props.journey}
+              featurePlan={props.featurePlan}
             />
           }
           {

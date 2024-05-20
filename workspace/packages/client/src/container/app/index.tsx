@@ -3,38 +3,33 @@ import { connect } from 'react-redux';
 import { RouterProvider } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
-import { init, iam, showPaymentModal } from '../../action/creator';
+import { init, iam } from '../../action/creator';
 import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
 import { P_RespTour } from '../../entity-processor';
 import { addToGlobalAppData } from '../../global';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import * as GTags from '../../common-styled';
 
 interface IDispatchProps {
   init: () => void;
-  setShowPaymentModal: (show: boolean) => void;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   init: () => dispatch(init()),
-  iam: () => dispatch(iam()),
-  setShowPaymentModal: (show: boolean) => dispatch(showPaymentModal(show))
+  iam: () => dispatch(iam())
 });
 
 interface IAppStateProps {
   isInitied: boolean;
   isTourLoaded: boolean;
   tour: P_RespTour | null;
-  isPaymentModalShown: boolean;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   isInitied: state.default.inited,
   isTourLoaded: state.default.tourLoaded,
   tour: state.default.currentTour,
-  isPaymentModalShown: state.default.isPaymentModalShown
 });
 
 interface IOwnProps {
@@ -93,16 +88,6 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <>
         <RouterProvider router={this.props.router} fallbackElement={<FullPageTopLoader showLogo />} />
-        <GTags.BorderedModal
-          style={{ height: '10px' }}
-          title="Upgrade required"
-          open={this.props.isPaymentModalShown}
-          onOk={() => this.props.setShowPaymentModal(false)}
-          onCancel={() => this.props.setShowPaymentModal(false)}
-          footer={null}
-        >
-          Your plan does not support removing watermark from demo. Please upgrade to a paid plan to remove watermark
-        </GTags.BorderedModal>
       </>
     );
   }

@@ -3,9 +3,9 @@ import { connect } from 'react-redux';
 import api from '@fable/common/dist/api';
 import { ApiResp, RespApiKey } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { CopyOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
+import { CodeOutlined, CopyOutlined, GlobalOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 import { timeFormat } from 'd3-time-format';
-import { Modal } from 'antd';
+import { Modal, Tabs } from 'antd';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { WithRouterProps, withRouter } from '../../router-hoc';
@@ -112,15 +112,24 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
           </GTags.SidePanelCon>
           <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%' }}>
             <Tags.Con>
-              <div className="typ-h1">API Key</div>
-              <br />
-              <p className="typ-reg">
-                API Keys are unique to a workspace. You can use API Key here to connect to third party system like Zapier etc.
-              </p>
-              <p className="typ-reg">
-                API Keys are critical, make sure the key is not leaked. You can always generate a new key in case you think a previous key has been compromised.
-              </p>
-              {
+              <Tabs
+                defaultActiveKey="developer"
+                items={[{
+                  key: 'developer',
+                  label: (
+                    <>
+                      <CodeOutlined />Developer
+                    </>
+                  ),
+                  children: (
+                    <div>
+                      <p className="typ-reg">
+                        API Keys are unique to a workspace. You can use API Key here to connect to third party system like Zapier etc.
+                      </p>
+                      <p className="typ-reg">
+                        API Keys are critical, make sure the key is not leaked. You can always generate a new key in case you think a previous key has been compromised.
+                      </p>
+                      {
                 this.state.isLoading && (
                   <p className="typ-reg">
                     <LoadingOutlined style={{ marginRight: '0.5rem' }} />
@@ -128,7 +137,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                   </p>
                 )
               }
-              {
+                      {
                 !this.state.isLoading && (
                 <>
                   {this.state.apiKey ? (
@@ -214,6 +223,32 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                 </>
                 )
               }
+                    </div>
+                  ),
+                }, {
+                  key: 'customdomain',
+                  label: (
+                    <>
+                      <GlobalOutlined />Custom domain
+                    </>
+                  ),
+                  children: (
+                    <div className="typ-reg">
+                      <p>
+                        &nbsp;
+                        <GTags.OurLink
+                          className="support-bot-open"
+                          style={{
+                            display: 'inline'
+                          }}
+                        >
+                          Talk to us
+                        </GTags.OurLink> to add custom domain.
+                      </p>
+                    </div>
+                  )
+                }]}
+              />
             </Tags.Con>
           </GTags.MainCon>
         </GTags.RowCon>

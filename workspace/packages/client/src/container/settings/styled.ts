@@ -2,6 +2,14 @@ import styled from 'styled-components';
 
 export const Con = styled.div`
   margin: 2rem;
+
+  .ant-tabs-tab-btn {
+    color: #160245 !important;
+  }
+
+  .ant-tabs-ink-bar {
+    background: #160245 !important;
+  }
 `;
 
 export const ApiKeyTxt = styled.div<{ copyMsg: string }>`
@@ -29,6 +37,7 @@ export const ApiKeyTxt = styled.div<{ copyMsg: string }>`
       content: '${props => props.copyMsg}';
     }
   }
+
 `;
 
 export const ApiKeyDetails = styled.div`

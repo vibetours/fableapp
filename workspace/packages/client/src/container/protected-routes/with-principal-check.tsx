@@ -2,14 +2,14 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Navigate, Outlet } from 'react-router-dom';
 import { withAuth0, WithAuth0Props } from '@auth0/auth0-react';
-import { RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import { setSec } from '@fable/common/dist/fsec';
 import { resetProductAnalytics, setProductAnalyticsUserId } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import { iam } from '../../action/creator';
+import { fetchOrg, iam } from '../../action/creator';
 import { setEventCommonState } from '../../utils';
 import { P_RespSubscription } from '../../entity-processor';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
@@ -33,7 +33,8 @@ function addSupportBot(name: string, email: string, createdAt: Date): void {
     user_id: "${email}",
     name: "${name}",
     email: "${email}",
-    created_at: "${createdAt}"
+    created_at: "${createdAt}",
+    custom_launcher_selector:'.support-bot-open'
   };
 
 
@@ -45,20 +46,26 @@ function addSupportBot(name: string, email: string, createdAt: Date): void {
 
 interface IDispatchProps {
   iam: () => Promise<void>;
+  fetchOrg: () => Promise<void>;
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   iam: () => dispatch(iam()),
+  fetchOrg: () => dispatch(fetchOrg()),
 });
 
 interface IAppStateProps {
   isPrincipalLoaded: boolean;
   principal: RespUser | null;
+  lcOrgId: number | null;
+  org: RespOrg | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   isPrincipalLoaded: state.default.principalLoadingStatus === LoadingStatus.Done,
   principal: state.default.principal,
+  lcOrgId: state.default.lcOrgId,
+  org: state.default.org
 });
 
 interface IOwnProps { }
@@ -93,6 +100,13 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.auth0.isAuthenticated !== this.props.auth0.isAuthenticated && this.props.auth0.isAuthenticated) {
       this.props.iam();
     }
+
+    if (prevProps.lcOrgId !== this.props.lcOrgId && this.props.lcOrgId && (
+      !this.props.org || (this.props.org.id !== this.props.lcOrgId)
+    )) {
+      this.props.fetchOrg();
+    }
+
     if (prevProps.principal !== this.props.principal && this.props.principal) {
       setEventCommonState(CmnEvtProp.EMAIL, this.props.principal.email);
       setEventCommonState(CmnEvtProp.FIRST_NAME, this.props.principal.firstName);
@@ -131,6 +145,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       return <Navigate to={`/login${this.getQueryParmsStrWithQuestionMark()}`} />;
     }
 
+    // TODO no side effect here
     const localStorageOrgId = localStorage.getItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY);
     if (!this.props.principal.firstName) {
       // If user details are not yet completed

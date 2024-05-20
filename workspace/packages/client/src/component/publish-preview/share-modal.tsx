@@ -1,25 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
-import { LoadingOutlined, QuestionCircleFilled } from '@ant-design/icons';
-import { Collapse, Drawer, Spin, Tooltip } from 'antd';
-import { Plan, Status } from '@fable/common/dist/api-contract';
+import { LoadingOutlined } from '@ant-design/icons';
+import { Collapse, Drawer, Spin } from 'antd';
 import { timeFormat } from 'd3-time-format';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
 import { createIframeSrc, debounce, getValidUrl } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespTour } from '../../entity-processor';
 import PublishButton from './publish-button';
 import { ParamType } from './utm-params-helper';
 import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { updateTourDataOpts } from '../annotation/annotation-config-utils';
-import { JourneyOrOptsDataChange, SiteData, SiteThemePresets } from '../../types';
-import { amplitudeCtaConfigChanged, amplitudeRemoveWatermark } from '../../amplitude';
+import { SiteData, SiteThemePresets } from '../../types';
+import { amplitudeCtaConfigChanged } from '../../amplitude';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -55,9 +53,6 @@ interface Props {
   openShareModal: () => void;
   tourOpts: ITourDataOpts | null;
   onSiteDataChange?: (site: SiteData) => void;
-  onOptsDataChange?: JourneyOrOptsDataChange;
-  setShowPaymentModal?: (show: boolean) => void;
-  subs?: P_RespSubscription | null;
   isPublishing: boolean;
   setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -77,7 +72,6 @@ interface CTAInfoProps {
   updateBrandData: (changeData: Array<[key: keyof SiteData, value: string]>) => void,
   disableEdit:boolean,
   tourOpts: ITourDataOpts | null,
-  updateWatermark: (checked: boolean)=> void
   calledFrom: 'cta_share' | 'internal_share'
 }
 
@@ -90,7 +84,6 @@ function CTAInfo({ iframeUrl,
   updateBrandData,
   disableEdit,
   tourOpts,
-  updateWatermark,
   calledFrom
 }: CTAInfoProps): JSX.Element {
   const [logoUploading, setLogoUploading] = useState(false);
@@ -363,18 +356,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
     }
   };
 
-  const updateWatermark = (showWaterMark: boolean): void => {
-    amplitudeRemoveWatermark('sharemodal');
-    if (props.subs?.paymentPlan === Plan.SOLO && props.subs.status === Status.ACTIVE) {
-      props.setShowPaymentModal!(true);
-      return;
-    }
-    if (props.onOptsDataChange && props.tourOpts) {
-      const newOpts = updateTourDataOpts(props.tourOpts!, 'showFableWatermark', showWaterMark);
-      props.onOptsDataChange(newOpts, null);
-    }
-  };
-
   return (
     <>
       <GTags.BorderedModal
@@ -540,7 +521,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         updateBrandData={updateBrandData}
                         disableEdit={props.onSiteDataChange === undefined}
                         tourOpts={props.tourOpts}
-                        updateWatermark={updateWatermark}
                         calledFrom="cta_share"
                       />
                     </div>

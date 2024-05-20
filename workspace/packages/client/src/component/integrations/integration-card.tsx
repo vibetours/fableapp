@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PlatformIntegrationType, RespLinkedApps, RespPlatformIntegration } from '@fable/common/dist/api-contract';
+import { StarFilled } from '@ant-design/icons';
 import * as Tags from './styled';
+import Upgrade from '../upgrade';
+import UpgradeIcon from '../upgrade/icon';
+import UpgradeModal from '../upgrade/upgrade-modal';
+import { P_RespSubscription } from '../../entity-processor';
 
 interface Props {
   appConfig: RespLinkedApps | RespPlatformIntegration;
   onClick: () => void;
+  disable: boolean;
+  subs: P_RespSubscription | null;
 }
 
 const Desc = {
@@ -126,13 +133,23 @@ const Desc = {
 };
 
 export default function IntegrationCard(props: Props): JSX.Element {
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   return (
     <Tags.Con onClick={props.onClick}>
       <img src={props.appConfig.icon} alt="" height={24} />
-      <div style={{ flex: '1 0 auto', width: 'calc(100% - 1rem - 24px - 1rem)' }}>
+      <div
+        style={{ flex: '1 0 auto', width: 'calc(100% - 1rem - 24px - 1rem)' }}
+        onClick={props.disable ? (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setShowUpgradeModal(true);
+        } : undefined}
+      >
         <Tags.L1>
           <div className="header">
-            {props.appConfig.name}
+            {props.appConfig.name} &nbsp;
+            {props.disable && <UpgradeIcon />}
           </div>
           <div className="mini">
             {/* TODO  the following force casting to any is done because RespPlatformIntegration does not have content property */}
@@ -148,6 +165,11 @@ export default function IntegrationCard(props: Props): JSX.Element {
           {(Desc as any)[props.appConfig.type]}
         </Tags.L2>
       </div>
+      <UpgradeModal
+        showUpgradePlanModal={showUpgradeModal}
+        setShowUpgradePlanModal={setShowUpgradeModal}
+        subs={props.subs}
+      />
     </Tags.Con>
   );
 }

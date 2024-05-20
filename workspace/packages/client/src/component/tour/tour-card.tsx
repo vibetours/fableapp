@@ -35,10 +35,12 @@ interface Props {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
+  disable: boolean;
+  showUpgradeModal: ()=>void;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, updateTourProp
+  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
@@ -49,7 +51,14 @@ export default function TourCard({
 
   return (
     <>
-      <Tags.TourCardCon to={`/demo/${tour.rid}`}>
+      <Tags.TourCardCon
+        to={disable ? '' : `/demo/${tour.rid}`}
+        onClick={() => {
+          if (disable) {
+            showUpgradeModal();
+          }
+        }}
+      >
         <Tags.TourThumbnail />
         <Tags.CardDataCon>
           <Tags.DisplayName>
@@ -74,120 +83,137 @@ export default function TourCard({
               )
           }
         </Tags.CardDataCon>
-        <Tags.TourActionBtnCon>
-          {tour.lastPublishedDate && (
-          <Tooltip title="Copy Embed Link" overlayStyle={{ fontSize: '0.75rem' }}>
+        {disable
+          ? (
             <Tags.EmbedBtn
               type="submit"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsShareModalVisible(true);
-                amplitudeShareModalOpen('tours');
-              }}
+              style={{ height: '26px' }}
             >
-              <ShareAltOutlined />&nbsp;&nbsp;
               <span style={{
                 fontSize: '11px',
                 fontWeight: 500
               }}
               >
-                Share
+                Upgrade
               </span>
             </Tags.EmbedBtn>
-          </Tooltip>
-          )}
-          <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
-            <Button
-              id="TG-1"
-              style={{ padding: 0, margin: 0 }}
-              size="small"
-              shape="circle"
-              type="text"
-              icon={<CaretRightOutlined />}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                  preview_clicked_from: 'tours',
-                  tour_url: createIframeSrc(`/demo/${tour.rid}`)
-                }, [CmnEvtProp.EMAIL]);
-                window.open(`/${PREVIEW_BASE_URL}/demo/${tour.rid}`)?.focus();
-              }}
-            />
-          </Tooltip>
-          {!tour.onboarding && (
-          <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
-            <Button
-              id="TG-2"
-              style={{ padding: 0, margin: 0 }}
-              size="small"
-              shape="circle"
-              type="text"
-              icon={<BarChartOutlined />}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-                window.open(`/a/demo/${tour.rid}`, '_blank')?.focus();
-              }}
-            />
-          </Tooltip>
-          )}
-          {!tour.onboarding && (
-          <Popover
-            content={
-              <div onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-              }}
-              >
-                <GTags.PopoverMenuItem
-                  onMouseDown={e => {
+          )
+          : (
+            <Tags.TourActionBtnCon>
+              {tour.lastPublishedDate && (
+              <Tooltip title="Copy Embed Link" overlayStyle={{ fontSize: '0.75rem' }}>
+                <Tags.EmbedBtn
+                  type="submit"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setIsShareModalVisible(true);
                     amplitudeShareModalOpen('tours');
                   }}
                 >
-                  <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Demo
-                </GTags.PopoverMenuItem>
-                <GTags.PopoverMenuItem
-                  onMouseDown={e => handleShowModal(tour, CtxAction.Rename)}
-                >
-                  <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Demo
-                </GTags.PopoverMenuItem>
-                <GTags.PopoverMenuItem
-                  onMouseDown={e => handleShowModal(tour, CtxAction.Duplicate)}
-                >
-                  <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Demo
-                </GTags.PopoverMenuItem>
-                <GTags.PopoverMenuItemDivider color="#ff735050" />
-                <GTags.PopoverMenuItem
-                  onMouseDown={e => handleDelete(tour)}
-                  style={{
-                    color: '#ff7350'
+                  <ShareAltOutlined />&nbsp;&nbsp;
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 500
                   }}
-                >
-                  <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Demo
-                </GTags.PopoverMenuItem>
-              </div>
+                  >
+                    Share
+                  </span>
+                </Tags.EmbedBtn>
+              </Tooltip>
+              )}
+              <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
+                <Button
+                  id="TG-1"
+                  style={{ padding: 0, margin: 0 }}
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<CaretRightOutlined />}
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
+                      preview_clicked_from: 'tours',
+                      tour_url: createIframeSrc(`/demo/${tour.rid}`)
+                    }, [CmnEvtProp.EMAIL]);
+                    window.open(`/${PREVIEW_BASE_URL}/demo/${tour.rid}`)?.focus();
+                  }}
+                />
+              </Tooltip>
+              {!tour.onboarding && (
+              <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
+                <Button
+                  id="TG-2"
+                  style={{ padding: 0, margin: 0 }}
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<BarChartOutlined />}
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    window.open(`/a/demo/${tour.rid}`, '_blank')?.focus();
+                  }}
+                />
+              </Tooltip>
+              )}
+              {!tour.onboarding && (
+              <Popover
+                content={
+                  <div onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  >
+                    <GTags.PopoverMenuItem
+                      onMouseDown={e => {
+                        setIsShareModalVisible(true);
+                        amplitudeShareModalOpen('tours');
+                      }}
+                    >
+                      <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Demo
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItem
+                      onMouseDown={e => handleShowModal(tour, CtxAction.Rename)}
+                    >
+                      <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Demo
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItem
+                      onMouseDown={e => handleShowModal(tour, CtxAction.Duplicate)}
+                    >
+                      <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Demo
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItemDivider color="#ff735050" />
+                    <GTags.PopoverMenuItem
+                      onMouseDown={e => handleDelete(tour)}
+                      style={{
+                        color: '#ff7350'
+                      }}
+                    >
+                      <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Demo
+                    </GTags.PopoverMenuItem>
+                  </div>
             }
-            trigger="focus"
-            placement="right"
-          >
-            <Button
-              id="TG-3"
-              style={{ padding: 0, margin: 0 }}
-              size="small"
-              shape="circle"
-              type="text"
-              icon={<MoreOutlined />}
-              onClick={e => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-            />
-          </Popover>
+                trigger="focus"
+                placement="right"
+              >
+                <Button
+                  id="TG-3"
+                  style={{ padding: 0, margin: 0 }}
+                  size="small"
+                  shape="circle"
+                  type="text"
+                  icon={<MoreOutlined />}
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                />
+              </Popover>
+              )}
+            </Tags.TourActionBtnCon>
           )}
-        </Tags.TourActionBtnCon>
       </Tags.TourCardCon>
       <ShareTourModal
         height="100%"

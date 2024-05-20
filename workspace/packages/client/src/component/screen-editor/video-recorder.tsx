@@ -19,6 +19,9 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import FileInput from '../file-input';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
+import { FeatureForPlan } from '../../plans';
+import { isFeatureAvailable } from '../../utils';
+import Upgrade from '../upgrade';
 
 type Props = {
   tour: P_RespTour,

@@ -7,9 +7,12 @@ import Loader from './loader';
 import FileInput from '../file-input';
 import Input from '../input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import CloseIcon from '../../assets/tour/close.svg';
+import { FeatureForPlan } from '../../plans';
+import { isFeatureAvailable } from '../../utils';
+import Upgrade from '../upgrade';
 
 interface Props {
   data: ITourLoaderData,
@@ -18,6 +21,8 @@ interface Props {
   recordLoaderData: (tour: P_RespTour, loader: ITourLoaderData) => void,
   isAutoSaving: boolean;
   startAutosavingLoader: () => void;
+  featureForPlan: FeatureForPlan | null;
+  subs: P_RespSubscription | null;
 }
 
 const DEFAULT_LOGO_URL = 'https://s3.amazonaws.com/app.sharefable.com/favicon.png';
@@ -53,6 +58,7 @@ function LoaderEditor(props: Props): JSX.Element {
     }
   };
 
+  const customizeLoaderFeatureAvailable = isFeatureAvailable(props.featureForPlan, 'custom_demo_loader');
   return (
     <Tags.FullScreenCon>
       <Tags.EditorWrapper>
@@ -80,126 +86,138 @@ function LoaderEditor(props: Props): JSX.Element {
             </Tags.PreviewCon>
           </Tags.PreviewPanel>
           <Tags.EditPanel>
-            <Tags.FieldCon>
-              <Tags.FieldName className="typ-h2">
-                <p>Logo</p>
-              </Tags.FieldName>
-              <Tabs items={[
-                {
-                  key: '1',
-                  label: <div className="typ-reg"><UploadOutlined />Upload</div>,
-                  children: (
-                    <Tags.FileInputCon>
-                      <FileInput
-                        accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
-                        onChange={async (e) => {
-                          if (e.target.files) {
-                            const file = e.target.files[0];
-                            if (file) {
-                              props.startAutosavingLoader();
-                              const fileUrl = await uploadFileToAws(e.target.files[0]);
-                              setLoaderData(prev => ({ ...prev, logo: { url: fileUrl } }));
-                              if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl;
-                              setIsLogoUrlEmpty(false);
-                            }
-                          }
-                        }}
-                      />
-                      {isLogoUrlChanged && (
-                      <div>
-                        <Tooltip title="Revert logo" placement="left">
-                          <ReloadOutlined
-                            style={{ fontSize: '1.2rem' }}
-                            onClick={() => {
-                              setIsLogoUrlChanged(false);
-                              setLoaderData(prev => ({ ...prev, logo: { url: DEFAULT_LOGO_URL } }));
+            <>
+              <Tags.FieldCon>
+                <Tags.FieldName className="typ-h2">
+                  <p>Logo</p>
+                </Tags.FieldName>
+                <div
+                  className={customizeLoaderFeatureAvailable ? '' : 'upgrade-plan'}
+                >
+                  {!customizeLoaderFeatureAvailable && <Upgrade subs={props.subs} />}
+                  <Tabs items={[
+                    {
+                      key: '1',
+                      label: <div className="typ-reg"><UploadOutlined />Upload</div>,
+                      children: (
+                        <Tags.FileInputCon>
+                          <FileInput
+                            accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
+                            onChange={async (e) => {
+                              if (e.target.files) {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  props.startAutosavingLoader();
+                                  const fileUrl = await uploadFileToAws(e.target.files[0]);
+                                  setLoaderData(prev => ({ ...prev, logo: { url: fileUrl } }));
+                                  if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl;
+                                  setIsLogoUrlEmpty(false);
+                                }
+                              }
                             }}
                           />
-                        </Tooltip>
-                      </div>
-                      )}
-                    </Tags.FileInputCon>
-                  ),
-                },
-                {
-                  key: '2',
-                  label: <div className="typ-reg"><LinkOutlined />Link</div>,
-                  children: (
-                    <div style={{ marginTop: '0.45rem' }}>
-                      <Input
-                        label="Logo link"
-                        defaultValue={loaderData.logo.url}
-                        innerRef={logoLinkIpRef as unknown as RefObject<HTMLInputElement>}
-                        onChange={async (e) => {
-                          setIsLogoUrlEmpty(false);
-                          if (!e.target.value || !e.target.value.trim()) {
-                            setIsLogoUrlEmpty(true);
-                            return;
-                          }
-                          setLoaderData(prev => ({ ...prev, logo: { url: e.target.value } }));
-                        }}
-                      />
-                    </div>
-                  ),
-                },
-              ]}
-              />
-              {isLogoUrlEmpty && <Tags.Error className="typ-reg">Logo is required</Tags.Error>}
-            </Tags.FieldCon>
-            <Tags.FieldCon>
-              <Tags.FieldName className="typ-h2">
-                <p>Upload Gif or Lottie</p>
-              </Tags.FieldName>
-              <Tabs items={[
-                {
-                  key: '1',
-                  label: <div className="typ-reg">Gif</div>,
-                  children: (
-                    <Tags.FileInputCon>
-                      <FileInput
-                        accept="image/gif"
-                        label="Upload Gif:"
-                        onChange={(e) => setGifOrLottieFile(e, 'gif')}
-                      />
-                      {loaderData.loader.url && (
-                      <div>
-                        <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
-                          <DeleteOutlined
-                            style={{ fontSize: '1.2rem' }}
-                            onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                          {isLogoUrlChanged && (
+                          <div>
+                            <Tooltip title="Revert logo" placement="left">
+                              <ReloadOutlined
+                                style={{ fontSize: '1.2rem' }}
+                                onClick={() => {
+                                  setIsLogoUrlChanged(false);
+                                  setLoaderData(prev => ({ ...prev, logo: { url: DEFAULT_LOGO_URL } }));
+                                }}
+                              />
+                            </Tooltip>
+                          </div>
+                          )}
+                        </Tags.FileInputCon>
+                      ),
+                    },
+                    {
+                      key: '2',
+                      label: <div className="typ-reg"><LinkOutlined />Link</div>,
+                      children: (
+                        <div style={{ marginTop: '0.45rem' }}>
+                          <Input
+                            label="Logo link"
+                            defaultValue={loaderData.logo.url}
+                            innerRef={logoLinkIpRef as unknown as RefObject<HTMLInputElement>}
+                            onChange={async (e) => {
+                              setIsLogoUrlEmpty(false);
+                              if (!e.target.value || !e.target.value.trim()) {
+                                setIsLogoUrlEmpty(true);
+                                return;
+                              }
+                              setLoaderData(prev => ({ ...prev, logo: { url: e.target.value } }));
+                            }}
                           />
-                        </Tooltip>
-                      </div>
-                      )}
-                    </Tags.FileInputCon>
-                  ),
-                },
-                {
-                  key: '2',
-                  label: <div className="typ-reg">Lottie file</div>,
-                  children: (
-                    <Tags.FileInputCon>
-                      <FileInput
-                        accept="application/json"
-                        label="Upload Lottie:"
-                        onChange={(e) => setGifOrLottieFile(e, 'lottie')}
-                      />
-                      {loaderData.loader.url && (
-                      <div>
-                        <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
-                          <DeleteOutlined
-                            style={{ fontSize: '1.2rem' }}
-                            onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                        </div>
+                      ),
+                    },
+                  ]}
+                  />
+                  {isLogoUrlEmpty && <Tags.Error className="typ-reg">Logo is required</Tags.Error>}
+                </div>
+              </Tags.FieldCon>
+              <Tags.FieldCon>
+                <Tags.FieldName className="typ-h2">
+                  <p>Upload Gif or Lottie</p>
+                </Tags.FieldName>
+                <div
+                  className={customizeLoaderFeatureAvailable ? '' : 'upgrade-plan'}
+                >
+                  {!customizeLoaderFeatureAvailable && <Upgrade subs={props.subs} />}
+                  <Tabs items={[
+                    {
+                      key: '1',
+                      label: <div className="typ-reg">Gif</div>,
+                      children: (
+                        <Tags.FileInputCon>
+                          <FileInput
+                            accept="image/gif"
+                            label="Upload Gif:"
+                            onChange={(e) => setGifOrLottieFile(e, 'gif')}
                           />
-                        </Tooltip>
-                      </div>
-                      )}
-                    </Tags.FileInputCon>
-                  ),
-                },
-              ]}
-              />
-            </Tags.FieldCon>
+                          {loaderData.loader.url && (
+                          <div>
+                            <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
+                              <DeleteOutlined
+                                style={{ fontSize: '1.2rem' }}
+                                onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                              />
+                            </Tooltip>
+                          </div>
+                          )}
+                        </Tags.FileInputCon>
+                      ),
+                    },
+                    {
+                      key: '2',
+                      label: <div className="typ-reg">Lottie file</div>,
+                      children: (
+                        <Tags.FileInputCon>
+                          <FileInput
+                            accept="application/json"
+                            label="Upload Lottie:"
+                            onChange={(e) => setGifOrLottieFile(e, 'lottie')}
+                          />
+                          {loaderData.loader.url && (
+                          <div>
+                            <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
+                              <DeleteOutlined
+                                style={{ fontSize: '1.2rem' }}
+                                onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                              />
+                            </Tooltip>
+                          </div>
+                          )}
+                        </Tags.FileInputCon>
+                      ),
+                    },
+                  ]}
+                  />
+                </div>
+              </Tags.FieldCon>
+            </>
           </Tags.EditPanel>
         </Tags.EditorCon>
 

@@ -66,9 +66,6 @@ interface IOwnProps {
   screenDiagnostics?: ScreenDiagnostics[];
   tourOpts?: ITourDataOpts | null;
   onSiteDataChange?: (site: SiteData) => void;
-  onOptsDataChange?: JourneyOrOptsDataChange;
-  setShowPaymentModal?: (show: boolean) => void;
-  subs?: P_RespSubscription | null;
   showCalendar?: boolean;
   minimalHeader?: boolean;
 }
@@ -554,9 +551,6 @@ function Header(props: IOwnProps): JSX.Element {
           copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
           tourOpts={props.tourOpts || null}
           onSiteDataChange={props.onSiteDataChange}
-          onOptsDataChange={props.onOptsDataChange}
-          setShowPaymentModal={props.setShowPaymentModal}
-          subs={props.subs}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
         />}

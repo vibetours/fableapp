@@ -27,6 +27,7 @@ import {
   TTour,
   TTourWithData,
   TIAm,
+  TLcOrgId,
   TOrg,
   TOpsInProgress,
   TAddScreenEntities,
@@ -40,13 +41,14 @@ import {
   TSaveTourLoader,
   TAutosavingLoader,
   TScreenUpdate,
-  TShowPaymentModal,
   TTourPublished,
   TElpath,
   TGetAllUserOrgs,
+  TFeaturePlan,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
+import { FeatureForPlan } from '../plans';
 
 export const initialState: {
   allUserOrgs: RespOrg[] | null;
@@ -55,6 +57,7 @@ export const initialState: {
   rootScreens: Array<P_RespScreen>;
   allScreens: Array<P_RespScreen>;
   principal: RespUser | null;
+  lcOrgId: number | null;
   principalLoadingStatus: LoadingStatus;
   org: RespOrg | null;
   subs: P_RespSubscription | null;
@@ -93,8 +96,8 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus;
   journey: JourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
-  isPaymentModalShown: boolean;
   elpathKey: ElPathKey;
+  featurForPlan: FeatureForPlan | null;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -107,6 +110,7 @@ export const initialState: {
   principalLoadingStatus: LoadingStatus.NotStarted,
   orgsLoadingStatus: LoadingStatus.NotStarted,
   principal: null,
+  lcOrgId: null,
   org: null,
   subs: null,
   allUsersLoadingStatus: LoadingStatus.NotStarted,
@@ -137,8 +141,8 @@ export const initialState: {
   allScreensForCurrentTourLoadingStatus: LoadingStatus.NotStarted,
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
-  isPaymentModalShown: false,
-  elpathKey: 'id'
+  elpathKey: 'id',
+  featurForPlan: null
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -192,6 +196,13 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.principalLoadingStatus = LoadingStatus.Done;
       newState.principal = tAction.user;
+      return newState;
+    }
+
+    case ActionType.LC_ORG_ID: {
+      const tAction = action as TLcOrgId;
+      const newState = { ...state };
+      newState.lcOrgId = tAction.orgId;
       return newState;
     }
 
@@ -282,13 +293,6 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TOpsInProgress;
       const newState = { ...state };
       newState.opsInProgress = tAction.ops;
-      return newState;
-    }
-
-    case ActionType.SHOW_PAYMENT_MODAL: {
-      const tAction = action as TShowPaymentModal;
-      const newState = { ...state };
-      newState.isPaymentModalShown = tAction.show;
       return newState;
     }
 
@@ -525,6 +529,14 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TElpath;
       const newState = { ...state };
       newState.elpathKey = tAction.elPath;
+
+      return newState;
+    }
+
+    case ActionType.SET_FEATURE_FOR_PLAN: {
+      const tAction = action as TFeaturePlan;
+      const newState = { ...state };
+      newState.featurForPlan = tAction.featureForPlan;
 
       return newState;
     }

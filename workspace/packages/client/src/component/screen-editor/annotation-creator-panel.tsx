@@ -41,6 +41,8 @@ import {
   QuestionCircleOutlined,
   ArrowLeftOutlined,
   FormatPainterOutlined,
+  RiseOutlined,
+  StarFilled,
 } from '@ant-design/icons';
 import { Plan, Responsiveness, ScreenType, Status } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -91,7 +93,7 @@ import VideoRecorder from './video-recorder';
 import ActionPanel from './action-panel';
 import { effectsHelpText, hotspotHelpText, globalPropertyHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce, isTourResponsive } from '../../utils';
+import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce, isTourResponsive, isFeatureAvailable } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
@@ -111,18 +113,21 @@ import AnnPositioningInput from './ann-positioning-input';
 import EffectSelector, { EffectFor } from './effect-selection-and-builder';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { calculatePopoverPlacement, isLinkButtonInViewport } from './scroll-util';
+import { FeatureForPlan } from '../../plans';
+import Upgrade from '../upgrade';
+import UpgradeModal from '../upgrade/upgrade-modal';
+import UpgradeIcon from '../upgrade/icon';
 
 const { confirm } = Modal;
 
 interface IProps {
-  setShowPaymentModal: (show: boolean) => void;
-  subs: P_RespSubscription | null,
   screen: P_RespScreen,
   config: IAnnotationConfig,
   opts: ITourDataOpts,
   tour: P_RespTour,
   allAnnotationsForTour: AnnotationPerScreen[],
   busy: boolean,
+  subs: P_RespSubscription | null;
   onConfigChange: (
     config: IAnnotationConfig,
     actionType: 'upsert' | 'delete',
@@ -145,6 +150,7 @@ interface IProps {
   getConnectableAnnotations: (annRefId: string, btnType: IAnnotationButtonType) => IAnnotationConfigWithScreen[];
   updateConnection: (fromMain: string, toMain: string) => void;
   elpathKey: ElPathKey;
+  featurePlan: FeatureForPlan | null;
 }
 
 const commonInputStyles: React.CSSProperties = {
@@ -259,6 +265,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [popoverPlacement, setPopoverPlacement] = useState<'leftBottom' | 'left' | 'leftTop'>('leftBottom');
   const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
   const [activePopover, setActivePopover] = useState<'open'|'navigate'>('open');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const unsubFn = useRef(() => { });
 
@@ -523,6 +530,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
   }, 2000);
 
+  // TODO: We can add one more variable in featureForPlan wich
+  // will store isFeatureAvailable so its calculated one time only.
+  const ctaFeatureAvailable = isFeatureAvailable(props.featurePlan, 'cta_buttons');
+  const leadFormFeatureAvailable = isFeatureAvailable(props.featurePlan, 'custom_lead_form');
+  const isVideoFeatureAvailable = isFeatureAvailable(props.featurePlan, 'annotation');
+  const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
+
   return (
     <Tags.AnotCrtPanelCon
       className="e-ignr"
@@ -536,6 +550,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }}
         >
           <AnnotationRichTextEditor
+            subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {
               setConfig(c => {
                 if (c.bodyContent === htmlString) {
@@ -547,6 +562,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               });
             }}
             defaultValue={config.bodyContent}
+            leadFormFeatureAvailable={leadFormFeatureAvailable}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
             <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>
@@ -562,10 +578,18 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 borderRadius: '8px',
                 color: '#666'
               }}
-              onClick={() => setShowVideoRecorder(true)}
+              onClick={() => {
+                if (isVideoFeatureAvailable) {
+                  setShowVideoRecorder(true);
+                } else {
+                  setShowUpgradeModal(true);
+                }
+              }}
               icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
             >
               {videoAnn ? 'Change Video' : 'Record/Upload Video'}
+              &nbsp;
+              {!isVideoFeatureAvailable && <UpgradeIcon />}
             </GTags.DashedBtn>
             {isVideoAnnotation(config) && (
               <Tooltip title="Delete recorded video">
@@ -634,7 +658,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           />
         </div>
         <div style={commonActionPanelItemStyle}>
-          <GlobalTitle title="Show Fable Watermark" />
+          <div
+            style={{ display: 'flex', gap: '10px' }}
+            onClick={() => {
+              if (!watermarkFeatureAvailable) {
+                setShowUpgradeModal(true);
+              }
+            }}
+          >
+            <GlobalTitle title="Show Fable Watermark" />
+            {!watermarkFeatureAvailable && <UpgradeIcon />}
+          </div>
           <Tags.StyledSwitch
             size="small"
             style={{ backgroundColor: opts.showFableWatermark ? '#7567FF' : '#BDBDBD' }}
@@ -642,12 +676,10 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             checked={opts.showFableWatermark}
             onChange={(e) => {
               amplitudeRemoveWatermark('acp');
-
-              if (props.subs?.paymentPlan === Plan.SOLO && props.subs.status === Status.ACTIVE) {
-                props.setShowPaymentModal(true);
+              if (!watermarkFeatureAvailable) {
+                setShowUpgradeModal(true);
                 return;
               }
-
               setTourDataOpts(t => updateTourDataOpts(t, 'showFableWatermark', e));
             }}
           />
@@ -817,260 +849,263 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         id="buttons-panel"
         title="CTAs"
         icon={<img src={ButtonIcon} alt="" />}
+        isFeatureRestricted={!ctaFeatureAvailable}
+        setShowUpgradeModal={setShowUpgradeModal}
       >
-        <div style={commonActionPanelItemStyle}>
-          <div>Button Layout</div>
-          <div style={{ padding: '0.3rem 0' }}>
-            <label htmlFor="default">
-              <ColumnWidthOutlined />
-              <input
-                id="default"
-                type="radio"
-                value="default"
-                checked={config.buttonLayout === 'default'}
-                onChange={(e) => {
-                  setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
-                }}
-              />
-            </label>
-            <label htmlFor="full-width">
-              <ColumnHeightOutlined />
-              <input
-                id="full-width"
-                type="radio"
-                value="full-width"
-                checked={config.buttonLayout === 'full-width'}
-                onChange={(e) => {
-                  setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
-                }}
-              />
-            </label>
+        <div className={ctaFeatureAvailable ? '' : 'upgrade-plan'}>
+          <div style={commonActionPanelItemStyle}>
+            <div>Button Layout</div>
+            <div style={{ padding: '0.3rem 0' }}>
+              <label htmlFor="default">
+                <ColumnWidthOutlined />
+                <input
+                  id="default"
+                  type="radio"
+                  value="default"
+                  checked={config.buttonLayout === 'default'}
+                  onChange={(e) => {
+                    setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
+                  }}
+                />
+              </label>
+              <label htmlFor="full-width">
+                <ColumnHeightOutlined />
+                <input
+                  id="full-width"
+                  type="radio"
+                  value="full-width"
+                  checked={config.buttonLayout === 'full-width'}
+                  onChange={(e) => {
+                    setConfig(c => updateAnnotationButtonLayout(c, e.target.value as AnnotationButtonLayoutType));
+                  }}
+                />
+              </label>
+            </div>
           </div>
-        </div>
-        <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor}>
-          {config.buttons.map(btnConf => {
-            const showHelpText = btnConf.type === 'prev' && config.buttonLayout === 'default';
-            const primaryColor = opts.primaryColor;
-            return (
-              <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor}>
-                <div className="a-head">
-                  <Tags.ABtnConf>
-                    <ATags.ABtn
-                      bg={opts.annotationBodyBackgroundColor}
-                      type="button"
-                      btnStyle={btnConf.style}
-                      color={primaryColor}
-                      size={btnConf.size}
-                      fontFamily={opts.annotationFontFamily}
-                      btnLayout={config.buttonLayout}
-                      borderRadius={opts.borderRadius}
-                    >
-                      {btnConf.text}
-                    </ATags.ABtn>
-                    { showHelpText && (
+          <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor}>
+            {config.buttons.map(btnConf => {
+              const showHelpText = btnConf.type === 'prev' && config.buttonLayout === 'default';
+              const primaryColor = opts.primaryColor;
+              return (
+                <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor}>
+                  <div className="a-head">
+                    <Tags.ABtnConf>
+                      <ATags.ABtn
+                        bg={opts.annotationBodyBackgroundColor}
+                        type="button"
+                        btnStyle={btnConf.style}
+                        color={primaryColor}
+                        size={btnConf.size}
+                        fontFamily={opts.annotationFontFamily}
+                        btnLayout={config.buttonLayout}
+                        borderRadius={opts.borderRadius}
+                      >
+                        {btnConf.text}
+                      </ATags.ABtn>
+                      { showHelpText && (
                       <Tags.BackBtnHelpText>Back button is displayed as <ArrowLeftOutlined /> </Tags.BackBtnHelpText>
-                    )}
-                  </Tags.ABtnConf>
-                  <Tags.ButtonSecCon>
-                    <Popover
-                      open={openConnectionPopover === btnConf.id && linkButtonVisible}
-                      onOpenChange={(newOpen: boolean) => {
-                        setIsUrlValid(true);
-                        if (newOpen) {
-                          const connectableAnnotations = props.getConnectableAnnotations(config.refId, btnConf.type);
-                          setConnectableAnns(connectableAnnotations);
-                          setOpenConnectionPopover(btnConf.id);
-                        } else {
-                          hideConnectionPopover();
-                        }
-                      }}
-                      trigger="click"
-                      placement={popoverPlacement}
-                      content={
-                        <div style={{
-                          fontSize: '1rem',
-                          width: '500px',
-                          height: activePopover === 'open' ? '20vh' : '55vh',
-                          transition: 'height 0.3s ease-in-out'
+                      )}
+                    </Tags.ABtnConf>
+                    <Tags.ButtonSecCon>
+                      <Popover
+                        open={openConnectionPopover === btnConf.id && linkButtonVisible}
+                        onOpenChange={(newOpen: boolean) => {
+                          setIsUrlValid(true);
+                          if (newOpen) {
+                            const connectableAnnotations = props.getConnectableAnnotations(config.refId, btnConf.type);
+                            setConnectableAnns(connectableAnnotations);
+                            setOpenConnectionPopover(btnConf.id);
+                          } else {
+                            hideConnectionPopover();
+                          }
                         }}
-                        >
-                          <div>
-                            Describe what will happen when the button is clicked
-                          </div>
-                          <Tabs
-                            defaultActiveKey="open"
-                            activeKey={activePopover}
-                            onTabClick={(e) => {
-                              setActivePopover(e as 'open' | 'navigate');
-                            }}
-                            className="typ-sm"
-                            size="small"
-                            items={[{
-                              key: 'open',
-                              label: 'Open a link',
-                              children: (
-                                <div>
-                                  <Tags.CTALinkInputCont>
-                                    <div
-                                      style={{ width: '100%' }}
-                                    >
-                                      <FableInput
-                                        label="Enter a link that would open in new tab"
-                                        defaultValue={
+                        trigger="click"
+                        placement={popoverPlacement}
+                        content={
+                          <div style={{
+                            fontSize: '1rem',
+                            width: '500px',
+                            height: activePopover === 'open' ? '20vh' : '55vh',
+                            transition: 'height 0.3s ease-in-out'
+                          }}
+                          >
+                            <div>
+                              Describe what will happen when the button is clicked
+                            </div>
+                            <Tabs
+                              defaultActiveKey="open"
+                              activeKey={activePopover}
+                              onTabClick={(e) => {
+                                setActivePopover(e as 'open' | 'navigate');
+                              }}
+                              className="typ-sm"
+                              size="small"
+                              items={[{
+                                key: 'open',
+                                label: 'Open a link',
+                                children: (
+                                  <div>
+                                    <Tags.CTALinkInputCont>
+                                      <div
+                                        style={{ width: '100%' }}
+                                      >
+                                        <FableInput
+                                          label="Enter a link that would open in new tab"
+                                          defaultValue={
                                               btnConf.hotspot && btnConf.hotspot.actionType === 'open'
                                                 ? btnConf.hotspot.actionValue
                                                 : ''
                                             }
-                                        onBlur={(e) => {
-                                          setIsUrlValid(true);
-                                          if (!canAddExternalLinkToBtn(btnConf)) {
-                                            props.setAlertMsg(
-                                              'Cannot add link as this button is already connected to an annotation'
-                                            );
-                                            return;
-                                          }
-                                          const trimmedValue = (e.target.value || '').trim();
-                                          let hostspotConfig: ITourEntityHotspot | null = null;
-                                          // If user has entered an empty string then we delete the hotspot
-                                          if (trimmedValue) {
-                                            const validUrl = getValidUrl(trimmedValue);
-                                            setIsUrlValid(Boolean(validUrl));
-                                            if (validUrl) {
-                                              hostspotConfig = {
-                                                type: 'an-btn',
-                                                on: 'click',
-                                                target: '$this',
-                                                actionType: 'open',
-                                                actionValue: validUrl,
-                                              };
+                                          onBlur={(e) => {
+                                            setIsUrlValid(true);
+                                            if (!canAddExternalLinkToBtn(btnConf)) {
+                                              props.setAlertMsg(
+                                                'Cannot add link as this button is already connected to an annotation'
+                                              );
+                                              return;
                                             }
-                                          }
-                                          const thisAntn = updateButtonProp(
-                                            config,
-                                            btnConf.id,
-                                            'hotspot',
-                                            hostspotConfig
-                                          );
-                                          setConfig(thisAntn);
-                                          amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
-                                        }}
-                                        style={{ marginRight: '1rem' }}
-                                      />
-                                    </div>
-                                    <Button
-                                      type="button"
-                                      intent="primary"
-                                      onClick={() => {
-                                        if (!isUrlValid) return;
-                                        hideConnectionPopover();
-                                      }}
-                                      style={{ borderRadius: '8px' }}
-                                    >Submit
-                                    </Button>
-                                  </Tags.CTALinkInputCont>
-                                  {!isUrlValid && (
-                                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
-                                    The url you have entered appears to be malformed. A correctly formed url would look like
-                                    &nbsp; <em>https://acme.com</em>
-                                  </p>
-                                  )}
-                                </div>
-                              )
-                            },
-                            ...(btnConf.type !== 'custom' ? [{
-                              key: 'navigate',
-                              label: 'Navigate to',
-                              children: (
-                                <Tags.NavigateToCon className={activePopover}>
-                                  {btnConf.hotspot === null
-                                    ? (
-                                      <div>
-                                        <GTags.Txt className="title">
-                                          {connectableAnns.length === 0
-                                            ? 'No annotations avialable to which we can connect'
-                                            : 'Select annotation to make a connection'}
-                                        </GTags.Txt>
-                                        <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
-                                          <Tags.ConnectableAnnCon
-                                            key={ann.refId}
-                                            onClick={() => {
-                                              const fromMain = `${props.screen.id}/${config.refId}`;
-                                              const toMain = `${ann.screen.id}/${ann.refId}`;
-                                              if (btnConf.type === 'next') {
-                                                props.updateConnection(fromMain, toMain);
-                                              } else {
-                                                props.updateConnection(toMain, fromMain);
+                                            const trimmedValue = (e.target.value || '').trim();
+                                            let hostspotConfig: ITourEntityHotspot | null = null;
+                                            // If user has entered an empty string then we delete the hotspot
+                                            if (trimmedValue) {
+                                              const validUrl = getValidUrl(trimmedValue);
+                                              setIsUrlValid(Boolean(validUrl));
+                                              if (validUrl) {
+                                                hostspotConfig = {
+                                                  type: 'an-btn',
+                                                  on: 'click',
+                                                  target: '$this',
+                                                  actionType: 'open',
+                                                  actionValue: validUrl,
+                                                };
                                               }
-                                              hideConnectionPopover();
-                                            }}
-                                          >
-                                            <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
-                                              <img
-                                                src={ann.screen.thumbnailUri.href}
-                                                alt={ann.displayText}
-                                                style={{ width: '140px', height: '100px' }}
-                                              />
-                                            </div>
-                                            <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
-                                          </Tags.ConnectableAnnCon>
-                                        ))}
-                                        </Tags.ConnectableAnnsCon>
-                                      </div>
-                                    )
-                                    : (
-                                      <div>
-                                        <iframe
-                                          src="https://help.sharefable.com/Editing-Demos/Reordering-the-Demo"
-                                          width="480"
-                                          height="500"
-                                          title="recording demo"
-                                          style={{
-                                            border: 'none',
-                                            margin: 'auto',
-                                            display: 'block'
+                                            }
+                                            const thisAntn = updateButtonProp(
+                                              config,
+                                              btnConf.id,
+                                              'hotspot',
+                                              hostspotConfig
+                                            );
+                                            setConfig(thisAntn);
+                                            amplitudeAnnotationEdited('add_link_to_cta', trimmedValue);
                                           }}
+                                          style={{ marginRight: '1rem' }}
                                         />
                                       </div>
+                                      <Button
+                                        type="button"
+                                        intent="primary"
+                                        onClick={() => {
+                                          if (!isUrlValid) return;
+                                          hideConnectionPopover();
+                                        }}
+                                        style={{ borderRadius: '8px' }}
+                                      >Submit
+                                      </Button>
+                                    </Tags.CTALinkInputCont>
+                                    {!isUrlValid && (
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
+                                      The url you have entered appears to be malformed. A correctly formed url would look like
+                                      &nbsp; <em>https://acme.com</em>
+                                    </p>
                                     )}
-                                </Tags.NavigateToCon>
-                              )
-                            }] : [])
-                            ]}
-                          />
-                        </div>
+                                  </div>
+                                )
+                              },
+                              ...(btnConf.type !== 'custom' ? [{
+                                key: 'navigate',
+                                label: 'Navigate to',
+                                children: (
+                                  <Tags.NavigateToCon className={activePopover}>
+                                    {btnConf.hotspot === null
+                                      ? (
+                                        <div>
+                                          <GTags.Txt className="title">
+                                            {connectableAnns.length === 0
+                                              ? 'No annotations avialable to which we can connect'
+                                              : 'Select annotation to make a connection'}
+                                          </GTags.Txt>
+                                          <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
+                                            <Tags.ConnectableAnnCon
+                                              key={ann.refId}
+                                              onClick={() => {
+                                                const fromMain = `${props.screen.id}/${config.refId}`;
+                                                const toMain = `${ann.screen.id}/${ann.refId}`;
+                                                if (btnConf.type === 'next') {
+                                                  props.updateConnection(fromMain, toMain);
+                                                } else {
+                                                  props.updateConnection(toMain, fromMain);
+                                                }
+                                                hideConnectionPopover();
+                                              }}
+                                            >
+                                              <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
+                                                <img
+                                                  src={ann.screen.thumbnailUri.href}
+                                                  alt={ann.displayText}
+                                                  style={{ width: '140px', height: '100px' }}
+                                                />
+                                              </div>
+                                              <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
+                                            </Tags.ConnectableAnnCon>
+                                          ))}
+                                          </Tags.ConnectableAnnsCon>
+                                        </div>
+                                      )
+                                      : (
+                                        <div>
+                                          <iframe
+                                            src="https://help.sharefable.com/Editing-Demos/Reordering-the-Demo"
+                                            width="480"
+                                            height="500"
+                                            title="recording demo"
+                                            style={{
+                                              border: 'none',
+                                              margin: 'auto',
+                                              display: 'block'
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                  </Tags.NavigateToCon>
+                                )
+                              }] : [])
+                              ]}
+                            />
+                          </div>
 
                       }
-                    >
-                      <div>
-                        <Tooltip
-                          overlayStyle={{ fontSize: '0.75rem' }}
-                          placement="topRight"
-                          title={
+                      >
+                        <div>
+                          <Tooltip
+                            overlayStyle={{ fontSize: '0.75rem' }}
+                            placement="topRight"
+                            title={
                             btnConf.hotspot
                               ? btnConf.hotspot.actionType === 'open'
                                 ? 'Already connected to external link'
                                 : 'Already connected to an annotation'
                               : 'No action defined for what would happen if user clicks this button'
                           }
-                        >
-                          <AntButton
-                            id={`${btnConf.id}`}
-                            style={{
-                              opacity: btnConf.hotspot === null ? '1' : '0.55',
-                              ...buttonSecStyle
-                            }}
-                            icon={
+                          >
+                            <AntButton
+                              id={`${btnConf.id}`}
+                              style={{
+                                opacity: btnConf.hotspot === null ? '1' : '0.55',
+                                ...buttonSecStyle
+                              }}
+                              icon={
                               btnConf.hotspot
                                 ? <LinkOutlined />
                                 : <DisconnectOutlined />
                             }
-                            type="text"
-                            size="small"
-                          />
-                        </Tooltip>
-                      </div>
-                    </Popover>
-                    {
+                              type="text"
+                              size="small"
+                            />
+                          </Tooltip>
+                        </div>
+                      </Popover>
+                      {
                       btnConf.type === 'custom' ? (
                         <Tooltip title="Remove button" overlayStyle={{ fontSize: '0.75rem' }}>
                           <AntButton
@@ -1105,24 +1140,24 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                         </Tooltip>
                       )
                     }
-                    <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
-                      <AntButton
-                        icon={<EditOutlined />}
-                        type="text"
-                        size="small"
-                        style={{
-                          color: '#bdbdbd',
-                          ...buttonSecStyle
-                        }}
-                        onClick={() => {
-                          if (btnEditing === btnConf.id) setBtnEditing('');
-                          else setBtnEditing(btnConf.id);
-                        }}
-                      />
-                    </Tooltip>
-                  </Tags.ButtonSecCon>
-                </div>
-                {btnConf.id === btnEditing && (
+                      <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
+                        <AntButton
+                          icon={<EditOutlined />}
+                          type="text"
+                          size="small"
+                          style={{
+                            color: '#bdbdbd',
+                            ...buttonSecStyle
+                          }}
+                          onClick={() => {
+                            if (btnEditing === btnConf.id) setBtnEditing('');
+                            else setBtnEditing(btnConf.id);
+                          }}
+                        />
+                      </Tooltip>
+                    </Tags.ButtonSecCon>
+                  </div>
+                  {btnConf.id === btnEditing && (
                   <div className="n-details">
                     <div style={commonActionPanelItemStyle}>
                       <div style={{ marginRight: '0.5rem' }}>Button style</div>
@@ -1195,24 +1230,26 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       />
                     </div>
                   </div>
-                )}
-              </Tags.AABtnCtrlLine>
-            );
-          })}
-        </Tags.BtnCtrlCon>
-        <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem' }}>
-          <GTags.DashedBtn
-            type="text"
-            className="fullWidth typ-reg"
-            icon={<PlusCircleFilled />}
-            onClick={() => {
-              amplitudeAnnotationEdited('add_new_cta', '');
-              setConfig(c => addCustomBtn(c));
-            }}
-            style={{ color: '#7567FF' }}
-          >
-            Add another CTA
-          </GTags.DashedBtn>
+                  )}
+                </Tags.AABtnCtrlLine>
+              );
+            })}
+          </Tags.BtnCtrlCon>
+          <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', marginTop: '0.5rem' }}>
+            <GTags.DashedBtn
+              type="text"
+              className="fullWidth typ-reg"
+              icon={<PlusCircleFilled />}
+              onClick={() => {
+                amplitudeAnnotationEdited('add_new_cta', '');
+                setConfig(c => addCustomBtn(c));
+              }}
+              style={{ color: '#7567FF' }}
+            >
+              Add another CTA
+            </GTags.DashedBtn>
+          </div>
+          {!ctaFeatureAvailable && <Upgrade subs={props.subs} />}
         </div>
       </ActionPanel>
       <ActionPanel
@@ -1622,6 +1659,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             </div>
           )}
       </GTags.BorderedModal>
+      <UpgradeModal
+        showUpgradePlanModal={showUpgradeModal}
+        setShowUpgradePlanModal={setShowUpgradeModal}
+        subs={props.subs}
+      />
     </Tags.AnotCrtPanelCon>
   );
 }

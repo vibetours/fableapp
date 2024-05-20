@@ -1,8 +1,9 @@
 import React from 'react';
 import { Tooltip } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, StarFilled } from '@ant-design/icons';
 import * as Tags from './styled';
 import * as GTags from '../../../../common-styled';
+import UpgradeIcon from '../../../upgrade/icon';
 
 interface Props {
   title: string;
@@ -10,9 +11,10 @@ interface Props {
   active?: boolean;
   onClick?: () => void;
   id?: string;
+  isFeatureRestircted?: boolean;
 }
 
-export default function TabItem({ title, active, onClick, helpText, id }: Props): JSX.Element {
+export default function TabItem({ title, active, onClick, helpText, id, isFeatureRestircted }: Props): JSX.Element {
   return (
     <Tags.TabItem onClick={onClick} id={id} className="typ-reg">
       <Tags.TabTitle active={active}>
@@ -25,6 +27,7 @@ export default function TabItem({ title, active, onClick, helpText, id }: Props)
           <div>
             {title}
           </div>
+          {isFeatureRestircted && <UpgradeIcon />}
           <Tooltip
             placement="bottomRight"
             title={

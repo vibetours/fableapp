@@ -1,9 +1,10 @@
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, StarFilled } from '@ant-design/icons';
 import React, { ReactElement, useState } from 'react';
 import { Tooltip } from 'antd';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import CaretOutlined from '../icons/caret-outlined';
+import UpgradeIcon from '../upgrade/icon';
 
 interface IProps {
   id?: string;
@@ -13,6 +14,8 @@ interface IProps {
   withGutter?: boolean;
   alwaysOpen?: boolean
   sectionActionElWhenOpen?: ReactElement
+  isFeatureRestricted?: boolean;
+  setShowUpgradeModal?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
@@ -23,7 +26,11 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
       {props.title && (
         <Tags.ActionPanelTitleCon
           id={props.id}
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            props.isFeatureRestricted
+              ? props.setShowUpgradeModal!(true)
+              : setCollapsed(!collapsed);
+          }}
           className={`typ-h2 ${collapsed ? '' : 'selected'}`}
         >
           <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
@@ -31,6 +38,7 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
               {props.icon ? (<>{props.icon}&nbsp;&nbsp;</>) : ''}
               {props.title}
             </div>
+            {props.isFeatureRestricted && <UpgradeIcon />}
             {props.helpText && (
               <Tooltip
                 placement="bottomRight"

@@ -3,9 +3,10 @@ import { connect } from 'react-redux';
 import { ITourLoaderData } from '@fable/common/dist/types';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import LoaderEditor from '../../component/loader-editor';
 import { recordLoaderData, startAutosavingLoader } from '../../action/creator';
+import { FeatureForPlan } from '../../plans';
 
 interface IDispatchProps {
     recordLoaderData: (tour: P_RespTour, loader: ITourLoaderData) => void;
@@ -18,15 +19,19 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 });
 
 interface IAppStateProps {
-    tourLoaderData: ITourLoaderData | null,
-    tour: P_RespTour | null,
-    isAutoSavingLoader: boolean,
+  tourLoaderData: ITourLoaderData | null,
+  tour: P_RespTour | null,
+  isAutoSavingLoader: boolean,
+  featureForPlan: FeatureForPlan | null,
+  subs: P_RespSubscription | null,
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tourLoaderData: state.default.tourLoaderData,
   tour: state.default.currentTour,
   isAutoSavingLoader: state.default.isAutoSavingLoader,
+  featureForPlan: state.default.featurForPlan,
+  subs: state.default.subs
 });
 
 interface IOwnProps {
@@ -49,12 +54,14 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
   render():JSX.Element {
     return (
       <LoaderEditor
+        subs={this.props.subs}
         data={this.props.tourLoaderData!}
         tour={this.props.tour!}
         closeEditor={this.props.closeEditor}
         recordLoaderData={this.props.recordLoaderData}
         isAutoSaving={this.props.isAutoSavingLoader}
         startAutosavingLoader={this.props.startAutosavingLoader}
+        featureForPlan={this.props.featureForPlan}
       />
     );
   }

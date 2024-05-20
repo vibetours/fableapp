@@ -8,7 +8,10 @@ import {
   JourneyData,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespTour, Responsiveness } from '@fable/common/dist/api-contract';
+import { RespTour, Responsiveness,
+  Plan as PaymentTermsPlan,
+  Interval as PaymentTermsInterval,
+} from '@fable/common/dist/api-contract';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
@@ -30,6 +33,7 @@ import { P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
+import { FeatureForPlan, PlanDetail, AnalyticsValue, AnnotationValue } from './plans';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -808,4 +812,119 @@ export function getMobileOperatingSystem(): 'Windows Phone' | 'Android' | 'iOS' 
 export const isLandscapeMode = (screenOrientation: OrientationType): boolean => {
   const isLandscape = screenOrientation === 'landscape-primary' || screenOrientation === 'landscape-secondary';
   return isLandscape;
+};
+
+function checkFeatureAvailable(test: PlanDetail['test'], value: PlanDetail['value'], currentValue?: number): boolean {
+  if (test === 'switch') {
+    if (value === 'on') {
+      return true;
+    }
+    return false;
+  }
+  if (test === 'text') {
+    if (typeof value !== 'object' || value.length === 0) {
+      return false;
+    }
+
+    if (AnalyticsValue.includes(value[0])) {
+      if (value.includes('advanced')) {
+        return true;
+      }
+      return false;
+    }
+
+    if (AnnotationValue.includes(value[0])) {
+      if (value.includes('video')) {
+        return true;
+      }
+      return false;
+    }
+  }
+  if (test === 'count' && currentValue) {
+    const operator = value.slice(0, 2) as string;
+    const number = value.slice(2) as string;
+    const numInInt = parseInt(number, 10);
+    if (operator === '<=') {
+      return currentValue <= numInInt;
+    } if (operator === '>=') {
+      return currentValue >= numInInt;
+    }
+  }
+  return true;
+}
+
+export const isFeatureAvailable = (
+  featureForPlan: FeatureForPlan | null,
+  feature: string,
+  currentValue?: number
+): boolean => {
+  if (!featureForPlan) {
+    return true;
+  }
+  const featureDetail = featureForPlan[feature];
+
+  if (!featureDetail) {
+    const err : Error = {
+      name: 'feature gate failed',
+      message: `plan ${feature} not available`
+    };
+    raiseDeferredError(err);
+    return true;
+  }
+  return checkFeatureAvailable(featureDetail.test, featureDetail.value, currentValue);
+};
+
+export const mapPlanIdAndIntervals = (
+  chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
+  chosenInterval: 'annual' | 'monthly' | 'lifetime',
+): {
+  plan: PaymentTermsPlan | null,
+  interval: PaymentTermsInterval | null,
+} => {
+  let plan: PaymentTermsPlan | null = null;
+  switch (chosenPlan.toUpperCase()) {
+    case 'SOLO':
+      plan = PaymentTermsPlan.SOLO;
+      break;
+    case 'STARTUP':
+      plan = PaymentTermsPlan.STARTUP;
+      break;
+
+    case 'BUSINESS':
+      plan = PaymentTermsPlan.BUSINESS;
+      break;
+
+    case 'LIFETIME':
+      // just a placeholder for api compatibility. license is used to determine the plan (or tier)
+      plan = PaymentTermsPlan.LIFETIME_TIER1;
+      break;
+
+    default:
+      plan = null;
+      break;
+  }
+
+  let interval: PaymentTermsInterval | null = null;
+  switch (chosenInterval.toUpperCase()) {
+    case 'ANNUAL':
+      interval = PaymentTermsInterval.YEARLY;
+      break;
+
+    case 'MONTHLY':
+      interval = PaymentTermsInterval.MONTHLY;
+      break;
+
+    case 'LIFETIME':
+      interval = PaymentTermsInterval.LIFETIME;
+      break;
+
+    default:
+      interval = null;
+      break;
+  }
+
+  return {
+    plan,
+    interval,
+  };
 };

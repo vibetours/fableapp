@@ -111,6 +111,11 @@ export const BodyCon = styled.div`
 
   scrollbar-color: var(--fable-scrollbar-color);
   scrollbar-width: thin;
+
+  .disabled {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+  }
 `;
 
 export const SidePanelCon = styled.aside`

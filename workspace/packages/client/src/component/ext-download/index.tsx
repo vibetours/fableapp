@@ -43,7 +43,7 @@ export function StepContainer({
                   icon={<ChromeOutlined />}
                   iconPlacement="left"
                 >
-                  Install Fable's Chrome Extension
+                  Install Chrome Extension
                 </Button>
               </div>
             ),

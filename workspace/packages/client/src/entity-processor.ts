@@ -1,4 +1,5 @@
 import {
+  Plan,
   RespCommonConfig,
   RespScreen,
   RespSubscription,
@@ -38,6 +39,7 @@ import {
 } from './types';
 import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
+import { FeatureForPlan, FeaturePerPlan, PlanDetail } from './plans';
 
 export function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
@@ -562,4 +564,53 @@ export function normalizeBackwardCompatibilityForBrandData(
     ...defaultSiteData,
     ...(tour.site || {})
   };
+}
+
+/*
+  This method merge the featurePerPlan and userSpecificOverridesPerPlan and create a FeatureForPlan object
+  which will store the detail for each feature according to users plan.
+  eg. {
+     no_of_demos: {
+        test: Test.COUNT,
+        value: '<=1',
+        plan: Plan.SOLO
+     },
+     no_of_creator: {
+      test: Test.COUNT,
+      value: '<=1',
+      plan: '*'
+     }
+  }
+*/
+export function mergeAndTransformFeaturePerPlan(
+  featurePerPlan: FeaturePerPlan,
+  userSpecificOverridesPerPlan : FeaturePerPlan,
+  plan: Plan
+): FeatureForPlan {
+  const newFeaturePerPlan: FeaturePerPlan = { ...featurePerPlan, ...userSpecificOverridesPerPlan };
+  const featureForPlan: FeatureForPlan = {};
+
+  for (const key in newFeaturePerPlan) {
+    if (newFeaturePerPlan[key]) {
+      let planFound = false;
+      let forRemainingPlan: PlanDetail | null = null;
+      const planDetails = newFeaturePerPlan[key].plans;
+
+      for (const planDetail of planDetails) {
+        if (planDetail.plan === plan) {
+          featureForPlan[key] = planDetail;
+          planFound = true;
+          break;
+        } else if (planDetail.plan === '*') {
+          forRemainingPlan = planDetail;
+        }
+      }
+
+      if (!planFound) {
+        featureForPlan[key] = forRemainingPlan!;
+      }
+    }
+  }
+
+  return featureForPlan;
 }

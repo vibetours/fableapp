@@ -13,7 +13,7 @@ import {
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { ITourDataOpts, JourneyData } from '@fable/common/dist/types';
-import { Button, Divider, Drawer, MenuProps, Table, Tooltip, Dropdown } from 'antd';
+import { Button, Divider, Drawer, Dropdown, MenuProps, Table } from 'antd';
 import { format } from 'd3-format';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -32,11 +32,24 @@ import * as GTags from '../../common-styled';
 import InteractionsTimeline from '../../component/analytics/interactions-timeline';
 import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 import Header from '../../component/header';
-import { P_RespTour } from '../../entity-processor';
+import Upgrade from '../../component/upgrade';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { FeatureForPlan } from '../../plans';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
-import { AnnInverseLookupIndex, AnnotationPerScreen, JourneyModuleWithAnns, LeadActivityData, LeadActivityWithTime } from '../../types';
-import { annotationInverseLookupIndex, flatten, getAnnotationsPerScreen, getJourneyWithAnnotationsNormalized } from '../../utils';
+import {
+  AnnInverseLookupIndex,
+  AnnotationPerScreen,
+  JourneyModuleWithAnns,
+  LeadActivityData,
+  LeadActivityWithTime
+} from '../../types';
+import {
+  annotationInverseLookupIndex,
+  getAnnotationsPerScreen,
+  getJourneyWithAnnotationsNormalized,
+  isFeatureAvailable
+} from '../../utils';
 import Bar from './bar';
 import Line from './line';
 import Funnel, { IFunnelDatum } from './sleeping-funnel';
@@ -85,11 +98,13 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   // orderedAnn: IAnnotationConfigWithLocation[];
+  subs: P_RespSubscription | null;
   org: RespOrg | null;
   allAnnotationsForTour: AnnotationPerScreen[];
   journey: JourneyData | null;
   isTourLoaded: boolean;
-  opts: ITourDataOpts | null
+  opts: ITourDataOpts | null;
+  featureForPlan: FeatureForPlan | null;
 }
 
 const enum LoadingStatus {
@@ -239,6 +254,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     principal: state.default.principal,
     journey: state.default.journey,
     isTourLoaded: state.default.tourLoaded,
+    featureForPlan: state.default.featurForPlan,
+    subs: state.default.subs
   };
 };
 interface IOwnProps {
@@ -547,7 +564,8 @@ interface IOwnStateProps {
   activeKey: ActiveTabKey,
   currentEmail: string | null,
   activityDetails: ActivityDetails,
-  ctaClickedForMail: Record<string, boolean>
+  ctaClickedForMail: Record<string, boolean>,
+  analyticsFeatureAvailable: boolean,
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
@@ -589,7 +607,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         timeSpentAcrossAllSessions: '',
         userClickedCTA: false
       },
-      ctaClickedForMail: {}
+      ctaClickedForMail: {},
+      analyticsFeatureAvailable: true
     };
   }
 
@@ -704,6 +723,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           });
         });
       }
+    }
+
+    if (this.props.featureForPlan !== prevProps.featureForPlan && this.props.featureForPlan) {
+      const isAvaliable = isFeatureAvailable(this.props.featureForPlan, 'analytics');
+      this.setState({ analyticsFeatureAvailable: isAvaliable });
     }
   }
 
@@ -985,7 +1009,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     />
                   </div>
                 </Tags.KPICon>
-                <Tags.KPICon style={{ border: '2px dashed #160245', flex: '1 1 auto' }}>
+                <Tags.KPICon
+                  style={{ border: '2px dashed #160245', flex: '1 1 auto' }}
+                  className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                >
                   <Tags.KPIHead>
                     <div className="val">{this.state.leadsData.uniqueEmailCount ?? 0}</div>
                     <div className="label">Leads Captured</div>
@@ -993,6 +1020,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   {this.state.leadsData.status !== LoadingStatus.Loaded && (
                     <div className="loader"><LoadingOutlined /></div>
                   )}
+                  {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
                 </Tags.KPICon>
                 <Tags.KPICon style={{ flex: '1 1 auto' }}>
                   <Tags.KPIHead>
@@ -1086,7 +1114,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   key: 'funnel-dropoff',
                   label: <>Funnel Drop off</>,
                   children: (
-                    <Tags.FunnelCon>
+                    <Tags.FunnelCon
+                      className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                    >
                       <Tags.KPICon style={{ height: '420px', justifyContent: 'unset', alignItems: 'unset' }} className="waldo">
                         <Tags.TabsWithVisibilityCtrl
                           tabBarGutter={8}
@@ -1126,7 +1156,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           />
                         </div>
                       </Tags.KPICon>
-
+                      {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
                     </Tags.FunnelCon>
                   )
                 },
@@ -1134,7 +1164,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   key: 'leads',
                   label: <>Lead Activity</>,
                   children: (
-                    <div style={{ minHeight: '50vh' }}>
+                    <div
+                      style={{ minHeight: '50vh' }}
+                      className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                    >
                       <p style={{
                         fontSize: '0.85rem',
                         padding: '0 1.5rem',
@@ -1237,6 +1270,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             </Tags.UserDataCon>
                           </div>
                         )}
+                      {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
                     </div>
                   )
                 }

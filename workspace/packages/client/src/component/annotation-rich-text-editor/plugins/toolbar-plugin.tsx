@@ -37,13 +37,17 @@ import {
   FontSizeOutlined,
   DownOutlined,
   FormOutlined,
-  LineHeightOutlined
+  LineHeightOutlined,
+  StarFilled
 } from '@ant-design/icons';
 import { Dropdown, Popover, Select, Tooltip } from 'antd';
 import { AnnotationFontSize } from '@fable/common/dist/types';
 import { BorderedModal } from '../../../common-styled';
 import Input from '../../input';
 import Button from '../../button';
+import UpgradeModal from '../../upgrade/upgrade-modal';
+import UpgradeIcon from '../../upgrade/icon';
+import { P_RespSubscription } from '../../../entity-processor';
 
 const LowPriority = 1;
 
@@ -225,14 +229,16 @@ interface ToolbarPluginProps {
     showModal: () => void;
     handleOk: () => void;
     handleCancel: () => void;
-  }
+  },
+  leadFormFeatureAvailable: boolean;
+  subs: P_RespSubscription | null;
 }
 
 export const INSERT_LEAD_FORM_COMMAND: LexicalCommand<string> = createCommand(
   'INSERT_LEAD_FORM_COMMAND',
 );
 
-export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : ReactElement {
+export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable, subs }: ToolbarPluginProps) : ReactElement {
   const [editor] = useLexicalComposerContext();
   const [activeEditor, setActiveEditor] = useState(editor);
   const toolbarRef = useRef(null);
@@ -241,6 +247,7 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
   const [isItalic, setIsItalic] = useState(false);
   const [fontSize, setFontSize] = useState<string>(AnnotationFontSize.normal);
   const [alignment, setAlignment] = useState<ElementFormatType>('left');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const fontSizeOptions = [
     {
@@ -421,13 +428,18 @@ export default function ToolbarPlugin({ modalControls }: ToolbarPluginProps) : R
       <Tooltip title="Add a lead form">
         <button
           type="button"
-          onClick={() => editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')}
+          onClick={() => {
+            leadFormFeatureAvailable
+              ? editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '') : setShowUpgradeModal(true);
+          }}
           className="toolbar-item"
           aria-label="Lead Form"
         >
-          <FormOutlined /> &nbsp; Lead Form
+          <FormOutlined /> &nbsp; Lead Form &nbsp;
+          {!leadFormFeatureAvailable && <UpgradeIcon />}
         </button>
       </Tooltip>
+      <UpgradeModal showUpgradePlanModal={showUpgradeModal} setShowUpgradePlanModal={setShowUpgradeModal} subs={subs} />
     </div>
   );
 }

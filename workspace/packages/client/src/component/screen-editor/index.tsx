@@ -99,6 +99,7 @@ import {
   RESP_MOBILE_SRN_WIDTH,
   doesBtnOpenALink,
   getAnnotationWithScreenAndIdx,
+  isFeatureAvailable,
   isTourResponsive,
 } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -112,6 +113,8 @@ import { UserGuideMsg } from '../../user-guides/types';
 import { UpdateScreenFn } from '../../action/creator';
 import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste } from './types';
 import FormatPasteOptions from './format-paste';
+import { FeatureForPlan } from '../../plans';
+import Upgrade from '../upgrade';
 
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
@@ -172,8 +175,6 @@ enum TabList {
 }
 
 interface IOwnProps {
-  setShowPaymentModal: (show: boolean) => void;
-  subs: P_RespSubscription | null;
   journey: JourneyData | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
@@ -196,6 +197,7 @@ interface IOwnProps {
   isScreenLoaded: boolean;
   onDeleteAnnotation?: (deletedAnnRid: string) => void;
   updateScreen: UpdateScreenFn;
+  subs: P_RespSubscription | null;
   newAnnPos: null | DestinationAnnotationPosition;
   resetNewAnnPos: ()=>void;
   onTourDataChange: TourDataChangeFn;
@@ -210,6 +212,7 @@ interface IOwnProps {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
+  featurePlan: FeatureForPlan | null;
 }
 
 const enum ElSelReqType {
@@ -1573,8 +1576,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         }
       ];
 
-    const shouldHideAEP = configOfParamsAnnId?.type === 'cover'
+    const shouldHideAEP = (configOfParamsAnnId?.type === 'cover' && this.state.activeTab === TabList.Annotations)
     || this.props.screen.type === ScreenType.Img || !this.state.selectedEl;
+
+    const editFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'personalize_demo');
+    const multiAnnFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'advanced_branching');
 
     return (
       <>
@@ -1728,11 +1734,14 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   active={this.state.activeTab === TabList.Edits}
                   onClick={() => this.handleTabOnClick(TabList.Edits)}
                   id="SE-guide-step-2"
+                  isFeatureRestircted={!editFeatureAvailable}
                 />
               </TabBar>
 
               <div style={{ height: '100%' }}>
-                <Tags.EditPanelSec style={{ height: '100%' }}>
+                <Tags.EditPanelSec style={{ height: '100%', position: 'relative' }}>
+                  {this.state.activeTab === TabList.Edits && !editFeatureAvailable && <Upgrade subs={this.props.subs} />}
+
                   {/* this is annotations timeline */}
                   {this.state.activeTab === TabList.Annotations && (
                   <div
@@ -1779,9 +1788,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         {this.showCreateDefaultAnnButton() && this.props.toAnnotationId && (
                           <Tags.CreateNewAnnotationBtn
                             className="typ-sm"
-                            onClick={() => this.createDefaultAnnotation('multi-ann')}
+                            onClick={() => multiAnnFeatureAvailable && this.createDefaultAnnotation('multi-ann')}
                           >
-                            <img src={NewMultiAnnotation} alt="new multi annotation" />
+                            <div className={multiAnnFeatureAvailable ? '' : 'upgrade-plan'}>
+                              {!multiAnnFeatureAvailable && <Upgrade scaleDown subs={this.props.subs} />}
+                              <img src={NewMultiAnnotation} alt="new multi annotation" />
+                            </div>
                             <p>New Multi Annotation</p>
                           </Tags.CreateNewAnnotationBtn>
                         )}
@@ -1923,8 +1935,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             children: (
                               <>
                                 <AnnotationCreatorPanel
-                                  setShowPaymentModal={this.props.setShowPaymentModal}
-                                  subs={this.props.subs}
                                   setAlertMsg={this.props.setAlert}
                                   opts={this.props.tourDataOpts}
                                   selectedEl={this.state.selectedEl}
@@ -1936,6 +1946,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   tour={this.props.tour}
                                   applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
                                   selectedHotspotEl={this.state.selectedHotspotEl}
+                                  subs={this.props.subs}
                                   selectedAnnReplaceEl={this.state.selectedAnnReplaceEl}
                                   selectedAnnotationCoords={this.state.selectedAnnotationCoords}
                                   setSelectionMode={(mode: 'annotation' | 'hotspot' | 'replace') => {
@@ -1981,6 +1992,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   }}
                                   updateConnection={this.props.updateConnection}
                                   elpathKey={this.props.elpathKey}
+                                  featurePlan={this.props.featurePlan}
                                 />
                                 <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
                               </>
@@ -1995,7 +2007,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
                   {/* this is edits panel */}
                   {this.state.activeTab === TabList.Edits && (
-                  <div style={{ paddingTop: '1rem' }}>
+                  <div style={{ paddingTop: '1rem' }} className={editFeatureAvailable ? '' : 'upgrade-plan'}>
                     {this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
