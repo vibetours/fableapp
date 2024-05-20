@@ -151,6 +151,7 @@ interface IProps {
   updateConnection: (fromMain: string, toMain: string) => void;
   elpathKey: ElPathKey;
   featurePlan: FeatureForPlan | null;
+  currScreenId: number;
 }
 
 const commonInputStyles: React.CSSProperties = {
@@ -369,19 +370,19 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   useEffect(() => {
     if (props.selectedAnnReplaceEl && domElPicker && showSelectElement) {
-      props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, config, 'delete', null);
 
       const newConfig = updateAnnotationTypeToDefault(config, domElPicker.elPath(props.selectedAnnReplaceEl!));
-      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, newConfig, 'upsert', null);
       setShowSelectElement(false);
       props.resetSelectedAnnotationElements();
     }
 
     if (props.selectedAnnotationCoords && showSelectElement) {
-      props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, config, 'delete', null);
 
       const newConfig = updateAnnotationTypeToDefault(config, props.selectedAnnotationCoords);
-      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, newConfig, 'upsert', null);
       setShowSelectElement(false);
       props.resetSelectedAnnotationElements();
     }
@@ -419,7 +420,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
         props.onDeleteAnnotation(config.refId);
         const result = deleteAnnotation(
-          { ...config, screenId: props.screen.id },
+          { ...config, screenId: props.currScreenId },
           props.allAnnotationsForTour,
           opts.main,
           true
@@ -459,9 +460,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
      * by deleting the current annotation and adding new annotation of type default
      */
     if (newType === 'cover') {
-      props.onAnnotationCreateOrChange(props.screen.id, config, 'delete', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, config, 'delete', null);
       const newConfig = updateAnnotationTypeToCover(config);
-      props.onAnnotationCreateOrChange(props.screen.id, newConfig, 'upsert', null);
+      props.onAnnotationCreateOrChange(props.currScreenId, newConfig, 'upsert', null);
     } else {
       setShowSelectElement(true);
       setConfig(c => updateAnnotationHideAnnotation(c, true));
@@ -502,7 +503,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   const videoAnn = isVideoAnnotation(config);
 
-  const qualifiedAnnotationId = `${props.screen.id}/${props.config.refId}`;
+  const qualifiedAnnotationId = `${props.currScreenId}/${props.config.refId}`;
 
   const hideConnectionPopover = (): void => {
     setOpenConnectionPopover('');
@@ -1029,7 +1030,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                             <Tags.ConnectableAnnCon
                                               key={ann.refId}
                                               onClick={() => {
-                                                const fromMain = `${props.screen.id}/${config.refId}`;
+                                                const fromMain = `${props.currScreenId}/${config.refId}`;
                                                 const toMain = `${ann.screen.id}/${ann.refId}`;
                                                 if (btnConf.type === 'next') {
                                                   props.updateConnection(fromMain, toMain);

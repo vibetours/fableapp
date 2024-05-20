@@ -74,7 +74,7 @@ export default function SidePanel(props: Props): JSX.Element {
           <p>Settings</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn
-          to="https://www.sharefable.com/get-a-demo"
+          to="https://www.sharefable.com/get-a-demo?ref=app_dashboard"
           target="_blank"
         >
           <CalendarOutlined />

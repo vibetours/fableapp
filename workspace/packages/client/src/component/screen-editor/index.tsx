@@ -73,7 +73,10 @@ import {
   IAnnotationConfigWithScreenId,
   updateAnnotationZId,
 } from '../annotation/annotation-config-utils';
-import { AnnotationSerialIdMap, addNewAnn } from '../annotation/ops';
+import {
+  AnnotationSerialIdMap,
+  addNewAnn,
+  getAnnotationByRefId as getAnnotationByRefIdWithScreenId } from '../annotation/ops';
 import { getAnnotationByRefId } from '../annotation/utils';
 import { AnnUpdateType } from '../annotation/types';
 import AEP from './advanced-element-picker';
@@ -1258,7 +1261,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   createAnnotationForTheFirstTime = (ann: IAnnotationConfig): void => {
     const opts = this.props.tourDataOpts || getDefaultTourOpts();
     opts.main = `${this.props.screen.id}/${ann.refId}`;
-    this.props.onAnnotationCreateOrChange(null, ann, 'upsert', opts);
+    this.props.onAnnotationCreateOrChange(this.props.screen.id, ann, 'upsert', opts);
   };
 
   createCoverAnnotationForTheFirstTime = (conf: IAnnotationConfig): void => {
@@ -1383,7 +1386,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           tx.start();
           const updates: Array<
           [
-            screenId: number | null,
+            screenId: number,
             config: IAnnotationConfig,
             actionType: 'upsert' | 'delete'
           ]
@@ -1887,7 +1890,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                                   for (const [key, value] of Object.entries(style)) {
                                                     (conf as any)[key] = value;
                                                   }
-                                                  this.props.onAnnotationCreateOrChange(null, conf, 'upsert', this.props.tourDataOpts);
+                                                  this.props.onAnnotationCreateOrChange(conf.screen.id, conf, 'upsert', this.props.tourDataOpts);
                                                   this.setState({ showFormatPastePopup: false });
                                                 }}
                                                 copyStyle={() => {
@@ -1957,7 +1960,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                     if (actionType === 'upsert') {
                                       this.setState({ selectedAnnotationId: conf.refId });
                                     }
-                                    this.props.onAnnotationCreateOrChange(null, conf, actionType, opts);
+                                    const screenId = configOfParamsAnnId.screen.id;
+                                    this.props.onAnnotationCreateOrChange(screenId, conf, actionType, opts);
                                   }}
                                   onDeleteAnnotation={(deletedAnnRid: string) => {
                                     this.props.onDeleteAnnotation && this.props.onDeleteAnnotation(deletedAnnRid);
@@ -1993,6 +1997,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   updateConnection={this.props.updateConnection}
                                   elpathKey={this.props.elpathKey}
                                   featurePlan={this.props.featurePlan}
+                                  currScreenId={configOfParamsAnnId.screen.id}
                                 />
                                 <SelectorComponent key={this.state.selectorComponentKey} userGuides={userGuides} />
                               </>

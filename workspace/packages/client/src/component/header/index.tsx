@@ -404,7 +404,7 @@ function Header(props: IOwnProps): JSX.Element {
                     }}
                   >
                     <a
-                      href="https://www.sharefable.com/get-a-demo"
+                      href="https://www.sharefable.com/get-a-demo?ref=app_canvas"
                       target="_blank"
                       rel="noreferrer"
                       style={{ textDecoration: 'none', color: 'white' }}

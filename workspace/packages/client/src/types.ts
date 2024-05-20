@@ -118,14 +118,14 @@ export type AnnotationPerScreen = { screen: P_RespScreen, annotations: IAnnotati
 
 export type TourDataChangeFn = (
   changeType: 'annotation-and-theme' | 'screen',
-  screenId: number | null,
+  screenId: number,
   changeObj: { config: IAnnotationConfig, opts?: ITourDataOpts | null, actionType: 'upsert' | 'delete' },
   tx?: Tx,
   isDefault?: boolean,
 ) => void;
 
 export type onAnnCreateOrChangeFn = (
-  screenId: number | null,
+  screenId: number,
   config: IAnnotationConfig,
   actionType: 'upsert' | 'delete',
   opts: ITourDataOpts | null,
