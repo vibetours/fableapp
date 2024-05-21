@@ -339,7 +339,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
-  const multiAnnFeatureAvailable = isFeatureAvailable(props.featurePlan, 'advanced_branching');
+  const multiAnnFeatureAvailable = isFeatureAvailable(props.featurePlan, 'multi_annontation');
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {

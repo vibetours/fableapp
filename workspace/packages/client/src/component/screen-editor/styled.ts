@@ -721,3 +721,8 @@ export const OneAndMultiBtn = styled.div<{more?: boolean}>`
     visibility: ${props => (props.more ? 'visible' : 'hidden')};
   }
 `;
+
+export const EditUpgradeBtnCon = styled.div`
+  position: relative; 
+  width: 115px;
+`;

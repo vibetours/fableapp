@@ -134,7 +134,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     this.repositionFlows(result.source.index, result.destination.index);
   }
 
-  advanceBranchingFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'advanced_branching');
+  modulesFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'modules');
 
   render():JSX.Element {
     return (
@@ -156,7 +156,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   Your buyer can choose which demo they want to see right from the UI.
                 </p>
               </div>
-              {!this.advanceBranchingFeatureAvailable ? (
+              {!this.modulesFeatureAvailable ? (
                 <div style={{ position: 'relative', height: '100px' }}>
                   <Upgrade subs={this.props.subs} />
                 </div>)
@@ -172,8 +172,8 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 )}
             </Tags.NoJourneyCon>
           ) : (
-            <Tags.EditorCon className={this.advanceBranchingFeatureAvailable ? '' : 'upgrade-plan'}>
-              {!this.advanceBranchingFeatureAvailable && <Upgrade subs={this.props.subs} />}
+            <Tags.EditorCon className={this.modulesFeatureAvailable ? '' : 'upgrade-plan'}>
+              {!this.modulesFeatureAvailable && <Upgrade subs={this.props.subs} />}
               <Tags.JourneyInnerCon>
                 <Input
                   label="Heading"

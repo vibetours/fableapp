@@ -250,6 +250,15 @@ interface IOwnStateProps {
   reselectedEl: HTMLElement | null;
   formatPasteStyle: StoredStyleForFormatPaste | null;
   showFormatPastePopup: boolean;
+  editFeaturesAvailable: EditFeaturesAvailable[]
+}
+
+enum EditFeaturesAvailable {
+  Blur = 'blur',
+  ShowHide = 'show_hide',
+  ReplaceImage = 'replace_image',
+  UpdateText = 'update_text',
+  UploadMask = 'upload_mask'
 }
 
 export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnStateProps> {
@@ -296,6 +305,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       reselectedEl: null,
       formatPasteStyle: getStoredStyleForFormatPasting(),
       showFormatPastePopup: false,
+      editFeaturesAvailable: []
     };
   }
 
@@ -730,6 +740,32 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       }
       return { selectedAnnotationId };
     });
+
+    if (this.props.featurePlan) {
+      this.handleEditsFeatureAvailable();
+    }
+  }
+
+  addAllEditsFeature(): void {
+    const arr = [];
+    for (const entry of Object.values(EditFeaturesAvailable)) {
+      arr.push(entry);
+    }
+    this.setState({ editFeaturesAvailable: arr });
+  }
+
+  handleEditsFeatureAvailable(): void {
+    const editsFeature = this.props.featurePlan!.edit_and_personalize_demo;
+    if (editsFeature) {
+      if (editsFeature.value.includes('*')) {
+        this.addAllEditsFeature();
+      } else {
+        const editFeaturesAvailable = editsFeature.value as EditFeaturesAvailable[];
+        this.setState({ editFeaturesAvailable });
+      }
+    } else {
+      this.addAllEditsFeature();
+    }
   }
 
   findPositionToAddAnnotation(): [IAnnotationConfig, DestinationAnnotationPosition, boolean] {
@@ -873,6 +909,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     ) {
       this.setState({ viewScale: 1 });
       this.props.setScreenMode(ScreenMode.DESKTOP);
+    }
+
+    if (this.props.featurePlan && prevProps.featurePlan !== this.props.featurePlan) {
+      this.handleEditsFeatureAvailable();
     }
   }
 
@@ -1027,118 +1067,150 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   getEditingCtrlForElType(
     type: EditTargetType,
     selectedEl: HTMLElement | null,
-    targetEl: HTMLElement | null
+    targetEl: HTMLElement | null,
+    editsFeaturesAvailable: string[]
   ): JSX.Element {
     if (!selectedEl) {
       return <></>;
     }
+    const isTextUpdateAvailable = editsFeaturesAvailable.includes(EditFeaturesAvailable.UpdateText);
 
     const CommonOptions = (
       <>
         <Tags.EditCtrlLI>
           <Tags.EditCtrlLabel className="typ-reg">Show Element</Tags.EditCtrlLabel>
-          <Switch
-            checkedChildren={<EyeOutlined />}
-            unCheckedChildren={<EyeInvisibleOutlined />}
-            defaultChecked={!!selectedEl && getComputedStyle(selectedEl).display !== 'none'}
-            size="small"
-            onChange={((t) => (checked) => {
-              const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = this.iframeElManager!.elPath(refEl);
-              const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
+          {
+          editsFeaturesAvailable.includes(EditFeaturesAvailable.ShowHide)
+            ? (
+              <Switch
+                checkedChildren={<EyeOutlined />}
+                unCheckedChildren={<EyeInvisibleOutlined />}
+                defaultChecked={!!selectedEl && getComputedStyle(selectedEl).display !== 'none'}
+                size="small"
+                onChange={((t) => (checked) => {
+                  const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+                  const path = this.iframeElManager!.elPath(refEl);
+                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
 
-              const savedOrigVal = t.getAttribute(attrName);
-              let newVal: string;
-              let origVal = savedOrigVal;
-              if (origVal === null) {
-                origVal = getComputedStyle(t).display;
-                t.setAttribute(attrName, origVal);
-              }
+                  const savedOrigVal = t.getAttribute(attrName);
+                  let newVal: string;
+                  let origVal = savedOrigVal;
+                  if (origVal === null) {
+                    origVal = getComputedStyle(t).display;
+                    t.setAttribute(attrName, origVal);
+                  }
 
-              if (checked) newVal = t.style.display = origVal;
-              else newVal = t.style.display = 'none';
+                  if (checked) newVal = t.style.display = origVal;
+                  else newVal = t.style.display = 'none';
 
-              this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
-              this.flushMicroEdits();
-              amplitudeScreenEdited('show_or_hide_el', checked);
-            })(selectedEl!)}
-          />
+                  this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
+                  this.flushMicroEdits();
+                  amplitudeScreenEdited('show_or_hide_el', checked);
+                })(selectedEl!)}
+              />
+            )
+            : (
+              <Tags.EditUpgradeBtnCon>
+                <Upgrade subs={this.props.subs} scaleDown />
+              </Tags.EditUpgradeBtnCon>
+            )
+          }
         </Tags.EditCtrlLI>
 
         <Tags.EditCtrlLI>
           <Tags.EditCtrlLabel className="typ-reg">Blur Element</Tags.EditCtrlLabel>
-          <Switch
-            checkedChildren={<EyeOutlined />}
-            unCheckedChildren={<EyeInvisibleOutlined />}
-            defaultChecked={
+          {
+          editsFeaturesAvailable.includes(EditFeaturesAvailable.Blur)
+            ? (
+              <Switch
+                checkedChildren={<EyeOutlined />}
+                unCheckedChildren={<EyeInvisibleOutlined />}
+                defaultChecked={
               !!selectedEl
               && ScreenEditor.getBlurValueFromFilter(getComputedStyle(selectedEl).filter) === 3
             }
-            onChange={((t) => (checked) => {
-              const filterStyle = getComputedStyle(t).filter;
-              const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-              const path = this.iframeElManager!.elPath(refEl);
-              const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
-              const origStrVal = refEl.getAttribute(attrName);
+                onChange={((t) => (checked) => {
+                  const filterStyle = getComputedStyle(t).filter;
+                  const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+                  const path = this.iframeElManager!.elPath(refEl);
+                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
+                  const origStrVal = refEl.getAttribute(attrName);
 
-              let oldFilterStr: string;
-              let newFilterStr: string;
-              let oldBlurValue: number;
-              let newBlurValue: number;
+                  let oldFilterStr: string;
+                  let newFilterStr: string;
+                  let oldBlurValue: number;
+                  let newBlurValue: number;
 
-              if (origStrVal === null) {
-                refEl.setAttribute(attrName, filterStyle);
-                oldBlurValue = ScreenEditor.getBlurValueFromFilter(filterStyle);
-                oldFilterStr = filterStyle;
-              } else {
-                oldBlurValue = ScreenEditor.getBlurValueFromFilter(origStrVal);
-                oldFilterStr = origStrVal;
-              }
+                  if (origStrVal === null) {
+                    refEl.setAttribute(attrName, filterStyle);
+                    oldBlurValue = ScreenEditor.getBlurValueFromFilter(filterStyle);
+                    oldFilterStr = filterStyle;
+                  } else {
+                    oldBlurValue = ScreenEditor.getBlurValueFromFilter(origStrVal);
+                    oldFilterStr = origStrVal;
+                  }
 
-              if (checked) {
-                newBlurValue = 3;
-                newFilterStr = ScreenEditor.updateBlurValueToFilter(oldFilterStr, newBlurValue);
-                t.style.filter = newFilterStr;
-              } else {
-                newBlurValue = oldBlurValue;
-                newFilterStr = oldFilterStr;
-                t.style.filter = oldFilterStr;
-              }
-              this.addToMicroEdit(path, ElEditType.Blur, [
-                getCurrentUtcUnixTime(),
-                oldBlurValue,
-                newBlurValue,
-                oldFilterStr,
-                newFilterStr,
-              ]);
-              this.flushMicroEdits();
-              amplitudeScreenEdited('blur_el', checked);
-            })(selectedEl!)}
-            size="small"
-          />
+                  if (checked) {
+                    newBlurValue = 3;
+                    newFilterStr = ScreenEditor.updateBlurValueToFilter(oldFilterStr, newBlurValue);
+                    t.style.filter = newFilterStr;
+                  } else {
+                    newBlurValue = oldBlurValue;
+                    newFilterStr = oldFilterStr;
+                    t.style.filter = oldFilterStr;
+                  }
+                  this.addToMicroEdit(path, ElEditType.Blur, [
+                    getCurrentUtcUnixTime(),
+                    oldBlurValue,
+                    newBlurValue,
+                    oldFilterStr,
+                    newFilterStr,
+                  ]);
+                  this.flushMicroEdits();
+                  amplitudeScreenEdited('blur_el', checked);
+                })(selectedEl!)}
+                size="small"
+              />
+            )
+            : (
+              <Tags.EditUpgradeBtnCon>
+                <Upgrade subs={this.props.subs} scaleDown />
+              </Tags.EditUpgradeBtnCon>
+            )
+          }
         </Tags.EditCtrlLI>
 
         {restrictCrtlType(selectedEl!, ['img'])
           && (
             <Tags.EditCtrlLI>
               <Tags.EditCtrlLabel className="typ-reg">Mask Element</Tags.EditCtrlLabel>
-              <button
-                onClick={() => this.setState({ showImageMaskUploadModal: true })}
-                type="button"
-                className="typ-ip"
-                style={{
-                  backgroundColor: '#DDD',
-                  border: '1px solid transparent',
-                  boxShadow: '0 2px #00000004',
-                  padding: '4px 15px',
-                  borderRadius: '2px',
-                  color: '#000000d9',
-                  borderColor: '#DDDDDD',
-                  cursor: 'pointer',
-                }}
-              >
-                Upload Mask
-              </button>
+              {
+              editsFeaturesAvailable.includes(EditFeaturesAvailable.UploadMask)
+                ? (
+                  <button
+                    onClick={() => this.setState({ showImageMaskUploadModal: true })}
+                    type="button"
+                    className="typ-ip"
+                    style={{
+                      backgroundColor: '#DDD',
+                      border: '1px solid transparent',
+                      boxShadow: '0 2px #00000004',
+                      padding: '4px 15px',
+                      borderRadius: '2px',
+                      color: '#000000d9',
+                      borderColor: '#DDDDDD',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Upload Mask
+                  </button>
+                )
+                : (
+                  <Tags.EditUpgradeBtnCon>
+                    <Upgrade subs={this.props.subs} scaleDown />
+                  </Tags.EditUpgradeBtnCon>
+                )
+              }
             </Tags.EditCtrlLI>
           )}
       </>
@@ -1150,10 +1222,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI>
               <Tags.EditCtrlLabel className="typ-reg">Replace image</Tags.EditCtrlLabel>
-              <UploadButton
-                accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                onChange={this.handleSelectedImageChange(selectedEl!)}
-              />
+              {
+                editsFeaturesAvailable.includes(EditFeaturesAvailable.ReplaceImage)
+                  ? (<UploadButton
+                      accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                      onChange={this.handleSelectedImageChange(selectedEl!)}
+                  />)
+                  : (
+                    <Tags.EditUpgradeBtnCon>
+                      <Upgrade subs={this.props.subs} scaleDown />
+                    </Tags.EditUpgradeBtnCon>
+                  )
+                }
             </Tags.EditCtrlLI>
             {CommonOptions}
           </Tags.EditCtrlCon>
@@ -1164,25 +1244,33 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
               <Tags.EditCtrlLabel className="typ-reg">Update Text</Tags.EditCtrlLabel>
-              <Tags.CtrlTxtEditBox
-                className="typ-ip"
-                defaultValue={targetEl?.textContent!}
-                autoFocus
-                onBlur={() => this.flushMicroEdits()}
-                onChange={((t) => (e) => {
-                  const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
-                  const path = this.iframeElManager!.elPath(refEl);
-                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
-                  let origVal = refEl.getAttribute(attrName);
-                  if (origVal === null) {
-                    origVal = t.textContent || '';
-                    refEl.setAttribute(attrName, origVal);
-                  }
-                  this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+              <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
+                <Tags.CtrlTxtEditBox
+                  className="typ-ip"
+                  defaultValue={targetEl?.textContent!}
+                  autoFocus={isTextUpdateAvailable}
+                  onBlur={() => this.flushMicroEdits()}
+                  onChange={((t) => (e) => {
+                    if (!isTextUpdateAvailable) return;
+                    const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
+                    const path = this.iframeElManager!.elPath(refEl);
+                    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+                    let origVal = refEl.getAttribute(attrName);
+                    if (origVal === null) {
+                      origVal = t.textContent || '';
+                      refEl.setAttribute(attrName, origVal);
+                    }
+                    this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
 
-                  t.textContent = e.target.value;
-                })(targetEl!)}
-              />
+                    t.textContent = e.target.value;
+                  })(targetEl!)}
+                  disabled={!isTextUpdateAvailable}
+                  style={{ filter: isTextUpdateAvailable ? '' : 'blur(5px)' }}
+                />
+                {!isTextUpdateAvailable && (
+                  <Upgrade subs={this.props.subs} />
+                )}
+              </div>
             </Tags.EditCtrlLI>
             {CommonOptions}
           </Tags.EditCtrlCon>
@@ -1195,30 +1283,39 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         ) {
           return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
         }
+
         return (
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
               <Tags.EditCtrlLabel className="typ-reg">Update Placeholder Text</Tags.EditCtrlLabel>
-              <Tags.CtrlTxtEditBox
-                className="typ-ip"
-                defaultValue={(targetEl as HTMLInputElement)?.placeholder}
-                autoFocus
-                onBlur={() => this.flushMicroEdits()}
-                onChange={((t) => (e) => {
-                  const path = this.iframeElManager!.elPath(t);
-                  const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Input}`;
-                  let origVal = t.getAttribute(attrName);
+              <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
+                <Tags.CtrlTxtEditBox
+                  className="typ-ip"
+                  defaultValue={(targetEl as HTMLInputElement)?.placeholder}
+                  autoFocus={isTextUpdateAvailable}
+                  onBlur={() => this.flushMicroEdits()}
+                  onChange={((t) => (e) => {
+                    if (!isTextUpdateAvailable) return;
+                    const path = this.iframeElManager!.elPath(t);
+                    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Input}`;
+                    let origVal = t.getAttribute(attrName);
 
-                  if (origVal === null) {
-                    origVal = (t as HTMLInputElement).placeholder;
-                    t.setAttribute(attrName, origVal);
-                  }
+                    if (origVal === null) {
+                      origVal = (t as HTMLInputElement).placeholder;
+                      t.setAttribute(attrName, origVal);
+                    }
 
-                  this.addToMicroEdit(path, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+                    this.addToMicroEdit(path, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value]);
 
-                  (t as HTMLInputElement).placeholder = e.target.value;
-                })(targetEl!)}
-              />
+                    (t as HTMLInputElement).placeholder = e.target.value;
+                  })(targetEl!)}
+                  disabled={!isTextUpdateAvailable}
+                  style={{ filter: isTextUpdateAvailable ? '' : 'blur(5px)' }}
+                />
+                {!isTextUpdateAvailable && (
+                  <Upgrade subs={this.props.subs} />
+                )}
+              </div>
             </Tags.EditCtrlLI>
             {CommonOptions}
           </Tags.EditCtrlCon>
@@ -1582,8 +1679,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const shouldHideAEP = (configOfParamsAnnId?.type === 'cover' && this.state.activeTab === TabList.Annotations)
     || this.props.screen.type === ScreenType.Img || !this.state.selectedEl;
 
-    const editFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'personalize_demo');
-    const multiAnnFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'advanced_branching');
+    const multiAnnFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'multi_annontation');
 
     return (
       <>
@@ -1737,14 +1833,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   active={this.state.activeTab === TabList.Edits}
                   onClick={() => this.handleTabOnClick(TabList.Edits)}
                   id="SE-guide-step-2"
-                  isFeatureRestircted={!editFeatureAvailable}
                 />
               </TabBar>
 
               <div style={{ height: '100%' }}>
                 <Tags.EditPanelSec style={{ height: '100%', position: 'relative' }}>
-                  {this.state.activeTab === TabList.Edits && !editFeatureAvailable && <Upgrade subs={this.props.subs} />}
-
                   {/* this is annotations timeline */}
                   {this.state.activeTab === TabList.Annotations && (
                   <div
@@ -2012,7 +2105,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
                   {/* this is edits panel */}
                   {this.state.activeTab === TabList.Edits && (
-                  <div style={{ paddingTop: '1rem' }} className={editFeatureAvailable ? '' : 'upgrade-plan'}>
+                  <div style={{ paddingTop: '1rem' }}>
                     {this.props.screen.type === ScreenType.SerDom && (
                       <>
                         <FocusBubble diameter={12} style={{ marginLeft: '12px', marginTop: '4px' }} />
@@ -2061,7 +2154,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         <Tags.EditTabCon style={{ margin: '0 1rem 1rem 1rem' }}>
                           {/* this show the edit controls like toggles for blur/hide
                       and textarea for changing text content */}
-                          {this.getEditingCtrlForElType(this.state.editTargetType, this.state.selectedEl, this.state.targetEl)}
+                          {this.getEditingCtrlForElType(this.state.editTargetType, this.state.selectedEl, this.state.targetEl, this.state.editFeaturesAvailable)}
                         </Tags.EditTabCon>
 
                         {/* this is edits list */}
