@@ -45,7 +45,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   principal: state.default.principal,
   org: state.default.org,
-  featureForPlan: state.default.featurForPlan
+  featureForPlan: state.default.featureForPlan
 });
 
 interface IOwnProps {

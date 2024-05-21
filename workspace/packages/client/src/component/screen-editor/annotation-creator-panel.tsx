@@ -533,7 +533,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
 
   // TODO: We can add one more variable in featureForPlan wich
   // will store isFeatureAvailable so its calculated one time only.
-  const ctaFeatureAvailable = isFeatureAvailable(props.featurePlan, 'cta_buttons');
+  // const ctaFeatureAvailable = isFeatureAvailable(props.featurePlan, 'cta_buttons');
   const leadFormFeatureAvailable = isFeatureAvailable(props.featurePlan, 'custom_lead_form');
   const isVideoFeatureAvailable = isFeatureAvailable(props.featurePlan, 'annotation');
   const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
@@ -850,10 +850,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         id="buttons-panel"
         title="CTAs"
         icon={<img src={ButtonIcon} alt="" />}
-        isFeatureRestricted={!ctaFeatureAvailable}
+        // isFeatureRestricted={!ctaFeatureAvailable}
         setShowUpgradeModal={setShowUpgradeModal}
       >
-        <div className={ctaFeatureAvailable ? '' : 'upgrade-plan'}>
+        <div>
+          {/* <div className={ctaFeatureAvailable ? '' : 'upgrade-plan'}> */}
           <div style={commonActionPanelItemStyle}>
             <div>Button Layout</div>
             <div style={{ padding: '0.3rem 0' }}>
@@ -1250,7 +1251,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               Add another CTA
             </GTags.DashedBtn>
           </div>
-          {!ctaFeatureAvailable && <Upgrade subs={props.subs} />}
+          {/* {!ctaFeatureAvailable && <Upgrade subs={props.subs} />} */}
         </div>
       </ActionPanel>
       <ActionPanel

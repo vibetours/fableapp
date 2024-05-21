@@ -368,3 +368,11 @@ export const AntCollapse = styled(Collapse)`
     padding-inline-start: 0px !important;
   }
 `;
+
+export const DomainRestrictCon = styled.div`
+  margin: 1rem 0px 0.25rem;
+  background: #fedf64;
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 4px;
+`;

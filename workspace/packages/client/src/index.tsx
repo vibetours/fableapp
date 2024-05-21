@@ -15,6 +15,7 @@ import Player from './container/player';
 import PreviewForCta from './container/preview-for-cta';
 import RedirectFromP from './container/redirect-from-p';
 import { USER_ONBOARDING_ROUTE } from './container/user-onboarding';
+import ErrorBoundary from './component/error-boundary';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -99,217 +100,58 @@ const urlSearchParams = new URLSearchParams(window.location.search);
 const staging = !!urlSearchParams.get('staging');
 const router = createBrowserRouter([
   {
-    path: '/',
-    element: <Navigate to="/demos" />
-  },
+    path: '',
+    errorElement: <ErrorBoundary />,
+    children: [
+      {
+        path: '/',
+        element: <Navigate to="/demos" />
+      },
 
-  { path: '/onboarding',
-    async lazy() {
-      const Onboarding = await import('./container/ext-onboarding').then(module => module.default);
-      return { Component: Onboarding };
-    },
-    children: [
-      {
-        path: 'extension-installed',
+      { path: '/onboarding',
         async lazy() {
-          const PinExt = await import('./component/ext-onboarding/pages/pin-ext').then(module => module.default);
-          return { Component: () => <PinExt title="Onboarding - Extension installed | Fable" /> };
-        }
-      },
-      {
-        path: 'go-to-app',
-        async lazy() {
-          const ProductTours = await import('./component/ext-onboarding/pages/product-tours')
-            .then(module => module.default);
-          return { Component: () => <ProductTours title="Onboarding - Go to the app | Fable" /> };
-        }
-      }
-    ]
-  },
-  {
-    path: '/aboutblank',
-    element: <div />
-  },
-  {
-    path: '/tours',
-    element: <Navigate to="/demos" />
-  },
-  {
-    path: 'form/:formId',
-    async lazy() {
-      const Form = await import('./container/form').then(module => module.default);
-      return { Component: Form };
-    },
-  },
-  {
-    path: 'embed/tour/:tourId',
-    element: <Player staging={staging} title="Fable" />,
-    children: [
-      {
-        path: ':screenRid',
-        element: <Outlet />,
+          const Onboarding = await import('./container/ext-onboarding').then(module => module.default);
+          return { Component: Onboarding };
+        },
         children: [
           {
-            path: ':annotationId',
-            element: <Outlet />,
+            path: 'extension-installed',
+            async lazy() {
+              const PinExt = await import('./component/ext-onboarding/pages/pin-ext').then(module => module.default);
+              return { Component: () => <PinExt title="Onboarding - Extension installed | Fable" /> };
+            }
+          },
+          {
+            path: 'go-to-app',
+            async lazy() {
+              const ProductTours = await import('./component/ext-onboarding/pages/product-tours')
+                .then(module => module.default);
+              return { Component: () => <ProductTours title="Onboarding - Go to the app | Fable" /> };
+            }
           }
         ]
       },
-    ]
-  },
-  {
-    path: 'embed/demo/:tourId',
-    element: <Player staging={staging} title="Fable" />,
-    children: [
       {
-        path: ':screenRid',
-        element: <Outlet />,
+        path: '/aboutblank',
+        element: <div />
+      },
+      {
+        path: '/tours',
+        element: <Navigate to="/demos" />
+      },
+      {
+        path: 'form/:formId',
+        async lazy() {
+          const Form = await import('./container/form').then(module => module.default);
+          return { Component: Form };
+        },
+      },
+      {
+        path: 'embed/tour/:tourId',
+        element: <Player staging={staging} title="Fable" />,
         children: [
           {
-            path: ':annotationId',
-            element: <Outlet />,
-          }
-        ]
-      },
-    ]
-  },
-  {
-    path: 'p/tour/:tourId',
-    element: <RedirectFromP />,
-    children: [
-      {
-        path: ':screenRid',
-        element: <Outlet />,
-        children: [
-          {
-            path: ':annotationId',
-            element: <Outlet />,
-          }
-        ]
-      },
-    ]
-  },
-  {
-    path: 'p/demo/:tourId',
-    element: <RedirectFromP />,
-    children: [
-      {
-        path: ':screenRid',
-        element: <Outlet />,
-        children: [
-          {
-            path: ':annotationId',
-            element: <Outlet />,
-          }
-        ]
-      },
-    ]
-  },
-  {
-    path: '/live/demo/:tourId',
-    element: <PreviewForCta title="Fable" />
-  },
-  {
-    path: 'preptour',
-    async lazy() {
-      const PrepTour = await import('./container/create-tour/prep-tour').then(module => module.default);
-      return { Component: () => <PrepTour title="Creating demo | Fable" /> };
-    },
-  },
-  {
-    path: 'invite/:id',
-    async lazy() {
-      const Invite = await import('./container/invite').then(module => module.default);
-      return { Component: () => <Invite /> };
-    },
-  },
-  {
-    path: 'aslp',
-    async lazy() {
-      const AppSumoLandingPage = await import('./container/appsumo-landing-page').then(module => module.default);
-      return { Component: () => <AppSumoLandingPage title="Fable <> AppSumo" /> };
-    }
-  },
-  {
-    path: '/',
-    async lazy() {
-      const ProtectedRoutes = await import('./container/protected-routes').then(module => module.default);
-      return { Component: ProtectedRoutes };
-    },
-    children: [
-      {
-        path: 'join/org',
-        async lazy() {
-          const UserInvite = await import('./container/invite-user').then(module => module.default);
-          return { Component: () => <UserInvite /> };
-        },
-      },
-      {
-        path: 'integrations',
-        async lazy() {
-          const Integrations = await import('./container/integrations').then(module => module.default);
-          return { Component: () => <Integrations title="Integrations | Fable" /> };
-        },
-      },
-      {
-        path: 'settings',
-        async lazy() {
-          const Settings = await import('./container/settings').then(module => module.default);
-          return { Component: () => <Settings title="Settings | Fable" /> };
-        },
-      },
-      {
-        path: 'healthcheck',
-        async lazy() {
-          const HealthCheck = await import('./container/healthcheck').then(module => module.default);
-          return { Component: HealthCheck };
-        },
-      },
-      {
-        path: 'cb/auth',
-        async lazy() {
-          const AuthCB = await import('./container/auth-cb').then(module => module.default);
-          return { Component: AuthCB };
-        },
-      },
-      {
-        path: USER_ONBOARDING_ROUTE,
-        async lazy() {
-          const UserOnboarding = await import('./container/user-onboarding').then(module => module.default);
-          return { Component: UserOnboarding };
-        },
-      },
-      {
-        path: 'demos',
-        async lazy() {
-          const Tours = await import('./container/tours').then(module => module.default);
-          return { Component: () => <Tours title="Interactive demos | Fable" /> };
-        },
-      },
-      {
-        path: 'users',
-        async lazy() {
-          const UserManagement = await import('./container/user-management').then(module => module.default);
-          return { Component: () => <UserManagement title="User Management | Fable" /> };
-        },
-      },
-      {
-        path: 'billing',
-        async lazy() {
-          const Billing = await import('./container/billing').then(module => module.default);
-          return { Component: () => <Billing title="Billing & Subscription | Fable" /> };
-        }
-      },
-      {
-        path: 'tour/:tourId',
-        async lazy() {
-          const TourEditor = await import('./container/tour-editor').then(module => module.default);
-          return { Component: () => <TourEditor title="Demo editor | Fable" /> };
-        },
-
-        children: [
-          {
-            path: ':screenId',
+            path: ':screenRid',
             element: <Outlet />,
             children: [
               {
@@ -321,14 +163,11 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: 'demo/:tourId',
-        async lazy() {
-          const TourEditor2 = (await import('./container/tour-editor')).default;
-          return { Component: () => <TourEditor2 title="Demo editor | Fable" /> };
-        },
+        path: 'embed/demo/:tourId',
+        element: <Player staging={staging} title="Fable" />,
         children: [
           {
-            path: ':screenId',
+            path: ':screenRid',
             element: <Outlet />,
             children: [
               {
@@ -340,63 +179,230 @@ const router = createBrowserRouter([
         ]
       },
       {
-        path: 'a/demo/:tourId',
+        path: 'p/tour/:tourId',
+        element: <RedirectFromP />,
+        children: [
+          {
+            path: ':screenRid',
+            element: <Outlet />,
+            children: [
+              {
+                path: ':annotationId',
+                element: <Outlet />,
+              }
+            ]
+          },
+        ]
+      },
+      {
+        path: 'p/demo/:tourId',
+        element: <RedirectFromP />,
+        children: [
+          {
+            path: ':screenRid',
+            element: <Outlet />,
+            children: [
+              {
+                path: ':annotationId',
+                element: <Outlet />,
+              }
+            ]
+          },
+        ]
+      },
+      {
+        path: '/live/demo/:tourId',
+        element: <PreviewForCta title="Fable" />
+      },
+      {
+        path: 'preptour',
         async lazy() {
-          const Analytics = await import('./container/analytics').then(module => module.default);
-          return { Component: () => <Analytics /> };
+          const PrepTour = await import('./container/create-tour/prep-tour').then(module => module.default);
+          return { Component: () => <PrepTour title="Creating demo | Fable" /> };
+        },
+      },
+      {
+        path: 'invite/:id',
+        async lazy() {
+          const Invite = await import('./container/invite').then(module => module.default);
+          return { Component: () => <Invite /> };
+        },
+      },
+      {
+        path: 'aslp',
+        async lazy() {
+          const AppSumoLandingPage = await import('./container/appsumo-landing-page').then(module => module.default);
+          return { Component: () => <AppSumoLandingPage title="Fable <> AppSumo" /> };
         }
       },
       {
-        path: 'a/demo/:tourId/:activeKey',
+        path: '/',
         async lazy() {
-          const Analytics = await import('./container/analytics').then(module => module.default);
-          return { Component: () => <Analytics /> };
-        }
-      },
-      {
-        path: 'create-interactive-demo',
-        async lazy() {
-          const CreateTour = await import('./container/create-tour').then(module => module.default);
-          return { Component: () => <CreateTour title="Create interactive demo | Fable" /> };
+          const ProtectedRoutes = await import('./container/protected-routes').then(module => module.default);
+          return { Component: ProtectedRoutes };
         },
-      },
-      {
-        path: 'login',
-        async lazy() {
-          const Login = await import('./component/auth/login').then(module => module.default);
-          return { Component: () => <Login title="Login | Fable" /> };
-        },
-      },
-      {
-        path: 'logout',
-        async lazy() {
-          const Logout = await import('./component/auth/logout').then(module => module.default);
-          return { Component: () => <Logout title="Logout | Fable" /> };
-        },
-      },
-      {
-        path: 'select-org',
-        async lazy() {
-          const SelectOrg = await import('./component/auth/select-org').then(module => module.default);
-          return { Component: () => <SelectOrg /> };
-        },
-      },
-      {
-        path: 'preview/demo/:tourId',
-        async lazy() {
-          const PublishPreview = await import('./container/publish-preview').then(module => module.default);
-          return { Component: () => <PublishPreview title="Preview | Fable" /> };
-        },
-      },
-      {
-        path: 'preview/tour/:tourId',
-        async lazy() {
-          const PublishPreview = await import('./container/publish-preview').then(module => module.default);
-          return { Component: () => <PublishPreview title="Preview | Fable" /> };
-        },
+        children: [
+          {
+            path: 'join/org',
+            async lazy() {
+              const UserInvite = await import('./container/invite-user').then(module => module.default);
+              return { Component: () => <UserInvite /> };
+            },
+          },
+          {
+            path: 'integrations',
+            async lazy() {
+              const Integrations = await import('./container/integrations').then(module => module.default);
+              return { Component: () => <Integrations title="Integrations | Fable" /> };
+            },
+          },
+          {
+            path: 'settings',
+            async lazy() {
+              const Settings = await import('./container/settings').then(module => module.default);
+              return { Component: () => <Settings title="Settings | Fable" /> };
+            },
+          },
+          {
+            path: 'healthcheck',
+            async lazy() {
+              const HealthCheck = await import('./container/healthcheck').then(module => module.default);
+              return { Component: HealthCheck };
+            },
+          },
+          {
+            path: 'cb/auth',
+            async lazy() {
+              const AuthCB = await import('./container/auth-cb').then(module => module.default);
+              return { Component: AuthCB };
+            },
+          },
+          {
+            path: USER_ONBOARDING_ROUTE,
+            async lazy() {
+              const UserOnboarding = await import('./container/user-onboarding').then(module => module.default);
+              return { Component: UserOnboarding };
+            },
+          },
+          {
+            path: 'demos',
+            async lazy() {
+              const Tours = await import('./container/tours').then(module => module.default);
+              return { Component: () => <Tours title="Interactive demos | Fable" /> };
+            },
+          },
+          {
+            path: 'users',
+            async lazy() {
+              const UserManagement = await import('./container/user-management').then(module => module.default);
+              return { Component: () => <UserManagement title="User Management | Fable" /> };
+            },
+          },
+          {
+            path: 'billing',
+            async lazy() {
+              const Billing = await import('./container/billing').then(module => module.default);
+              return { Component: () => <Billing title="Billing & Subscription | Fable" /> };
+            }
+          },
+          {
+            path: 'tour/:tourId',
+            async lazy() {
+              const TourEditor = await import('./container/tour-editor').then(module => module.default);
+              return { Component: () => <TourEditor title="Demo editor | Fable" /> };
+            },
+
+            children: [
+              {
+                path: ':screenId',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: ':annotationId',
+                    element: <Outlet />,
+                  }
+                ]
+              },
+            ]
+          },
+          {
+            path: 'demo/:tourId',
+            async lazy() {
+              const TourEditor2 = (await import('./container/tour-editor')).default;
+              return { Component: () => <TourEditor2 title="Demo editor | Fable" /> };
+            },
+            children: [
+              {
+                path: ':screenId',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: ':annotationId',
+                    element: <Outlet />,
+                  }
+                ]
+              },
+            ]
+          },
+          {
+            path: 'a/demo/:tourId',
+            async lazy() {
+              const Analytics = await import('./container/analytics').then(module => module.default);
+              return { Component: () => <Analytics /> };
+            }
+          },
+          {
+            path: 'a/demo/:tourId/:activeKey',
+            async lazy() {
+              const Analytics = await import('./container/analytics').then(module => module.default);
+              return { Component: () => <Analytics /> };
+            }
+          },
+          {
+            path: 'create-interactive-demo',
+            async lazy() {
+              const CreateTour = await import('./container/create-tour').then(module => module.default);
+              return { Component: () => <CreateTour title="Create interactive demo | Fable" /> };
+            },
+          },
+          {
+            path: 'login',
+            async lazy() {
+              const Login = await import('./component/auth/login').then(module => module.default);
+              return { Component: () => <Login title="Login | Fable" /> };
+            },
+          },
+          {
+            path: 'logout',
+            async lazy() {
+              const Logout = await import('./component/auth/logout').then(module => module.default);
+              return { Component: () => <Logout title="Logout | Fable" /> };
+            },
+          },
+          {
+            path: 'select-org',
+            async lazy() {
+              const SelectOrg = await import('./component/auth/select-org').then(module => module.default);
+              return { Component: () => <SelectOrg /> };
+            },
+          },
+          {
+            path: 'preview/demo/:tourId',
+            async lazy() {
+              const PublishPreview = await import('./container/publish-preview').then(module => module.default);
+              return { Component: () => <PublishPreview title="Preview | Fable" /> };
+            },
+          },
+          {
+            path: 'preview/tour/:tourId',
+            async lazy() {
+              const PublishPreview = await import('./container/publish-preview').then(module => module.default);
+              return { Component: () => <PublishPreview title="Preview | Fable" /> };
+            },
+          }
+        ]
       }
-    ]
-  }
+    ] }
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);

@@ -254,7 +254,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     principal: state.default.principal,
     journey: state.default.journey,
     isTourLoaded: state.default.tourLoaded,
-    featureForPlan: state.default.featurForPlan,
+    featureForPlan: state.default.featureForPlan,
     subs: state.default.subs
   };
 };
@@ -913,6 +913,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             leftElGroups={[]}
             principal={this.props.principal}
             showCalendar
+            featureForPlan={this.props.featureForPlan}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

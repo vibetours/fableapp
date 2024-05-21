@@ -13,6 +13,7 @@ import ShareTourModal from './share-modal';
 import { IFRAME_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
 import { amplitudeShareModalOpen } from '../../amplitude';
+import { FeatureForPlan } from '../../plans';
 
 interface Props {
   selectedDisplaySize: DisplaySize;
@@ -24,6 +25,7 @@ interface Props {
   setShowShareModal: (showShareModal: boolean) => void;
   onSiteDataChange: (site: SiteData)=> void;
   minimalHeader: boolean;
+  featureForPlan: FeatureForPlan | null;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -112,6 +114,7 @@ export default function PublishOptions(props: Props): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
+          featureForPlan={props.featureForPlan}
         />}
       </Tags.Header>
     </>

@@ -31,6 +31,7 @@ import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
 import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
+import { FeatureForPlan } from '../../plans';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
@@ -68,6 +69,7 @@ interface IOwnProps {
   onSiteDataChange?: (site: SiteData) => void;
   showCalendar?: boolean;
   minimalHeader?: boolean;
+  featureForPlan?: FeatureForPlan | null;
 }
 
 export type HeaderProps = IOwnProps;
@@ -553,6 +555,7 @@ function Header(props: IOwnProps): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
+          featureForPlan={props.featureForPlan || null}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

@@ -97,7 +97,7 @@ export const initialState: {
   journey: JourneyData | null;
   defaultTourLoadingStatus: LoadingStatus;
   elpathKey: ElPathKey;
-  featurForPlan: FeatureForPlan | null;
+  featureForPlan: FeatureForPlan | null;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -142,7 +142,7 @@ export const initialState: {
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
   elpathKey: 'id',
-  featurForPlan: null
+  featureForPlan: null
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -536,7 +536,7 @@ export default function projectReducer(state = initialState, action: Action) {
     case ActionType.SET_FEATURE_FOR_PLAN: {
       const tAction = action as TFeaturePlan;
       const newState = { ...state };
-      newState.featurForPlan = tAction.featureForPlan;
+      newState.featureForPlan = tAction.featureForPlan;
 
       return newState;
     }

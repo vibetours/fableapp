@@ -310,7 +310,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
     manifestFileName: state.default.commonConfig?.manifestFileName || '',
     elpathKey: state.default.elpathKey,
-    featurePlan: state.default.featurForPlan
+    featurePlan: state.default.featureForPlan
   };
 };
 
@@ -703,7 +703,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 isJourneyCTASet: this.state.isJourneyCTASet,
                 lastAnnHasCTA: this.state.lastAnnHasCTA,
                 onSiteDataChange: this.onSiteDataChange,
-                showCalendar: true
+                showCalendar: true,
+                featureForPlan: this.props.featurePlan
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}

@@ -21,6 +21,7 @@ import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
 import { IFRAME_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
+import { FeatureForPlan } from '../../plans';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -51,13 +52,15 @@ interface IAppStateProps {
   org: RespOrg | null;
   principal: RespUser | null;
   isTourLoaded: boolean;
+  featureForPlan: FeatureForPlan | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
-  org: state.default.org
+  org: state.default.org,
+  featureForPlan: state.default.featureForPlan
 });
 
 interface IOwnProps {
@@ -202,11 +205,13 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
               onSiteDataChange={this.onSiteDataChange}
               minimalHeader={this.state.minimalHeader}
+              featureForPlan={this.props.featureForPlan}
             />}
             tourOpts={null}
             onSiteDataChange={this.onSiteDataChange}
             showCalendar
             minimalHeader={this.state.minimalHeader}
+            featureForPlan={this.props.featureForPlan}
           />
         </Tags.HeaderCon>
 

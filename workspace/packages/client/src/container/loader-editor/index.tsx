@@ -30,7 +30,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tourLoaderData: state.default.tourLoaderData,
   tour: state.default.currentTour,
   isAutoSavingLoader: state.default.isAutoSavingLoader,
-  featureForPlan: state.default.featurForPlan,
+  featureForPlan: state.default.featureForPlan,
   subs: state.default.subs
 });
 
