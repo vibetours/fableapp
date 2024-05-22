@@ -32,15 +32,19 @@ export const deser = (
       if (serNode.name === 'meta') {
         node = doc.createComment(`metafid/${serNode.attrs['f-id']}`);
       } else {
-        node = createHtmlElement(
-          serNode,
-          doc,
-          version,
-          newProps,
-          assetLoadingPromises,
-          shouldAddImgToAssetLoadingPromises
-        );
-        newProps.shadowParent = (node as HTMLElement).shadowRoot;
+        try {
+          node = createHtmlElement(
+            serNode,
+            doc,
+            version,
+            newProps,
+            assetLoadingPromises,
+            shouldAddImgToAssetLoadingPromises
+          );
+          newProps.shadowParent = (node as HTMLElement).shadowRoot;
+        } catch (e) {
+          raiseDeferredError(e as Error);
+        }
       }
       break;
 
