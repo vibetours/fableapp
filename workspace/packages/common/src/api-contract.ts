@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-19 20:15:29.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-22 17:42:03.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -54,8 +54,9 @@ export interface OnboardingTourForPrev {
 }
 
 export interface OrgInfo {
-    useCases: string[];
-    othersText: string;
+    useCases?: string[];
+    othersText?: string;
+    bet?: any;
 }
 
 export interface PaymentTerms {
@@ -696,6 +697,7 @@ export const enum NfEvents {
     NEW_ORG_CREATED = "NEW_ORG_CREATED",
     EBOOK_DOWNLOAD = "EBOOK_DOWNLOAD",
     RUN_INTEGRATION = "RUN_INTEGRATION",
+    NEW_USER_SIGNUP_WITH_SUBS = "NEW_USER_SIGNUP_WITH_SUBS",
 }
 
 export const enum Plan {

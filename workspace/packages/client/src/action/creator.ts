@@ -1467,7 +1467,9 @@ export function getFeaturePlan(subs: RespSubscription) {
 
     const data = await api<null, ApiResp<FeaturePerPlan>>('/featureplanmtx');
     const featurePerPlan = (data.data ? data.data : {});
-    const featurePlanForOrg = mergeAndTransformFeaturePerPlan(featurePerPlan, {}, plan);
+    const state = getState();
+    const org = state.default.org;
+    const featurePlanForOrg = mergeAndTransformFeaturePerPlan(featurePerPlan, org && org.info && org.info.bet && org.info.bet.featureGateOverride, plan);
     dispatch({
       type: ActionType.SET_FEATURE_FOR_PLAN,
       featureForPlan: featurePlanForOrg

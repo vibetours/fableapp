@@ -584,10 +584,10 @@ export function normalizeBackwardCompatibilityForBrandData(
 */
 export function mergeAndTransformFeaturePerPlan(
   featurePerPlan: FeaturePerPlan,
-  userSpecificOverridesPerPlan : FeaturePerPlan,
+  userSpecificOverridesPerPlan : FeaturePerPlan | null | undefined,
   plan: Plan
 ): FeatureForPlan {
-  const newFeaturePerPlan: FeaturePerPlan = { ...featurePerPlan, ...userSpecificOverridesPerPlan };
+  const newFeaturePerPlan: FeaturePerPlan = { ...featurePerPlan, ...(userSpecificOverridesPerPlan || {}) };
   const featureForPlan: FeatureForPlan = {};
 
   for (const key in newFeaturePerPlan) {
