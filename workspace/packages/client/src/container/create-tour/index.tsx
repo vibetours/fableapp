@@ -547,6 +547,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 >
                   <Button
+                    iconPlacement="left"
                     onClick={() => {
                       this.setState({
                         currentDisplayState: DisplayState.ShowNewTourOptions,
@@ -557,7 +558,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     icon={<PlusOutlined />}
                     style={{ paddingTop: '14px', paddingBottom: '14px' }}
                   >
-                    Create a new interactive demo
+                    Save as a new demo
                   </Button>
                   {(!this.props.allToursLoaded || this.props.tours.length !== 0)
                     && (
