@@ -109,7 +109,7 @@ jobs:
           rm -f static/css/*.map
         if: env.DEPLOY_ENV == 'prod'
 
-      - name: Zip Build Directory
+      - name: Zip Extension
         run: zip -r extension-${{ steps.version.outputs.version }}.zip build
         working-directory: workspace/packages/ext-tour
 
@@ -137,4 +137,24 @@ jobs:
 
       - name: Invalidation of cloudfront cache
         run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DIST_ID }} --paths '/*';
+
+      - name: Zip Client Directory
+        run: zip -r client-arch-latest.zip .
+        working-directory: workspace/packages/client/build
+        if: env.DEPLOY_ENV == 'prod'
+
+      - name: Upload the client zip to S3 for amplify to reuse
+        run: aws s3 cp client-arch-latest.zip s3://${{ vars.ARCHIVE_BUCKET_NAME }}/client-arch-latest.zip
+        working-directory: workspace/packages/client/build
+        if: env.DEPLOY_ENV == 'prod'
+
+      - name: Create deployments in amplify
+        run: |
+          ids="${{ vars.AMPLIFY_PROXY_DEPLOYMENT_FOR_CUSTOM_DOMAIN }}"
+          arr=(${ids//,/ })
+          for id in "${arr[@]}"; do
+            aws amplify start-deployment --app-id ${id} --branch-name master --source-url https://s3.us-east-2.amazonaws.com/${{ vars.ARCHIVE_BUCKET_NAME }}/client-arch-latest.zip --region us-east-2;
+          done
+        working-directory: workspace/packages/client/build
+        if: env.DEPLOY_ENV == 'prod'
 
