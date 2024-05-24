@@ -492,7 +492,27 @@ async function postProcessSerDocs(
         if (!frame.iriReferencedSvgEls) frame.iriReferencedSvgEls = {};
 
         if (node.props.base64Img) {
-          const originalBlobUrl = node.props.proxyUrlMap.src![0];
+          let originalBlobUrl = '';
+          let attr = '';
+
+          switch (node.name) {
+            case 'img':
+              if (node.props.proxyUrlMap.src) {
+                originalBlobUrl = node.props.proxyUrlMap.src[0];
+              }
+              attr = 'src';
+              break;
+            case 'image':
+              if (node.props.proxyUrlMap.href) {
+                originalBlobUrl = node.props.proxyUrlMap.href[0];
+              }
+              attr = 'href';
+              break;
+            default:
+              break;
+          }
+
+          if (!originalBlobUrl) continue;
 
           try {
             const binaryData = atob(node.props.base64Img);
@@ -507,7 +527,7 @@ async function postProcessSerDocs(
             const file = new File([blob], 'image.png', { type: 'image/png' });
             const urlString = await uploadFileToAws(file);
 
-            node.attrs.src = urlString;
+            node.attrs[attr] = urlString;
             node.props.base64Img = '';
           } catch (e) {
             raiseDeferredError(e as Error);
