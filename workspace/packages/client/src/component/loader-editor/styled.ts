@@ -36,12 +36,13 @@ export const CenteredLoaderLogoDiv = styled.div`
   }
 `;
 
-export const FullScreenCon = styled.div<{bg ?: string}>`
+export const FullScreenCon = styled.div<{bg ?: string, width?: number | null, height?: number | null}>`
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: ${props => (props.width ? `${props.width}px` : '100vw')};
+    height:  ${props => (props.height ? `${props.height}px` : '100vh')};
     z-index: 10;
     background-color: ${props => `${props.bg || 'transparent'}`};
 `;

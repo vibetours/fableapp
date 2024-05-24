@@ -19,7 +19,13 @@ export interface ScreenInfo {
         replacedWithImgScreen: boolean;
     } | null
     skipped: boolean;
+    vpd: Vpd | null;
 }
+
+export interface Vpd {
+    width: number;
+    height: number;
+  }
 
 export interface DBData {
     id: string;

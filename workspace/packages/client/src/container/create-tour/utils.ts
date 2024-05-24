@@ -26,7 +26,8 @@ import {
   RespProxyAsset,
   RespScreen,
   RespTour,
-  ScreenType
+  ScreenType,
+  TourSettings
 } from '@fable/common/dist/api-contract';
 import {
   createEmptyTourDataFile,
@@ -40,7 +41,7 @@ import {
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { FrameDataToBeProcessed, ScreenInfo } from './types';
+import { FrameDataToBeProcessed, ScreenInfo, Vpd } from './types';
 import { P_RespTour } from '../../entity-processor';
 import { getColorContrast } from '../../utils';
 import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
@@ -97,12 +98,21 @@ export async function saveAsTour(
 
 // --- tour creation util ---
 
-async function createNewTour(tourName: string): Promise<RespTour> {
+async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespTour> {
+  let tsettings: TourSettings | undefined;
+  if (vpd) {
+    tsettings = {
+      vpdHeight: vpd.height,
+      vpdWidth: vpd.width
+    };
+  }
+
   const { data } = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
     auth: true,
     body: {
       name: tourName,
       description: '',
+      settings: tsettings
     },
   });
   return data;
@@ -156,6 +166,7 @@ async function addAnnotationConfigs(
   const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
   let tourDataFile: TourData;
   let tourRid: string;
+  screenInfo = screenInfo.filter(screen => !screen.skipped);
 
   if (existingTour) {
     tourRid = existingTour.rid;
@@ -163,7 +174,11 @@ async function addAnnotationConfigs(
     if (!tourDataFile.opts) tourDataFile.opts = getDefaultTourOpts();
     if (!tourDataFile.diagnostics) tourDataFile.diagnostics = {};
   } else {
-    const tourData = await createNewTour(tourName);
+    let settings = null;
+    if (screenInfo.length > 0 && screenInfo[0].vpd) {
+      settings = screenInfo[0].vpd;
+    }
+    const tourData = await createNewTour(tourName, settings);
     tourRid = tourData.rid;
     tourDataFile = createEmptyTourDataFile();
   }
@@ -172,8 +187,6 @@ async function addAnnotationConfigs(
   const screensInTourPromises: Array<Promise<RespScreen>> = [];
 
   const grpId = nanoid();
-
-  screenInfo = screenInfo.filter(screen => !screen.skipped);
 
   for (let i = 0; i < screenInfo.length; i++) {
     const screen = screenInfo[i].info!;
@@ -294,7 +307,7 @@ async function processScreen(
   }
   const res = await postProcessSerDocs(proxyCache, frames, cookies, onProgress);
   if (res.skipped) {
-    return { info: null, skipped: true };
+    return { info: null, skipped: true, vpd: null };
   }
 
   const data = res.data!;
@@ -307,7 +320,8 @@ async function processScreen(
       rid: data.rid,
       replacedWithImgScreen: res.replacedWithImgScreen,
     },
-    skipped: res.skipped
+    skipped: res.skipped,
+    vpd: res.vpd
   };
 }
 
@@ -340,6 +354,7 @@ interface PostProcessSerDocsReturnType {
   elPath: string;
   replacedWithImgScreen: boolean;
   skipped: boolean;
+  vpd: Vpd | null;
 }
 
 async function postProcessSerDocs(
@@ -605,6 +620,7 @@ async function postProcessSerDocs(
 
   let data: RespScreen | null = null;
   let shouldReplaceWithImgScreen = true;
+  let vpd: Vpd | null = null;
   if (isMainFrameFound) {
     const mainFrameData = mainFrame!.data as SerDoc;
     try {
@@ -618,7 +634,10 @@ async function postProcessSerDocs(
         },
         docTree: mainFrameData.docTree!,
       };
-
+      vpd = {
+        height: mainFrameData.rect.height,
+        width: mainFrameData.rect.width,
+      };
       const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
         method: 'POST',
         body: {
@@ -637,13 +656,13 @@ async function postProcessSerDocs(
       sentryCaptureExceptionWithData('Error while processing screens data, will replace serdom screen with image screen');
       if (!shouldReplaceWithImgScreen) {
         // in this case the process call is successful but for some reason the screen has not been created
-        return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+        return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
       }
     }
     // }
   } else if (!imageData) {
     sentryCaptureExceptionWithData('Screen skipped, could not find image data when main frame was not found');
-    return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+    return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
   }
 
   if (shouldReplaceWithImgScreen && imageData) {
@@ -673,13 +692,13 @@ async function postProcessSerDocs(
     } catch (e) {
       raiseDeferredError(e as Error);
       sentryCaptureExceptionWithData('Screen skipped, could not replace with image screen');
-      return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true };
+      return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
     }
   }
 
   // TODO error handling with data
 
-  return { data, elPath, replacedWithImgScreen, skipped: false };
+  return { data, elPath, replacedWithImgScreen, skipped: false, vpd };
 
   function sentryCaptureExceptionWithData(errStr: string): void {
     sentryCaptureException(

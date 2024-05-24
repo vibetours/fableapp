@@ -917,7 +917,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         </Suspense>
         {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
           && (
-            <FullScreenLoader data={this.props.tourLoaderData} />
+            <FullScreenLoader
+              data={this.props.tourLoaderData}
+              vpd={this.props.tour!.settings}
+              isResponsive={this.props.tour!.responsive2 === Responsiveness.Responsive}
+            />
           )}
 
         {

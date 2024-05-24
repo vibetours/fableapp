@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-22 17:42:03.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-24 16:06:59.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -72,7 +72,7 @@ export interface ReqNewLog {
 }
 
 export interface RespFatTenantIntegration {
-    org: Org;
+    org: RespOrg;
     platformIntegration: PlatformIntegration;
     tenantIntegration: TenantIntegration;
 }
@@ -121,6 +121,11 @@ export interface TourManifest {
     name: string;
     url: string;
     screenAssets: ScreenAssets[];
+}
+
+export interface TourSettings {
+    vpdWidth: number;
+    vpdHeight: number;
 }
 
 export interface VideoTranscodingJobInfo extends JobProcessingInfo {
@@ -235,6 +240,7 @@ export interface ReqNewScreen {
 export interface ReqNewTour {
     name: string;
     description?: string;
+    settings?: TourSettings;
 }
 
 export interface ReqNfHook {
@@ -284,6 +290,12 @@ export interface ReqTourPropUpdate {
 
 export interface ReqTourRid {
     tourRid: string;
+}
+
+export interface ReqTransferTour {
+    email: string;
+    orgId: number;
+    rids: string[];
 }
 
 export interface ReqUpdateOrg {
@@ -442,6 +454,7 @@ export interface RespTour extends ResponseBase {
     site: { [index: string]: any };
     responsive: boolean;
     responsive2: Responsiveness;
+    settings?: TourSettings;
 }
 
 export interface RespTourAnnViews {
@@ -532,15 +545,6 @@ export interface Serializable {
 export interface MapSerializable extends Serializable {
 }
 
-export interface Org extends EntityBaseWithReadableId {
-    displayName: string;
-    thumbnail: string;
-    domain: string;
-    createdBy: User;
-    info: OrgInfo;
-    users: User[];
-}
-
 export interface PlatformIntegration extends EntityBase {
     type: PlatformIntegrationType;
     name: string;
@@ -572,22 +576,6 @@ export interface Lead360 extends EntityBase {
     lastInteractedAt: Date;
     completionPercentage: number;
     ctaClickRate: number;
-}
-
-export interface User extends EntityBase {
-    authId: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    avatar: string;
-    domainBlacklisted: boolean;
-    belongsToOrg: number;
-    active: boolean;
-    orgs: Org[];
-}
-
-export interface EntityBaseWithReadableId extends EntityBase {
-    rid: string;
 }
 
 export interface EntityBase {
