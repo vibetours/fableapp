@@ -5,6 +5,7 @@ import {
   RespSubscription,
   RespTour,
   RespTourWithScreens,
+  RespVanityDomain,
 } from '@fable/common/dist/api-contract';
 import {
   DEFAULT_ANN_DIMS,
@@ -139,6 +140,21 @@ export function groupScreens(screens: P_RespScreen[]): P_RespScreen[] {
     parentScreenArr.push(s);
   }
   return parentScreenArr.sort((m, n) => +n.updatedAt - +m.updatedAt);
+}
+
+/* ************************************************************************* */
+
+export interface P_RespVanityDomain extends RespVanityDomain {
+  displayableCreatedAt: string;
+}
+
+export function processRawVanityDomain(domain: RespVanityDomain): P_RespVanityDomain {
+  const createdAt = new Date(domain.createdAt);
+  return {
+    ...domain,
+    createdAt,
+    displayableCreatedAt: getDisplayableTime(createdAt)
+  };
 }
 
 /* ************************************************************************* */

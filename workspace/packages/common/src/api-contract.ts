@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-24 16:06:59.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-24 22:36:01.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -159,6 +159,10 @@ export interface ReqCobaltEvent {
 export interface ReqCopyScreen {
     parentId: number;
     tourRid: string;
+}
+
+export interface ReqCreateOrDeleteNewVanityDomain {
+    domainName: string;
 }
 
 export interface ReqCreateOrUpdateTenantIntegration {
@@ -502,6 +506,14 @@ export interface RespUser extends ResponseBase {
     orgs: RespOrg[];
 }
 
+export interface RespVanityDomain {
+    domainName: string;
+    createdAt: Date;
+    status: VanityDomainDeploymentStatus;
+    records: VanityDomainRecords[];
+    rejectionReason?: string;
+}
+
 export interface AuthInputMap {
     name: string;
     label: string;
@@ -578,10 +590,21 @@ export interface Lead360 extends EntityBase {
     ctaClickRate: number;
 }
 
+export interface VanityDomainRecords {
+    recordType: DomainRecordType;
+    recordDes: string;
+    recordKey: string;
+    recordValue: string;
+}
+
 export interface EntityBase {
     createdAt: Date;
     updatedAt: Date;
     id: number;
+}
+
+export const enum ConfigEntityType {
+    Org = "Org",
 }
 
 export const enum UnauthorizedReason {
@@ -723,4 +746,15 @@ export const enum UserOrgAssociation {
     Implicit = "Implicit",
     Explicit = "Explicit",
     NA = "NA",
+}
+
+export const enum VanityDomainDeploymentStatus {
+    Requested = "Requested",
+    InProgress = "InProgress",
+    Issued = "Issued",
+    Rejected = "Rejected",
+}
+
+export const enum DomainRecordType {
+    CNAME = "CNAME",
 }

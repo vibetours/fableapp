@@ -45,8 +45,10 @@ import {
   TElpath,
   TGetAllUserOrgs,
   TFeaturePlan,
+  TCustomDomain,
+  TAddCustomDomain,
 } from '../action/creator';
-import { P_RespScreen, P_RespTour, P_RespSubscription } from '../entity-processor';
+import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
 import { FeatureForPlan } from '../plans';
 
@@ -60,6 +62,7 @@ export const initialState: {
   lcOrgId: number | null;
   principalLoadingStatus: LoadingStatus;
   org: RespOrg | null;
+  vanityDomains: P_RespVanityDomain[] | null;
   subs: P_RespSubscription | null;
   orgsLoadingStatus: LoadingStatus;
   allScreensLoadingStatus: LoadingStatus;
@@ -106,6 +109,7 @@ export const initialState: {
   allScreens: [],
   allScreensLoadingStatus: LoadingStatus.NotStarted,
   tours: [],
+  vanityDomains: null,
   allToursLoadingStatus: LoadingStatus.NotStarted,
   principalLoadingStatus: LoadingStatus.NotStarted,
   orgsLoadingStatus: LoadingStatus.NotStarted,
@@ -224,6 +228,20 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.org = tAction.org;
       newState.orgsLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.GET_CUSTOM_DOMAINS: {
+      const tAction = action as TCustomDomain;
+      const newState = { ...state };
+      newState.vanityDomains = tAction.vanityDomains;
+      return newState;
+    }
+
+    case ActionType.ADD_CUSTOM_DOMAIN: {
+      const tAction = action as TAddCustomDomain;
+      const newState = { ...state };
+      newState.vanityDomains = (newState.vanityDomains || []).concat(tAction.vanityDomain);
       return newState;
     }
 

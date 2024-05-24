@@ -56,7 +56,6 @@ interface Props {
   onSiteDataChange?: (site: SiteData) => void;
   isPublishing: boolean;
   setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
-  featureForPlan: FeatureForPlan | null;
 }
 
 const enum SearchParamBy {
@@ -75,7 +74,6 @@ interface CTAInfoProps {
   disableEdit:boolean,
   tourOpts: ITourDataOpts | null,
   calledFrom: 'cta_share' | 'internal_share',
-  allowedNoDomainEmbed: number | null,
 }
 
 function CTAInfo({ iframeUrl,
@@ -88,7 +86,6 @@ function CTAInfo({ iframeUrl,
   disableEdit,
   tourOpts,
   calledFrom,
-  allowedNoDomainEmbed
 }: CTAInfoProps): JSX.Element {
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -306,11 +303,6 @@ function CTAInfo({ iframeUrl,
         Copy the following URL to and use it in your HTML/JavaScript to open it in a new tab
       </p>
       <UrlCodeShare url={iframeUrl} showOpenLinkButton openEventFrom={calledFrom} />
-      {Boolean(allowedNoDomainEmbed) && (
-        <Tags.DomainRestrictCon className="typ-sm">
-          You can embed this demo in {allowedNoDomainEmbed} domains.
-        </Tags.DomainRestrictCon>
-      )}
     </>
   );
 }
@@ -325,7 +317,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [searchParamsStr, setSearchParamsStr] = useState('');
   const [defValue, setDefValue] = useState('');
   const [localSite, setLocalSite] = useState(props.tour.site);
-  const [allowedNoDomainEmbed, setAllowedNoDomainEmbed] = useState<null | number>(null);
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -365,15 +356,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
       setLocalSite(newSiteData);
     }
   };
-
-  useEffect(() => {
-    if (props.featureForPlan && props.featureForPlan.domain_for_sharing) {
-      const featureDetail = props.featureForPlan.domain_for_sharing;
-      const number = featureDetail.value.slice(2) as string;
-      const numInInt = parseInt(number, 10);
-      setAllowedNoDomainEmbed(numInInt);
-    }
-  }, [props.featureForPlan]);
 
   return (
     <>
@@ -521,11 +503,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         src={createIframeSrc(`/${IFRAME_BASE_URL}${props.relativeUrl}${searchParamsStr}`)}
                         copyUrl={props.copyUrl}
                       />
-                      {Boolean(allowedNoDomainEmbed) && (
-                        <Tags.DomainRestrictCon className="typ-sm">
-                          You can embed this demo in {allowedNoDomainEmbed} domains.
-                        </Tags.DomainRestrictCon>
-                      )}
                     </div>
                   ),
                   style: collapseTabStyle
@@ -546,7 +523,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         disableEdit={props.onSiteDataChange === undefined}
                         tourOpts={props.tourOpts}
                         calledFrom="cta_share"
-                        allowedNoDomainEmbed={allowedNoDomainEmbed}
                       />
                     </div>
                   ),

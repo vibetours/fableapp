@@ -913,7 +913,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             leftElGroups={[]}
             principal={this.props.principal}
             showCalendar
-            featureForPlan={this.props.featureForPlan}
           />
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

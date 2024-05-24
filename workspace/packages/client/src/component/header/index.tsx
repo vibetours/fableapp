@@ -69,7 +69,6 @@ interface IOwnProps {
   onSiteDataChange?: (site: SiteData) => void;
   showCalendar?: boolean;
   minimalHeader?: boolean;
-  featureForPlan?: FeatureForPlan | null;
 }
 
 export type HeaderProps = IOwnProps;
@@ -555,7 +554,6 @@ function Header(props: IOwnProps): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
-          featureForPlan={props.featureForPlan || null}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

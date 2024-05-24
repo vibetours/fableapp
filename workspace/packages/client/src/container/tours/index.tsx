@@ -336,7 +336,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             principal={this.props.principal}
             org={this.props.org}
             leftElGroups={[]}
-            featureForPlan={this.props.featurePlan}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
@@ -395,7 +394,6 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 disable={index >= this.props.tours.length - 1 ? false
                                   : !this.state.createNewDemoFeatureAvailable}
                                 showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
-                                featureForPlan={this.props.featurePlan}
                               />
                             ))}
                           </GTags.BottomPanel>

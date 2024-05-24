@@ -24,7 +24,6 @@ import FableLogo from '../../assets/fable-rounded-icon.svg';
 import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
 import { amplitudeShareModalOpen } from '../../amplitude';
-import { FeatureForPlan } from '../../plans';
 
 interface Props {
   tour: P_RespTour;
@@ -38,11 +37,10 @@ interface Props {
   ) => void;
   disable: boolean;
   showUpgradeModal: ()=>void;
-  featureForPlan: FeatureForPlan | null;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal, featureForPlan
+  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
@@ -234,7 +232,6 @@ export default function TourCard({
         onSiteDataChange={onSiteDataChange}
         setIsPublishing={setIsPublishing}
         isPublishing={isPublishing}
-        featureForPlan={featureForPlan}
       />
     </>
   );

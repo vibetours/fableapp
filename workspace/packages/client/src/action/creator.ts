@@ -42,6 +42,8 @@ import {
   ReqUpdateOrg,
   Plan,
   Status,
+  RespVanityDomain,
+  ReqCreateOrDeleteNewVanityDomain,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -72,6 +74,8 @@ import {
   P_RespSubscription,
   P_RespTour,
   mergeAndTransformFeaturePerPlan,
+  P_RespVanityDomain,
+  processRawVanityDomain,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -280,6 +284,73 @@ export function assignOrgToUser(orgId: number) {
     });
 
     return Promise.resolve(data.data);
+  };
+}
+
+export interface TCustomDomain {
+  type: ActionType.GET_CUSTOM_DOMAINS;
+  vanityDomains: P_RespVanityDomain[] | null;
+}
+
+export function getCustomDomains() {
+  return async (
+    dispatch: Dispatch<TCustomDomain>,
+    getState: () => TState
+  ) => {
+    const state = getState();
+    if (state.default.vanityDomains === null) {
+      const data = await api<null, ApiResp<RespVanityDomain[]>>('/vanitydomains', {
+        auth: true,
+      });
+
+      dispatch({
+        type: ActionType.GET_CUSTOM_DOMAINS,
+        vanityDomains: data.data.map(d => processRawVanityDomain(d)),
+      });
+    }
+
+    return Promise.resolve();
+  };
+}
+
+export interface TAddCustomDomain {
+  type: ActionType.ADD_CUSTOM_DOMAIN;
+  vanityDomain: P_RespVanityDomain;
+}
+
+export function addNewCustomDomain(domainName: string) {
+  return async (dispatch: Dispatch<TAddCustomDomain>) => {
+    const data = await api<ReqCreateOrDeleteNewVanityDomain, ApiResp<RespVanityDomain>>('/vanitydomain', {
+      auth: true,
+      body: {
+        domainName,
+      }
+    });
+
+    dispatch({
+      type: ActionType.ADD_CUSTOM_DOMAIN,
+      vanityDomain: processRawVanityDomain(data.data),
+    });
+
+    return Promise.resolve();
+  };
+}
+
+export function removeCustomDomain(domainName: string) {
+  return async (dispatch: Dispatch<TCustomDomain>) => {
+    const data = await api<ReqCreateOrDeleteNewVanityDomain, ApiResp<RespVanityDomain[]>>('/delvanitydomains', {
+      auth: true,
+      body: {
+        domainName,
+      }
+    });
+
+    dispatch({
+      type: ActionType.GET_CUSTOM_DOMAINS,
+      vanityDomains: data.data.map(d => processRawVanityDomain(d)),
+    });
+
+    return Promise.resolve();
   };
 }
 

@@ -25,7 +25,6 @@ interface Props {
   setShowShareModal: (showShareModal: boolean) => void;
   onSiteDataChange: (site: SiteData)=> void;
   minimalHeader: boolean;
-  featureForPlan: FeatureForPlan | null;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -114,7 +113,6 @@ export default function PublishOptions(props: Props): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
-          featureForPlan={props.featureForPlan}
         />}
       </Tags.Header>
     </>
