@@ -30,6 +30,7 @@ function LoaderEditor(props: Props): JSX.Element {
   const [loaderData, setLoaderData] = useState<ITourLoaderData>(props.data);
   const [isLogoUrlEmpty, setIsLogoUrlEmpty] = useState(false);
   const [isLogoUrlChanged, setIsLogoUrlChanged] = useState(false);
+  const [inputHelpText, setInputHelpText] = useState(false);
   const logoLinkIpRef = useRef<HTMLInputElement>();
   const initialLogoLink = useRef('');
 
@@ -215,6 +216,34 @@ function LoaderEditor(props: Props): JSX.Element {
                     },
                   ]}
                   />
+                </div>
+              </Tags.FieldCon>
+              <Tags.FieldCon>
+                <Tags.FieldName className="typ-h2">
+                  <p>Loading text</p>
+                </Tags.FieldName>
+                <div>
+                  <Input
+                    label="Loading text"
+                    defaultValue={loaderData.loadingText}
+                    onFocus={(e) => {
+                      setInputHelpText(true);
+                    }}
+                    onBlur={(e) => {
+                      setInputHelpText(false);
+                      setLoaderData(prev => ({ ...prev, loadingText: e.target.value }));
+                    }}
+                  />
+                  {inputHelpText && (
+                  <div
+                    className="typ-sm"
+                    style={{
+                      margin: '0.5rem',
+                      opacity: '0.6'
+                    }}
+                  >Click outside to preview changed text
+                  </div>
+                  )}
                 </div>
               </Tags.FieldCon>
             </>

@@ -555,9 +555,12 @@ async function postProcessSerDocs(
               }
 
               try {
-                if (proxyAttr === 'style' || proxyAttr === 'cssRules') {
+                if (proxyAttr === 'style') {
                   const attrVal = node.attrs[proxyAttr];
                   if (attrVal) node.attrs[proxyAttr] = getAllPossibleCssUrlReplace(attrVal, pUrl, proxyiedUrl);
+                } else if (proxyAttr === 'cssRules') {
+                  const propsVal = node.props[proxyAttr];
+                  if (propsVal) node.props[proxyAttr] = getAllPossibleCssUrlReplace(propsVal, pUrl, proxyiedUrl);
                 } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
                   node.props.origHref = pUrl;
                   if (node.props.isInlineSprite) {
