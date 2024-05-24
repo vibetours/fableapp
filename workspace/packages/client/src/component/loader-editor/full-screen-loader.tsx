@@ -19,7 +19,7 @@ function FullScreenLoader(props: Props): JSX.Element {
   useEffect(() => {
     if (!props.isResponsive && props.vpd) {
       try {
-        const loaderCon = document.getElementById('fable-loadercon');
+        const loaderCon = document.getElementById('fable-loader-con');
         const parent = loaderCon!.parentElement;
         const origFrameViewPort = parent!.getBoundingClientRect();
 
