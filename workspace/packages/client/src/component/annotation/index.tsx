@@ -238,7 +238,7 @@ export class AnnotationContent extends React.PureComponent<{
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
                   bg={this.props.opts.annotationBodyBackgroundColor}
-                  className={`f-${generateCSSSelectorFromText(btnConf.text)}-btn`}
+                  className={`f-${generateCSSSelectorFromText(btnConf.text)}-btn f-ann-btn`}
                   idx={idx}
                   key={btnConf.id}
                   noPad={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default'}
@@ -280,10 +280,12 @@ export class AnnotationContent extends React.PureComponent<{
                 >
                   <span>{
                     btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? (
-                      <ArrowLeftOutlined style={{
-                        fontSize: '1.5rem',
-                        color: this.props.opts.primaryColor
-                      }}
+                      <ArrowLeftOutlined
+                        style={{
+                          fontSize: '1.5rem',
+                          color: this.props.opts.primaryColor
+                        }}
+                        className="f-back-btn-icon"
                       />) : btnConf.text
                     }
                   </span>

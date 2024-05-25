@@ -50,6 +50,17 @@ export const AnContent = styled.div<{
     }
   }
 
+  .f-progress {
+    color: var(--f-ann-font-color) !important;
+  }
+
+  .f-back-btn-icon {
+    svg {
+      fill: var(--f-ann-primary-color) !important;
+    }
+  }
+
+
   .LeadForm__container {
     display: block;
     cursor: pointer;
@@ -206,10 +217,15 @@ export const AnTextContent = styled.div`
     border-radius: ${(props: AnTextContentProps) => `${props.borderRadius}px`};
   }
 
-  p {
-    font-size: ${AnnotationFontSize.normal};
-    font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'};
-    color: ${(p: AnTextContentProps) => `${p.fontColor}`};
+  p, p.editor-paragraph {
+    font-size: ${AnnotationFontSize.normal} !important;
+    font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'} !important;
+    color: ${(p: AnTextContentProps) => `${p.fontColor}`} !important;
+  }
+
+  * {
+    color: inherit !important;
+    font-family: inherit !important;
   }
 `;
 
@@ -276,7 +292,14 @@ export const ABtn = styled.button`
   color: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
     return getColorContrast(p.bg) === 'dark' ? '#fff' : '#000';
-  }};
+  }} !important;
+  
+  &.f-ann-btn {
+    color: ${(p: BtnConf) => {
+    if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
+    return getColorContrast(p.bg) === 'dark' ? '#fff' : '#000';
+  }} !important;
+  }
 
   padding: ${(p: BtnConf) => {
     if (p.size === AnnotationButtonSize.Large) {
