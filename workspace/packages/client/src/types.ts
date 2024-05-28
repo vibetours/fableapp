@@ -351,6 +351,7 @@ export interface ScreenSizeData {
 export interface HiddenEls {
   displayNoneEls: HTMLElement[];
   visibilityHiddenEls: HTMLElement[];
+  opacityZeroEls: HTMLElement[];
 }
 
 export const enum ScreenMode {

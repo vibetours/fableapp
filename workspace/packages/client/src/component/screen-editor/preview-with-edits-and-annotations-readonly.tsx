@@ -106,7 +106,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
   private nestedFrames: Array<HTMLIFrameElement> = [];
 
-  private hiddenEls: HiddenEls = { displayNoneEls: [], visibilityHiddenEls: [] };
+  private hiddenEls: HiddenEls = { displayNoneEls: [], visibilityHiddenEls: [], opacityZeroEls: [] };
 
   constructor(props: IOwnProps) {
     super(props);
@@ -605,7 +605,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     && currScreen.rid !== this.props.screenRidOnWhichDiffsAreApplied!;
 
     undoMakeVisibleAllParentsInHierarchy(this.hiddenEls);
-    this.hiddenEls = { displayNoneEls: [], visibilityHiddenEls: [] };
+    this.hiddenEls = { displayNoneEls: [], visibilityHiddenEls: [], opacityZeroEls: [] };
 
     /**
      * If the annotation is on the same screen,

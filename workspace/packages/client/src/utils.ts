@@ -745,11 +745,13 @@ export function getDefaultSiteData(tour: RespTour): SiteData {
 
 const displayBlockStr = ';display:block';
 const visibilityVisibleStr = ';visibility:visible';
+const opacityOneStr = ';opacity:1';
 
 export const makeVisibleAllParentsInHierarchy = (element: HTMLElement): HiddenEls => {
   let parent: HTMLElement | null = element;
   const displayNoneEls: HTMLElement[] = [];
   const visibilityHiddenEls: HTMLElement[] = [];
+  const opacityZeroEls: HTMLElement[] = [];
   while (parent) {
     const computedStyle = getComputedStyle(parent);
     if (computedStyle.display === 'none') {
@@ -760,12 +762,17 @@ export const makeVisibleAllParentsInHierarchy = (element: HTMLElement): HiddenEl
       addInlineStyle(parent, visibilityVisibleStr);
       visibilityHiddenEls.push(parent);
     }
+    if (computedStyle.opacity === '0') {
+      addInlineStyle(parent, opacityOneStr);
+      opacityZeroEls.push(parent);
+    }
     parent = parent.parentElement;
   }
-  return { displayNoneEls, visibilityHiddenEls };
+  return { displayNoneEls, visibilityHiddenEls, opacityZeroEls };
 };
 
 export const undoMakeVisibleAllParentsInHierarchy = (hiddenEls: HiddenEls): void => {
+  hiddenEls.opacityZeroEls.forEach(el => removeInlineStyle(el, opacityOneStr));
   hiddenEls.visibilityHiddenEls.forEach(el => removeInlineStyle(el, visibilityVisibleStr));
   hiddenEls.displayNoneEls.forEach(el => removeInlineStyle(el, displayBlockStr));
 };
