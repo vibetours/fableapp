@@ -81,6 +81,7 @@ export interface ScreenData {
   version: string;
   vpd: CapturedViewPort;
   docTree: SerNode;
+  isHTML4: boolean;
 }
 
 export interface EditFile<T> {

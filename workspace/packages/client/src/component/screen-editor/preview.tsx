@@ -322,6 +322,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   };
 
   render(): JSX.Element {
+    const props = this.props.screenData.isHTML4 ? {} : { srcDoc: IFRAME_DEFAULT_DOC };
     return (
       <>
         <Tags.EmbedFrame
@@ -342,7 +343,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               this.props.innerRefs.forEach(r => r.current = ref);
             }
           }}
-          srcDoc={IFRAME_DEFAULT_DOC}
+          {...props}
         />
 
         {this.props.showWatermark && <LogoWatermark isHidden={this.props.hidden} watermarkRef={this.watermarkRef} />}

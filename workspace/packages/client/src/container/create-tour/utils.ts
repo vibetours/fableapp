@@ -653,6 +653,7 @@ async function postProcessSerDocs(
           w: mainFrameData.rect.width,
         },
         docTree: mainFrameData.docTree!,
+        isHTML4: !mainFrameData.isHTML5,
       };
       vpd = {
         height: mainFrameData.rect.height,
