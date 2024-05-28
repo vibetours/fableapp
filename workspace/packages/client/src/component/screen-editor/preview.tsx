@@ -327,7 +327,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       <>
         <Tags.EmbedFrame
           key={this.props.screen.rid}
-          src="about:blank"
+          // we added this because some html4 doc would not render properly across different machines
+          src={this.props.screenData.isHTML4 ? '/aboutblankhtml4.html' : 'about:blank'}
           title={this.props.screen.displayName}
           id={ROOT_EMBED_IFRAME_ID}
           className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
