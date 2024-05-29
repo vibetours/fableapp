@@ -18,7 +18,8 @@ import {
   ITourEntityHotspot,
   VideoAnnotationPositions,
   ScrollAdjustment,
-  ScrollAdjustmentType
+  ScrollAdjustmentType,
+  JourneyData
 } from '@fable/common/dist/types';
 import { Input, Popover, Tabs, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
 import {
@@ -117,10 +118,13 @@ import { FeatureForPlan } from '../../plans';
 import Upgrade from '../upgrade';
 import UpgradeModal from '../upgrade/upgrade-modal';
 import UpgradeIcon from '../upgrade/icon';
+import ConnectableAnns from './connectable-anns';
+import CustomBtnConnectableAnns from './custom-btn-connectable-anns';
 
 const { confirm } = Modal;
 
 interface IProps {
+  journey: JourneyData | null;
   screen: P_RespScreen,
   config: IAnnotationConfig,
   opts: ITourDataOpts,
@@ -1014,44 +1018,41 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                   </div>
                                 )
                               },
-                              ...(btnConf.type !== 'custom' ? [{
+                              {
                                 key: 'navigate',
                                 label: 'Navigate to',
                                 children: (
                                   <Tags.NavigateToCon className={activePopover}>
-                                    {btnConf.hotspot === null
+                                    {btnConf.hotspot === null || btnConf.type === 'custom'
                                       ? (
                                         <div>
-                                          <GTags.Txt className="title">
-                                            {connectableAnns.length === 0
-                                              ? 'No annotations avialable to which we can connect'
-                                              : 'Select annotation to make a connection'}
-                                          </GTags.Txt>
-                                          <Tags.ConnectableAnnsCon>{connectableAnns.map(ann => (
-                                            <Tags.ConnectableAnnCon
-                                              key={ann.refId}
-                                              onClick={() => {
-                                                const fromMain = `${props.currScreenId}/${config.refId}`;
-                                                const toMain = `${ann.screen.id}/${ann.refId}`;
-                                                if (btnConf.type === 'next') {
-                                                  props.updateConnection(fromMain, toMain);
-                                                } else {
-                                                  props.updateConnection(toMain, fromMain);
-                                                }
-                                                hideConnectionPopover();
-                                              }}
-                                            >
-                                              <div style={{ float: 'left', width: '140px', margin: '0 10px 5px 0' }}>
-                                                <img
-                                                  src={ann.screen.thumbnailUri.href}
-                                                  alt={ann.displayText}
-                                                  style={{ width: '140px', height: '100px' }}
-                                                />
-                                              </div>
-                                              <Tags.ConnectableAnnText>{ann.displayText}</Tags.ConnectableAnnText>
-                                            </Tags.ConnectableAnnCon>
-                                          ))}
-                                          </Tags.ConnectableAnnsCon>
+                                          <GTags.Txt className="title" />
+
+                                          {btnConf.type === 'custom' ? (
+                                            <CustomBtnConnectableAnns
+                                              setConfig={setConfig}
+                                              opts={props.opts}
+                                              journey={props.journey}
+                                              timeline={props.timeline}
+                                              config={config}
+                                              btnConf={btnConf}
+                                              hideConnectionPopover={hideConnectionPopover}
+                                            />
+                                          ) : (
+                                            <>
+                                              {connectableAnns.length === 0
+                                                ? 'No annotations avialable to which we can connect'
+                                                : 'Select annotation to make a connection'}
+                                              <ConnectableAnns
+                                                connectableAnns={connectableAnns}
+                                                currScreenId={props.currScreenId}
+                                                config={config}
+                                                btnConf={btnConf}
+                                                updateConnection={props.updateConnection}
+                                                hideConnectionPopover={hideConnectionPopover}
+                                              />
+                                            </>
+                                          )}
                                         </div>
                                       )
                                       : (
@@ -1071,7 +1072,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                       )}
                                   </Tags.NavigateToCon>
                                 )
-                              }] : [])
+                              }
                               ]}
                             />
                           </div>

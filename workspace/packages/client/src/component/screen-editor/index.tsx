@@ -2031,6 +2031,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             children: (
                               <>
                                 <AnnotationCreatorPanel
+                                  journey={this.props.journey}
                                   setAlertMsg={this.props.setAlert}
                                   opts={this.props.tourDataOpts}
                                   selectedEl={this.state.selectedEl}

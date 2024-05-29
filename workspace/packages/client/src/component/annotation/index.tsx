@@ -1469,7 +1469,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           return;
         }
 
-        if (type === 'custom' || !this.props.playMode) {
+        if ((type === 'custom' && btnConf.hotspot.actionType === 'open') || !this.props.playMode) {
           this.props.nav(
             btnConf.hotspot.actionValue,
             btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
@@ -1477,7 +1477,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           return;
         }
 
-        if ((btnConf.type === 'next' || btnConf.type === 'prev')
+        if ((btnConf.type === 'next' || btnConf.type === 'prev' || btnConf.type === 'custom')
           && btnConf.hotspot.actionType === 'navigate'
         ) {
           this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue, isNavToVideoAnn);

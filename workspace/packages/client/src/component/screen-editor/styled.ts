@@ -726,3 +726,11 @@ export const EditUpgradeBtnCon = styled.div`
   position: relative; 
   width: 115px;
 `;
+
+export const Pill = styled.div`
+  background-color: gray;
+  color: white;
+  padding: 6px;
+  border-radius: 16px;
+  font-weight: 500;
+`;
