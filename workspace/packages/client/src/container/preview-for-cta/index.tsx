@@ -106,6 +106,14 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
           : `${baseIframeUrl}?_ts=${prevS.ts}`
       }));
     }
+
+    if (this.props.site && this.props.site !== prevProps.site) {
+      document.title = this.props.site.title;
+      const link = document.querySelector("link[rel~='icon']");
+      if (link && link.id === 'fable-interactive-demo' && this.props.site.logo !== '../../favicon.png') {
+        (link as HTMLAnchorElement).href = this.props.site.logo;
+      }
+    }
   }
 
   componentWillUnmount(): void {
