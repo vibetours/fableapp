@@ -320,6 +320,11 @@ export function getSearializedDom(
           type,
           checked: tNode.checked,
         };
+      } else if (type === "password") {
+        sNode.props.nodeProps = {
+          type,
+          value: "*".repeat(tNode.value.length),
+        };
       } else {
         sNode.props.nodeProps = {
           type,

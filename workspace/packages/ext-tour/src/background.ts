@@ -1,4 +1,4 @@
-import { init as sentryInit } from "@fable/common/dist/sentry";
+import { sentryCaptureException, init as sentryInit } from "@fable/common/dist/sentry";
 import { sleep, snowflake } from "@fable/common/dist/utils";
 import {
   SerDoc,
@@ -545,6 +545,19 @@ async function injectContentScriptInCrossOriginFrames(tab: { id: number, url: st
     });
   }
 }
+
+chrome.scripting
+  .registerContentScripts([{
+    id: "initscript",
+    js: ["init.js"],
+    persistAcrossSessions: false,
+    matches: ["https://*/*"],
+    runAt: "document_start",
+    world: "MAIN",
+    allFrames: true,
+  }])
+  .then(() => {})
+  .catch((err) => sentryCaptureException(err));
 
 async function onTabStateUpdate(tabId: number, info: chrome.tabs.TabChangeInfo) {
   const tabsToLookFor = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};

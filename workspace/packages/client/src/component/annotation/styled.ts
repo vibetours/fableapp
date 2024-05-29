@@ -40,6 +40,11 @@ export const AnContent = styled.div<{
   padding: 0;
   margin: 0;
 
+  height: auto !important;
+  * {
+    height: auto !important;
+  }
+
   a {
     color: inherit;
     text-decoration: underline dotted;
@@ -274,6 +279,9 @@ export const ABtn = styled.button`
   border-radius: 2px;
   font-size: 18px;
   font-weight: bold;
+  box-sizing: border-box;
+  text-align: center;
+
 
   border-radius: ${(props: BtnConf) => `${props.borderRadius}px`};
 
@@ -282,12 +290,12 @@ export const ABtn = styled.button`
   border: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Outline) return `1px solid ${p.color}`;
     return 'none';
-  }};
+  }} !important;
 
   background: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return p.color;
     return '#ffffff00';
-  }};
+  }} !important;
   
   color: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
@@ -311,15 +319,15 @@ export const ABtn = styled.button`
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
-    cursor: pointer;
-    text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')};
+    cursor: pointer !important;
+    text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')} !important;
   }
   width:  ${(p: BtnConf) => (p.btnLayout === 'default' ? 'auto' : '100%')};
   opacity: 0.8;
   transition: opacity 0.2s ease-out;
 
   &:hover {
-    opacity: 1;
+    opacity: 1 !important;
   }
 `;
 
@@ -361,8 +369,8 @@ export const AnHotspot = styled.div`
   position: absolute;
   top: ${(p: AnHotspotProps) => `${p.box.top}px`};
   left: ${(p: AnHotspotProps) => `${p.box.left}px`};
-  width: ${(p: AnHotspotProps) => `${p.box.width}px`};
-  height: ${(p: AnHotspotProps) => `${p.box.height}px`};
+  width: ${(p: AnHotspotProps) => `${p.box.width}px`} !important;
+  height: ${(p: AnHotspotProps) => `${p.box.height}px`} !important;
   transition: all 0.3s ease-in-out;
 
   &:hover {
@@ -372,12 +380,15 @@ export const AnHotspot = styled.div`
 
 export const AnBubble = styled.div<{bubbleWidth: number}>`
   width: ${(p) => `${p.bubbleWidth}px`}; 
-  height: ${(p) => `${p.bubbleWidth}px`}; 
+  height: ${(p) => `${p.bubbleWidth}px`} !important; 
   cursor: pointer;
 `;
 
 export const AnVideoContainer = styled.div`
   border-radius: 8px;
+  * {
+    height: auto !important;
+  }
 `;
 
 export const AnVideo = styled.video<{ border: string }>`
@@ -389,7 +400,7 @@ export const AnVideo = styled.video<{ border: string }>`
 export const AnVideoControls = styled.div<{showOverlay: boolean}>`
   transition: all 0.2s ease-in-out;
   background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
-  height: 100%;
+  height: 100% !important;
   border-radius: 8px;
   position: absolute;
   top: 50%;
@@ -415,7 +426,7 @@ export const AnVideoCtrlBtn = styled.button<{ showButton: boolean }>`
 
   > span.anticon {
     display: block;
-    height: 1em;
+    height: 1em !important;
   }
 
   transition: all 0.2s ease-in-out;
@@ -433,8 +444,8 @@ export const ReplayButton = styled.button<{ pcolor: string }>`
   left: 50%;
   transform: translate(-50%, -50%);
 
-  height: 56px;
-  width: 56px;
+  height: 56px !important;
+  width: 56px !important;
   border-radius: 50%;
   background: ${p => generateShadeColor(p.pcolor, 200)};
   color: ${p => `${p.pcolor}`};
@@ -452,7 +463,7 @@ export const ReplayButton = styled.button<{ pcolor: string }>`
 
   > span.anticon {
     display: block;
-    height: 1em;
+    height: 1em !important;
   }
 `;
 
@@ -529,8 +540,8 @@ export const HelpBubble = styled.a<{selColor?: string, bubbleDiameter: number}>`
   &:after {
     content: "";
     background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-    width: ${({ bubbleDiameter }) => bubbleDiameter}px;
-    height: ${({ bubbleDiameter }) => bubbleDiameter}px;
+    width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+    height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
     border-radius: 50%;
     position: absolute;
     display: block;
@@ -545,8 +556,8 @@ export const HelpBubbleOuterDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
   border-radius: 50%;
   animation: ${helpBubblePulse} 1.5s linear infinite;
 `;
@@ -557,8 +568,8 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
@@ -572,8 +583,8 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255, 0.5)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
