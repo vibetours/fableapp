@@ -546,18 +546,26 @@ async function injectContentScriptInCrossOriginFrames(tab: { id: number, url: st
   }
 }
 
-chrome.scripting
-  .registerContentScripts([{
-    id: "initscript",
-    js: ["init.js"],
-    persistAcrossSessions: false,
-    matches: ["https://*/*"],
-    runAt: "document_start",
-    world: "MAIN",
-    allFrames: true,
-  }])
-  .then(() => {})
-  .catch((err) => sentryCaptureException(err));
+const initScriptId = "fable/initscript";
+
+chrome.scripting.getRegisteredContentScripts()
+  .then((scripts) => {
+    const scriptExists = scripts.find(script => script.id === initScriptId);
+    if (!scriptExists) {
+      chrome.scripting
+        .registerContentScripts([{
+          id: initScriptId,
+          js: ["init.js"],
+          persistAcrossSessions: false,
+          matches: ["https://*/*"],
+          runAt: "document_start",
+          world: "MAIN",
+          allFrames: true,
+        }])
+        .then(() => {})
+        .catch((err) => sentryCaptureException(err));
+    }
+  }).catch(err => sentryCaptureException(err));
 
 async function onTabStateUpdate(tabId: number, info: chrome.tabs.TabChangeInfo) {
   const tabsToLookFor = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};
