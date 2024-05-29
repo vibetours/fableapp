@@ -935,3 +935,5 @@ export const mapPlanIdAndIntervals = (
     interval,
   };
 };
+
+export const isEventValid = (e: MessageEvent) : boolean => e.data && e.data.type;

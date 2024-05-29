@@ -45,7 +45,8 @@ import {
   preloadImagesInTour,
   isTourResponsive,
   RESP_MOBILE_SRN_WIDTH_LIMIT,
-  isLandscapeMode
+  isLandscapeMode,
+  isEventValid
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -210,6 +211,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   receiveMessage = (e: MessageEvent<ScreenInfo | HeaderCta>): void => {
+    if (!isEventValid(e)) return;
     if (e.data.type === SCREEN_SIZE_MSG) {
       const data = e.data as ScreenInfo;
       this.setState(prevS => {

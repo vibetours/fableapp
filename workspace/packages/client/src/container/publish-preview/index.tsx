@@ -12,7 +12,8 @@ import {
   DisplaySize,
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
-  getDimensionsBasedOnDisplaySize
+  getDimensionsBasedOnDisplaySize,
+  isEventValid
 } from '../../utils';
 import * as Tags from './styled';
 import BackgroundGradient from '../../component/publish-preview/bg-gradient';
@@ -94,7 +95,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation' }>): void => {
-    if (e.data.type === 'lastAnnotation') this.setState({ showReplayOverlay: true });
+    if (isEventValid(e) && e.data.type === 'lastAnnotation') this.setState({ showReplayOverlay: true });
   };
 
   componentDidMount(): void {

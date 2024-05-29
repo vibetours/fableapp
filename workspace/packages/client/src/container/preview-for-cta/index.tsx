@@ -5,7 +5,7 @@ import Header from '../../component/preview-for-cta/header';
 import { loadTourAndData } from '../../action/creator';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { getDimensionsBasedOnDisplaySize, getMobileOperatingSystem, isLandscapeMode } from '../../utils';
+import { getDimensionsBasedOnDisplaySize, getMobileOperatingSystem, isEventValid, isLandscapeMode } from '../../utils';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { HEADER_CTA, IFRAME_BASE_URL } from '../../constants';
@@ -72,7 +72,7 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation' }>): void => {
-    if (e.data.type === 'lastAnnotation') this.setState({ showReplayOverlay: true });
+    if (isEventValid(e) && e.data.type === 'lastAnnotation') this.setState({ showReplayOverlay: true });
   };
 
   componentDidMount(): void {

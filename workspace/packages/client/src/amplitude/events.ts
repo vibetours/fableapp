@@ -36,4 +36,5 @@ export enum AMPLITUDE_EVENTS {
     RESELECT_ELEMENT='reselect_element',
     INTEGRATION_MODAL_OPENED='integration_modal_opened',
     SCROLL_ADJUSTMENT_CHANGED='scroll_adjustment_changed',
+    OPEN_SCREEN_PICKER='open_screen_picker',
 }

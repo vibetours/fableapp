@@ -85,7 +85,7 @@ import {
   getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
   getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
 } from './utils';
-import { doesBtnOpenALink, isFeatureAvailable, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
+import { doesBtnOpenALink, isEventValid, isFeatureAvailable, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -343,7 +343,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
-      if (e.data.type === UserGuideMsg.RESET_KEY) setSelectorComponentKey(Math.random());
+      if (isEventValid(e) && e.data.type === UserGuideMsg.RESET_KEY) {
+        setSelectorComponentKey(Math.random());
+      }
     };
 
     window.addEventListener('message', receiveMessage, false);
@@ -1074,7 +1076,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
-      if (e.data.type === UserGuideMsg.OPEN_ANNOTATION) {
+      if (isEventValid(e) && e.data.type === UserGuideMsg.OPEN_ANNOTATION) {
         try {
           const ann = props.timeline[0][0];
           resetNodePos();
@@ -1084,7 +1086,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         }
       }
 
-      if (e.data.type === UserGuideMsg.RESET_ZOOM) {
+      if (isEventValid(e) && e.data.type === UserGuideMsg.RESET_ZOOM) {
         if (annEditorModal) {
           resetSelectedAnn();
           setTimeout(() => {
@@ -2726,7 +2728,10 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     placement="right"
                   >
                     <Button
-                      onClick={() => props.shouldShowScreenPicker(newScreenPickerData)}
+                      onClick={() => {
+                        props.shouldShowScreenPicker(newScreenPickerData);
+                        traceEvent(AMPLITUDE_EVENTS.OPEN_SCREEN_PICKER, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+                      }}
                       icon={<FileAddFilled style={CANVAS_MENU_ITEM_STYLE} />}
                       size="large"
                       type="text"

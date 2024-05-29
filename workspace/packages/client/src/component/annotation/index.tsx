@@ -20,6 +20,7 @@ import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput }
 import {
   getTransparencyFromHexStr,
   isCoverAnnotation as isCoverAnn,
+  isEventValid,
   isVideoAnnotation as isVideoAnn
 } from '../../utils';
 import {
@@ -369,6 +370,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   }
 
   receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+    if (!isEventValid(e)) return;
     if (e.data.sender !== 'sharefable.com') return;
     if (e.data.type === ExtMsg.NavToAnnotation) {
       if (e.data.payload.main && this.props.annotationDisplayConfig.isMaximized) {

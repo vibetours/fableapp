@@ -102,6 +102,7 @@ import {
   RESP_MOBILE_SRN_WIDTH,
   doesBtnOpenALink,
   getAnnotationWithScreenAndIdx,
+  isEventValid,
   isFeatureAvailable,
   isTourResponsive,
 } from '../../utils';
@@ -722,7 +723,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   }
 
   receiveMessage = (e: MessageEvent<{ type: UserGuideMsg.OPEN_ANNOTATION }>): void => {
-    if (e.data.type === UserGuideMsg.OPEN_ANNOTATION) this.setState({ selectorComponentKey: Math.random() });
+    if (isEventValid(e) && e.data.type === UserGuideMsg.OPEN_ANNOTATION) {
+      this.setState({ selectorComponentKey: Math.random() });
+    }
   };
 
   componentDidMount(): void {
