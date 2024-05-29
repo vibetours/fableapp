@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import api from '@fable/common/dist/api';
-import { ApiResp, RespApiKey, VanityDomainDeploymentStatus } from '@fable/common/dist/api-contract';
+import { ApiResp, RespApiKey, RespVanityDomain, VanityDomainDeploymentStatus } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { CheckCircleFilled, CheckCircleOutlined, ClockCircleFilled, ClockCircleOutlined, CodeOutlined, CopyOutlined, GlobalOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 import { timeFormat } from 'd3-time-format';
@@ -19,7 +19,7 @@ import Header from '../../component/header';
 import TopLoader from '../../component/loader/top-loader';
 import Button from '../../component/button';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { addNewCustomDomain, getCustomDomains, removeCustomDomain } from '../../action/creator';
+import { addNewCustomDomain, getCustomDomains, removeCustomDomain, pollForDomainUpdate } from '../../action/creator';
 import Input from '../../component/input';
 
 const { confirm } = Modal;
@@ -28,8 +28,9 @@ const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
 const mapDispatchToProps = (dispatch: any) => ({
   getVanityDomains: () => dispatch(getCustomDomains()),
-  addNewCustomDomain: (domainName: string) => dispatch(addNewCustomDomain(domainName)),
-  removeCustomDomain: (domainName: string) => dispatch(removeCustomDomain(domainName))
+  addNewCustomDomain: (domainName: string, subdomainName: string, apexDomainName: string) => dispatch(addNewCustomDomain(domainName, subdomainName, apexDomainName)),
+  removeCustomDomain: (domainName: string, subdomainName: string, apexDomainName: string) => dispatch(removeCustomDomain(domainName, subdomainName, apexDomainName)),
+  pollForDomainUpdate: (domain: RespVanityDomain) => dispatch(pollForDomainUpdate(domain)),
 });
 
 const mapStateToProps = (state: TState) => ({
@@ -55,10 +56,13 @@ interface IOwnStateProps {
   isLoading: boolean;
   allowedCustomDomain: number;
   showError: string;
-  newDomainName: string
+  rootDomainName: string;
+  subdomainName: string;
 }
 
 class Settings extends React.PureComponent<IProps, IOwnStateProps> {
+  private timers: Array<ReturnType<typeof setTimeout> | null> = [];
+
   constructor(props: IProps) {
     super(props);
 
@@ -70,7 +74,8 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
       isLoading: true,
       allowedCustomDomain: -1,
       showError: '',
-      newDomainName: '',
+      rootDomainName: '',
+      subdomainName: ''
     };
   }
 
@@ -79,12 +84,39 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
     this.getActiveApiKey();
     this.setState({ allowedCustomDomain: this.getNoOfCustomDomain() });
     this.props.getVanityDomains();
+    this.pollForPendingCerts();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (this.props.featureForPlan !== prevProps.featureForPlan && this.props.featureForPlan) {
       this.setState({ allowedCustomDomain: this.getNoOfCustomDomain() });
     }
+
+    if (this.props.vanityDomains !== prevProps.vanityDomains && this.props.vanityDomains) {
+      this.pollForPendingCerts();
+    }
+  }
+
+  pollForPendingCerts() {
+    this.timers.forEach(id => id && clearTimeout(id));
+    if (!this.props.vanityDomains) return;
+    this.timers.push(...this.props.vanityDomains.map(vanityDomain => {
+      if (vanityDomain.status === VanityDomainDeploymentStatus.InProgress) {
+        return setInterval(() => {
+          this.props.pollForDomainUpdate(vanityDomain);
+        }, 5000);
+      } if (vanityDomain.status === VanityDomainDeploymentStatus.VerificationPending) {
+        return setInterval(() => {
+          this.props.pollForDomainUpdate(vanityDomain);
+        }, 15000);
+      }
+
+      return null;
+    }));
+  }
+
+  componentWillUnmount() {
+    this.timers.forEach(id => id && clearTimeout(id));
   }
 
   async getActiveApiKey(): Promise<void> {
@@ -115,12 +147,9 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
   // eslint-disable-next-line class-methods-use-this
   getIconBasedOnDomainStatus(status: VanityDomainDeploymentStatus) {
     switch (status) {
-      case VanityDomainDeploymentStatus.Requested:
       case VanityDomainDeploymentStatus.InProgress:
-        return <ClockCircleFilled style={{
-          color: '#fbc02d'
-        }}
-        />;
+      case VanityDomainDeploymentStatus.VerificationPending:
+        return <LoadingOutlined style={{ }} />;
       case VanityDomainDeploymentStatus.Issued:
         return <CheckCircleFilled style={{
           color: '#7567ff'
@@ -158,8 +187,6 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
     }, cancelAfterMs);
   };
 
-  hideCustomDomain = true;
-
   render() {
     return (
       <GTags.ColCon>
@@ -184,7 +211,8 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%' }}>
             <Tags.Con>
               <Tabs
-                defaultActiveKey="developer"
+                // defaultActiveKey="developer"
+                defaultActiveKey="customdomain"
                 items={[{
                   key: 'developer',
                   label: (
@@ -303,238 +331,354 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                     </>
                   ),
                   children: (
-                    <>
-                      {this.hideCustomDomain
-                        ? <div>Under maintenance. Please check back in 1 hour.</div>
-                        : (
-
-                          <div className="typ-reg">
-                            <div>
-                              {this.state.allowedCustomDomain >= 1 && (
-                              <p>
-                                You can add max {this.state.allowedCustomDomain} custom domains in this plan.&nbsp;
-                                <GTags.OurLink
-                                  href="/billing"
-                                  style={{
-                                    display: 'inline'
-                                  }}
-                                >Upgrade plan to increase limit.
-                                </GTags.OurLink>
-                              </p>
-                              )}
-                            </div>
-                            {this.props.vanityDomains === null ? (
-                              <div><LoadingOutlined /> Loading...</div>
-                            ) : (
-                              <div>
-                                <div style={{
-                                  margin: (this.props.vanityDomains || []).length ? '2rem 0' : undefined
-                                }}
-                                >
-                                  {this.props.vanityDomains.map((domain, i) => (
-                                    <Tags.CustomDomainCard key={i}>
-                                      <div className="l1">
-                                        <div className="prim">
-                                          {domain.domainName}
-                                        </div>
-                                        <div>
-                                          <span>
-                                            {this.getIconBasedOnDomainStatus(domain.status)} &nbsp;
-                                            {domain.status}
-                                          </span>
+                    <div className="typ-reg">
+                      <div>
+                        {this.state.allowedCustomDomain >= 1 && (
+                        <p>
+                          You can add max {this.state.allowedCustomDomain} custom domains in this plan.&nbsp;
+                          <GTags.OurLink
+                            href="/billing"
+                            style={{
+                              display: 'inline'
+                            }}
+                          >Upgrade plan to increase limit.
+                          </GTags.OurLink>
+                        </p>
+                        )}
+                      </div>
+                      {this.props.vanityDomains === null ? (
+                        <div><LoadingOutlined /> Loading...</div>
+                      ) : (
+                        <div>
+                          <div style={{
+                            margin: (this.props.vanityDomains || []).length ? '2rem 0' : undefined
+                          }}
+                          >
+                            {this.props.vanityDomains.map((domain, i) => (
+                              <Tags.CustomDomainCard key={i}>
+                                <div className="l1">
+                                  <div className="prim">
+                                    {domain.domainName}
+                                  </div>
+                                  <div>
+                                    <span>
+                                      {this.getIconBasedOnDomainStatus(domain.status)} &nbsp;
+                                      {domain.status}
+                                    </span>
                                     &nbsp; | &nbsp;
-                                          <span className="typ-sm">
-                                            <Tags.ABtn onClick={() => {
-                                              confirm({
-                                                title: 'Confirm your action',
-                                                content: (
-                                                  <div className="typ-reg">
-                                                    Are you sure you wanna remove&nbsp;
-                                                    <span style={{
-                                                      fontFamily: '"IBM Plex Mono", monospace !important',
-                                                      fontWeight: 600
-                                                    }}
-                                                    >{domain.domainName}
-                                                    </span>&nbsp;
-                                                    domain?
-                                                  </div>
-                                                ),
-                                                okType: 'danger',
-                                                okText: 'Delete this domain',
-                                                onOk: async () => {
-                                                  await this.props.removeCustomDomain(domain.domainName);
-                                                },
-                                                onCancel() {}
-                                              });
-                                            }}
-                                            >Remove
-                                            </Tags.ABtn>
-                                          </span>
-                                        </div>
+                                    <span className="typ-sm">
+                                      <Tags.ABtn onClick={() => {
+                                        confirm({
+                                          title: 'Confirm your action',
+                                          content: (
+                                            <div className="typ-reg">
+                                              Are you sure you wanna remove&nbsp;
+                                              <span style={{
+                                                fontFamily: '"IBM Plex Mono", monospace !important',
+                                                fontWeight: 600
+                                              }}
+                                              >{domain.domainName}
+                                              </span>&nbsp;
+                                              domain?
+                                            </div>
+                                          ),
+                                          okType: 'danger',
+                                          okText: 'Delete this domain',
+                                          onOk: async () => {
+                                            await this.props.removeCustomDomain(domain.domainName, domain.subdomainName, domain.apexDomainName);
+                                          },
+                                          onCancel() {}
+                                        });
+                                      }}
+                                      >Remove
+                                      </Tags.ABtn>
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="l2 typ-sm">
+                                  Created {domain.displayableCreatedAt}
+                                </div>
+                                <div className="typ-sm l3">
+                                  {(domain.status === VanityDomainDeploymentStatus.Requested) && (
+                                    <>
+                                      <div style={{
+                                        background: '#616161',
+                                        fontWeight: 500,
+                                        color: 'white',
+                                        lineHeight: '1.2rem',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        textAlign: 'left'
+                                      }}
+                                      >
+                                        Generating the CNAME records might take ~ 2mins.
+                                        Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                                        Otherwise verification may fail and the created CNAME would be deleted.
+                                        <br />
+                                        <br />
+                                        Click the button below to generate CNAME records
                                       </div>
-                                      <div className="l2 typ-sm">
-                                        Created {domain.displayableCreatedAt}
+                                      <Button
+                                        size="medium"
+                                        intent="secondary"
+                                        style={{
+                                        }}
+                                        onClick={async () => {
+                                          confirm({
+                                            title: 'Do you want to generate CNAME record right now?',
+                                            content: `
+                                              Generating the CNAME records might take ~ 2mins.
+                                              Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                                              Otherwise verification may fail and the created CNAME would be deleted.
+                                            `,
+                                            okText: 'Generate CNAME records',
+                                            onOk: async () => {
+                                              await this.props.removeCustomDomain(domain.domainName, domain.subdomainName, domain.apexDomainName);
+                                              await this.props.addNewCustomDomain(domain.domainName, domain.subdomainName, domain.apexDomainName);
+                                            },
+                                            onCancel() { }
+                                          });
+                                        }}
+                                      >Generate CNAME Records
+                                      </Button>
+                                    </>
+                                  )}
+                                  {(domain.status === VanityDomainDeploymentStatus.InProgress && (
+                                  <div style={{
+                                    background: '#ff7450',
+                                    fontWeight: 500,
+                                    color: 'white',
+                                    lineHeight: '1.2rem',
+                                    padding: '4px 8px',
+                                    borderRadius: '8px',
+                                    textAlign: 'left'
+                                  }}
+                                  >
+                                    Generating the CNAME records might take ~ 2mins.
+                                    You MUST add the following records in your domain provider console within 30mins.
+                                    Otherwise verification may fail and the created CNAME would be deleted.
+                                    <br />
+                                    <br />
+                                    Generated CNAME records will be shown below once those are generated.
+                                  </div>
+                                  ))}
+                                  {(domain.status === VanityDomainDeploymentStatus.Issued || domain.status === VanityDomainDeploymentStatus.VerificationPending) && (
+                                  <>
+                                    {domain.status === VanityDomainDeploymentStatus.VerificationPending && (
+                                      <div style={{
+                                        background: '#ff7450',
+                                        fontWeight: 500,
+                                        color: 'white',
+                                        lineHeight: '1.2rem',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        textAlign: 'left'
+                                      }}
+                                      >
+                                        You MUST add the following records in your domain provider console within 30mins.
+                                        Otherwise verification may fail and the created CNAME would be deleted.
+                                        Verification might take few mins.
                                       </div>
-                                      <div className="typ-sm l3">
-                                        {(domain.status === VanityDomainDeploymentStatus.Requested
-                                    || domain.status === VanityDomainDeploymentStatus.InProgress) && (
-                                    <ul>
-                                      <li>It'll take up to 48hrs to create your record set</li>
-                                      <li>You'll receive a mail once the record sets are generated</li>
-                                      <li>This dashboard will reflect your assigned DNS record set for this domain</li>
-                                    </ul>
-                                        )}
-                                        {(domain.status === VanityDomainDeploymentStatus.Issued) && (
-                                        <div style={{
+                                    )}
+                                    <div style={{
+                                      flex: '1 0 auto'
+                                    }}
+                                    >
+                                      <Tags.AntCollapse
+                                        size="small"
+                                        defaultActiveKey={1}
+                                        items={[{
+                                          key: '1',
+                                          label: 'Copy record set',
+                                          children: (
+                                            <Tags.RecordCon>
+                                              <table>
+                                                {domain.records.map((record, ii) => (
+                                                  <tbody key={ii}>
+                                                    <tr>
+                                                      <td colSpan={2} className="th">{record.recordDes}</td>
+                                                    </tr>
+                                                    <tr>
+                                                      <td>Record type</td>
+                                                      <td>{record.recordType}</td>
+                                                    </tr>
+                                                    <tr>
+                                                      <td>Record name</td>
+                                                      <td>
+                                                        <CopyOutlined
+                                                          className="cpy"
+                                                          onClick={() => {
+                                                            navigator.clipboard.writeText(record.recordKey);
+                                                          }}
+                                                        />&nbsp;
+                                                        <span className="foc">
+                                                          {record.recordKey}
+                                                        </span>
+                                                      </td>
+                                                    </tr>
+                                                    <tr>
+                                                      <td>Value</td>
+                                                      <td>
+                                                        <CopyOutlined
+                                                          className="cpy"
+                                                          onClick={() => {
+                                                            navigator.clipboard.writeText(record.recordValue);
+                                                          }}
+                                                        />&nbsp;
+                                                        <span className="foc">
+                                                          {record.recordValue}
+                                                        </span>
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                                ))}
+                                              </table>
+                                            </Tags.RecordCon>
+                                          )
+                                        }]}
+                                      />
+                                    </div>
+                                  </>
+                                  )}
+                                </div>
+                              </Tags.CustomDomainCard>
+                            ))}
+                          </div>
+                          {this.props.vanityDomains.length === 0 && (
+                          <div style={{
+                            lineHeight: '1.2rem',
+                            textAlign: 'left',
+                            marginBottom: '1rem'
+                          }}
+                          >
+                            Generating the CNAME records might take ~ 2mins.
+                            Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                            Otherwise verification may fail and the created CNAME would be deleted.
+                          </div>
+                          )}
+                          <Button
+                            icon={<PlusOutlined />}
+                            iconPlacement="left"
+                            intent="secondary"
+                            size="medium"
+                            onClick={() => {
+                              if (this.state.allowedCustomDomain !== -1 && this.state.allowedCustomDomain <= this.props.vanityDomains!.length) {
+                                this.showErrorMsg("You've reached the limit for custom domain in your plan. Please upgrade.");
+                                return;
+                              }
+                              confirm({
+                                title: 'Please enter the following details',
+                                content: (
+                                  <div>
+                                    <br />
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'end'
+                                    }}
+                                    >
+                                      <Input
+                                        label="Subdomain (demo)"
+                                        onChange={(e) => this.setState({ subdomainName: e.target.value })}
+                                        containerStyle={{
+                                          flex: '3'
+                                        }}
+                                        required
+                                        autoFocus
+                                      />
+                                    &nbsp;<span style={{
+                                        background: '#424242',
+                                        height: '6px',
+                                        width: '6px',
+                                        borderRadius: '6px',
+                                        marginBottom: '6px',
+                                        marginLeft: '3px',
+                                        marginRight: '3px'
+                                      }}
+                                    />&nbsp;
+                                      <Input
+                                        label="Apex domain (acme.com)"
+                                        containerStyle={{
                                           flex: '1 0 auto'
                                         }}
-                                        >
-                                          <Tags.AntCollapse
-                                            size="small"
-                                            items={[{
-                                              key: '1',
-                                              label: 'Copy record set',
-                                              children: (
-                                                <Tags.RecordCon>
-                                                  <table>
-                                                    {domain.records.map((record, ii) => (
-                                                      <tbody key={ii}>
-                                                        <tr>
-                                                          <td colSpan={2} className="th">{record.recordDes}</td>
-                                                        </tr>
-                                                        <tr>
-                                                          <td>Record type</td>
-                                                          <td>{record.recordType}</td>
-                                                        </tr>
-                                                        <tr>
-                                                          <td>Record name</td>
-                                                          <td>
-                                                            <CopyOutlined
-                                                              className="cpy"
-                                                              onClick={() => {
-                                                                navigator.clipboard.writeText(record.recordKey);
-                                                              }}
-                                                            />&nbsp;
-                                                            <span className="foc">
-                                                              {record.recordKey}
-                                                            </span>
-                                                          </td>
-                                                        </tr>
-                                                        <tr>
-                                                          <td>Value</td>
-                                                          <td>
-                                                            <CopyOutlined
-                                                              className="cpy"
-                                                              onClick={() => {
-                                                                navigator.clipboard.writeText(record.recordValue);
-                                                              }}
-                                                            />&nbsp;
-                                                            <span className="foc">
-                                                              {record.recordValue}
-                                                            </span>
-                                                          </td>
-                                                        </tr>
-                                                      </tbody>
-                                                    ))}
-                                                  </table>
-                                                </Tags.RecordCon>
-                                              )
-                                            }]}
-                                          />
-                                        </div>
-                                        )}
-                                        <div style={{
-                                          display: 'flex',
-                                          alignItems: 'flex-end'
-                                        }}
-                                        />
+                                        onChange={(e) => this.setState({ rootDomainName: e.target.value })}
+                                        required
+                                        autoFocus
+                                      />
+                                    </div>
+                                    <div>
+                                      <ul style={{
+                                        textAlign: 'left'
+                                      }}
+                                      >
+                                        <li>Double check the domain name if it's correct</li>
+                                        <li>You must correctly mention subdomain and apex domain or your request might fail</li>
+                                      </ul>
+                                      <div style={{
+                                        background: 'rgb(255, 116, 80)',
+                                        fontWeight: 500,
+                                        color: 'white',
+                                        lineHeight: '1.2rem',
+                                        padding: '4px 8px',
+                                        borderRadius: '8px',
+                                        textAlign: 'left'
+                                      }}
+                                      >
+                                        Generating the CNAME records might take ~ 2mins.
+                                        Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                                        Otherwise verification may fail and the created CNAME would be deleted.
                                       </div>
-                                    </Tags.CustomDomainCard>
-                                  ))}
-                                </div>
-                                <Button
-                                  icon={<PlusOutlined />}
-                                  iconPlacement="left"
-                                  intent="secondary"
-                                  size="medium"
-                                  onClick={() => {
-                                    if (this.state.allowedCustomDomain !== -1 && this.state.allowedCustomDomain <= this.props.vanityDomains!.length) {
-                                      this.showErrorMsg("You've reached the limit for custom domain in your plan. Please upgrade.");
+                                    </div>
+                                  </div>
+                                ),
+                                onOk: async () => {
+                                  let domain: string = '';
+                                  const nRootDomain = (this.state.rootDomainName || '').trim();
+                                  const nSubdomain = (this.state.subdomainName || '').trim();
+                                  if (nRootDomain && nSubdomain) {
+                                    domain = `${nSubdomain}.${nRootDomain}`;
+                                    if (this.props.vanityDomains!.findIndex(d => d.domainName === domain) !== -1) {
+                                      this.showErrorMsg('Domain already exists');
                                       return;
                                     }
-                                    confirm({
-                                      title: 'Please enter the following details',
-                                      content: (
-                                        <div>
-                                          <br />
-                                          <Input
-                                            label="Enter your domain name (demo.acme.com)"
-                                            onChange={(e) => this.setState({ newDomainName: e.target.value })}
-                                            required
-                                            autoFocus
-                                          />
-                                          <div>
-                                            <ul style={{
-                                              textAlign: 'left'
-                                            }}
-                                            >
-                                              <li>You should not enter your apex domain in the above input box</li>
-                                              <li>Double check the domain name if it's correct</li>
-                                              <li>It might take upto 48hrs to complete your request</li>
-                                              <li>You would receive an email from us once your custom domain request is attended</li>
-                                            </ul>
-                                          </div>
-                                        </div>
-                                      ),
-                                      onOk: async () => {
-                                        let domain: string;
-                                        if (this.state.newDomainName && (domain = this.state.newDomainName.trim())) {
-                                          if (this.props.vanityDomains!.findIndex(d => d.domainName === domain) !== -1) {
-                                            this.showErrorMsg('Domain already exists');
-                                            return;
-                                          }
-                                          try {
-                                            await this.props.addNewCustomDomain(domain);
-                                          } catch (e) {
-                                            raiseDeferredError(e as Error);
-                                            this.showErrorMsg('Something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
-                                          }
-                                          return;
-                                        }
-                                        this.setState({ newDomainName: '' });
-                                      },
-                                      onCancel: () => {
-                                        this.setState({ newDomainName: '' });
-                                      }
-                                    });
-                                  }}
-                                >Add a new domain
-                                </Button>
-                                {this.state.showError && (
-                                <p>
-                                  <span className="err-line">{this.state.showError}</span>
-                                </p>
-                                )}
-                              </div>
-                            )}
-
-                            <div />
-                            {!!(this.props.vanityDomains || []).length && (
+                                    try {
+                                      await this.props.addNewCustomDomain(domain, this.state.subdomainName, this.state.rootDomainName);
+                                    } catch (e) {
+                                      raiseDeferredError(e as Error);
+                                      this.showErrorMsg('Something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
+                                    }
+                                    return;
+                                  }
+                                  this.showErrorMsg('Not a valid domain', 5000);
+                                },
+                                onCancel: () => {
+                                }
+                              });
+                            }}
+                          >Add a new domain
+                          </Button>
+                          {this.state.showError && (
                             <p>
-                          &nbsp;
-                              <GTags.OurLink
-                                className="support-bot-open"
-                                style={{
-                                  display: 'inline'
-                                }}
-                              >
-                                Talk to us
-                              </GTags.OurLink> if you need any changes in the custom domains.
+                              <span className="err-line">{this.state.showError}</span>
                             </p>
-                            )}
-                          </div>
-                        )}
-                    </>
+                          )}
+                        </div>
+                      )}
+
+                      <div />
+                      {!!(this.props.vanityDomains || []).length && (
+                        <p>
+                          &nbsp;
+                          <GTags.OurLink
+                            className="support-bot-open"
+                            style={{
+                              display: 'inline'
+                            }}
+                          >
+                            Talk to us
+                          </GTags.OurLink> if you need any changes in the custom domains.
+                        </p>
+                      )}
+                    </div>
                   )
                 }]}
               />
@@ -549,4 +693,4 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
 export default connect<ReturnType<typeof mapStateToProps>, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
-)(withRouter(Settings));
+)(withRouter(Settings)); (withRouter(Settings));

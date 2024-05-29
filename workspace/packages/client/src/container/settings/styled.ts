@@ -89,6 +89,8 @@ export const CustomDomainCard = styled.div`
     display: flex;
     justify-content: space-between;
     gap: 1rem;
+    flex-direction: column;
+    align-items: center;
   }
 `;
 

@@ -318,12 +318,14 @@ export interface TAddCustomDomain {
   vanityDomain: P_RespVanityDomain;
 }
 
-export function addNewCustomDomain(domainName: string) {
+export function addNewCustomDomain(domainName: string, subdomainName: string, apexDomainName: string) {
   return async (dispatch: Dispatch<TAddCustomDomain>) => {
     const data = await api<ReqCreateOrDeleteNewVanityDomain, ApiResp<RespVanityDomain>>('/vanitydomain', {
       auth: true,
       body: {
         domainName,
+        subdomainName,
+        apexDomainName
       }
     });
 
@@ -336,12 +338,14 @@ export function addNewCustomDomain(domainName: string) {
   };
 }
 
-export function removeCustomDomain(domainName: string) {
+export function removeCustomDomain(domainName: string, subdomainName: string, apexDomainName: string) {
   return async (dispatch: Dispatch<TCustomDomain>) => {
     const data = await api<ReqCreateOrDeleteNewVanityDomain, ApiResp<RespVanityDomain[]>>('/delvanitydomains', {
       auth: true,
       body: {
         domainName,
+        subdomainName,
+        apexDomainName
       }
     });
 
@@ -349,6 +353,33 @@ export function removeCustomDomain(domainName: string) {
       type: ActionType.GET_CUSTOM_DOMAINS,
       vanityDomains: data.data.map(d => processRawVanityDomain(d)),
     });
+
+    return Promise.resolve();
+  };
+}
+
+export interface TUpdateCustomDomain {
+  type: ActionType.SET_CUSTOM_DOMAIN;
+  domain: P_RespVanityDomain;
+}
+export function pollForDomainUpdate(domain: RespVanityDomain) {
+  return async (dispatch: Dispatch<TUpdateCustomDomain>) => {
+    const data = await api<ReqCreateOrDeleteNewVanityDomain, ApiResp<RespVanityDomain>>('/vanitydomain/probe', {
+      auth: true,
+      body: {
+        domainName: domain.domainName,
+        subdomainName: domain.subdomainName,
+        apexDomainName: domain.apexDomainName
+      }
+    });
+
+    const updatedDomain = processRawVanityDomain(data.data);
+    if (domain.status !== updatedDomain.status || domain.records.length !== updatedDomain.records.length) {
+      dispatch({
+        type: ActionType.SET_CUSTOM_DOMAIN,
+        domain: updatedDomain,
+      });
+    }
 
     return Promise.resolve();
   };

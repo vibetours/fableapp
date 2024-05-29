@@ -47,6 +47,7 @@ import {
   TFeaturePlan,
   TCustomDomain,
   TAddCustomDomain,
+  TUpdateCustomDomain,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
@@ -242,6 +243,21 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TAddCustomDomain;
       const newState = { ...state };
       newState.vanityDomains = (newState.vanityDomains || []).concat(tAction.vanityDomain);
+      return newState;
+    }
+
+    case ActionType.SET_CUSTOM_DOMAIN: {
+      const tAction = action as TUpdateCustomDomain;
+      const newState = { ...state };
+      if (!newState.vanityDomains) return newState;
+
+      const idx = newState.vanityDomains.findIndex(d => d.domainName === tAction.domain.domainName);
+      if (idx >= 0) {
+        newState.vanityDomains = newState.vanityDomains.slice(0, idx).concat(
+          tAction.domain,
+          newState.vanityDomains.slice(idx + 1)
+        );
+      }
       return newState;
     }
 

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-24 22:36:01.
+// Generated using typescript-generator version 2.35.1025 on 2024-05-29 21:23:12.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -163,6 +163,8 @@ export interface ReqCopyScreen {
 
 export interface ReqCreateOrDeleteNewVanityDomain {
     domainName: string;
+    subdomainName: string;
+    apexDomainName: string;
 }
 
 export interface ReqCreateOrUpdateTenantIntegration {
@@ -507,6 +509,8 @@ export interface RespUser extends ResponseBase {
 }
 
 export interface RespVanityDomain {
+    subdomainName: string;
+    apexDomainName: string;
     domainName: string;
     createdAt: Date;
     status: VanityDomainDeploymentStatus;
@@ -750,9 +754,11 @@ export const enum UserOrgAssociation {
 
 export const enum VanityDomainDeploymentStatus {
     Requested = "Requested",
+    ManualInterventionNeeded = "ManualInterventionNeeded",
     InProgress = "InProgress",
+    VerificationPending = "VerificationPending",
     Issued = "Issued",
-    Rejected = "Rejected",
+    Failed = "Failed",
 }
 
 export const enum DomainRecordType {
