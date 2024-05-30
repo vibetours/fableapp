@@ -13,6 +13,7 @@ import {
   DEFAULT_DIMS_FOR_ANN,
   FABLE_RT_UMBRL,
   createEmptyFableIframe,
+  createOverrideStyleEl,
   getFableRtUmbrlDiv,
   isPrevNextBtnLinksToVideoAnn,
   scrollToAnn
@@ -244,6 +245,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       // This is how leadform values are saved in browser for autocomplete. Ref: https://stackoverflow.com/a/29885896
       const iframeEl = createEmptyFableIframe();
       umbrellaDiv.appendChild(iframeEl);
+
+      umbrellaDiv.appendChild(createOverrideStyleEl(this.doc));
 
       const [con, root] = this.createContainerRoot('');
       const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');

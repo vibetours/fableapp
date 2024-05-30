@@ -5,7 +5,7 @@ import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
-import { FABLE_RT_UMBRL, createEmptyFableIframe, getFableRtUmbrlDiv } from '../annotation/utils';
+import { FABLE_RT_UMBRL, createEmptyFableIframe, createOverrideStyleEl, getFableRtUmbrlDiv } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem } from '../../types';
@@ -159,6 +159,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
                 frameBody.appendChild(umbrellaDiv);
                 const iframeEl = createEmptyFableIframe();
                 umbrellaDiv.appendChild(iframeEl);
+                umbrellaDiv.appendChild(createOverrideStyleEl(doc));
               }
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,

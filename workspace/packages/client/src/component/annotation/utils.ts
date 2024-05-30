@@ -297,3 +297,13 @@ export const createEmptyFableIframe = (): HTMLIFrameElement => {
   iframeEl.title = 'Fable Empty Iframe';
   return iframeEl;
 };
+
+export const createOverrideStyleEl = (doc: Document): HTMLStyleElement => {
+  const styleEl = doc.createElement('style');
+  styleEl.textContent = `
+                  .${FABLE_RT_UMBRL} div:empty {
+                    display: block !important;
+                  }
+  `;
+  return styleEl;
+};
