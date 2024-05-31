@@ -474,6 +474,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const firstName = searchParams.get('first_name') ?? undefined;
     const lastName = searchParams.get('last_name') ?? undefined;
     const org = searchParams.get('org') ?? undefined;
+    const phone = searchParams.get('phone') ?? undefined;
+
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {
         ...((window as FWin).__fable_global_settings__ || {}),
@@ -486,6 +488,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         email: userEmail,
         first_name: firstName,
         last_name: lastName,
+        phone,
         org
       });
     }
