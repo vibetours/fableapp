@@ -263,10 +263,6 @@ export const createHtmlElement = (
     addToAssetLoadingPromises(el as HTMLImageElement);
   }
 
-  if (node.name.toLocaleLowerCase() === 'img' && !isHTTPS(node.attrs.src || '')) {
-    el.style.visibility = 'hidden';
-  }
-
   if (node.props.isShadowHost) {
     el.attachShadow({ mode: 'open' });
   }

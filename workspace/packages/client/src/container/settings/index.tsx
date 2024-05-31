@@ -1,3 +1,4 @@
+/* eslint-disable no-tabs */
 import React from 'react';
 import { connect } from 'react-redux';
 import api from '@fable/common/dist/api';
@@ -100,6 +101,15 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
   pollForPendingCerts() {
     this.timers.forEach(id => id && clearTimeout(id));
     if (!this.props.vanityDomains) return;
+
+    this.props.vanityDomains.forEach(vanityDomain => {
+      if (vanityDomain.status === VanityDomainDeploymentStatus.DeploymentPending) {
+        setTimeout(() => {
+          this.props.pollForDomainUpdate(vanityDomain);
+        }, 3000);
+      }
+    });
+
     this.timers.push(...this.props.vanityDomains.map(vanityDomain => {
       if (vanityDomain.status === VanityDomainDeploymentStatus.InProgress) {
         return setInterval(() => {
@@ -149,7 +159,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
     switch (status) {
       case VanityDomainDeploymentStatus.InProgress:
       case VanityDomainDeploymentStatus.VerificationPending:
-        return <LoadingOutlined style={{ }} />;
+        return <LoadingOutlined style={{}} />;
       case VanityDomainDeploymentStatus.Issued:
         return <CheckCircleFilled style={{
           color: '#7567ff'
@@ -229,98 +239,98 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                         API Keys are critical, make sure the key is not leaked. You can always generate a new key in case you think a previous key has been compromised.
                       </p>
                       {
-                this.state.isLoading && (
-                  <p className="typ-reg">
-                    <LoadingOutlined style={{ marginRight: '0.5rem' }} />
-                    Loading...
-                  </p>
-                )
-              }
+                        this.state.isLoading && (
+                          <p className="typ-reg">
+                            <LoadingOutlined style={{ marginRight: '0.5rem' }} />
+                            Loading...
+                          </p>
+                        )
+                      }
                       {
-                !this.state.isLoading && (
-                <>
-                  {this.state.apiKey ? (
-                    <Tags.ApiKeyDetails>
-                      <Tags.ApiKeyTxt
-                        className="typ-btn"
-                        copyMsg={this.state.copyMsg}
-                        onMouseUp={() => {
-                          navigator.clipboard.writeText(this.state.apiKey!.apiKey);
-                          if (this.state.timer) clearTimeout(this.state.timer);
-                          const timer = setTimeout(() => {
-                            this.setState({
-                              copyMsg: 'Click to copy to clipboard'
-                            });
-                          }, 5000);
-                          this.setState({
-                            copyMsg: 'Copied to clipboard',
-                            timer,
-                          });
-                        }}
-                      >
-                        {this.state.apiKey.apiKey}
-                      </Tags.ApiKeyTxt>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                      >
-                        Created by
-                        <img className="avatar" alt="avatar" src={this.state.apiKey.createdBy.avatar} />
-                        {this.state.apiKey.createdBy.firstName} {this.state.apiKey.createdBy.lastName}
-                        &nbsp;
-                        on {dateTimeFormat(new Date(this.state.apiKey.createdAt))}
-                      </div>
-                      <div style={{
-                        marginTop: '0.5rem'
-                      }}
-                      >
-                        <Button
-                          intent="secondary"
-                          size="small"
-                          onClick={() => confirm({
-                            title: 'Are you sure you want to generate a new API Key?',
-                            content: `
+                        !this.state.isLoading && (
+                          <>
+                            {this.state.apiKey ? (
+                              <Tags.ApiKeyDetails>
+                                <Tags.ApiKeyTxt
+                                  className="typ-btn"
+                                  copyMsg={this.state.copyMsg}
+                                  onMouseUp={() => {
+                                    navigator.clipboard.writeText(this.state.apiKey!.apiKey);
+                                    if (this.state.timer) clearTimeout(this.state.timer);
+                                    const timer = setTimeout(() => {
+                                      this.setState({
+                                        copyMsg: 'Click to copy to clipboard'
+                                      });
+                                    }, 5000);
+                                    this.setState({
+                                      copyMsg: 'Copied to clipboard',
+                                      timer,
+                                    });
+                                  }}
+                                >
+                                  {this.state.apiKey.apiKey}
+                                </Tags.ApiKeyTxt>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                                >
+                                  Created by
+                                  <img className="avatar" alt="avatar" src={this.state.apiKey.createdBy.avatar} />
+                                  {this.state.apiKey.createdBy.firstName} {this.state.apiKey.createdBy.lastName}
+                                  &nbsp;
+                                  on {dateTimeFormat(new Date(this.state.apiKey.createdAt))}
+                                </div>
+                                <div style={{
+                                  marginTop: '0.5rem'
+                                }}
+                                >
+                                  <Button
+                                    intent="secondary"
+                                    size="small"
+                                    onClick={() => confirm({
+                                      title: 'Are you sure you want to generate a new API Key?',
+                                      content: `
                           If you generate a new API key, the current key will cease to exist.
                           If you've used this key in integrations, you have to manually update the API Key
                         `,
-                            okText: this.state.opsInProgress ? 'Generating...' : 'Generate New API Key',
-                            onOk: async () => {
-                              traceEvent(
-                                AMPLITUDE_EVENTS.API_KEY_GENERATED,
-                                {
-                                  regenerated: true
-                                },
-                                [CmnEvtProp.EMAIL]
-                              );
-                              this.setState({ opsInProgress: true });
-                              await this.genApiKey();
-                              this.setState({ opsInProgress: false });
-                            },
-                            onCancel() { }
-                          })}
-                        >Create a New API Key
-                        </Button>
-                      </div>
-                    </Tags.ApiKeyDetails>
-                  ) : (
-                    <Button
-                      intent="primary"
-                      disabled={this.state.opsInProgress}
-                      icon={this.state.opsInProgress ? <LoadingOutlined /> : <PlusOutlined />}
-                      iconPlacement="left"
-                      onClick={async () => {
-                        this.setState({ opsInProgress: true });
-                        await this.genApiKey();
-                        this.setState({ opsInProgress: false });
-                      }}
-                    >
-                      Create a New API Key
-                    </Button>
-                  )}
-                </>
-                )
-              }
+                                      okText: this.state.opsInProgress ? 'Generating...' : 'Generate New API Key',
+                                      onOk: async () => {
+                                        traceEvent(
+                                          AMPLITUDE_EVENTS.API_KEY_GENERATED,
+                                          {
+                                            regenerated: true
+                                          },
+                                          [CmnEvtProp.EMAIL]
+                                        );
+                                        this.setState({ opsInProgress: true });
+                                        await this.genApiKey();
+                                        this.setState({ opsInProgress: false });
+                                      },
+                                      onCancel() {}
+                                    })}
+                                  >Create a New API Key
+                                  </Button>
+                                </div>
+                              </Tags.ApiKeyDetails>
+                            ) : (
+                              <Button
+                                intent="primary"
+                                disabled={this.state.opsInProgress}
+                                icon={this.state.opsInProgress ? <LoadingOutlined /> : <PlusOutlined />}
+                                iconPlacement="left"
+                                onClick={async () => {
+                                  this.setState({ opsInProgress: true });
+                                  await this.genApiKey();
+                                  this.setState({ opsInProgress: false });
+                                }}
+                              >
+                                Create a New API Key
+                              </Button>
+                            )}
+                          </>
+                        )
+                      }
                     </div>
                   ),
                 }, {
@@ -334,16 +344,16 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                     <div className="typ-reg">
                       <div>
                         {this.state.allowedCustomDomain >= 1 && (
-                        <p>
-                          You can add max {this.state.allowedCustomDomain} custom domains in this plan.&nbsp;
-                          <GTags.OurLink
-                            href="/billing"
-                            style={{
-                              display: 'inline'
-                            }}
-                          >Upgrade plan to increase limit.
-                          </GTags.OurLink>
-                        </p>
+                          <p>
+                            You can add max {this.state.allowedCustomDomain} custom domains in this plan.&nbsp;
+                            <GTags.OurLink
+                              href="/billing"
+                              style={{
+                                display: 'inline'
+                              }}
+                            >Upgrade plan to increase limit.
+                            </GTags.OurLink>
+                          </p>
                         )}
                       </div>
                       {this.props.vanityDomains === null ? (
@@ -363,7 +373,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                   <div>
                                     <span>
                                       {this.getIconBasedOnDomainStatus(domain.status)} &nbsp;
-                                      {domain.status}
+                                      {domain.status === VanityDomainDeploymentStatus.Issued ? 'Available' : domain.status}
                                     </span>
                                     &nbsp; | &nbsp;
                                     <span className="typ-sm">
@@ -436,7 +446,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                               await this.props.removeCustomDomain(domain.domainName, domain.subdomainName, domain.apexDomainName);
                                               await this.props.addNewCustomDomain(domain.domainName, domain.subdomainName, domain.apexDomainName);
                                             },
-                                            onCancel() { }
+                                            onCancel() {}
                                           });
                                         }}
                                       >Generate CNAME Records
@@ -444,117 +454,176 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                     </>
                                   )}
                                   {(domain.status === VanityDomainDeploymentStatus.InProgress && (
-                                  <div style={{
-                                    background: '#ff7450',
-                                    fontWeight: 500,
-                                    color: 'white',
-                                    lineHeight: '1.2rem',
-                                    padding: '4px 8px',
-                                    borderRadius: '8px',
-                                    textAlign: 'left'
-                                  }}
-                                  >
-                                    Generating the CNAME records might take ~ 2mins.
-                                    You MUST add the following records in your domain provider console within 30mins.
-                                    Otherwise verification may fail and the created CNAME would be deleted.
-                                    <br />
-                                    <br />
-                                    Generated CNAME records will be shown below once those are generated.
-                                  </div>
-                                  ))}
-                                  {(domain.status === VanityDomainDeploymentStatus.Issued || domain.status === VanityDomainDeploymentStatus.VerificationPending) && (
-                                  <>
-                                    {domain.status === VanityDomainDeploymentStatus.VerificationPending && (
-                                      <div style={{
-                                        background: '#ff7450',
-                                        fontWeight: 500,
-                                        color: 'white',
-                                        lineHeight: '1.2rem',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        textAlign: 'left'
-                                      }}
-                                      >
-                                        You MUST add the following records in your domain provider console within 30mins.
-                                        Otherwise verification may fail and the created CNAME would be deleted.
-                                        Verification might take few mins.
-                                      </div>
-                                    )}
                                     <div style={{
-                                      flex: '1 0 auto'
+                                      background: '#ff7450',
+                                      fontWeight: 500,
+                                      color: 'white',
+                                      lineHeight: '1.2rem',
+                                      padding: '4px 8px',
+                                      borderRadius: '8px',
+                                      textAlign: 'left'
                                     }}
                                     >
-                                      <Tags.AntCollapse
-                                        size="small"
-                                        defaultActiveKey={1}
-                                        items={[{
-                                          key: '1',
-                                          label: 'Copy record set',
-                                          children: (
-                                            <Tags.RecordCon>
-                                              <table>
-                                                {domain.records.map((record, ii) => (
-                                                  <tbody key={ii}>
-                                                    <tr>
-                                                      <td colSpan={2} className="th">{record.recordDes}</td>
-                                                    </tr>
-                                                    <tr>
-                                                      <td>Record type</td>
-                                                      <td>{record.recordType}</td>
-                                                    </tr>
-                                                    <tr>
-                                                      <td>Record name</td>
-                                                      <td>
-                                                        <CopyOutlined
-                                                          className="cpy"
-                                                          onClick={() => {
-                                                            navigator.clipboard.writeText(record.recordKey);
-                                                          }}
-                                                        />&nbsp;
-                                                        <span className="foc">
-                                                          {record.recordKey}
-                                                        </span>
-                                                      </td>
-                                                    </tr>
-                                                    <tr>
-                                                      <td>Value</td>
-                                                      <td>
-                                                        <CopyOutlined
-                                                          className="cpy"
-                                                          onClick={() => {
-                                                            navigator.clipboard.writeText(record.recordValue);
-                                                          }}
-                                                        />&nbsp;
-                                                        <span className="foc">
-                                                          {record.recordValue}
-                                                        </span>
-                                                      </td>
-                                                    </tr>
-                                                  </tbody>
-                                                ))}
-                                              </table>
-                                            </Tags.RecordCon>
-                                          )
-                                        }]}
-                                      />
+                                      Generating the CNAME records might take ~ 2mins.
+                                      You MUST add the following records in your domain provider console within 30mins.
+                                      Otherwise verification may fail and the created CNAME would be deleted.
+                                      <br />
+                                      <br />
+                                      Generated CNAME records will be shown below once those are generated.
                                     </div>
-                                  </>
+                                  ))}
+                                  {(domain.status === VanityDomainDeploymentStatus.Failed && domain.rejectionReason === 'CAA_INVALID') && (
+                                    <div
+                                      style={{
+                                        width: '100%'
+                                      }}
+                                      className="typ-reg"
+                                    >
+                                      <p>
+                                        Your custom domain request got rejected because:&nbsp;
+                                        <span style={{
+                                          color: '#ff7450',
+                                          fontWeight: '500',
+                                        }}
+                                        >
+                                          At least one of your domains has a CAA record that does not include Amazon as an approved Certificate Authority.
+                                        </span>
+                                      </p>
+                                      <p>
+                                        Perform the following steps inside your domain provider's console to fix this issue.
+                                      </p>
+                                      <ol>
+                                        <li>Delete <span className="prim">CNAME</span> record associated with <span className="prim">{domain.domainName}</span> key (if any)</li>
+                                        <li>
+                                          Add all the following DNS record sets
+                                          <pre className="prim blok">
+                                            {['amazonaws.com', 'awstrust.com', 'amazontrust.com', 'amazon.com'].map(ca => `
+                                              ${domain.apexDomainName}	CAA	0 issue "${ca}"\n${domain.apexDomainName}	CAA	0 issuewild "${ca}"
+                                            `.trim()).concat(`${domain.domainName} CAA 0 issue ";"`).join('\n')}
+                                          </pre>
+                                        </li>
+                                        <li>Delete this custom domain request by clicking on Remove on top right corner of this card</li>
+                                        <li>
+                                          Wait for 30 mins to propagate the DNS.&nbsp;
+                                          <GTags.OurLink
+                                            style={{ display: 'inline' }}
+                                            href={`https://www.whatsmydns.net/#CAA/${domain.apexDomainName}`}
+                                            target="_blank"
+                                          >
+                                            You can roughly check your DNS propagation status here.
+                                          </GTags.OurLink>
+                                        </li>
+                                        <li>Make a new request for custom domain</li>
+                                      </ol>
+                                      <p>
+                                        <GTags.OurLink
+                                          href="https://sharefable.notion.site/To-do-when-custom-domain-creation-fails-7cd688bccf4740e8849f081932e371ed?pvs=4"
+                                          target="_blank"
+                                        >Read more about why this is required
+                                        </GTags.OurLink>
+                                      </p>
+                                    </div>
+                                  )}
+                                  {(domain.status === VanityDomainDeploymentStatus.Issued
+                                    || domain.status === VanityDomainDeploymentStatus.VerificationPending
+                                    || domain.status === VanityDomainDeploymentStatus.DeploymentPending) && (
+                                      <>
+                                        {domain.status === VanityDomainDeploymentStatus.VerificationPending && (
+                                          <div style={{
+                                            background: '#ff7450',
+                                            fontWeight: 500,
+                                            color: 'white',
+                                            lineHeight: '1.2rem',
+                                            padding: '4px 8px',
+                                            borderRadius: '8px',
+                                            textAlign: 'left'
+                                          }}
+                                          >
+                                            You MUST add the following records in your domain provider console within 30mins.
+                                            Otherwise verification may fail and the created CNAME would be deleted.
+                                            Verification might take few mins.
+                                          </div>
+                                        )}
+                                        {domain.status === VanityDomainDeploymentStatus.DeploymentPending && (
+                                          <p className="typ-reg">
+                                            You are all set! It might take couple of hours to propagate your custom domain to all our edge locations.
+                                          </p>
+                                        )}
+                                        <div style={{
+                                          flex: '1 0 auto'
+                                        }}
+                                        >
+                                          <Tags.AntCollapse
+                                            size="small"
+                                            defaultActiveKey={1}
+                                            items={[{
+                                              key: '1',
+                                              label: 'Copy record set',
+                                              children: (
+                                                <Tags.RecordCon>
+                                                  <table>
+                                                    {domain.records.map((record, ii) => (
+                                                      <tbody key={ii}>
+                                                        <tr>
+                                                          <td colSpan={2} className="th">{record.recordDes}</td>
+                                                        </tr>
+                                                        <tr>
+                                                          <td>Record type</td>
+                                                          <td>{record.recordType}</td>
+                                                        </tr>
+                                                        <tr>
+                                                          <td>Record name</td>
+                                                          <td>
+                                                            <CopyOutlined
+                                                              className="cpy"
+                                                              onClick={() => {
+                                                                navigator.clipboard.writeText(record.recordKey);
+                                                              }}
+                                                            />&nbsp;
+                                                            <span className="foc">
+                                                              {record.recordKey}
+                                                            </span>
+                                                          </td>
+                                                        </tr>
+                                                        <tr>
+                                                          <td>Value</td>
+                                                          <td>
+                                                            <CopyOutlined
+                                                              className="cpy"
+                                                              onClick={() => {
+                                                                navigator.clipboard.writeText(record.recordValue);
+                                                              }}
+                                                            />&nbsp;
+                                                            <span className="foc">
+                                                              {record.recordValue}
+                                                            </span>
+                                                          </td>
+                                                        </tr>
+                                                      </tbody>
+                                                    ))}
+                                                  </table>
+                                                </Tags.RecordCon>
+                                              )
+                                            }]}
+                                          />
+                                        </div>
+                                      </>
                                   )}
                                 </div>
                               </Tags.CustomDomainCard>
                             ))}
                           </div>
-                          {this.props.vanityDomains.length === 0 && (
-                          <div style={{
-                            lineHeight: '1.2rem',
-                            textAlign: 'left',
-                            marginBottom: '1rem'
-                          }}
-                          >
-                            Generating the CNAME records might take ~ 2mins.
-                            Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
-                            Otherwise verification may fail and the created CNAME would be deleted.
-                          </div>
+                          {(this.props.vanityDomains || []).length === 0 && (
+                            <div style={{
+                              lineHeight: '1.2rem',
+                              textAlign: 'left',
+                              marginBottom: '1rem'
+                            }}
+                            >
+                              Generating the CNAME records might take ~ 2mins.
+                              Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                              Otherwise verification may fail and the created CNAME would be deleted.
+                            </div>
                           )}
                           <Button
                             icon={<PlusOutlined />}
@@ -585,7 +654,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                         required
                                         autoFocus
                                       />
-                                    &nbsp;<span style={{
+                                      &nbsp;<span style={{
                                         background: '#424242',
                                         height: '6px',
                                         width: '6px',
@@ -594,7 +663,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                         marginLeft: '3px',
                                         marginRight: '3px'
                                       }}
-                                    />&nbsp;
+                                      />&nbsp;
                                       <Input
                                         label="Apex domain (acme.com)"
                                         containerStyle={{
@@ -636,6 +705,12 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                   const nSubdomain = (this.state.subdomainName || '').trim();
                                   if (nRootDomain && nSubdomain) {
                                     domain = `${nSubdomain}.${nRootDomain}`;
+                                    let matchedVal;
+                                    // eslint-disable-next-line no-useless-escape
+                                    if (matchedVal = domain.match(/[:\/]+/)) {
+                                      this.showErrorMsg(`Domain name not valid. It contains invalid char ${matchedVal[0]}`, 10000);
+                                      return;
+                                    }
                                     if (this.props.vanityDomains!.findIndex(d => d.domainName === domain) !== -1) {
                                       this.showErrorMsg('Domain already exists');
                                       return;
@@ -644,7 +719,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                       await this.props.addNewCustomDomain(domain, this.state.subdomainName, this.state.rootDomainName);
                                     } catch (e) {
                                       raiseDeferredError(e as Error);
-                                      this.showErrorMsg('Something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
+                                      this.showErrorMsg('Another request might be in progress or something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
                                     }
                                     return;
                                   }
