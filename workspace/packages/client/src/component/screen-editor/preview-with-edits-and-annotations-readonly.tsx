@@ -279,13 +279,13 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   }
 
   async componentDidUpdate(prevProps: IOwnProps): Promise<void> {
-    if (this.annotationLCM && this.props.elpathKey !== prevProps.elpathKey) {
+    if (this.annotationLCM && this.props.elpathKey !== prevProps.elpathKey && !this.props.hidden) {
       this.annotationLCM.updateElPathKey(this.props.elpathKey);
       if (this.props.playMode) this.reachAnnotation(this.state.currentAnn);
     }
     if (this.props.playMode) {
       // In player, stop useless rerender leading to flashing
-      if (this.props.toAnnotationId && prevProps.toAnnotationId !== this.props.toAnnotationId) {
+      if (this.props.toAnnotationId && prevProps.toAnnotationId !== this.props.toAnnotationId && !this.props.hidden) {
         this.setState({ currentAnn: this.props.toAnnotationId });
         this.reachAnnotation(this.props.toAnnotationId);
       }
