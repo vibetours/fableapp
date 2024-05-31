@@ -530,6 +530,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const TOP_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.top;
     const BOTTOM_ANN_EL_MARGIN = AnnotationCard.ANNOTAITON_EL_MARGIN + maskBoxPadding.bottom;
 
+    if (this.isElBoxOutOfViewport(elBox)) {
+      isUltrawideBox = true;
+      l = this.props.win.innerWidth - w - LEFT_ANN_EL_MARGIN;
+      t = this.props.win.innerHeight - h - TOP_ANN_EL_MARGIN;
+      return {
+        l, t, dir, isUltrawideBox
+      };
+    }
+
     const leftSpace = elBox.left;
     const rightSpace = winW - elBox.right;
     const ml = leftSpace / (w + AnnotationCard.BREATHING_SPACE_RATIO + extraSpace);
@@ -600,6 +609,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       l, t, dir, isUltrawideBox
     };
   };
+
+  isElBoxOutOfViewport(elBox: Rect): boolean {
+    if (elBox.left + elBox.width > this.props.win.innerWidth) return true;
+    if (elBox.top + elBox.height > this.props.win.innerHeight) return true;
+    return false;
+  }
 
   getCoverAnnRenderingData = (w: number, h: number,): {
     l: number,

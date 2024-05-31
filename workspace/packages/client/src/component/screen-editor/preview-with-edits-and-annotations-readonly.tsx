@@ -386,7 +386,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       /**
        * Check if the entire html needs to replaced or updated
        */
-      const htmlEl = this.annotationLCM!.elFromPath('1')!;
+      const htmlEl = this.annotationLCM!.calcElFromPath('1')!;
       const updates = getSerNodesAttrUpdates(tree1, tree2);
       applyUpdateDiff(updates, htmlEl);
 
@@ -772,7 +772,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       .find(s => s.rid === rid)!;
     const currScreenData = this.props.allScreensData![screen.id];
 
-    const htmlEl = this.annotationLCM!.elFromPath('1')!;
+    const htmlEl = this.annotationLCM!.calcElFromPath('1')!;
 
     const replacedNode = this.deserElOrIframeEl(
       currScreenData.docTree,

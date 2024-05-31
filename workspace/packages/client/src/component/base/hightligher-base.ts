@@ -293,6 +293,18 @@ export default abstract class HighlighterBase {
   }
 
   elFromPath(path: string): HTMLElement | null {
+    if (path === '1') return this.doc.body;
+
+    const el = this.calcElFromPath(path);
+
+    if (el?.nodeName.toLowerCase() === 'html') {
+      return el.ownerDocument.body || el.parentElement;
+    }
+
+    return el;
+  }
+
+  calcElFromPath(path: string): HTMLElement | null {
     const elIdxs = path.split('.').map((id) => +id).slice(1);
     const document = this.doc as Document;
     let node = document.documentElement as Node;
