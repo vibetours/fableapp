@@ -78,7 +78,8 @@ interface IProps {
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean;
   maskBox: Rect | null;
-  nav: NavFn
+  nav: NavFn;
+  isScreenHTML4: boolean;
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
@@ -863,7 +864,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
-    const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy);
+    const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy, this.props.isScreenHTML4);
     let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
     let isBorderColorDefault = false;
     if (arrowColor.toUpperCase() === '#BDBDBD' || getTransparencyFromHexStr(arrowColor) <= 30) {
@@ -891,10 +892,19 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       ty -= d;
     }
 
+    let bodyScrollTopAdjustment = 0;
+    let bodyScrollLeftAdjustment = 0;
+
     if (!isCoverAnnotation) {
       const body = this.props.win.document.body;
-      t += this.props.win.scrollY + body.scrollTop;
-      l += this.props.win.scrollX + body.scrollLeft;
+
+      if (!this.props.isScreenHTML4) {
+        bodyScrollTopAdjustment = body.scrollTop;
+        bodyScrollLeftAdjustment = body.scrollLeft;
+      }
+
+      t += this.props.win.scrollY + bodyScrollTopAdjustment;
+      l += this.props.win.scrollX + bodyScrollLeftAdjustment;
     }
 
     if (this.isInitialTransitionDone) {
@@ -918,8 +928,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
               <AnnotationIndicator
                 box={{
                   ...this.props.box,
-                  top: this.props.box.top + this.props.win.scrollY + this.props.win.document.body.scrollTop,
-                  left: this.props.box.left + this.props.win.scrollX + this.props.win.document.body.scrollLeft,
+                  top: this.props.box.top + this.props.win.scrollY + bodyScrollTopAdjustment,
+                  left: this.props.box.left + this.props.win.scrollX + bodyScrollLeftAdjustment,
                 }}
                 pos={dir}
                 maskBoxRect={maskBoxRect}
@@ -1294,7 +1304,8 @@ interface IConProps {
   updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
   updateJourneyProgress: (annRefId: string)=>void,
   navigateToAnnByRefIdOnSameScreen: NavToAnnByRefIdFn,
-  onCompMount: ()=>void
+  onCompMount: ()=>void,
+  isScreenHTML4: boolean,
 }
 
 interface HotspotProps {
@@ -1313,6 +1324,7 @@ interface HotspotProps {
   }>,
   playMode: boolean,
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
+  isScreenHTML4: boolean,
 }
 
 function handleEventLogging(
@@ -1346,7 +1358,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
     return this.props.data.map((p, idx) => {
       const btnConf = p.conf.buttons.filter(button => button.type === 'next')[0];
       const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(p.win);
-      const maskBoxRect = HighlighterBase.getMaskBoxRect(p.box, p.win, cdx, cdy);
+      const maskBoxRect = HighlighterBase.getMaskBoxRect(p.box, p.win, cdx, cdy, this.props.isScreenHTML4);
 
       /**
        * If we show the annotation in edit mode, the user won't be able to select any
@@ -1517,6 +1529,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
               }]}
               playMode={this.props.playMode}
               navigateToAdjacentAnn={navigateToAdjacentAnn}
+              isScreenHTML4={this.props.isScreenHTML4}
             />
           }
           <AnnotationCard
@@ -1530,6 +1543,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
             nav={this.props.nav}
+            isScreenHTML4={this.props.isScreenHTML4}
           />
         </div>
       );

@@ -105,9 +105,10 @@ export default class DomElementPicker extends HighlighterBase {
     nestedFrames: HTMLIFrameElement[],
     cbs: { onElSelect: ElSelectCallback; onElDeSelect: ElDeSelectCallback,},
     screenType: ScreenType,
-    config: HighlighterBaseConfig
+    config: HighlighterBaseConfig,
+    isScreenHTML4: boolean,
   ) {
-    super(doc, nestedFrames, config);
+    super(doc, nestedFrames, config, isScreenHTML4);
     this.highlightMode = HighlightMode.Idle;
     this.maskEl = null;
     this.prevElHovered = null;

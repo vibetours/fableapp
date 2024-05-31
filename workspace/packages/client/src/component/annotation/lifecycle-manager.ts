@@ -155,9 +155,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
     updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
     updateJourneyProgress: (annRefId: string) => void,
-    elPathKey: ElPathKey
+    elPathKey: ElPathKey,
+    isScreenHTML4: boolean,
   ) {
-    super(doc, nestedFrames, config);
+    super(doc, nestedFrames, config, isScreenHTML4);
     this.elPathKey = elPathKey;
     this.annElsVisibilityObserver = new AnnElsVisibilityObserver(this.elVisibleHandler, this.elNotVisibleHandler);
     this.nav = opts.navigate;
@@ -688,7 +689,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
           updateCurrentFlowMain: this.updateCurrentFlowMain,
           updateJourneyProgress: this.updateJourneyProgress,
-          onCompMount: () => { this.con.style.display = ''; }
+          onCompMount: () => { this.con.style.display = ''; },
+          isScreenHTML4: this.isScreenHTML4,
         })
       )
     );
@@ -826,7 +828,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
           updateCurrentFlowMain: this.updateCurrentFlowMain,
           updateJourneyProgress: this.updateJourneyProgress,
-          onCompMount: () => { }
+          onCompMount: () => { },
+          isScreenHTML4: this.isScreenHTML4,
         })
       )
     );

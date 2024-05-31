@@ -69,9 +69,10 @@ export default class ScreenImageBrusher extends DomElementPicker {
         onBoxDeSelect: BoxDeSelectCallback
     },
     screenType: ScreenType,
-    config: HighlighterBaseConfig
+    config: HighlighterBaseConfig,
+    isScreenHTML4: boolean,
   ) {
-    super(doc, nestedFrames, cbs, screenType, config);
+    super(doc, nestedFrames, cbs, screenType, config, isScreenHTML4);
     this.maskEl = null;
     this.onBoxSelect = cbs.onBoxSelect;
     this.onBoxDeSelect = cbs.onBoxDeSelect;

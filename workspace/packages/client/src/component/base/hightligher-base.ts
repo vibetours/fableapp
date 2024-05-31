@@ -35,13 +35,16 @@ export default abstract class HighlighterBase {
 
   protected config: HighlighterBaseConfig;
 
-  constructor(doc: Document, nestedFrames: HTMLIFrameElement[], config: HighlighterBaseConfig) {
+  protected isScreenHTML4: boolean;
+
+  constructor(doc: Document, nestedFrames: HTMLIFrameElement[], config: HighlighterBaseConfig, isScreenHTML4: boolean) {
     this.doc = doc;
     this.setNestedFrames(nestedFrames);
     this.win = doc.defaultView as Window;
     this.maskEl = null;
     this.listnrSubs = {};
     this.config = config;
+    this.isScreenHTML4 = isScreenHTML4;
   }
 
   setNestedFrames(nestedFrames: HTMLIFrameElement[]): void {
@@ -74,7 +77,7 @@ export default abstract class HighlighterBase {
   private drawMask(elSize: Rect, win: Window, dx: number, dy: number, elBorderRadius: string): void {
     const maskBox = this.getOrCreateMask();
 
-    const { top, left, width, height } = HighlighterBase.getMaskBoxRect(elSize, win, dx, dy);
+    const { top, left, width, height } = HighlighterBase.getMaskBoxRect(elSize, win, dx, dy, this.isScreenHTML4);
 
     maskBox.style.top = `${top}px`;
     maskBox.style.left = `${left}px`;
@@ -83,12 +86,15 @@ export default abstract class HighlighterBase {
     maskBox.style.borderRadius = elBorderRadius;
   }
 
-  static getMaskBoxRect(elSize: Rect, win: Window, dx: number, dy: number): Rect {
+  static getMaskBoxRect(elSize: Rect, win: Window, dx: number, dy: number, isScreenHTML4: boolean): Rect {
     const padding = HighlighterBase.ANNOTATION_PADDING_ONE_SIDE;
     const body = win.document.body;
 
-    const top = elSize.top + win.scrollY + dy + body.scrollTop;
-    const left = elSize.left + win.scrollX + dx + body.scrollLeft;
+    const bodyScrollTopAdjustment = isScreenHTML4 ? 0 : body.scrollTop;
+    const bodyScrollLeftAdjustment = isScreenHTML4 ? 0 : body.scrollLeft;
+
+    const top = elSize.top + win.scrollY + dy + bodyScrollTopAdjustment;
+    const left = elSize.left + win.scrollX + dx + bodyScrollLeftAdjustment;
 
     const rightEndpoint = Math.ceil(left + elSize.width + (left <= 0 ? 0 : padding * 2));
     // the boundary is checked against the main window not iframe's window

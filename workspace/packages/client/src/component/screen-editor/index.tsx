@@ -2346,7 +2346,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           this.iframeElManager = new DomElPicker(doc, nestedFrames, {
             onElSelect: this.onElSelect,
             onElDeSelect: this.onElDeSelect,
-          }, this.props.screen.type, highlighterBaseConfig);
+          }, this.props.screen.type, highlighterBaseConfig, this.props.screenData.isHTML4);
           this.iframeElManager!.addEventListener('click', this.goToSelectionMode);
         }
 
@@ -2356,7 +2356,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onElDeSelect: this.onElDeSelect,
             onBoxSelect: this.onBoxSelect,
             onBoxDeSelect: this.onBoxDeSelect,
-          }, this.props.screen.type, highlighterBaseConfig);
+          }, this.props.screen.type, highlighterBaseConfig, this.props.screenData.isHTML4);
         }
 
         if (!this.props.toAnnotationId) {
