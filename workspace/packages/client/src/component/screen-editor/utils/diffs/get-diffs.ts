@@ -201,7 +201,8 @@ function isSerNodeReordered(tree1: SerNode, tree2: SerNode): boolean {
 
 export const isAssetChanged = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode): boolean => {
   const assetsToBeChecked = [
-    { name: 'link', attr: 'href' }
+    { name: 'link', attr: 'href' },
+    { name: 'iframe', attr: 'src' },
   ];
 
   for (const assetToCheck of assetsToBeChecked) {
@@ -219,7 +220,8 @@ export const isAssetChanged = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode)
 export const getSerNodesAttrUpdates = (serNodeOfTree1: SerNode, serNodeOfTree2: SerNode): Update[] => {
   const updates: Update[] = [];
   const updatesToSkip = [
-    { name: 'link', attr: 'href' }
+    { name: 'link', attr: 'href' },
+    { name: 'iframe', attr: 'src' },
   ];
   const keysOfNode1 = Object.keys(serNodeOfTree1.attrs);
   const keysOfNode2 = Object.keys(serNodeOfTree2.attrs);
