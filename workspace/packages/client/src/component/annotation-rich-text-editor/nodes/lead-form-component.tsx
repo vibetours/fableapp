@@ -71,7 +71,7 @@ export const LEAD_FORM_FIELDS: {
   },
   {
     label: 'Mobile',
-    placeholder: 'Enter your Mobile number {[ mobile ]}',
+    placeholder: 'Enter your Mobile number {[ phone ]}',
     autocompleteType: 'tel',
     type: 'text',
   },

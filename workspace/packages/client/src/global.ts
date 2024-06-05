@@ -15,6 +15,21 @@ export interface FableLeadContactProps extends Record<string, string | number | 
   website_url?: string;
 }
 
+export interface FtmQueryParams extends Record<string, string | number | undefined | null> {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  org?: string;
+  phone?: string;
+}
+
+export function saveGlobalFtmQueryParams(params: Partial<FtmQueryParams>) {
+  (window as FWin).__fable_global_query_param__ = {
+    ...((window as FWin).__fable_global_query_param__ || {}) as FtmQueryParams,
+    ...params
+  };
+}
+
 export function saveGlobalUser(user: Partial<FableLeadContactProps>) {
   (window as FWin).__fable_global_user__ = {
     ...((window as FWin).__fable_global_user__ || {}) as FableLeadContactProps,

@@ -58,7 +58,7 @@ import { HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZ
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
 import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../analytics/types';
-import { FableLeadContactProps, addToGlobalAppData } from '../../global';
+import { FableLeadContactProps, FtmQueryParams, addToGlobalAppData } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 
@@ -475,6 +475,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const lastName = searchParams.get('last_name') ?? undefined;
     const org = searchParams.get('org') ?? undefined;
     const phone = searchParams.get('phone') ?? undefined;
+    const queryParam: FtmQueryParams = {
+      first_name: firstName,
+      last_name: lastName,
+      org,
+      phone,
+      email: userEmail
+    };
+    addToGlobalAppData('ftmQueryParams', queryParam);
 
     if (REACT_APP_ENVIRONMENT !== 'dev') {
       (window as FWin).__fable_global_settings__ = {

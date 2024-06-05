@@ -3,7 +3,7 @@ import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
-import { FableLeadContactProps } from './global';
+import { FableLeadContactProps, FtmQueryParams } from './global';
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
   isPhony?: boolean;
@@ -173,7 +173,8 @@ export interface GlobalSettings {
 
 export type FWin = Window
   & { __fable_global_settings__?: GlobalSettings }
-  & { __fable_global_user__?: FableLeadContactProps };
+  & { __fable_global_user__?: FableLeadContactProps }
+  & { __fable_global_query_param__?: FtmQueryParams };
 
 export type ScreenPickerMode = 'create' | 'navigate';
 
@@ -247,6 +248,7 @@ export interface Payload_NavToAnnotation {
 }
 
 export interface GlobalAppData {
+  ftmQueryParams?: FtmQueryParams,
   demo?: P_RespTour,
   journeyData?: JourneyNameIndexData
 }

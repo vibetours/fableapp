@@ -18,7 +18,7 @@ import { createIframeSrc, postMessageForEvent } from './utils';
 import { P_RespTour } from './entity-processor';
 import { getUUID, logEvent, logEventDirect } from './analytics/utils';
 import { CBCtaClickEvent, CBEventBase, CBEvents, logEventToCblt } from './analytics/handlers';
-import { FableLeadContactProps, getGlobalData, saveGlobalUser } from './global';
+import { FableLeadContactProps, FtmQueryParams, getGlobalData, saveGlobalUser } from './global';
 import { IFRAME_BASE_URL } from './constants';
 
 type Payload_IE_AnnotationNav = AnnotationBtnClickedPayload;
@@ -85,14 +85,21 @@ export function initInternalEvents() : void {
     const lead = payload as FableLeadContactProps;
     saveGlobalUser(lead);
     const demo = getGlobalData('demo') as P_RespTour;
+    const ftmQueryParams = getGlobalData('ftmQueryParams') as FtmQueryParams;
 
     logEventToCblt<FableLeadContactProps & CBEventBase>({
       event: CBEvents.CREATE_CONTACT,
       payload: {
         ...lead,
+        phone: lead.phone || ftmQueryParams.phone,
+        first_name: lead.first_name || ftmQueryParams.first_name,
+        last_name: lead.last_name || ftmQueryParams.last_name,
+        org: lead.org || ftmQueryParams.org,
+        email: lead.email || ftmQueryParams.email || '',
         ti: demo.id
       },
     }, demo.rid);
+
     logEvent(AnalyticsEvents.ANN_USER_ASSIGN, {
       user_email: lead.email,
       tour_id: demo.id,
