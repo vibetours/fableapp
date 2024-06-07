@@ -113,7 +113,10 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
       elPath = calculatePathFromEl(el as Node, []).join(".");
     }
   }
-  const serDoc = getSearializedDom();
+  const fablePresenceDiv = document.getElementById(FABLE_DOM_EVT_LISTENER_DIV);
+  const frameId = fablePresenceDiv?.getAttribute(FABLE_ID_ID) || null;
+
+  const serDoc = getSearializedDom({ frameId });
   const screenStyle = getScreenStyle();
   elPath && serDoc.postProcesses.push({ type: "elpath", path: elPath });
   chrome.runtime.sendMessage<MsgPayload<ScreenSerDataFromCS>>({
@@ -173,6 +176,8 @@ function getAllIframesInDoc(type: "crossorigin" | "sameorigin", doc: Document) {
 }
 
 function installMessageListenerInFrame(win: Window, frameId: string) {
+  if (!(win && frameId)) return;
+
   (win as any).__data_fable_frameid__ = frameId;
   let i = 1;
   const timer = setInterval(() => {
@@ -189,7 +194,7 @@ function installMessageListenerInFrame(win: Window, frameId: string) {
 
   win.addEventListener("message", msg => {
     if (msg && msg.data && msg.data.from === FABLE_MSG_FROM_IDENTIFIER) {
-      console.log("[Fable] Frame to frame listener installation. Trying...");
+      // console.log("[Fable] Interframe listener installation. Trying...");
       if (msg.data.type === "idpropagation") {
         const frames = getAllIframesInDoc("crossorigin", win.document);
         const fs = frames.filter(f => f.contentWindow === msg.source);
@@ -295,7 +300,12 @@ function installListener(doc: Document) {
   }
 
   for (const d of sameOriginDocs) {
-    installListener(d!);
+    try {
+      installListener(d!);
+      installMessageListenerInFrame(d!.defaultView!, (doc.defaultView as any).__data_fable_frameid__);
+    } catch (e) {
+      console.error("Error installing msg listeners", e);
+    }
   }
 }
 
@@ -321,7 +331,7 @@ function init() {
           try {
             installMessageListener(`fi-${tMsg.data.frameId}`);
           } catch (e) {
-            console.error("Error installing msg passing", e);
+            console.error("Error installing msg listeners", e);
           }
         }
         break;

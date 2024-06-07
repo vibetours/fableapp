@@ -68,7 +68,9 @@ const URL_MATCHER = /url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/g;
  */
 
 export function getSearializedDom(
-  params?: any,
+  params: {
+    frameId: string | null
+  },
   testInjectedParams?: {
     doc: Document;
   }
@@ -503,6 +505,7 @@ export function getSearializedDom(
     iriReferencedSvgEls,
     frameUrl,
     title: doc.title,
+    frameId: params.frameId,
     userAgent: doc.defaultView?.navigator.userAgent || "",
     name: doc.defaultView?.name || "",
     postProcesses,

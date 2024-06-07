@@ -385,6 +385,7 @@ async function postProcessSerDocs(
     if (r.frameId === 0) {
       mainFrame = r;
     } else {
+      data.frameId && lookupWithProp.push('fableGenFrameId', data.frameId, r);
       lookupWithProp.push('frameId', `${r.frameId}`, r);
       !(data.name === undefined || data.name === null || data.name === '')
         && lookupWithProp.push('name', data.name, r);
@@ -421,7 +422,9 @@ async function postProcessSerDocs(
         const urlLookupProp = postProcess.type === 'object' ? 'data' : 'src';
         let subFrame;
         let subFrames = [];
-        if ((subFrames = lookupWithProp.find('name', node.attrs.name)).length === 1) {
+        if ((subFrames = lookupWithProp.find('fableGenFrameId', node.attrs['fable-0-id-id'])).length === 1) {
+          subFrame = subFrames[0];
+        } else if ((subFrames = lookupWithProp.find('name', node.attrs.name)).length === 1) {
           // If we find a unique frame record with name then we take it
           // Sometimes the <iframe name="" /> is blank, in that case we do following lookup
           subFrame = subFrames[0];
@@ -807,7 +810,7 @@ export function getAbsoluteUrl(urlStr: string, baseUrl: string, frameUrl: string
   }
 }
 
-type LookupWithPropType = 'name' | 'url' | 'urlBase' | 'dim' | 'frameId';
+type LookupWithPropType = 'name' | 'url' | 'urlBase' | 'dim' | 'frameId' | 'fableGenFrameId';
 class CreateLookupWithProp<T> {
   private static globalRec: Record<LookupWithPropType, Record<string, object[]>> = {
     name: {},
@@ -815,6 +818,7 @@ class CreateLookupWithProp<T> {
     urlBase: {},
     dim: {},
     frameId: {},
+    fableGenFrameId: {}
   };
 
   private rec: Record<LookupWithPropType, Record<string, T[]>> = {
@@ -823,6 +827,7 @@ class CreateLookupWithProp<T> {
     urlBase: {},
     dim: {},
     frameId: {},
+    fableGenFrameId: {}
   };
 
   static getNormalizedUrlStr(urlStr: string, justHost: boolean = true): string {

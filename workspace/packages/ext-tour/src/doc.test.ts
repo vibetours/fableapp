@@ -88,7 +88,9 @@ function match(el: ChildNode, node: SerNode): Mismatch[] {
 describe("DOM Serializtion", () => {
   it("should serialize a simple doc with no asset and iframe", () => {
     getDocFor("simple.html");
-    const sFrame = getSearializedDom(null, { doc: document });
+    const sFrame = getSearializedDom({
+      frameId: null
+    }, { doc: document });
 
     expect(sFrame.frameUrl).toBe("test://case");
     expect(sFrame.userAgent).toContain("jsdom");
