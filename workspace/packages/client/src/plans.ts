@@ -22,7 +22,7 @@ export interface FeaturePerPlan {
 
 export const AnalyticsValue = ['advanced', 'basic'];
 export type IntegrationValue = 'hubspot'
-export const AnnotationValue = ['text', 'video'];
+export const AnnotationValue = ['text', 'video', 'audio'];
 
 export interface FeatureForPlan {
   [key: string]: PlanDetail

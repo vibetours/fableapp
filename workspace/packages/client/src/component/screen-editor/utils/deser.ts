@@ -42,6 +42,24 @@ export const deser = (
             shouldAddImgToAssetLoadingPromises
           );
           newProps.shadowParent = (node as HTMLElement).shadowRoot;
+          if (node.nodeName.toLowerCase() === 'body') {
+            deserCustomCssStyleSheets(serNode, doc, node);
+          }
+
+          try {
+            if (serNode.name.toLowerCase().includes('-')) {
+              class CustomElement extends doc.defaultView!.HTMLElement {
+
+              }
+              doc.defaultView!.customElements.define(serNode.name.toLowerCase(), CustomElement);
+            }
+          } catch (err) {
+            /* noop */
+            // console.warn(serNode.name, 'not custom? anyway', err);
+            // every try catch block takes up execution time. Right now we simply ignore if there are exceptions. In
+            // future handle common exceptions like if custom element registry already have a custom element then
+            // do not redeclare it
+          }
         } catch (e) {
           raiseDeferredError(e as Error);
         }
@@ -59,6 +77,7 @@ export const deser = (
 
     case Node.DOCUMENT_FRAGMENT_NODE:
       node = newProps.shadowParent;
+      deserCustomCssStyleSheets(serNode, doc, node!);
       break;
 
     case FABLE_CUSTOM_NODE: {
@@ -168,6 +187,7 @@ export const createHtmlElement = (
 
       img.onload = () => {
         ctx.drawImage(img, 0, 0, +node.attrs.width!, +node.attrs.height!);
+        img.onload = null;
       };
     }
   }
@@ -221,9 +241,11 @@ export const createHtmlElement = (
       } else if (node.name === 'object' && attrKey === 'data') {
         el.setAttribute(attrKey, '/aboutblank');
       } else {
-        if (node.name === 'a' && attrKey === 'href') {
-          // eslint-disable-next-line no-script-url
-          attrValue = 'javascript:void(0);';
+        if (node.name === 'a') {
+          if (attrKey === 'href') {
+            // eslint-disable-next-line no-script-url
+            attrValue = 'javascript:;';
+          } else if (attrKey === 'target') continue;
         }
         // HOTFIX!
         if (attrKey === 'xlink:href') {
@@ -357,4 +379,19 @@ export const deserIframeEl = (
 const stopEventBehaviour = (e: Event): void => {
   e.preventDefault();
   e.stopPropagation();
+};
+
+const deserCustomCssStyleSheets = (serNode: SerNode, doc: Document, node: Node): void => {
+  if (!serNode.props.adoptedStylesheets?.length) return;
+
+  const docToApplyCustomStyleSheets = node.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? node as ShadowRoot : doc;
+
+  const win = doc.defaultView!;
+  const sheets: CSSStyleSheet[] = [];
+  serNode.props.adoptedStylesheets.forEach(cssText => {
+    const sheet = new win.CSSStyleSheet();
+    sheet.replaceSync(cssText);
+    sheets.push(sheet);
+  });
+  docToApplyCustomStyleSheets.adoptedStyleSheets = [...sheets];
 };

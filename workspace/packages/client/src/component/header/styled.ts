@@ -57,6 +57,19 @@ export const MenuItem = styled.div`
     font-weight: 500;
   }
 
+  span.sec-btn {
+    border: none !important;
+  
+    button {
+      border-color: white;
+    }
+  }
+
+  span.sec-btn:hover {
+    border: none !important;  
+    transform: translate(2px, -2px);
+  }
+
   .sec-btn:hover {
     border: 1px solid white !important;
     color: white !important;
@@ -149,4 +162,11 @@ export const WarningIcon = styled(WarningFilled)`
   :hover {
     color: #ff9800;
   }
+`;
+
+export const DrawerBodyCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: calc(100% - 45px);
 `;

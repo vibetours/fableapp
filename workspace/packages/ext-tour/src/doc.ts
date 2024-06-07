@@ -6,6 +6,7 @@ import {
 } from "@fable/common/dist/types";
 import { nanoid } from "nanoid";
 import { rgbToHex } from "@fable/common/dist/utils";
+import raiseDeferredError from "@fable/common/dist/deferred-error";
 import {
   FABLE_DONT_SER_CLASSNAME,
   isCrossOrigin,
@@ -45,6 +46,8 @@ const IRI_REFERENCED_SVG_ELS = [
 ];
 
 const SER_DOC_SCHEMA_VERSION = 2;
+
+const URL_MATCHER = /url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/g;
 
 // TODO ability to blacklist elements from other popular extensions like loom, grammarly etc
 //
@@ -100,7 +103,6 @@ export function getSearializedDom(
     };
 
     const ICON_MATCHER = new RegExp("icon", "i");
-    const URL_MATCHER = /url\("(.*?)"\)|url\('(.*?)'\)|url\((.*?)\)/g;
 
     const NO_INCLUDE_DOM_EL = {
       script: 1,
@@ -179,6 +181,13 @@ export function getSearializedDom(
       case Node.DOCUMENT_FRAGMENT_NODE:
         sNode.name = "#shadow-root";
         sNode.props.isShadowRoot = true;
+        const { cssTexts, allProxyUrls } = getAllAdoptedStylesheets(node as ShadowRoot);
+        sNode.props.adoptedStylesheets = cssTexts;
+
+        if (allProxyUrls.length) {
+          sNode.props.proxyUrlMap.adoptedStylesheets = sanitizeUrlsInCssStr(allProxyUrls);
+          shouldPostProcess = true;
+        }
         break;
 
       case Node.TEXT_NODE:
@@ -194,6 +203,16 @@ export function getSearializedDom(
       default:
         console.error("unknown node", node);
         throw new Error("node type could not be parsed");
+    }
+
+    if (sNode.name === "body") {
+      const { cssTexts, allProxyUrls } = getAllAdoptedStylesheets(node.ownerDocument!);
+      sNode.props.adoptedStylesheets = cssTexts;
+
+      if (allProxyUrls.length) {
+        sNode.props.proxyUrlMap.adoptedStylesheets = sanitizeUrlsInCssStr(allProxyUrls);
+        shouldPostProcess = true;
+      }
     }
 
     if (sNode.name in NO_INCLUDE_DOM_EL) {
@@ -298,14 +317,7 @@ export function getSearializedDom(
 
     if (sNode.name === "style") {
       const tNode = node as HTMLStyleElement;
-      const cssRules = tNode.sheet?.cssRules ?? [];
-      let cssText = "";
-      const proxyUrls = [];
-      for (let i = 0; i < cssRules.length; i++) {
-        const urls = cssRules[i].cssText.match(URL_MATCHER);
-        if (urls) proxyUrls.push(...urls);
-        cssText += `${cssRules[i].cssText} `;
-      }
+      const { cssText, proxyUrls } = getCSSText(tNode.sheet);
       sNode.props.cssRules = cssText;
       sNode.props.proxyUrlMap.cssRules = sanitizeUrlsInCssStr(proxyUrls);
       return { serNode: sNode, postProcess: Boolean(proxyUrls.length) };
@@ -796,4 +808,27 @@ export function getScreenStyle(
     nodeColor,
     nodeBorderRadius
   };
+}
+
+function getAllAdoptedStylesheets(currentDoc: Document | ShadowRoot): {cssTexts: string[], allProxyUrls: string[]} {
+  const allProxyUrls: string[] = [];
+  const cssTexts: string[] = [];
+  currentDoc.adoptedStyleSheets.forEach(sheet => {
+    const { cssText, proxyUrls } = getCSSText(sheet);
+    cssTexts.push(cssText);
+    allProxyUrls.push(...proxyUrls);
+  });
+  return { cssTexts, allProxyUrls };
+}
+
+function getCSSText(sheet: CSSStyleSheet | null): {cssText: string, proxyUrls: string[]} {
+  const cssRules = sheet?.cssRules ?? [];
+  let cssText = "";
+  const proxyUrls = [];
+  for (let i = 0; i < cssRules.length; i++) {
+    const urls = cssRules[i].cssText.match(URL_MATCHER);
+    if (urls) proxyUrls.push(...urls);
+    cssText += `${cssRules[i].cssText} `;
+  }
+  return { cssText, proxyUrls };
 }

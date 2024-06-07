@@ -401,6 +401,7 @@ async function postProcessSerDocs(
 
   let elPath = '';
   const allCookies = cookies;
+  const processedFrames = new Set<number>();
   async function process(
     frame: SerDoc,
     frameId: number,
@@ -444,7 +445,10 @@ async function postProcessSerDocs(
           console.warn('Node', node);
           raiseDeferredError(new Error(`No sub frame present for node ^^^. src=${node.attrs.src}`));
           sentryCaptureExceptionWithData(`No sub frame present for node ^^^. src=${node.attrs.src}`);
+        } else if (processedFrames.has(subFrame.frameId)) {
+          raiseDeferredError(new Error(`Circular reference for frame. ${subFrame.frameId}`));
         } else {
+          processedFrames.add(subFrame.frameId);
           const subFrameData = subFrame.data as SerDoc;
           if (subFrameData.isHTML5) {
             node.chldrn.push({
@@ -596,6 +600,9 @@ async function postProcessSerDocs(
                 } else if (proxyAttr === 'cssRules') {
                   const propsVal = node.props[proxyAttr];
                   if (propsVal) node.props[proxyAttr] = getAllPossibleCssUrlReplace(propsVal, pUrl, proxyiedUrl);
+                } else if (proxyAttr === 'adoptedStylesheets') {
+                  const propsVal = node.props[proxyAttr];
+                  if (propsVal) node.props[proxyAttr] = getAllPossibleAdoptedStylesheetsUrlReplace(propsVal, pUrl, proxyiedUrl);
                 } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
                   node.props.origHref = pUrl;
                   if (node.props.isInlineSprite) {
@@ -750,6 +757,19 @@ function dataURLtoFile(dataurl: string, filename: string): File {
     u8arr[n] = bstr.charCodeAt(n);
   }
   return new File([u8arr], filename, { type: mime });
+}
+
+function getAllPossibleAdoptedStylesheetsUrlReplace(
+  adoptedStyleSheets: string[],
+  replaceThisUrl: string,
+  replaceWithUrl: string
+): string[] {
+  const res = [];
+  for (const sheet of adoptedStyleSheets) {
+    res.push(getAllPossibleCssUrlReplace(sheet, replaceThisUrl, replaceWithUrl));
+  }
+
+  return res;
 }
 
 export function getCookieHeaderForUrl(cookies: chrome.cookies.Cookie[], pageUrl: URL): String {

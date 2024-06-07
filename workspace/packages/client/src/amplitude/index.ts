@@ -62,7 +62,7 @@ export const amplitudeAnnotationEdited = (
 export const amplitudeAnnotationApplyAll = (
   applyTo: 'module' | 'all',
   annotationProp: 'branding-selection_color' | 'branding-selection_shape' | 'cta-button_size' | 'overlay'
-    | 'branding-selection_effect',
+    | 'branding-selection_effect' | 'cta-button_text',
   annotationPropValue: string | number | boolean
 ): void => {
   traceEvent(

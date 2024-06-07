@@ -11,13 +11,14 @@ import {
   SaveOutlined,
   ShareAltOutlined,
   SwapOutlined,
-  WarningFilled
+  WarningFilled,
+  ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
@@ -92,6 +93,8 @@ function Header(props: IOwnProps): JSX.Element {
   const [showWarningDrawer, setShowWarningDrawer] = useState(false);
   const [isWarningPresent, setIsWarningPresent] = useState(false);
   const [showUserGuidePopover, setShowUserGuidePopover] = useState(false);
+  const params = useParams();
+  const location = useLocation();
 
   useEffect(() => {
     let isWarning = false;
@@ -130,6 +133,33 @@ function Header(props: IOwnProps): JSX.Element {
 
   const closeModal = (): void => {
     setIsModalVisible(false);
+  };
+
+  const getTooltipTitle = (): string => {
+    switch (props.tourMainValidity) {
+      case TourMainValidity.Journey_Main_Not_Present:
+        return 'Journey entry point is not set';
+      case TourMainValidity.Main_Not_Present:
+        return 'Demo\'s entry point is not set';
+      case TourMainValidity.Main_Not_Set:
+        return 'Demo\'s entry point is not present';
+      default:
+        return '';
+    }
+  };
+
+  const getDrawerOpenState = (): boolean => {
+    if (showWarningDrawer) return true;
+    if (params.screenId) return false;
+
+    switch (props.tourMainValidity) {
+      case TourMainValidity.Journey_Main_Not_Present:
+      case TourMainValidity.Main_Not_Present:
+      case TourMainValidity.Main_Not_Set:
+        return true;
+      default:
+        return false;
+    }
   };
 
   return (
@@ -228,13 +258,16 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
               )
             }
-            {
-              props.tourMainValidity === TourMainValidity.Valid && (
-                <>
-                  <Tags.MenuItem style={{
-                    borderRight: '1px solid rgba(255, 255, 255, 0.3)',
-                    paddingRight: '16px'
-                  }}
+            {!location.pathname.startsWith('/preview') && (
+              <>
+                <Tags.MenuItem style={{
+                  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                  paddingRight: '16px'
+                }}
+                >
+                  <Tooltip
+                    open={!getTooltipTitle() ? false : undefined}
+                    title={getTooltipTitle}
                   >
                     <AntButton
                       id="step-1"
@@ -263,43 +296,44 @@ function Header(props: IOwnProps): JSX.Element {
                         });
                         window.open(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}`)?.focus();
                       }}
+                      disabled={props.tourMainValidity !== TourMainValidity.Valid}
                     >
                       Preview
                     </AntButton>
-                  </Tags.MenuItem>
-                  <Tags.MenuItem>
-                    <Tooltip title="Embed demo" overlayStyle={{ fontSize: '0.75rem' }}>
+                  </Tooltip>
+                </Tags.MenuItem>
+                <Tags.MenuItem>
+                  <Tooltip title="Embed demo" overlayStyle={{ fontSize: '0.75rem' }}>
+                    <AntButton
+                      id="step-2"
+                      size="small"
+                      shape="circle"
+                      type="text"
+                      icon={<ShareAltOutlined
+                        style={{ color: 'white' }}
+                      />}
+                      onClick={(e) => {
+                        showModal();
+                      }}
+                    />
+                  </Tooltip>
+                </Tags.MenuItem>
+                <Tags.MenuItem>
+                  <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
+                    <Link to={`/a/demo/${props.tour.rid}`}>
                       <AntButton
-                        id="step-2"
                         size="small"
                         shape="circle"
                         type="text"
-                        icon={<ShareAltOutlined
+                        icon={<BarChartOutlined
                           style={{ color: 'white' }}
                         />}
-                        onClick={(e) => {
-                          showModal();
-                        }}
                       />
-                    </Tooltip>
-                  </Tags.MenuItem>
-                  <Tags.MenuItem>
-                    <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
-                      <Link to={`/a/demo/${props.tour.rid}`}>
-                        <AntButton
-                          size="small"
-                          shape="circle"
-                          type="text"
-                          icon={<BarChartOutlined
-                            style={{ color: 'white' }}
-                          />}
-                        />
-                      </Link>
-                    </Tooltip>
-                  </Tags.MenuItem>
-                </>
-              )
-            }
+                    </Link>
+                  </Tooltip>
+                </Tags.MenuItem>
+              </>
+            )}
             {
               props.canvasOptions && (
                 <Tags.MenuItem>
@@ -359,26 +393,32 @@ function Header(props: IOwnProps): JSX.Element {
             }
             {props.publishOptions && (props.publishOptions)}
             {props.publishTour && (
-            <div
-              className="publish-btn"
-              style={{
-                borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
-                paddingLeft: '16px'
-              }}
-            >
-              <PublishButton
-                setIsPublishFailed={setIsPublishFailed}
-                setIsPublishing={setIsPublishing}
-                publishTour={props.publishTour}
-                tour={props.tour}
-                size="medium"
-                openShareModal={() => {
-                  amplitudeShareModalOpen('editor');
-                  setIsModalVisible(true);
-                }}
-                isPublishing={isPublishing}
-              />
-            </div>
+              <Tooltip
+                title={getTooltipTitle}
+                open={!getTooltipTitle() ? false : undefined}
+              >
+                <div
+                  className="publish-btn"
+                  style={{
+                    borderLeft: '1px solid rgba(255, 255, 255, 0.3)',
+                    paddingLeft: '16px'
+                  }}
+                >
+                  <PublishButton
+                    disabled={props.tourMainValidity !== TourMainValidity.Valid}
+                    setIsPublishFailed={setIsPublishFailed}
+                    setIsPublishing={setIsPublishing}
+                    publishTour={props.publishTour}
+                    tour={props.tour}
+                    size="medium"
+                    openShareModal={() => {
+                      amplitudeShareModalOpen('editor');
+                      setIsModalVisible(true);
+                    }}
+                    isPublishing={isPublishing}
+                  />
+                </div>
+              </Tooltip>
             )}
           </div>
           )}
@@ -574,82 +614,121 @@ function Header(props: IOwnProps): JSX.Element {
             />
           </form>
         </GTags.BorderedModal>
-        {showWarningDrawer
-      && (
-      <Drawer
-        title="Fix the following items before you embed this demo"
-        onClose={() => {
-          setShowWarningDrawer(false);
-        }}
-        open={showWarningDrawer}
-      >
-        <>
-          {props.tourMainValidity === TourMainValidity.Main_Not_Set
-        && (
-          <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Entry point of the demo is not set.
-            <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
-              <LinkOutlined /> Check here how to set the entry point.
-            </a>
-          </Tags.MainNotSetContent>
-        )}
-          {props.tourMainValidity === TourMainValidity.Journey_Main_Not_Present
-        && (
-          <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Entry point of one of the modules is not valid. Please reset it.
-          </Tags.MainNotSetContent>
-        )}
-          {props.tourMainValidity === TourMainValidity.Main_Not_Present
-        && (
-          <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Entry point of the demo is not valid. Please reset it.
-            <a href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point" target="_blank" rel="noreferrer">
-              <LinkOutlined /> Check here how to set the entry point.
-            </a>
-          </Tags.MainNotSetContent>
-        )}
-          {!props.lastAnnHasCTA
-        && (
-          <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Book a Demo CTA is not configured on the last annotation.
-            <a href="https://help.sharefable.com/Editing-Demos/Call-to-Actions" target="_blank" rel="noreferrer">
-              <LinkOutlined /> Check here how to configure a CTA with external URL
-            </a>
-          </Tags.MainNotSetContent>
-        )}
-          {!props.isJourneyCTASet
-        && (
-          <Tags.MainNotSetContent>
-            <WarningFilled style={{ color: '#FF7450' }} />
-            &nbsp; Book a Demo CTA is not configured for modules.
-            <a href="https://help.sharefable.com/Editing-Demos/Module" target="_blank" rel="noreferrer">
-              <LinkOutlined /> Check here how to configure a CTA with external URL for modules.
-            </a>
-          </Tags.MainNotSetContent>
-        )}
-        </>
-        <>
-          {
-            props.screenDiagnostics && props.screenDiagnostics.length > 0 && (
-              props.screenDiagnostics
-                .filter(diag => diag.code === 100)
-                .map((_, idx) => (
-                  <Tags.MainNotSetContent key={idx}>
-                    <WarningFilled style={{ color: '#FF7450' }} />
-                    &nbsp; This screen was replaced by an image screen since we
-                    encountered an issue while retrieving an interactive version of the page.
-                    You can try rerecording the screen again.
+
+        <Drawer
+          rootStyle={{ transform: 'translateY(45px)' }}
+          contentWrapperStyle={{
+            boxShadow: 'none',
+            borderLeft: '2px solid #cdcdcd'
+          }}
+          width={240}
+          mask={false}
+          closable={false}
+          title="Fix the following items before you embed this demo"
+          onClose={() => {
+            setShowWarningDrawer(false);
+          }}
+          open={getDrawerOpenState()}
+        >
+          <Tags.DrawerBodyCon>
+            {props.tourMainValidity !== TourMainValidity.Valid
+              && (
+              <div style={{ fontWeight: 500, marginBottom: '0.5rem' }}>
+                Issues with the demo
+              </div>
+              )}
+
+            <div style={{ flex: '0.8' }}>
+              {props.tourMainValidity === TourMainValidity.Main_Not_Set
+                && (
+                  <Tags.MainNotSetContent>
+                    <ExclamationCircleFilled style={{ color: 'red' }} />
+                    &nbsp; Entry point of the demo is not set.
+                    <a
+                      href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <LinkOutlined /> Check here how to set the entry point.
+                    </a>
                   </Tags.MainNotSetContent>
-                ))
-            )
-          }
-        </>
-      </Drawer>
-      )}
+                )}
+
+              {props.tourMainValidity === TourMainValidity.Main_Not_Present
+                  && (
+                    <Tags.MainNotSetContent>
+                      <WarningFilled style={{ color: '#FF7450' }} />
+                      &nbsp; Entry point of the demo is not valid. Please reset it.
+                      <a
+                        href="https://help.sharefable.com/Editing-Demos/Setting-an-Entry-Point"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <LinkOutlined /> Check here how to set the entry point.
+                      </a>
+                    </Tags.MainNotSetContent>
+                  )}
+
+              {props.tourMainValidity === TourMainValidity.Journey_Main_Not_Present
+                && (
+                  <Tags.MainNotSetContent>
+                    <ExclamationCircleFilled style={{ color: 'red' }} />
+                    &nbsp; Entry point of one of the modules is not valid. Please reset it.
+                  </Tags.MainNotSetContent>
+                )}
+            </div>
+
+            <div style={{ flex: '0.2', borderTop: '1px solid lightgray' }}>
+              {(
+                props.tourMainValidity === TourMainValidity.Main_Not_Present
+                || !props.lastAnnHasCTA
+                || !props.isJourneyCTASet
+              )
+                && (
+                  <div style={{ fontWeight: 500, marginTop: '1rem' }}>Warnings</div>
+                )}
+              {!props.lastAnnHasCTA
+                  && (
+                    <Tags.MainNotSetContent>
+                      <WarningFilled style={{ color: '#FF7450' }} />
+                      &nbsp; Book a Demo CTA is not configured on the last annotation.
+                      <a href="https://help.sharefable.com/Editing-Demos/Call-to-Actions" target="_blank" rel="noreferrer">
+                        <LinkOutlined /> Check here how to configure a CTA with external URL
+                      </a>
+                    </Tags.MainNotSetContent>
+                  )}
+
+              {!props.isJourneyCTASet
+                  && (
+                    <Tags.MainNotSetContent>
+                      <WarningFilled style={{ color: '#FF7450' }} />
+                      &nbsp; Book a Demo CTA is not configured for modules.
+                      <a href="https://help.sharefable.com/Editing-Demos/Module" target="_blank" rel="noreferrer">
+                        <LinkOutlined /> Check here how to configure a CTA with external URL for modules.
+                      </a>
+                    </Tags.MainNotSetContent>
+                  )}
+              <>
+                {props.screenDiagnostics
+                  && props.screenDiagnostics.length > 0
+                  && (
+                    props.screenDiagnostics
+                      .filter(diag => diag.code === 100)
+                      .map((_, idx) => (
+                        <Tags.MainNotSetContent key={idx}>
+                          <WarningFilled style={{ color: '#FF7450' }} />
+                          &nbsp; This screen was replaced by an image screen since we
+                          encountered an issue while retrieving an interactive version of the page.
+                          You can try rerecording the screen again.
+                        </Tags.MainNotSetContent>
+                      ))
+                  )}
+              </>
+            </div>
+
+          </Tags.DrawerBodyCon>
+        </Drawer>
+
       </Tags.Con>
     </Suspense>
   );

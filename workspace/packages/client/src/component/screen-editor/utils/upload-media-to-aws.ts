@@ -8,7 +8,10 @@ import {
 } from '@fable/common/dist/api-contract';
 import { getS3UploadUrl } from './get-aws-signed-url';
 
-export async function uploadVideoToAws(videoBuffer: Uint8Array, type: 'video/webm' | 'video/mp4'): Promise<string> {
+export async function uploadMediaToAws(
+  videoBuffer: Uint8Array,
+  type: 'video/webm' | 'video/mp4' | 'audio/webm'
+): Promise<string> {
   const awsSignedUrl = await getS3UploadUrl(type);
   if (!awsSignedUrl) {
     return '';
@@ -29,7 +32,7 @@ const uploadImageAsBinary = async (videoBuffer: Uint8Array, type: string, awsSig
   return uploadedImageSrc;
 };
 
-export async function transcodeMedia(uri: string, tourRid: string):
+export async function transcodeVideo(uri: string, tourRid: string):
   Promise<[err: string, ...streams: RespMediaProcessingInfo[]]> {
   const data = await api<ReqMediaProcessing, ApiResp<RespMediaProcessingInfo[]>>('/vdt', {
     auth: true,
@@ -43,6 +46,24 @@ export async function transcodeMedia(uri: string, tourRid: string):
   });
   if (data.status === ResponseStatus.Failure) {
     return ["Couldn't transcode video"];
+  }
+  return ['', ...data.data];
+}
+
+export async function transcodeAudio(uri: string, tourRid: string):
+  Promise<[err: string, ...streams: RespMediaProcessingInfo[]]> {
+  const data = await api<ReqMediaProcessing, ApiResp<RespMediaProcessingInfo[]>>('/audt', {
+    auth: true,
+    body: {
+      path: uri,
+      assn: {
+        entityRid: tourRid,
+        entityType: EntityType.Tour
+      }
+    }
+  });
+  if (data.status === ResponseStatus.Failure) {
+    return ["Couldn't transcode audio"];
   }
   return ['', ...data.data];
 }

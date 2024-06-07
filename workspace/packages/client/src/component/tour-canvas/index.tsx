@@ -59,6 +59,7 @@ import {
   ScreenPickerData,
   Timeline,
   TourDataChangeFn,
+  TourMainValidity,
   onAnnCreateOrChangeFn
 } from '../../types';
 import {
@@ -816,6 +817,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               const currentAnnConfig = getAnnotationByRefId(currentAnnRefId, props.allAnnotationsForTour)!;
               const [, destinationAnnId] = reorderPropsRef.current.destinationDraggedAnnotationId.split('/');
               const result = reorderAnnotation(
+                props.timeline,
                 { ...currentAnnConfig, screenId: +currentScreenId },
                 destinationAnnId,
                 props.allAnnotationsForTour,
@@ -897,7 +899,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     lookupMap: AnnoationLookupMap,
     from: string,
     to: string,
-    updateFn: TourDataChangeFn
+    updateFn: TourDataChangeFn,
+    tourOpts: ITourDataOpts,
   ): void => {
     const [fromScreenIdx, fromAnIdx] = lookupMap[from];
     const [toScreenIdx, toAnIdx] = lookupMap[to];
@@ -1003,6 +1006,45 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       config: update,
       actionType: 'upsert'
     }, tx);
+
+    let mainFound = false;
+    let currAnn = fromAn;
+    let firstAnnOfNewFlow = fromAn;
+
+    while (currAnn && !mainFound) {
+      if (currAnn.refId === tourOpts.main.split('/')[1]) {
+        mainFound = true;
+      }
+      const prevBtnHotspot = currAnn.buttons.find(btn => btn.type === 'prev')?.hotspot;
+      if (!prevBtnHotspot) break;
+      const prevAnn = getAnnotationByRefId(prevBtnHotspot.actionValue.split('/')[1], allAnns);
+      if (!prevAnn) break;
+      currAnn = prevAnn;
+      firstAnnOfNewFlow = prevAnn;
+    }
+
+    currAnn = toAn;
+
+    while (currAnn && !mainFound) {
+      if (currAnn.refId === tourOpts.main.split('/')[1]) {
+        mainFound = true;
+      }
+      const nextBtnHotspot = currAnn.buttons.find(btn => btn.type === 'next')?.hotspot;
+      if (!nextBtnHotspot) break;
+      if (nextBtnHotspot.actionType !== 'navigate') break;
+      const nextAnn = getAnnotationByRefId(nextBtnHotspot.actionValue.split('/')[1], allAnns);
+      if (!nextAnn) break;
+      currAnn = nextAnn;
+    }
+
+    if (mainFound) {
+      const firstAnn = getAnnotationByRefId(firstAnnOfNewFlow.refId, allAnns);
+      updateFn('annotation-and-theme', allAnns[fromScreenIdx].screen.id, {
+        config: update,
+        opts: updateTourDataOpts(tourOpts, 'main', `${firstAnn!.screenId}/${firstAnn!.refId}`),
+        actionType: 'upsert'
+      }, tx);
+    }
 
     props.commitTx(tx);
   };
@@ -1280,6 +1322,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         gap: MULTI_ANN_NODE_GAP
       },
       props.journey,
+      props.tourOpts
     );
 
     if (nodesWithDims.length === 0 && !props.shouldShowOnlyScreen) {
@@ -1570,7 +1613,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         if (annEditorModalRef.current) return;
         const allAnns = g.selectAll<SVGGElement, AnnotationPerScreen[]>('g.connectors').datum();
         const lookupMap = getAnnotationLookupMap(allAnns);
-        updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange);
+        updateConnection(allAnns, lookupMap, fromElData.id, toElData.id, props.onTourDataChange, fromElData.opts);
 
         hideGuideConnector(connectorG.selectAll('path.guide-arr'));
       })
@@ -1609,6 +1652,13 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .call(div => {
                 div.append('xhtml:p');
               });
+          });
+
+        p
+          .append('foreignObject')
+          .attr('class', 'main-marker')
+          .call(fo => {
+            fo.append('xhtml:p');
           });
 
         p.append('foreignObject')
@@ -1846,7 +1896,49 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               .style('cursor', 'default')
               .text(d => `Module: ${d.journeyTitle}`);
           });
+        const mainMarkerCon = p
+          .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.main-marker')
+          .data(p.data(), d => d.id);
 
+        mainMarkerCon
+          .merge(mainMarkerCon)
+          .style('display', (d) => {
+            if (props.journey.flows.length > 0) {
+              return 'none';
+            }
+
+            if (d.id === props.tourOpts.main) {
+              return 'block';
+            }
+
+            return 'none';
+          })
+          .attr('width', '100%')
+          .attr('height', MODULE_TITLE_HEIGHT)
+          .attr('x', 0)
+          .attr('y', -(MODULE_TITLE_HEIGHT + MODULE_TITLE_PADDING))
+          .on('mousedown', e => prevent(e))
+          .on('mouseup', e => prevent(e))
+          .on('mouseover', e => prevent(e))
+          .call(fo => {
+            const mainMarker = fo.selectAll<HTMLParagraphElement, AnnotationNode<dagre.Node>>('p')
+              .data(p.data(), d => d.id);
+
+            mainMarker
+              .merge(mainMarker)
+              .style('width', 'fit-content')
+              .style('margin', 0)
+              .style('padding', '0 0.5rem')
+              .style('border-radius', '4px')
+              .style('font-size', '16px')
+              .style('display', 'flex')
+              .style('align-items', 'center')
+              .style('justify-content', 'center')
+              .style('text-align', 'center')
+              .style('color', 'black')
+              .style('cursor', 'default')
+              .text(d => '⤵');
+          });
         const annTextCon = p
           .selectAll<SVGForeignObjectElement, AnnotationNode<dagre.Node>>('foreignObject.ann-info')
           .data(p.data(), d => d.id);
@@ -2346,7 +2438,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     }
 
     showScreenEditorForSelectedAnn();
-  }, [selectedAnnId, props.allAnnotationsForTour, showAnnText, multiNodeModalData]);
+  }, [selectedAnnId, props.allAnnotationsForTour, showAnnText, multiNodeModalData, props.tourOpts]);
 
   const showScreenEditorForSelectedAnn = (): void => {
     // set selection marker
@@ -2639,13 +2731,26 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       allAnnsLookupMap,
       fromMain,
       toMain,
-      props.onTourDataChange
+      props.onTourDataChange,
+      props.tourOpts
     );
   };
 
   const resetScreenModeAndElPathKey = (): void => {
     setScreenMode(ScreenMode.DESKTOP);
     props.updateElPathKey('id');
+  };
+
+  const getBackgroundColorForJourneyButton = (): string => {
+    if (!props.journey.flows.length) {
+      return 'transparent';
+    }
+
+    if (props.headerProps.tourMainValidity === TourMainValidity.Journey_Main_Not_Present) {
+      return '#EE7C5A';
+    }
+
+    return '#EEEEEE';
   };
 
   return (
@@ -2769,8 +2874,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     placement="right"
                   >
                     <div style={{
-                      background: props.journey.flows.length !== 0 && !showJourneyEditor ? '#EEEEEE' : 'transparent',
-                      borderRadius: '8px'
+                      background: getBackgroundColorForJourneyButton(),
+                      borderRadius: '8px',
                     }}
                     >
                       <Button
@@ -2894,6 +2999,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                         const currentAnn = getAnnotationByRefId(annId, props.allAnnotationsForTour)!;
                         const main = props.tourOpts.main;
                         const result = deleteAnnotation(
+                          props.timeline,
                           { ...currentAnn, screenId: +screenId },
                           props.allAnnotationsForTour,
                           main,
@@ -3123,6 +3229,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               tourOpts={props.tourOpts}
               journey={props.journey}
               featurePlan={props.featurePlan}
+              allAnnotationsForTour={props.allAnnotationsForTour}
             />
           }
           {

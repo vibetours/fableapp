@@ -384,11 +384,18 @@ export const AnBubble = styled.div<{bubbleWidth: number}>`
   cursor: pointer;
 `;
 
-export const AnVideoContainer = styled.div`
+export const AnMediaContainer = styled.div`
   border-radius: 8px;
   * {
     height: auto !important;
   }
+`;
+
+export const MediaCon = styled.div`
+  position: relative;
+  display: flex;
+  width: 100% !important;
+  height: 100% !important;
 `;
 
 export const AnVideo = styled.video<{ border: string }>`
@@ -397,7 +404,21 @@ export const AnVideo = styled.video<{ border: string }>`
   box-shadow: ${p => `${p.border}`};
 `;
 
-export const AnVideoControls = styled.div<{showOverlay: boolean}>`
+export const AnAudioCon = styled.div<{ border: string, bgColor: string }>`
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 8px;
+  box-shadow: ${p => `${p.border}`};
+  background: ${p => `${p.bgColor}`};
+  display: flex;
+  align-items: center;
+  canvas {
+    height: 50px !important;
+    width: 100% !important;
+  }
+`;
+
+export const AnMediaControls = styled.div<{showOverlay: boolean}>`
   transition: all 0.2s ease-in-out;
   background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
   height: 100% !important;
@@ -408,7 +429,7 @@ export const AnVideoControls = styled.div<{showOverlay: boolean}>`
   width: 100%;
 `;
 
-export const AnVideoCtrlBtn = styled.button<{ showButton: boolean }>`
+export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -595,4 +616,124 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiamete
 
 export const Con = styled.div`
   position: fixed;
+`;
+
+export const SoundWavePlaceholderCon = styled.div<{ bgColor: string }>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: space-between;
+  height: 64px !important;
+  margin: auto;
+  --boxSize: 8px;
+  --gutter: 4px;
+  width: calc((var(--boxSize) + var(--gutter)) * 5);
+
+  @-webkit-keyframes quiet {
+    25% {
+      transform: scaleY(0.6);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(0.8);
+    }
+  }
+  @keyframes quiet {
+    25% {
+      transform: scaleY(0.6);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(0.8);
+    }
+  }
+  @-webkit-keyframes normal {
+    25% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(0.6);
+    }
+  }
+  @keyframes normal {
+    25% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(0.6);
+    }
+  }
+  @-webkit-keyframes loud {
+    25% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(1.2);
+    }
+  }
+  @keyframes loud {
+    25% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.4);
+    }
+    75% {
+      transform: scaleY(1.2);
+    }
+  }
+
+  .box {
+    transform: scaleY(0.4);
+    height: 100% !important;
+    width: var(--boxSize) !important;
+    background: ${(props) => props.bgColor};
+    -webkit-animation-duration: 1.2s;
+    animation-duration: 1.2s;
+    -webkit-animation-timing-function: ease-in-out;
+    animation-timing-function: ease-in-out;
+    -webkit-animation-iteration-count: infinite;
+    animation-iteration-count: infinite;
+    border-radius: 8px;
+  }
+
+  .box1 {
+    -webkit-animation-name: quiet;
+    animation-name: quiet;
+  }
+
+  .box2 {
+    -webkit-animation-name: normal;
+    animation-name: normal;
+  }
+
+  .box3 {
+    -webkit-animation-name: quiet;
+    animation-name: quiet;
+  }
+
+  .box4 {
+    -webkit-animation-name: loud;
+    animation-name: loud;
+  }
+
+  .box5 {
+    -webkit-animation-name: quiet;
+    animation-name: quiet;
+  }
 `;

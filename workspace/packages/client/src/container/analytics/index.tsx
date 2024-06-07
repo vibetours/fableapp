@@ -573,7 +573,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       showHelpFor: '',
-      days: 30,
+      days: 0,
       countVisitors: {
         status: LoadingStatus.InProgress,
         data: null,
@@ -846,24 +846,24 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     });
   };
 
-  handleDropdownItemClick = (e: { key: string; }): void => {
-    this.setState({ days: parseInt(e.key, 10) });
-  };
+  // handleDropdownItemClick = (e: { key: string; }): void => {
+  //   this.setState({ days: parseInt(e.key, 10) });
+  // };
 
-  private items: MenuProps['items'] = [
-    {
-      label: '30d',
-      key: '30',
-    },
-    {
-      label: '60d',
-      key: '60',
-    },
-    {
-      label: '90d',
-      key: '90',
-    },
-  ];
+  // private items: MenuProps['items'] = [
+  // {
+  //   label: '30d',
+  //   key: '30',
+  // },
+  // {
+  //   label: '60d',
+  //   key: '60',
+  // },
+  // {
+  //   label: '90d',
+  //   key: '90',
+  // },
+  // ];
 
   handleInitialActiveKey(): void {
     const propsActiveKey = this.props.match.params.activeKey;
@@ -937,7 +937,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               }}
             >
               Data from past&nbsp;&nbsp;
-              <Dropdown
+              <div style={{
+                background: '#F5F5F5',
+                padding: '0.15rem 0.25rem',
+                borderRadius: '4px',
+                border: '1px solid #BDBDBD',
+              }}
+              >
+                {`${this.state.days === 0 ? '>90' : this.state.days}d`}&nbsp;
+              </div>
+              {/* <Dropdown
                 menu={{
                   onClick: this.handleDropdownItemClick,
                   items: this.items,
@@ -951,13 +960,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     padding: '0.15rem 0.25rem',
                     borderRadius: '4px',
                     border: '1px solid #BDBDBD',
-                    cursor: 'pointer'
                   }}
                 >
                   {`${this.state.days}d`}&nbsp;
-                  <DownOutlined />
                 </a>
-              </Dropdown>
+              </Dropdown> */}
             </div>
             <div>
               <span

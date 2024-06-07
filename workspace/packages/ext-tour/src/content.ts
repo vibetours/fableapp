@@ -1,5 +1,6 @@
 import { getRandomId, sleep, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
+import raiseDeferredError from "@fable/common/dist/deferred-error";
 import { Msg, MsgPayload } from "./msg";
 import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
@@ -58,7 +59,37 @@ const calculatePathFromEl = (el: Node, loc: number[]): number[] => {
   return loc;
 };
 
-function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null) {
+const calculatePathFromElInsideShadowDom = (el: Node, loc: number[]): number[] => {
+  if (el.nodeName === "#document") {
+    const tEl = el as Document;
+    if (tEl.defaultView && tEl.defaultView.frameElement) {
+      return calculatePathFromElInsideShadowDom(tEl.defaultView.frameElement, loc);
+    }
+    return loc.reverse();
+  }
+
+  let parent = el.parentNode;
+  const siblings : (ChildNode | ShadowRoot)[] = Array.from(parent!.childNodes);
+  if ((parent as HTMLElement).shadowRoot) {
+    siblings.unshift((parent as HTMLElement).shadowRoot!);
+  }
+
+  for (let i = 0, l = siblings.length; i < l; i++) {
+    if (el === siblings[i]) {
+      if (isDocHtml4P1(el)) loc.push(i + 1);
+      else loc.push(i);
+      if (parent!.nodeName === "#document-fragment") {
+        parent = (parent as ShadowRoot).host;
+        loc.push(0);
+        return calculatePathFromElInsideShadowDom(parent!, loc);
+      }
+      return calculatePathFromElInsideShadowDom(parent!, loc);
+    }
+  }
+  return loc;
+};
+
+function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null, isInsideShadowDom: boolean = false) {
   chrome.runtime.sendMessage<MsgPayload<ScreenSerStartData>>({
     type: Msg.FRAME_SERIALIZATION_START,
     data: {
@@ -74,7 +105,11 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
 
   addFableIdsToAllEls();
   if (el) {
-    elPath = calculatePathFromEl(el as Node, []).join(".");
+    if (isInsideShadowDom) {
+      elPath = calculatePathFromElInsideShadowDom(el as Node, []).join(".");
+    } else {
+      elPath = calculatePathFromEl(el as Node, []).join(".");
+    }
   }
   const serDoc = getSearializedDom();
   const screenStyle = getScreenStyle();
@@ -97,7 +132,20 @@ const onClickHandler = async (e: MouseEvent) => {
   // const elPath = calculatePathFromEl(e.target as Node, []).join(".");
   // TODO ask siddhi why is this required when the method is already calculating elPath
   const elPath = "";
-  serialize(elPath, true, snowflake(), e.target);
+
+  let el = e.target;
+  let isInsideShadowDom = false;
+  try {
+    if ((el as HTMLElement).shadowRoot) {
+      el = e.composedPath()[0] || el;
+      isInsideShadowDom = true;
+    }
+  } catch (err) {
+    el = e.target;
+    raiseDeferredError(err as Error);
+  }
+
+  serialize(elPath, true, snowflake(), el, isInsideShadowDom);
 };
 
 function createListenerMarkerDivIfNotPresent(doc: Document) {

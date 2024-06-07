@@ -1,4 +1,4 @@
-import { IAnnotationConfig, JourneyData } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, JourneyData } from '@fable/common/dist/types';
 import { AnnotationNode, Box, Point, MultiAnnotationNode, GroupedAnns, GroupEdge } from './types';
 import { AnnotationPerScreen, IAnnotationConfigWithScreen, Timeline } from '../../types';
 import { getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
@@ -28,6 +28,7 @@ export function getMultiAnnNodesAndEdges(
   data: Timeline,
   dim: {width: number, height: number, gap: number},
   journey: JourneyData,
+  opts: ITourDataOpts,
 ): [MultiAnnotationNode<Box>[], GroupEdge[]] {
   const groupedAnnNodes = getGroupedAnnNodesFromAnnNodeBoxArr(data);
   const multiAnnNodes: MultiAnnotationNode<Box>[] = [];
@@ -78,7 +79,8 @@ export function getMultiAnnNodesAndEdges(
         sameMultiAnnGroupAnnRids: group
           .anns
           .filter(ann => ann.refId !== annotation.refId)
-          .map(ann => ann.refId)
+          .map(ann => ann.refId),
+        opts,
       };
     });
 

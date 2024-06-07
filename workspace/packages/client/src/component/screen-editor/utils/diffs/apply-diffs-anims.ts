@@ -5,8 +5,9 @@ export const applyFadeInTransitionToNode = (node: Node, originialOpacity: string
     const element = node as HTMLElement;
     element.style.opacity = '0';
     element.style.transition = 'opacity 0.3s ease-out';
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       element.style.opacity = originialOpacity;
+      clearTimeout(timer);
     }, 300);
   }
 };

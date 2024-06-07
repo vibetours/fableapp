@@ -334,6 +334,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     isLeadFormPresent: lc.isLeadFormPresent,
     m_id: lc.m_id,
     scrollAdjustment: lc.scrollAdjustment,
+    audio: lc.audio,
   };
 }
 
@@ -432,6 +433,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.zId === undefined || an.zId === null) {
     an.zId = an.refId;
+  }
+
+  if (an.audio === undefined || an.audio === null) {
+    an.audio = null;
   }
 
   if (an.isLeadFormPresent === undefined || an.isLeadFormPresent === null) {

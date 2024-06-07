@@ -127,7 +127,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.searchParams.get('s') !== '3') {
       this.setState({ viewScale: 1 });
     } else {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const vpdW = RESP_MOBILE_SRN_WIDTH;
         const vpdH = RESP_MOBILE_SRN_HEIGHT;
         const headerHeight = 76;
@@ -141,6 +141,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
           this.setState({ viewScale: scale });
         }
+        clearTimeout(timer);
       }, 50);
     }
   }

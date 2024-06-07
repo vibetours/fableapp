@@ -9,16 +9,17 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as Tags from './styled';
 import { AnimEntryDir, IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
 import { isCoverAnnotation } from './annotation-config-utils';
-import { logEvent } from '../../analytics/utils';
 import {
-  AnalyticsEvents,
-  AnnotationBtnClickedPayload,
   TimeSpentInAnnotationPayload,
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
 import { generateShadeColor } from './utils';
 import MuteIcon from '../../assets/mute.png';
 import UnmuteIcon from '../../assets/unmute.png';
+import AudioVisualizer from '../audio-visualizer';
+import { getColorContrast } from '../../utils';
+import SoundWavePlaceholder from './sound-wave-placeholder';
+import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
 
 interface IProps {
   borderRadius: string;
@@ -29,17 +30,19 @@ interface IProps {
   height: number;
   tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
+  type: 'audio' | 'video';
 }
 
 interface IOwnStateProps {
   showControls: boolean;
-  videoState: 'paused' | 'playing' | 'ended';
+  mediaState: 'paused' | 'playing' | 'ended';
   isMuted: boolean;
   firstTimeClick: boolean;
+  showAudioVisualizer: boolean;
 }
 
-export default class AnnotationVideo extends React.PureComponent<IProps, IOwnStateProps> {
-  private videoRef: RefObject<HTMLVideoElement> = React.createRef();
+export default class AnnotationMedia extends React.PureComponent<IProps, IOwnStateProps> {
+  private mediaRef: RefObject<HTMLVideoElement> = React.createRef();
 
   private hls: Hls | null = null;
 
@@ -47,16 +50,21 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     super(props);
     this.state = {
       showControls: false,
-      videoState: 'paused',
+      mediaState: 'paused',
       isMuted: true,
-      firstTimeClick: true
+      firstTimeClick: true,
+      showAudioVisualizer: false,
     };
-    if (Hls.isSupported() && this.props.playMode && this.props.conf.config.videoUrlHls) {
-      this.initPlayer();
+    if (Hls.isSupported() && this.props.playMode) {
+      const config = this.props.conf.config;
+      const hlsURl = this.props.type === 'audio' ? config.audio?.hls : config.videoUrlHls;
+      if (hlsURl) {
+        this.initPlayer(hlsURl);
+      }
     }
   }
 
-  private initPlayer(): void {
+  private initPlayer(hlsUrl: string): void {
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
@@ -67,10 +75,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
     });
 
     this.hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-      this.hls!.loadSource(this.props.conf.config.videoUrlHls);
+      this.hls!.loadSource(hlsUrl);
 
       this.hls!.on(Hls.Events.MANIFEST_PARSED, () => {
-        this.videoRef!.current!.setAttribute('data-playable', 'true');
+        this.mediaRef!.current!.setAttribute('data-playable', 'true');
       });
     });
 
@@ -84,7 +92,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
             this.hls!.recoverMediaError();
             break;
           default:
-            this.initPlayer();
+            this.initPlayer(hlsUrl);
             break;
         }
       }
@@ -92,12 +100,13 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
   }
 
   componentDidMount(): void {
+    this.setState({ showAudioVisualizer: this.props.type === 'audio' });
     if (!this.hls) {
-      this.videoRef!.current!.setAttribute('data-playable', 'true');
+      this.mediaRef!.current!.setAttribute('data-playable', 'true');
       return;
     }
-    this.hls.attachMedia(this.videoRef!.current!);
-    this.setControlsBasedOnVideoState();
+    this.hls.attachMedia(this.mediaRef!.current!);
+    this.setControlsBasedOnMediaState();
   }
 
   componentWillUnmount(): void {
@@ -108,15 +117,15 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
-      this.setControlsBasedOnVideoState();
+      this.setControlsBasedOnMediaState();
     }
   }
 
-  setControlsBasedOnVideoState = (): void => {
-    if (this.videoRef.current?.paused) {
-      this.setState({ showControls: true, videoState: 'paused' });
+  setControlsBasedOnMediaState = (): void => {
+    if (this.mediaRef.current?.paused) {
+      this.setState({ showControls: true, mediaState: 'paused' });
     } else {
-      this.setState({ showControls: false, videoState: 'playing' });
+      this.setState({ showControls: false, mediaState: 'playing' });
     }
   };
 
@@ -133,15 +142,15 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
   logStepEvent = (direction: 'next' | 'prev'): void => {
     const ann_id = this.props.conf.config.refId;
     const tour_id = this.props.tourId;
-    const time_in_sec_played = Math.ceil(this.videoRef.current!.currentTime);
+    const time_in_sec_played = Math.ceil(this.mediaRef.current!.currentTime);
     const videoAnnSkippedPayload: VideoAnnotationSkippedPayload = { tour_id, ann_id, time_in_sec_played };
-    if (!this.videoRef.current!.ended) {
+    if (!this.mediaRef.current!.ended) {
       // logEvent(AnalyticsEvents.VIDEO_ANN_SKIPPED, videoAnnSkippedPayload);
     } else {
       const timeSpentOnAnnPayload: TimeSpentInAnnotationPayload = {
         tour_id,
         ann_id,
-        time_in_sec: Math.ceil(this.videoRef.current!.duration)
+        time_in_sec: Math.ceil(this.mediaRef.current!.duration)
       };
 
       // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
@@ -209,18 +218,19 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
   navigateAnns = (direction: 'prev' | 'next', btnId: string): void => {
     this.logStepEvent(direction);
 
-    this.videoRef.current!.pause();
-    this.videoRef.current!.currentTime = 0;
+    this.mediaRef.current!.pause();
+    this.mediaRef.current!.currentTime = 0;
 
     this.props.navigateToAdjacentAnn(direction, btnId);
   };
 
   render(): ReactElement {
     const config = this.props.conf.config;
-    const isHlsSupported = this.hls && config.videoUrlHls && this.props.playMode;
+    const hlsURl = this.props.type === 'audio' ? config.audio?.hls : config.videoUrlHls;
+    const isHlsSupported = this.hls && hlsURl && this.props.playMode;
 
     return (
-      <Tags.AnVideoContainer
+      <Tags.AnMediaContainer
         style={{
           ...this.getPositioningAndSizingStyles(),
           visibility: this.props.conf.isMaximized ? 'visible' : 'hidden',
@@ -228,66 +238,121 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
         }}
         onMouseOver={() => this.setState({ showControls: true })}
         onMouseOut={() => {
-          if (this.state.videoState === 'playing') {
+          if (this.state.mediaState === 'playing') {
             this.setState({ showControls: false });
           }
         }}
       >
 
-        <div style={{ position: 'relative', display: 'flex' }}>
-          <Tags.AnVideo
-            style={{ borderRadius: this.props.borderRadius }}
-            loop={this.state.firstTimeClick}
-            autoPlay
-            muted={this.state.isMuted}
-            ref={this.videoRef}
-            border={this.getAnnotationBorder()}
-            id={`fable-ann-video-${config.refId}`}
-            className="fable-video"
-            playsInline
-            onPause={() => this.setState({ videoState: 'paused' })}
-            onPlay={() => this.setState({ videoState: 'playing' })}
-            onEnded={() => this.setState({ showControls: true, videoState: 'ended' })}
-          >
-            {!isHlsSupported && (
-            <>
-              <source src={config.videoUrlMp4} type="video/mp4" />
-              <source src={config.videoUrlWebm} type="video/webm" />
-              {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
-            </>
-            )}
-          </Tags.AnVideo>
+        <Tags.MediaCon style={{ position: 'relative', display: 'flex' }}>
+          {
+            this.props.type === 'video' && (
+              <Tags.AnVideo
+                style={{ borderRadius: this.props.borderRadius }}
+                loop={this.state.firstTimeClick}
+                autoPlay
+                muted={this.state.isMuted}
+                ref={this.mediaRef}
+                border={this.getAnnotationBorder()}
+                id={`fable-ann-video-${config.refId}`}
+                className="fable-video"
+                playsInline
+                onPause={() => this.setState({ mediaState: 'paused' })}
+                onPlay={() => this.setState({ mediaState: 'playing' })}
+                onEnded={() => this.setState({ showControls: true, mediaState: 'ended' })}
+              >
+                {!isHlsSupported && (
+                <>
+                  <source src={config.videoUrlMp4} type="video/mp4" />
+                  <source src={config.videoUrlWebm} type="video/webm" />
+                  {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
+                </>
+                )}
+              </Tags.AnVideo>
+            )
+          }
 
-          <Tags.AnVideoControls
+          {
+            this.props.type === 'audio' && (
+              <Tags.AnAudioCon
+                style={{ borderRadius: this.props.borderRadius }}
+                border={this.getAnnotationBorder()}
+                id={`fable-ann-audio-${config.refId}`}
+                className="fable-audio"
+                bgColor={this.props.conf.opts.annotationBodyBackgroundColor}
+              >
+                <audio
+                  ref={this.mediaRef}
+                  onPause={() => this.setState({ mediaState: 'paused' })}
+                  onPlay={() => this.setState({ mediaState: 'playing' })}
+                  onEnded={() => this.setState({ showControls: true, mediaState: 'ended' })}
+                  loop={this.state.firstTimeClick}
+                  autoPlay
+                  muted={this.state.isMuted}
+                  crossOrigin="anonymous"
+                >
+                  {!isHlsSupported && (
+                  <>
+                    <source src={config.audio!.webm} type="audio/webm" />
+                  </>
+                  )}
+                </audio>
+                {this.state.showAudioVisualizer && !this.state.firstTimeClick && (
+                  <AudioVisualizer
+                    audioElement={this.mediaRef.current!}
+                    barWidth={1}
+                    barColor={getColorContrast(this.props.conf.opts.annotationBodyBackgroundColor) === 'dark'
+                      ? '#fff' : '#000'}
+                  />
+                )}
+
+                {
+                  (this.state.isMuted || this.state.firstTimeClick || this.state.mediaState !== 'playing') && (
+                    <SoundWavePlaceholder bgColor={getColorContrast(
+                      this.props.conf.opts.annotationBodyBackgroundColor
+                    ) === 'dark'
+                      ? '#fff' : '#000'}
+                    />
+                  )
+                }
+              </Tags.AnAudioCon>
+            )
+          }
+
+          <Tags.AnMediaControls
             style={{ borderRadius: this.props.borderRadius }}
             showOverlay={this.state.showControls}
           >
             {!this.props.conf.prerender && (
             <>
-              {this.state.videoState !== 'ended' && (
-                <Tags.AnVideoCtrlBtn
+              {this.state.mediaState !== 'ended' && (
+                <Tags.AnMediaCtrlBtn
                   showButton={this.state.isMuted || this.state.showControls}
                   type="button"
                   onClick={() => {
                     if (this.state.firstTimeClick) {
-                      this.videoRef.current!.currentTime = 0;
-                      this.videoRef.current!.play();
+                      this.mediaRef.current!.currentTime = 0;
+                      this.mediaRef.current!.play();
                       this.setState({ firstTimeClick: false });
                     }
                     this.setState((prevState) => ({ ...prevState, isMuted: !prevState.isMuted }));
                   }}
+                  className={FABLE_AUDIO_MEDIA_CONTROLS}
                 >
                   {/* TODO: Change this icon */}
                   {this.state.isMuted ? <img src={MuteIcon} alt="mute" style={{ width: '46px', height: '46px' }} />
                     : <img src={UnmuteIcon} alt="unmute" style={{ width: '46px', height: '46px' }} />}
-                </Tags.AnVideoCtrlBtn>
+                </Tags.AnMediaCtrlBtn>
               )}
               {
-                this.state.videoState === 'ended' && (
+                this.state.mediaState === 'ended' && (
                   <Tags.ReplayButton
                     pcolor={this.props.conf.opts.primaryColor}
                     type="button"
-                    onClick={() => this.videoRef.current!.play()}
+                    onClick={() => {
+                      this.mediaRef.current!.play();
+                    }}
+                    className={FABLE_AUDIO_MEDIA_CONTROLS}
                   >
                     <ReloadOutlined />
                   </Tags.ReplayButton>
@@ -319,7 +384,7 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
                       } else if (btnConf.type === 'prev') {
                         this.navigateAnns('prev', btnConf.id);
                       } else {
-                        raiseDeferredError(new Error('Custom button for video is not implemented'));
+                        raiseDeferredError(new Error(`Custom button for ${this.props.type} is not implemented`));
                       }
                     }}
                   >
@@ -330,10 +395,10 @@ export default class AnnotationVideo extends React.PureComponent<IProps, IOwnSta
               )}
             </>
             )}
-          </Tags.AnVideoControls>
-        </div>
+          </Tags.AnMediaControls>
+        </Tags.MediaCon>
 
-      </Tags.AnVideoContainer>
+      </Tags.AnMediaContainer>
     );
   }
 }

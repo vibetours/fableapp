@@ -7,6 +7,7 @@ export enum ProxyAttrs {
   cssRules = 'cssRules',
   srcset = 'srcset',
   'xlink:href' = 'xlink:href',
+  'adoptedStylesheets' = 'adoptedStylesheets',
 }
 
 export type ProxyUrlMap = {
@@ -40,6 +41,7 @@ export interface SerNode {
       height: number;
       width: number;
     };
+    adoptedStylesheets?: string[];
   };
   chldrn: SerNode[];
   sv: number;
@@ -279,6 +281,12 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   isLeadFormPresent: boolean;
   m_id: string;
   scrollAdjustment: ScrollAdjustmentType;
+  audio: null | IAnnotationAudio;
+}
+
+export interface IAnnotationAudio {
+  webm: string;
+  hls: string;
 }
 
 // TODO perform this conversion, client side

@@ -172,6 +172,7 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     isLeadFormPresent: false,
     m_id: elPath,
     scrollAdjustment: 'auto',
+    audio: null,
   };
 };
 

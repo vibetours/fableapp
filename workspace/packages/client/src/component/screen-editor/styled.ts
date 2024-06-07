@@ -734,3 +734,27 @@ export const Pill = styled.div`
   border-radius: 16px;
   font-weight: 500;
 `;
+
+export const UploadMediaLabel = styled.label`
+  margin: 0 auto;
+  background-color: #fff;  
+  border: 1px solid #16023E; 
+  color: #16023E;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease-out;
+  padding: 0.75rem 1.5rem;
+  border-radius: 24px;
+  width: fit-content;
+  
+  &:hover {
+    transform: translate(2px, -2px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+`;

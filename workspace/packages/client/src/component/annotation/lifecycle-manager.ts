@@ -8,7 +8,7 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
 import { AnnotationPerScreen, ElPathKey, NavFn } from '../../types';
-import { isBodyEl, isVideoAnnotation } from '../../utils';
+import { isBodyEl, isMediaAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
   FABLE_RT_UMBRL,
@@ -181,7 +181,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
     this.updateJourneyProgress = updateJourneyProgress;
-    this.prerenderVideoAnnotations();
+    this.prerenderMediaAnnotations();
     this.iframeElsScrollTimeoutId = 0;
     if (this.screenType === ScreenType.SerDom) {
       this.setFramesScrollListeners();
@@ -340,6 +340,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         ) {
           ptr = tEl.defaultView.frameElement;
         } else break;
+      }
+      if (ptr.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        ptr = (ptr as ShadowRoot).host;
       }
       if (!(ptr.nodeName === 'BODY'
         || ptr.nodeName === 'HEAD'
@@ -568,7 +571,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       } else {
         annotationDisplayConfig.isMaximized = false;
         annotationDisplayConfig.isInViewPort = false;
-        annotationDisplayConfig.prerender = annotationDisplayConfig.isVideoAnnotation;
+        annotationDisplayConfig.prerender = annotationDisplayConfig.isMediaAnnotation;
       }
     }
 
@@ -578,8 +581,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       const [x, y, width, height] = coordsStr.split('-');
       const box = this.getAbsFromRelCoords({ x: +x, y: +y, width: +width, height: +height });
       scrollToAnn(this.win, box, this.annotationElMap[coordsStr][1]);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         this.checkIfAllScrollsComplete(el, config);
+        clearTimeout(timer);
       }, AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
       return;
     }
@@ -603,7 +607,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       });
     } else {
       this.win.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-      setTimeout(() => this.checkIfAllScrollsComplete(el, config), AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2);
+      const timer = setTimeout(
+        () => {
+          this.checkIfAllScrollsComplete(el, config);
+          clearTimeout(timer);
+        },
+        AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS / 2
+      );
     }
   }
 
@@ -740,7 +750,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       isMaximized: false,
       isInViewPort: false,
       prerender,
-      isVideoAnnotation: isVideoAnnotation(config),
+      isMediaAnnotation: isMediaAnnotation(config),
       dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
       dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
       dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
@@ -787,10 +797,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     });
   }
 
-  private prerenderVideoAnnotations(): void {
-    const videoAnnotations = this.allAnnotationsForScreen.filter((config) => isVideoAnnotation(config));
+  private prerenderMediaAnnotations(): void {
+    const mediaAnnotations = this.allAnnotationsForScreen.filter((config) => isMediaAnnotation(config));
 
-    const videoAnnsProps: IAnnProps[] = videoAnnotations.map(config => {
+    const mediaAnnsProps: IAnnProps[] = mediaAnnotations.map(config => {
       const displayConf = this.setAnnElMapVal(config, DEFAULT_DIMS_FOR_ANN, this.tourDataOpts, true);
 
       return {
@@ -819,7 +829,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         StyleSheetManager,
         { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
         React.createElement(AnnotationCon, {
-          data: videoAnnsProps,
+          data: mediaAnnsProps,
           nav: this.nav,
           win: this.win,
           navigateToAnnByRefIdOnSameScreen: this.navigateToAnnByRefIdOnSameScreen,
@@ -987,7 +997,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   public dispose(): void {
     this.componentDisposed = true;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       if (this.rRoot) {
         this.rRoot.unmount();
         this.rRootProbe.unmount();
@@ -1001,6 +1011,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       }
       this.annElsVisibilityObserver.unobserveAllEls();
       super.dispose();
+      clearTimeout(timer);
     });
   }
 

@@ -405,16 +405,18 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (this.props.isTourLoaded && this.props.allAnnotationsForTour !== prevProps.allAnnotationsForTour) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const lastAnnHasCTA = this.getLastAnnHasCTA();
         this.setState({ lastAnnHasCTA });
+        clearTimeout(timer);
       }, 0);
     }
 
     if (this.props.isTourLoaded && this.props.journey !== prevProps.journey) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         const isJourneyCTASet = this.getIsJourneyCTASet();
         this.setState({ isJourneyCTASet });
+        clearTimeout(timer);
       }, 0);
     }
   }
@@ -814,7 +816,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (mutations.deletionUpdate) {
       this.onTourDataChange('annotation-and-theme', mutations.deletionUpdate.screenId, {
         config: mutations.deletionUpdate.config,
-        opts: null,
+        opts: newOpts,
         actionType: 'delete'
       }, tx);
     }

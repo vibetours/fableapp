@@ -1,4 +1,5 @@
 import { GraphEdge } from 'dagre';
+import { ITourDataOpts } from '@fable/common/dist/types';
 import { IAnnotationConfigWithScreen } from '../../types';
 
 export interface AnnotationNode<T> extends CanvasNode {
@@ -13,6 +14,7 @@ export interface AnnotationNode<T> extends CanvasNode {
   sameMultiAnnGroupAnnRids?: string[],
   annotation: IAnnotationConfigWithScreen;
   journeyTitle?: string;
+  opts: ITourDataOpts;
 }
 
 export interface GroupedAnns {

@@ -251,6 +251,31 @@ export default class DomElementPicker extends HighlighterBase {
     return null;
   }
 
+  private getAnchorElementFromShadowRoots = (
+    doc: Document,
+    clientX: number,
+    clientY: number,
+    element: HTMLElement
+  ): HTMLElement => {
+    if (!element.shadowRoot) return element;
+    let el1 = element;
+    const visitedNodes = new Set<Node>();
+
+    while (el1.shadowRoot && !visitedNodes.has(el1)) {
+      visitedNodes.add(el1);
+      const els = el1.shadowRoot.elementsFromPoint(clientX, clientY) as HTMLElement[];
+
+      if (!els.length) break;
+
+      const el = this.getPrimaryFocusElementBelowMouse(els, clientX, clientY, doc);
+      const anchorEl = (el.nodeType === Node.TEXT_NODE ? el.parentElement : el) as HTMLElement;
+
+      el1 = anchorEl;
+    }
+
+    return el1;
+  };
+
   private handleMouseMove = (doc: Document) => (event: MouseEvent) => {
     if (this.highlightMode !== HighlightMode.Selection) return;
     let els = doc.elementsFromPoint(event.clientX, event.clientY) as HTMLElement[];
@@ -261,7 +286,10 @@ export default class DomElementPicker extends HighlighterBase {
     });
     if (!els.length) return;
     const el = this.getPrimaryFocusElementBelowMouse(els, event.clientX, event.clientY, doc);
-    const anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
+    let anchorEl = (el.nodeType === Node.TEXT_NODE ? (el.parentNode as HTMLElement) : el) as HTMLElement;
+    if (anchorEl.shadowRoot) {
+      anchorEl = this.getAnchorElementFromShadowRoots(doc, event.clientX, event.clientY, anchorEl);
+    }
     if (this.prevElHovered && this.prevElHovered === anchorEl) return;
     this.prevElHovered = anchorEl;
     if (this.selectedBoundedEl) {

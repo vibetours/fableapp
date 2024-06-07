@@ -119,6 +119,7 @@ import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste 
 import FormatPasteOptions from './format-paste';
 import { FeatureForPlan } from '../../plans';
 import Upgrade from '../upgrade';
+import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
 
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
@@ -685,9 +686,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     try {
       const newImageUrl = await uploadFileToAws(maskImgFile);
-      const resizedImgUrl = maskImgFile.type === 'image/gif'
-        ? ''
-        : await resizeImg(newImageUrl, this.props.screen.rid, resolution);
+      // const resizedImgUrl = maskImgFile.type === 'image/gif'
+      //   ? ''
+      //   : await resizeImg(newImageUrl, this.props.screen.rid, resolution);
+
+      const resizedImgUrl = '';
 
       hideChildren(el);
 
@@ -1360,7 +1363,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   createAnnotationForTheFirstTime = (ann: IAnnotationConfig): void => {
     const opts = this.props.tourDataOpts || getDefaultTourOpts();
-    opts.main = `${this.props.screen.id}/${ann.refId}`;
+    if (!opts.main) opts.main = `${this.props.screen.id}/${ann.refId}`;
     this.props.onAnnotationCreateOrChange(this.props.screen.id, ann, 'upsert', opts);
   };
 
@@ -2347,7 +2350,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             onElSelect: this.onElSelect,
             onElDeSelect: this.onElDeSelect,
           }, this.props.screen.type, highlighterBaseConfig, this.props.screenData.isHTML4);
-          this.iframeElManager!.addEventListener('click', this.goToSelectionMode);
+          this.iframeElManager!.addEventListener('click', (docu: Document) => (e: MouseEvent) => {
+            const audioMediaCtrls = Array.from(docu.querySelectorAll(`.${FABLE_AUDIO_MEDIA_CONTROLS}`));
+            const clickedEl = e.target as HTMLElement;
+
+            for (const ctrl of audioMediaCtrls) {
+              if (ctrl.contains(clickedEl)) {
+                return;
+              }
+            }
+
+            this.goToSelectionMode()();
+          });
         }
 
         if (this.props.screen.type === ScreenType.Img) {

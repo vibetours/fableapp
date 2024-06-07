@@ -5,7 +5,7 @@ import { AnimEntryDir, Positions } from '../annotation';
 
 interface Props {
   borderRadius: number;
-  isVideoAnn: boolean;
+  isMediaAnn: boolean;
   bgColor: string;
   fontColor: string;
   top: number;
@@ -26,7 +26,7 @@ const calculateBorderRadius = (
   borderRadius: number
 ): string => {
   if (arrowDir === 't') {
-    if (isCoverAnn || positioning === 'center') return `0px 0px ${borderRadius}px ${borderRadius}px`;
+    if ((isCoverAnn && positioning === 'auto') || positioning === 'center') return `0px 0px ${borderRadius}px ${borderRadius}px`;
     return `${borderRadius}px ${borderRadius}px 0px 0px`;
   }
 
@@ -42,7 +42,7 @@ const calculateTop = (
   positioning: Positions
 ): number => {
   if (arrowDir === 't') {
-    if (isCoverAnn || positioning === 'center') return top + height + marginFactor;
+    if ((isCoverAnn && positioning === 'auto') || positioning === 'center') return top + height + marginFactor;
     return top - marginFactor;
   }
 
@@ -50,20 +50,20 @@ const calculateTop = (
 };
 
 const calculateTransform = (
-  isVideoAnn: boolean,
+  isMediaAnn: boolean,
   arrowDir: AnimEntryDir,
   isCoverAnn: boolean,
   positioning: Positions
 ): string => {
   if (arrowDir === 't') {
-    if (isCoverAnn || positioning === 'center') {
-      if (isVideoAnn) return 'translate(-100%, -57%)';
+    if ((isCoverAnn && positioning === 'auto') || positioning === 'center') {
+      if (isMediaAnn) return 'translate(-100%, -28%)';
       return 'translate(-100%, -25%)';
     }
     return 'translate(-100%, -75%)';
   }
 
-  if (isVideoAnn) return 'translate(-100%, -28%)';
+  if (isMediaAnn) return 'translate(-100%, -28%)';
 
   return 'translate(-100%, -25%)';
 };
@@ -84,7 +84,7 @@ export default function AnnotationWatermark(props: Props): JSX.Element {
     ));
 
     setTransform(calculateTransform(
-      props.isVideoAnn,
+      props.isMediaAnn,
       props.arrowDir,
       props.isCoverAnn,
       props.positioning

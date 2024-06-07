@@ -115,6 +115,11 @@ html, body, div, span, button, p, button, input {
   color: #16023E !important;
 }
 
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn,
+.ant-tabs .ant-tabs-tab:hover {
+  color: #16023E !important;
+}
+
 .ant-modal-confirm-btns .ant-btn-default:hover {
   border: 1px solid #16023E !important;
   color: #16023E !important;

@@ -21,7 +21,8 @@ import {
   getTransparencyFromHexStr,
   isCoverAnnotation as isCoverAnn,
   isEventValid,
-  isVideoAnnotation as isVideoAnn
+  isMediaAnnotation as isMediaAnn,
+  isVideoAnnotation,
 } from '../../utils';
 import {
   AnalyticsEvents,
@@ -30,7 +31,7 @@ import {
   CtaFrom,
   UserAssignPayload
 } from '../../analytics/types';
-import * as VIDEO_ANN from './video-ann-constants';
+import * as VIDEO_ANN from './media-ann-constants';
 import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
@@ -63,7 +64,7 @@ const getBorderRadius = (
   return `${borderRadius}px ${borderRadius}px 0px 0px`;
 };
 
-const AnnotationVideo = lazy(() => import('./video-player'));
+const AnnotationMedia = lazy(() => import('./media-player'));
 interface NavigateToAnnMessage<T> extends MessageEvent{
   data: Msg<T>
 }
@@ -265,18 +266,19 @@ export class AnnotationContent extends React.PureComponent<{
                       }
 
                       if (shouldNavigate) {
-                        setTimeout(() => {
+                        const timer = setTimeout(() => {
                           const evt: FableLeadContactProps = {
                             ...leadForm,
                             email: leadForm.email
                           };
                           emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
+                          clearTimeout(timer);
                         }, 16);
 
-                        setTimeout(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id), 0);
+                        Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                       }
                     } else {
-                      setTimeout(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id), 0);
+                      Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                     }
                   }}
                 >
@@ -299,7 +301,7 @@ export class AnnotationContent extends React.PureComponent<{
 
         {/* Watermark */}
         {this.props.opts.showFableWatermark
-        && !isVideoAnn(this.props.config)
+        && !isMediaAnn(this.props.config)
         && (
           <WatermarkCon
             style={{
@@ -355,7 +357,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
         currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId
       });
-      if (this.conRef.current && this.props.annotationDisplayConfig.isVideoAnnotation) { this.resetAnnPos(); }
+      if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) { this.resetAnnPos(); }
     }
 
     if (!this.props.annotationDisplayConfig.prerender && prevProps.annotationDisplayConfig.prerender) {
@@ -399,7 +401,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   } => {
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
-    const isVideoAnnotation = isVideoAnn(config);
+    const isMediaAnnotation = isMediaAnn(config);
     const isCoverAnnotation = isCoverAnn(config);
 
     const boxSize = this.props.annotationDisplayConfig.config.size;
@@ -413,7 +415,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     }
 
     if (boxSize === 'medium') {
-      if (isVideoAnnotation) {
+      if (isMediaAnnotation) {
         if (isCoverAnnotation) {
           switch (this.props.annotationDisplayConfig.config.positioning) {
             case VideoAnnotationPositions.BottomLeft:
@@ -436,14 +438,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         }
       }
 
-      if (!isVideoAnnotation) {
+      if (!isMediaAnnotation) {
         w = this.props.annotationDisplayConfig.dimForMediumAnnotation.w;
         h = this.props.annotationDisplayConfig.dimForMediumAnnotation.h;
       }
     }
 
     if (boxSize === 'large') {
-      if (isVideoAnnotation) {
+      if (isMediaAnnotation) {
         if (isCoverAnnotation) {
           switch (this.props.annotationDisplayConfig.config.positioning) {
             case VideoAnnotationPositions.BottomLeft:
@@ -466,7 +468,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         }
       }
 
-      if (!isVideoAnnotation) {
+      if (!isMediaAnnotation) {
         w = this.props.annotationDisplayConfig.dimForLargeAnnotation.w;
         h = this.props.annotationDisplayConfig.dimForLargeAnnotation.h;
       }
@@ -475,7 +477,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (boxSize === 'custom') {
       w = this.props.annotationDisplayConfig.dimForCustomAnnotation.w;
       h = this.props.annotationDisplayConfig.dimForCustomAnnotation.h;
-      if (isVideoAnnotation) {
+      if (isMediaAnnotation) {
         h = VIDEO_ANN.getHeightForConstWidth(w);
       }
     }
@@ -494,6 +496,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const elBox = this.props.box;
     const winW = displayConfig.windowWidth;
     const winH = displayConfig.windowHeight;
+    const isMediaAnnotation = isMediaAnn(displayConfig.config);
 
     let l = -9999;
     let t = -9999;
@@ -501,19 +504,19 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let isUltrawideBox = false;
 
     if (!displayConfig.isInViewPort) return { l, t, dir, isUltrawideBox };
-    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === 'center') {
+    if (isMediaAnnotation && displayConfig.config.positioning === 'center') {
       t = winH / 2 - h / 2;
       l = winW / 2 - w / 2;
       return { l, t, dir, isUltrawideBox };
     }
 
-    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomLeft) {
+    if (isMediaAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomLeft) {
       t = winH - h - 20;
       l = 20;
       return { l, t, dir, isUltrawideBox };
     }
 
-    if (displayConfig.isVideoAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomRight) {
+    if (isMediaAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomRight) {
       t = winH - h - 20;
       l = winW - w - 20;
       return { l, t, dir, isUltrawideBox };
@@ -777,12 +780,12 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   shouldShowArrowHead = (): boolean => {
     const config = this.props.annotationDisplayConfig.config;
     const pos = config.positioning;
-    const isVideoAnnotation = isVideoAnn(config);
+    const isMediaAnnotation = isMediaAnn(config);
     const isCoverAnnotation = isCoverAnn(config);
 
     if (isCoverAnnotation) return false;
 
-    if (isVideoAnnotation) {
+    if (isMediaAnnotation) {
       return (pos === 'follow' || isAnnCustomPosition(pos)) && !this.props.annotationDisplayConfig.prerender;
     }
 
@@ -830,7 +833,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const displayConfig = this.props.annotationDisplayConfig;
 
     const config = displayConfig.config;
-    const isVideoAnnotation = isVideoAnn(config);
+    const isMediaAnnotation = isMediaAnn(config);
     const isCoverAnnotation = isCoverAnn(config);
 
     let t: number = 0;
@@ -838,9 +841,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let dir: AnimEntryDir = 't';
     let isUltrawideBox: boolean = false;
 
-    const annType = isVideoAnn(config) ? 'video' : config.type;
+    const annType = isMediaAnn(config) ? 'media' : config.type;
 
-    if (annType === 'default' || annType === 'video') {
+    if (annType === 'default' || annType === 'media') {
       let showAutoPositioning = !isAnnCustomPosition(this.props.annotationDisplayConfig.config.positioning);
 
       if (!showAutoPositioning) {
@@ -963,8 +966,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             {/* this is video annotation */}
             <Suspense fallback={null}>
               {
-                isVideoAnnotation && (
-                <AnnotationVideo
+                isMediaAnnotation && (
+                <AnnotationMedia
                   borderRadius={getBorderRadius(
                     this.props.annotationDisplayConfig.config.positioning,
                     isCoverAnnotation,
@@ -983,13 +986,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                   height={h}
                   tourId={this.props.tourId}
                   navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+                  type={isVideoAnnotation(config) ? 'video' : 'audio'}
                 />
                 )
               }
             </Suspense>
             {/* this is normal annotation content */}
             {
-            !isVideoAnnotation && (
+            !isMediaAnnotation && (
               <AnnotationContent
                 annotationSerialIdMap={this.props.annotationSerialIdMap}
                 config={this.props.annotationDisplayConfig.config}
@@ -1007,11 +1011,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
             {!displayConfig.prerender
             && this.props.annotationDisplayConfig.opts.showFableWatermark
-            && isVideoAnnotation
+            && isMediaAnnotation
             && (
               <AnnotationWatermark
                 borderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
-                isVideoAnn={isVideoAnn(config)}
+                isMediaAnn={isMediaAnn(config)}
                 bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor}
                 fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor}
                 top={t}
@@ -1288,7 +1292,7 @@ export interface IAnnoationDisplayConfig {
   isInViewPort: boolean;
   isElVisible: boolean;
   prerender: boolean;
-  isVideoAnnotation: boolean;
+  isMediaAnnotation: boolean;
   dimForSmallAnnotation: { w: number, h: number };
   dimForMediumAnnotation: { w: number, h: number };
   dimForLargeAnnotation: { w: number, h: number };
@@ -1470,7 +1474,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
 
       if (!p.conf.isElVisible && !p.conf.prerender) return null;
 
-      const hideAnnotation = p.conf.config.hideAnnotation; /* || isVideoAnn(p.conf.config) */
       const isHotspot = p.conf.config.isHotspot;
       const isGranularHotspot = Boolean(isHotspot && p.hotspotBox);
 

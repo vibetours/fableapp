@@ -46,9 +46,10 @@ export const traceEvent = (eventName: string, eventProperties: Record<string, st
   // if (data.email && data.email.endsWith('@sharefable.com')) {
   //   return;
   // }
-  setTimeout(() => {
+  const timer = setTimeout(() => {
     track(eventName, finalEvenProperties);
     posthog.capture(eventName, finalEvenProperties);
+    clearTimeout(timer);
   }, 0);
 };
 

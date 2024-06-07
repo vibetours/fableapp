@@ -45,13 +45,12 @@ import {
   RiseOutlined,
   StarFilled,
 } from '@ant-design/icons';
-import { Plan, Responsiveness, ScreenType, Status } from '@fable/common/dist/api-contract';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import * as ATags from '../annotation/styled';
-import CssEditor from '../css-editor';
 import {
   addCustomBtn,
   removeButtonWithId,
@@ -78,6 +77,7 @@ import {
   updateAnnotationSelectionEffect,
   newConfigFrom,
   updateAnnotationScrollAdjustment,
+  clearAllMedia,
 } from '../annotation/annotation-config-utils';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
@@ -90,18 +90,32 @@ import {
 } from '../../types';
 import DomElPicker, { HighlightMode } from './dom-element-picker';
 import AEP from './advanced-element-picker';
-import VideoRecorder from './video-recorder';
+import MediaRecorder from './media-recorder';
 import ActionPanel from './action-panel';
 import { effectsHelpText, hotspotHelpText, globalPropertyHelpText } from './helptexts';
 import { getWebFonts } from './utils/get-web-fonts';
-import { isVideoAnnotation, usePrevious, getValidUrl, isStrBlank, debounce, isTourResponsive, isFeatureAvailable } from '../../utils';
+import {
+  isVideoAnnotation,
+  usePrevious,
+  getValidUrl,
+  isStrBlank,
+  debounce,
+  isFeatureAvailable,
+  isAudioAnnotation,
+  isMediaAnnotation
+} from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
 import AnnotationRichTextEditor from '../annotation-rich-text-editor';
 import ALCM from '../annotation/lifecycle-manager';
 import FableInput from '../input';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeAnnotationApplyAll, amplitudeAnnotationEdited, amplitudeRemoveWatermark, amplitudeScrollAdjustmentChanged } from '../../amplitude';
+import {
+  amplitudeAnnotationApplyAll,
+  amplitudeAnnotationEdited,
+  amplitudeRemoveWatermark,
+  amplitudeScrollAdjustmentChanged
+} from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
 import ButtonIcon from '../../assets/icons/buttons.svg';
@@ -115,7 +129,6 @@ import EffectSelector, { EffectFor } from './effect-selection-and-builder';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { calculatePopoverPlacement, isLinkButtonInViewport } from './scroll-util';
 import { FeatureForPlan } from '../../plans';
-import Upgrade from '../upgrade';
 import UpgradeModal from '../upgrade/upgrade-modal';
 import UpgradeIcon from '../upgrade/icon';
 import ConnectableAnns from './connectable-anns';
@@ -186,18 +199,20 @@ const buttonSecStyle: React.CSSProperties = {
 };
 
 interface ApplyAll {
-  key: 'annotationSelectionColor' | 'size' | 'selectionShape' | 'showOverlay' | 'selectionEffect',
-  value: string | boolean
+  key: 'annotationSelectionColor' | 'size' | 'selectionShape' | 'showOverlay' | 'selectionEffect' | 'buttonText',
+  value: string | boolean,
+  forBtn?: IAnnotationButtonType
 }
 
 const applyAllMapping:
 {[key: string]: 'branding-selection_color' | 'branding-selection_shape' |
-'cta-button_size' | 'overlay' | 'branding-selection_effect'} = {
+'cta-button_size' | 'overlay' | 'branding-selection_effect' | 'cta-button_text'} = {
   annotationSelectionColor: 'branding-selection_color',
   selectionShape: 'branding-selection_shape',
   size: 'cta-button_size',
   showOverlay: 'overlay',
-  selectionEffect: 'branding-selection_effect'
+  selectionEffect: 'branding-selection_effect',
+  buttonText: 'cta-button_text'
 };
 
 function canAddExternalLinkToBtn(btnConf: IAnnotationButton): boolean {
@@ -256,7 +271,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [openConnectionPopover, setOpenConnectionPopover] = useState<string>('');
   const [newHotspotSelected, setNewHotspotSelected] = useState<boolean>(false);
   const [selectedHotspotEl, setSelectedHotspotEl] = useState<HTMLElement>();
-  const [showVideoRecorder, setShowVideoRecorder] = useState(false);
+  const [showMediaRecorder, setShowMediaRecorder] = useState(false);
   const [hotspotElText, setHotspotElText] = useState<string>('');
   const [showSelectElement, setShowSelectElement] = useState<boolean>(false);
   const [webFonts, setWebFonts] = useState<string[]>([]);
@@ -271,6 +286,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
   const [activePopover, setActivePopover] = useState<'open'|'navigate'>('open');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [annotationFeatureAvailable, setAnnotationFeatureAvailable] = useState<string[]>([]);
 
   const unsubFn = useRef(() => { });
 
@@ -424,6 +440,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
         props.onDeleteAnnotation(config.refId);
         const result = deleteAnnotation(
+          props.timeline,
           { ...config, screenId: props.currScreenId },
           props.allAnnotationsForTour,
           opts.main,
@@ -439,14 +456,16 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     });
   };
 
-  const showVideoDeleteConfirm = (): void => {
+  const showMediaDeleteConfirm = (mediaType: 'audio' | 'video'): void => {
     confirm({
-      title: 'Are you sure you want to delete this video?',
+      title: mediaType === 'audio'
+        ? 'Are you sure you want to delete this audio?'
+        : 'Are you sure you want to delete this video?',
       icon: <ExclamationCircleOutlined />,
       okText: 'Delete',
       okType: 'danger',
       onOk: () => {
-        setConfig(c => clearAnnotationAllVideoURL(c));
+        setConfig(c => clearAllMedia(c));
       },
     });
   };
@@ -488,13 +507,19 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     ann: IAnnotationConfigWithScreen,
     propertyKey: ApplyAll['key'],
     propertValue: string | boolean,
-    tx: Tx
+    tx: Tx,
+    propertyFor?: IAnnotationButtonType
   ): void => {
     const newAnn = newConfigFrom(ann);
     if (propertyKey === 'size') {
       const buttons = newAnn.buttons.slice(0);
       buttons.forEach(button => {
         button.size = propertValue as AnnotationButtonSize;
+      });
+    } else if (propertyKey === 'buttonText' && propertyFor) {
+      const buttons = newAnn.buttons.slice(0);
+      buttons.forEach(button => {
+        if (button.type === propertyFor) button.text = propertValue as string;
       });
     } else {
       (newAnn as any)[propertyKey] = propertValue;
@@ -505,7 +530,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     }, tx);
   };
 
-  const videoAnn = isVideoAnnotation(config);
+  const isMediaAnn = isMediaAnnotation(config);
 
   const qualifiedAnnotationId = `${props.currScreenId}/${props.config.refId}`;
 
@@ -539,8 +564,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   // will store isFeatureAvailable so its calculated one time only.
   // const ctaFeatureAvailable = isFeatureAvailable(props.featurePlan, 'cta_buttons');
   const leadFormFeatureAvailable = isFeatureAvailable(props.featurePlan, 'custom_lead_form');
-  const isVideoFeatureAvailable = isFeatureAvailable(props.featurePlan, 'annotation');
   const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
+
+  useEffect(() => {
+    if (props.featurePlan) {
+      const annotationFeature = props.featurePlan.annotation;
+      if (annotationFeature) {
+        const annotationsAvailable = annotationFeature.value as string[];
+        setAnnotationFeatureAvailable(annotationsAvailable);
+      }
+    }
+  }, [props.featurePlan]);
 
   return (
     <Tags.AnotCrtPanelCon
@@ -584,30 +618,30 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 color: '#666'
               }}
               onClick={() => {
-                if (isVideoFeatureAvailable) {
-                  setShowVideoRecorder(true);
-                } else {
-                  setShowUpgradeModal(true);
-                }
+                setShowMediaRecorder(true);
               }}
-              icon={videoAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
+              icon={isMediaAnn ? (<VideoCameraOutlined />) : (<VideoCameraAddOutlined />)}
             >
-              {videoAnn ? 'Change Video' : 'Record/Upload Video'}
+              {isMediaAnn ? 'Change Audio/Video' : 'Create video/audio guide'}
               &nbsp;
-              {!isVideoFeatureAvailable && <UpgradeIcon />}
             </GTags.DashedBtn>
-            {isVideoAnnotation(config) && (
-              <Tooltip title="Delete recorded video">
-                <DeleteOutlined style={{ cursor: 'pointer' }} onClick={showVideoDeleteConfirm} />
+            {(isVideoAnnotation(config) || isAudioAnnotation(config)) && (
+              <Tooltip title={`Delete recorded ${isVideoAnnotation(config) ? 'video' : 'audio'}`}>
+                <DeleteOutlined
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => showMediaDeleteConfirm(isVideoAnnotation(config) ? 'video' : 'audio')}
+                />
               </Tooltip>
             )}
           </div>
         </div>
-        {showVideoRecorder && (
-          <VideoRecorder
+        {showMediaRecorder && (
+          <MediaRecorder
             tour={props.tour}
-            closeRecorder={() => setShowVideoRecorder(false)}
+            closeRecorder={() => setShowMediaRecorder(false)}
             setConfig={setConfig}
+            annotationFeatureAvailable={annotationFeatureAvailable}
+            subs={props.subs}
           />
         )}
       </ActionPanel>
@@ -831,7 +865,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       placeholder="Enter padding"
                       defaultValue={opts.annotationPadding}
                       bordered={false}
-                      disabled={isVideoAnnotation(config)}
+                      disabled={isMediaAnn}
                       onKeyDown={e => {
                         if (e.key === 'Enter' || e.keyCode === 13) {
                           setTourDataOpts(t => updateTourDataOpts(
@@ -1209,7 +1243,24 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       />
                     </div>
                     <div style={{ ...commonActionPanelItemStyle, marginTop: '4px' }}>
-                      <div>Button text</div>
+                      <div>
+                        <div>Button text</div>
+                        { btnConf.type !== 'custom'
+                           && (
+                           <Tags.ApplyAllTxt
+                             onClick={() => {
+                               setApplyAllProperty({
+                                 key: 'buttonText',
+                                 value: btnConf.text,
+                                 forBtn: btnConf.type
+                               });
+                             }}
+                             className="typ-sm"
+                           >
+                             Apply to all
+                           </Tags.ApplyAllTxt>
+                           )}
+                      </div>
                       <Input
                         className="typ-ip"
                         defaultValue={btnConf.text}
@@ -1388,7 +1439,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             size="small"
             className="typ-ip"
             bordered={false}
-            options={Object.values(isVideoAnnotation(config)
+            options={Object.values(isMediaAnn
               ? ['medium', 'large', 'custom']
               : ['small', 'medium', 'large', 'custom'])
               .map(v => ({
@@ -1615,13 +1666,19 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   const timeline: Timeline = props.timeline;
                   timeline.forEach((flow) => {
                     flow.forEach((ann) => {
-                      applyPropertyToAnn(ann, applyAllProperty.key, applyAllProperty.value, tx);
+                      applyPropertyToAnn(
+                        ann,
+                        applyAllProperty.key,
+                        applyAllProperty.value,
+                        tx,
+                        applyAllProperty.forBtn
+                      );
                     });
                   });
                 } else {
                   const currentFlow = props.timeline.filter((timeline) => timeline[0].grpId === config.grpId)[0];
                   currentFlow.forEach(ann => {
-                    applyPropertyToAnn(ann, applyAllProperty.key, applyAllProperty.value, tx);
+                    applyPropertyToAnn(ann, applyAllProperty.key, applyAllProperty.value, tx, applyAllProperty.forBtn);
                   });
                 }
 

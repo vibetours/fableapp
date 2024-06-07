@@ -46,7 +46,8 @@ import {
   isTourResponsive,
   RESP_MOBILE_SRN_WIDTH_LIMIT,
   isLandscapeMode,
-  isEventValid
+  isEventValid,
+  getMobileOperatingSystem
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -153,6 +154,7 @@ interface IOwnStateProps {
   tourMainValidity: TourMainValidity;
   screenSizeData: Record<string, ScreenSizeData>;
   showRotateScreenModal: boolean;
+  isIOSPhone: boolean;
 }
 
 interface ScreenInfo {
@@ -204,7 +206,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       annotationSerialIdMap: {},
       currentFlowMain: '',
       screenSizeData: {},
-      showRotateScreenModal: false
+      showRotateScreenModal: false,
+      isIOSPhone: getMobileOperatingSystem() === 'iOS',
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -584,8 +587,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (this.props.tourLoaderData !== prevProps.tourLoaderData && this.props.tourLoaderData) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         this.setState({ isMinLoaderTimeDone: true });
+        clearTimeout(timer);
       }, 300);
     }
   }
@@ -650,7 +654,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   navigateToAndLogEvent = (journeyData: JourneyData, type: 'annotation-hotspot' | 'abs'): void => {
     this.navFn(journeyData.cta!.navigateTo, type);
-    setTimeout(() => {
+    Promise.resolve().then(() => {
       if (type !== 'annotation-hotspot') {
         emitEvent<CtaClickedInternal>(InternalEvents.OnCtaClicked, {
           ctaFrom: CtaFrom.Journey,
@@ -666,7 +670,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           btn_id: '$journey_cta'
         });
       }
-    }, 0);
+    });
   };
 
   getScreenWithRenderSlot(): {
@@ -689,11 +693,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         screenEdits
       };
     }).filter(slot => {
-      const shouldPrerenderIframe = this.iframesToPrerenderIds.has(slot.screen.id);
-      if (shouldPrerenderIframe) return true;
-
       const isNavigatedToCurrScreen = slot.screen.id === this.getCurrScreenId();
       if (isNavigatedToCurrScreen) return true;
+
+      // In ios few demos were crashing, so we are rendering only one iframe at a time.
+      // this is done to reduce the number of nodes in the DOM
+      if (this.state.isIOSPhone) {
+        return false;
+      }
+
+      const shouldPrerenderIframe = this.iframesToPrerenderIds.has(slot.screen.id);
+      if (shouldPrerenderIframe) return true;
 
       if (!slot.isRenderReady || !this.adjList) return false;
 
@@ -751,8 +761,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.state.isMinLoaderTimeDone) {
       return false;
     }
-    for (const isPrerendered of Object.values(this.state.initiallyPrerenderedScreens)) {
-      if (!isPrerendered) return false;
+
+    if (!this.state.isIOSPhone) {
+      for (const isPrerendered of Object.values(this.state.initiallyPrerenderedScreens)) {
+        if (!isPrerendered) return false;
+      }
     }
 
     if (!this.props.isTourLoaded) {
@@ -899,8 +912,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 handleMenuOnScreenResize={() => {
                   if (this.state.isJourneyMenuOpen) {
                     this.setState({ isJourneyMenuOpen: false });
-                    setTimeout(() => {
+                    const timer = setTimeout(() => {
                       this.setState({ isJourneyMenuOpen: true });
+                      clearTimeout(timer);
                     }, 100);
                   }
                 }}

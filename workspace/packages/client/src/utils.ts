@@ -133,6 +133,14 @@ export const isVideoAnnotation = (config: IAnnotationConfig): boolean => !isBlan
     || !isBlankString(config.videoUrlWebm)
     || !isBlankString(config.videoUrlHls));
 
+export const isAudioAnnotation = (config: IAnnotationConfig): boolean => (!!config.audio);
+
+export const isMediaAnnotation = (config: IAnnotationConfig): boolean => {
+  const isVideoAnn = isVideoAnnotation(config);
+  const isAudioAnn = isAudioAnnotation(config);
+  return isVideoAnn || isAudioAnn;
+};
+
 export const isCoverAnnotation = (config: IAnnotationConfig): boolean => config.type === 'cover';
 
 export function flatten<T>(arr: Array<T[]>): T[] {

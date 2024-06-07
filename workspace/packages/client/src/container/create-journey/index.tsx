@@ -12,7 +12,7 @@ import * as Tags from './styled';
 import * as GTags from '../../common-styled';
 import CloseIcon from '../../assets/tour/close.svg';
 import Input from '../../component/input';
-import { IAnnotationConfigWithScreen, JourneyOrOptsDataChange } from '../../types';
+import { IAnnotationConfigWithScreen, JourneyOrOptsDataChange, AnnotationPerScreen } from '../../types';
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
 import Focus from '../../assets/icons/focus.svg';
@@ -21,6 +21,7 @@ import Button from '../../component/button';
 import { FeatureForPlan } from '../../plans';
 import Upgrade from '../../component/upgrade';
 import { P_RespSubscription } from '../../entity-processor';
+import { getAnnotationByRefId } from '../../component/annotation/ops';
 
 interface IDispatchProps {
 }
@@ -44,6 +45,7 @@ interface IOwnProps {
     tourOpts: ITourDataOpts;
     journey: JourneyData;
     featurePlan: FeatureForPlan | null;
+    allAnnotationsForTour: AnnotationPerScreen[];
 }
 
 type IProps = IOwnProps &
@@ -134,6 +136,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     this.repositionFlows(result.source.index, result.destination.index);
   }
 
+  getBackgroundColorForSelect = (flowMain: string): string => {
+    if (!flowMain) return '';
+
+    const flowMainRefId = flowMain.split('/')[1];
+
+    if (getAnnotationByRefId(flowMainRefId, this.props.allAnnotationsForTour)) return '';
+
+    return '#EE7C5A';
+  };
+
   modulesFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'modules');
 
   render():JSX.Element {
@@ -148,7 +160,16 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
             <Tags.NoJourneyCon>
               <img src={CreateJourneyEmptyIcon} alt="no module created" />
               <div className="typ-reg">
-                <p style={{ margin: 0, textAlign: 'center', marginBottom: '2rem' }} className="typ-h1">You don't have any modules yet.</p>
+                <p
+                  style={{
+                    margin: 0,
+                    textAlign: 'center',
+                    marginBottom: '2rem'
+                  }}
+                  className="typ-h1"
+                >
+                  You don't have any modules yet.
+                </p>
                 <p style={{ margin: '10px 0', textAlign: 'center' }}>
                   Modules help you to split your demo in multiple logical small demos instead of one large demo.
                 </p>
@@ -273,7 +294,11 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                       bordered={false}
                                       size="large"
                                       defaultValue={flow.main || undefined}
-                                      style={{ width: '100%', borderRadius: '8px' }}
+                                      style={{
+                                        width: '100%',
+                                        borderRadius: '8px',
+                                        backgroundColor: this.getBackgroundColorForSelect(flow.main)
+                                      }}
                                       onSelect={(value) => { this.updateFlowAtIndex(idx, 'main', value as string); }}
                                       placeholder="Choose a module"
                                       optionLabelProp="children"

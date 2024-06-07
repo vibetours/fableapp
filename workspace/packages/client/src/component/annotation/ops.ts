@@ -1,7 +1,7 @@
 import { IAnnotationButton, IAnnotationConfig, ITourDataOpts, ITourEntityHotspot } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import { getSampleConfig } from '@fable/common/dist/utils';
-import { AnnotationPerScreen, DestinationAnnotationPosition } from '../../types';
+import { AnnotationPerScreen, DestinationAnnotationPosition, IAnnotationConfigWithScreen, Timeline } from '../../types';
 import { IAnnotationConfigWithScreenId, updateAnnotationGrpId } from './annotation-config-utils';
 import { AnnUpdate, AnnUpdateType, GroupUpdatesByAnnotationType } from './types';
 import { doesBtnOpenALink, isNavigateHotspot, updateLocalTimelineGroupProp } from '../../utils';
@@ -179,7 +179,21 @@ export const addPrevAnnotation = (
   return { groupedUpdates, updates, main: newMain, deletionUpdate: null, status: 'accepted' };
 };
 
+export const getFirstAnnOfNewFlow = (
+  timeline: Timeline,
+  config: IAnnotationConfigWithScreenId,
+): IAnnotationConfigWithScreen | undefined => {
+  for (const flow of timeline) {
+    if (flow[0].refId !== config.refId) {
+      return flow[0];
+    }
+  }
+
+  return undefined;
+};
+
 export const deleteAnnotation = (
+  timeline: Timeline,
   annToBeDeletedConfig: IAnnotationConfigWithScreenId,
   allAnnotationsForTour: AnnotationPerScreen[],
   main: string | null,
@@ -225,6 +239,15 @@ export const deleteAnnotation = (
   if (hardDelete) {
     if (main && annToBeDeletedConfig.refId === main.split('/')[1]) {
       newMain = '';
+
+      const nextBtnOfAnnToBeDeleted = annToBeDeletedConfig.buttons.find(btn => btn.type === 'next');
+      const newAnn = getFirstAnnOfNewFlow(timeline, annToBeDeletedConfig);
+
+      if (nextBtnOfAnnToBeDeleted && nextBtnOfAnnToBeDeleted.hotspot) {
+        newMain = nextBtnOfAnnToBeDeleted.hotspot.actionValue;
+      } else if (newAnn) {
+        newMain = `${newAnn.screen.id}/${newAnn.refId}`;
+      }
     }
     deletionUpdate = {
       config: annToBeDeletedConfig,
@@ -274,7 +297,24 @@ export const deleteConnection = (
   return { groupedUpdates, updates, main: null, deletionUpdate: null, status: 'accepted' };
 };
 
+export const findFirstAnnOfFlowUsingAnn = (
+  timeline: Timeline,
+  currentAnnConfig: IAnnotationConfig,
+  n: number
+): IAnnotationConfigWithScreen | undefined => {
+  for (const flow of timeline) {
+    for (const ann of flow) {
+      if (ann.refId === currentAnnConfig.refId) {
+        return flow[n];
+      }
+    }
+  }
+
+  return undefined;
+};
+
 export const reorderAnnotation = (
+  timeline: Timeline,
   currentAnnConfig: IAnnotationConfigWithScreenId,
   destinationAnnId: string,
   allAnnotationsForTour: AnnotationPerScreen[],
@@ -341,11 +381,32 @@ export const reorderAnnotation = (
   const {
     updates: deleteUpdates,
     main: afterDeleteMain
-  } = deleteAnnotation(currentAnnConfig, allAnnotationsForTour, main, false);
+  } = deleteAnnotation(timeline, currentAnnConfig, allAnnotationsForTour, main, false);
+
+  let newMain = '';
+  if (main?.split('/')[1] === currentAnnConfig.refId) {
+    const firstAnnOfFlow = findFirstAnnOfFlowUsingAnn(timeline, destinationAnnotation, 0);
+
+    if (firstAnnOfFlow?.refId === currentAnnConfig.refId) {
+      const secondAnnOfFlow = findFirstAnnOfFlowUsingAnn(timeline, destinationAnnotation, 1);
+      if (secondAnnOfFlow) newMain = `${secondAnnOfFlow.screen.id}/${secondAnnOfFlow.refId}`;
+    } else if (firstAnnOfFlow) {
+      const prevBtn = getAnnotationBtn(destinationAnnotation, 'prev');
+      if (position === DestinationAnnotationPosition.next) {
+        newMain = `${firstAnnOfFlow.screen.id}/${firstAnnOfFlow.refId}`;
+      } else if (prevBtn.hotspot?.actionType !== 'navigate') {
+        newMain = main;
+      } else {
+        newMain = `${firstAnnOfFlow.screen.id}/${firstAnnOfFlow.refId}`;
+      }
+    }
+  }
+
   const groupUpdates = groupUpdatesByAnnotation([...updates, ...deleteUpdates]);
+
   return {
     status: result.status,
-    main: result.main || afterDeleteMain,
+    main: newMain || result.main || afterDeleteMain,
     groupedUpdates: groupUpdates,
     updates,
     deletionUpdate: null

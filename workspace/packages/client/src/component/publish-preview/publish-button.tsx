@@ -14,6 +14,7 @@ interface Props {
   size?: 'medium' | 'large';
   minWidth?: string;
   isPublishing?: boolean;
+  disabled?: boolean;
 }
 
 export default function PublishButton(props: Props): JSX.Element {
@@ -45,7 +46,7 @@ export default function PublishButton(props: Props): JSX.Element {
   return (
     <Button
       size={props.size || 'large'}
-      disabled={!props.tour}
+      disabled={props.disabled || !props.tour}
       style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem', minWidth: props.minWidth }}
       onMouseUp={handleClick}
     >

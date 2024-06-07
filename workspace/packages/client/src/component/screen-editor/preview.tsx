@@ -139,7 +139,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
 
     frame.onload = () => {
-      setTimeout(async () => {
+      const timer = setTimeout(async () => {
         await this.deserDomIntoFrame(frame);
         /* requestAnimationFrame */setTimeout(() => {
           const doc = frame.contentDocument;
@@ -183,6 +183,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         // the rendered screen might do scrolling to the element and this is a arbritary time to wait so that
         // the scroll animation is closer to 60fps.
         // TODO A better way to detect scroll is to update a global variable about scrolling status.
+        clearTimeout(timer);
       }, this.props.hidden ? 1000 : 16);
     };
   }

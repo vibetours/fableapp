@@ -1,12 +1,19 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-05-31 08:01:48.
+// Generated using typescript-generator version 2.35.1025 on 2024-06-05 13:51:33.
 
 export interface ApiResp<T> {
     status: ResponseStatus;
     data: T;
     errStr: string;
     errCode: ErrorCode;
+}
+
+export interface AudioTranscodingJobInfo extends JobProcessingInfo {
+    sourceFilePath: string;
+    processedFilePath: string;
+    sub: AudioProcessingSub;
+    meta: string;
 }
 
 export interface ButtonClicks {
@@ -616,6 +623,11 @@ export const enum UnauthorizedReason {
     OrgSuggestedButInvalidAssociation = "OrgSuggestedButInvalidAssociation",
 }
 
+export const enum AudioProcessingSub {
+    CONVERT_TO_HLS = "CONVERT_TO_HLS",
+    CONVERT_TO_WEBM = "CONVERT_TO_WEBM",
+}
+
 export const enum EntityType {
     Screen = 0,
     Tour = 1,
@@ -636,6 +648,7 @@ export const enum JobProcessingStatus {
 
 export const enum JobType {
     TRANSCODE_VIDEO = "TRANSCODE_VIDEO",
+    TRANSCODE_AUDIO = "TRANSCODE_AUDIO",
     RESIZE_IMG = "RESIZE_IMG",
     CREATE_DEMO_GIF = "CREATE_DEMO_GIF",
     DELETE_ASSET = "DELETE_ASSET",
@@ -675,6 +688,9 @@ export const enum MediaType {
     VIDEO_HLS = "VIDEO_HLS",
     VIDEO_MP4 = "VIDEO_MP4",
     IMG_MULTI = "IMG_MULTI",
+    AUDIO_MP3 = "AUDIO_MP3",
+    AUDIO_HLS = "AUDIO_HLS",
+    AUDIO_WEBM = "AUDIO_WEBM",
     GIF = "GIF",
 }
 

@@ -15,10 +15,11 @@ import {
   AnnotationSelectionEffectType,
   CoverAnnotationPositions,
   ScrollAdjustmentType,
+  IAnnotationAudio,
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { ElPathKey } from '../../types';
-import { isVideoAnnotation } from '../../utils';
+import { isMediaAnnotation } from '../../utils';
 import { isLeadFormPresentInHTMLStr } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export interface IAnnotationConfigWithScreenId extends IAnnotationConfig {
@@ -106,6 +107,29 @@ export function updateAnnotationVideoURLWebm<T extends IAnnotationConfig>(config
   return newConfig;
 }
 
+export function updateAnnotationVideo(
+  config: IAnnotationConfig,
+  videoUrl: { videoUrlMp4: string; videoUrlHls: string; videoUrlWebm: string; }
+): IAnnotationConfig {
+  const newConfig = clearAnnotationAudio(config);
+  newConfig.videoUrlMp4 = videoUrl.videoUrlMp4;
+  newConfig.videoUrlHls = videoUrl.videoUrlHls;
+  newConfig.videoUrlWebm = videoUrl.videoUrlWebm;
+  return newConfig;
+}
+
+export function updateAnnotationAudio(config: IAnnotationConfig, audio: IAnnotationAudio): IAnnotationConfig {
+  const newConfig = clearAnnotationAllVideoURL(config);
+  newConfig.audio = audio;
+  return newConfig;
+}
+
+export function clearAnnotationAudio(config: IAnnotationConfig): IAnnotationConfig {
+  const newConfig = newConfigFrom(config);
+  newConfig.audio = null;
+  return newConfig;
+}
+
 export function updateAnnotationTypeToCover(config: IAnnotationConfig) : IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.type = 'cover';
@@ -156,6 +180,12 @@ export function updateAnnotationIsHotspot(config: IAnnotationConfig, isHotspot: 
 
   return newConfig;
 }
+
+export const clearAllMedia = (c: IAnnotationConfig): IAnnotationConfig => {
+  const newConfig = clearAnnotationAudio(c);
+
+  return clearAnnotationAllVideoURL(newConfig);
+};
 
 export function clearAnnotationAllVideoURL(config: IAnnotationConfig): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
@@ -355,7 +385,7 @@ export const getAnnPositioningOptions = (config: IAnnotationConfig)
 : PositioningOptions => {
   const positions: PositioningOptions = [];
 
-  if (isVideoAnnotation(config)) {
+  if (isMediaAnnotation(config)) {
     const videoPositions = Object.values(VideoAnnotationPositions);
     if (config.type === 'cover') {
       positions.push(...videoPositions.filter(pos => pos !== VideoAnnotationPositions.Follow));

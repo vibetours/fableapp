@@ -69,7 +69,7 @@ const getCommonEventProps = (date: Date, event: AnalyticsEvents | AnalyticsEvent
 });
 
 export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof event]): void => {
-  setTimeout(() => {
+  Promise.resolve().then(() => {
     try {
       const globalSettings = (window as FWin).__fable_global_settings__ || {};
       if (!globalSettings.shouldLogEvent) return;
@@ -83,11 +83,11 @@ export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof 
     } catch (e) {
       raiseDeferredError(e as Error);
     }
-  }, 0);
+  });
 };
 
 export const logEventDirect = (event: AnalyticsEventsDirect, payload: CtaClickedAnalytics): void => {
-  setTimeout(() => {
+  Promise.resolve().then(() => {
     try {
       const globalSettings = (window as FWin).__fable_global_settings__ || {};
       const globalUser = { ...(window as FWin).__fable_global_user__ || {} };
@@ -102,7 +102,7 @@ export const logEventDirect = (event: AnalyticsEventsDirect, payload: CtaClicked
     } catch (e) {
       raiseDeferredError(e as Error);
     }
-  }, 0);
+  });
 };
 
 export const flattenLogEvent = (logs: EventLog): FlattendEventLog => {
