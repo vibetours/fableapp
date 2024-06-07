@@ -1,6 +1,7 @@
 import { getRandomId, sleep, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import raiseDeferredError from "@fable/common/dist/deferred-error";
+import { nanoid } from "nanoid";
 import { Msg, MsgPayload } from "./msg";
 import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
@@ -21,6 +22,8 @@ sentryInit("extension", version);
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
+const FABLE_ID_ID = "fable-0-id-id";
+const FABLE_MSG_FROM_IDENTIFIER = "sharefable.com";
 
 const isDocHtml4P1 = (el: Node): boolean => {
   const res = !!((el.nodeName || "").toLowerCase() === "html"
@@ -111,7 +114,10 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
       elPath = calculatePathFromEl(el as Node, []).join(".");
     }
   }
-  const serDoc = getSearializedDom();
+  const fablePresenceDiv = document.getElementById(FABLE_DOM_EVT_LISTENER_DIV);
+  const frameId = fablePresenceDiv?.getAttribute(FABLE_ID_ID) || null;
+
+  const serDoc = getSearializedDom({ frameId });
   const screenStyle = getScreenStyle();
   elPath && serDoc.postProcesses.push({ type: "elpath", path: elPath });
   chrome.runtime.sendMessage<MsgPayload<ScreenSerDataFromCS>>({
@@ -158,6 +164,63 @@ function createListenerMarkerDivIfNotPresent(doc: Document) {
     return true;
   }
   return false;
+}
+
+function getAllIframesInDoc(type: "crossorigin" | "sameorigin", doc: Document) {
+  const iframes = Array.from(doc.querySelectorAll("iframe"));
+  const shadowRoots = Array.from(doc.querySelectorAll("*")).map(el => el.shadowRoot).filter(Boolean);
+  for (const shadow of shadowRoots) {
+    if (shadow) iframes.push(...Array.from(shadow.querySelectorAll("iframe")));
+  }
+  if (type === "crossorigin") return iframes.filter(frame => !frame.contentDocument);
+  return iframes.filter(frame => !!frame.contentDocument);
+}
+
+function installMessageListenerInFrame(win: Window, frameId: string) {
+  if (!(win && frameId)) return;
+
+  (win as any).__data_fable_frameid__ = frameId;
+  let i = 1;
+  const timer = setInterval(() => {
+    // we will try this 5 times in case the parent frame hasn't been set up when the child frame send the message.
+    // This message passing could be called multiple times hence we should always make this function idempotent
+    if (i++ > 5) clearTimeout(timer);
+    win.parent.postMessage({
+      from: FABLE_MSG_FROM_IDENTIFIER,
+      type: "idpropagation",
+      relay: frameId,
+      value: frameId
+    }, "*");
+  }, 1000);
+
+  win.addEventListener("message", msg => {
+    if (msg && msg.data && msg.data.from === FABLE_MSG_FROM_IDENTIFIER) {
+      // console.log("[Fable] Interframe listener installation. Trying...");
+      if (msg.data.type === "idpropagation") {
+        const frames = getAllIframesInDoc("crossorigin", win.document);
+        const fs = frames.filter(f => f.contentWindow === msg.source);
+        if (fs.length !== 1) {
+          console.warn("[Fable] No unique target found. Required 1, recieved ", fs.length, ". id", frameId);
+          return;
+        }
+        fs[0].setAttribute(FABLE_ID_ID, msg.data.value);
+      }
+    }
+  });
+
+  const sameOriginFrames = getAllIframesInDoc("sameorigin", win.document);
+  sameOriginFrames.forEach(frame => installMessageListenerInFrame(frame.contentWindow!, frameId));
+}
+
+function installMessageListener(frameId: string) {
+  const fablePresenceDiv = document.getElementById(FABLE_DOM_EVT_LISTENER_DIV);
+  if (!fablePresenceDiv) {
+    console.warn("[Fable] Couldn't establish message passing pipes as target el is not found");
+    return;
+  }
+  if (fablePresenceDiv.getAttribute(FABLE_ID_ID) !== null) return; // message passing alrady installed
+  fablePresenceDiv.setAttribute(FABLE_ID_ID, frameId);
+  installMessageListenerInFrame(window, frameId);
 }
 
 function installListener(doc: Document) {
@@ -238,7 +301,12 @@ function installListener(doc: Document) {
   }
 
   for (const d of sameOriginDocs) {
-    installListener(d!);
+    try {
+      installListener(d!);
+      installMessageListenerInFrame(d!.defaultView!, (doc.defaultView as any).__data_fable_frameid__);
+    } catch (e) {
+      console.error("Error installing msg listeners", e);
+    }
   }
 }
 
@@ -261,6 +329,11 @@ function init() {
         // a frame reaches the specific frame, not all the other frames
         if (tMsg.data.scriptId === initData.scriptId) {
           initData.frameId = tMsg.data.frameId;
+          try {
+            installMessageListener(`fi-${nanoid()}`);
+          } catch (e) {
+            console.error("Error installing msg listeners", e);
+          }
         }
         break;
       }

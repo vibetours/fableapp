@@ -72,6 +72,7 @@ export interface SerDoc {
   };
   baseURI: string;
   isHTML5: boolean;
+  frameId?: string | null
 }
 
 export interface CapturedViewPort {
