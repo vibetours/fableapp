@@ -21,6 +21,8 @@ sentryInit("extension", version);
 
 const FABLE_MSG_LISTENER_DIV_ID = "fable-0-cm-presence";
 const FABLE_DOM_EVT_LISTENER_DIV = "fable-0-de-presence";
+const FABLE_ID_ID = "fable-0-id-id";
+const FABLE_MSG_FROM_IDENTIFIER = "sharefable.com";
 
 const isDocHtml4P1 = (el: Node): boolean => {
   const res = !!((el.nodeName || "").toLowerCase() === "html"
@@ -160,6 +162,53 @@ function createListenerMarkerDivIfNotPresent(doc: Document) {
   return false;
 }
 
+function getAllIframeInDoc() {
+  const iframes = Array.from(document.querySelectorAll("iframe"));
+  const shadowRoots = Array.from(document.querySelectorAll("*")).map(el => el.shadowRoot).filter(Boolean);
+  for (const shadow of shadowRoots) {
+    if (shadow) iframes.push(...Array.from(shadow.querySelectorAll("iframe")));
+  }
+  return iframes;
+}
+
+function installMessageLister(id: number) {
+  const fablePresenceDiv = document.getElementById(FABLE_DOM_EVT_LISTENER_DIV);
+  if (!fablePresenceDiv) {
+    console.warn("[Fable] Couldn't establish message passing pipes as target el is not found");
+    return;
+  }
+  if (fablePresenceDiv.getAttribute(FABLE_ID_ID) !== null) return; // message passing alrady installed
+  const frameId = `fi-${id}`;
+  fablePresenceDiv.setAttribute(FABLE_ID_ID, frameId);
+
+  let i = 1;
+  const timer = setInterval(() => {
+    // we will try this 5 times in case the parent frame hasn't been set up when the child frame send the message.
+    // This message passing could be called multiple times hence we should always make this function idempotent
+    if (i++ > 5) clearTimeout(timer);
+    window.parent.postMessage({
+      from: FABLE_MSG_FROM_IDENTIFIER,
+      type: "idpropagation",
+      relay: frameId,
+      value: frameId
+    }, "*");
+  }, 1000);
+
+  window.addEventListener("message", msg => {
+    if (msg && msg.data && msg.data.from === FABLE_MSG_FROM_IDENTIFIER) {
+      if (msg.data.type === "idpropagation") {
+        const frames = getAllIframeInDoc();
+        const fs = frames.filter(f => f.contentWindow === msg.source);
+        if (fs.length !== 1) {
+          console.warn("[Fable] No unique target found. Required 1, recieved ", fs.length);
+          return;
+        }
+        fs[0].setAttribute(FABLE_ID_ID, msg.data.value);
+      }
+    }
+  });
+}
+
 function installListener(doc: Document) {
   const isCreatedNew = createListenerMarkerDivIfNotPresent(doc);
   if (isCreatedNew) {
@@ -261,6 +310,7 @@ function init() {
         // a frame reaches the specific frame, not all the other frames
         if (tMsg.data.scriptId === initData.scriptId) {
           initData.frameId = tMsg.data.frameId;
+          installMessageLister(tMsg.data.frameId);
         }
         break;
       }
