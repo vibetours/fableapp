@@ -1,6 +1,7 @@
 import { getRandomId, sleep, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import raiseDeferredError from "@fable/common/dist/deferred-error";
+import { nanoid } from "nanoid";
 import { Msg, MsgPayload } from "./msg";
 import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
@@ -329,7 +330,7 @@ function init() {
         if (tMsg.data.scriptId === initData.scriptId) {
           initData.frameId = tMsg.data.frameId;
           try {
-            installMessageListener(`fi-${tMsg.data.frameId}`);
+            installMessageListener(`fi-${nanoid()}`);
           } catch (e) {
             console.error("Error installing msg listeners", e);
           }
