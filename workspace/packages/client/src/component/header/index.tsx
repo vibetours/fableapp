@@ -623,7 +623,7 @@ function Header(props: IOwnProps): JSX.Element {
           }}
           width={240}
           mask={false}
-          closable={false}
+          closable={showWarningDrawer}
           title="Fix the following items before you embed this demo"
           onClose={() => {
             setShowWarningDrawer(false);
