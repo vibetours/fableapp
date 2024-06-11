@@ -1,4 +1,5 @@
 import { IAnnotationConfig } from '@fable/common/dist/types';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { IAnnoationDisplayConfig } from '.';
 import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen } from '../../types';
@@ -131,19 +132,6 @@ export const generatePointFiveLightShate = (color: string): string => {
   return lightColor;
 };
 
-export const playVideoAnn = (screenId: string, annId: string): void => {
-  const iframe = getIframeByScreenId(screenId)!;
-  const videoEl = iframe.contentDocument!.querySelector(`#fable-ann-video-${annId}`) as HTMLVideoElement;
-  const timer = setInterval(() => {
-    if (videoEl.getAttribute('data-playable')) {
-      clearInterval(timer);
-      videoEl.play();
-    } else {
-      console.log('waiting for video feed...');
-    }
-  }, 16 * 3);
-};
-
 export const getIframeByScreenId = (screenId: string): HTMLIFrameElement | null => {
   const iframe = document.querySelector(`.fable-iframe-${screenId}`) as HTMLIFrameElement;
   return iframe;
@@ -179,36 +167,6 @@ export const getAnnsOfSameMultiAnnGrp = (
 
   return anns;
 };
-
-export function isPrevNextBtnLinksToVideoAnn(
-  config: IAnnotationConfig,
-  allAnnotationsForTour: AnnotationPerScreen[]
-): { isNextAnnVideo: boolean, isPrevAnnVideo: boolean } {
-  const isNextAnnVideo = isBtnLinksToVideoAnn(config, allAnnotationsForTour, 'next');
-  const isPrevAnnVideo = isBtnLinksToVideoAnn(config, allAnnotationsForTour, 'prev');
-
-  return { isNextAnnVideo, isPrevAnnVideo };
-}
-
-export function isBtnLinksToVideoAnn(
-  config: IAnnotationConfig,
-  allAnnotationsForTour: AnnotationPerScreen[],
-  type: 'prev' | 'next'
-): boolean {
-  let isLinkToVideoAnn = false;
-
-  const btn = config.buttons.find(button => button.type === type)!;
-  const btnHotspot = btn.hotspot && btn.hotspot.actionType === 'navigate';
-
-  if (btnHotspot) {
-    const ann = getAnnotationByRefId(btn.hotspot!.actionValue.split('/')[1], allAnnotationsForTour);
-    if (ann && isVideoAnnotation(ann)) {
-      isLinkToVideoAnn = true;
-    }
-  }
-
-  return isLinkToVideoAnn;
-}
 
 export const isLeadFormPresent = (annConDiv: HTMLDivElement): boolean => {
   const res = Boolean(annConDiv.getElementsByClassName('LeadForm__container').item(0));
@@ -307,3 +265,12 @@ export const createOverrideStyleEl = (doc: Document): HTMLStyleElement => {
   `;
   return styleEl;
 };
+
+export async function convertUrlToBlobUrl(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    raiseDeferredError(new Error(`Failed to fetch: ${response.statusText}`));
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}

@@ -1306,8 +1306,6 @@ export interface IAnnProps {
   hotspotEl: HTMLElement | null;
   box: Rect;
   conf: IAnnoationDisplayConfig;
-  isNextAnnVideo: boolean;
-  isPrevAnnVideo: boolean;
   hotspotBox?: Rect | null;
   annotationSerialIdMap: AnnotationSerialIdMap;
   maskBox: Rect | null;
@@ -1338,7 +1336,6 @@ interface HotspotProps {
     scrollX: number,
     scrollY: number,
     isGranularHotspot: boolean,
-    isNextAnnVideo: boolean,
     annotationIndexString: string
   }>,
   playMode: boolean,
@@ -1482,7 +1479,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         const btnConf = type === 'custom'
           ? config.buttons.filter(button => button.id === btnId)[0]
           : config.buttons.filter(button => button.type === type)[0];
-        const isNavToVideoAnn = type === 'prev' ? p.isPrevAnnVideo : p.isNextAnnVideo;
 
         handleEventLogging(
           btnConf,
@@ -1512,7 +1508,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         if ((btnConf.type === 'next' || btnConf.type === 'prev' || btnConf.type === 'custom')
           && btnConf.hotspot.actionType === 'navigate'
         ) {
-          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue, isNavToVideoAnn);
+          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue);
         } else {
           this.props.nav(btnConf.hotspot.actionValue, 'abs');
         }
@@ -1542,7 +1538,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 scrollX: this.props.win.scrollX,
                 scrollY: this.props.win.scrollY,
                 isGranularHotspot,
-                isNextAnnVideo: p.isNextAnnVideo,
                 annotationIndexString: p.annotationSerialIdMap[p.conf.config.refId]
               }]}
               playMode={this.props.playMode}

@@ -29,7 +29,7 @@ import { scrollIframeEls } from './scroll-util';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserIframeEl } from './utils/deser';
 import { applyEditsToSerDom } from './utils/edits';
-import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv, playVideoAnn } from '../annotation/utils';
+import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
@@ -45,7 +45,7 @@ import {
   RESP_MOBILE_SRN_WIDTH_LIMIT
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
-import { NavToAnnByRefIdFn } from './types';
+import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
 
 export interface IOwnProps {
   resizeSignal: number;
@@ -582,11 +582,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     }
   };
 
-  applyDiffAndGoToAnn = async (
+  applyDiffAndGoToAnn: ApplyDiffAndGoToAnn = async (
     currAnnId: string,
     goToAnnIdWithScreenId: string,
-    isGoToVideoAnn: boolean
-  ): Promise<void> => {
+  ) => {
     const [goToScreenId, goToAnnId] = goToAnnIdWithScreenId.split('/');
     this.setState({ currentAnn: goToAnnId });
 
@@ -616,9 +615,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (+goToScreenId === currScreenId) {
       await this.scrollIframeElsIfRequired(goToAnnConfig, currScreenData);
       this.reachAnnotation(goToAnnId);
-      if (isGoToVideoAnn && !areDiffsAppliedToCurrIframe) {
-        playVideoAnn(goToScreenId, goToAnnId);
-      }
       return;
     }
 
@@ -631,7 +627,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if ((goToScreen.type === ScreenType.Img || currScreen.type === ScreenType.Img)
     || (goToScreen.urlStructured.host !== currScreen.urlStructured.host)
     ) {
-      this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
+      this.navigateAndGoToAnn(goToAnnIdWithScreenId);
       return;
     }
 
@@ -659,7 +655,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      */
     if (currScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION
       || goToScreenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION) {
-      this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
+      this.navigateAndGoToAnn(goToAnnIdWithScreenId);
       return;
     }
 
@@ -668,7 +664,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
      * We navigate to that screen with annotation id
      */
     if (isSerNodeDifferent(currScreenData.docTree, goToScreenData.docTree,)) {
-      this.navigateAndGoToAnn(goToAnnIdWithScreenId, isGoToVideoAnn);
+      this.navigateAndGoToAnn(goToAnnIdWithScreenId);
       return;
     }
 
@@ -758,13 +754,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     await scrollIframeEls(screenData.version, doc);
   };
 
-  navigateAndGoToAnn = (goToAnnIdWithScreenId: string, isGoToVideoAnn: boolean): void => {
-    const [goToScreenId, goToAnnId] = goToAnnIdWithScreenId.split('/');
-
+  navigateAndGoToAnn = (goToAnnIdWithScreenId: string): void => {
     this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
-    if (isGoToVideoAnn) {
-      playVideoAnn(goToScreenId, goToAnnId);
-    }
   };
 
   resetIframe = (rid: string): void => {

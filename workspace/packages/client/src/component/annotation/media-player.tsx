@@ -13,7 +13,7 @@ import {
   TimeSpentInAnnotationPayload,
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
-import { generateShadeColor } from './utils';
+import { convertUrlToBlobUrl, generateShadeColor } from './utils';
 import MuteIcon from '../../assets/mute.png';
 import UnmuteIcon from '../../assets/unmute.png';
 import AudioVisualizer from '../audio-visualizer';
@@ -39,6 +39,7 @@ interface IOwnStateProps {
   isMuted: boolean;
   firstTimeClick: boolean;
   showAudioVisualizer: boolean;
+  blobUrls: null | { webm: string, mp4: string, type: 'video' } | { webm: string, type: 'audio' },
 }
 
 export default class AnnotationMedia extends React.PureComponent<IProps, IOwnStateProps> {
@@ -54,6 +55,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
       isMuted: true,
       firstTimeClick: true,
       showAudioVisualizer: false,
+      blobUrls: null,
     };
     if (Hls.isSupported() && this.props.playMode) {
       const config = this.props.conf.config;
@@ -62,7 +64,24 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
         this.initPlayer(hlsURl);
       }
     }
+
+    this.convertToBlob();
   }
+
+  convertToBlob = async (): Promise<void> => {
+    const config = this.props.conf.config;
+
+    if (config.audio) {
+      const webmUrl = config.audio.webm;
+      const blobUrl = await convertUrlToBlobUrl(webmUrl);
+      this.setState({ blobUrls: { type: 'audio', webm: webmUrl } });
+      return;
+    }
+
+    const urls = [config.videoUrlWebm, config.videoUrlMp4];
+    const [blobWebmUrl, blobMp4Url] = await Promise.all(urls.map(url => convertUrlToBlobUrl(url)));
+    this.setState({ blobUrls: { type: 'video', webm: blobWebmUrl, mp4: blobMp4Url } });
+  };
 
   private initPlayer(hlsUrl: string): void {
     if (this.hls) {
@@ -100,13 +119,16 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   }
 
   componentDidMount(): void {
-    this.setState({ showAudioVisualizer: this.props.type === 'audio' });
+    this.setState(prev => ({ showAudioVisualizer: this.props.type === 'audio' && prev.mediaState === 'playing' }));
     if (!this.hls) {
       this.mediaRef!.current!.setAttribute('data-playable', 'true');
       return;
     }
     this.hls.attachMedia(this.mediaRef!.current!);
     this.setControlsBasedOnMediaState();
+    if (this.props.conf.isMaximized && this.state.blobUrls) {
+      this.playMedia();
+    }
   }
 
   componentWillUnmount(): void {
@@ -116,10 +138,36 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
+    let isMediaPlayed = false;
     if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
       this.setControlsBasedOnMediaState();
+
+      if (this.state.blobUrls) {
+        this.playMedia();
+        isMediaPlayed = true;
+      }
+    }
+
+    if (!isMediaPlayed && this.state.blobUrls && prevState.blobUrls !== this.state.blobUrls) {
+      this.playMedia();
+      isMediaPlayed = true;
+    }
+
+    if (
+      this.props.type === 'audio'
+      && !this.state.showAudioVisualizer
+      && prevState.mediaState !== 'playing' && this.state.mediaState === 'playing'
+    ) {
+      this.setState({ showAudioVisualizer: true });
     }
   }
+
+  playMedia = (): void => {
+    if (this.props.conf.prerender) return;
+    this.mediaRef.current!.play();
+    this.mediaRef.current!.autoplay = false;
+    if (this.props.playMode) this.mediaRef.current!.muted = false;
+  };
 
   setControlsBasedOnMediaState = (): void => {
     if (this.mediaRef.current?.paused) {
@@ -249,8 +297,8 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             this.props.type === 'video' && (
               <Tags.AnVideo
                 style={{ borderRadius: this.props.borderRadius }}
-                loop={this.state.firstTimeClick}
-                autoPlay
+                // loop={this.state.firstTimeClick}
+                // autoPlay
                 muted={this.state.isMuted}
                 ref={this.mediaRef}
                 border={this.getAnnotationBorder()}
@@ -260,12 +308,13 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 onPause={() => this.setState({ mediaState: 'paused' })}
                 onPlay={() => this.setState({ mediaState: 'playing' })}
                 onEnded={() => this.setState({ showControls: true, mediaState: 'ended' })}
+                onVolumeChange={() => this.setState({ isMuted: this.mediaRef.current?.muted || false })}
               >
-                {!isHlsSupported && (
+                {!isHlsSupported && this.state.blobUrls?.type === 'video' && (
                 <>
-                  <source src={config.videoUrlMp4} type="video/mp4" />
-                  <source src={config.videoUrlWebm} type="video/webm" />
-                  {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)}
+                  <source src={this.state.blobUrls.mp4} type="video/mp4" />
+                  <source src={this.state.blobUrls.webm} type="video/webm" />
+                  {/* {config.videoUrl && (<source src={config.videoUrlWebm} type="video/webm" />)} */}
                 </>
                 )}
               </Tags.AnVideo>
@@ -290,14 +339,15 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                   autoPlay
                   muted={this.state.isMuted}
                   crossOrigin="anonymous"
+                  onVolumeChange={() => this.setState({ isMuted: this.mediaRef.current?.muted || false })}
                 >
-                  {!isHlsSupported && (
+                  {!isHlsSupported && this.state.blobUrls?.type === 'audio' && (
                   <>
-                    <source src={config.audio!.webm} type="audio/webm" />
+                    <source src={this.state.blobUrls.webm} type="audio/webm" />
                   </>
                   )}
                 </audio>
-                {this.state.showAudioVisualizer && !this.state.firstTimeClick && (
+                {this.state.showAudioVisualizer && (
                   <AudioVisualizer
                     audioElement={this.mediaRef.current!}
                     barWidth={1}
@@ -307,7 +357,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 )}
 
                 {
-                  (this.state.isMuted || this.state.firstTimeClick || this.state.mediaState !== 'playing') && (
+                  (this.state.isMuted || this.state.mediaState !== 'playing') && (
                     <SoundWavePlaceholder bgColor={getColorContrast(
                       this.props.conf.opts.annotationBodyBackgroundColor
                     ) === 'dark'

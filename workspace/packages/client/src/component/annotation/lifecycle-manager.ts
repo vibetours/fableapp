@@ -15,7 +15,6 @@ import {
   createEmptyFableIframe,
   createOverrideStyleEl,
   getFableRtUmbrlDiv,
-  isPrevNextBtnLinksToVideoAnn,
   scrollToAnn
 } from './utils';
 import { AnnotationSerialIdMap } from './ops';
@@ -641,11 +640,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         hotspotEl = this.elFromPath(hotspotElPath);
       }
 
-      const {
-        isNextAnnVideo,
-        isPrevAnnVideo,
-      } = isPrevNextBtnLinksToVideoAnn(annotationDisplayConfig.config, this.allAnnotationsForTour);
-
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
         if (
@@ -678,8 +672,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         box,
         conf: annotationDisplayConfig,
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
-        isNextAnnVideo,
-        isPrevAnnVideo,
         annotationSerialIdMap: this.annotationSerialIdMap,
         maskBox
       });
@@ -815,8 +807,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           right: 10,
         },
         conf: displayConf,
-        isNextAnnVideo: false,
-        isPrevAnnVideo: false,
         annotationSerialIdMap: this.annotationSerialIdMap,
         maskBox: null,
         el: document.createElement('div'),
