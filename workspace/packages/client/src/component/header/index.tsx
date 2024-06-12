@@ -65,6 +65,7 @@ interface IOwnProps {
   onLogoClicked?: () => void;
   isJourneyCTASet?: boolean;
   lastAnnHasCTA?: boolean;
+  isEntryPointMediaAnn?: null | 'main' | 'module';
   screenDiagnostics?: ScreenDiagnostics[];
   tourOpts?: ITourDataOpts | null;
   onSiteDataChange?: (site: SiteData) => void;
@@ -687,6 +688,18 @@ function Header(props: IOwnProps): JSX.Element {
                 && (
                   <div style={{ fontWeight: 500, marginTop: '1rem' }}>Warnings</div>
                 )}
+
+              {
+                  props.isEntryPointMediaAnn && (
+                    <Tags.MainNotSetContent>
+                      <WarningFilled style={{ color: '#FF7450' }} />
+                    &nbsp; Entry point
+                      {props.isEntryPointMediaAnn === 'main' ? ' of the demo ' : ' of one of the modules '}
+                      has a audio/video annotation. The sound won't be played by default.
+                    </Tags.MainNotSetContent>
+                  )
+                }
+
               {!props.lastAnnHasCTA
                   && (
                     <Tags.MainNotSetContent>

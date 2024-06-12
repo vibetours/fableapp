@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as Tags from './top-loader-style';
 import FableLogo from '../../assets/fable-logo-2.svg';
+import * as GTags from '../../common-styled';
 
 interface IProps {
   duration: number;
@@ -38,9 +39,14 @@ function TopLoader({ duration, showLogo, text, showOverlay }: IProps): JSX.Eleme
         {text ? <p>{text}...</p> : <p>Loading...</p>}
       </Tags.LoaderLogo>
       )}
-      <Tags.LoaderBar>
-        <Tags.LoaderProgress style={{ width: `${progress}%` }} />
-      </Tags.LoaderBar>
+      <GTags.LoaderBar>
+        <GTags.LoaderProgress
+          bwidth={progress}
+          bcolor="#7567FF"
+          bradius={10}
+          bopacity={1}
+        />
+      </GTags.LoaderBar>
     </Tags.LoaderContainer>
   );
 }

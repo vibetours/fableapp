@@ -72,7 +72,8 @@ import {
   isBlankString,
   generateTimelineOrder,
   assignStepNumbersToAnnotations,
-  getTourMainValidity
+  getTourMainValidity,
+  isMediaAnnotation
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import {
@@ -332,6 +333,7 @@ interface IOwnStateProps {
   screenPickerData: ScreenPickerData;
   lastAnnHasCTA: boolean;
   isJourneyCTASet: boolean;
+  isEntryPointMediaAnn: null | 'main' | 'module';
 }
 
 class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
@@ -355,7 +357,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         showCloseButton: true,
       },
       lastAnnHasCTA: true,
-      isJourneyCTASet: true
+      isJourneyCTASet: true,
+      isEntryPointMediaAnn: null,
     };
   }
 
@@ -418,6 +421,13 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         this.setState({ isJourneyCTASet });
         clearTimeout(timer);
       }, 0);
+    }
+
+    if (this.props.isTourLoaded && (
+      this.props.journey !== prevProps.journey
+      && this.props.allAnnotationsForTour !== prevProps.allAnnotationsForTour)) {
+      const isEntryPointMediaAnn = this.getIsAnyOfTheEntryPointMediaAnn();
+      this.setState({ isEntryPointMediaAnn });
     }
   }
 
@@ -575,6 +585,33 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ showScreenPicker: true, screenPickerData: newScreenPickerData });
   };
 
+  getIsAnyOfTheEntryPointMediaAnn = (): null | 'main' | 'module' => {
+    const tourMainValidity = getTourMainValidity(
+      this.props.tourOpts,
+      this.props.journey,
+      this.props.allAnnotationsForTour
+    );
+    if (tourMainValidity !== TourMainValidity.Valid) return null;
+
+    if (this.props.journey && this.props.journey.flows.length !== 0) {
+      for (const flow of this.props.journey.flows) {
+        const entryPointAnn = getAnnotationByRefId(flow.main.split('/')[1], this.props.allAnnotationsForTour)!;
+        if (isMediaAnnotation(entryPointAnn)) {
+          return 'module';
+        }
+      }
+    } else {
+      const entryPointAnn = getAnnotationByRefId(
+        this.props.tourOpts.main.split('/')[1],
+        this.props.allAnnotationsForTour
+      )!;
+      if (isMediaAnnotation(entryPointAnn)) {
+        return 'main';
+      }
+    }
+    return null;
+  };
+
   getIsJourneyCTASet = (): boolean => {
     if (this.props.journey!.flows.length === 0) {
       return true;
@@ -706,6 +743,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 lastAnnHasCTA: this.state.lastAnnHasCTA,
                 onSiteDataChange: this.onSiteDataChange,
                 showCalendar: true,
+                isEntryPointMediaAnn: this.state.isEntryPointMediaAnn,
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}

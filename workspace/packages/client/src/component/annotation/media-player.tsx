@@ -3,6 +3,8 @@ import Hls from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
   ArrowLeftOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
@@ -14,12 +16,12 @@ import {
   VideoAnnotationSkippedPayload
 } from '../../analytics/types';
 import { convertUrlToBlobUrl, generateShadeColor } from './utils';
-import MuteIcon from '../../assets/mute.png';
-import UnmuteIcon from '../../assets/unmute.png';
 import AudioVisualizer from '../audio-visualizer';
-import { getColorContrast } from '../../utils';
+import { getColorContrast, isSafari } from '../../utils';
 import SoundWavePlaceholder from './sound-wave-placeholder';
 import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
+import { getAnnotationBtn } from './ops';
+import * as GTags from '../../common-styled';
 
 interface IProps {
   borderRadius: string;
@@ -35,11 +37,11 @@ interface IProps {
 
 interface IOwnStateProps {
   showControls: boolean;
-  mediaState: 'paused' | 'playing' | 'ended';
-  isMuted: boolean;
-  firstTimeClick: boolean;
+  mediaState: 'none' | 'paused' | 'playing' | 'ended';
   showAudioVisualizer: boolean;
   blobUrls: null | { webm: string, mp4: string, type: 'video' } | { webm: string, type: 'audio' },
+  mediaLoaded: boolean;
+  mediaProgress: number;
 }
 
 export default class AnnotationMedia extends React.PureComponent<IProps, IOwnStateProps> {
@@ -51,11 +53,11 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     super(props);
     this.state = {
       showControls: false,
-      mediaState: 'paused',
-      isMuted: true,
-      firstTimeClick: true,
       showAudioVisualizer: false,
       blobUrls: null,
+      mediaLoaded: false,
+      mediaProgress: 0,
+      mediaState: 'none',
     };
     if (Hls.isSupported() && this.props.playMode) {
       const config = this.props.conf.config;
@@ -74,7 +76,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     if (config.audio) {
       const webmUrl = config.audio.webm;
       const blobUrl = await convertUrlToBlobUrl(webmUrl);
-      this.setState({ blobUrls: { type: 'audio', webm: webmUrl } });
+      this.setState({ blobUrls: { type: 'audio', webm: blobUrl } });
       return;
     }
 
@@ -119,15 +121,22 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   }
 
   componentDidMount(): void {
-    this.setState(prev => ({ showAudioVisualizer: this.props.type === 'audio' && prev.mediaState === 'playing' }));
+    if (!isSafari()) {
+      this.setState(prev => ({ showAudioVisualizer: this.props.type === 'audio'
+        && (prev.mediaState === 'playing') }));
+    }
+
+    if (!this.props.playMode) {
+      this.setState({ mediaState: 'paused', showControls: true });
+    }
+
     if (!this.hls) {
       this.mediaRef!.current!.setAttribute('data-playable', 'true');
       return;
     }
     this.hls.attachMedia(this.mediaRef!.current!);
-    this.setControlsBasedOnMediaState();
-    if (this.props.conf.isMaximized && this.state.blobUrls) {
-      this.playMedia();
+    if (this.shouldAutoplayVideo()) {
+      this.playMediaFromStart();
     }
   }
 
@@ -137,44 +146,50 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     this.hls = null;
   }
 
+  shouldAutoplayVideo = (): boolean => {
+    const displayConf = this.props.conf;
+    return displayConf.isMaximized && !displayConf.prerender && this.props.playMode && !!this.state.blobUrls;
+  };
+
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     let isMediaPlayed = false;
     if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
-      this.setControlsBasedOnMediaState();
-
-      if (this.state.blobUrls) {
-        this.playMedia();
+      if (this.shouldAutoplayVideo()) {
+        this.playMediaFromStart();
         isMediaPlayed = true;
       }
     }
 
-    if (!isMediaPlayed && this.state.blobUrls && prevState.blobUrls !== this.state.blobUrls) {
-      this.playMedia();
+    if (!isMediaPlayed && prevState.blobUrls !== this.state.blobUrls && this.shouldAutoplayVideo()) {
+      this.playMediaFromStart();
       isMediaPlayed = true;
     }
 
     if (
       this.props.type === 'audio'
       && !this.state.showAudioVisualizer
-      && prevState.mediaState !== 'playing' && this.state.mediaState === 'playing'
+      && prevState.mediaState !== this.state.mediaState
+      && (this.state.mediaState === 'playing')
+      && !isSafari()
     ) {
       this.setState({ showAudioVisualizer: true });
     }
   }
 
-  playMedia = (): void => {
-    if (this.props.conf.prerender) return;
-    this.mediaRef.current!.play();
-    this.mediaRef.current!.autoplay = false;
-    if (this.props.playMode) this.mediaRef.current!.muted = false;
+  playMediaFromStart = (): void => {
+    this.mediaRef.current!.currentTime = 0;
+    this.playMedia();
   };
 
-  setControlsBasedOnMediaState = (): void => {
-    if (this.mediaRef.current?.paused) {
-      this.setState({ showControls: true, mediaState: 'paused' });
-    } else {
-      this.setState({ showControls: false, mediaState: 'playing' });
-    }
+  playMedia = (): void => {
+    if (this.props.conf.prerender) return;
+    this.mediaRef.current!
+      .play()
+      .then(() => {
+        this.setState({ mediaState: 'playing', showControls: false });
+      }).catch((e) => {
+        this.setState({ mediaState: 'paused', showControls: true });
+      });
   };
 
   getAnnotationBorder(): string {
@@ -272,6 +287,36 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     this.props.navigateToAdjacentAnn(direction, btnId);
   };
 
+  onMediaEnded = (): void => {
+    if (this.props.conf.prerender) return;
+    this.setState({ mediaState: 'none', showControls: false });
+    const timeoutId = setTimeout(() => {
+      this.setState({ showControls: true, mediaState: 'ended' });
+      clearTimeout(timeoutId);
+    }, 1500);
+
+    if (this.props.playMode) {
+      const btnConf = getAnnotationBtn(this.props.conf.config, 'next');
+      this.navigateAnns('next', btnConf.id);
+    }
+  };
+
+  onMediaPlay = (): void => {
+    this.setState({ mediaState: 'playing', showControls: false });
+  };
+
+  onMediaPause = (): void => {
+    if (this.mediaRef.current!.ended) return;
+    this.setState({ mediaState: 'paused', showControls: true });
+  };
+
+  updateMediaProgress = (e: React.SyntheticEvent<HTMLVideoElement | HTMLAudioElement, Event>): void => {
+    const currentTime = e.currentTarget.currentTime;
+    const duration = e.currentTarget.duration;
+    const progress = (currentTime / duration) * 100;
+    this.setState({ mediaProgress: progress });
+  };
+
   render(): ReactElement {
     const config = this.props.conf.config;
     const hlsURl = this.props.type === 'audio' ? config.audio?.hls : config.videoUrlHls;
@@ -297,18 +342,17 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             this.props.type === 'video' && (
               <Tags.AnVideo
                 style={{ borderRadius: this.props.borderRadius }}
-                // loop={this.state.firstTimeClick}
-                // autoPlay
-                muted={this.state.isMuted}
                 ref={this.mediaRef}
                 border={this.getAnnotationBorder()}
                 id={`fable-ann-video-${config.refId}`}
                 className="fable-video"
                 playsInline
-                onPause={() => this.setState({ mediaState: 'paused' })}
-                onPlay={() => this.setState({ mediaState: 'playing' })}
-                onEnded={() => this.setState({ showControls: true, mediaState: 'ended' })}
-                onVolumeChange={() => this.setState({ isMuted: this.mediaRef.current?.muted || false })}
+                onPause={() => this.onMediaPause()}
+                onPlay={() => this.onMediaPlay()}
+                onEnded={() => this.onMediaEnded()}
+                preload="metadata"
+                onLoadedData={() => this.setState({ mediaLoaded: true })}
+                onTimeUpdate={(e) => this.updateMediaProgress(e)}
               >
                 {!isHlsSupported && this.state.blobUrls?.type === 'video' && (
                 <>
@@ -332,18 +376,18 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
               >
                 <audio
                   ref={this.mediaRef}
-                  onPause={() => this.setState({ mediaState: 'paused' })}
-                  onPlay={() => this.setState({ mediaState: 'playing' })}
-                  onEnded={() => this.setState({ showControls: true, mediaState: 'ended' })}
-                  loop={this.state.firstTimeClick}
-                  autoPlay
-                  muted={this.state.isMuted}
+                  onPause={() => this.onMediaPause()}
+                  onPlay={() => this.onMediaPlay()}
+                  onEnded={() => this.onMediaEnded()}
                   crossOrigin="anonymous"
-                  onVolumeChange={() => this.setState({ isMuted: this.mediaRef.current?.muted || false })}
+                  preload="metadata"
+                  onLoadedData={() => this.setState({ mediaLoaded: true })}
+                  onTimeUpdate={(e) => this.updateMediaProgress(e)}
                 >
                   {!isHlsSupported && this.state.blobUrls?.type === 'audio' && (
                   <>
                     <source src={this.state.blobUrls.webm} type="audio/webm" />
+                    <source src={config.audio!.fb.url} type={config.audio!.fb.type} />
                   </>
                   )}
                 </audio>
@@ -357,12 +401,12 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 )}
 
                 {
-                  (this.state.isMuted || this.state.mediaState !== 'playing') && (
-                    <SoundWavePlaceholder bgColor={getColorContrast(
-                      this.props.conf.opts.annotationBodyBackgroundColor
-                    ) === 'dark'
-                      ? '#fff' : '#000'}
-                    />
+                  !this.state.showAudioVisualizer && this.state.mediaLoaded && (
+                  <SoundWavePlaceholder bgColor={getColorContrast(
+                    this.props.conf.opts.annotationBodyBackgroundColor
+                  ) === 'dark'
+                    ? '#fff' : '#000'}
+                  />
                   )
                 }
               </Tags.AnAudioCon>
@@ -371,44 +415,58 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
 
           <Tags.AnMediaControls
             style={{ borderRadius: this.props.borderRadius }}
-            showOverlay={this.state.showControls}
+            showOverlay={this.state.showControls || !this.state.mediaLoaded}
           >
-            {!this.props.conf.prerender && (
-            <>
-              {this.state.mediaState !== 'ended' && (
-                <Tags.AnMediaCtrlBtn
-                  showButton={this.state.isMuted || this.state.showControls}
-                  type="button"
-                  onClick={() => {
-                    if (this.state.firstTimeClick) {
-                      this.mediaRef.current!.currentTime = 0;
-                      this.mediaRef.current!.play();
-                      this.setState({ firstTimeClick: false });
-                    }
-                    this.setState((prevState) => ({ ...prevState, isMuted: !prevState.isMuted }));
-                  }}
-                  className={FABLE_AUDIO_MEDIA_CONTROLS}
-                >
-                  {/* TODO: Change this icon */}
-                  {this.state.isMuted ? <img src={MuteIcon} alt="mute" style={{ width: '46px', height: '46px' }} />
-                    : <img src={UnmuteIcon} alt="unmute" style={{ width: '46px', height: '46px' }} />}
-                </Tags.AnMediaCtrlBtn>
-              )}
-              {
-                this.state.mediaState === 'ended' && (
-                  <Tags.ReplayButton
-                    pcolor={this.props.conf.opts.primaryColor}
-                    type="button"
-                    onClick={() => {
-                      this.mediaRef.current!.play();
-                    }}
-                    className={FABLE_AUDIO_MEDIA_CONTROLS}
-                  >
-                    <ReloadOutlined />
-                  </Tags.ReplayButton>
-                )
-              }
-              { this.state.showControls
+            {!this.props.conf.prerender && this.state.mediaLoaded && (
+              <>
+                <Tags.AnMediaCtrlBtnsCon>
+                  {/* Replay button */}
+                  {
+                  this.state.mediaState === 'playing' && (
+                    <Tags.AnMediaCtrlBtn
+                      showButton={this.state.showControls}
+                      type="button"
+                      onClick={() => {
+                        this.playMediaFromStart();
+                      }}
+                      className={FABLE_AUDIO_MEDIA_CONTROLS}
+                    >
+                      <ReloadOutlined />
+                    </Tags.AnMediaCtrlBtn>
+                  )
+                }
+                  {/* Play button */}
+                  {
+                  (this.state.mediaState === 'paused' || this.state.mediaState === 'ended') && (
+                    <Tags.AnMediaCtrlBtn
+                      showButton={this.state.showControls}
+                      type="button"
+                      onClick={() => {
+                        this.playMedia();
+                      }}
+                      className={FABLE_AUDIO_MEDIA_CONTROLS}
+                    >
+                      <PlayCircleOutlined />
+                    </Tags.AnMediaCtrlBtn>
+                  )
+                }
+                  {/* Pause button */}
+                  {
+                  this.state.mediaState === 'playing' && (
+                    <Tags.AnMediaCtrlBtn
+                      showButton={this.state.showControls}
+                      type="button"
+                      onClick={() => {
+                        this.mediaRef.current!.pause();
+                      }}
+                      className={FABLE_AUDIO_MEDIA_CONTROLS}
+                    >
+                      <PauseCircleOutlined />
+                    </Tags.AnMediaCtrlBtn>
+                  )
+                }
+                </Tags.AnMediaCtrlBtnsCon>
+                { this.state.showControls
               && (
               <Tags.NavButtonCon
                 pcolor={this.props.conf.opts.primaryColor}
@@ -443,9 +501,29 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 ))}
               </Tags.NavButtonCon>
               )}
-            </>
+              </>
+            )}
+            {!this.state.mediaLoaded && (
+            <Tags.AnMediaCtrlBtnsCon>
+              <Tags.Loader />
+            </Tags.AnMediaCtrlBtnsCon>
             )}
           </Tags.AnMediaControls>
+          <Tags.LoaderCon>
+            <GTags.LoaderBar
+              style={{
+                width: 'calc(100% - 2rem)',
+                transform: 'translate(1rem, 0.5rem)'
+              }}
+            >
+              <GTags.LoaderProgress
+                bwidth={this.state.mediaProgress}
+                bcolor={this.props.conf.opts.annotationBodyBorderColor}
+                bradius={4}
+                bopacity={0.50}
+              />
+            </GTags.LoaderBar>
+          </Tags.LoaderCon>
         </Tags.MediaCon>
 
       </Tags.AnMediaContainer>

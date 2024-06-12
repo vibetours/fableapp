@@ -402,6 +402,7 @@ export const AnVideo = styled.video<{ border: string }>`
   width: 100%;
   border-radius: 8px;
   box-shadow: ${p => `${p.border}`};
+  object-fit: cover;
 `;
 
 export const AnAudioCon = styled.div<{ border: string, bgColor: string }>`
@@ -429,12 +430,23 @@ export const AnMediaControls = styled.div<{showOverlay: boolean}>`
   width: 100%;
 `;
 
-export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
+export const LoaderCon = styled.div`
+    height: 4px !important;
+
+  * {
+    height: 4px !important;
+  }
+`;
+
+export const AnMediaCtrlBtnsCon = styled.div`
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+`;
 
+export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
   color: white;
   background-color: transparent;
   font-size: 2rem;
@@ -453,13 +465,13 @@ export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
   transition: all 0.2s ease-in-out;
 
   &:hover {
-    transform: translate(-50%, -50%) scale(1.2);
+    transform: scale(1.2);
     background-color: rgba(255, 255, 255, 0.25);
     border-radius: 50%;
   }
 `;
 
-export const ReplayButton = styled.button<{ pcolor: string }>`
+export const ReplayButton = styled.button<{ pcolor: string, showButton: boolean }>`
   position: absolute;
   top: 50%;
   left: 50%;
@@ -472,7 +484,7 @@ export const ReplayButton = styled.button<{ pcolor: string }>`
   color: ${p => `${p.pcolor}`};
   font-size: 1.6rem;
   border: none;
-  display: flex;
+  display: ${p => (p.showButton ? 'flex' : 'none')};
   cursor: pointer;
   align-items: center;
   justify-content: center;
@@ -486,6 +498,25 @@ export const ReplayButton = styled.button<{ pcolor: string }>`
     display: block;
     height: 1em !important;
   }
+`;
+
+export const Loader = styled.div`
+  width: 48px !important;
+  height: 48px !important;
+  border: 5px solid #FFF;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+   @keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+   }
 `;
 
 const bottomToTop = keyframes`

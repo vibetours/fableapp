@@ -439,6 +439,10 @@ export function normalizeBackwardCompatibility(
     an.audio = null;
   }
 
+  if (an.audio && (an.audio.fb === undefined || an.audio.fb === null)) {
+    an.audio.fb = { url: an.audio.webm, type: 'audio/webm' };
+  }
+
   if (an.isLeadFormPresent === undefined || an.isLeadFormPresent === null) {
     an.isLeadFormPresent = isLeadFormPresentInHTMLStr(an.bodyContent);
   }

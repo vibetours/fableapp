@@ -288,6 +288,11 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
 export interface IAnnotationAudio {
   webm: string;
   hls: string;
+  // fb is the fallback url, the url which is sent for transcoding
+  fb: {
+    url: string;
+    type: 'audio/webm' | 'audio/mpeg';
+  }
 }
 
 // TODO perform this conversion, client side

@@ -945,3 +945,8 @@ export const mapPlanIdAndIntervals = (
 };
 
 export const isEventValid = (e: MessageEvent) : boolean => e.data && e.data.type;
+
+export const isSafari = (): boolean => {
+  const ua = navigator.userAgent;
+  return /^((?!chrome|android).)*safari/i.test(ua);
+};

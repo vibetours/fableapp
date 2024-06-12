@@ -208,6 +208,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.updateJourneyProgress,
           this.props.elpathKey,
           this.props.screenData.isHTML4,
+          this.props.screen,
         );
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.

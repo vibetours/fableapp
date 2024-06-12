@@ -328,7 +328,7 @@ function MediaRecorderModal(props: Props): ReactElement {
     closeRecorder();
   };
 
-  const transcodeAudioHandler = async (url: string): Promise<void> => {
+  const transcodeAudioHandler = async (url: string, type: 'audio/webm' | 'audio/mpeg'): Promise<void> => {
     const [err, stream1, stream2] = await transcodeAudio(url, props.tour.rid);
 
     if (err || stream1.failureReason || stream2.failureReason) {
@@ -347,7 +347,7 @@ function MediaRecorderModal(props: Props): ReactElement {
       }
     });
 
-    props.setConfig(c => updateAnnotationAudio(c, { hls: hlsAudio, webm: webmAudio }));
+    props.setConfig(c => updateAnnotationAudio(c, { hls: hlsAudio, webm: webmAudio, fb: { url, type } }));
 
     props.setConfig(c => {
       if (c.type === 'cover') {
@@ -378,7 +378,7 @@ function MediaRecorderModal(props: Props): ReactElement {
     const webmUrl = await uploadMediaToAws(webm, activeTabKey === 'audio' ? 'audio/webm' : 'video/webm');
 
     if (activeTabKey === 'audio') {
-      await transcodeAudioHandler(webmUrl);
+      await transcodeAudioHandler(webmUrl, 'audio/webm');
     } else {
       await transcodeVideoHandler(webmUrl);
     }
@@ -392,7 +392,7 @@ function MediaRecorderModal(props: Props): ReactElement {
     const mediaUrl = await uploadFileToAws(mediaFile);
 
     if (mediaType === 'audio') {
-      await transcodeAudioHandler(mediaUrl);
+      await transcodeAudioHandler(mediaUrl, 'audio/mpeg');
     } else {
       await transcodeVideoHandler(mediaUrl);
     }

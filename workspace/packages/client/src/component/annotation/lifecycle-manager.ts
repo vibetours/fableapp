@@ -22,6 +22,7 @@ import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { AnnElsVisibilityObserver } from './ann-els-visibility-observer';
 import { AllDimsForAnnotation } from './types';
 import { FABLE_IFRAME_GENERIC_CLASSNAME } from '../../constants';
+import { P_RespScreen } from '../../entity-processor';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -84,6 +85,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private iframeElsScrollTimeoutId: number;
 
   private elPathKey: ElPathKey;
+
+  private screen: P_RespScreen;
 
   private updateJourneyProgress: (annRefId: string)=> void;
 
@@ -156,8 +159,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     updateJourneyProgress: (annRefId: string) => void,
     elPathKey: ElPathKey,
     isScreenHTML4: boolean,
+    screen: P_RespScreen,
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
+    this.screen = screen;
     this.elPathKey = elPathKey;
     this.annElsVisibilityObserver = new AnnElsVisibilityObserver(this.elVisibleHandler, this.elNotVisibleHandler);
     this.nav = opts.navigate;
@@ -733,8 +738,14 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     prerender: boolean = false,
   ): IAnnoationDisplayConfig {
     const key = config.id;
-    const el = this.getElFromAnnConfig(config, this.elPathKey);
     const vp = this.getVp();
+
+    let el;
+    if (prerender) {
+      el = this.doc.createElement('div');
+    } else {
+      el = this.getElFromAnnConfig(config, this.elPathKey);
+    }
 
     const displayConf = {
       config,
@@ -790,7 +801,13 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   private prerenderMediaAnnotations(): void {
-    const mediaAnnotations = this.allAnnotationsForScreen.filter((config) => isMediaAnnotation(config));
+    const annotationsOfSameScreen: IAnnotationConfig[] = [];
+
+    this.allAnnotationsForTour
+      .filter(item => item.screen.urlStructured.host === this.screen.urlStructured.host)
+      .forEach(item => annotationsOfSameScreen.push(...item.annotations));
+
+    const mediaAnnotations = annotationsOfSameScreen.filter((config) => isMediaAnnotation(config));
 
     const mediaAnnsProps: IAnnProps[] = mediaAnnotations.map(config => {
       const displayConf = this.setAnnElMapVal(config, DEFAULT_DIMS_FOR_ANN, this.tourDataOpts, true);

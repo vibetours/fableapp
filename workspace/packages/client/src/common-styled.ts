@@ -452,3 +452,21 @@ export const HelpCenterLink = styled.a`
     text-decoration: underline;
   }
 `;
+
+export const LoaderBar = styled.div`
+  height: 4px;
+  background-color: transparent;
+  width: 100%;
+  top: 0;
+  left: 0;
+  position: absolute;
+`;
+
+export const LoaderProgress = styled.div<{bcolor: string, bwidth: number, bradius: number, bopacity: number}>`
+  height: 100%;
+  border-radius: ${p => `${p.bradius}px`};
+  background-color: ${p => `${p.bcolor}`};
+  width: ${p => `${p.bwidth}%`};
+  transition: width 0.2s ease-out;
+  opacity: ${p => `${p.bopacity}`};
+`;
