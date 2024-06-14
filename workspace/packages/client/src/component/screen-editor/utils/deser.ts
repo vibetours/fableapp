@@ -289,6 +289,12 @@ export const createHtmlElement = (
     el.attachShadow({ mode: 'open' });
   }
 
+  if (node.name.toLowerCase() === 'body') {
+    const styleAttrValue = el.getAttribute('style') || '';
+    const stylesToOverride = '; pointer-events: auto !important;';
+    el.setAttribute('style', `${styleAttrValue}${stylesToOverride}`);
+  }
+
   function addToAssetLoadingPromises(element: HTMLLinkElement | HTMLImageElement): void {
     const p = new Promise((resolve) => {
       // on either cases we resolve the promises so that the rendering happens
