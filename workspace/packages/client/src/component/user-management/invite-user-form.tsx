@@ -5,7 +5,8 @@ import Input from '../input';
 import Button from '../button';
 import UrlCodeShare from '../publish-preview/url-code-share';
 
-const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
+export const baseURLStructured = new URL(baseURL);
 
 export default function InviteUserForm(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);

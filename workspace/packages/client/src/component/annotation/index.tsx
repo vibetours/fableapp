@@ -228,7 +228,7 @@ export class AnnotationContent extends React.PureComponent<{
               anPadding={this.props.opts.annotationPadding.trim()}
               className="f-button-con"
             >
-              {this.props.annotationSerialIdMap[this.props.config.refId] && (
+              {this.props.opts.showStepNum && this.props.annotationSerialIdMap[this.props.config.refId] && (
                 <Tags.Progress
                   bg={this.props.opts.annotationBodyBackgroundColor}
                   fg={this.props.opts.annotationFontColor}

@@ -23,7 +23,7 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
 import * as GTags from '../../common-styled';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
@@ -71,6 +71,7 @@ interface IOwnProps {
   onSiteDataChange?: (site: SiteData) => void;
   showCalendar?: boolean;
   minimalHeader?: boolean;
+  vanityDomains?: P_RespVanityDomain[] | null;
 }
 
 export type HeaderProps = IOwnProps;
@@ -595,6 +596,7 @@ function Header(props: IOwnProps): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
+          vanityDomains={props.vanityDomains}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

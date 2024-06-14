@@ -6,7 +6,7 @@ import * as Tags from './styled';
 import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
 import ShareIcon from '../../assets/icons/share.svg';
 import PublishButton from './publish-button';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
 import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from './share-modal';
@@ -25,6 +25,7 @@ interface Props {
   setShowShareModal: (showShareModal: boolean) => void;
   onSiteDataChange: (site: SiteData)=> void;
   minimalHeader: boolean;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -113,6 +114,7 @@ export default function PublishOptions(props: Props): JSX.Element {
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
+          vanityDomains={props.vanityDomains}
         />}
       </Tags.Header>
     </>

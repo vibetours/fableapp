@@ -15,7 +15,7 @@ import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import * as GTags from '../../common-styled';
 import { CtxAction } from '../../container/tours';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { createIframeSrc } from '../../utils';
 import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from '../publish-preview/share-modal';
@@ -37,10 +37,11 @@ interface Props {
   ) => void;
   disable: boolean;
   showUpgradeModal: ()=>void;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal
+  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal, vanityDomains,
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
@@ -232,6 +233,7 @@ export default function TourCard({
         onSiteDataChange={onSiteDataChange}
         setIsPublishing={setIsPublishing}
         isPublishing={isPublishing}
+        vanityDomains={vanityDomains}
       />
     </>
   );

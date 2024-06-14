@@ -559,6 +559,10 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     newOpts.showFableWatermark = true;
   }
 
+  if (newOpts.showStepNum === undefined || newOpts.showStepNum === null) {
+    newOpts.showStepNum = true;
+  }
+
   return newOpts;
 }
 

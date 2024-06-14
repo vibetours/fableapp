@@ -4,7 +4,7 @@ import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-con
 import { Link } from 'react-router-dom';
 import { Button as AntButton } from 'antd';
 import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
-import { clearCurrentTourSelection, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
+import { clearCurrentTourSelection, getCustomDomains, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
@@ -34,6 +34,7 @@ interface IDispatchProps {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
+  getVanityDomains: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -44,7 +45,8 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     rid: string,
     tourProp: T,
     value: ReqTourPropUpdate[T]
-  ) => dispatch(updateTourProp(rid, tourProp, value))
+  ) => dispatch(updateTourProp(rid, tourProp, value)),
+  getVanityDomains: () => dispatch(getCustomDomains()),
 });
 
 interface IAppStateProps {
@@ -52,6 +54,7 @@ interface IAppStateProps {
   org: RespOrg | null;
   principal: RespUser | null;
   isTourLoaded: boolean;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -59,6 +62,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   isTourLoaded: state.default.tourLoaded,
   org: state.default.org,
+  vanityDomains: state.default.vanityDomains,
 });
 
 interface IOwnProps {
@@ -106,6 +110,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     window.addEventListener('message', this.receiveMessage, false);
 
     this.showMinimalHeaderIfReq();
+
+    this.props.getVanityDomains();
   }
 
   showMinimalHeaderIfReq(): void {
@@ -204,11 +210,13 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
               onSiteDataChange={this.onSiteDataChange}
               minimalHeader={this.state.minimalHeader}
+              vanityDomains={this.props.vanityDomains}
             />}
             tourOpts={null}
             onSiteDataChange={this.onSiteDataChange}
             showCalendar
             minimalHeader={this.state.minimalHeader}
+            vanityDomains={this.props.vanityDomains}
           />
         </Tags.HeaderCon>
 

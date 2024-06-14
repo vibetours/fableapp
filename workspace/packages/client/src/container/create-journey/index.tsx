@@ -523,17 +523,33 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       defaultValue={this.state.journeyData.primaryColor}
                     />
                   </Tags.CTAInputCon>
-                  <GTags.OurCheckbox
-                    showafterlabel="true"
-                    checked={this.props.journey.hideModuleOnLoad}
-                    onChange={(e) => {
-                      this.setState((prevState) => ({ journeyData:
+
+                  <Tags.CTAInputCon>
+                    <div>Minimize module on start</div>
+                    <GTags.OurCheckbox
+                      showafterlabel="true"
+                      checked={this.props.journey.hideModuleOnLoad}
+                      onChange={(e) => {
+                        this.setState((prevState) => ({ journeyData:
                         { ...prevState.journeyData,
                           hideModuleOnLoad: e.target.checked
                         } }));
-                    }}
-                  >Minimize module on start
-                  </GTags.OurCheckbox>
+                      }}
+                    />
+                  </Tags.CTAInputCon>
+                  <Tags.CTAInputCon>
+                    <div>Hide module on mobile</div>
+                    <GTags.OurCheckbox
+                      showafterlabel="true"
+                      checked={this.props.journey.hideModuleOnMobile}
+                      onChange={(e) => {
+                        this.setState((prevState) => ({ journeyData:
+                        { ...prevState.journeyData,
+                          hideModuleOnMobile: e.target.checked
+                        } }));
+                      }}
+                    />
+                  </Tags.CTAInputCon>
                 </Tags.JourneyInnerCon>
               </Tags.JourneyConfigCon>
               <div style={{ width: '99%', marginBottom: '20px' }}>

@@ -1623,6 +1623,20 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             suffixIcon={<CaretOutlined dir="down" />}
           />
         </div>
+        <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
+          <div>
+            <div>Show Step Number</div>
+          </div>
+          <Tags.StyledSwitch
+            size="small"
+            defaultChecked={opts.showStepNum}
+            onChange={(e) => {
+              const newOpts = updateTourDataOpts(opts, 'showStepNum', e);
+              amplitudeAnnotationEdited('show-step_num', e);
+              setTourDataOpts(newOpts);
+            }}
+          />
+        </div>
       </ActionPanel>
       <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', margin: '0.5rem 1rem' }}>
         <GTags.DashedBtn

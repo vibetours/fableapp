@@ -89,6 +89,7 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   borderRadius: 4,
   annotationPadding: '14 14',
   showFableWatermark: true,
+  showStepNum: true,
 });
 
 export function getSampleJourneyData() {
@@ -97,7 +98,8 @@ export function getSampleJourneyData() {
     title: '',
     flows: [],
     primaryColor: '#7567FF',
-    hideModuleOnLoad: false
+    hideModuleOnLoad: false,
+    hideModuleOnMobile: false,
   };
 }
 

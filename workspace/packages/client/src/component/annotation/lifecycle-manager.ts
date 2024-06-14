@@ -592,6 +592,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       return;
     }
 
+    if (config.scrollAdjustment === 'sticky') {
+      this.checkIfAllScrollsComplete(el, config);
+      return;
+    }
+
     this.beforeScrollStart();
     // we don't use el.scrollIntoView directly as it moves whole page layout if we want to keep the target el in center.
     // Fable's tour is embedded in iframe of customer's page, we can't let the document scroll outside fable's iframe.

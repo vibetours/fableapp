@@ -950,3 +950,10 @@ export const isSafari = (): boolean => {
   const ua = navigator.userAgent;
   return /^((?!chrome|android).)*safari/i.test(ua);
 };
+
+export const getIsMobileSize = (): boolean => {
+  if (window.innerWidth <= RESP_MOBILE_SRN_WIDTH_LIMIT) {
+    return true;
+  }
+  return false;
+};

@@ -15,6 +15,7 @@ import {
   deleteTour,
   publishTour,
   updateTourProp,
+  getCustomDomains,
   // createDefaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
@@ -22,7 +23,7 @@ import Header from '../../component/header';
 import Loader from '../../component/loader';
 import SidePanel from '../../component/side-panel';
 import SkipLink from '../../component/skip-link';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { Ops, SiteData } from '../../types';
@@ -56,7 +57,8 @@ interface IDispatchProps {
     rid: string,
     tourProp: T,
     value: ReqTourPropUpdate[T]
-  ) => void
+  ) => void,
+  getVanityDomains: () => void;
 }
 
 export enum CtxAction {
@@ -79,7 +81,8 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     rid: string,
     tourProp: T,
     value: ReqTourPropUpdate[T]
-  ) => dispatch(updateTourProp(rid, tourProp, value))
+  ) => dispatch(updateTourProp(rid, tourProp, value)),
+  getVanityDomains: () => dispatch(getCustomDomains()),
 });
 
 interface IAppStateProps {
@@ -91,6 +94,7 @@ interface IAppStateProps {
   opsInProgress: Ops;
   org: RespOrg | null;
   featurePlan: FeatureForPlan | null;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -101,7 +105,8 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   org: state.default.org,
   allToursLoadingStatus: state.default.allToursLoadingStatus,
   opsInProgress: state.default.opsInProgress,
-  featurePlan: state.default.featureForPlan
+  featurePlan: state.default.featureForPlan,
+  vanityDomains: state.default.vanityDomains,
 });
 
 interface IOwnProps {
@@ -169,6 +174,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.featurePlan) {
       this.handleFeatureAvailable();
     }
+    this.props.getVanityDomains();
   }
 
   clearExtensionInstallInterval = () : void => {
@@ -336,6 +342,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             principal={this.props.principal}
             org={this.props.org}
             leftElGroups={[]}
+            vanityDomains={this.props.vanityDomains}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
@@ -394,6 +401,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 disable={index >= this.props.tours.length - 1 ? false
                                   : !this.state.createNewDemoFeatureAvailable}
                                 showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
+                                vanityDomains={this.props.vanityDomains}
                               />
                             ))}
                           </GTags.BottomPanel>

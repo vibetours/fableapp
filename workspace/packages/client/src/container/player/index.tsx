@@ -47,7 +47,8 @@ import {
   RESP_MOBILE_SRN_WIDTH_LIMIT,
   isLandscapeMode,
   isEventValid,
-  getMobileOperatingSystem
+  getMobileOperatingSystem,
+  getIsMobileSize
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -194,6 +195,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   private queryData: queryData | null = getSearchParamData(this.props.searchParams.get('c'));
 
   private areDiffsAppliedSrnMap = new Map<string, boolean>();
+
+  private isMobileSize: boolean = getIsMobileSize();
 
   constructor(props: IProps) {
     super(props);
@@ -506,7 +509,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   handleResponsiveness = (): void => {
-    if (window.innerWidth > RESP_MOBILE_SRN_WIDTH_LIMIT) return;
+    if (!getIsMobileSize()) return;
 
     if (this.props.tour && isTourResponsive(this.props.tour)) {
       this.props.updateElpathKey('m_id');
@@ -797,6 +800,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   isJourneyAdded = (): boolean => (this.props.journey !== null && this.props.journey.flows.length !== 0);
 
+  shouldHideJourney = (): boolean => Boolean(this.isMobileSize && this.props.journey?.hideModuleOnMobile);
+
   isJourneyMenuDefaultOpen = (): boolean => Boolean(this.props.journey && !this.props.journey.hideModuleOnLoad);
 
   addJourneyToGlobalData = (main: string): void => {
@@ -923,7 +928,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         }
         <Suspense fallback={null}>
           {
-            this.isInitialPrerenderingComplete() && this.isJourneyAdded() && (!this.queryData || !this.queryData.hm) && (
+            this.isInitialPrerenderingComplete()
+            && this.isJourneyAdded()
+            && (!this.queryData || !this.queryData.hm)
+            && !this.shouldHideJourney()
+            && (
               <JourneyMenu
                 currScreenId={this.getCurrScreenId()}
                 journey={this.props.journey!}

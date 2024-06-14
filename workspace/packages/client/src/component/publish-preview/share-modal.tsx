@@ -7,9 +7,9 @@ import { timeFormat } from 'd3-time-format';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
-import { createIframeSrc, debounce, getValidUrl } from '../../utils';
+import { baseURL, createIframeSrc, debounce, getValidUrl } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { P_RespTour } from '../../entity-processor';
+import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import PublishButton from './publish-button';
 import { ParamType } from './utm-params-helper';
 import UrlCodeShare from './url-code-share';
@@ -19,6 +19,8 @@ import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
 import { SiteData, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
+import CaretOutlined from '../icons/caret-outlined';
+import { baseURLStructured } from '../user-management/invite-user-form';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -56,6 +58,7 @@ interface Props {
   onSiteDataChange?: (site: SiteData) => void;
   isPublishing: boolean;
   setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
+  vanityDomains: P_RespVanityDomain[] | null | undefined;
 }
 
 const enum SearchParamBy {
@@ -74,6 +77,9 @@ interface CTAInfoProps {
   disableEdit:boolean,
   tourOpts: ITourDataOpts | null,
   calledFrom: 'cta_share' | 'internal_share',
+  allDomains: string[] | null;
+  selectedDomain: string;
+  selectDomain: (domain: string) => void;
 }
 
 function CTAInfo({ iframeUrl,
@@ -86,6 +92,9 @@ function CTAInfo({ iframeUrl,
   disableEdit,
   tourOpts,
   calledFrom,
+  allDomains,
+  selectDomain,
+  selectedDomain
 }: CTAInfoProps): JSX.Element {
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -303,6 +312,15 @@ function CTAInfo({ iframeUrl,
         Copy the following URL to and use it in your HTML/JavaScript to open it in a new tab
       </p>
       <UrlCodeShare url={iframeUrl} showOpenLinkButton openEventFrom={calledFrom} />
+      {
+        allDomains && (
+        <DomainSelect
+          selectDomain={selectDomain}
+          selectedDomain={selectedDomain}
+          allDomains={allDomains}
+        />
+        )
+      }
     </>
   );
 }
@@ -317,6 +335,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [searchParamsStr, setSearchParamsStr] = useState('');
   const [defValue, setDefValue] = useState('');
   const [localSite, setLocalSite] = useState(props.tour.site);
+  const [selectedDomain, setSelectedDomain] = useState<string>(baseURLStructured.host);
+  const [allDomains, setAllDomains] = useState<string[] | null>(null);
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -327,6 +347,14 @@ export default function ShareTourModal(props: Props): JSX.Element {
   useEffect(() => {
     setLocalSite(props.tour.site);
   }, []);
+
+  useEffect(() => {
+    if (props.vanityDomains && props.vanityDomains.length > 0) {
+      setAllDomains([baseURLStructured.host, ...props.vanityDomains.map(item => item.domainName)]);
+    } else {
+      setAllDomains(null);
+    }
+  }, [props.vanityDomains]);
 
   const iframeEmbedCopyHandler = (): void => {
     traceEvent(AMPLITUDE_EVENTS.EMBED_TOUR, {
@@ -355,6 +383,13 @@ export default function ShareTourModal(props: Props): JSX.Element {
       props.onSiteDataChange(newSiteData);
       setLocalSite(newSiteData);
     }
+  };
+
+  const getBaseURl = (): string => {
+    if (selectedDomain === baseURLStructured.host && selectedDomain === 'localhost:3000') {
+      return `http://${selectedDomain}`;
+    }
+    return `https://${selectedDomain}`;
   };
 
   return (
@@ -500,9 +535,18 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         height={props.height}
                         width={props.width}
                         copyHandler={iframeEmbedCopyHandler}
-                        src={createIframeSrc(`/${IFRAME_BASE_URL}${props.relativeUrl}${searchParamsStr}`)}
+                        src={`${getBaseURl()}/${IFRAME_BASE_URL}${props.relativeUrl}${searchParamsStr}`}
                         copyUrl={props.copyUrl}
                       />
+                      {
+                        allDomains && (
+                          <DomainSelect
+                            selectDomain={setSelectedDomain}
+                            selectedDomain={selectedDomain}
+                            allDomains={allDomains}
+                          />
+                        )
+                      }
                     </div>
                   ),
                   style: collapseTabStyle
@@ -513,7 +557,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                   children: (
                     <div className="collapse-content type-reg">
                       <CTAInfo
-                        iframeUrl={createIframeSrc(`/${LIVE_BASE_URL}${props.relativeUrl}${searchParamsStr}`)}
+                        iframeUrl={`${getBaseURl()}/${LIVE_BASE_URL}${props.relativeUrl}${searchParamsStr}`}
                         defValue={defValue}
                         handleParamsAdd={handleParamsAdd}
                         showInlinkLinkExplore
@@ -523,6 +567,9 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         disableEdit={props.onSiteDataChange === undefined}
                         tourOpts={props.tourOpts}
                         calledFrom="cta_share"
+                        selectDomain={setSelectedDomain}
+                        selectedDomain={selectedDomain}
+                        allDomains={allDomains}
                       />
                     </div>
                   ),
@@ -551,5 +598,36 @@ export default function ShareTourModal(props: Props): JSX.Element {
         </Drawer>
       </GTags.BorderedModal>
     </>
+  );
+}
+
+interface DomainSelectProps {
+  allDomains: string[];
+  selectedDomain: string;
+  selectDomain: (domain: string) => void;
+}
+
+function DomainSelect(props: DomainSelectProps): JSX.Element {
+  return (
+    <Tags.DomainSelectCon>
+      <div className="typ-reg" style={{ marginBottom: '0.25rem' }}>
+        Select Domain:
+      </div>
+      <GTags.FableSelect
+        defaultValue={props.selectedDomain}
+        className="typ-ip"
+        value={props.selectedDomain}
+        size="small"
+        bordered={false}
+        options={props.allDomains.map(v => ({
+          value: v,
+          label: v,
+        }))}
+        onChange={(e) => {
+          props.selectDomain(e as string);
+        }}
+        suffixIcon={<CaretOutlined dir="down" />}
+      />
+    </Tags.DomainSelectCon>
   );
 }

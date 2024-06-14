@@ -750,9 +750,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   };
 
   scrollIframeElsIfRequired = async (config: IAnnotationConfig, screenData: ScreenData): Promise<void> => {
-    if (config.scrollAdjustment === 'auto') return;
-    const doc = this.annotationLCM!.getDoc();
-    await scrollIframeEls(screenData.version, doc);
+    if (config.scrollAdjustment === 'scroll') {
+      const doc = this.annotationLCM!.getDoc();
+      await scrollIframeEls(screenData.version, doc);
+    }
   };
 
   navigateAndGoToAnn = (goToAnnIdWithScreenId: string): void => {

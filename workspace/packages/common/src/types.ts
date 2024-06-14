@@ -119,6 +119,7 @@ export interface ITourDataOpts extends IChronoUpdatable {
   borderRadius: number;
   showFableWatermark: boolean;
   annotationPadding: string;
+  showStepNum: boolean;
 }
 
 export interface ITourLoaderData {
@@ -247,7 +248,7 @@ export declare type AnnotationSelectionShapeType = typeof AnnotationSelectionSha
 export const AnnotationSelectionEffect = ['regular', 'blinking'] as const;
 export declare type AnnotationSelectionEffectType = typeof AnnotationSelectionEffect[number];
 
-export const ScrollAdjustment = ['auto', 'scroll'] as const;
+export const ScrollAdjustment = ['auto', 'scroll', 'sticky'] as const;
 export declare type ScrollAdjustmentType = typeof ScrollAdjustment[number];
 
 export type CustomAnnDims = {
@@ -350,6 +351,7 @@ export interface JourneyData {
   cta?: { size: AnnotationButtonSize; text: string; navigateTo: string; };
   primaryColor: string;
   hideModuleOnLoad: boolean;
+  hideModuleOnMobile: boolean;
 }
 export interface JourneyFlow {
   header1: string;

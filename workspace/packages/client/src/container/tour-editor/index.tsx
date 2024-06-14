@@ -25,6 +25,7 @@ import {
   clearRelayScreenAndAnnAdd,
   flushEditChunksToMasterFile,
   flushTourDataToMasterFile,
+  getCustomDomains,
   loadScreenAndData,
   loadTourAndData,
   publishTour,
@@ -42,7 +43,7 @@ import {
   updateTourDataOpts
 } from '../../component/annotation/annotation-config-utils';
 import Canvas from '../../component/tour-canvas';
-import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { mergeEdits, mergeTourData, P_RespScreen, P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
@@ -108,6 +109,7 @@ interface IDispatchProps {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
+  getVanityDomains: () => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -136,6 +138,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => dispatch(updateTourProp(rid, tourProp, value)),
+  getVanityDomains: () => dispatch(getCustomDomains()),
 });
 
 const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline => {
@@ -220,6 +223,7 @@ interface IAppStateProps {
   manifestFileName: string;
   elpathKey: ElPathKey;
   featurePlan: FeatureForPlan | null;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -311,7 +315,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     pubTourAssetPath: state.default.commonConfig?.pubTourAssetPath || '',
     manifestFileName: state.default.commonConfig?.manifestFileName || '',
     elpathKey: state.default.elpathKey,
-    featurePlan: state.default.featureForPlan
+    featurePlan: state.default.featureForPlan,
+    vanityDomains: state.default.vanityDomains,
   };
 };
 
@@ -372,6 +377,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.match.params.screenId) {
       this.props.loadScreenAndData(this.props.match.params.screenId);
     }
+    this.props.getVanityDomains();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>): void {
@@ -744,6 +750,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 onSiteDataChange: this.onSiteDataChange,
                 showCalendar: true,
                 isEntryPointMediaAnn: this.state.isEntryPointMediaAnn,
+                vanityDomains: this.props.vanityDomains,
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}

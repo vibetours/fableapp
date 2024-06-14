@@ -376,3 +376,7 @@ export const DomainRestrictCon = styled.div`
   padding: 1px 4px;
   border-radius: 4px;
 `;
+
+export const DomainSelectCon = styled.div`
+  margin-top: 1rem;
+`;
