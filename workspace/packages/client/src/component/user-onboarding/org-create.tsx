@@ -72,10 +72,10 @@ export default function OrgCreate(props: Props): JSX.Element {
         display: 'flex',
         flexDirection: 'column',
         height: 'calc(480px - 4rem)',
-        marginTop: '36px',
+        marginTop: '16px',
         justifyContent: 'space-between',
         alignItems: 'center',
-        gap: '2rem',
+        gap: '1.5rem',
         pointerEvents: isJoiningOrg ? 'none' : 'all',
         opacity: isJoiningOrg ? 0.65 : 1
       }}
@@ -98,6 +98,7 @@ export default function OrgCreate(props: Props): JSX.Element {
           flex: '1 0 auto',
           gap: '1rem',
           marginTop: '1rem',
+          marginBottom: '1rem',
           width: '90%',
           alignItems: 'center'
         }}
@@ -227,7 +228,7 @@ export default function OrgCreate(props: Props): JSX.Element {
           icon={<BankOutlined />}
           iconPlacement="left"
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || orgName.trim() === ''}
         >
           {isLoading ? 'Loading...' : 'Create New'}
         </Button>
