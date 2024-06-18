@@ -177,9 +177,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   Your buyer can choose which demo they want to see right from the UI.
                 </p>
               </div>
-              {!this.modulesFeatureAvailable ? (
+              {!this.modulesFeatureAvailable.isAvailable ? (
                 <div style={{ position: 'relative', height: '100px' }}>
-                  <Upgrade subs={this.props.subs} />
+                  <Upgrade subs={this.props.subs} isInBeta={this.modulesFeatureAvailable.isInBeta} />
                 </div>)
                 : (
                   <Button
@@ -193,8 +193,13 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 )}
             </Tags.NoJourneyCon>
           ) : (
-            <Tags.EditorCon className={this.modulesFeatureAvailable ? '' : 'upgrade-plan'}>
-              {!this.modulesFeatureAvailable && <Upgrade subs={this.props.subs} />}
+            <Tags.EditorCon className={this.modulesFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}>
+              {!this.modulesFeatureAvailable.isAvailable && (
+                <Upgrade
+                  subs={this.props.subs}
+                  isInBeta={this.modulesFeatureAvailable.isInBeta}
+                />
+              )}
               <Tags.JourneyInnerCon>
                 <Input
                   label="Heading"

@@ -26,7 +26,8 @@ import {
   TourMainValidity,
   SiteData,
   SiteThemePresets,
-  HiddenEls
+  HiddenEls,
+  FeatureAvailability
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour } from './entity-processor';
@@ -868,13 +869,18 @@ function checkFeatureAvailable(test: PlanDetail['test'], value: PlanDetail['valu
   return true;
 }
 
+export const fallbackFeatureAvailability : FeatureAvailability = {
+  isInBeta: false,
+  isAvailable: true
+};
+
 export const isFeatureAvailable = (
   featureForPlan: FeatureForPlan | null,
   feature: string,
   currentValue?: number
-): boolean => {
+): FeatureAvailability => {
   if (!featureForPlan) {
-    return true;
+    return fallbackFeatureAvailability;
   }
   const featureDetail = featureForPlan[feature];
 
@@ -884,9 +890,11 @@ export const isFeatureAvailable = (
       message: `plan ${feature} not available`
     };
     raiseDeferredError(err);
-    return true;
+    return fallbackFeatureAvailability;
   }
-  return checkFeatureAvailable(featureDetail.test, featureDetail.value, currentValue);
+  const isAvailable = checkFeatureAvailable(featureDetail.test, featureDetail.value, currentValue);
+  const isInBeta = featureDetail.isInBeta;
+  return { isAvailable, isInBeta };
 };
 
 export const mapPlanIdAndIntervals = (

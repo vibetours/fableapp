@@ -106,6 +106,7 @@ import { UpdateScreenFn } from '../../action/creator';
 import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
 import { amplitudeOpenResponsivenessDrawer } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
+import UpgradeModal from '../upgrade/upgrade-modal';
 
 const { confirm } = Modal;
 
@@ -767,7 +768,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         if (addToMultiAnnGroupRef.current) {
           const groupData = addToMultiAnnGroupRef.current;
           if (groupData.data.anns.length > 0) {
-            if (multiAnnFeatureAvailable) {
+            if (multiAnnFeatureAvailable.isAvailable && !multiAnnFeatureAvailable.isInBeta) {
               confirm({
                 title: 'Do you want to create multi annotation?',
                 icon: <SisternodeOutlined />,
@@ -786,7 +787,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               });
             } else {
               confirm({
-                title: 'Upgrade to create multi ann',
+                title: multiAnnFeatureAvailable.isInBeta
+                  ? 'This feature is in beta. If you want access contact support.'
+                  : 'Upgrade to create multi annotation',
                 icon: <SisternodeOutlined />,
                 onOk() {
                   addToMultiAnnGroupRef.current = null;

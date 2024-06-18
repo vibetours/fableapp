@@ -93,9 +93,14 @@ function LoaderEditor(props: Props): JSX.Element {
                   <p>Logo</p>
                 </Tags.FieldName>
                 <div
-                  className={customizeLoaderFeatureAvailable ? '' : 'upgrade-plan'}
+                  className={customizeLoaderFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}
                 >
-                  {!customizeLoaderFeatureAvailable && <Upgrade subs={props.subs} />}
+                  {!customizeLoaderFeatureAvailable.isAvailable && (
+                    <Upgrade
+                      subs={props.subs}
+                      isInBeta={customizeLoaderFeatureAvailable.isInBeta}
+                    />
+                  )}
                   <Tabs items={[
                     {
                       key: '1',
@@ -164,9 +169,14 @@ function LoaderEditor(props: Props): JSX.Element {
                   <p>Upload Gif or Lottie</p>
                 </Tags.FieldName>
                 <div
-                  className={customizeLoaderFeatureAvailable ? '' : 'upgrade-plan'}
+                  className={customizeLoaderFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}
                 >
-                  {!customizeLoaderFeatureAvailable && <Upgrade subs={props.subs} />}
+                  {!customizeLoaderFeatureAvailable.isAvailable && (
+                    <Upgrade
+                      subs={props.subs}
+                      isInBeta={customizeLoaderFeatureAvailable.isInBeta}
+                    />
+                  )}
                   <Tabs items={[
                     {
                       key: '1',

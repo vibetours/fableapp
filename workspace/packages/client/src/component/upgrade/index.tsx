@@ -7,9 +7,10 @@ import UpgradeModal from './upgrade-modal';
 interface Props {
   scaleDown?: boolean;
   subs: P_RespSubscription | null;
+  isInBeta?: boolean;
 }
 
-function Upgrade({ scaleDown, subs }: Props): JSX.Element {
+function Upgrade({ scaleDown, subs, isInBeta }: Props): JSX.Element {
   const [showUpgradePlanModal, setShowUpgradePlanModal] = useState(false);
   return (
     <>
@@ -17,7 +18,8 @@ function Upgrade({ scaleDown, subs }: Props): JSX.Element {
         className="upgrade-con"
         style={{
           transform: scaleDown ? 'scale(0.9) translate(-50%, -50%)' : '',
-          left: scaleDown ? '30%' : '49%' }}
+          left: scaleDown ? '30%' : '49%',
+        }}
       >
         <Button
           size="small"
@@ -33,13 +35,14 @@ function Upgrade({ scaleDown, subs }: Props): JSX.Element {
             color: '#7567ff'
           }}
           />}
-        >Upgrade
+        >{isInBeta ? 'In Beta' : 'Upgrade'}
         </Button>
       </div>
       <UpgradeModal
         showUpgradePlanModal={showUpgradePlanModal}
         setShowUpgradePlanModal={setShowUpgradePlanModal}
         subs={subs}
+        isInBeta={isInBeta}
       />
     </>
   );

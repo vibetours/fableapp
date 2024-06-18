@@ -255,4 +255,5 @@ html, body, div, span, button, p, button, input {
   filter: blur(0);
   pointer-events: all;
   z-index: 1000;
+  text-wrap: nowrap;
 }

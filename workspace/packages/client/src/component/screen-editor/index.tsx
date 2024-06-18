@@ -1117,7 +1117,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             )
             : (
               <Tags.EditUpgradeBtnCon>
-                <Upgrade subs={this.props.subs} scaleDown />
+                <Upgrade
+                  subs={this.props.subs}
+                  scaleDown
+                  isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                />
               </Tags.EditUpgradeBtnCon>
             )
           }
@@ -1180,7 +1184,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             )
             : (
               <Tags.EditUpgradeBtnCon>
-                <Upgrade subs={this.props.subs} scaleDown />
+                <Upgrade
+                  subs={this.props.subs}
+                  scaleDown
+                  isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                />
               </Tags.EditUpgradeBtnCon>
             )
           }
@@ -1213,7 +1221,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 )
                 : (
                   <Tags.EditUpgradeBtnCon>
-                    <Upgrade subs={this.props.subs} scaleDown />
+                    <Upgrade
+                      subs={this.props.subs}
+                      scaleDown
+                      isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                    />
                   </Tags.EditUpgradeBtnCon>
                 )
               }
@@ -1236,7 +1248,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   />)
                   : (
                     <Tags.EditUpgradeBtnCon>
-                      <Upgrade subs={this.props.subs} scaleDown />
+                      <Upgrade
+                        subs={this.props.subs}
+                        scaleDown
+                        isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                      />
                     </Tags.EditUpgradeBtnCon>
                   )
                 }
@@ -1274,7 +1290,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   style={{ filter: isTextUpdateAvailable ? '' : 'blur(5px)' }}
                 />
                 {!isTextUpdateAvailable && (
-                  <Upgrade subs={this.props.subs} />
+                  <Upgrade
+                    subs={this.props.subs}
+                    isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                  />
                 )}
               </div>
             </Tags.EditCtrlLI>
@@ -1319,7 +1338,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   style={{ filter: isTextUpdateAvailable ? '' : 'blur(5px)' }}
                 />
                 {!isTextUpdateAvailable && (
-                  <Upgrade subs={this.props.subs} />
+                  <Upgrade
+                    subs={this.props.subs}
+                    isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                  />
                 )}
               </div>
             </Tags.EditCtrlLI>
@@ -1686,7 +1708,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     || this.props.screen.type === ScreenType.Img || !this.state.selectedEl;
 
     const multiAnnFeatureAvailable = isFeatureAvailable(this.props.featurePlan, 'multi_annontation');
-
+    const multiAnnFeatureSupported = multiAnnFeatureAvailable.isAvailable && !multiAnnFeatureAvailable.isInBeta;
     return (
       <>
         <GTags.PreviewAndActionCon style={{ borderRadius: '20px' }}>
@@ -1890,10 +1912,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         {this.showCreateDefaultAnnButton() && this.props.toAnnotationId && (
                           <Tags.CreateNewAnnotationBtn
                             className="typ-sm"
-                            onClick={() => multiAnnFeatureAvailable && this.createDefaultAnnotation('multi-ann')}
+                            onClick={() => multiAnnFeatureSupported
+                               && this.createDefaultAnnotation('multi-ann')}
                           >
-                            <div className={multiAnnFeatureAvailable ? '' : 'upgrade-plan'}>
-                              {!multiAnnFeatureAvailable && <Upgrade scaleDown subs={this.props.subs} />}
+                            <div className={multiAnnFeatureSupported ? '' : 'upgrade-plan'}>
+                              {!multiAnnFeatureSupported && (
+                                <Upgrade
+                                  scaleDown
+                                  subs={this.props.subs}
+                                  isInBeta={multiAnnFeatureAvailable.isInBeta}
+                                />
+                              )}
                               <img src={NewMultiAnnotation} alt="new multi annotation" />
                             </div>
                             <p>New Multi Annotation</p>

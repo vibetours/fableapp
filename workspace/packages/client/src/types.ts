@@ -362,3 +362,8 @@ export const enum ScreenMode {
 }
 
 export type ElPathKey = 'm_id' | 'id';
+
+export interface FeatureAvailability {
+  isAvailable: boolean,
+  isInBeta: boolean
+}

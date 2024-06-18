@@ -13,7 +13,8 @@ export interface PlanDetail {
 }
 
 export interface FeaturePlan {
-  plans: PlanDetail[]
+  plans: PlanDetail[],
+  isInBeta: boolean,
 }
 
 export interface FeaturePerPlan {
@@ -24,6 +25,10 @@ export const AnalyticsValue = ['advanced', 'basic'];
 export type IntegrationValue = 'hubspot'
 export const AnnotationValue = ['text', 'video', 'audio'];
 
+export interface PlanDetailWithBeta extends PlanDetail {
+  isInBeta: boolean
+}
+
 export interface FeatureForPlan {
-  [key: string]: PlanDetail
+  [key: string]: PlanDetailWithBeta
 }

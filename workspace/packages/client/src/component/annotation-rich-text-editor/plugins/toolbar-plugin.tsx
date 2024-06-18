@@ -38,7 +38,6 @@ import {
   DownOutlined,
   FormOutlined,
   LineHeightOutlined,
-  StarFilled
 } from '@ant-design/icons';
 import { Dropdown, Popover, Select, Tooltip } from 'antd';
 import { AnnotationFontSize } from '@fable/common/dist/types';
@@ -48,6 +47,7 @@ import Button from '../../button';
 import UpgradeModal from '../../upgrade/upgrade-modal';
 import UpgradeIcon from '../../upgrade/icon';
 import { P_RespSubscription } from '../../../entity-processor';
+import { FeatureAvailability } from '../../../types';
 
 const LowPriority = 1;
 
@@ -230,7 +230,7 @@ interface ToolbarPluginProps {
     handleOk: () => void;
     handleCancel: () => void;
   },
-  leadFormFeatureAvailable: boolean;
+  leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
 }
 
@@ -247,7 +247,10 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
   const [isItalic, setIsItalic] = useState(false);
   const [fontSize, setFontSize] = useState<string>(AnnotationFontSize.normal);
   const [alignment, setAlignment] = useState<ElementFormatType>('left');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalDetail, setUpgradeModalDetail] = useState({
+    open: false,
+    isInBeta: false
+  });
 
   const fontSizeOptions = [
     {
@@ -429,17 +432,28 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
         <button
           type="button"
           onClick={() => {
-            leadFormFeatureAvailable
-              ? editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '') : setShowUpgradeModal(true);
+            leadFormFeatureAvailable.isAvailable
+              ? editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')
+              : setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
           }}
           className="toolbar-item"
           aria-label="Lead Form"
         >
           <FormOutlined /> &nbsp; Lead Form &nbsp;
-          {!leadFormFeatureAvailable && <UpgradeIcon />}
+          {!leadFormFeatureAvailable.isAvailable && <UpgradeIcon isInBeta={leadFormFeatureAvailable.isInBeta} />}
         </button>
       </Tooltip>
-      <UpgradeModal showUpgradePlanModal={showUpgradeModal} setShowUpgradePlanModal={setShowUpgradeModal} subs={subs} />
+      <UpgradeModal
+        showUpgradePlanModal={upgradeModalDetail.open}
+        setShowUpgradePlanModal={(open: boolean) => {
+          setUpgradeModalDetail((prevS) => ({
+            isInBeta: prevS.isInBeta,
+            open
+          }));
+        }}
+        isInBeta={upgradeModalDetail.isInBeta}
+        subs={subs}
+      />
     </div>
   );
 }

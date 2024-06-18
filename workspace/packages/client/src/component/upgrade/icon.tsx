@@ -3,12 +3,13 @@ import React from 'react';
 import styled from 'styled-components';
 
 interface Props {
+  isInBeta?: boolean
 }
 
 export default function UpgradeIcon(props: Props) {
   return (
     <Con>
-      <span className="upgrd-ico" title="Upgrade plan"><StarFilled /></span>
+      <span className="upgrd-ico" title={props.isInBeta ? 'In Beta' : 'Upgrade plan'}><StarFilled /></span>
     </Con>
   );
 }

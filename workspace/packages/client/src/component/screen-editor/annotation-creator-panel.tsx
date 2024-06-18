@@ -43,7 +43,6 @@ import {
   ArrowLeftOutlined,
   FormatPainterOutlined,
   RiseOutlined,
-  StarFilled,
 } from '@ant-design/icons';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -285,7 +284,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [popoverPlacement, setPopoverPlacement] = useState<'leftBottom' | 'left' | 'leftTop'>('leftBottom');
   const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
   const [activePopover, setActivePopover] = useState<'open'|'navigate'>('open');
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalDetail, setUpgradeModalDetail] = useState({
+    open: false,
+    isInBeta: false
+  });
+
   const [annotationFeatureAvailable, setAnnotationFeatureAvailable] = useState<string[]>([]);
 
   const unsubFn = useRef(() => { });
@@ -700,13 +703,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <div
             style={{ display: 'flex', gap: '10px' }}
             onClick={() => {
-              if (!watermarkFeatureAvailable) {
-                setShowUpgradeModal(true);
+              if (!watermarkFeatureAvailable.isAvailable) {
+                setUpgradeModalDetail({ isInBeta: watermarkFeatureAvailable.isInBeta, open: true });
               }
             }}
           >
             <GlobalTitle title="Show Fable Watermark" />
-            {!watermarkFeatureAvailable && <UpgradeIcon />}
+            {!watermarkFeatureAvailable.isAvailable && <UpgradeIcon isInBeta={watermarkFeatureAvailable.isInBeta} />}
           </div>
           <Tags.StyledSwitch
             size="small"
@@ -715,8 +718,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             checked={opts.showFableWatermark}
             onChange={(e) => {
               amplitudeRemoveWatermark('acp');
-              if (!watermarkFeatureAvailable) {
-                setShowUpgradeModal(true);
+              if (!watermarkFeatureAvailable.isAvailable) {
+                setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
                 return;
               }
               setTourDataOpts(t => updateTourDataOpts(t, 'showFableWatermark', e));
@@ -889,7 +892,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         title="CTAs"
         icon={<img src={ButtonIcon} alt="" />}
         // isFeatureRestricted={!ctaFeatureAvailable}
-        setShowUpgradeModal={setShowUpgradeModal}
+        setShowUpgradeModal={(open: boolean) => {
+          setUpgradeModalDetail((prevS) => ({
+            isInBeta: prevS.isInBeta,
+            open
+          }));
+        }}
       >
         <div>
           {/* <div className={ctaFeatureAvailable ? '' : 'upgrade-plan'}> */}
@@ -1734,9 +1742,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           )}
       </GTags.BorderedModal>
       <UpgradeModal
-        showUpgradePlanModal={showUpgradeModal}
-        setShowUpgradePlanModal={setShowUpgradeModal}
+        showUpgradePlanModal={upgradeModalDetail.open}
+        setShowUpgradePlanModal={(open: boolean) => {
+          setUpgradeModalDetail((prevS) => ({
+            isInBeta: prevS.isInBeta,
+            open
+          }));
+        }}
         subs={props.subs}
+        isInBeta={upgradeModalDetail.isInBeta}
       />
     </Tags.AnotCrtPanelCon>
   );

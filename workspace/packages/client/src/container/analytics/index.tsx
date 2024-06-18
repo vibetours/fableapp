@@ -40,12 +40,14 @@ import { WithRouterProps, withRouter } from '../../router-hoc';
 import {
   AnnInverseLookupIndex,
   AnnotationPerScreen,
+  FeatureAvailability,
   JourneyModuleWithAnns,
   LeadActivityData,
   LeadActivityWithTime
 } from '../../types';
 import {
   annotationInverseLookupIndex,
+  fallbackFeatureAvailability,
   getAnnotationsPerScreen,
   getJourneyWithAnnotationsNormalized,
   isFeatureAvailable
@@ -565,7 +567,7 @@ interface IOwnStateProps {
   currentEmail: string | null,
   activityDetails: ActivityDetails,
   ctaClickedForMail: Record<string, boolean>,
-  analyticsFeatureAvailable: boolean,
+  analyticsFeatureAvailable: FeatureAvailability,
 }
 
 class Tours extends React.PureComponent<IProps, IOwnStateProps> {
@@ -608,7 +610,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         userClickedCTA: false
       },
       ctaClickedForMail: {},
-      analyticsFeatureAvailable: true
+      analyticsFeatureAvailable: fallbackFeatureAvailability
     };
   }
 
@@ -1018,7 +1020,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 </Tags.KPICon>
                 <Tags.KPICon
                   style={{ border: '2px dashed #160245', flex: '1 1 auto' }}
-                  className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                  className={this.state.analyticsFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}
                 >
                   <Tags.KPIHead>
                     <div className="val">{this.state.leadsData.uniqueEmailCount ?? 0}</div>
@@ -1027,7 +1029,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   {this.state.leadsData.status !== LoadingStatus.Loaded && (
                     <div className="loader"><LoadingOutlined /></div>
                   )}
-                  {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
+                  {!this.state.analyticsFeatureAvailable.isAvailable && (
+                    <Upgrade subs={this.props.subs} isInBeta={this.state.analyticsFeatureAvailable.isInBeta} />
+                  )}
                 </Tags.KPICon>
                 <Tags.KPICon style={{ flex: '1 1 auto' }}>
                   <Tags.KPIHead>
@@ -1122,7 +1126,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   label: <>Funnel Drop off</>,
                   children: (
                     <Tags.FunnelCon
-                      className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                      className={this.state.analyticsFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}
                     >
                       <Tags.KPICon style={{ height: '420px', justifyContent: 'unset', alignItems: 'unset' }} className="waldo">
                         <Tags.TabsWithVisibilityCtrl
@@ -1163,7 +1167,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                           />
                         </div>
                       </Tags.KPICon>
-                      {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
+                      {!this.state.analyticsFeatureAvailable.isAvailable && (
+                        <Upgrade subs={this.props.subs} isInBeta={this.state.analyticsFeatureAvailable.isInBeta} />
+                      )}
                     </Tags.FunnelCon>
                   )
                 },
@@ -1173,7 +1179,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   children: (
                     <div
                       style={{ minHeight: '50vh' }}
-                      className={this.state.analyticsFeatureAvailable ? '' : 'upgrade-plan'}
+                      className={this.state.analyticsFeatureAvailable.isAvailable ? '' : 'upgrade-plan'}
                     >
                       <p style={{
                         fontSize: '0.85rem',
@@ -1277,7 +1283,9 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             </Tags.UserDataCon>
                           </div>
                         )}
-                      {!this.state.analyticsFeatureAvailable && <Upgrade subs={this.props.subs} />}
+                      {!this.state.analyticsFeatureAvailable.isAvailable && (
+                        <Upgrade subs={this.props.subs} isInBeta={this.state.analyticsFeatureAvailable.isInBeta} />
+                      )}
                     </div>
                   )
                 }

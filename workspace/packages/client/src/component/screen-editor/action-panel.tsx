@@ -1,4 +1,4 @@
-import { QuestionCircleOutlined, StarFilled } from '@ant-design/icons';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import React, { ReactElement, useState } from 'react';
 import { Tooltip } from 'antd';
 import * as Tags from './styled';
@@ -15,7 +15,7 @@ interface IProps {
   alwaysOpen?: boolean
   sectionActionElWhenOpen?: ReactElement
   isFeatureRestricted?: boolean;
-  setShowUpgradeModal?: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowUpgradeModal?: (open: boolean)=>void;
 }
 
 function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {

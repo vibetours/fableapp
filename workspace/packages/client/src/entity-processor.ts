@@ -624,10 +624,10 @@ export function mergeAndTransformFeaturePerPlan(
       let planFound = false;
       let forRemainingPlan: PlanDetail | null = null;
       const planDetails = newFeaturePerPlan[key].plans;
-
+      const isInBeta = newFeaturePerPlan[key].isInBeta || false;
       for (const planDetail of planDetails) {
         if (planDetail.plan === plan) {
-          featureForPlan[key] = planDetail;
+          featureForPlan[key] = { ...planDetail, isInBeta };
           planFound = true;
           break;
         } else if (planDetail.plan === '*') {
@@ -636,7 +636,7 @@ export function mergeAndTransformFeaturePerPlan(
       }
 
       if (!planFound) {
-        featureForPlan[key] = forRemainingPlan!;
+        featureForPlan[key] = { ...forRemainingPlan!, isInBeta };
       }
     }
   }

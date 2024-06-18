@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { PlatformIntegrationType, RespLinkedApps, RespPlatformIntegration } from '@fable/common/dist/api-contract';
-import { StarFilled } from '@ant-design/icons';
 import * as Tags from './styled';
-import Upgrade from '../upgrade';
 import UpgradeIcon from '../upgrade/icon';
 import UpgradeModal from '../upgrade/upgrade-modal';
 import { P_RespSubscription } from '../../entity-processor';

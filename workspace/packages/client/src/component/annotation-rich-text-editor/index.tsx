@@ -23,6 +23,7 @@ import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
 import LeadFormPlugin from './plugins/lead-form-plugin';
 import { LeadFormNode } from './nodes/lead-form-node';
 import { P_RespSubscription } from '../../entity-processor';
+import { FeatureAvailability } from '../../types';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -47,7 +48,7 @@ const editorConfig = {
 interface Props {
   defaultValue: string;
   throttledChangeHandler: (bodyContent: string, displayText: string) => void;
-  leadFormFeatureAvailable: boolean;
+  leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
 }
 

@@ -26,7 +26,7 @@ import SkipLink from '../../component/skip-link';
 import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { Ops, SiteData } from '../../types';
+import { FeatureAvailability, Ops, SiteData } from '../../types';
 import * as Tags from './styled';
 import OnboardingDemos from '../../component/tour/onboarding-demos';
 import Button from '../../component/button';
@@ -36,7 +36,7 @@ import EmptyTourState from '../../component/tour/empty-state';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
-import { createIframeSrc, isExtensionInstalled, isFeatureAvailable } from '../../utils';
+import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable } from '../../utils';
 import ExtDownloadRemainder from '../../component/ext-download';
 import TextArea from '../../component/text-area';
 import TopLoader from '../../component/loader/top-loader';
@@ -120,7 +120,7 @@ interface IOwnStateProps {
   isExtInstalled: boolean;
   onboardingToursForPreview: OnboardingTourForPrev[]
   showUpgradeModal: boolean;
-  createNewDemoFeatureAvailable: boolean;
+  createNewDemoFeatureAvailable: FeatureAvailability;
 }
 const { confirm } = Modal;
 
@@ -140,7 +140,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       isExtInstalled: false,
       onboardingToursForPreview: [],
       showUpgradeModal: false,
-      createNewDemoFeatureAvailable: true
+      createNewDemoFeatureAvailable: fallbackFeatureAvailability
     };
   }
 
@@ -399,7 +399,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                 handleDelete={this.handleDelete}
                                 updateTourProp={this.props.updateTourProp}
                                 disable={index >= this.props.tours.length - 1 ? false
-                                  : !this.state.createNewDemoFeatureAvailable}
+                                  : !this.state.createNewDemoFeatureAvailable.isAvailable}
                                 showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
                                 vanityDomains={this.props.vanityDomains}
                               />
@@ -481,6 +481,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           showUpgradePlanModal={this.state.showUpgradeModal}
           setShowUpgradePlanModal={(upgrade: boolean) => { this.setState({ showUpgradeModal: upgrade }); }}
           subs={this.props.subs}
+          isInBeta={this.state.createNewDemoFeatureAvailable.isInBeta}
         />
       </GTags.ColCon>
     );
