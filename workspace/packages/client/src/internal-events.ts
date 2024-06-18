@@ -95,15 +95,15 @@ export function initInternalEvents() : void {
         first_name: lead.first_name || ftmQueryParams.first_name,
         last_name: lead.last_name || ftmQueryParams.last_name,
         org: lead.org || ftmQueryParams.org,
-        email: lead.email || ftmQueryParams.email || '',
-        ti: demo.id
+        email: lead.email || ftmQueryParams.email,
+        ti: demo.id,
       },
     }, demo.rid);
 
     logEvent(AnalyticsEvents.ANN_USER_ASSIGN, {
-      user_email: lead.email,
+      user_email: lead.pk_val,
       tour_id: demo.id,
-      others: lead
+      others: lead as unknown as Record<string, string | number | undefined | null>,
     });
   });
 

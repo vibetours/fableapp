@@ -10,6 +10,7 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $rootTextContent } from '@lexical/text';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
+import { ITourDataOpts } from '@fable/common/dist/types';
 import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode, LexicalNode, ParagraphNode } from 'lexical';
 import { SaveOutlined, } from '@ant-design/icons';
 import ToolbarPlugin from './plugins/toolbar-plugin';
@@ -46,10 +47,12 @@ const editorConfig = {
 };
 
 interface Props {
+  opts: ITourDataOpts;
   defaultValue: string;
   throttledChangeHandler: (bodyContent: string, displayText: string) => void;
   leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
+  setTourDataOpts: React.Dispatch<React.SetStateAction<ITourDataOpts>>;
 }
 
 interface PluginProps {
@@ -81,12 +84,7 @@ interface AnnotationContent {
   annotationDisplayText: string;
 }
 
-export default function AnnotationRichTextEditor({
-  defaultValue,
-  throttledChangeHandler,
-  leadFormFeatureAvailable,
-  subs
-}: React.PropsWithChildren<Props>): ReactElement {
+export default function AnnotationRichTextEditor(props: React.PropsWithChildren<Props>): ReactElement {
   const annotationContentRef = useRef<AnnotationContent>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [savingInProgress, setSavingInProgress] = useState(false);
@@ -114,7 +112,7 @@ export default function AnnotationRichTextEditor({
       annotationContentRef.current = { htmlFromNode, annotationDisplayText };
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => {
-        throttledChangeHandler(htmlFromNode, annotationDisplayText);
+        props.throttledChangeHandler(htmlFromNode, annotationDisplayText);
         clearTimeout(timer.current);
         timer.current = 0;
         setSavingInProgress(false);
@@ -125,7 +123,11 @@ export default function AnnotationRichTextEditor({
   return (
     <LexicalComposer initialConfig={editorConfig}>
       <div className="editor-container">
-        <ToolbarPlugin modalControls={modalControls} leadFormFeatureAvailable={leadFormFeatureAvailable} subs={subs} />
+        <ToolbarPlugin
+          modalControls={modalControls}
+          leadFormFeatureAvailable={props.leadFormFeatureAvailable}
+          subs={props.subs}
+        />
         <div className="editor-inner">
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}
@@ -135,11 +137,11 @@ export default function AnnotationRichTextEditor({
           <OnChangePlugin onChange={onChangePluginHandler} />
           <AutoFocusPlugin />
           <LinkPlugin />
-          <LeadFormPlugin />
+          <LeadFormPlugin opts={props.opts} setTourDataOpts={props.setTourDataOpts} />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
-          <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={defaultValue} />
-          <EditorBlurPlugin updatedText={defaultValue} />
+          <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={props.defaultValue} />
+          <EditorBlurPlugin updatedText={props.defaultValue} />
           <div style={{
             display: 'flex',
             justifyContent: 'end',

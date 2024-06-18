@@ -4,8 +4,10 @@ export interface CmnLeadProps {
   ti: number;
 }
 
-export interface FableLeadContactProps extends Record<string, string | number | undefined | null> {
-  email: string;
+export interface FableLeadContactProps {
+  pk_key: string;
+  pk_val: string
+  email?: string;
   first_name?: string;
   last_name?: string;
   country?: string;
@@ -13,6 +15,7 @@ export interface FableLeadContactProps extends Record<string, string | number | 
   org?: string;
   phone?: string;
   website_url?: string;
+  custom_fields?: Record<string, string | number | undefined | null>;
 }
 
 export interface FtmQueryParams extends Record<string, string | number | undefined | null> {

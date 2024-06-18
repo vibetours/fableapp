@@ -18,6 +18,8 @@ import HighlighterBase, { Rect } from '../base/hightligher-base';
 import * as Tags from './styled';
 import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 import {
+  getCustomFields,
+  getPrimaryKeyValue,
   getTransparencyFromHexStr,
   isCoverAnnotation as isCoverAnn,
   isEventValid,
@@ -256,7 +258,7 @@ export class AnnotationContent extends React.PureComponent<{
                       const leadFormFields = this.conRef.current?.getElementsByClassName('LeadForm__optionContainer');
 
                       let shouldNavigate = true;
-                      const leadForm: Record<string, string> = {};
+                      const leadForm: Record<string, string | undefined> = {};
                       if (leadFormFields) {
                         for (const field of Array.from(leadFormFields)) {
                           const { isValid, fieldName, fieldValue } = validateInput(field as HTMLDivElement);
@@ -265,12 +267,18 @@ export class AnnotationContent extends React.PureComponent<{
                         }
                       }
 
+                      const pk_val = getPrimaryKeyValue(leadForm, this.props.opts.lf_pkf) || '';
+                      const customFields = getCustomFields(leadForm);
                       if (shouldNavigate) {
                         const timer = setTimeout(() => {
                           const evt: FableLeadContactProps = {
                             ...leadForm,
-                            email: leadForm.email
+                            pk_key: this.props.opts.lf_pkf,
+                            pk_val,
+                            email: leadForm.email,
+                            custom_fields: customFields,
                           };
+
                           emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
                           clearTimeout(timer);
                         }, 16);

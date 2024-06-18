@@ -33,7 +33,7 @@ import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/o
 import { P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
-import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
+import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
 import { FeatureForPlan, PlanDetail, AnalyticsValue, AnnotationValue } from './plans';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -43,6 +43,12 @@ export const ANN_EDIT_PANEL_WIDTH = 350;
 export const RESP_MOBILE_SRN_WIDTH_LIMIT = 490;
 export const RESP_MOBILE_SRN_WIDTH = 390;
 export const RESP_MOBILE_SRN_HEIGHT = 844;
+export const preMappedLeadFormFields = {
+  email: 1,
+  first_name: 1,
+  last_name: 1,
+  org: 1
+};
 
 export function isBodyEl(el: HTMLElement): boolean {
   return !!(el && el.tagName && el.tagName.toLowerCase() === 'body');
@@ -626,6 +632,41 @@ export const updateAllAnnotationsForTour = (
   return newAllAnnotationForTour;
 };
 
+const prefillLeadForm = (
+  queryParams: Record<string, string>,
+  annotation: IAnnotationConfig
+): void => {
+  if (annotation.isLeadFormPresent) {
+    const domParser = new DOMParser();
+    const dom = domParser.parseFromString(annotation.bodyContent, 'text/html');
+    const inputEls = Array.from(dom.getElementsByTagName('input'));
+
+    inputEls.forEach(el => {
+      const leadFormField = el.getAttribute(FABLE_LEAD_FORM_FIELD_NAME);
+      if (leadFormField && queryParams[leadFormField]) {
+        el.setAttribute('value', queryParams[leadFormField]);
+        el.disabled = true;
+        annotation.bodyContent = dom.body.innerHTML;
+      }
+    });
+  }
+};
+
+export const fillLeadFormForAllAnnotationsForTour = (
+  allAnnotationForTour: AnnotationPerScreen[],
+  queryParams: Record<string, string>,
+): AnnotationPerScreen[] => {
+  const newAllAnnotationForTour = [...allAnnotationForTour];
+
+  newAllAnnotationForTour.forEach((screen) => {
+    screen.annotations.forEach((annotation) => {
+      prefillLeadForm(queryParams, annotation);
+    });
+  });
+
+  return newAllAnnotationForTour;
+};
+
 export const updateAllAnnotations = (
   allAnnotations: Record<string, IAnnotationConfig[]>
 ): Record<string, IAnnotationConfig[]> => {
@@ -637,6 +678,19 @@ export const updateAllAnnotations = (
       }
     });
   });
+  return allAnnotations;
+};
+
+export const fillLeadFormForAllAnnotations = (
+  allAnnotations: Record<string, IAnnotationConfig[]>,
+  queryParams: Record<string, string>,
+): Record<string, IAnnotationConfig[]> => {
+  Object.keys(allAnnotations).forEach(screen => {
+    allAnnotations[screen].forEach((annotation) => {
+      prefillLeadForm(queryParams, annotation);
+    });
+  });
+
   return allAnnotations;
 };
 
@@ -706,6 +760,23 @@ export function rearrangeArray<T>(arr: T[], sourceIdx: number, destinationIdx: n
   const [removed] = newArr.splice(sourceIdx, 1);
   newArr.splice(destinationIdx, 0, removed);
   return newArr;
+}
+
+export function getPrimaryKeyValue(
+  leadForm: Record<string, string | undefined>,
+  primaryKey: string
+): string | undefined {
+  return leadForm[primaryKey];
+}
+
+export function getCustomFields(leadForm: Record<string, string | undefined>): Record<string, string | number | null | undefined> {
+  const customFields: Record<string, string | number | null | undefined> = {};
+  for (const [key, value] of Object.entries(leadForm)) {
+    if (!(key in preMappedLeadFormFields)) {
+      customFields[key] = value;
+    }
+  }
+  return customFields;
 }
 
 export function preloadImagesInTour(

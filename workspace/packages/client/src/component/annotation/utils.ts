@@ -8,7 +8,8 @@ import { AllDimsForAnnotation } from './types';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
 import { FIELD_NAME_VARIABLE_REGEX,
   LeadFormField,
-  OPTION_INPUT_CLASSNAME
+  OPTION_INPUT_CLASSNAME,
+  OPTION_INPUT_IS_OPTIONAL
 } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
@@ -190,8 +191,8 @@ const validationFnMap: Record<LeadFormField, (value: string) => boolean> = {
 const EMPTY_FIELD_VALIDATION_ERROR = 'Field can\'t be empty';
 const INVALID_EMAIL_VALIDATION_ERROR = 'Email format is not valid';
 
-const getValidationErrorMsg = (value: string, validationType: LeadFormField): string => {
-  if (!value.trim()) return EMPTY_FIELD_VALIDATION_ERROR;
+const getValidationErrorMsg = (value: string | undefined, validationType: LeadFormField): string => {
+  if (!(value || '').trim()) return EMPTY_FIELD_VALIDATION_ERROR;
   if (validationType === 'email') return INVALID_EMAIL_VALIDATION_ERROR;
   return '';
 };
@@ -199,15 +200,16 @@ const getValidationErrorMsg = (value: string, validationType: LeadFormField): st
 export const validateInput = (field: HTMLDivElement): {
   isValid: boolean,
   fieldName: string,
-  fieldValue: string
+  fieldValue: string | undefined
 } => {
   const inpulEl = field.getElementsByClassName(OPTION_INPUT_CLASSNAME).item(0);
+  const isOptional = inpulEl?.classList.contains(OPTION_INPUT_IS_OPTIONAL) || false;
 
   const validationType = (field.getAttribute(FABLE_LEAD_FORM_VALIDATION_FN) || 'text') as LeadFormField;
   const validationFn = validationFnMap[validationType];
-  const fieldValue = (inpulEl as HTMLInputElement).value.trim();
+  const fieldValue = (inpulEl as HTMLInputElement).value.trim() || undefined;
   const fieldName = inpulEl?.getAttribute(FABLE_LEAD_FORM_FIELD_NAME) || '';
-  const isValid = validationFn(fieldValue);
+  const isValid = fieldValue ? validationFn(fieldValue) : isOptional;
 
   const uid = field.getAttribute('fable-input-field-uid');
   const errorMsgEl = field.querySelector(`[fable-validation-uid="${uid}"]`) as HTMLDivElement;

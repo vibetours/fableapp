@@ -1,4 +1,4 @@
-import { Button as AntdButton, Popover, Tooltip } from 'antd';
+import { Button as AntdButton, Popover, Radio, Tooltip } from 'antd';
 import './lead-form-component.css';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
@@ -16,28 +16,41 @@ import {
 } from 'lexical';
 import * as React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { HolderOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { ExclamationCircleTwoTone, HolderOutlined, MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { DragDropContext, Draggable, DropResult, Droppable } from 'react-beautiful-dnd';
+import BlackRightPointingDoubleTriangleWithVerticalBar from '../../../assets/black_right_pointing_double_triangle_with_vertical_bar.png';
+import ClosedLockWithKey from '../../../assets/closed_lock_with_key.png';
+import Wrench from '../../../assets/wrench.png';
 import joinClasses from '../utils/join-classes';
 import { $isLeadFormNode, createLeadFormOption } from './lead-form-node';
 import type { Option, Options, LeadFormNode } from './lead-form-node';
 import Button from '../../button';
 import { parseFieldName } from '../../annotation/utils';
 import { LeadFormField, LeadFormFieldAutocompleteType } from '../utils/lead-form-node-utils';
+import { OurLink, OurRadio } from '../../../common-styled';
+import Input from '../../input';
+import { CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND } from '../plugins/toolbar-plugin';
+import { debounce } from '../../../utils';
+
+export enum LeadFormPropertyType {
+  PrimaryKey,
+  Optional,
+  CalculatedField,
+  None
+}
 
 export const LEAD_FORM_FIELDS: {
   label: string,
   placeholder: string,
   autocompleteType: LeadFormFieldAutocompleteType,
   type: LeadFormField,
-  isMandatory?: boolean,
+  property?: LeadFormPropertyType,
 }[] = [
   {
     label: 'Email',
     placeholder: 'Enter your Email {[email]}',
     type: 'email',
     autocompleteType: 'email',
-    isMandatory: true,
   },
   {
     label: 'First name',
@@ -93,13 +106,52 @@ interface LeadFormOptionProps {
   ) => void;
 }
 
+interface LeadFromPropertyTypeRadioOption {
+  value: LeadFormPropertyType;
+  icon: string;
+  title: string;
+}
+
+const LeadFormPropertyTypeRadioOptions: LeadFromPropertyTypeRadioOption[] = [
+  {
+    value: LeadFormPropertyType.PrimaryKey,
+    icon: ClosedLockWithKey,
+    title: 'Primary key',
+  },
+  {
+    value: LeadFormPropertyType.Optional,
+    icon: BlackRightPointingDoubleTriangleWithVerticalBar,
+    title: 'Optional',
+  },
+  {
+    value: LeadFormPropertyType.CalculatedField,
+    icon: Wrench,
+    title: 'Calculated field',
+  },
+];
+
 function LeadFormOptionComponent({
   option,
   index,
   options,
   withLeadFormNode,
 }: LeadFormOptionProps): JSX.Element {
+  const [editor] = useLexicalComposerContext();
+  const [propertyType, setPropertyType] = useState<LeadFormPropertyType>(option.property);
+  const [calculatedFieldValue, setCalculatedFieldValue] = useState(option.calculatedValue);
+
+  useEffect(() => {
+    setPropertyType(option.property);
+    setCalculatedFieldValue(option.calculatedValue);
+  }, [option]);
+
   const text = option.text;
+
+  const debouncedCalculatedValueOnChangeHandler = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+    withLeadFormNode((node) => {
+      node.changeCalculatedFieldValue(option, e.target.value);
+    });
+  }, 300);
 
   return (
     <div className="LeadForm__optionContainer">
@@ -113,6 +165,11 @@ function LeadFormOptionComponent({
             const value = target.value;
             const selectionStart = target.selectionStart;
             const selectionEnd = target.selectionEnd;
+
+            if (option.property === LeadFormPropertyType.PrimaryKey) {
+              editor.dispatchCommand(CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND, parseFieldName(value));
+            }
+
             withLeadFormNode(
               (node) => {
                 node.setOptionText(option, value);
@@ -126,13 +183,58 @@ function LeadFormOptionComponent({
           placeholder={`Field ${index + 1}`}
         />
       </div>
+      {option.property !== LeadFormPropertyType.None && (
+        <div
+          style={{
+            position: 'absolute',
+            backgroundColor: 'white',
+            border: '0.5px solid gray',
+            fontSize: '0.5rem',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '16px',
+            height: '16px',
+            borderRadius: '16px',
+            top: 0,
+            left: 0,
+            transform: 'translate(-35%, -35%)',
+          }}
+        >
+          {option.property === LeadFormPropertyType.CalculatedField && (
+          <Tooltip
+            placement="left"
+            title={`This is a calulated field with value: ${option.calculatedValue}`}
+          >
+            <img src={Wrench} alt="" width={10} />
+          </Tooltip>
+          )}
+          {option.property === LeadFormPropertyType.Optional && (
+          <Tooltip
+            placement="left"
+            title="This field is optional"
+          >
+            <img src={BlackRightPointingDoubleTriangleWithVerticalBar} alt="" width={10} />
+          </Tooltip>
+          )}
+          {option.property === LeadFormPropertyType.PrimaryKey && (
+          <Tooltip
+            placement="left"
+            title="This is your lead form's primary key"
+          >
+            <img src={ClosedLockWithKey} alt="" width={10} />
+          </Tooltip>
+          )}
+        </div>
+      )}
 
       <button
         type="button"
-        disabled={option.isMandatory || options.length < 2}
+        disabled={option.property === LeadFormPropertyType.PrimaryKey || options.length < 2}
         className={joinClasses(
           'LeadForm__optionDelete',
-          (option.isMandatory || options.length < 2) && 'LeadForm__optionDeleteDisabled',
+          (option.property === LeadFormPropertyType.PrimaryKey || options.length < 2)
+          && 'LeadForm__optionDeleteDisabled',
         )}
         aria-label="Remove"
         onClick={() => {
@@ -141,22 +243,142 @@ function LeadFormOptionComponent({
           });
         }}
       />
+
+      <Popover
+        placement="topRight"
+        content={(
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem',
+            }}
+          >
+            <Radio.Group
+              onChange={(e) => {
+                const property = e.target.value;
+
+                if (property === LeadFormPropertyType.PrimaryKey) {
+                  editor.dispatchCommand(CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND, parseFieldName(option.text));
+                }
+
+                withLeadFormNode((node) => {
+                  node.changePropertyType(option, property);
+                });
+              }}
+              value={propertyType}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              {LeadFormPropertyTypeRadioOptions.map((opt, idx) => (
+                <OurRadio className="our-radio-lead-form-hover" value={opt.value} key={idx}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <img
+                      src={opt.icon}
+                      alt=""
+                      width={16}
+                    />
+
+                    <div>
+                      {opt.title}
+                    </div>
+                  </div>
+                </OurRadio>
+              ))}
+            </Radio.Group>
+
+            {propertyType === LeadFormPropertyType.CalculatedField && (
+              <Input
+                value={calculatedFieldValue}
+                onChange={e => {
+                  setCalculatedFieldValue(e.target.value);
+                  debouncedCalculatedValueOnChangeHandler(e);
+                }}
+                label="Calculated value"
+              />
+            )}
+
+            <OurLink
+              onClick={() => {
+                if (option.property === LeadFormPropertyType.PrimaryKey) {
+                  editor.dispatchCommand(CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND, '');
+                }
+
+                withLeadFormNode((node) => {
+                  node.changePropertyType(option, LeadFormPropertyType.None);
+                });
+              }}
+            >
+              Reset
+            </OurLink>
+          </div>
+        )}
+        trigger="click"
+      >
+        <AntdButton
+          type="text"
+          size="small"
+          icon={<MoreOutlined />}
+        />
+      </Popover>
+
     </div>
   );
 }
+
+const getPrimaryKey = (options: Options): string => {
+  const optionSetAsPk = options.find(option => option.property === LeadFormPropertyType.PrimaryKey);
+  if (optionSetAsPk) return parseFieldName(optionSetAsPk.text);
+  return '';
+};
 
 export default function LeadFormComponent({
   options,
   nodeKey,
 }: {
   nodeKey: NodeKey;
-    options: Options;
+  options: Options;
 }): JSX.Element {
   const [editor] = useLexicalComposerContext();
   const [isSelected, setSelected, clearSelection] = useLexicalNodeSelection(nodeKey);
   const [selection, setSelection] = useState<BaseSelection | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [primaryKey, setPrimaryKey] = useState(() => getPrimaryKey(options));
   const ref = useRef(null);
+
+  useEffect(() => {
+    setPrimaryKey(getPrimaryKey(options));
+
+    /**
+     * Updating old form fields to have new option params
+     */
+    const updatedOptions: unknown[] = [];
+    let shouldUpdateOptions = false;
+
+    for (const opt of options) {
+      if (opt.property === undefined) {
+        shouldUpdateOptions = true;
+        const property = opt.type === 'email' ? LeadFormPropertyType.PrimaryKey : LeadFormPropertyType.None;
+        const newOption: Option = { ...opt, calculatedValue: '', property };
+        updatedOptions.push(newOption);
+      }
+    }
+
+    if (shouldUpdateOptions) {
+      withLeadFormNode((node) => {
+        node.updateOptions(updatedOptions as Options);
+      });
+    }
+  }, [options]);
 
   const onDelete = useCallback(
     (payload: KeyboardEvent) => {
@@ -366,6 +588,29 @@ export default function LeadFormComponent({
               <QuestionCircleOutlined />
             </Tooltip>
           </div>
+
+          {!primaryKey && (
+            <div
+              style={{
+                marginTop: '0.75rem',
+                display: 'flex',
+                gap: '0.25rem'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                }}
+                className="err-line"
+              >
+                Primary key is not set. If someone submits
+                the lead form, the data won't be submitted
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </Popover>

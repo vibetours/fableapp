@@ -174,7 +174,7 @@ export interface GlobalSettings {
 export type FWin = Window
   & { __fable_global_settings__?: GlobalSettings }
   & { __fable_global_user__?: FableLeadContactProps }
-  & { __fable_global_query_param__?: FtmQueryParams };
+  & { __fable_global_query_param__?: FtmQueryParams }
 
 export type ScreenPickerMode = 'create' | 'navigate';
 

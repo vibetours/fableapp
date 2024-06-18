@@ -110,6 +110,7 @@ export interface IChronoUpdatable {
 }
 
 export interface ITourDataOpts extends IChronoUpdatable {
+  lf_pkf: string; // stands for lead form primary key
   primaryColor: string;
   annotationBodyBackgroundColor: string;
   annotationBodyBorderColor: string;

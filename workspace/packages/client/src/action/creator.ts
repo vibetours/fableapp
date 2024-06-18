@@ -44,6 +44,8 @@ import {
   Status,
   RespVanityDomain,
   ReqCreateOrDeleteNewVanityDomain,
+  RespCustomField,
+  ReqCreateOrDeleteCustomFields,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -1576,5 +1578,38 @@ export function getFeaturePlan(subs: RespSubscription) {
       type: ActionType.SET_FEATURE_FOR_PLAN,
       featureForPlan: featurePlanForOrg
     });
+  };
+}
+
+export function loadMappedFields() {
+  return async () => {
+    const data = await api<null, ApiResp<RespCustomField[]>>('/cfields', { auth: true });
+    return Promise.resolve(data.data);
+  };
+}
+
+export function createMappedField(newFields: string[]) {
+  return async () => {
+    const data = await api<ReqCreateOrDeleteCustomFields, ApiResp<RespCustomField>>('/addcfields', {
+      body: {
+        customFields: newFields,
+      },
+      auth: true,
+    });
+
+    return Promise.resolve(data.data);
+  };
+}
+
+export function deleteMappedField(fieldIds: string[]) {
+  return async () => {
+    const data = await api<ReqCreateOrDeleteCustomFields, ApiResp<RespCustomField>>('/delcfields', {
+      body: {
+        customFields: fieldIds,
+      },
+      auth: true,
+    });
+
+    return Promise.resolve(data.data);
   };
 }

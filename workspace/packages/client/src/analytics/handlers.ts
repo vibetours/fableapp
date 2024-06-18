@@ -4,7 +4,7 @@ import { FWin } from '../types';
 
 export interface CBEventBase{
   ti: number;
-  email: string;
+  email: string | undefined;
 }
 
 export interface CBEventPayload<T extends CBEventBase> {

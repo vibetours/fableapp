@@ -551,6 +551,10 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     newOpts.borderRadius = 4;
   }
 
+  if (newOpts.lf_pkf === undefined || newOpts.lf_pkf === null) {
+    newOpts.lf_pkf = 'email';
+  }
+
   if (newOpts.annotationPadding === undefined || newOpts.annotationPadding === null) {
     newOpts.annotationPadding = '14 14';
   }

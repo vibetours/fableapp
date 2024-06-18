@@ -134,6 +134,14 @@ export const MainCon = styled.div`
 
   scrollbar-color: var(--fable-scrollbar-color);
   scrollbar-width: thin;
+  
+  .ant-tabs-tab-btn {
+    color: #160245 !important;
+  }
+
+  .ant-tabs-ink-bar {
+    background: #160245 !important;
+  }
 `;
 
 export const HeaderCon = styled.div`

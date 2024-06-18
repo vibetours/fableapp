@@ -48,7 +48,10 @@ import {
   isLandscapeMode,
   isEventValid,
   getMobileOperatingSystem,
-  getIsMobileSize
+  fillLeadFormForAllAnnotationsForTour,
+  fillLeadFormForAllAnnotations,
+  getIsMobileSize,
+  getPrimaryKeyValue
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -106,7 +109,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   // TODO: this calculation is done every time any state changes in the redux. For performance
   // improvement, this should be moved to component state and these calculations should be made
   // only when the relevant redux state changes
-  const params = new URL(window.location.href).searchParams;
+  const params = new URL(window.location.href).searchParams; // these are base params
   const searchParam = params.get('c');
   const paramData: queryData | null = getSearchParamData(searchParam);
 
@@ -114,6 +117,20 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allAnnotationsForTour = updateAllAnnotationsForTour(allAnnotationsForTour);
     allAnnotations = updateAllAnnotations(allAnnotations);
   }
+
+  const windowParentPathname = window.parent.location.pathname;
+  const queryParams: Record<string, string> = {};
+  if (windowParentPathname.startsWith('/preview') || windowParentPathname.startsWith('/live')) {
+    new URLSearchParams(window.parent.location.search).forEach((v, k) => queryParams[k] = v);
+  } else {
+    params.forEach((v, k) => queryParams[k] = v);
+  }
+
+  if (Object.entries(queryParams).length) {
+    allAnnotationsForTour = fillLeadFormForAllAnnotationsForTour(allAnnotationsForTour, queryParams);
+    allAnnotations = fillLeadFormForAllAnnotations(allAnnotations, queryParams);
+  }
+
   return {
     tour: state.default.currentTour,
     tourLoaderData: state.default.tourLoaderData,
@@ -476,11 +493,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleParams(): void {
     const searchParams = new URLSearchParams(this.props.location.search);
-    const userEmail: string = searchParams.get('email') || '';
+    const userEmail: string | undefined = searchParams.get('email') ?? undefined;
     const firstName = searchParams.get('first_name') ?? undefined;
     const lastName = searchParams.get('last_name') ?? undefined;
     const org = searchParams.get('org') ?? undefined;
     const phone = searchParams.get('phone') ?? undefined;
+
     const queryParam: FtmQueryParams = {
       first_name: firstName,
       last_name: lastName,
@@ -497,8 +515,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       };
     }
 
-    if (userEmail) {
+    const pk_val = getPrimaryKeyValue(queryParam as Record<string, string>, this.props.tourOpts!.lf_pkf);
+    if (pk_val || userEmail || firstName || lastName || org || phone) {
       emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, {
+        pk_key: this.props.tourOpts!.lf_pkf,
+        pk_val,
         email: userEmail,
         first_name: firstName,
         last_name: lastName,

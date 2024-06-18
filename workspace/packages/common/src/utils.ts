@@ -77,6 +77,7 @@ export function snowflake(): number {
 }
 
 export const getDefaultTourOpts = (): ITourDataOpts => ({
+  lf_pkf: 'email',
   main: '',
   primaryColor: '#7567FF',
   annotationBodyBackgroundColor: '#FFFFFF',

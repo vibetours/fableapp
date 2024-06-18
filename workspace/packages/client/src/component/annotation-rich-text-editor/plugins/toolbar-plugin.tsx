@@ -238,6 +238,10 @@ export const INSERT_LEAD_FORM_COMMAND: LexicalCommand<string> = createCommand(
   'INSERT_LEAD_FORM_COMMAND',
 );
 
+export const CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND: LexicalCommand<string> = createCommand(
+  'CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND',
+);
+
 export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable, subs }: ToolbarPluginProps) : ReactElement {
   const [editor] = useLexicalComposerContext();
   const [activeEditor, setActiveEditor] = useState(editor);

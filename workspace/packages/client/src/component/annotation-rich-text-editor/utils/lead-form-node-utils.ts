@@ -5,6 +5,7 @@ export type LeadFormFieldAutocompleteType = 'email' | 'given-name' | 'family-nam
 'organization' | 'tel' | 'on';
 export type LeadFormField = 'email' | 'text';
 export const OPTION_INPUT_CLASSNAME = 'LeadForm__optionInputInAnn';
+export const OPTION_INPUT_IS_OPTIONAL = 'LeadForm__optionInputIsOptional';
 
 export const removeFieldNameDefinition = (placeholderString: string): string => {
   const res = placeholderString.replace(FIELD_NAME_VARIABLE_REGEX, '').trim();

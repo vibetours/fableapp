@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
 export const IntegrationCardCon = styled.div`
-  padding: 1rem;
-  margin: 1.5rem;
+  padding: 0rem 1rem;
+  margin: 1rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -76,5 +76,61 @@ export const CobaltConfigWrapper = styled.div`
 
   .fable-color:hover {
     background-color: #16023E;
+  }
+`;
+
+export const CustomFieldCon = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  margin-top: 2rem;
+  justify-content: space-between;
+  width: 60%;
+  min-width: 480px;
+
+  .btn-con {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  & > div:nth-child(1) {
+    width: 70%;
+    padding: 1rem 0;
+  }
+
+  & >div:nth-child(2) {
+    width: 30%;
+  }
+
+  .docs {
+    border-left: 1px solid lightgray;
+    padding 0.5rem 0.75rem;
+  }
+
+  .fields-con {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    max-width: 360px;
+
+    & > div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    a {
+      display: inline-block;
+      margin-left: 1rem;
+      margin-bottom: unset;
+    }
   }
 `;

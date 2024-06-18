@@ -18,6 +18,7 @@
   flex-direction: row;
   margin-bottom: 10px;
   align-items: center;
+  position: relative;
 }
 .LeadForm__optionInputWrapper {
   display: flex;
@@ -129,4 +130,11 @@
   width: 240px;
   line-height: 0.95rem;
   margin: 4px 0;
+}
+
+
+.our-radio-lead-form-hover:hover {
+  background: #F5F5F5;
+  border-radius: 4px;
+  transition: background 0.2s linear;
 }

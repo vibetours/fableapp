@@ -14,18 +14,26 @@ import * as React from 'react';
 import { Suspense } from 'react';
 import { getRandomId } from '@fable/common/dist/utils';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_ID, FABLE_LEAD_FORM_VALIDATION_FN } from '../../../constants';
-import { LeadFormField, LeadFormFieldAutocompleteType, OPTION_INPUT_CLASSNAME, removeFieldNameDefinition } from '../utils/lead-form-node-utils';
+import {
+  LeadFormField,
+  LeadFormFieldAutocompleteType,
+  OPTION_INPUT_CLASSNAME,
+  OPTION_INPUT_IS_OPTIONAL,
+  removeFieldNameDefinition
+} from '../utils/lead-form-node-utils';
 import { parseFieldName } from '../../annotation/utils';
 import { rearrangeArray } from '../../../utils';
+import { LeadFormPropertyType } from './lead-form-component';
 
 export type Options = ReadonlyArray<Option>;
 
 export type Option = Readonly<{
   text: string;
   uid: string;
-  isMandatory: boolean;
   type: LeadFormField;
   autocompleteType: LeadFormFieldAutocompleteType;
+  property: LeadFormPropertyType;
+  calculatedValue: string;
 }>;
 
 const LeadFormComponent = React.lazy(() => import('./lead-form-component'));
@@ -34,14 +42,16 @@ export function createLeadFormOption(
   text = '',
   type: LeadFormField = 'text',
   autocompleteType: LeadFormFieldAutocompleteType = 'on',
-  isMandatory = false,
+  property = LeadFormPropertyType.None,
+  calculatedValue = '',
 ): Option {
   return {
     text,
     uid: getRandomId(),
-    isMandatory,
     type,
-    autocompleteType
+    autocompleteType,
+    property,
+    calculatedValue,
   };
 }
 
@@ -52,9 +62,10 @@ function cloneOption(
   return {
     text,
     uid: option.uid,
-    isMandatory: option.isMandatory,
     type: option.type,
     autocompleteType: option.autocompleteType,
+    property: option.property,
+    calculatedValue: option.calculatedValue,
   };
 }
 
@@ -136,6 +147,38 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
     self.__options = options;
   }
 
+  changePropertyType(option: Option, property: LeadFormPropertyType): void {
+    const self = this.getWritable();
+    const clonedOption: Option = { ...option, property };
+    const options = Array.from(self.__options);
+
+    if (property === LeadFormPropertyType.PrimaryKey) {
+      const previousPrimaryKey = options.find(opt => opt.property === LeadFormPropertyType.PrimaryKey);
+      if (previousPrimaryKey) {
+        const index = options.indexOf(previousPrimaryKey);
+        options[index] = { ...previousPrimaryKey, property: LeadFormPropertyType.None };
+      }
+    }
+
+    const index = options.indexOf(option);
+    options[index] = clonedOption;
+    self.__options = options;
+  }
+
+  updateOptions(options: Options): void {
+    const self = this.getWritable();
+    self.__options = options;
+  }
+
+  changeCalculatedFieldValue(option: Option, calculatedValue: string): void {
+    const self = this.getWritable();
+    const clonedOption: Option = { ...option, calculatedValue };
+    const options = Array.from(self.__options);
+    const index = options.indexOf(option);
+    options[index] = clonedOption;
+    self.__options = options;
+  }
+
   static importDOM(): DOMConversionMap | null {
     return {
       span: (domNode: HTMLElement) => {
@@ -193,6 +236,15 @@ export class LeadFormNode extends DecoratorNode<JSX.Element> {
       optionInput.setAttribute(FABLE_LEAD_FORM_FIELD_NAME, fieldName);
       optionInput.type = 'text';
       optionInput.placeholder = removeFieldNameDefinition(option.text);
+
+      if (option.property === LeadFormPropertyType.CalculatedField) {
+        optionInput.setAttribute('value', option.calculatedValue);
+        optionCon.style.display = 'none';
+      }
+
+      if (option.property === LeadFormPropertyType.Optional) {
+        optionInput.classList.add(OPTION_INPUT_IS_OPTIONAL);
+      }
 
       const autocompleteType = option.autocompleteType;
       if (autocompleteType && autocompleteType !== 'on') {

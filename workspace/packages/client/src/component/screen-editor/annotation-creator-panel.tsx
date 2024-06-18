@@ -592,6 +592,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }}
         >
           <AnnotationRichTextEditor
+            opts={opts}
             subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {
               setConfig(c => {
@@ -605,6 +606,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             }}
             defaultValue={config.bodyContent}
             leadFormFeatureAvailable={leadFormFeatureAvailable}
+            setTourDataOpts={setTourDataOpts}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
             <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>

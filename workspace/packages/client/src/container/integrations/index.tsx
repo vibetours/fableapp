@@ -6,6 +6,7 @@ import {
   ApiResp,
   PlatformIntegrationType,
   RespAccountToken,
+  RespCustomField,
   RespLinkedApps,
   RespOrg,
   RespPlatformIntegration,
@@ -14,6 +15,9 @@ import {
 } from '@fable/common/dist/api-contract';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { Tabs } from 'antd';
+import { CheckCircleOutlined, DeleteOutlined, LoadingOutlined, SmallDashOutlined } from '@ant-design/icons';
+import { None } from 'framer-motion';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -29,10 +33,21 @@ import Webhook from './webhook';
 import Button from '../../component/button';
 import { amplitudeIntegrationModalOpened } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
+import { createMappedField, deleteMappedField, loadMappedFields } from '../../action/creator';
+import { ButtonCon } from '../../component/button/styled';
+import Input from '../../component/input';
 
-interface IDispatchProps { }
+interface IDispatchProps {
+  createMappedField: (newFields: string[]) => Promise<RespCustomField[]>,
+  deleteMappedField: (fieldIds: string[]) => Promise<RespCustomField[]>,
+  fetchMappedFields: () => Promise<RespCustomField[]>
+}
 
-const mapDispatchToProps = (dispatch: any) => ({});
+const mapDispatchToProps = (dispatch: any) => ({
+  createMappedField: (newFields: string[]) => dispatch(createMappedField(newFields)),
+  deleteMappedField: (fieldIds: string[]) => dispatch(deleteMappedField(fieldIds)),
+  fetchMappedFields: () => dispatch(loadMappedFields()),
+});
 
 interface IAppStateProps {
   subs: P_RespSubscription | null;
@@ -54,13 +69,20 @@ interface IOwnProps {
 
 type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
+interface P_RespCustomField extends RespCustomField {
+  dirty: boolean;
+  newVal: string;
+}
+
 interface IOwnStateProps {
   cobaltSessionToken: string | null;
   listOfLinkedApps: (RespLinkedApps | RespPlatformIntegration)[];
   hasIntegrationLoadingErr: boolean;
   selectedApp: string | null;
-  modalOpen: boolean,
-  integrationsAvailableForPlan: string[]
+  modalOpen: boolean;
+  integrationsAvailableForPlan: string[];
+  mappedFields: P_RespCustomField[] | null;
+  opsInProgress: boolean;
 }
 
 const IntegrationOrder = [
@@ -87,7 +109,9 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
       hasIntegrationLoadingErr: false,
       selectedApp: null,
       modalOpen: false,
-      integrationsAvailableForPlan: []
+      integrationsAvailableForPlan: [],
+      mappedFields: null,
+      opsInProgress: false
     };
   }
 
@@ -166,6 +190,16 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.featureForPlan) {
       this.handleIntegrationAvailable();
     }
+
+    this.setState({
+      opsInProgress: true
+    });
+    this.props.fetchMappedFields().then((fields) => {
+      this.setState({
+        opsInProgress: false,
+        mappedFields: fields.map(field => ({ ...field, dirty: false, newVal: field.fieldName }))
+      });
+    });
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -283,6 +317,13 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
     return selectedApp!.startsWith('Fable') || selectedApp!.startsWith('Zapier');
   }
 
+  convertCustomFieldsToLabel() {
+    return this.state.mappedFields!.map((field) => ({
+      name: field.newVal,
+      value: field.newVal
+    }));
+  }
+
   render(): JSX.Element {
     return (
       <GTags.ColCon>
@@ -304,39 +345,177 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.SidePanelCon>
             <SidePanel selected="integrations" subs={this.props.subs} />
           </GTags.SidePanelCon>
-          <GTags.MainCon style={{ overflow: 'auto' }}>
-            <Tags.IntegrationCardCon style={{ paddingLeft: '3%' }}>
-              {this.state.hasIntegrationLoadingErr && (
-                <div className="err-msg">
-                  <h3>Couldn't load some integrations</h3>
-                  <p>
-                    This might happen when you don't have access to integrations.
-                  </p>
-                  <p>
-                    Please contact us using the in app chat or email us at&nbsp;
-                    <a href="mailto:support@sharefable.com?subject=Can't access integrations">
-                      support@sharefable.com
-                    </a>.
-                  </p>
-                </div>
-              )}
-              {this.state.listOfLinkedApps.map(appConfig => {
-                const enableIntegration = this.state.integrationsAvailableForPlan.includes(appConfig.slug)
+          <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%', marginTop: '2rem' }}>
+            <Tabs defaultActiveKey="1">
+              <Tabs.TabPane tab="Integration" key="1">
+                <Tags.IntegrationCardCon style={{ paddingLeft: '0%' }}>
+                  <div className="typ-reg">
+                    All your available integrations are displayed here.
+                    <br />
+                    Need an integration we don't have?
+                    <GTags.OurLink
+                      style={{
+                        display: 'inline-block',
+                        marginLeft: '0.5rem'
+                      }}
+                      className="support-bot-open"
+                    >
+                      Contact us
+                    </GTags.OurLink>.
+                  </div>
+                  {this.state.hasIntegrationLoadingErr && (
+                  <div className="err-msg">
+                    <h3>Couldn't load some integrations</h3>
+                    <p>
+                      This might happen when you don't have access to integrations.
+                    </p>
+                    <p>
+                      Please contact us using the in app chat or email us at&nbsp;
+                      <a href="mailto:support@sharefable.com?subject=Can't access integrations">
+                        support@sharefable.com
+                      </a>.
+                    </p>
+                  </div>
+                  )}
+                  {this.state.listOfLinkedApps.map(appConfig => {
+                    const enableIntegration = this.state.integrationsAvailableForPlan.includes(appConfig.slug)
                  || this.state.integrationsAvailableForPlan.includes('*');
-                return <IntegrationCard
-                  key={appConfig.slug}
-                  appConfig={appConfig}
-                  subs={this.props.subs}
-                  onClick={() => {
-                    if (enableIntegration) {
-                      this.setState({ selectedApp: appConfig.slug, modalOpen: true });
-                      amplitudeIntegrationModalOpened(appConfig.name);
-                    }
-                  }}
-                  disable={!enableIntegration}
-                />;
-              })}
-            </Tags.IntegrationCardCon>
+                    return <IntegrationCard
+                      key={appConfig.slug}
+                      appConfig={appConfig}
+                      subs={this.props.subs}
+                      onClick={() => {
+                        if (enableIntegration) {
+                          this.setState({ selectedApp: appConfig.slug, modalOpen: true });
+                          amplitudeIntegrationModalOpened(appConfig.name);
+                        }
+                      }}
+                      disable={!enableIntegration}
+                    />;
+                  })}
+                </Tags.IntegrationCardCon>
+              </Tabs.TabPane>
+              <Tabs.TabPane tab="Custom Field Mapping" key="2">
+                <div className="typ-reg">
+                  You can map a custom field that you've created in your lead form to a field in your integration.
+                  <br />
+                  Fable by default map standard fields from your lead form to the relevant fields in your integration.
+                </div>
+                <Tags.CustomFieldCon className={`typ-reg ${this.state.opsInProgress ? 'disabled' : ''}`}>
+                  <div>
+                    {this.state.mappedFields ? (
+                      <div className="fields-con">
+                        {this.state.mappedFields.map((field, i) => (
+                          <div key={i}>
+                            <Input
+                              placeholder=""
+                              defaultValue={field.newVal}
+                              onChange={(e) => {
+                                this.setState(state => {
+                                  const newVal = {
+                                    ...state.mappedFields![i],
+                                    newVal: e.target.value.trim(),
+                                    dirty: e.target.value.trim() !== field.fieldName
+                                  };
+                                  return { mappedFields: state.mappedFields!.slice(0, i).concat(newVal, ...state.mappedFields!.slice(i + 1)) };
+                                });
+                              }}
+                              label="Field name"
+                              sz="medium"
+                              containerStyle={{
+                                flex: '1 0 auto'
+                              }}
+                            />
+                            <div>
+                              {field.dirty && (
+                              <GTags.OurLink onClick={async () => {
+                                this.setState({ opsInProgress: true });
+                                if (!field.fieldName) {
+                                  // create a new field
+                                  await this.props.createMappedField([field.newVal]);
+                                } else {
+                                  // update an existing field by deleting it and then creating a new one
+                                  await this.props.createMappedField([field.newVal]);
+                                  await this.props.deleteMappedField([field.fieldName]);
+                                }
+                                this.setState(state => {
+                                  const newVal: P_RespCustomField = {
+                                    fieldName: field.newVal,
+                                    newVal: field.newVal,
+                                    dirty: false
+                                  };
+                                  return {
+                                    opsInProgress: false,
+                                    mappedFields: state.mappedFields!.slice(0, i).concat(newVal, ...state.mappedFields!.slice(i + 1))
+                                  };
+                                });
+                              }}
+                              >
+                                <CheckCircleOutlined />
+                              </GTags.OurLink>
+                              )}
+                              <GTags.OurLink onClick={async () => {
+                                this.setState({ opsInProgress: true });
+                                await this.props.deleteMappedField([field.fieldName]);
+                                this.setState(state => ({
+                                  opsInProgress: false,
+                                  mappedFields: state.mappedFields!.filter((fields) => fields.newVal !== field.fieldName)
+                                }));
+                              }}
+                              >
+                                <DeleteOutlined />
+                              </GTags.OurLink>
+                            </div>
+                          </div>
+                        ))}
+                        {this.state.mappedFields.length === 0 && (
+                        <p>
+                          You don't have any mapped fields.
+                        </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <LoadingOutlined /> Loading mapped fields...
+                      </div>
+                    )}
+                    <div className="btn-con">
+                      <Button
+                        intent="secondary"
+                        onClick={() => {
+                          this.setState(state => (
+                            { mappedFields: [...(state.mappedFields || []), { fieldName: '', dirty: true, newVal: 'field_name' }] }
+                          ));
+                        }}
+                      >
+                        Add a new mapping
+                      </Button>
+                      {this.state.opsInProgress && (
+                      <div>
+                        <LoadingOutlined />
+                      </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="docs">
+                    <div>Mapped fields</div>
+                    <p className="typ-sm">
+                      These fields are by default mapped to respective integration fields.
+                    </p>
+                    <ul className="typ-ip">
+                      <li>email</li>
+                      <li>first_name</li>
+                      <li>last_name</li>
+                      <li>phone</li>
+                      <li>company</li>
+                      <li>industry</li>
+                      <li>country</li>
+                      <li>website_url</li>
+                    </ul>
+                  </div>
+                </Tags.CustomFieldCon>
+              </Tabs.TabPane>
+            </Tabs>
             <GTags.BorderedModal
               open={this.state.modalOpen}
               onCancel={() => this.setState({ selectedApp: null, modalOpen: false })}
@@ -368,6 +547,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
                         slug={this.state.selectedApp}
                         onSave={() => this.setState({ modalOpen: false })}
                         onConnect={this.initiateContactPropertyEvent}
+                        labels={{ 'contact map': this.convertCustomFieldsToLabel() }}
                       />
                     </Provider>
                   </Tags.CobaltConfigWrapper>
