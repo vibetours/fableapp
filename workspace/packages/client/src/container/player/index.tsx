@@ -118,13 +118,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allAnnotations = updateAllAnnotations(allAnnotations);
   }
 
-  const windowParentPathname = window.parent.location.pathname;
+  // todo: move to component did mount
   const queryParams: Record<string, string> = {};
-  if (windowParentPathname.startsWith('/preview') || windowParentPathname.startsWith('/live')) {
-    new URLSearchParams(window.parent.location.search).forEach((v, k) => queryParams[k] = v);
-  } else {
-    params.forEach((v, k) => queryParams[k] = v);
-  }
+  params.forEach((v, k) => queryParams[k] = v);
 
   if (Object.entries(queryParams).length) {
     allAnnotationsForTour = fillLeadFormForAllAnnotationsForTour(allAnnotationsForTour, queryParams);
