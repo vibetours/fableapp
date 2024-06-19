@@ -1,3 +1,4 @@
+import { addPointerEventsAutoToEl } from '../../../../utils';
 import { Update } from './types';
 
 export const applyFadeInTransitionToNode = (node: Node, originialOpacity: string): void => {
@@ -26,5 +27,8 @@ export function applyUpdateDiff(updates: Update[], el: Node): void {
       }
     });
     (el as HTMLElement).style.transition = 'all 0.3s ease-out';
+    if (el.nodeName.toLowerCase() === 'body') {
+      addPointerEventsAutoToEl(el as HTMLBodyElement);
+    }
   }
 }

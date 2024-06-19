@@ -1036,3 +1036,9 @@ export const getIsMobileSize = (): boolean => {
   }
   return false;
 };
+
+export function addPointerEventsAutoToEl(el: HTMLElement): void {
+  const styleAttrValue = el.getAttribute('style') || '';
+  const stylesToOverride = '; pointer-events: auto !important;';
+  el.setAttribute('style', `${styleAttrValue}${stylesToOverride}`);
+}

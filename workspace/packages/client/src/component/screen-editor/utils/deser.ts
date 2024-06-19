@@ -2,7 +2,7 @@ import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { DeSerProps } from '../preview';
-import { isHTTPS } from '../../../utils';
+import { addPointerEventsAutoToEl, isHTTPS } from '../../../utils';
 
 export const FABLE_CUSTOM_NODE = -1;
 
@@ -290,9 +290,7 @@ export const createHtmlElement = (
   }
 
   if (node.name.toLowerCase() === 'body') {
-    const styleAttrValue = el.getAttribute('style') || '';
-    const stylesToOverride = '; pointer-events: auto !important;';
-    el.setAttribute('style', `${styleAttrValue}${stylesToOverride}`);
+    addPointerEventsAutoToEl(el as HTMLBodyElement);
   }
 
   function addToAssetLoadingPromises(element: HTMLLinkElement | HTMLImageElement): void {
