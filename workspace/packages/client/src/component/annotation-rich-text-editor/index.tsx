@@ -13,18 +13,21 @@ import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { ITourDataOpts } from '@fable/common/dist/types';
 import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode, LexicalNode, ParagraphNode } from 'lexical';
 import { SaveOutlined, } from '@ant-design/icons';
+import { getRandomId } from '@fable/common/dist/utils';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
 import Theme from './themes';
 import AutoLinkPlugin from './plugins/auto-link-plugin';
-import './styles.css';
 import { ImageNode } from './nodes/image-node';
-import { ExtendedTextNode } from './plugins/extended-text-node';
+import { ExtendedTextNode } from './nodes/extended-text-node';
 import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
 import LeadFormPlugin from './plugins/lead-form-plugin';
 import { LeadFormNode } from './nodes/lead-form-node';
 import { P_RespSubscription } from '../../entity-processor';
 import { FeatureAvailability } from '../../types';
+import { ExtendedLinkNode } from './nodes/extended-link-node';
+import { ExtendedAutoLinkNode } from './nodes/extended-auto-link-node';
+import './styles.css';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -38,7 +41,17 @@ const editorConfig = {
   },
   nodes: [
     AutoLinkNode,
+    ExtendedAutoLinkNode,
     LinkNode,
+    ExtendedLinkNode,
+    {
+      replace: LinkNode,
+      with: (node: LinkNode) => new ExtendedLinkNode(node.getURL()),
+    },
+    {
+      replace: AutoLinkNode,
+      with: (node: AutoLinkNode) => new ExtendedAutoLinkNode(node.getURL()),
+    },
     ImageNode,
     LeadFormNode,
     ExtendedTextNode,

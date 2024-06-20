@@ -45,6 +45,10 @@ export const AnContent = styled.div<{
     height: auto !important;
   }
 
+  .hide-span-child span {
+    display: none;
+  }
+
   a {
     color: inherit;
     text-decoration: underline dotted;
