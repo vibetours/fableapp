@@ -6,6 +6,7 @@ const isYoutubeUrl = (url: string): boolean => {
 };
 
 const convertYoutubeToEmbedUrl = (url: string): string => {
+  // eslint-disable-next-line no-useless-escape
   const REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})$/;
 
   const match = url.match(REGEX);
@@ -24,6 +25,7 @@ const isLoomUrl = (url: string): boolean => {
 };
 
 const convertLoomToEmbedUrl = (url: string): string => {
+  // eslint-disable-next-line no-useless-escape
   const REGEX = /^(https?:\/\/)?(www\.)?loom\.com\/share\/([^&=%\?]+)$/;
 
   const match = url.match(REGEX);
