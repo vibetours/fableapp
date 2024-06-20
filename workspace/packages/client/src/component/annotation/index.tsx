@@ -941,7 +941,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return (
       <>
         { !this.props.annotationDisplayConfig.config.hideAnnotation && (
-          <div
+          <Tags.AnnotationCardCon
             ref={this.conRef}
             style={{
               transform: this.props.isThemeAnnotation || this.props.annotationDisplayConfig.prerender
@@ -1035,7 +1035,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 positioning={this.props.annotationDisplayConfig.config.positioning}
               />
             )}
-          </div>
+          </Tags.AnnotationCardCon>
         )}
 
         {/* this is focus bubble */}

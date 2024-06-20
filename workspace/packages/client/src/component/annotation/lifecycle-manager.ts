@@ -508,7 +508,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.doc.body.addEventListener('scroll', scrollHandler);
     this.nestedDocs.forEach(doc => {
       doc.addEventListener('scroll', scrollHandler);
-      doc.body.addEventListener('scroll', scrollHandler);
+      doc.body && doc.body.addEventListener('scroll', scrollHandler);
     });
 
     await Promise.race([
@@ -527,7 +527,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.doc.body.removeEventListener('scroll', scrollHandler);
     this.nestedDocs.forEach(doc => {
       doc.removeEventListener('scroll', scrollHandler);
-      doc.body.removeEventListener('scroll', scrollHandler);
+      doc.body && doc.body.removeEventListener('scroll', scrollHandler);
     });
 
     this.onScrollComplete(el, config);

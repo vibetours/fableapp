@@ -16,6 +16,8 @@ export const DropdownCon = styled.div`
   left: ${(p: DropdownConf) => (`${p.left}px` || '20px')};
   transform: ${(p: DropdownConf) => (`translate(${p.transformTranslateX}%, 0%)`)};
   ${(p: DropdownConf) => ((p.top ? `top: ${p.top}px;` : 'bottom: 40px;'))};
+  height: 0px;
+  width: 0px;
 `;
 
 export const JourneyCon = styled.div<{maxW: string}>`

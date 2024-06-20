@@ -768,3 +768,9 @@ export const SoundWavePlaceholderCon = styled.div<{ bgColor: string }>`
     animation-name: quiet;
   }
 `;
+
+export const AnnotationCardCon = styled.div`
+  .anticon:before {
+    display: none !important;
+  }
+`;
