@@ -19,6 +19,16 @@ export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement => {
   return umbrlDiv as HTMLDivElement;
 };
 
+export const getHTMLElLeftOffset = (doc : Document) : number => {
+  const htmlEl = doc.documentElement;
+  if (!htmlEl) return 0;
+
+  const htmlElRect = htmlEl.getBoundingClientRect();
+  const htmlElLeftOffset = htmlElRect.left;
+
+  return htmlElLeftOffset || 0;
+};
+
 export const DEFAULT_DIMS_FOR_ANN: AllDimsForAnnotation = {
   dimForSmallAnnotation: { w: 10, h: 10 },
   dimForMediumAnnotation: { w: 10, h: 10 },

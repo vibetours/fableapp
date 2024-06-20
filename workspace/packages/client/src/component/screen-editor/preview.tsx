@@ -5,7 +5,7 @@ import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
-import { FABLE_RT_UMBRL, createEmptyFableIframe, createOverrideStyleEl, getFableRtUmbrlDiv } from '../annotation/utils';
+import { FABLE_RT_UMBRL, createEmptyFableIframe, createOverrideStyleEl, getFableRtUmbrlDiv, getHTMLElLeftOffset } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem } from '../../types';
@@ -150,10 +150,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             if (frameBody) {
               let umbrellaDiv = getFableRtUmbrlDiv(doc);
               if (!umbrellaDiv) {
+                const htmlElementLeftOffset = getHTMLElLeftOffset(doc);
                 umbrellaDiv = doc.createElement('div');
                 umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
                 umbrellaDiv.style.position = 'absolute';
-                umbrellaDiv.style.left = `${0}`;
+                umbrellaDiv.style.left = `-${htmlElementLeftOffset}px`;
                 umbrellaDiv.style.top = `${0}`;
                 umbrellaDiv.style.setProperty('display', 'block', 'important');
                 frameBody.appendChild(umbrellaDiv);

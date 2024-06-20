@@ -15,6 +15,7 @@ import {
   createEmptyFableIframe,
   createOverrideStyleEl,
   getFableRtUmbrlDiv,
+  getHTMLElLeftOffset,
   scrollToAnn
 } from './utils';
 import { AnnotationSerialIdMap } from './ops';
@@ -238,10 +239,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   resetCons(): void {
     let umbrellaDiv = getFableRtUmbrlDiv(this.doc) as HTMLDivElement;
     if (!umbrellaDiv) {
+      const htmlElementLeftOffset = getHTMLElLeftOffset(this.doc);
+
       umbrellaDiv = this.doc.createElement('div');
       umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
       umbrellaDiv.style.position = 'absolute';
-      umbrellaDiv.style.left = `${0}`;
+      umbrellaDiv.style.left = `-${htmlElementLeftOffset}px`;
       umbrellaDiv.style.top = `${0}`;
       umbrellaDiv.style.setProperty('display', 'block', 'important');
       this.doc.body.appendChild(umbrellaDiv);
@@ -290,8 +293,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   getVp(): {w: number, h: number} {
     return {
-      w: Math.max(this.doc.documentElement.clientWidth || 0, this.win.innerWidth || 0),
-      h: Math.max(this.doc.documentElement.clientHeight || 0, this.win.innerHeight || 0)
+      w: this.win.innerWidth || 0,
+      h: this.win.innerHeight || 0
     };
   }
 
