@@ -7,12 +7,12 @@ const isYoutubeUrl = (url: string): boolean => {
 
 const convertYoutubeToEmbedUrl = (url: string): string => {
   // eslint-disable-next-line no-useless-escape
-  const REGEX = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&=%\?]{11})$/;
+  const REGEX = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([^&=%\?]{11})/;
 
   const match = url.match(REGEX);
 
-  if (match && match[5]) {
-    const videoId = match[5];
+  if (match && match[1]) {
+    const videoId = match[1];
     return `https://www.youtube.com/embed/${videoId}`;
   }
 
