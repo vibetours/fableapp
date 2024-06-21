@@ -567,6 +567,10 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     newOpts.showStepNum = true;
   }
 
+  if (newOpts.reduceMotionForMobile === undefined || newOpts.reduceMotionForMobile === null) {
+    newOpts.reduceMotionForMobile = false;
+  }
+
   return newOpts;
 }
 

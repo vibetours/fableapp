@@ -227,7 +227,7 @@ export const createHtmlElement = (
         const isHTML5 = node.chldrn.find(child => child.type === Node.DOCUMENT_TYPE_NODE);
         if (isHTML5) {
           // safari is a bitch. I'll write why if everything works
-          attrValue = `/aboutblank?ts=${+new Date()}`;
+          attrValue = `/aboutblankhtml5.html?ts=${+new Date()}`;
         } else {
           attrValue = `/aboutblankhtml4.html?ts=${+new Date()}`;
         }
@@ -239,7 +239,7 @@ export const createHtmlElement = (
       ) {
         continue;
       } else if (node.name === 'object' && attrKey === 'data') {
-        el.setAttribute(attrKey, '/aboutblank');
+        el.setAttribute(attrKey, '/aboutblankhtml5.html');
       } else {
         if (node.name === 'a') {
           if (attrKey === 'href') {

@@ -1613,3 +1613,32 @@ export function deleteMappedField(fieldIds: string[]) {
     return Promise.resolve(data.data);
   };
 }
+
+export interface TRemoveScreenData {
+  type: ActionType.REMOVE_SCREEN_DATA;
+  allScreenData: Record<string, ScreenData>;
+}
+
+export function removeScreenDataForRids(ids: number[]) {
+  return async (dispatch: Dispatch<TRemoveScreenData>, getState: ()=> TState) => new Promise<void>((resolve, reject) => {
+    try {
+      const state = getState();
+      const newAllScreenData = { ...state.default.screenData };
+      for (const id in newAllScreenData) {
+        if (newAllScreenData[id]) {
+          if (!ids.includes(parseInt(id, 10))) {
+            delete newAllScreenData[id];
+          }
+        }
+      }
+      dispatch({
+        type: ActionType.REMOVE_SCREEN_DATA,
+        allScreenData: newAllScreenData
+      });
+
+      resolve();
+    } catch (err) {
+      resolve();
+    }
+  });
+}

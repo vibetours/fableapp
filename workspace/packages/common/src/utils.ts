@@ -91,6 +91,7 @@ export const getDefaultTourOpts = (): ITourDataOpts => ({
   annotationPadding: '14 14',
   showFableWatermark: true,
   showStepNum: true,
+  reduceMotionForMobile: false,
 });
 
 export function getSampleJourneyData() {

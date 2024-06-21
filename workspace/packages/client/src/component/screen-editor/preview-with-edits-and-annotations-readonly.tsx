@@ -42,7 +42,8 @@ import {
   undoMakeVisibleAllParentsInHierarchy,
   debounce,
   isTourResponsive,
-  RESP_MOBILE_SRN_WIDTH_LIMIT
+  RESP_MOBILE_SRN_WIDTH_LIMIT,
+  shouldReduceMotionForMobile
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
@@ -81,6 +82,7 @@ export interface IOwnProps {
   elpathKey: ElPathKey;
   updateElPathKey: (elPath: ElPathKey)=> void;
   handleMenuOnScreenResize?: ()=> void;
+  isFromScreenEditor: boolean;
 }
 
 interface IOwnStateProps {
@@ -198,7 +200,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           },
           this.props.screen.type,
           this.props.allAnnotationsForTour,
-          this.props.allAnnotationsForScreen,
           this.props.tourDataOpts,
           this.props.tour.id,
           this.props.annotationSerialIdMap,
@@ -210,11 +211,14 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.screenData.isHTML4,
           this.props.screen,
         );
+
+        if (this.props.isFromScreenEditor) {
         // WARN obviously this is not a right way of doing stuff. But for the perview feature
         // annoation creator panel needs this instance to contorl preview functionality.
         // We initially passed a callback that receives an instance of this, but uncontrolled rerender
         // created issues for annotation display. Hence we resorted to this.
-        (window as any).__f_alcm__ = this.annotationLCM;
+          (window as any).__f_alcm__ = this.annotationLCM;
+        }
       }
     } else {
       throw new Error('Annoation document not found while initing annotationlcm');
@@ -616,6 +620,11 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (+goToScreenId === currScreenId) {
       await this.scrollIframeElsIfRequired(goToAnnConfig, currScreenData);
       this.reachAnnotation(goToAnnId);
+      return;
+    }
+
+    if (shouldReduceMotionForMobile(this.props.tourDataOpts)) {
+      this.navigateAndGoToAnn(goToAnnIdWithScreenId);
       return;
     }
 

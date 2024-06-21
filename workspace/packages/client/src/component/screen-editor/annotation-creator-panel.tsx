@@ -1647,6 +1647,20 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             }}
           />
         </div>
+        <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
+          <div>
+            <div>Reduce motion in mobile</div>
+          </div>
+          <Tags.StyledSwitch
+            size="small"
+            defaultChecked={opts.reduceMotionForMobile}
+            onChange={(e) => {
+              const newOpts = updateTourDataOpts(opts, 'reduceMotionForMobile', e);
+              amplitudeAnnotationEdited('advanced-reduce_motion_for_mobile', e);
+              setTourDataOpts(newOpts);
+            }}
+          />
+        </div>
       </ActionPanel>
       <div style={{ ...commonActionPanelItemStyle, justifyContent: 'center', margin: '0.5rem 1rem' }}>
         <GTags.DashedBtn

@@ -4,7 +4,6 @@ import * as GTags from '../../common-styled';
 import { elEffects, annEffects, getEffectFromString } from './effects';
 import CaretOutlined from '../icons/caret-outlined';
 import CssEditor from '../css-editor';
-import ALCM from '../annotation/lifecycle-manager';
 
 export const enum EffectFor {
   ann = 'ann',

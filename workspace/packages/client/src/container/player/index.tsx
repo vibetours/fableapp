@@ -6,7 +6,7 @@ import {
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
-import { loadScreenAndData, loadTourAndData, updateElPathKey } from '../../action/creator';
+import { loadScreenAndData, loadTourAndData, removeScreenDataForRids, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
@@ -51,7 +51,8 @@ import {
   fillLeadFormForAllAnnotationsForTour,
   fillLeadFormForAllAnnotations,
   getIsMobileSize,
-  getPrimaryKeyValue
+  getPrimaryKeyValue,
+  shouldReduceMotionForMobile
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -74,6 +75,7 @@ interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
   updateElpathKey: (elPathKey: ElPathKey) => void,
+  removeScreenDataForRids: (ids: number[]) => Promise<void>
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -83,7 +85,8 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
   ),
-  updateElpathKey: (elPathKey: ElPathKey) => dispatch(updateElPathKey(elPathKey))
+  updateElpathKey: (elPathKey: ElPathKey) => dispatch(updateElPathKey(elPathKey)),
+  removeScreenDataForRids: (ids: number[]) => dispatch(removeScreenDataForRids(ids))
 });
 
 interface IAppStateProps {
@@ -169,6 +172,7 @@ interface IOwnStateProps {
   screenSizeData: Record<string, ScreenSizeData>;
   showRotateScreenModal: boolean;
   isIOSPhone: boolean;
+  screenPrerenderCount: number;
 }
 
 interface ScreenInfo {
@@ -195,7 +199,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private frameRefs: Record<number, React.RefObject<HTMLIFrameElement | null>> = {};
 
-  private loadedScreenRids: Set<string> = new Set<string>();
+  private loadedScreenIds: Set<number> = new Set<number>();
 
   private iframesToPrerenderIds: Set<number> = new Set<number>();
 
@@ -224,6 +228,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       screenSizeData: {},
       showRotateScreenModal: false,
       isIOSPhone: getMobileOperatingSystem() === 'iOS',
+      screenPrerenderCount: 2
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -295,34 +300,43 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   // TODO [optimization]: get prev n next screens to prerender in one function call
-  getScreenDataPreloaded(
+  async getScreenDataPreloaded(
     screen: P_RespScreen,
     tour: P_RespTour,
     nextScreenPrerenderCount: number,
     startScreens: P_RespScreen[],
     initalScreenLoad: boolean,
-  ): P_RespScreen[] {
+  ): Promise<P_RespScreen[]> {
     const nextScreensToPrerender = bfsTraverse(
       this.adjList!,
       startScreens,
       nextScreenPrerenderCount,
       'next'
     );
+    const screenIdsToBeAdded : Set<number> = new Set();
 
+    screenIdsToBeAdded.add(screen.id);
     const prevScreensToPrerender = bfsTraverse(this.adjList!, [screen], 1, 'prev');
-
     const prerenderList = this.removeDuplicateScreens([
       ...nextScreensToPrerender.traversedNodes,
       ...prevScreensToPrerender.traversedNodes,
-    ]).filter(({ screen: s }) => !this.loadedScreenRids.has(s.rid));
+    ]).filter(({ screen: s }) => {
+      screenIdsToBeAdded.add(s.id);
+      return !this.loadedScreenIds.has(s.id);
+    });
+
+    if (shouldReduceMotionForMobile(this.props.tourOpts)) {
+      // if mobile phone we remove unecessary screenData so that memory usage is reduced.
+      this.loadedScreenIds.clear();
+      await this.props.removeScreenDataForRids(Array.from(screenIdsToBeAdded));
+    }
+    prerenderList.forEach(({ screen: s }) => this.loadedScreenIds.add(s.id));
 
     prerenderList.map(({ screen: s }) => this.props.loadScreenAndData(
       s.rid,
       s.id !== screen.id,
       this.props.staging ? undefined : tour
     ));
-
-    prerenderList.forEach(({ screen: s }) => this.loadedScreenRids.add(s.rid));
 
     return this.handleIframesToPrerender(prerenderList, initalScreenLoad);
   }
@@ -561,7 +575,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
       this.handleParams();
       firstTimeTourLoading = true;
-
+      const prerenderCount = shouldReduceMotionForMobile(this.props.tourOpts) ? 1 : 2;
+      this.setState({ screenPrerenderCount: prerenderCount });
       this.handleResponsiveness();
 
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
@@ -586,7 +601,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
         const screen = this.getScreenAtId(currScreenRId, 'rid');
-        const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
+        const startScreens = bfsTraverse(
+          this.adjList!,
+          [screen],
+          this.state.screenPrerenderCount,
+          'next'
+        ).lastLevelNodes;
         this.getScreenDataPreloaded(screen, this.props.tour!, 1, startScreens, false);
       } else {
         // this happens when the user uses the tourURl as  /tour/tourid without any screen id
@@ -622,7 +642,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     return screen;
   }
 
-  initialScreenLoad(screenRid: string, tour: P_RespTour): void {
+  async initialScreenLoad(screenRid: string, tour: P_RespTour): Promise<void> {
     const obj: Record<string, boolean> = {};
     const startScreens: P_RespScreen[] = [];
 
@@ -630,14 +650,22 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     startScreens.push(mainScreen);
 
     if (this.isJourneyAdded()) {
-      this.props.journey!.flows.forEach((flow) => {
-        const flowScreenId = flow.main.split('/')[0];
-        const flowScreen = this.getScreenAtId(flowScreenId, 'id');
-        startScreens.push(this.props.allScreens.find(s => s.rid === flowScreen.rid)!);
-      });
+      if (!shouldReduceMotionForMobile(this.props.tourOpts)) {
+        this.props.journey!.flows.forEach((flow) => {
+          const flowScreenId = flow.main.split('/')[0];
+          const flowScreen = this.getScreenAtId(flowScreenId, 'id');
+          startScreens.push(this.props.allScreens.find(s => s.rid === flowScreen.rid)!);
+        });
+      }
     }
 
-    const initiallyPrerenderedScreens = this.getScreenDataPreloaded(mainScreen, tour, 2, startScreens, true);
+    const initiallyPrerenderedScreens = await this.getScreenDataPreloaded(
+      mainScreen,
+      tour,
+      this.state.screenPrerenderCount,
+      startScreens,
+      true
+    );
     initiallyPrerenderedScreens.forEach(screen => obj[screen.rid] = false);
 
     this.setState({ initialScreenRid: screenRid, initiallyPrerenderedScreens: obj });
@@ -859,6 +887,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
+                isFromScreenEditor={false}
                 resizeSignal={1}
                 journey={this.props.journey!}
                 annotationSerialIdMap={this.state.annotationSerialIdMap}
@@ -894,7 +923,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 allScreens={this.props.allScreens}
                 editsAcrossScreens={this.props.editsAcrossScreens}
                 preRenderNextScreen={(screen: P_RespScreen) => {
-                  const startScreens = bfsTraverse(this.adjList!, [screen], 2, 'next').lastLevelNodes;
+                  const startScreens = bfsTraverse(
+                    this.adjList!,
+                    [screen],
+                    this.state.screenPrerenderCount,
+                    'next'
+                  ).lastLevelNodes;
                   this.getScreenDataPreloaded(screen, this.props.tour!, 1, startScreens, false);
                 }}
                 updateCurrentFlowMain={(btnConfig: IAnnotationButtonType, main?: string) => {

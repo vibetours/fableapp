@@ -49,7 +49,7 @@ export const amplitudeAnnotationEdited = (
     'branding-font_color' | 'branding-selection_color' | 'branding-font_family' | 'branding-button_layout' |
     'branding-padding' | 'branding-border_radius' | 'add_new_cta' | 'cta-button_style' | 'cta-button_size' |
     'cta-button_text' | 'hide_cta' | 'add_link_to_cta' | 'hotspot-interactive_element' | 'hotspot-hide_annotation' |
-    'hotspot-nested_element' | 'entry_point' | 'overlay' | 'show-step_num',
+    'hotspot-nested_element' | 'entry_point' | 'overlay' | 'show-step_num' | 'advanced-reduce_motion_for_mobile',
   annotationPropValue: string | number | boolean
 ): void => {
   traceEvent(

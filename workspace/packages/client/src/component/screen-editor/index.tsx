@@ -1795,6 +1795,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               }}
             >
               <PreviewWithEditsAndAnRO
+                isFromScreenEditor
                 resizeSignal={this.props.screenMode === ScreenMode.DESKTOP ? 1 : 0}
                 journey={this.props.journey}
                 annotationSerialIdMap={this.props.annotationSerialIdMap}

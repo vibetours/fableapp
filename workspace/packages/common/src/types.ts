@@ -121,6 +121,7 @@ export interface ITourDataOpts extends IChronoUpdatable {
   showFableWatermark: boolean;
   annotationPadding: string;
   showStepNum: boolean;
+  reduceMotionForMobile: boolean;
 }
 
 export interface ITourLoaderData {

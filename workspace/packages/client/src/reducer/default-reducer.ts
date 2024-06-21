@@ -48,6 +48,7 @@ import {
   TCustomDomain,
   TAddCustomDomain,
   TUpdateCustomDomain,
+  TRemoveScreenData,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
@@ -571,6 +572,14 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TFeaturePlan;
       const newState = { ...state };
       newState.featureForPlan = tAction.featureForPlan;
+
+      return newState;
+    }
+
+    case ActionType.REMOVE_SCREEN_DATA: {
+      const tAction = action as TRemoveScreenData;
+      const newState = { ...state };
+      newState.screenData = tAction.allScreenData;
 
       return newState;
     }

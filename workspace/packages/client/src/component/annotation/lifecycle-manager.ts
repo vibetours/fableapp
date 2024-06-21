@@ -67,8 +67,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private allAnnotationsForTour: AnnotationPerScreen[];
 
-  private allAnnotationsForScreen: IAnnotationConfig[];
-
   private tourDataOpts: ITourDataOpts;
 
   private tourId: number;
@@ -150,7 +148,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     opts: { navigate: NavFn, isPlayMode: boolean, navigateToAnnByRefIdOnSameScreen: (refId: string) => void },
     screenType: ScreenType,
     allAnnotationsForTour: AnnotationPerScreen[],
-    allAnnotationsForScreen: IAnnotationConfig[],
     tourDataOpts: ITourDataOpts,
     tourId: number,
     annotationSerialIdMap: AnnotationSerialIdMap,
@@ -179,7 +176,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.isPlayMode = opts.isPlayMode;
     this.screenType = screenType;
     this.allAnnotationsForTour = allAnnotationsForTour;
-    this.allAnnotationsForScreen = allAnnotationsForScreen;
     this.tourDataOpts = tourDataOpts;
     this.tourId = tourId;
     this.annotationSerialIdMap = annotationSerialIdMap;

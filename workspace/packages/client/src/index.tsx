@@ -14,7 +14,6 @@ import { LOCAL_STORE_TIMELINE_ORDER_KEY } from './utils';
 import Player from './container/player';
 import PreviewForCta from './container/preview-for-cta';
 import RedirectFromP from './container/redirect-from-p';
-import { USER_ONBOARDING_ROUTE } from './container/user-onboarding';
 import ErrorBoundary from './component/error-boundary';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
@@ -278,7 +277,7 @@ const router = createBrowserRouter([
             },
           },
           {
-            path: USER_ONBOARDING_ROUTE,
+            path: 'welcome',
             async lazy() {
               const UserOnboarding = await import('./container/user-onboarding').then(module => module.default);
               return { Component: UserOnboarding };
