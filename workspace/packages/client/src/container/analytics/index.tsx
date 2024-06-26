@@ -890,13 +890,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     return (
       <GTags.ColCon>
         <GTags.HeaderCon>
-          <Header
+          {this.props.tour && <Header
             showOnboardingGuides
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"
             org={this.props.org}
             rightElGroups={[(
-              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'white' }}>
+              <Link to={`/demo/${this.props.tour.rid}`} style={{ color: 'white' }}>
                 <Button
                   size="small"
                   className="edit-btn"
@@ -909,13 +909,17 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             titleElOnLeft={
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <GTags.Txt className="subsubhead">Insight for</GTags.Txt>
-                <GTags.Txt style={{ fontWeight: 500 }}>{this.props.tour?.displayName ?? ''}</GTags.Txt>
+                <GTags.Txt
+                  className="overflow-ellipsis"
+                  style={{ fontWeight: 500 }}
+                >{this.props.tour.displayName}
+                </GTags.Txt>
               </div>
             }
             leftElGroups={[]}
             principal={this.props.principal}
             showCalendar
-          />
+          />}
         </GTags.HeaderCon>
         <GTags.BodyCon style={{
           height: 'calc(100% - 72px)',

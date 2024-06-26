@@ -16,7 +16,6 @@ export const CreateJourneyCon = styled.div`
 `;
 
 export const EditorCon = styled.div`
-    overflow: scroll;
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -180,15 +180,23 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         <BackgroundGradient />
 
         <Tags.HeaderCon>
-          <Header
+          {this.props.tour && <Header
             org={this.props.org}
             userGuidesToShow={['Sharing or embedding your interactive demo']}
             showOnboardingGuides
             onLogoClicked={() => this.props.clearCurrentTour()}
             navigateToWhenLogoIsClicked="/tours"
-            titleElOnLeft={<div style={{ display: 'flex', alignItems: 'center' }}>{this.props.tour?.displayName}</div>}
+            titleElOnLeft={(
+              <div
+                style={{ display: 'flex', alignItems: 'center' }}
+              >
+                <span className="overflow-ellipsis">
+                  {this.props.tour.displayName}
+                </span>
+              </div>
+            )}
             rightElGroups={[(
-              <Link to={`/demo/${this.props.tour?.rid}`} style={{ color: 'black' }}>
+              <Link to={`/demo/${this.props.tour.rid}`} style={{ color: 'black' }}>
                 <AntButton
                   size="small"
                   className="edit-btn"
@@ -217,7 +225,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             showCalendar
             minimalHeader={this.state.minimalHeader}
             vanityDomains={this.props.vanityDomains}
-          />
+          />}
         </Tags.HeaderCon>
 
         <Tags.PreviewFrameWrapper

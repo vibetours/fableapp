@@ -529,8 +529,8 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <GTags.Txt className="subsubhead">{firstLine}</GTags.Txt>
-        <GTags.Txt style={{ fontWeight: 500 }}>
+        <GTags.Txt className="subsubhead overflow-ellipsis">{firstLine}</GTags.Txt>
+        <GTags.Txt className="overflow-ellipsis" style={{ fontWeight: 500 }}>
           {secondLine}
         </GTags.Txt>
       </div>

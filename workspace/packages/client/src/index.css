@@ -257,3 +257,10 @@ html, body, div, span, button, p, button, input {
   z-index: 1000;
   text-wrap: nowrap;
 }
+
+.overflow-ellipsis {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 450px;
+}
