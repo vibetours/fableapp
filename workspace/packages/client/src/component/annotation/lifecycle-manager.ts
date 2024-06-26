@@ -11,11 +11,10 @@ import { AnnotationPerScreen, ElPathKey, NavFn } from '../../types';
 import { isBodyEl, isMediaAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
-  FABLE_RT_UMBRL,
-  createEmptyFableIframe,
-  createOverrideStyleEl,
+  createFableRtUmbrlDivShHost,
+  createFablrRtUmbrlDiv,
   getFableRtUmbrlDiv,
-  getHTMLElLeftOffset,
+  getFableRtUmbrlDivShHost,
   scrollToAnn
 } from './utils';
 import { AnnotationSerialIdMap } from './ops';
@@ -233,24 +232,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   };
 
   resetCons(): void {
-    let umbrellaDiv = getFableRtUmbrlDiv(this.doc) as HTMLDivElement;
+    let umbrellaDiv = getFableRtUmbrlDivShHost(this.doc) as HTMLDivElement;
     if (!umbrellaDiv) {
-      const htmlElementLeftOffset = getHTMLElLeftOffset(this.doc);
-
-      umbrellaDiv = this.doc.createElement('div');
-      umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
-      umbrellaDiv.style.position = 'absolute';
-      umbrellaDiv.style.left = `-${htmlElementLeftOffset}px`;
-      umbrellaDiv.style.top = `${0}`;
-      umbrellaDiv.style.setProperty('display', 'block', 'important');
-      this.doc.body.appendChild(umbrellaDiv);
-
-      // This iframe was added to support autocomplete posting when lead form is present.
-      // This is how leadform values are saved in browser for autocomplete. Ref: https://stackoverflow.com/a/29885896
-      const iframeEl = createEmptyFableIframe();
-      umbrellaDiv.appendChild(iframeEl);
-
-      umbrellaDiv.appendChild(createOverrideStyleEl(this.doc));
+      umbrellaDiv = createFableRtUmbrlDivShHost(this.doc);
 
       const [con, root] = this.createContainerRoot('');
       const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
@@ -475,7 +459,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const fableAnnOverrideStyleTagId = 'f-fable-override-ann-style';
     let styleTag = this.doc.getElementById(fableAnnOverrideStyleTagId);
     if (!styleTag) {
-      const umbrlDiv = getFableRtUmbrlDiv(this.doc);
+      const umbrlDiv = getFableRtUmbrlDiv(this.doc)!;
       styleTag = this.doc.createElement('style');
       styleTag.setAttribute('id', fableAnnOverrideStyleTagId);
       umbrlDiv.prepend(styleTag);

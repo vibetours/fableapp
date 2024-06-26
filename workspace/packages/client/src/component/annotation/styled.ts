@@ -40,9 +40,9 @@ export const AnContent = styled.div<{
   padding: 0;
   margin: 0;
 
-  height: auto !important;
+  height: auto;
   * {
-    height: auto !important;
+    height: auto;
   }
 
   .hide-span-child span {
@@ -60,12 +60,12 @@ export const AnContent = styled.div<{
   }
 
   .f-progress {
-    color: var(--f-ann-font-color) !important;
+    color: var(--f-ann-font-color);
   }
 
   .f-back-btn-icon {
     svg {
-      fill: var(--f-ann-primary-color) !important;
+      fill: var(--f-ann-primary-color);
     }
   }
 
@@ -146,20 +146,20 @@ export const AnContent = styled.div<{
     border: 0px;
     padding: 8px 16px;
     color: var(--fable-ann-font-color);
-    background-color: transparent !important;
+    background-color: transparent;
     font-weight: bold;
     outline: 0px;
     z-index: 0;
   }
 
   .LeadForm__optionInputInAnn:focus {
-    background-color: transparent !important;
+    background-color: transparent;
   }
   
   .LeadForm__optionInputInAnn::placeholder {
-    font-weight: normal !important;
-    color: var(--f-ann-font-color) !important;
-    opacity: 0.75 !important;
+    font-weight: normal;
+    color: var(--f-ann-font-color);
+    opacity: 0.75;
   }
 
   input:-webkit-autofill,
@@ -234,14 +234,14 @@ export const AnTextContent = styled.div`
   }
 
   p, p.editor-paragraph {
-    font-size: ${AnnotationFontSize.normal} !important;
-    font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'} !important;
-    color: ${(p: AnTextContentProps) => `${p.fontColor}`} !important;
+    font-size: ${AnnotationFontSize.normal};
+    font-family: ${(p: AnTextContentProps) => p.fontFamily || 'inherit'};
+    color: ${(p: AnTextContentProps) => `${p.fontColor}`};
   }
 
   * {
-    color: inherit !important;
-    font-family: inherit !important;
+    color: inherit;
+    font-family: inherit;
   }
 `;
 
@@ -301,23 +301,23 @@ export const ABtn = styled.button`
   border: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Outline) return `1px solid ${p.color}`;
     return 'none';
-  }} !important;
+  }};
 
   background: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return p.color;
     return '#ffffff00';
-  }} !important;
+  }};
   
   color: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
     return getColorContrast(p.bg) === 'dark' ? '#fff' : '#000';
-  }} !important;
+  }};
   
   &.f-ann-btn {
     color: ${(p: BtnConf) => {
     if (p.btnStyle === AnnotationButtonStyle.Primary) return getColorContrast(p.color) === 'dark' ? '#fff' : '#000';
     return getColorContrast(p.bg) === 'dark' ? '#fff' : '#000';
-  }} !important;
+  }};
   }
 
   padding: ${(p: BtnConf) => {
@@ -330,15 +330,15 @@ export const ABtn = styled.button`
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
-    cursor: pointer !important;
-    text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')} !important;
+    cursor: pointer;
+    text-decoration: ${(p: BtnConf) => (p.btnStyle === 'link' ? 'underline' : 'none')};
   }
   width:  ${(p: BtnConf) => (p.btnLayout === 'default' ? 'auto' : '100%')};
   opacity: 0.8;
   transition: opacity 0.2s ease-out;
 
   &:hover {
-    opacity: 1 !important;
+    opacity: 1;
   }
 `;
 
@@ -380,8 +380,8 @@ export const AnHotspot = styled.div`
   position: absolute;
   top: ${(p: AnHotspotProps) => `${p.box.top}px`};
   left: ${(p: AnHotspotProps) => `${p.box.left}px`};
-  width: ${(p: AnHotspotProps) => `${p.box.width}px`} !important;
-  height: ${(p: AnHotspotProps) => `${p.box.height}px`} !important;
+  width: ${(p: AnHotspotProps) => `${p.box.width}px`};
+  height: ${(p: AnHotspotProps) => `${p.box.height}px`};
   transition: all 0.3s ease-in-out;
 
   &:hover {
@@ -391,22 +391,22 @@ export const AnHotspot = styled.div`
 
 export const AnBubble = styled.div<{bubbleWidth: number}>`
   width: ${(p) => `${p.bubbleWidth}px`}; 
-  height: ${(p) => `${p.bubbleWidth}px`} !important; 
+  height: ${(p) => `${p.bubbleWidth}px`}; 
   cursor: pointer;
 `;
 
 export const AnMediaContainer = styled.div`
   border-radius: 8px;
   * {
-    height: auto !important;
+    height: auto;
   }
 `;
 
 export const MediaCon = styled.div`
   position: relative;
   display: flex;
-  width: 100% !important;
-  height: 100% !important;
+  width: 100%;
+  height: 100%;
 `;
 
 export const AnVideo = styled.video<{ border: string }>`
@@ -417,23 +417,23 @@ export const AnVideo = styled.video<{ border: string }>`
 `;
 
 export const AnAudioCon = styled.div<{ border: string, bgColor: string }>`
-  width: 100% !important;
-  height: 100% !important;
+  width: 100%;
+  height: 100%;
   border-radius: 8px;
   box-shadow: ${p => `${p.border}`};
   background: ${p => `${p.bgColor}`};
   display: flex;
   align-items: center;
   canvas {
-    height: 50px !important;
-    width: 100% !important;
+    height: 50px;
+    width: 100%;
   }
 `;
 
 export const AnMediaControls = styled.div<{showOverlay: boolean}>`
   transition: all 0.2s ease-in-out;
   background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
-  height: 100% !important;
+  height: 100%;
   border-radius: 8px;
   position: absolute;
   top: 50%;
@@ -442,10 +442,10 @@ export const AnMediaControls = styled.div<{showOverlay: boolean}>`
 `;
 
 export const LoaderCon = styled.div`
-    height: 4px !important;
+    height: 4px;
 
   * {
-    height: 4px !important;
+    height: 4px;
   }
 `;
 
@@ -470,7 +470,7 @@ export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
 
   > span.anticon {
     display: block;
-    height: 1em !important;
+    height: 1em;
   }
 
   transition: all 0.2s ease-in-out;
@@ -488,8 +488,8 @@ export const ReplayButton = styled.button<{ pcolor: string, showButton: boolean 
   left: 50%;
   transform: translate(-50%, -50%);
 
-  height: 56px !important;
-  width: 56px !important;
+  height: 56px;
+  width: 56px;
   border-radius: 50%;
   background: ${p => generateShadeColor(p.pcolor, 200)};
   color: ${p => `${p.pcolor}`};
@@ -507,13 +507,13 @@ export const ReplayButton = styled.button<{ pcolor: string, showButton: boolean 
 
   > span.anticon {
     display: block;
-    height: 1em !important;
+    height: 1em;
   }
 `;
 
 export const Loader = styled.div`
-  width: 48px !important;
-  height: 48px !important;
+  width: 48px;
+  height: 48px;
   border: 5px solid #FFF;
   border-bottom-color: transparent;
   border-radius: 50%;
@@ -603,8 +603,8 @@ export const HelpBubble = styled.a<{selColor?: string, bubbleDiameter: number}>`
   &:after {
     content: "";
     background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-    width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
-    height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+    width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+    height: ${({ bubbleDiameter }) => bubbleDiameter}px;
     border-radius: 50%;
     position: absolute;
     display: block;
@@ -619,8 +619,8 @@ export const HelpBubbleOuterDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   animation: ${helpBubblePulse} 1.5s linear infinite;
 `;
@@ -631,8 +631,8 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
@@ -646,8 +646,8 @@ export const HelpBubbleInnerDot = styled.span<{ selColor?: string, bubbleDiamete
   text-align: center;
   opacity: 1;
   background-color: ${({ selColor }) => selColor || 'rgba(117,103,255, 0.5)'};
-  width: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
-  height: ${({ bubbleDiameter }) => bubbleDiameter}px !important;
+  width: ${({ bubbleDiameter }) => bubbleDiameter}px;
+  height: ${({ bubbleDiameter }) => bubbleDiameter}px;
   border-radius: 50%;
   -webkit-animation: ${helpBubblePulse} 1.5s linear infinite;
   -moz-animation: ${helpBubblePulse} 1.5s linear infinite;
@@ -667,7 +667,7 @@ export const SoundWavePlaceholderCon = styled.div<{ bgColor: string }>`
   transform: translate(-50%, -50%);
   display: flex;
   justify-content: space-between;
-  height: 64px !important;
+  height: 64px;
   margin: auto;
   --boxSize: 8px;
   --gutter: 4px;
@@ -742,8 +742,8 @@ export const SoundWavePlaceholderCon = styled.div<{ bgColor: string }>`
 
   .box {
     transform: scaleY(0.4);
-    height: 100% !important;
-    width: var(--boxSize) !important;
+    height: 100%;
+    width: var(--boxSize);
     background: ${(props) => props.bgColor};
     -webkit-animation-duration: 1.2s;
     animation-duration: 1.2s;
@@ -782,6 +782,6 @@ export const SoundWavePlaceholderCon = styled.div<{ bgColor: string }>`
 
 export const AnnotationCardCon = styled.div`
   .anticon:before {
-    display: none !important;
+    display: none;
   }
 `;

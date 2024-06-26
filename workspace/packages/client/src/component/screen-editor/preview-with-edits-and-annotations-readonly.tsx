@@ -29,7 +29,7 @@ import { scrollIframeEls } from './scroll-util';
 import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserIframeEl } from './utils/deser';
 import { applyEditsToSerDom } from './utils/edits';
-import { getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv } from '../annotation/utils';
+import { FABLE_RT_UMBRL_SH_HOST, getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
@@ -133,7 +133,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           const style = doc.createElement('style');
           style.setAttribute('id', ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID);
           style.innerHTML = "body { font-family: 'IBM Plex Sans'; }";
-          getFableRtUmbrlDiv(doc).prepend(style);
+          getFableRtUmbrlDiv(doc)!.prepend(style);
         }
       }
 
@@ -163,7 +163,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     link.type = 'text/css';
     link.setAttribute(ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR, '');
 
-    getFableRtUmbrlDiv(doc).prepend(link);
+    getFableRtUmbrlDiv(doc)!.prepend(link);
   };
 
   onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
@@ -504,7 +504,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       if (!nextEl && parentNode.nodeName.toLowerCase() === 'body') {
         const lastEl = node.childNodes[parentNode.childNodes.length - 1];
         const fid = getFidOfNode(lastEl);
-        const umbrellaDiv = (node as HTMLElement).querySelector('.fable-rt-umbrl');
+        const umbrellaDiv = (node as HTMLElement).querySelector(`.${FABLE_RT_UMBRL_SH_HOST}`);
         if (!fid && umbrellaDiv) {
           nextEl = umbrellaDiv;
         }

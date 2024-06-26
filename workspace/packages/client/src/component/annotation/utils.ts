@@ -13,10 +13,49 @@ import { FIELD_NAME_VARIABLE_REGEX,
 } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
+export const FABLE_RT_UMBRL_SH_HOST = 'fable-rt-umbrl-sh-host';
 
-export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement => {
-  const umbrlDiv = doc.getElementsByClassName(FABLE_RT_UMBRL)[0];
+export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement | null => {
+  const host = getFableRtUmbrlDivShHost(doc);
+  if (!host) return null;
+
+  const shadowRoot = host.shadowRoot!;
+  const umbrlDiv = shadowRoot.querySelector(`.${FABLE_RT_UMBRL}`);
   return umbrlDiv as HTMLDivElement;
+};
+
+export const getFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
+  const umbrlDivShHost = doc.getElementsByClassName(FABLE_RT_UMBRL_SH_HOST)[0];
+  return umbrlDivShHost as HTMLDivElement;
+};
+
+export const createFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
+  const umbrlDivShHost = doc.createElement('div');
+  umbrlDivShHost.classList.add(FABLE_RT_UMBRL_SH_HOST);
+  umbrlDivShHost.attachShadow({ mode: 'open' });
+  const shadowRoot = umbrlDivShHost.shadowRoot!;
+  shadowRoot.appendChild(createOverrideStyleEl(doc));
+  shadowRoot.appendChild(createFablrRtUmbrlDiv(doc));
+  doc.body.appendChild(umbrlDivShHost);
+  return umbrlDivShHost;
+};
+
+export const createFablrRtUmbrlDiv = (doc: Document): HTMLDivElement => {
+  const htmlElementLeftOffset = getHTMLElLeftOffset(doc);
+
+  const umbrellaDiv = doc.createElement('div');
+  umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
+  umbrellaDiv.style.position = 'absolute';
+  umbrellaDiv.style.left = `-${htmlElementLeftOffset}px`;
+  umbrellaDiv.style.top = `${0}`;
+  umbrellaDiv.style.setProperty('display', 'block', 'important');
+
+  // This iframe was added to support autocomplete posting when lead form is present.
+  // This is how leadform values are saved in browser for autocomplete. Ref: https://stackoverflow.com/a/29885896
+  const iframeEl = createEmptyFableIframe();
+  umbrellaDiv.appendChild(iframeEl);
+
+  return umbrellaDiv;
 };
 
 export const getHTMLElLeftOffset = (doc : Document) : number => {
@@ -271,9 +310,7 @@ export const createEmptyFableIframe = (): HTMLIFrameElement => {
 export const createOverrideStyleEl = (doc: Document): HTMLStyleElement => {
   const styleEl = doc.createElement('style');
   styleEl.textContent = `
-                  .${FABLE_RT_UMBRL} div:empty {
-                    display: block !important;
-                  }
+    :host { all: initial }
   `;
   return styleEl;
 };

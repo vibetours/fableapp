@@ -5,7 +5,7 @@ import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
-import { FABLE_RT_UMBRL, createEmptyFableIframe, createOverrideStyleEl, getFableRtUmbrlDiv, getHTMLElLeftOffset } from '../annotation/utils';
+import { createFableRtUmbrlDivShHost, createFablrRtUmbrlDiv, getFableRtUmbrlDiv, getFableRtUmbrlDivShHost } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem } from '../../types';
@@ -148,19 +148,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           Promise.all(this.assetLoadingPromises).then(() => {
             // create a elative container that would contain all the falbe related els
             if (frameBody) {
-              let umbrellaDiv = getFableRtUmbrlDiv(doc);
+              let umbrellaDiv = getFableRtUmbrlDivShHost(doc);
               if (!umbrellaDiv) {
-                const htmlElementLeftOffset = getHTMLElLeftOffset(doc);
-                umbrellaDiv = doc.createElement('div');
-                umbrellaDiv.setAttribute('class', FABLE_RT_UMBRL);
-                umbrellaDiv.style.position = 'absolute';
-                umbrellaDiv.style.left = `-${htmlElementLeftOffset}px`;
-                umbrellaDiv.style.top = `${0}`;
-                umbrellaDiv.style.setProperty('display', 'block', 'important');
-                frameBody.appendChild(umbrellaDiv);
-                const iframeEl = createEmptyFableIframe();
-                umbrellaDiv.appendChild(iframeEl);
-                umbrellaDiv.appendChild(createOverrideStyleEl(doc));
+                umbrellaDiv = createFableRtUmbrlDivShHost(doc);
               }
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,
