@@ -260,7 +260,7 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
               )
             }
-            {!location.pathname.startsWith('/preview') && (
+            {(!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/a')) && (
               <>
                 <Tags.MenuItem style={{
                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
