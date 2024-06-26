@@ -69,6 +69,13 @@ export const AnContent = styled.div<{
     }
   }
 
+  .hide-span-child iframe,
+  .fable-video-embed-frame {
+    aspect-ratio: 16/9;
+    width: 100%;
+    border: none;
+    border-radius: 16px;
+  }
 
   .LeadForm__container {
     display: block;
