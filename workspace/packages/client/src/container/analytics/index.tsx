@@ -528,7 +528,7 @@ const initialLeadsData = {
 type ActiveTabKey = 'funnel-dropoff' | 'leads'
 
 interface LeadsPerMail {
-  [email: string]: {idx: number, aids: string[]};
+  [email: string]: {idx: number, aids: string[], leadFormInfo: {[key: string]: any}};
 }
 interface IOwnStateProps {
   days: number;
@@ -638,8 +638,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       });
       this.props.getLeadsForTour(this.props.match.params.tourId, this.state.days, (data) => {
         const leadPerMail : LeadsPerMail = data.tourLeads.reduce((accumulator, currentLead, index) => {
-          if (currentLead.email in accumulator) (accumulator as any)[currentLead.email].aids.push(currentLead.aid);
-          else (accumulator as any)[currentLead.email] = { i: index, aids: [currentLead.aid] };
+          if (currentLead.primaryKey in accumulator) (accumulator as any)[currentLead.primaryKey].aids.push(currentLead.aid);
+          else (accumulator as any)[currentLead.primaryKey] = { i: index, aids: [currentLead.aid], leadFormInfo: currentLead.leadFormInfo };
           return accumulator;
         }, {});
 
@@ -647,7 +647,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         if (this.props.location.hash) {
           currentEmail = getMailFromAid(this.props.location.hash, leadPerMail);
         } else if (data.tourLeads.length !== 0) {
-          currentEmail = data.tourLeads[0].email;
+          currentEmail = data.tourLeads[0].primaryKey;
         }
         this.setState((prevS) => ({
           leadsData: {
@@ -695,7 +695,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           this.props.getLeadActivityForTour(this.props.match.params.tourId, aid, (data) => {
             emailActivity = [...emailActivity, ...data];
             numberOfEmailActivityAdded++;
-            ctaButtonClicked = ctaButtonClicked || data.some(activity => buttonIdMap[activity.payloadButtonId]);
+            ctaButtonClicked = ctaButtonClicked || data.some(activity => buttonIdMap[activity.payloadButtonId]|| activity.payloadButtonId === '$header_cta' || activity.payloadButtonId === '$journey_cta');
 
             if (numberOfEmailActivityAdded === this.state.leadsData.tourLeads[this.state.currentEmail!].aids.length) {
               const allTimelineForMail = groupAndSortSid(emailActivity);
@@ -746,6 +746,35 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     return btnIds;
+  };
+
+  renderLeadFormInfo = (key: string, value: any) => {
+    if (typeof value === 'object' && value !== null) {
+      return (
+        <div key={key}>
+          <strong>{this.capitalizeFirstLetters(key)}:</strong>
+          <div >
+            {Object.entries(value).map(([nestedKey, nestedValue]) =>
+              this.renderLeadFormInfo(nestedKey, nestedValue)
+            )}
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div key={key}>
+          {this.capitalizeFirstLetters(key)}: {value}
+        </div>
+      );
+    }
+  };
+  
+
+  capitalizeFirstLetters = (heading: string) => {
+    return heading
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   initAnalytics = async (): Promise<void> => {
@@ -1203,7 +1232,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         : (
                           <div>
                             <Tags.UserDataCon>
-                              <Tags.UserDataTxt className="title">Email ID</Tags.UserDataTxt>
+                              <Tags.UserDataTxt className="title">{this.capitalizeFirstLetters(this.props.opts!.lf_pkf) || "Email Id"}</Tags.UserDataTxt>
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Tags.UserDataTxt className="title">Activity</Tags.UserDataTxt>
                               </div>
@@ -1281,6 +1310,14 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                       {this.state.activityDetails.userClickedCTA ? 'Yes' : 'No'}
                                     </Tags.ActivityInfo>
                                   </p>
+                                  <div>
+                                    <span>Lead Form</span>
+                                    <Tags.ActivityInfo>
+                                    {this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo && Object.entries(this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo).map(([key, value]) =>
+                                          this.renderLeadFormInfo(key, value)
+                                    )}
+                                    </Tags.ActivityInfo>
+                                  </div>
                                 </Tags.UserMetaInf>
                                 )}
                               </div>

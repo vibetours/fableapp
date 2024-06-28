@@ -44,7 +44,7 @@ import {
   FormatPainterOutlined,
   RiseOutlined,
 } from '@ant-design/icons';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, ScreenType } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import Button from '../button';
 import * as Tags from './styled';
@@ -136,6 +136,7 @@ import CustomBtnConnectableAnns from './custom-btn-connectable-anns';
 const { confirm } = Modal;
 
 interface IProps {
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void
   journey: JourneyData | null;
   screen: P_RespScreen,
   config: IAnnotationConfig,
@@ -592,6 +593,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }}
         >
           <AnnotationRichTextEditor
+            tour={props.tour}
+            updateTourProp={props.updateTourProp}
             opts={opts}
             subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {

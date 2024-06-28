@@ -103,7 +103,8 @@ async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespTou
   if (vpd) {
     tsettings = {
       vpdHeight: vpd.height,
-      vpdWidth: vpd.width
+      vpdWidth: vpd.width,
+      primaryKey: 'email'
     };
   }
 

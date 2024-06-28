@@ -2077,6 +2077,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   onAnnotationCreateOrChange={this.props.onAnnotationCreateOrChange}
                                   config={configOfParamsAnnId}
                                   tour={this.props.tour}
+                                  updateTourProp={this.props.updateTourProp}
                                   applyAnnButtonLinkMutations={this.props.applyAnnButtonLinkMutations}
                                   selectedHotspotEl={this.state.selectedHotspotEl}
                                   subs={this.props.subs}
