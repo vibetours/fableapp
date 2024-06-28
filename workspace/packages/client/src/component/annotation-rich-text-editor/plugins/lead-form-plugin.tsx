@@ -9,6 +9,7 @@ import {
 } from 'lexical';
 import { useEffect } from 'react';
 import { ITourDataOpts } from '@fable/common/dist/types';
+import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import {
   $createLeadFormNode,
   createLeadFormOption,
@@ -18,7 +19,6 @@ import { CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND, INSERT_LEAD_FORM_COMMAND } from '
 import { LEAD_FORM_FIELDS, LeadFormPropertyType } from '../nodes/lead-form-component';
 import { updateTourDataOpts } from '../../annotation/annotation-config-utils';
 import { P_RespTour } from '../../../entity-processor';
-import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 
 interface Props {
   opts: ITourDataOpts;
@@ -64,7 +64,7 @@ export default function LeadFormPlugin(props: Props): JSX.Element | null {
         CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND,
         (pkField) => {
           props.setTourDataOpts(t => updateTourDataOpts(t, 'lf_pkf', pkField));
-          props.updateTourProp(props.tour.rid, 'settings', {vpdHeight: props.tour.settings?.vpdHeight || 0, vpdWidth: props.tour.settings?.vpdWidth || 0, primaryKey: pkField});
+          props.updateTourProp(props.tour.rid, 'settings', { vpdHeight: props.tour.settings?.vpdHeight || 0, vpdWidth: props.tour.settings?.vpdWidth || 0, primaryKey: pkField });
           return true;
         },
         COMMAND_PRIORITY_EDITOR,

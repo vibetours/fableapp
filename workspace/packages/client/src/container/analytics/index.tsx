@@ -695,7 +695,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           this.props.getLeadActivityForTour(this.props.match.params.tourId, aid, (data) => {
             emailActivity = [...emailActivity, ...data];
             numberOfEmailActivityAdded++;
-            ctaButtonClicked = ctaButtonClicked || data.some(activity => buttonIdMap[activity.payloadButtonId]|| activity.payloadButtonId === '$header_cta' || activity.payloadButtonId === '$journey_cta');
+            ctaButtonClicked = ctaButtonClicked || data.some(activity => buttonIdMap[activity.payloadButtonId] || activity.payloadButtonId === '$header_cta' || activity.payloadButtonId === '$journey_cta');
 
             if (numberOfEmailActivityAdded === this.state.leadsData.tourLeads[this.state.currentEmail!].aids.length) {
               const allTimelineForMail = groupAndSortSid(emailActivity);
@@ -753,29 +753,24 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       return (
         <div key={key}>
           <strong>{this.capitalizeFirstLetters(key)}:</strong>
-          <div >
-            {Object.entries(value).map(([nestedKey, nestedValue]) =>
-              this.renderLeadFormInfo(nestedKey, nestedValue)
-            )}
+          <div>
+            {Object.entries(value).map(([nestedKey, nestedValue]) => this.renderLeadFormInfo(nestedKey, nestedValue))}
           </div>
         </div>
       );
-    } else {
-      return (
-        <div key={key}>
-          {this.capitalizeFirstLetters(key)}: {value}
-        </div>
-      );
     }
+    return (
+      <div key={key}>
+        {this.capitalizeFirstLetters(key)}: {value}
+      </div>
+    );
   };
-  
 
-  capitalizeFirstLetters = (heading: string) => {
-    return heading
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+  // eslint-disable-next-line class-methods-use-this
+  capitalizeFirstLetters = (heading: string) => heading
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 
   initAnalytics = async (): Promise<void> => {
     const journeysWithAnns = getJourneyWithAnnotationsNormalized(
@@ -1232,7 +1227,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         : (
                           <div>
                             <Tags.UserDataCon>
-                              <Tags.UserDataTxt className="title">{this.capitalizeFirstLetters(this.props.opts!.lf_pkf) || "Email Id"}</Tags.UserDataTxt>
+                              <Tags.UserDataTxt className="title">{this.capitalizeFirstLetters(this.props.opts!.lf_pkf) || 'Email Id'}</Tags.UserDataTxt>
                               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                 <Tags.UserDataTxt className="title">Activity</Tags.UserDataTxt>
                               </div>
@@ -1313,9 +1308,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                   <div>
                                     <span>Lead Form</span>
                                     <Tags.ActivityInfo>
-                                    {this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo && Object.entries(this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo).map(([key, value]) =>
-                                          this.renderLeadFormInfo(key, value)
-                                    )}
+                                      {this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo && Object.entries(this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo).map(([key, value]) => this.renderLeadFormInfo(key, value))}
                                     </Tags.ActivityInfo>
                                   </div>
                                 </Tags.UserMetaInf>

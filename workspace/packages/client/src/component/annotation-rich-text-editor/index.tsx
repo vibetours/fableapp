@@ -14,6 +14,7 @@ import { ITourDataOpts } from '@fable/common/dist/types';
 import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode, LexicalNode, ParagraphNode } from 'lexical';
 import { SaveOutlined, } from '@ant-design/icons';
 import { getRandomId } from '@fable/common/dist/utils';
+import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
 import Theme from './themes';
@@ -28,7 +29,6 @@ import { FeatureAvailability } from '../../types';
 import { ExtendedLinkNode } from './nodes/extended-link-node';
 import { ExtendedAutoLinkNode } from './nodes/extended-auto-link-node';
 import './styles.css';
-import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 
 function Placeholder() : ReactElement {
   return <div className="editor-placeholder">Enter annotation text</div>;
@@ -153,7 +153,7 @@ export default function AnnotationRichTextEditor(props: React.PropsWithChildren<
           <OnChangePlugin onChange={onChangePluginHandler} />
           <AutoFocusPlugin />
           <LinkPlugin />
-          <LeadFormPlugin opts={props.opts} setTourDataOpts={props.setTourDataOpts} tour={props.tour} updateTourProp={props.updateTourProp}/>
+          <LeadFormPlugin opts={props.opts} setTourDataOpts={props.setTourDataOpts} tour={props.tour} updateTourProp={props.updateTourProp} />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={props.defaultValue} />
