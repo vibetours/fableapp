@@ -1498,23 +1498,28 @@ export interface TLeadActivity{
 
 export function getLeadActivityForTour(rid: string, aid: string) {
   return async (dispatch: Dispatch<TLeadActivity>) => {
-    const data = await api<null, ApiResp<RespLeadActivityUrl>>(`/getleadactvitydatafile?rid=${rid}&aid=${aid}`, {
-      auth: true,
-    });
-    const tmpActivityData = await api<null, any[]>(data.data.leadActivityUrl);
-    const activityData: LeadActivityData[] = tmpActivityData.map(tmpData => ({
-      sid: tmpData.sid,
-      aid: tmpData.aid,
-      uts: tmpData.uts,
-      payloadAnnId: tmpData.payload_ann_id,
-      payloadButtonId: tmpData.payload_btn_id
-    }));
+    try {
+      const data = await api<null, ApiResp<RespLeadActivityUrl>>(`/getleadactvitydatafile?rid=${rid}&aid=${aid}`, {
+        auth: true,
+      });
+      const tmpActivityData = await api<null, any[]>(data.data.leadActivityUrl);
+      const activityData: LeadActivityData[] = tmpActivityData.map(tmpData => ({
+        sid: tmpData.sid,
+        aid: tmpData.aid,
+        uts: tmpData.uts,
+        payloadAnnId: tmpData.payload_ann_id,
+        payloadButtonId: tmpData.payload_btn_id
+      }));
 
-    dispatch({
-      type: ActionType.ANALYTICS_LEAD_ACTIVITY,
-      leadData: activityData,
-    });
-    return Promise.resolve(activityData);
+      dispatch({
+        type: ActionType.ANALYTICS_LEAD_ACTIVITY,
+        leadData: activityData,
+      });
+      return Promise.resolve(activityData);
+    } catch (e) {
+      console.warn(`Can't find lead activity for ${aid}`);
+      return Promise.resolve([]);
+    }
   };
 }
 

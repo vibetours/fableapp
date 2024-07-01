@@ -1305,6 +1305,11 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                               maxTimeSpentOnSession={getMaxTimeSpent(this.state.activityTimeline!)}
                                             />
                                           ))}
+                                          {Object.keys(this.state.activityTimeline!).length === 0 && (
+                                            <>
+                                              No data to show. User probably hasn't click on any annotation.
+                                            </>
+                                          )}
                                         </div>
                                         )
                                         }
