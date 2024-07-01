@@ -748,57 +748,51 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     return btnIds;
   };
 
- flattenAndRemoveDuplicates = (obj: { [key: string]: any }, parentKey = '', res: { [key: string]: any } = {}) =>  {
-  for (let key in obj) {
+  flattenAndRemoveDuplicates = (obj: { [key: string]: any }, parentKey = '', res: { [key: string]: any } = {}) => {
+    for (const key in obj) {
       if (key === 'custom_fields') {
-          this.flattenAndRemoveDuplicates(obj[key], parentKey, res);
+        this.flattenAndRemoveDuplicates(obj[key], parentKey, res);
       } else {
-          let propName = parentKey ? `${parentKey}.${key}` : key;
-          if (key !== 'pk_key' && key !== 'pk_val') {
-              if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-                  this.flattenAndRemoveDuplicates(obj[key], propName, res);
-              } else {
-                  if (!(propName in res) || res[propName] !== obj[key]) {
-                      res[propName] = obj[key];
-                  }
-              }
+        const propName = parentKey ? `${parentKey}.${key}` : key;
+        if (key !== 'pk_key' && key !== 'pk_val') {
+          if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+            this.flattenAndRemoveDuplicates(obj[key], propName, res);
+          } else if (!(propName in res) || res[propName] !== obj[key]) {
+            res[propName] = obj[key];
           }
+        }
       }
-  }
-  return res;
-}
+    }
+    return res;
+  };
 
   renderLeadFormInfo = (leadFormInfo: { [x: string]: any; }) => {
     const flattenedLeadFormInfo = this.flattenAndRemoveDuplicates(leadFormInfo);
 
     const renderKeyValue = (key: any, value: any) => {
-        if (typeof value === 'object' && value !== null) {
-            return (
-                <span key={key}>
-                    <>{this.capitalizeFirstLetters(key)}:</>
-                    <>
-                        {Object.entries(value).map(([nestedKey, nestedValue]) =>
-                            renderKeyValue(nestedKey, nestedValue)
-                        )}
-                    </>
-                </span>
-            );
-        }
+      if (typeof value === 'object' && value !== null) {
         return (
-            <li key={key} style={{ paddingTop: '0.5rem' }}>
-                <span>{this.capitalizeFirstLetters(key)}:</span> {value}
-            </li>
+          <span key={key}>
+            <>{this.capitalizeFirstLetters(key)}:</>
+            <>
+              {Object.entries(value).map(([nestedKey, nestedValue]) => renderKeyValue(nestedKey, nestedValue))}
+            </>
+          </span>
         );
+      }
+      return (
+        <li key={key} style={{ paddingTop: '0.5rem' }}>
+          <span>{this.capitalizeFirstLetters(key)}:</span> {value}
+        </li>
+      );
     };
 
     return (
-        <span>
-            {Object.entries(flattenedLeadFormInfo).map(([key, value]) =>
-                renderKeyValue(key, value)
-            )}
-        </span>
+      <span>
+        {Object.entries(flattenedLeadFormInfo).map(([key, value]) => renderKeyValue(key, value))}
+      </span>
     );
-};
+  };
 
   // eslint-disable-next-line class-methods-use-this
   capitalizeFirstLetters = (heading: string) => heading
