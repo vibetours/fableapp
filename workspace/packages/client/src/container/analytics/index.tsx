@@ -748,23 +748,57 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     return btnIds;
   };
 
-  renderLeadFormInfo = (key: string, value: any) => {
-    if (typeof value === 'object' && value !== null) {
-      return (
-        <div key={key}>
-          <strong>{this.capitalizeFirstLetters(key)}:</strong>
-          <div>
-            {Object.entries(value).map(([nestedKey, nestedValue]) => this.renderLeadFormInfo(nestedKey, nestedValue))}
-          </div>
-        </div>
-      );
-    }
+ flattenAndRemoveDuplicates = (obj: { [key: string]: any }, parentKey = '', res: { [key: string]: any } = {}) =>  {
+  for (let key in obj) {
+      if (key === 'custom_fields') {
+          this.flattenAndRemoveDuplicates(obj[key], parentKey, res);
+      } else {
+          let propName = parentKey ? `${parentKey}.${key}` : key;
+          if (key !== 'pk_key' && key !== 'pk_val') {
+              if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                  this.flattenAndRemoveDuplicates(obj[key], propName, res);
+              } else {
+                  if (!(propName in res) || res[propName] !== obj[key]) {
+                      res[propName] = obj[key];
+                  }
+              }
+          }
+      }
+  }
+  return res;
+}
+
+  renderLeadFormInfo = (leadFormInfo: { [x: string]: any; }) => {
+    const flattenedLeadFormInfo = this.flattenAndRemoveDuplicates(leadFormInfo);
+
+    const renderKeyValue = (key: any, value: any) => {
+        if (typeof value === 'object' && value !== null) {
+            return (
+                <span key={key}>
+                    <>{this.capitalizeFirstLetters(key)}:</>
+                    <>
+                        {Object.entries(value).map(([nestedKey, nestedValue]) =>
+                            renderKeyValue(nestedKey, nestedValue)
+                        )}
+                    </>
+                </span>
+            );
+        }
+        return (
+            <li key={key} style={{ paddingTop: '0.5rem' }}>
+                <span>{this.capitalizeFirstLetters(key)}:</span> {value}
+            </li>
+        );
+    };
+
     return (
-      <div key={key}>
-        {this.capitalizeFirstLetters(key)}: {value}
-      </div>
+        <span>
+            {Object.entries(flattenedLeadFormInfo).map(([key, value]) =>
+                renderKeyValue(key, value)
+            )}
+        </span>
     );
-  };
+};
 
   // eslint-disable-next-line class-methods-use-this
   capitalizeFirstLetters = (heading: string) => heading
@@ -1305,12 +1339,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                       {this.state.activityDetails.userClickedCTA ? 'Yes' : 'No'}
                                     </Tags.ActivityInfo>
                                   </p>
-                                  <div>
+                                  <p>
                                     <span>Lead Form</span>
                                     <Tags.ActivityInfo>
-                                      {this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo && Object.entries(this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo).map(([key, value]) => this.renderLeadFormInfo(key, value))}
+                                      {this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo && this.renderLeadFormInfo(this.state.leadsData.tourLeads[this.state.currentEmail!].leadFormInfo)}
                                     </Tags.ActivityInfo>
-                                  </div>
+                                  </p>
                                 </Tags.UserMetaInf>
                                 )}
                               </div>
