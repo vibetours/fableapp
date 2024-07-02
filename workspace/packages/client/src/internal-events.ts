@@ -48,6 +48,25 @@ export function emitEvent<T>(
 
 const registeredListeners = {} as Record<InternalEvents, Array<<T extends Payload_IE_All>(payload: T) => void>>;
 
+function trimStr(str: string | undefined) {
+  if (!str) return str;
+  return str.trim();
+}
+
+function trimRecordValues(record: Record<string, string | number | undefined | null>): Record<string, string | number | undefined | null> {
+  const trimmedRecord: Record<string, string | number | undefined | null> = {};
+
+  // eslint-disable-next-line prefer-const
+  for (let [key, value] of Object.entries(record)) {
+    if (typeof value === 'string' || typeof value === 'undefined') {
+      value = trimStr(value);
+    }
+    trimmedRecord[key] = value;
+  }
+
+  return trimmedRecord;
+}
+
 export function registerListenerForInternalEvent(ev: InternalEvents, fn: (payload: Payload_IE_All) => void): void {
   if (ev in registeredListeners) registeredListeners[ev].push(fn);
   else registeredListeners[ev] = [fn];
@@ -91,19 +110,20 @@ export function initInternalEvents() : void {
       event: CBEvents.CREATE_CONTACT,
       payload: {
         ...lead,
-        phone: lead.phone || ftmQueryParams.phone,
-        first_name: lead.first_name || ftmQueryParams.first_name,
-        last_name: lead.last_name || ftmQueryParams.last_name,
+        pk_val: trimStr(lead.pk_val)!,
+        phone: trimStr(lead.phone || ftmQueryParams.phone),
+        first_name: trimStr(lead.first_name || ftmQueryParams.first_name),
+        last_name: trimStr(lead.last_name || ftmQueryParams.last_name),
         org: lead.org || ftmQueryParams.org,
-        email: lead.email || ftmQueryParams.email,
+        email: trimStr(lead.email || ftmQueryParams.email),
         ti: demo.id,
       },
     }, demo.rid);
 
     logEvent(AnalyticsEvents.ANN_USER_ASSIGN, {
-      user_email: lead.pk_val,
+      user_email: trimStr(lead.pk_val)!,
       tour_id: demo.id,
-      others: lead as unknown as Record<string, string | number | undefined | null>,
+      others: trimRecordValues(lead as unknown as Record<string, string | number | undefined | null>),
     });
   });
 
