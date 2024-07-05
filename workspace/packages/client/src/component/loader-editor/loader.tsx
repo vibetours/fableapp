@@ -22,8 +22,8 @@ function Loader(props: Props): JSX.Element {
       {
         !isLoaderPresent && (
           <Tags.CenteredLoaderLogoDiv>
-            <img src={props.data.logo.url} alt="logo" />
-            <Tags.LoadingTextAnim>{props.data.loadingText}</Tags.LoadingTextAnim>
+            <img src={props.data.logo.url._val} alt="logo" />
+            <Tags.LoadingTextAnim>{props.data.loadingText._val}</Tags.LoadingTextAnim>
           </Tags.CenteredLoaderLogoDiv>
         )
       }
@@ -39,7 +39,7 @@ function Loader(props: Props): JSX.Element {
                   style={{ height: `${logoHeightWhenWithLoader}px` }}
                   loaderHeight={loaderHeight}
                 >
-                  <img src={props.data.logo.url} alt="logo" />
+                  <img src={props.data.logo.url._val} alt="logo" />
                 </Tags.LogoWithLoader>
                 <Tags.Loader
                   className="loader"
@@ -68,7 +68,7 @@ function Loader(props: Props): JSX.Element {
                   loaderHeight={loaderHeight}
                   animationTime={logoWithLoaderAnimationTime}
                   animationDelay={logoWithLoaderAnimationDelay}
-                >{props.data.loadingText}
+                >{props.data.loadingText._val}
                 </Tags.LoadingTextWithLoader>
               </Tags.PosRelCon>
             </Tags.LogoWithLoaderCon>

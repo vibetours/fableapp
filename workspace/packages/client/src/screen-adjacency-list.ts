@@ -46,7 +46,7 @@ export default function create(
       const idx = btn.type === 'prev' ? 2 : 1;
       const adjScreen = adjacentList[idx];
       const toAnnId = btn.hotspot.actionValue;
-      const [toScreenId] = toAnnId.split('/');
+      const [toScreenId] = toAnnId._val.split('/');
       if (toScreenId === screenId) {
         continue;
       }

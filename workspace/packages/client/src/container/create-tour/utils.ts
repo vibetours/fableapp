@@ -11,7 +11,8 @@ import {
   NODE_NAME,
   ThemeBorderRadiusCandidatePerNode,
   ThemeColorCandidatPerNode,
-  ProxyAttrs
+  ProxyAttrs,
+  IGlobalConfig
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import {
@@ -36,7 +37,10 @@ import {
   getDefaultTourOpts,
   hexToRGB,
   rgbToHex,
-  getImgScreenData
+  getImgScreenData,
+  createLiteralProperty,
+  createGlobalProperty,
+  GlobalPropsPath
 } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -77,10 +81,11 @@ export async function saveScreen(
 export async function saveAsTour(
   screens: ScreenInfo[],
   existingTour: P_RespTour | null,
+  globalOpts: IGlobalConfig,
   tourName: string = 'Untitled',
   // TODO[now] change this
   annotationBodyBackgroundColor: string = '#ffffff',
-  annotationBorderRadius: number = DEFAULT_BORDER_RADIUS
+  annotationBorderRadius: number | 'global' = DEFAULT_BORDER_RADIUS,
 ): Promise<ApiResp<RespTour>> {
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
@@ -90,7 +95,8 @@ export async function saveAsTour(
     existingTour,
     tourName,
     annotationBodyBackgroundColor,
-    annotationBorderRadius
+    annotationBorderRadius,
+    globalOpts,
   );
   const res = await saveTour(tourRid, tourDataFile);
   return res;
@@ -153,7 +159,7 @@ function createAnnotationHotspot(screenId: number, annotationRefId: string): ITo
     on: 'click',
     target: '$this',
     actionType: 'navigate',
-    actionValue: `${screenId}/${annotationRefId}`
+    actionValue: createLiteralProperty(`${screenId}/${annotationRefId}`)
   };
 }
 
@@ -162,7 +168,8 @@ async function addAnnotationConfigs(
   existingTour: P_RespTour | null,
   tourName: string,
   annotationBodyBackgroundColor: string,
-  annotationBorderRadius: number
+  annotationBorderRadius: number | 'global',
+  globalOpts: IGlobalConfig,
 ): Promise<{ tourDataFile: TourData, tourRid: string }> {
   const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
   let tourDataFile: TourData;
@@ -172,7 +179,7 @@ async function addAnnotationConfigs(
   if (existingTour) {
     tourRid = existingTour.rid;
     tourDataFile = await api<null, TourData>(existingTour.dataFileUri.href);
-    if (!tourDataFile.opts) tourDataFile.opts = getDefaultTourOpts();
+    if (!tourDataFile.opts) tourDataFile.opts = getDefaultTourOpts(globalOpts);
     if (!tourDataFile.diagnostics) tourDataFile.diagnostics = {};
   } else {
     let settings = null;
@@ -181,7 +188,7 @@ async function addAnnotationConfigs(
     }
     const tourData = await createNewTour(tourName, settings);
     tourRid = tourData.rid;
-    tourDataFile = createEmptyTourDataFile();
+    tourDataFile = createEmptyTourDataFile(globalOpts);
   }
 
   const annConfigs: Array<IAnnotationConfig> = [];
@@ -193,7 +200,7 @@ async function addAnnotationConfigs(
     const screen = screenInfo[i].info!;
     const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid);
     screensInTourPromises.push(newScreen);
-    const screenConfig = getSampleConfig(screen.elPath, grpId);
+    const screenConfig = getSampleConfig(screen.elPath, grpId, globalOpts);
     screenConfig.showOverlay = false;
     screenConfig.isHotspot = true;
 
@@ -223,7 +230,7 @@ async function addAnnotationConfigs(
       if (i === screenInfo.length - 1) {
         screenConfig.buttons.forEach((button) => {
           if (button.type === 'next') {
-            button.text = 'Book a demo';
+            button.text = createLiteralProperty('Book a demo');
           }
         });
       }
@@ -241,7 +248,9 @@ async function addAnnotationConfigs(
   for (let i = 0; i < screenInfo.length; i++) {
     const screen = screenInfo[i];
     const annotationConfig = annConfigs[i];
-    annotationConfig.annotationSelectionColor = relevantColors.selection;
+    if (annotationBodyBackgroundColor !== 'global') {
+      annotationConfig.annotationSelectionColor = createLiteralProperty(relevantColors.selection);
+    }
     if (!(i === 0 && i === screenInfo.length - 1)) {
       // If there is only one annotation in the tour then there is no point in connection, as both next and prev
       // will be empty
@@ -275,11 +284,17 @@ async function addAnnotationConfigs(
 
   // If we are adding annotations to existing tour then don't change anything from the theme
   if (!existingTour) {
-    tourDataFile.opts.annotationBodyBackgroundColor = annotationBodyBackgroundColor;
-    tourDataFile.opts.primaryColor = relevantColors.primary;
-    tourDataFile.opts.borderRadius = annotationBorderRadius;
-    tourDataFile.opts.annotationFontColor = relevantColors.font;
+    if (annotationBodyBackgroundColor !== 'global') {
+      tourDataFile.opts.annotationBodyBackgroundColor = createLiteralProperty(annotationBodyBackgroundColor);
+      tourDataFile.opts.primaryColor = createLiteralProperty(relevantColors.primary);
+      tourDataFile.opts.annotationFontColor = createLiteralProperty(relevantColors.font);
+    }
+
+    if (annotationBorderRadius !== 'global') {
+      tourDataFile.opts.borderRadius = createLiteralProperty(annotationBorderRadius);
+    }
   }
+
   return { tourDataFile, tourRid };
 }
 
@@ -875,16 +890,24 @@ class CreateLookupWithProp<T> {
   };
 }
 
-export function getThemeAnnotationOpts(color: string, radius: number = DEFAULT_BORDER_RADIUS): ITourDataOpts {
-  const opts = getDefaultTourOpts();
-  if (color) {
-    opts.annotationBodyBackgroundColor = color;
-    const relevantColors = getRelevantColors(opts.annotationBodyBackgroundColor);
-    opts.primaryColor = relevantColors.primary;
-    opts.annotationFontColor = relevantColors.font;
+export function getThemeAnnotationOpts(
+  color: string | 'global',
+  globalOpts: IGlobalConfig,
+  radius: number | 'global' = DEFAULT_BORDER_RADIUS,
+): ITourDataOpts {
+  const opts = getDefaultTourOpts(globalOpts);
+
+  if (color !== 'global') {
+    opts.annotationBodyBackgroundColor = createLiteralProperty(color);
+    const relevantColors = getRelevantColors(opts.annotationBodyBackgroundColor._val);
+    opts.primaryColor = createLiteralProperty(relevantColors.primary);
+    opts.annotationFontColor = createLiteralProperty(relevantColors.font);
   }
-  opts.borderRadius = radius;
-  opts.annotationPadding = '18';
+
+  if (radius !== 'global') {
+    opts.borderRadius = createLiteralProperty(radius);
+  }
+
   return opts;
 }
 

@@ -1,4 +1,4 @@
-import { Slider, InputNumber, Input, Switch, Collapse, Dropdown } from 'antd';
+import { Slider, InputNumber, Input, Switch, Collapse, Dropdown, Popover } from 'antd';
 import styled from 'styled-components';
 
 export const EditPanelSec = styled.div`
@@ -64,6 +64,11 @@ export const AnotCrtPanelCon = styled.div`
   padding: 0;
   border-radius: 8px;
   flex-direction: column;
+
+  .ver-center {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 export const AnotCrtPanelSec = styled.div`
@@ -330,13 +335,15 @@ export const CTALinkInputCont = styled.div`
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
   gap: 0.5rem;
+  align-items: center;
+  height: 100%;
 `;
 
 export const InputText = styled(Input)`
   border-radius: 8px;
   border: 1px dashed #BDBDBD;
   height: 100%;
-  width: 140px;
+  width: 125px;
   background: white;
 
   &:hover {
@@ -346,7 +353,7 @@ export const InputText = styled(Input)`
 `;
 
 export const InputNumberBorderRadius = styled(InputNumber)`
-  width: 140px;
+  width: 120px;
   height: 100%;
   border-radius: 8px;
   border: 1px dashed #BDBDBD;
@@ -756,5 +763,34 @@ export const UploadMediaLabel = styled.label`
 
   &:disabled {
     opacity: 0.5;
+  }
+`;
+
+export const StyledPopover = styled(Popover)`
+.ant-popover-inner {
+    border-radius: 16px !important;
+    border: 1px solid #EAEAEA !important;
+    background: var(--White, #FFF) !important;
+    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.08) !important;
+  }
+`;
+
+export const PopoverMenuCon = styled.div`
+  width: 180px;
+`;
+
+export const PopoverMenu = styled.button`
+  display: block;
+  background-color: white;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #16023E;
+
+  &:hover {
+    background-color: #F8F8F8;
   }
 `;

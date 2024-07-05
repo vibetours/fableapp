@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { CmnEvtProp, ITourDataOpts } from '@fable/common/dist/types';
+import { CmnEvtProp, ITourDataOpts, Property, PropertyType } from '@fable/common/dist/types';
 import { LoadingOutlined } from '@ant-design/icons';
 import { Collapse, Drawer, Spin } from 'antd';
 import { timeFormat } from 'd3-time-format';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
-import { baseURL, createIframeSrc, debounce, getValidUrl } from '../../utils';
+import { baseURL, createIframeSrc, debounce, getValidUrl, isGlobalProperty } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import PublishButton from './publish-button';
@@ -16,11 +17,12 @@ import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { SiteData, SiteThemePresets } from '../../types';
+import { SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
 import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
+import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -66,6 +68,8 @@ const enum SearchParamBy {
   UserParam
 }
 
+type UpdateBrandDataFn = <K extends keyof SiteData>(changeData: Array<[key: K, value: SiteData[K]]>) => void;
+
 interface CTAInfoProps {
   iframeUrl: string,
   showHelpDrawer: (show: boolean) => void;
@@ -73,7 +77,7 @@ interface CTAInfoProps {
   handleParamsAdd: (params: ParamType, v: string | undefined)=>void,
   showInlinkLinkExplore: boolean,
   site: SiteData | null,
-  updateBrandData: (changeData: Array<[key: keyof SiteData, value: string]>) => void,
+  updateBrandData: UpdateBrandDataFn,
   disableEdit:boolean,
   tourOpts: ITourDataOpts | null,
   calledFrom: 'cta_share' | 'internal_share',
@@ -97,10 +101,30 @@ function CTAInfo({ iframeUrl,
   selectedDomain
 }: CTAInfoProps): JSX.Element {
   const [logoUploading, setLogoUploading] = useState(false);
+  const [currentIpVals, setCurrentIpVals] = useState({
+    navLink: site?.navLink._val || '',
+    ctaText: site?.ctaText._val || '',
+    ctaLink: site?.ctaLink._val || '',
+  });
 
-  const debouncedChangeHandler = debounce((property: keyof SiteData, value: string) => {
+  useEffect(() => {
+    if (!site) return;
+    const keys: Array<keyof SiteData_WithProperty> = ['navLink', 'ctaText', 'ctaLink'];
+    for (const key of keys) {
+      if (site[key].type === PropertyType.REF) {
+        setCurrentIpVals(prev => ({ ...prev, [key]: site[key]._val }));
+      }
+    }
+  }, [site]);
+
+  const debouncedChangeHandler = debounce(<K extends keyof Omit<SiteData, 'v'>>(property: K, value: SiteData[K]) => {
     updateBrandData([[property, value]]);
-    amplitudeCtaConfigChanged(property, value);
+
+    if (!(SiteDateKeysWithProperty as string[]).includes(property)) {
+      amplitudeCtaConfigChanged(property, (value as Property<string>)._val);
+    } else {
+      amplitudeCtaConfigChanged(property, value as string);
+    }
   }, 500);
 
   const debouncedThemeHandler = debounce((property: 'themePreset', theme: keyof typeof SiteThemePresets) => {
@@ -148,7 +172,7 @@ function CTAInfo({ iframeUrl,
                               if (file) {
                                 setLogoUploading(true);
                                 const fileUrl = await uploadFileToAws(e.target.files[0]);
-                                updateBrandData([['logo', fileUrl]]);
+                                updateBrandData([['logo', createLiteralProperty(fileUrl)]]);
                                 amplitudeCtaConfigChanged('logo', fileUrl);
                                 setLogoUploading(false);
                               }
@@ -159,8 +183,14 @@ function CTAInfo({ iframeUrl,
                       {
                       logoUploading
                         ? <Spin indicator={<LoadingOutlined style={{ fontSize: 20 }} spin />} />
-                        : <img alt="Site page logo" src={site.logo} height={32} />
+                        : <img alt="Site page logo" src={site.logo._val} height={32} />
                     }
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(site.logo)}
+                        onApplyGlobal={() => {
+                          updateBrandData([['logo', createGlobalProperty(site.logo._val, GlobalPropsPath.logo)]]);
+                        }}
+                      />
                     </div>
                   </div>
                   <div>
@@ -169,18 +199,27 @@ function CTAInfo({ iframeUrl,
                       <GTags.SimpleInput
                         className="typ-ip"
                         disabled={disableEdit}
+                        value={currentIpVals.navLink}
                         placeholder="Link when brand logo is clicked"
-                        defaultValue={site.navLink}
                         onChange={(e) => {
                           const link = e.target.value;
+                          setCurrentIpVals(prev => ({ ...prev, navLink: link }));
                           const formattedLink = getValidUrl(link);
-                          debouncedChangeHandler('navLink', formattedLink);
+                          debouncedChangeHandler('navLink', createLiteralProperty(formattedLink));
+                        }}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(site.navLink)}
+                        onApplyGlobal={() => {
+                          updateBrandData([[
+                            'navLink', createGlobalProperty(site.navLink._val, GlobalPropsPath.companyUrl)
+                          ]]);
                         }}
                       />
                     </div>
                   </div>
                 </div>
-                <div>
+                <div style={{ width: 'calc(100% - 2rem)' }}>
                   <span className="cta-input-label">Demo Title</span>
                   <div className="cta-input-c">
                     <GTags.SimpleInput
@@ -198,29 +237,53 @@ function CTAInfo({ iframeUrl,
                 <div className="cta-info">
                   <div>
                     <span className="cta-input-label">CTA text</span>
-                    <GTags.SimpleInput
-                      className="typ-ip cta-input-c"
-                      disabled={disableEdit}
-                      placeholder="CTA Text"
-                      defaultValue={site.ctaText}
-                      onChange={(e) => {
-                        debouncedChangeHandler('ctaText', e.target.value);
-                      }}
-                    />
+                    <div className="cta-input-c">
+                      <GTags.SimpleInput
+                        className="typ-ip cta-input-c"
+                        disabled={disableEdit}
+                        placeholder="CTA Text"
+                        value={currentIpVals.ctaText}
+                        onChange={(e) => {
+                          setCurrentIpVals(prev => ({ ...prev, ctaText: e.target.value }));
+                          debouncedChangeHandler('ctaText', createLiteralProperty(e.target.value));
+                        }}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(site.ctaText)}
+                        onApplyGlobal={() => {
+                          updateBrandData([['ctaText', createGlobalProperty(
+                            site.ctaText._val,
+                            GlobalPropsPath.customBtn1Text
+                          )]]);
+                        }}
+                      />
+                    </div>
                   </div>
                   <div>
                     <span className="cta-input-label">CTA link</span>
-                    <GTags.SimpleInput
-                      className="typ-ip cta-input-c"
-                      disabled={disableEdit}
-                      placeholder="CTA link"
-                      defaultValue={site.ctaLink}
-                      onChange={(e) => {
-                        const link = e.target.value;
-                        const formattedLink = getValidUrl(link);
-                        debouncedChangeHandler('ctaLink', formattedLink);
-                      }}
-                    />
+                    <div className="cta-input-c">
+                      <GTags.SimpleInput
+                        className="typ-ip cta-input-c"
+                        disabled={disableEdit}
+                        placeholder="CTA link"
+                        value={currentIpVals.ctaLink}
+                        onChange={(e) => {
+                          const link = e.target.value;
+                          setCurrentIpVals(prev => ({ ...prev, ctaLink: e.target.value }));
+                          const formattedLink = getValidUrl(link);
+                          debouncedChangeHandler('ctaLink', createLiteralProperty(formattedLink));
+                        }}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(site.ctaLink)}
+                        onApplyGlobal={() => {
+                          updateBrandData([['ctaLink', createGlobalProperty(
+                            site.ctaLink._val,
+                            GlobalPropsPath.customBtn1URL,
+                          )]]);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -346,7 +409,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
 
   useEffect(() => {
     setLocalSite(props.tour.site);
-  }, []);
+  }, [props.tour.site]);
 
   useEffect(() => {
     if (props.vanityDomains && props.vanityDomains.length > 0) {
@@ -371,7 +434,9 @@ export default function ShareTourModal(props: Props): JSX.Element {
     });
   };
 
-  const updateBrandData = (changeData: Array<[key: keyof SiteData, value: string]>): void => {
+  const updateBrandData: UpdateBrandDataFn = <K extends keyof SiteData>(
+    changeData: Array<[key: K, value: SiteData[K]]>
+  ): void => {
     if (localSite && props.onSiteDataChange) {
       let newSiteData = { ...localSite };
       for (const changeItem of changeData) {

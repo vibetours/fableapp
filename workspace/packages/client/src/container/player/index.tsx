@@ -701,14 +701,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   navigateToAndLogEvent = (journeyData: JourneyData, type: 'annotation-hotspot' | 'abs'): void => {
-    this.navFn(journeyData.cta!.navigateTo, type);
+    this.navFn(journeyData.cta!.navigateTo._val, type);
     Promise.resolve().then(() => {
       if (type !== 'annotation-hotspot') {
         emitEvent<CtaClickedInternal>(InternalEvents.OnCtaClicked, {
           ctaFrom: CtaFrom.Journey,
           btnId: '$journey_cta',
-          url: journeyData.cta!.navigateTo,
-          btnTxt: journeyData.cta!.text
+          url: journeyData.cta!.navigateTo._val,
+          btnTxt: journeyData.cta!.text._val
         });
 
         emitEvent<AnnotationBtnClickedPayload>(InternalEvents.OnAnnotationNav, {

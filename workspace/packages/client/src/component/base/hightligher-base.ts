@@ -272,10 +272,10 @@ export default abstract class HighlighterBase {
 
   protected attachElToUmbrellaDiv(el: Element) {
     const umbrellaDiv = getFableRtUmbrlDiv(this.doc);
-    const annotationsContainer = this.doc.getElementsByClassName('fable-annotations--container')[0] as HTMLDivElement;
     if (!umbrellaDiv) {
       throw new Error('Container div not found');
     }
+    const annotationsContainer = umbrellaDiv.querySelector('.fable-annotations--container');
 
     umbrellaDiv.insertBefore(el, annotationsContainer);
     return this;

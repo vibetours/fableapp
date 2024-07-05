@@ -13,6 +13,7 @@ import {
   LoadingStatus,
   ScreenData,
   TourData,
+  IGlobalConfig,
 } from '@fable/common/dist/types';
 import ActionType from '../action/type';
 import {
@@ -49,6 +50,7 @@ import {
   TAddCustomDomain,
   TUpdateCustomDomain,
   TRemoveScreenData,
+  TSetGlobalConfig,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
@@ -103,6 +105,7 @@ export const initialState: {
   defaultTourLoadingStatus: LoadingStatus;
   elpathKey: ElPathKey;
   featureForPlan: FeatureForPlan | null;
+  globalConfig: IGlobalConfig | null;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -148,7 +151,8 @@ export const initialState: {
   journey: null,
   defaultTourLoadingStatus: LoadingStatus.NotStarted,
   elpathKey: 'id',
-  featureForPlan: null
+  featureForPlan: null,
+  globalConfig: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -262,6 +266,13 @@ export default function projectReducer(state = initialState, action: Action) {
       return newState;
     }
 
+    case ActionType.SET_GLOBAL_CONFIG: {
+      const tAction = action as TSetGlobalConfig;
+      const newState = { ...state };
+      newState.globalConfig = tAction.globalConfig;
+      return newState;
+    }
+
     case ActionType.SUBS: {
       const tAction = action as TSubs;
       const newState = { ...state };
@@ -306,6 +317,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const tAction = action as TGetAllTours;
       const newState = { ...state };
       newState.tours = tAction.tours;
+      newState.globalConfig = tAction.globalConfig;
       newState.allToursLoadingStatus = LoadingStatus.Done;
       return newState;
     }
@@ -463,6 +475,7 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.currentTour = tAction.tour;
       newState.tourLoaderData = tAction.loader;
+      newState.globalConfig = tAction.globalConfig;
       return newState;
     }
 
@@ -475,6 +488,7 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.remoteTourOpts = tAction.opts;
       newState.tourLoaded = true;
       newState.journey = tAction.journey;
+      newState.globalConfig = tAction.globalConfig;
 
       if (tAction.allCorrespondingScreens && tAction.tour.screens) {
         newState.allScreens = tAction.tour.screens;

@@ -2,11 +2,18 @@ import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
   AnnotationPositions,
+  AnnotationSelectionEffect,
   CreateJourneyPositioning,
   CustomAnnDims,
+  IAnnotationButton_WithProperty,
   IAnnotationConfig,
+  IAnnotationConfig_WithProperty,
+  IGlobalConfig,
   ITourDataOpts,
-  TourData
+  Property,
+  PropertyType,
+  TourData,
+  TourDataOpts_WithProperty
 } from './types';
 import { SchemaVersion } from './api-contract';
 import { DEFAULT_BLUE_BORDER_COLOR } from './constants';
@@ -76,43 +83,90 @@ export function snowflake(): number {
   return parseInt(`${+new Date()}${(Math.random() * 1000) | 0}`, 10);
 }
 
-export const getDefaultTourOpts = (): ITourDataOpts => ({
+export const createLiteralProperty = <T>(val : T) : Property<T> => ({
+  type: PropertyType.LITERAL,
+  from: '',
+  _val: val
+});
+
+export const createGlobalProperty = <T>(
+  val : T,
+  from : typeof GlobalPropsPath[keyof typeof GlobalPropsPath])
+  : Property<T> => (
+    {
+      type: PropertyType.REF,
+      from: from as string,
+      _val: val
+    }
+  );
+
+export const getDefaultTourOpts = (globalOpts: IGlobalConfig): ITourDataOpts => ({
   lf_pkf: 'email',
   main: '',
-  primaryColor: '#7567FF',
-  annotationBodyBackgroundColor: '#FFFFFF',
-  annotationBodyBorderColor: '#BDBDBD',
-  annotationFontColor: '#424242',
+  primaryColor: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.primaryColor),
+    GlobalPropsPath.primaryColor,
+  ),
+  annotationBodyBackgroundColor: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.annBodyBgColor),
+    GlobalPropsPath.annBodyBgColor,
+  ),
+  annotationBodyBorderColor: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.annBorderColor),
+    GlobalPropsPath.annBorderColor,
+  ),
+  annotationFontColor: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.fontColor),
+    GlobalPropsPath.fontColor,
+  ),
   monoIncKey: 0,
   createdAt: getCurrentUtcUnixTime(),
   updatedAt: getCurrentUtcUnixTime(),
-  annotationFontFamily: null,
-  borderRadius: 4,
-  annotationPadding: '14 14',
-  showFableWatermark: true,
-  showStepNum: true,
+  annotationFontFamily: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.fontFamily),
+    GlobalPropsPath.fontFamily,
+  ),
+  borderRadius: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.annBorderRadius),
+    GlobalPropsPath.annBorderRadius,
+  ),
+  annotationPadding: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.annConPad),
+    GlobalPropsPath.annConPad,
+  ),
+  showFableWatermark: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.showWatermark),
+    GlobalPropsPath.showWatermark,
+  ),
+  showStepNum: createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.showStepNo),
+    GlobalPropsPath.showStepNo,
+  ),
   reduceMotionForMobile: false,
 });
 
-export function getSampleJourneyData() {
+export function getSampleJourneyData(globalOpts: IGlobalConfig) {
   return {
     positioning: CreateJourneyPositioning.Left_Bottom,
     title: '',
     flows: [],
-    primaryColor: '#7567FF',
+    primaryColor: createGlobalProperty(
+      compileValue(globalOpts, GlobalPropsPath.primaryColor),
+      GlobalPropsPath.primaryColor,
+    ),
     hideModuleOnLoad: false,
     hideModuleOnMobile: false,
   };
 }
 
-export function createEmptyTourDataFile(): TourData {
+export function createEmptyTourDataFile(globalOpts: IGlobalConfig): TourData {
   return {
     v: SchemaVersion.V1,
     lastUpdatedAtUtc: -1,
-    opts: getDefaultTourOpts(),
+    opts: getDefaultTourOpts(globalOpts),
     entities: {},
     diagnostics: {},
-    journey: getSampleJourneyData()
+    journey: getSampleJourneyData(globalOpts),
   };
 }
 
@@ -120,21 +174,29 @@ export const DEFAULT_ANN_DIMS: CustomAnnDims = {
   width: 320,
 };
 
-export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfig => {
+const SAMPLE_ANN_CONFIG_TEXT = 'Write a brief description of what your buyer should expect from this particular module of your product';
+
+export const getSampleConfig = (elPath: string, grpId: string, globalOpts: IGlobalConfig, text: string = SAMPLE_ANN_CONFIG_TEXT): IAnnotationConfig => {
   const isCoverAnn = elPath === '$';
   const id = getRandomId();
 
   return {
-    selectionEffect: 'regular',
-    annotationSelectionColor: DEFAULT_BLUE_BORDER_COLOR,
+    selectionEffect: createGlobalProperty(
+      compileValue(globalOpts, GlobalPropsPath.selEffect),
+      GlobalPropsPath.selEffect
+    ),
+    annotationSelectionColor: createGlobalProperty(
+      compileValue(globalOpts, GlobalPropsPath.selColor),
+      GlobalPropsPath.selColor
+    ),
     id: isCoverAnn ? `$#${id}` : elPath,
     refId: id,
     grpId,
     zId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
-    bodyContent: '<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">Write a brief description of what your buyer should expect from this particular module of your product.</span></p>',
-    displayText: 'Write a brief description of what your buyer should expect from this particular module of your product.',
+    bodyContent: `<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">${text}</span></p>`,
+    displayText: text,
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
     syncPending: true,
@@ -157,28 +219,80 @@ export const getSampleConfig = (elPath: string, grpId: string): IAnnotationConfi
     buttons: [{
       id: getRandomId(),
       type: 'next',
-      style: AnnotationButtonStyle.Primary,
-      size: AnnotationButtonSize.Medium,
-      text: 'Next',
+      style: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.nextBtnStyle),
+        GlobalPropsPath.nextBtnStyle,
+      ),
+      size: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.ctaSize),
+        GlobalPropsPath.ctaSize,
+      ),
+      text: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.nextBtnText),
+        GlobalPropsPath.nextBtnText,
+      ),
       order: 9999,
       hotspot: null,
     }, {
       id: getRandomId(),
       type: 'prev',
-      style: AnnotationButtonStyle.Outline,
-      size: AnnotationButtonSize.Medium,
-      text: 'Back',
+      style: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.prevBtnStyle),
+        GlobalPropsPath.prevBtnStyle,
+      ),
+      size: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.ctaSize),
+        GlobalPropsPath.ctaSize,
+      ),
+      text: createGlobalProperty(
+        compileValue(globalOpts, GlobalPropsPath.prevBtnText),
+        GlobalPropsPath.prevBtnText,
+      ),
       order: 0,
       hotspot: null
     }],
     buttonLayout: 'default',
-    selectionShape: 'box',
+    selectionShape: createGlobalProperty(
+      compileValue(globalOpts, GlobalPropsPath.selShape),
+      GlobalPropsPath.selShape,
+    ),
     isLeadFormPresent: false,
     m_id: elPath,
     scrollAdjustment: 'auto',
     audio: null,
   };
 };
+
+export const getSampleGlobalConfig = (): IGlobalConfig => ({
+  logo: 'https://s3.amazonaws.com/app.sharefable.com/favicon.png',
+  companyUrl: 'https://sharefable.com',
+  demoLoadingText: 'Setting up the interactive demo for you',
+  fontFamily: '',
+  primaryColor: '#7567ff',
+  ctaSize: AnnotationButtonSize.Medium,
+  annBodyBgColor: '#FFFFFF',
+  annBorderColor: '#BDBDBD',
+  fontColor: '#424242',
+  annBorderRadius: 4,
+  annConPad: '14 14',
+  selColor: DEFAULT_BLUE_BORDER_COLOR,
+  selShape: 'box',
+  selEffect: 'regular',
+  showStepNo: true,
+  showWatermark: true,
+  nextBtnText: 'Next',
+  nextBtnStyle: AnnotationButtonStyle.Primary,
+  prevBtnText: 'Back',
+  prevBtnStyle: AnnotationButtonStyle.Primary,
+  customBtn1Text: 'Book a demo',
+  customBtn1Style: AnnotationButtonStyle.Primary,
+  customBtn1URL: 'https://www.sharefable.com/get-a-demo',
+
+  monoIncKey: 1,
+  createdAt: getCurrentUtcUnixTime(),
+  updatedAt: getCurrentUtcUnixTime(),
+  version: 1,
+});
 
 export const isProdEnv = () => {
   const isProd = (process.env.REACT_APP_ENVIRONMENT === 'prod') || (process.env.REACT_APP_ENVIRONMENT === 'staging');
@@ -439,3 +553,72 @@ export const rgbToHex = (rgb: string) : string => {
 
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 };
+
+const globalProps = '$globalProps';
+
+export const GlobalPropsPath = {
+  logo: `${globalProps}.logo`,
+  companyUrl: `${globalProps}.companyUrl`,
+  demoLoadingText: `${globalProps}.demoLoadingText`,
+  fontFamily: `${globalProps}.fontFamily`,
+  primaryColor: `${globalProps}.primaryColor`,
+  ctaSize: `${globalProps}.ctaSize`,
+  annBodyBgColor: `${globalProps}.annBodyBgColor`,
+  annBorderColor: `${globalProps}.annBorderColor`,
+  fontColor: `${globalProps}.fontColor`,
+  annBorderRadius: `${globalProps}.annBorderRadius`,
+  annConPad: `${globalProps}.annConPad`,
+  selColor: `${globalProps}.selColor`,
+  selShape: `${globalProps}.selShape`,
+  selEffect: `${globalProps}.selEffect`,
+  showStepNo: `${globalProps}.showStepNo`,
+  showWatermark: `${globalProps}.showWatermark`,
+  nextBtnText: `${globalProps}.nextBtnText`,
+  nextBtnStyle: `${globalProps}.nextBtnStyle`,
+  prevBtnText: `${globalProps}.prevBtnText`,
+  prevBtnStyle: `${globalProps}.prevBtnStyle`,
+  customBtn1Text: `${globalProps}.customBtn1Text`,
+  customBtn1Style: `${globalProps}.customBtn1Style`,
+  customBtn1URL: `${globalProps}.customBtn1URL`
+} as const;
+
+export function compileValue(
+  globalOpts : IGlobalConfig,
+  path :typeof GlobalPropsPath[keyof typeof GlobalPropsPath]
+): any {
+  const opts = { ...globalOpts };
+  const keys : string[] = path.split('.').slice(1);
+  return keys.reduce((acc, key) => acc[key], opts as any);
+}
+
+export const getDefaultLiteralTourOpts = (): ITourDataOpts => ({
+  lf_pkf: 'email',
+  main: '',
+  primaryColor: createLiteralProperty('#7567FF'),
+  annotationBodyBackgroundColor: createLiteralProperty('#FFFFFF'),
+  annotationBodyBorderColor: createLiteralProperty('#BDBDBD'),
+  annotationFontColor: createLiteralProperty('#424242'),
+  monoIncKey: 0,
+  createdAt: getCurrentUtcUnixTime(),
+  updatedAt: getCurrentUtcUnixTime(),
+  annotationFontFamily: createLiteralProperty(null),
+  borderRadius: createLiteralProperty(4),
+  annotationPadding: createLiteralProperty('14 14'),
+  showFableWatermark: createLiteralProperty(true),
+  showStepNum: createLiteralProperty(true),
+  reduceMotionForMobile: false,
+});
+
+export const AnnBtnKeysWithProperty: Array<keyof IAnnotationButton_WithProperty> = [
+  'text', 'style', 'size'
+];
+
+export const AnnConfigKeysWithProperty: Array<keyof IAnnotationConfig_WithProperty> = [
+  'selectionEffect', 'selectionEffect', 'annotationSelectionColor'
+];
+
+export const TourOptsKeysWithProperty: Array<keyof TourDataOpts_WithProperty> = [
+  'primaryColor', 'annotationBodyBackgroundColor', 'annotationBodyBorderColor',
+  'annotationFontFamily', 'annotationFontColor', 'borderRadius', 'showFableWatermark',
+  'annotationPadding', 'showStepNum',
+];

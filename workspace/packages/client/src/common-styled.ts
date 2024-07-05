@@ -358,7 +358,7 @@ export const SimpleInput = styled(Input)`
 export const ColorPicker = styled(AntColorPicker)`
   background: #fff;
   border: 1px dashed #BDBDBD;
-  min-width: 140px;
+  min-width: 120px;
   border-radius: 8px;
   display: flex;
   justify-content: flex-start;
@@ -411,7 +411,7 @@ export const FableSelect = styled(Select)`
   background: #fff;
   border: 1px dashed #bdbdbd;
   height: 40px;
-  min-width: 140px;
+  min-width: 125px;
   display: flex;
   justify-content: center;
   align-items: center;

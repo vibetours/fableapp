@@ -6,12 +6,16 @@ import {
   JourneyFlow,
   ITourDataOpts,
   JourneyData,
+  IGlobalConfig,
+  Property,
+  PropertyType,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { RespTour, Responsiveness,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
 } from '@fable/common/dist/api-contract';
+import { GlobalPropsPath, createGlobalProperty } from '@fable/common/dist/utils';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
@@ -454,7 +458,7 @@ export const getCurrentFlowMain = (
       break;
     }
     if (!isNavigateHotspot(prevBtn.hotspot)) break;
-    refId = prevBtn.hotspot!.actionValue.split('/')[1];
+    refId = prevBtn.hotspot!.actionValue._val.split('/')[1];
   }
   return '';
 };
@@ -485,7 +489,7 @@ const getOrderedAnnsFromGivenAnn = (
     if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
       break;
     }
-    const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+    const nextAnnRefId = nextBtn.hotspot.actionValue._val.split('/')[1];
     ann = flatAnns[nextAnnRefId];
   }
 
@@ -808,13 +812,13 @@ export function preloadImagesInTour(
   });
 }
 
-export function getDefaultSiteData(tour: RespTour): SiteData {
+export function getDefaultSiteData(tour: RespTour, globalOpts: IGlobalConfig): SiteData {
   return {
-    logo: '../../favicon.png',
-    navLink: 'https://www.sharefable.com',
+    logo: createGlobalProperty(globalOpts.logo, GlobalPropsPath.logo),
+    navLink: createGlobalProperty(globalOpts.companyUrl, GlobalPropsPath.companyUrl),
     title: tour.displayName,
-    ctaText: 'Book a demo',
-    ctaLink: 'https://www.sharefable.com/get-a-demo',
+    ctaText: createGlobalProperty(globalOpts.customBtn1Text, GlobalPropsPath.customBtn1Text),
+    ctaLink: createGlobalProperty(globalOpts.customBtn1URL, GlobalPropsPath.customBtn1URL),
     themePreset: 'white',
     bg1: SiteThemePresets.white.bg1,
     bg2: SiteThemePresets.white.bg2,
@@ -1054,3 +1058,5 @@ export function addPointerEventsAutoToEl(el: HTMLElement): void {
 export function shouldReduceMotionForMobile(opts: ITourDataOpts | null):boolean {
   return Boolean(isMobileOperatingSystem() && opts && opts.reduceMotionForMobile);
 }
+
+export const isGlobalProperty = <T>(value: Property<T>): boolean => value.type === PropertyType.REF;

@@ -126,7 +126,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = el?.contentDocument;
 
     if (doc !== undefined && doc !== null) {
-      if (opts.annotationFontFamily === null && this.props.screen.type === ScreenType.Img) {
+      if (opts.annotationFontFamily._val === null && this.props.screen.type === ScreenType.Img) {
         // apply default font for img type screen
         this.addFontLinkToAnnContainer(doc, 'IBM Plex Sans');
         if (!doc.getElementById(ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID)) {
@@ -137,8 +137,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         }
       }
 
-      if (opts.annotationFontFamily !== null) {
-        this.addFontLinkToAnnContainer(doc, opts.annotationFontFamily);
+      if (opts.annotationFontFamily._val !== null) {
+        this.addFontLinkToAnnContainer(doc, opts.annotationFontFamily._val);
       }
     }
   };
@@ -182,7 +182,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
 
     const highlighterBaseConfig = {
-      selectionColor: an ? an.annotationSelectionColor : DEFAULT_BLUE_BORDER_COLOR,
+      selectionColor: an ? an.annotationSelectionColor._val : DEFAULT_BLUE_BORDER_COLOR,
       showOverlay: !!an?.showOverlay
     };
 
@@ -317,7 +317,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     const opts = this.props.tourDataOpts;
     const prevOpts = prevProps.tourDataOpts;
-    if (prevOpts.annotationFontFamily !== opts.annotationFontFamily) {
+    if (prevOpts.annotationFontFamily._val !== opts.annotationFontFamily._val) {
       this.addFont();
     }
 
@@ -808,7 +808,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     return <Preview
       resizeSignal={this.state.resizeSignal}
       journey={this.props.journey!}
-      showWatermark={this.props.tourDataOpts.showFableWatermark}
+      showWatermark={this.props.tourDataOpts.showFableWatermark._val}
       allEdits={this.props.allEdits}
       key={this.props.screen.rid}
       hidden={this.props.hidden}

@@ -28,6 +28,7 @@ import {
   IAnnotationButtonType,
   IAnnotationConfig,
   IAnnotationOriginConfig,
+  IGlobalConfig,
   ITourDataOpts,
   JourneyData,
   ScreenData,
@@ -218,6 +219,7 @@ interface IOwnProps {
     value: ReqTourPropUpdate[T]
   ) => void;
   featurePlan: FeatureForPlan | null;
+  globalOpts: IGlobalConfig;
 }
 
 const enum ElSelReqType {
@@ -875,8 +877,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       const prevConfig = getAnnotationByRefId(this.state.selectedAnnotationId, prevProps.allAnnotationsForTour);
       const currConfig = getAnnotationByRefId(this.state.selectedAnnotationId, this.props.allAnnotationsForTour);
 
-      if (currConfig && prevConfig?.annotationSelectionColor !== currConfig.annotationSelectionColor) {
-        this.iframeElManager?.updateConfig('selectionColor', currConfig.annotationSelectionColor);
+      if (currConfig && prevConfig?.annotationSelectionColor._val !== currConfig.annotationSelectionColor._val) {
+        this.iframeElManager?.updateConfig('selectionColor', currConfig.annotationSelectionColor._val);
       }
     }
 
@@ -957,6 +959,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           opts,
           this.props.setAlert,
           this.props.applyAnnButtonLinkMutations,
+          this.props.globalOpts,
           id
         );
         this.props.resetNewAnnPos();
@@ -964,7 +967,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         this.props.setAlert('Cannot add annotation as link is present');
       }
     } else {
-      conf = getSampleConfig(id, nanoid());
+      conf = getSampleConfig(id, nanoid(), this.props.globalOpts);
       this.createAnnotationForTheFirstTime(conf);
     }
     if (conf) this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
@@ -994,11 +997,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         },
         this.props.tourDataOpts,
         this.props.setAlert,
-        this.props.applyAnnButtonLinkMutations
+        this.props.applyAnnButtonLinkMutations,
+        this.props.globalOpts,
       );
       this.props.resetNewAnnPos();
     } else {
-      conf = getSampleConfig('$', nanoid());
+      conf = getSampleConfig('$', nanoid(), this.props.globalOpts);
       this.createCoverAnnotationForTheFirstTime(conf);
     }
     this.navigateToAnnotation(`${this.props.screen.id}/${conf.refId}`);
@@ -1384,7 +1388,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
   };
 
   createAnnotationForTheFirstTime = (ann: IAnnotationConfig): void => {
-    const opts = this.props.tourDataOpts || getDefaultTourOpts();
+    const opts = this.props.tourDataOpts || getDefaultTourOpts(this.props.globalOpts);
     if (!opts.main) opts.main = `${this.props.screen.id}/${ann.refId}`;
     this.props.onAnnotationCreateOrChange(this.props.screen.id, ann, 'upsert', opts);
   };
@@ -1471,7 +1475,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   createNewDefaultAnnAndAddToMultiGrp = (id: string): IAnnotationConfig => {
     const currAnn = getAnnotationWithScreenAndIdx(this.props.toAnnotationId, this.props.timeline)!;
-    const conf = getSampleConfig(id, getRandomId());
+    const conf = getSampleConfig(id, getRandomId(), this.props.globalOpts);
     const confWithZid = updateAnnotationZId(conf, currAnn.zId);
     this.props.onAnnotationCreateOrChange(currAnn.screen.id, confWithZid, 'upsert', this.props.tourDataOpts);
     this.navigateToAnnotation(`${currAnn.screen.id}/${confWithZid.refId}`);
@@ -2067,6 +2071,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                             children: (
                               <>
                                 <AnnotationCreatorPanel
+                                  globalOpts={this.props.globalOpts}
                                   journey={this.props.journey}
                                   setAlertMsg={this.props.setAlert}
                                   opts={this.props.tourDataOpts}
@@ -2369,7 +2374,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
     const highlighterBaseConfig = {
-      selectionColor: an ? an.annotationSelectionColor : DEFAULT_BLUE_BORDER_COLOR,
+      selectionColor: an ? an.annotationSelectionColor._val : DEFAULT_BLUE_BORDER_COLOR,
       showOverlay: an?.showOverlay || true
     };
 

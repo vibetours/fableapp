@@ -40,3 +40,8 @@ export enum ModalTab {
   SELECT_THEME,
   SELECT_BORDER_RADIUS
 }
+
+export type AnnotationThemeType = 'global' | 'suggested' | 'page-generated';
+
+export type ColorThemeItem = { color: string, type: AnnotationThemeType};
+export type BorderRadiusThemeItem = { value: number | 'global', type: AnnotationThemeType};

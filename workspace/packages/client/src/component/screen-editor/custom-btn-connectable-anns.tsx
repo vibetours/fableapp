@@ -6,6 +6,7 @@ import {
   ITourEntityHotspot,
   JourneyData
 } from '@fable/common/dist/types';
+import { createLiteralProperty } from '@fable/common/dist/utils';
 import * as Tags from './styled';
 import { IAnnotationConfigWithScreen, Timeline } from '../../types';
 import { updateButtonProp } from '../annotation/annotation-config-utils';
@@ -47,11 +48,11 @@ export default function CustomBtnConnectableAnns(props: Props): JSX.Element {
 
           if (isJourneyPresent && annIdx === 0) {
             if (ann.refId === journeyStartPoint) isEntryPoint = true;
-            if (ann.refId === props.btnConf.hotspot?.actionValue.split('/')[1]) isCurrentSelection = true;
+            if (ann.refId === props.btnConf.hotspot?.actionValue._val.split('/')[1]) isCurrentSelection = true;
             moduleName = props.journey!.flows.find(f => f.main.split('/')[1] === ann.refId)?.header1 || '';
           } else {
             isEntryPoint = demoMain === ann.refId;
-            isCurrentSelection = props.btnConf.hotspot?.actionValue.split('/')[1] === ann.refId;
+            isCurrentSelection = props.btnConf.hotspot?.actionValue._val.split('/')[1] === ann.refId;
           }
 
           if (moduleName || isEntryPoint) {
@@ -73,7 +74,7 @@ export default function CustomBtnConnectableAnns(props: Props): JSX.Element {
       on: 'click',
       target: '$this',
       actionType: 'navigate',
-      actionValue: `${ann.screen.id}/${ann.refId}`,
+      actionValue: createLiteralProperty(`${ann.screen.id}/${ann.refId}`),
     };
 
     const thisAntn = updateButtonProp(

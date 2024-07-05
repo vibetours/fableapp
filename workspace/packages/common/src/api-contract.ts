@@ -318,6 +318,10 @@ export interface ReqTransferTour {
     rids: string[];
 }
 
+export interface ReqUpdateGlobalOpts {
+    editData: string;
+}
+
 export interface ReqUpdateOrg {
     orgInfo: OrgInfo;
 }
@@ -362,6 +366,10 @@ export interface RespConversion {
 
 export interface RespCustomField {
     fieldName: string;
+}
+
+export interface RespGlobalOpts {
+    globalOpts: any;
 }
 
 export interface RespHealth extends ResponseBase {
@@ -479,6 +487,7 @@ export interface RespTour extends ResponseBase {
     responsive: boolean;
     responsive2: Responsiveness;
     deleted: TourDeleted;
+    globalOpts?: any;
     settings?: TourSettings;
 }
 

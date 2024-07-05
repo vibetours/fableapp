@@ -193,7 +193,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   };
 
   getAnnotationBorder(): string {
-    const borderColor = this.props.conf.opts.annotationBodyBorderColor;
+    const borderColor = this.props.conf.opts.annotationBodyBorderColor._val;
     const defaultBorderColor = '#BDBDBD';
 
     const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
@@ -372,7 +372,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 border={this.getAnnotationBorder()}
                 id={`fable-ann-audio-${config.refId}`}
                 className="fable-audio"
-                bgColor={this.props.conf.opts.annotationBodyBackgroundColor}
+                bgColor={this.props.conf.opts.annotationBodyBackgroundColor._val}
               >
                 <audio
                   ref={this.mediaRef}
@@ -395,7 +395,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                   <AudioVisualizer
                     audioElement={this.mediaRef.current!}
                     barWidth={1}
-                    barColor={getColorContrast(this.props.conf.opts.annotationBodyBackgroundColor) === 'dark'
+                    barColor={getColorContrast(this.props.conf.opts.annotationBodyBackgroundColor._val) === 'dark'
                       ? '#fff' : '#000'}
                   />
                 )}
@@ -403,7 +403,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 {
                   !this.state.showAudioVisualizer && this.state.mediaLoaded && (
                   <SoundWavePlaceholder bgColor={getColorContrast(
-                    this.props.conf.opts.annotationBodyBackgroundColor
+                    this.props.conf.opts.annotationBodyBackgroundColor._val
                   ) === 'dark'
                     ? '#fff' : '#000'}
                   />
@@ -469,7 +469,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 { this.state.showControls
               && (
               <Tags.NavButtonCon
-                pcolor={this.props.conf.opts.primaryColor}
+                pcolor={this.props.conf.opts.primaryColor._val}
               >
                 {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                   <Tags.ABtn
@@ -477,15 +477,15 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                       border: btnConf.type === 'prev' ? 'none' : '',
                       background: btnConf.type === 'prev' ? '#00000040' : ''
                     }}
-                    bg={generateShadeColor(this.props.conf.opts.primaryColor,)}
+                    bg={generateShadeColor(this.props.conf.opts.primaryColor._val)}
                     idx={idx}
                     key={btnConf.id}
-                    btnStyle={btnConf.style}
-                    color={this.props.conf.opts.primaryColor}
-                    size={btnConf.size}
-                    fontFamily={this.props.conf.opts.annotationFontFamily}
+                    btnStyle={btnConf.style._val}
+                    color={this.props.conf.opts.primaryColor._val}
+                    size={btnConf.size._val}
+                    fontFamily={this.props.conf.opts.annotationFontFamily._val}
                     btnLayout="default"
-                    borderRadius={this.props.conf.opts.borderRadius}
+                    borderRadius={this.props.conf.opts.borderRadius._val}
                     onClick={() => {
                       if (btnConf.type === 'next') {
                         this.navigateAnns('next', btnConf.id);
@@ -496,7 +496,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                       }
                     }}
                   >
-                    { btnConf.type === 'next' ? btnConf.text : <ArrowLeftOutlined />}
+                    { btnConf.type === 'next' ? btnConf.text._val : <ArrowLeftOutlined />}
                   </Tags.ABtn>
                 ))}
               </Tags.NavButtonCon>
@@ -518,7 +518,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             >
               <GTags.LoaderProgress
                 bwidth={this.state.mediaProgress}
-                bcolor={this.props.conf.opts.annotationBodyBorderColor}
+                bcolor={this.props.conf.opts.annotationBodyBorderColor._val}
                 bradius={4}
                 bopacity={0.50}
               />

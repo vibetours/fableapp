@@ -115,7 +115,7 @@ export class AnnotationContent extends React.PureComponent<{
     if (this.props.onRender) {
       if (this.contentRef.current) {
         const annTextP = this.contentRef.current.querySelector('p') || this.contentRef.current;
-        const defaultFontFamily = this.props.opts.annotationFontFamily || getComputedStyle(annTextP!).fontFamily;
+        const defaultFontFamily = this.props.opts.annotationFontFamily?._val || getComputedStyle(annTextP)!.fontFamily;
 
         let fontLoadingPromise: Promise<unknown> = Promise.resolve();
         if (defaultFontFamily && this.props.doc) {
@@ -151,7 +151,7 @@ export class AnnotationContent extends React.PureComponent<{
   }
 
   getAnnotationBorder(hasOverlay: boolean): string {
-    const borderColor = this.props.opts.annotationBodyBorderColor;
+    const borderColor = this.props.opts.annotationBodyBorderColor._val;
     const defaultBorderColor = '#BDBDBD';
 
     const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
@@ -171,11 +171,11 @@ export class AnnotationContent extends React.PureComponent<{
       <Tags.AnContent
         key={this.props.config.refId}
         ref={this.conRef}
-        primaryColor={this.props.opts.primaryColor}
-        fontColor={this.props.opts.annotationFontColor}
-        borderRadius={this.props.opts.borderRadius}
-        padding={this.props.opts.annotationPadding.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14)) as [number, number]}
-        bgColor={this.props.opts.annotationBodyBackgroundColor}
+        primaryColor={this.props.opts.primaryColor._val}
+        fontColor={this.props.opts.annotationFontColor._val}
+        borderRadius={this.props.opts.borderRadius._val}
+        padding={this.props.opts.annotationPadding._val.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14)) as [number, number]}
+        bgColor={this.props.opts.annotationBodyBackgroundColor._val}
         style={{
           flexDirection: 'column',
           minWidth: `${this.props.config.size === 'custom' ? 0 : AnnotationContent.WIDTH_MOBILE}px`,
@@ -186,14 +186,14 @@ export class AnnotationContent extends React.PureComponent<{
           top: this.props.top,
           fontSize: '18px',
           boxShadow: this.getAnnotationBorder(this.props.config.showOverlay),
-          borderRadius: this.props.opts.borderRadius,
+          borderRadius: this.props.opts.borderRadius._val,
           position: this.props.isThemeAnnotation ? 'unset' : 'absolute',
         }}
         id={this.props.isProbing ? '' : 'fable-ann-card-rendered'}
         className={`fable-ann-card f-a-c-${this.props.config.refId} dir-${this.props.dir}`}
       >
         <Tags.AnInnerContainer
-          anPadding={this.props.opts.annotationPadding.trim()}
+          anPadding={this.props.opts.annotationPadding._val.trim()}
           className="f-inner-con"
         >
           {/* TODO: use some other mechanism to populate the following
@@ -202,20 +202,20 @@ export class AnnotationContent extends React.PureComponent<{
             this.props.config.isLeadFormPresent ? (
               <form target={EMPTY_IFRAME_ID} action="about:blank">
                 <Tags.AnTextContent
-                  fontFamily={this.props.opts.annotationFontFamily}
-                  fontColor={this.props.opts.annotationFontColor}
+                  fontFamily={this.props.opts.annotationFontFamily._val}
+                  fontColor={this.props.opts.annotationFontColor._val}
                   ref={this.contentRef}
-                  borderRadius={this.props.opts.borderRadius}
+                  borderRadius={this.props.opts.borderRadius._val}
                   dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
                   className="f-text"
                 />
               </form>
             ) : (
               <Tags.AnTextContent
-                fontFamily={this.props.opts.annotationFontFamily}
-                fontColor={this.props.opts.annotationFontColor}
+                fontFamily={this.props.opts.annotationFontFamily._val}
+                fontColor={this.props.opts.annotationFontColor._val}
                 ref={this.contentRef}
-                borderRadius={this.props.opts.borderRadius}
+                borderRadius={this.props.opts.borderRadius._val}
                 dangerouslySetInnerHTML={{ __html: this.props.config.bodyContent }}
                 className="f-text"
               />
@@ -224,17 +224,17 @@ export class AnnotationContent extends React.PureComponent<{
           {btns.length > 0 && (
             <Tags.ButtonCon
               justifyContent={btns.length > 1 ? 'space-between' : 'center'}
-              borderTopColor={generateShadeColor(this.props.opts.annotationBodyBackgroundColor)}
+              borderTopColor={generateShadeColor(this.props.opts.annotationBodyBackgroundColor._val)}
               btnLength={btns.length}
               flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
-              anPadding={this.props.opts.annotationPadding.trim()}
+              anPadding={this.props.opts.annotationPadding._val.trim()}
               className="f-button-con"
             >
-              {this.props.opts.showStepNum && this.props.annotationSerialIdMap[this.props.config.refId] && (
+              {this.props.opts.showStepNum._val && this.props.annotationSerialIdMap[this.props.config.refId] && (
                 <Tags.Progress
-                  bg={this.props.opts.annotationBodyBackgroundColor}
-                  fg={this.props.opts.annotationFontColor}
-                  fontFamily={this.props.opts.annotationFontFamily || 'inherit'}
+                  bg={this.props.opts.annotationBodyBackgroundColor._val}
+                  fg={this.props.opts.annotationFontColor._val}
+                  fontFamily={this.props.opts.annotationFontFamily._val || 'inherit'}
                   className="f-progress"
                 >
                   {this.props.annotationSerialIdMap[this.props.config.refId]}
@@ -242,17 +242,17 @@ export class AnnotationContent extends React.PureComponent<{
               )}
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
-                  bg={this.props.opts.annotationBodyBackgroundColor}
-                  className={`f-${generateCSSSelectorFromText(btnConf.text)}-btn f-ann-btn`}
+                  bg={this.props.opts.annotationBodyBackgroundColor._val}
+                  className={`f-${generateCSSSelectorFromText(btnConf.text._val)}-btn f-ann-btn`}
                   idx={idx}
                   key={btnConf.id}
                   noPad={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default'}
-                  btnStyle={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? AnnotationButtonStyle.Link : btnConf.style}
-                  color={this.props.opts.primaryColor}
-                  size={btnConf.size}
-                  fontFamily={this.props.opts.annotationFontFamily}
+                  btnStyle={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? AnnotationButtonStyle.Link : btnConf.style._val}
+                  color={this.props.opts.primaryColor._val}
+                  size={btnConf.size._val}
+                  fontFamily={this.props.opts.annotationFontFamily._val}
                   btnLayout={this.props.config.buttonLayout}
-                  borderRadius={this.props.opts.borderRadius}
+                  borderRadius={this.props.opts.borderRadius._val}
                   onClick={() => {
                     if (this.conRef.current && isLeadFormPresent(this.conRef.current) && btnConf.type === 'next') {
                       const leadFormFields = this.conRef.current?.getElementsByClassName('LeadForm__optionContainer');
@@ -295,10 +295,10 @@ export class AnnotationContent extends React.PureComponent<{
                       <ArrowLeftOutlined
                         style={{
                           fontSize: '1.5rem',
-                          color: this.props.opts.primaryColor
+                          color: this.props.opts.primaryColor._val
                         }}
                         className="f-back-btn-icon"
-                      />) : btnConf.text
+                      />) : btnConf.text._val
                     }
                   </span>
                 </Tags.ABtn>
@@ -308,12 +308,12 @@ export class AnnotationContent extends React.PureComponent<{
         </Tags.AnInnerContainer>
 
         {/* Watermark */}
-        {this.props.opts.showFableWatermark
+        {this.props.opts.showFableWatermark._val
         && !isMediaAnn(this.props.config)
         && (
           <WatermarkCon
             style={{
-              color: this.props.opts.annotationFontColor,
+              color: this.props.opts.annotationFontColor._val,
             }}
             target="_blank"
             rel="noopener noreferrer"
@@ -530,7 +530,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       return { l, t, dir, isUltrawideBox };
     }
 
-    const extraSpace = displayConfig.opts.borderRadius;
+    const extraSpace = displayConfig.opts.borderRadius._val;
 
     const maskBoxPadding = this.props.maskBox
       ? HighlighterBase.getMaskPaddingWithBox(this.props.box, this.props.maskBox)
@@ -666,7 +666,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       height: h,
     };
 
-    const borderRadius = displayConfig.opts.borderRadius;
+    const borderRadius = displayConfig.opts.borderRadius._val;
     const arrowWidth = 30;
     const arrowHeight = arrowWidth;
 
@@ -891,10 +891,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
     const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy, this.props.isScreenHTML4);
-    let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor;
+    let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor._val;
     let isBorderColorDefault = false;
     if (arrowColor.toUpperCase() === '#BDBDBD' || getTransparencyFromHexStr(arrowColor) <= 30) {
-      arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor;
+      arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val;
       isBorderColorDefault = true;
     }
 
@@ -967,7 +967,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                   height: h
                 }}
                 isBorderColorDefault={isBorderColorDefault}
-                annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+                annBorderRadius={this.props.annotationDisplayConfig.opts.borderRadius._val}
               />
             )
           }
@@ -979,9 +979,9 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                   borderRadius={getBorderRadius(
                     this.props.annotationDisplayConfig.config.positioning,
                     isCoverAnnotation,
-                    this.props.annotationDisplayConfig.opts.showFableWatermark,
+                    this.props.annotationDisplayConfig.opts.showFableWatermark._val,
                     dir,
-                    this.props.annotationDisplayConfig.opts.borderRadius
+                    this.props.annotationDisplayConfig.opts.borderRadius._val
                   )}
                   conf={this.props.annotationDisplayConfig}
                   playMode={this.props.playMode}
@@ -1018,14 +1018,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           }
 
             {!displayConfig.prerender
-            && this.props.annotationDisplayConfig.opts.showFableWatermark
+            && this.props.annotationDisplayConfig.opts.showFableWatermark._val
             && isMediaAnnotation
             && (
               <AnnotationWatermark
-                borderRadius={this.props.annotationDisplayConfig.opts.borderRadius}
+                borderRadius={this.props.annotationDisplayConfig.opts.borderRadius._val}
                 isMediaAnn={isMediaAnn(config)}
-                bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor}
-                fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor}
+                bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val}
+                fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor._val}
                 top={t}
                 left={l}
                 height={h}
@@ -1040,7 +1040,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
         {/* this is focus bubble */}
         {
-          config.selectionShape === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && (
+          config.selectionShape._val === 'pulse' && !isCoverAnn(config) && !displayConfig.prerender && (
           <div
             onClick={() => {
               const btnConf = config.buttons.filter(button => button.type === 'next')[0];
@@ -1053,7 +1053,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 position: 'absolute',
                 ...this.getFocusBubbleStyles(maskBoxRect, dir)
               }}
-              selColor={config.annotationSelectionColor}
+              selColor={config.annotationSelectionColor._val}
             />
           </div>
           )
@@ -1061,14 +1061,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
         {/* this is selection effect */}
         {
-          config.selectionEffect === 'blinking'
-          && config.selectionShape !== 'pulse'
+          config.selectionEffect._val === 'blinking'
+          && config.selectionShape._val !== 'pulse'
           && !isCoverAnn(config)
           && !displayConfig.prerender
           && <Tags.AnHotspot
             shouldAnimate
             className="blinking-el-mask"
-            selColor={config.annotationSelectionColor}
+            selColor={config.annotationSelectionColor._val}
             box={maskBoxRect}
             scrollX={this.props.win.scrollX}
             scrollY={this.props.win.scrollY}
@@ -1369,8 +1369,8 @@ function handleEventLogging(
       emitEvent<Partial<CtaClickedInternal>>(InternalEvents.OnCtaClicked, {
         ctaFrom: CtaFrom.Annotation,
         btnId: btn.id,
-        url: btn.hotspot!.actionValue,
-        btnTxt: btn.text
+        url: btn.hotspot!.actionValue._val,
+        btnTxt: btn.text._val
       });
     }
     // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
@@ -1396,7 +1396,7 @@ export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
             style={{ borderRadius: getComputedStyle(p.isGranularHotspot ? p.hotspotEl! : p.el).borderRadius || '2px' }}
             key={p.conf.id}
             box={maskBoxRect}
-            selColor={p.conf.annotationSelectionColor}
+            selColor={p.conf.annotationSelectionColor._val}
             scrollX={p.scrollX}
             scrollY={p.scrollY}
             shouldAnimate={p.isGranularHotspot}
@@ -1448,7 +1448,7 @@ export class AnnotationBubble extends React.PureComponent<AnnBubbleProps> {
           }}
           bubbleWidth={bubbleWidth}
         >
-          <FocusBubble diameter={bubbleWidth} selColor={this.props.conf.annotationSelectionColor} />
+          <FocusBubble diameter={bubbleWidth} selColor={this.props.conf.annotationSelectionColor._val} />
         </Tags.AnBubble>
       </>
     );
@@ -1507,7 +1507,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
 
         if ((type === 'custom' && btnConf.hotspot.actionType === 'open') || !this.props.playMode) {
           this.props.nav(
-            btnConf.hotspot.actionValue,
+            btnConf.hotspot.actionValue._val,
             btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
           );
           return;
@@ -1516,9 +1516,9 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         if ((btnConf.type === 'next' || btnConf.type === 'prev' || btnConf.type === 'custom')
           && btnConf.hotspot.actionType === 'navigate'
         ) {
-          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue);
+          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue._val);
         } else {
-          this.props.nav(btnConf.hotspot.actionValue, 'abs');
+          this.props.nav(btnConf.hotspot.actionValue._val, 'abs');
         }
       };
 

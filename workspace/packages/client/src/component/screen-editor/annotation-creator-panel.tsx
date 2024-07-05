@@ -19,9 +19,10 @@ import {
   VideoAnnotationPositions,
   ScrollAdjustment,
   ScrollAdjustmentType,
-  JourneyData
+  JourneyData,
+  IGlobalConfig
 } from '@fable/common/dist/types';
-import { Input, Popover, Tabs, Modal, Button as AntButton, Tooltip, Collapse, Radio } from 'antd';
+import { Input, Popover, Tabs, Modal, Button as AntButton, Tooltip, Collapse, Radio, Dropdown, Space } from 'antd';
 import {
   DeleteOutlined,
   ExclamationCircleOutlined,
@@ -43,9 +44,13 @@ import {
   ArrowLeftOutlined,
   FormatPainterOutlined,
   RiseOutlined,
+  UserOutlined,
+  EllipsisOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 import { ReqTourPropUpdate, ScreenType } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import Button from '../button';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
@@ -101,7 +106,8 @@ import {
   debounce,
   isFeatureAvailable,
   isAudioAnnotation,
-  isMediaAnnotation
+  isMediaAnnotation,
+  isGlobalProperty
 } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
@@ -132,6 +138,7 @@ import UpgradeModal from '../upgrade/upgrade-modal';
 import UpgradeIcon from '../upgrade/icon';
 import ConnectableAnns from './connectable-anns';
 import CustomBtnConnectableAnns from './custom-btn-connectable-anns';
+import ApplyStylesMenu from './apply-styles-menu';
 
 const { confirm } = Modal;
 
@@ -169,6 +176,7 @@ interface IProps {
   elpathKey: ElPathKey;
   featurePlan: FeatureForPlan | null;
   currScreenId: number;
+  globalOpts: IGlobalConfig;
 }
 
 const commonInputStyles: React.CSSProperties = {
@@ -291,6 +299,15 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   });
 
   const [annotationFeatureAvailable, setAnnotationFeatureAvailable] = useState<string[]>([]);
+  const [currTextInputVals, setCurrTextInputVals] = useState({
+    borderRadius: opts.borderRadius._val,
+    padding: opts.annotationPadding._val,
+    buttons: config.buttons.map((btn) => ({
+      id: btn.id,
+      textValue: btn.text._val,
+      actionValue: btn.hotspot?.actionType === 'open' ? (btn.hotspot?.actionValue._val || '') : ''
+    }))
+  });
 
   const unsubFn = useRef(() => { });
 
@@ -309,6 +326,22 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   }, [props.config]);
 
   useEffect(() => {
+    setTourDataOpts(props.opts);
+  }, [props.opts]);
+
+  useEffect(() => {
+    setCurrTextInputVals({
+      padding: props.opts.annotationPadding._val,
+      borderRadius: props.opts.borderRadius._val,
+      buttons: props.config.buttons.map(btn => ({
+        id: btn.id,
+        textValue: btn.text._val,
+        actionValue: btn.hotspot?.actionType === 'open' ? (btn.hotspot?.actionValue._val || '') : ''
+      }))
+    });
+  }, [props.opts, props.config]);
+
+  useEffect(() => {
     if (
       prevConfig
       && prevOpts
@@ -317,29 +350,29 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       if (prevConfig.size !== config.size) {
         amplitudeAnnotationEdited('box_sizing', config.size);
       }
-      if (prevOpts.primaryColor !== opts.primaryColor) {
-        amplitudeAnnotationEdited('branding-primary_color', opts.primaryColor);
+      if (prevOpts.primaryColor._val !== opts.primaryColor._val) {
+        amplitudeAnnotationEdited('branding-primary_color', opts.primaryColor._val);
       }
       if (prevOpts.annotationBodyBackgroundColor !== opts.annotationBodyBackgroundColor) {
-        amplitudeAnnotationEdited('branding-background_color', opts.annotationBodyBackgroundColor);
+        amplitudeAnnotationEdited('branding-background_color', opts.annotationBodyBackgroundColor._val);
       }
-      if (prevOpts.annotationBodyBorderColor !== opts.annotationBodyBorderColor) {
-        amplitudeAnnotationEdited('branding-border_color', opts.annotationBodyBorderColor);
+      if (prevOpts.annotationBodyBorderColor._val !== opts.annotationBodyBorderColor._val) {
+        amplitudeAnnotationEdited('branding-border_color', opts.annotationBodyBorderColor._val);
       }
-      if (prevOpts.annotationFontColor !== opts.annotationFontColor) {
-        amplitudeAnnotationEdited('branding-font_color', opts.annotationFontColor);
+      if (prevOpts.annotationFontColor._val !== opts.annotationFontColor._val) {
+        amplitudeAnnotationEdited('branding-font_color', opts.annotationFontColor._val);
       }
-      if (prevConfig.annotationSelectionColor !== config.annotationSelectionColor) {
-        amplitudeAnnotationEdited('branding-selection_color', config.annotationSelectionColor);
+      if (prevConfig.annotationSelectionColor._val !== config.annotationSelectionColor._val) {
+        amplitudeAnnotationEdited('branding-selection_color', config.annotationSelectionColor._val);
       }
       if (prevConfig.buttonLayout !== config.buttonLayout) {
         amplitudeAnnotationEdited('branding-button_layout', config.buttonLayout);
       }
-      if (prevOpts.annotationPadding !== opts.annotationPadding) {
-        amplitudeAnnotationEdited('branding-padding', opts.annotationPadding);
+      if (prevOpts.annotationPadding._val !== opts.annotationPadding._val) {
+        amplitudeAnnotationEdited('branding-padding', opts.annotationPadding._val);
       }
-      if (prevOpts.borderRadius !== opts.borderRadius) {
-        amplitudeAnnotationEdited('branding-border_radius', opts.borderRadius);
+      if (prevOpts.borderRadius._val !== opts.borderRadius._val) {
+        amplitudeAnnotationEdited('branding-border_radius', opts.borderRadius._val);
       }
       if (prevConfig.hideAnnotation !== config.hideAnnotation) {
         amplitudeAnnotationEdited('hotspot-hide_annotation', config.hideAnnotation);
@@ -350,8 +383,8 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       if (prevConfig.showOverlay !== config.showOverlay) {
         amplitudeAnnotationEdited('overlay', config.showOverlay);
       }
-      if (prevConfig.selectionShape !== config.selectionShape) {
-        amplitudeAnnotationEdited('branding-selection_shape', config.selectionShape);
+      if (prevConfig.selectionShape._val !== config.selectionShape._val) {
+        amplitudeAnnotationEdited('branding-selection_shape', config.selectionShape._val);
       }
       if (prevConfig.scrollAdjustment !== config.scrollAdjustment) {
         amplitudeScrollAdjustmentChanged(
@@ -518,12 +551,12 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     if (propertyKey === 'size') {
       const buttons = newAnn.buttons.slice(0);
       buttons.forEach(button => {
-        button.size = propertValue as AnnotationButtonSize;
+        button.size = createLiteralProperty(propertValue as AnnotationButtonSize);
       });
     } else if (propertyKey === 'buttonText' && propertyFor) {
       const buttons = newAnn.buttons.slice(0);
       buttons.forEach(button => {
-        if (button.type === propertyFor) button.text = propertValue as string;
+        if (button.type === propertyFor) button.text = createLiteralProperty(propertValue as string);
       });
     } else {
       (newAnn as any)[propertyKey] = propertValue;
@@ -556,13 +589,13 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     );
   }
 
-  const debouncedPaddingOnChangeHandler = debounce((e) => {
-    setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', e.target.value));
-  }, 2000);
+  const debouncedPaddingOnChangeHandler = useRef(debounce((e) => {
+    setTourDataOpts(t => updateTourDataOpts(t, 'annotationPadding', createLiteralProperty(e.target.value as string)));
+  }, 2000));
 
-  const debouncedBorderRadiusOnChangeHandler = debounce((e) => {
-    setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', e));
-  }, 2000);
+  const debouncedBorderRadiusOnChangeHandler = useRef(debounce((e) => {
+    setTourDataOpts(t => updateTourDataOpts(t, 'borderRadius', createLiteralProperty(e as number)));
+  }, 2000));
 
   // TODO: We can add one more variable in featureForPlan wich
   // will store isFeatureAvailable so its calculated one time only.
@@ -660,49 +693,115 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
       >
         <div style={commonActionPanelItemStyle}>
           <GlobalTitle title="Primary color" />
-          <GTags.ColorPicker
-            className="typ-ip"
-            showText={(color) => color.toHexString()}
-            onChangeComplete={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', e.toHexString()));
-            }}
-            defaultValue={opts.primaryColor}
-          />
+          <div className="ver-center">
+            <GTags.ColorPicker
+              className="typ-ip"
+              showText={(color) => color.toHexString()}
+              onChangeComplete={e => {
+                setTourDataOpts(t => updateTourDataOpts(t, 'primaryColor', createLiteralProperty(e.toHexString())));
+              }}
+              defaultValue={opts.primaryColor._val}
+              value={opts.primaryColor._val}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.primaryColor)}
+              onApplyGlobal={() => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'primaryColor',
+                  createGlobalProperty(t.primaryColor._val, GlobalPropsPath.primaryColor)
+                ));
+              }}
+            />
+          </div>
+
         </div>
         <div style={commonActionPanelItemStyle}>
           <GlobalTitle title="Background color" />
-          <GTags.ColorPicker
-            className="typ-ip"
-            showText={(color) => color.toHexString()}
-            onChangeComplete={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBackgroundColor', e.toHexString()));
-            }}
-            disabled={isVideoAnnotation(config)}
-            defaultValue={opts.annotationBodyBackgroundColor}
-          />
+          <div className="ver-center">
+            <GTags.ColorPicker
+              className="typ-ip"
+              showText={(color) => color.toHexString()}
+              onChangeComplete={e => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'annotationBodyBackgroundColor',
+                  createLiteralProperty(e.toHexString())
+                ));
+              }}
+              disabled={isVideoAnnotation(config)}
+              value={opts.annotationBodyBackgroundColor._val}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.annotationBodyBackgroundColor)}
+              onApplyGlobal={() => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'annotationBodyBackgroundColor',
+                  createGlobalProperty(t.annotationBodyBackgroundColor._val, GlobalPropsPath.annBodyBgColor)
+                ));
+              }}
+            />
+          </div>
         </div>
         <div style={commonActionPanelItemStyle}>
           <GlobalTitle title="Font color" />
-          <GTags.ColorPicker
-            className="typ-ip"
-            showText={(color) => color.toHexString()}
-            onChangeComplete={e => {
-              setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontColor', e.toHexString()));
-            }}
-            disabled={isVideoAnnotation(config)}
-            defaultValue={opts.annotationFontColor}
-          />
+          <div className="ver-center">
+            <GTags.ColorPicker
+              className="typ-ip"
+              showText={(color) => color.toHexString()}
+              onChangeComplete={e => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'annotationFontColor',
+                  createLiteralProperty(e.toHexString())
+                ));
+              }}
+              disabled={isVideoAnnotation(config)}
+              defaultValue={opts.annotationFontColor._val}
+              value={opts.annotationFontColor._val}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.annotationFontColor)}
+              onApplyGlobal={() => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'annotationFontColor',
+                  createGlobalProperty(t.annotationFontColor._val, GlobalPropsPath.fontColor)
+                ));
+              }}
+            />
+          </div>
         </div>
         <div style={commonActionPanelItemStyle}>
           <GlobalTitle title="Border Radius" />
-          <Tags.InputNumberBorderRadius
-            className="typ-ip"
-            min={0}
+          <div className="ver-center" style={{ height: '100%' }}>
+            <Tags.InputNumberBorderRadius
+              className="typ-ip"
+              min={0}
             // bordered={false} // looks ugly
-            defaultValue={opts.borderRadius}
-            addonAfter="px"
-            onChange={debouncedBorderRadiusOnChangeHandler}
-          />
+              defaultValue={currTextInputVals.borderRadius}
+              value={currTextInputVals.borderRadius}
+              addonAfter="px"
+              onChange={(e => {
+                debouncedBorderRadiusOnChangeHandler.current(e);
+                setCurrTextInputVals(prevState => ({
+                  ...prevState,
+                  borderRadius: e as number
+                }));
+              })}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.borderRadius)}
+              onApplyGlobal={() => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'borderRadius',
+                  createGlobalProperty(t.borderRadius._val, GlobalPropsPath.annBorderRadius)
+                ));
+              }}
+            />
+          </div>
         </div>
         <div style={commonActionPanelItemStyle}>
           <div
@@ -716,20 +815,32 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <GlobalTitle title="Show Fable Watermark" />
             {!watermarkFeatureAvailable.isAvailable && <UpgradeIcon isInBeta={watermarkFeatureAvailable.isInBeta} />}
           </div>
-          <Tags.StyledSwitch
-            size="small"
-            style={{ backgroundColor: opts.showFableWatermark ? '#7567FF' : '#BDBDBD' }}
-            defaultChecked={opts.showFableWatermark}
-            checked={opts.showFableWatermark}
-            onChange={(e) => {
-              amplitudeRemoveWatermark('acp');
-              if (!watermarkFeatureAvailable.isAvailable) {
-                setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
-                return;
-              }
-              setTourDataOpts(t => updateTourDataOpts(t, 'showFableWatermark', e));
-            }}
-          />
+          <div className="ver-center">
+            <Tags.StyledSwitch
+              size="small"
+              style={{ backgroundColor: opts.showFableWatermark._val ? '#7567FF' : '#BDBDBD' }}
+              defaultChecked={opts.showFableWatermark._val}
+              checked={opts.showFableWatermark._val}
+              onChange={(e) => {
+                amplitudeRemoveWatermark('acp');
+                if (!watermarkFeatureAvailable.isAvailable) {
+                  setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
+                  return;
+                }
+                setTourDataOpts(t => updateTourDataOpts(t, 'showFableWatermark', createLiteralProperty(e)));
+              }}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.showFableWatermark)}
+              onApplyGlobal={() => {
+                setTourDataOpts(t => updateTourDataOpts(
+                  t,
+                  'showFableWatermark',
+                  createGlobalProperty(t.showFableWatermark._val, GlobalPropsPath.showWatermark)
+                ));
+              }}
+            />
+          </div>
         </div>
         <Collapse
           expandIconPosition="end"
@@ -747,144 +858,225 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                 <div>
                   <div style={commonActionPanelItemStyle}>
                     <GlobalTitle title="Border color" />
-                    <GTags.ColorPicker
-                      className="typ-ip"
-                      showText={(color) => color.toHexString()}
-                      onChangeComplete={e => {
-                        setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', e.toHexString()));
-                      }}
-                      defaultValue={opts.annotationBodyBorderColor}
-                    />
+                    <div className="ver-center">
+                      <GTags.ColorPicker
+                        className="typ-ip"
+                        showText={(color) => color.toHexString()}
+                        onChangeComplete={e => {
+                          setTourDataOpts(t => updateTourDataOpts(t, 'annotationBodyBorderColor', createLiteralProperty(e.toHexString())));
+                        }}
+                        defaultValue={opts.annotationBodyBorderColor._val}
+                        value={opts.annotationBodyBorderColor._val}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(opts.annotationBodyBorderColor)}
+                        onApplyGlobal={() => {
+                          setTourDataOpts(t => updateTourDataOpts(
+                            t,
+                            'annotationBodyBorderColor',
+                            createGlobalProperty(t.annotationBodyBorderColor._val, GlobalPropsPath.annBorderColor)
+                          ));
+                        }}
+                      />
+                    </div>
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
                       <div className="typ-reg">Selection color</div>
-                      <Tags.ApplyAllTxt
-                        onClick={() => {
+
+                    </div>
+                    <div className="ver-center">
+                      <GTags.ColorPicker
+                        className="typ-ip"
+                        showText={(color) => color.toHexString()}
+                        onChangeComplete={e => {
+                          setConfig(c => updateSelectionColor(c, createLiteralProperty(e.toHexString())));
+                        }}
+                        defaultValue={config.annotationSelectionColor._val}
+                        value={config.annotationSelectionColor._val}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(config.annotationSelectionColor)}
+                        onApplyAll={() => {
                           setApplyAllProperty({
                             key: 'annotationSelectionColor',
-                            value: config.annotationSelectionColor
+                            value: config.annotationSelectionColor._val
                           });
                         }}
-                        className="typ-sm"
-                      >Apply to all
-                      </Tags.ApplyAllTxt>
+                        onApplyGlobal={() => {
+                          setConfig(c => updateSelectionColor(
+                            c,
+                            createGlobalProperty(c.annotationSelectionColor._val, GlobalPropsPath.selColor)
+                          ));
+                        }}
+                      />
                     </div>
-                    <GTags.ColorPicker
-                      className="typ-ip"
-                      showText={(color) => color.toHexString()}
-                      onChangeComplete={e => {
-                        setConfig(c => updateSelectionColor(c, e.toHexString()));
-                      }}
-                      defaultValue={config.annotationSelectionColor}
-                    />
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <GlobalTitle title="Font family" />
-                    <GTags.FableSelect
-                      className="typ-ip"
-                      defaultValue={opts.annotationFontFamily}
-                      placeholder="select font"
-                      bordered={false}
-                      options={webFonts.map(v => ({
-                        value: v,
-                        label: v,
-                      }))}
-                      onChange={(e) => {
-                        if (e) {
-                          setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', e as string));
-                          amplitudeAnnotationEdited('branding-font_family', e as string);
-                        } else {
-                          setTourDataOpts(t => updateTourDataOpts(t, 'annotationFontFamily', null));
-                          amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
-                        }
-                      }}
-                      onClick={loadWebFonts}
-                      notFoundContent="No font found"
-                      showSearch
-                      allowClear={{ clearIcon: <CloseOutlined bgColor="white" /> }}
-                      suffixIcon={<CaretOutlined dir="down" />}
-                    />
+                    <div className="ver-center">
+                      <GTags.FableSelect
+                        className="typ-ip"
+                        defaultValue={opts.annotationFontFamily._val}
+                        value={opts.annotationFontFamily._val}
+                        placeholder="select font"
+                        bordered={false}
+                        options={webFonts.map(v => ({
+                          value: v,
+                          label: v,
+                        }))}
+                        onChange={(e) => {
+                          if (e) {
+                            setTourDataOpts(t => updateTourDataOpts(
+                              t,
+                              'annotationFontFamily',
+                              createLiteralProperty(e as string)
+                            ));
+                            amplitudeAnnotationEdited('branding-font_family', e as string);
+                          } else {
+                            setTourDataOpts(t => updateTourDataOpts(
+                              t,
+                              'annotationFontFamily',
+                              createLiteralProperty(null)
+                            ));
+                            amplitudeAnnotationEdited('branding-font_family', 'IBM Plex Sans');
+                          }
+                        }}
+                        onClick={loadWebFonts}
+                        notFoundContent="No font found"
+                        showSearch
+                        allowClear={{ clearIcon: <CloseOutlined bgColor="white" /> }}
+                        suffixIcon={<CaretOutlined dir="down" />}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(opts.annotationFontFamily)}
+                        onApplyGlobal={() => {
+                          setTourDataOpts(t => updateTourDataOpts(
+                            t,
+                            'annotationFontFamily',
+                            createGlobalProperty(t.annotationFontFamily._val, GlobalPropsPath.fontFamily)
+                          ));
+                        }}
+                      />
+                    </div>
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
                       <div className="typ-reg">Selection Effect</div>
-                      <Tags.ApplyAllTxt
-                        onClick={() => {
+                    </div>
+                    <div className="ver-center">
+                      <GTags.FableSelect
+                        className="typ-ip"
+                        title={config.selectionShape._val === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
+                        disabled={config.selectionShape._val === 'pulse'}
+                        defaultValue={config.selectionEffect._val}
+                        value={config.selectionEffect._val}
+                        size="small"
+                        bordered={false}
+                        options={AnnotationSelectionEffect.map(v => ({
+                          value: v,
+                          label: v.charAt(0).toUpperCase() + v.slice(1),
+                        }))}
+                        onChange={(value) => {
+                          setConfig(c => updateAnnotationSelectionEffect(c, createLiteralProperty(value as AnnotationSelectionEffectType)));
+                        }}
+                        suffixIcon={<CaretOutlined dir="down" />}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(config.selectionEffect)}
+                        onApplyAll={() => {
                           setApplyAllProperty({
                             key: 'selectionEffect',
-                            value: config.selectionEffect
+                            value: config.selectionEffect._val
                           });
                         }}
-                        className="typ-sm"
-                      >Apply to all
-                      </Tags.ApplyAllTxt>
+                        onApplyGlobal={() => {
+                          setConfig(c => updateAnnotationSelectionEffect(
+                            c,
+                            createGlobalProperty(c.selectionEffect._val, GlobalPropsPath.selEffect)
+                          ));
+                        }}
+                      />
                     </div>
-                    <GTags.FableSelect
-                      className="typ-ip"
-                      title={config.selectionShape === 'pulse' ? 'Mask type is set to `regular` for Pulse shaped box' : ''}
-                      disabled={config.selectionShape === 'pulse'}
-                      defaultValue={config.selectionEffect}
-                      size="small"
-                      bordered={false}
-                      options={AnnotationSelectionEffect.map(v => ({
-                        value: v,
-                        label: v.charAt(0).toUpperCase() + v.slice(1),
-                      }))}
-                      onChange={(value) => {
-                        setConfig(c => updateAnnotationSelectionEffect(c, value as AnnotationSelectionEffectType));
-                      }}
-                      suffixIcon={<CaretOutlined dir="down" />}
-                    />
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <div>
                       <div className="typ-reg">Selection Shape</div>
-                      <Tags.ApplyAllTxt
-                        onClick={() => {
+
+                    </div>
+                    <div className="ver-center">
+                      <GTags.FableSelect
+                        className="typ-ip"
+                        defaultValue={config.selectionShape._val}
+                        size="small"
+                        bordered={false}
+                        options={AnnotationSelectionShape.map(v => ({
+                          value: v,
+                          label: v.charAt(0).toUpperCase() + v.slice(1),
+                        }))}
+                        onChange={(value) => {
+                          setConfig(c => updateAnnotationSelectionShape(
+                            c,
+                            createLiteralProperty(value as AnnotationSelectionShapeType)
+                          ));
+                        }}
+                        suffixIcon={<CaretOutlined dir="down" />}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(config.selectionShape)}
+                        onApplyAll={() => {
                           setApplyAllProperty({
                             key: 'selectionShape',
-                            value: config.selectionShape
+                            value: config.selectionShape._val
                           });
                         }}
-                        className="typ-sm"
-                      >Apply to all
-                      </Tags.ApplyAllTxt>
+                        onApplyGlobal={() => {
+                          setConfig(c => updateAnnotationSelectionShape(
+                            c,
+                            createGlobalProperty(c.selectionShape._val, GlobalPropsPath.selShape)
+                          ));
+                        }}
+                      />
                     </div>
-                    <GTags.FableSelect
-                      className="typ-ip"
-                      defaultValue={config.selectionShape}
-                      size="small"
-                      bordered={false}
-                      options={AnnotationSelectionShape.map(v => ({
-                        value: v,
-                        label: v.charAt(0).toUpperCase() + v.slice(1),
-                      }))}
-                      onChange={(value) => {
-                        setConfig(c => updateAnnotationSelectionShape(c, value as AnnotationSelectionShapeType));
-                      }}
-                      suffixIcon={<CaretOutlined dir="down" />}
-                    />
                   </div>
                   <div style={commonActionPanelItemStyle}>
                     <GlobalTitle title="Padding" />
-                    <Tags.InputText
-                      className="typ-ip"
-                      placeholder="Enter padding"
-                      defaultValue={opts.annotationPadding}
-                      bordered={false}
-                      disabled={isMediaAnn}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' || e.keyCode === 13) {
+                    <div className="ver-center" style={{ height: '100%' }}>
+                      <Tags.InputText
+                        className="typ-ip"
+                        placeholder="Enter padding"
+                        defaultValue={currTextInputVals.padding}
+                        value={currTextInputVals.padding}
+                        bordered={false}
+                        disabled={isMediaAnn}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.keyCode === 13) {
+                            setTourDataOpts(t => updateTourDataOpts(
+                              t,
+                              'annotationPadding',
+                              createLiteralProperty((e.target as HTMLInputElement).value)
+                            ));
+                          }
+                        }}
+                        onChange={(e) => {
+                          setCurrTextInputVals(prevState => ({
+                            ...prevState,
+                            padding: e.target.value
+                          }));
+                          debouncedPaddingOnChangeHandler.current(e);
+                        }}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(opts.annotationPadding)}
+                        onApplyGlobal={() => {
                           setTourDataOpts(t => updateTourDataOpts(
                             t,
                             'annotationPadding',
-                            (e.target as HTMLInputElement).value
+                            createGlobalProperty(t.annotationPadding._val, GlobalPropsPath.annConPad)
                           ));
-                        }
-                      }}
-                      onChange={debouncedPaddingOnChangeHandler}
-                    />
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               )
@@ -935,25 +1127,25 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               </label>
             </div>
           </div>
-          <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor}>
+          <Tags.BtnCtrlCon annBgColor={props.opts.annotationBodyBackgroundColor._val}>
             {config.buttons.map(btnConf => {
               const showHelpText = btnConf.type === 'prev' && config.buttonLayout === 'default';
               const primaryColor = opts.primaryColor;
               return (
-                <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor}>
+                <Tags.AABtnCtrlLine key={btnConf.id} className={btnEditing === btnConf.id ? 'sel' : ''} annBgColor={props.opts.annotationBodyBackgroundColor._val}>
                   <div className="a-head">
                     <Tags.ABtnConf>
                       <ATags.ABtn
-                        bg={opts.annotationBodyBackgroundColor}
+                        bg={opts.annotationBodyBackgroundColor._val}
                         type="button"
-                        btnStyle={btnConf.style}
-                        color={primaryColor}
-                        size={btnConf.size}
-                        fontFamily={opts.annotationFontFamily}
+                        btnStyle={btnConf.style._val}
+                        color={primaryColor._val}
+                        size={btnConf.size._val}
+                        fontFamily={opts.annotationFontFamily._val}
                         btnLayout={config.buttonLayout}
-                        borderRadius={opts.borderRadius}
+                        borderRadius={opts.borderRadius._val}
                       >
-                        {btnConf.text}
+                        {btnConf.text._val}
                       </ATags.ABtn>
                       { showHelpText && (
                       <Tags.BackBtnHelpText>Back button is displayed as <ArrowLeftOutlined /> </Tags.BackBtnHelpText>
@@ -1004,11 +1196,20 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                       >
                                         <FableInput
                                           label="Enter a link that would open in new tab"
-                                          defaultValue={
-                                              btnConf.hotspot && btnConf.hotspot.actionType === 'open'
-                                                ? btnConf.hotspot.actionValue
-                                                : ''
+                                          value={
+                                            currTextInputVals.buttons.find(btn => btn.id === btnConf.id)?.actionValue || ''
+                                          }
+                                          onChange={(e) => setCurrTextInputVals(prevState => (
+                                            {
+                                              ...prevState,
+                                              buttons: prevState.buttons.map(btn => {
+                                                if (btn.id === btnConf.id) {
+                                                  btn.actionValue = e.target.value as string;
+                                                }
+                                                return btn;
+                                              })
                                             }
+                                          ))}
                                           onBlur={(e) => {
                                             setIsUrlValid(true);
                                             if (!canAddExternalLinkToBtn(btnConf)) {
@@ -1029,7 +1230,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                                   on: 'click',
                                                   target: '$this',
                                                   actionType: 'open',
-                                                  actionValue: validUrl,
+                                                  actionValue: createLiteralProperty(validUrl),
                                                 };
                                               }
                                             }
@@ -1044,7 +1245,37 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                           }}
                                           style={{ marginRight: '1rem' }}
                                         />
+
                                       </div>
+                                      <ApplyStylesMenu
+                                        isGlobal={btnConf.hotspot ? isGlobalProperty(btnConf.hotspot.actionValue) : false}
+                                        onApplyGlobal={() => {
+                                          setIsUrlValid(true);
+                                          if (!canAddExternalLinkToBtn(btnConf)) {
+                                            props.setAlertMsg(
+                                              'Cannot add link as this button is already connected to an annotation'
+                                            );
+                                            return;
+                                          }
+                                          const hostspotConfig: ITourEntityHotspot = {
+                                            type: 'an-btn',
+                                            on: 'click',
+                                            target: '$this',
+                                            actionType: 'open',
+                                            actionValue: createGlobalProperty(
+                                              btnConf.hotspot?.actionValue._val || '',
+                                              GlobalPropsPath.customBtn1URL
+                                            ),
+                                          };
+                                          const thisAntn = updateButtonProp(
+                                            config,
+                                            btnConf.id,
+                                            'hotspot',
+                                            hostspotConfig
+                                          );
+                                          setConfig(thisAntn);
+                                        }}
+                                      />
                                       <Button
                                         type="button"
                                         intent="primary"
@@ -1211,90 +1442,158 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   <div className="n-details">
                     <div style={commonActionPanelItemStyle}>
                       <div style={{ marginRight: '0.5rem' }}>Button style</div>
-                      <GTags.FableSelect
-                        defaultValue={btnConf.style}
-                        size="small"
-                        bordered={false}
-                        options={Object.values(AnnotationButtonStyle).map(v => ({
-                          value: v,
-                          label: v,
-                        }))}
-                        onSelect={(val) => {
-                          if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
-                          setConfig(c => updateButtonProp(c, btnConf.id, 'style', val as AnnotationButtonStyle));
-                        }}
-                        suffixIcon={<CaretOutlined dir="down" />}
-                      />
+                      <div className="ver-center">
+                        <GTags.FableSelect
+                          defaultValue={btnConf.style._val}
+                          value={btnConf.style._val}
+                          size="small"
+                          bordered={false}
+                          options={Object.values(AnnotationButtonStyle).map(v => ({
+                            value: v,
+                            label: v,
+                          }))}
+                          onSelect={(val) => {
+                            if (val !== btnConf.style) { amplitudeAnnotationEdited('cta-button_style', val as string); }
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'style',
+                              createLiteralProperty(val as AnnotationButtonStyle)
+                            ));
+                          }}
+                          suffixIcon={<CaretOutlined dir="down" />}
+                        />
+                        <ApplyStylesMenu
+                          isGlobal={isGlobalProperty(btnConf.style)}
+                          onApplyGlobal={() => {
+                            let fromValue : typeof GlobalPropsPath[keyof typeof GlobalPropsPath];
+
+                            if (btnConf.type === 'next') fromValue = GlobalPropsPath.nextBtnStyle;
+                            if (btnConf.type === 'prev') fromValue = GlobalPropsPath.prevBtnStyle;
+                            if (btnConf.type === 'custom') fromValue = GlobalPropsPath.customBtn1Style;
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'style',
+                              createGlobalProperty(btnConf.style._val, fromValue)
+                            ));
+                          }}
+                        />
+                      </div>
                     </div>
                     <div style={commonActionPanelItemStyle}>
                       <div>
                         <div style={{ marginRight: '0.5rem' }}>Button size</div>
-                        <Tags.ApplyAllTxt
-                          onClick={() => {
+                      </div>
+                      <div className="ver-center">
+                        <GTags.FableSelect
+                          defaultValue={btnConf.size._val}
+                          value={btnConf.size._val}
+                          size="small"
+                          bordered={false}
+                          options={Object.values(AnnotationButtonSize).map(v => ({
+                            value: v,
+                            label: v,
+                          }))}
+                          onSelect={(val) => {
+                            if (val !== btnConf.size._val) {
+                              amplitudeAnnotationEdited('cta-button_size', val as string);
+                            }
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'size',
+                              createLiteralProperty(val as AnnotationButtonSize)
+                            ));
+                          }}
+                          suffixIcon={<CaretOutlined dir="down" />}
+                        />
+                        <ApplyStylesMenu
+                          isGlobal={isGlobalProperty(btnConf.size)}
+                          onApplyAll={() => {
                             setApplyAllProperty({
                               key: 'size',
-                              value: btnConf.size
+                              value: btnConf.size._val
                             });
                           }}
-                          className="typ-sm"
-                        >Apply to all
-                        </Tags.ApplyAllTxt>
+                          onApplyGlobal={() => {
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'size',
+                              createGlobalProperty(btnConf.size._val as AnnotationButtonSize, GlobalPropsPath.ctaSize)
+                            ));
+                          }}
+                        />
                       </div>
-                      <GTags.FableSelect
-                        defaultValue={btnConf.size}
-                        size="small"
-                        bordered={false}
-                        options={Object.values(AnnotationButtonSize).map(v => ({
-                          value: v,
-                          label: v,
-                        }))}
-                        onSelect={(val) => {
-                          if (val !== btnConf.size) { amplitudeAnnotationEdited('cta-button_size', val as string); }
-                          setConfig(c => updateButtonProp(c, btnConf.id, 'size', val as AnnotationButtonSize));
-                        }}
-                        suffixIcon={<CaretOutlined dir="down" />}
-                      />
                     </div>
                     <div style={{ ...commonActionPanelItemStyle, marginTop: '4px' }}>
                       <div>
                         <div>Button text</div>
-                        { btnConf.type !== 'custom'
-                           && (
-                           <Tags.ApplyAllTxt
-                             onClick={() => {
-                               setApplyAllProperty({
-                                 key: 'buttonText',
-                                 value: btnConf.text,
-                                 forBtn: btnConf.type
-                               });
-                             }}
-                             className="typ-sm"
-                           >
-                             Apply to all
-                           </Tags.ApplyAllTxt>
-                           )}
                       </div>
-                      <Input
-                        className="typ-ip"
-                        defaultValue={btnConf.text}
-                        size="small"
-                        bordered={false}
-                        style={{
-                          flexGrow: 1,
-                          maxWidth: '140px',
-                          background: '#fff',
-                          borderRadius: '8px',
-                          height: '100%',
-                          border: '1px solid #E8E8E8',
-                        }}
-                        placeholder="Button text"
-                        onBlur={e => {
-                          if (e.target.value !== btnConf.text) {
-                            amplitudeAnnotationEdited('cta-button_text', e.target.value);
-                          }
-                          setConfig(c => updateButtonProp(c, btnConf.id, 'text', e.target.value));
-                        }}
-                      />
+                      <div className="ver-center" style={{ height: '100%' }}>
+                        <Input
+                          className="typ-ip"
+                          defaultValue={currTextInputVals.buttons.find(btn => btn.id === btnConf.id)!.textValue}
+                          value={currTextInputVals.buttons.find(btn => btn.id === btnConf.id)!.textValue}
+                          size="small"
+                          bordered={false}
+                          style={{
+                            flexGrow: 1,
+                            maxWidth: '140px',
+                            background: '#fff',
+                            borderRadius: '8px',
+                            height: '100%',
+                            border: '1px solid #E8E8E8',
+                          }}
+                          onChange={(e) => {
+                            setCurrTextInputVals(prevState => ({
+                              ...prevState,
+                              buttons: prevState.buttons.map(btn => {
+                                if (btn.id === btnConf.id) {
+                                  btn.textValue = e.target.value;
+                                }
+                                return btn;
+                              })
+                            }));
+                          }}
+                          placeholder="Button text"
+                          onBlur={e => {
+                            if (e.target.value !== btnConf.text._val) {
+                              amplitudeAnnotationEdited('cta-button_text', e.target.value);
+                            }
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'text',
+                              createLiteralProperty(e.target.value)
+                            ));
+                          }}
+                        />
+                        <ApplyStylesMenu
+                          isGlobal={isGlobalProperty(btnConf.text)}
+                          onApplyAll={btnConf.type !== 'custom' ? () => {
+                            setApplyAllProperty({
+                              key: 'buttonText',
+                              value: btnConf.text._val,
+                              forBtn: btnConf.type
+                            });
+                          } : undefined}
+                          onApplyGlobal={() => {
+                            let fromValue : typeof GlobalPropsPath[keyof typeof GlobalPropsPath];
+
+                            if (btnConf.type === 'next') fromValue = GlobalPropsPath.nextBtnText;
+                            if (btnConf.type === 'prev') fromValue = GlobalPropsPath.prevBtnText;
+                            if (btnConf.type === 'custom') fromValue = GlobalPropsPath.customBtn1Text;
+                            setConfig(c => updateButtonProp(
+                              c,
+                              btnConf.id,
+                              'text',
+                              createGlobalProperty(btnConf.text._val, fromValue)
+                            ));
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                   )}
@@ -1309,7 +1608,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               icon={<PlusCircleFilled />}
               onClick={() => {
                 amplitudeAnnotationEdited('add_new_cta', '');
-                setConfig(c => addCustomBtn(c));
+                setConfig(c => addCustomBtn(c, props.globalOpts));
               }}
               style={{ color: '#7567FF' }}
             >
@@ -1601,23 +1900,24 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
           <div>
             <div>Overlay</div>
-            <Tags.ApplyAllTxt
-              onClick={() => {
+          </div>
+          <div className="ver-center">
+            <Tags.StyledSwitch
+              size="small"
+              style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
+              defaultChecked={config.showOverlay}
+              onChange={(e) => setConfig(c => updateOverlay(c, e))}
+            />
+            <ApplyStylesMenu
+              isGlobal={false}
+              onApplyAll={() => {
                 setApplyAllProperty({
                   key: 'showOverlay',
                   value: config.showOverlay
                 });
               }}
-              className="typ-sm"
-            >Apply to all
-            </Tags.ApplyAllTxt>
+            />
           </div>
-          <Tags.StyledSwitch
-            size="small"
-            style={{ backgroundColor: config.showOverlay ? '#7567FF' : '#BDBDBD' }}
-            defaultChecked={config.showOverlay}
-            onChange={(e) => setConfig(c => updateOverlay(c, e))}
-          />
         </div>
         <div style={commonActionPanelItemStyle}>
           <div style={commonActionPanelItemStyle}>Scroll Adjustment</div>
@@ -1640,15 +1940,29 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <div>
             <div>Show Step Number</div>
           </div>
-          <Tags.StyledSwitch
-            size="small"
-            defaultChecked={opts.showStepNum}
-            onChange={(e) => {
-              const newOpts = updateTourDataOpts(opts, 'showStepNum', e);
-              amplitudeAnnotationEdited('show-step_num', e);
-              setTourDataOpts(newOpts);
-            }}
-          />
+          <div className="ver-center">
+            <Tags.StyledSwitch
+              size="small"
+              defaultChecked={opts.showStepNum._val}
+              checked={opts.showStepNum._val}
+              onChange={(e) => {
+                const newOpts = updateTourDataOpts(opts, 'showStepNum', createLiteralProperty(e));
+                amplitudeAnnotationEdited('show-step_num', e);
+                setTourDataOpts(newOpts);
+              }}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(opts.showStepNum)}
+              onApplyGlobal={() => {
+                const newOpts = updateTourDataOpts(
+                  opts,
+                  'showStepNum',
+                  createGlobalProperty(opts.showStepNum._val, GlobalPropsPath.showStepNo)
+                );
+                setTourDataOpts(newOpts);
+              }}
+            />
+          </div>
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
           <div>

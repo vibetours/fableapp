@@ -111,29 +111,34 @@ export interface IChronoUpdatable {
 
 export interface ITourDataOpts extends IChronoUpdatable {
   lf_pkf: string; // stands for lead form primary key
-  primaryColor: string;
-  annotationBodyBackgroundColor: string;
-  annotationBodyBorderColor: string;
-  annotationFontFamily: string | null;
-  annotationFontColor: string;
+  primaryColor: Property<string>;
+  annotationBodyBackgroundColor: Property<string>;
+  annotationBodyBorderColor: Property<string>;
+  annotationFontFamily: Property<string | null>;
+  annotationFontColor: Property<string>;
   main: string;
-  borderRadius: number;
-  showFableWatermark: boolean;
-  annotationPadding: string;
-  showStepNum: boolean;
+  borderRadius: Property<number>;
+  showFableWatermark: Property<boolean>;
+  annotationPadding: Property<string>;
+  showStepNum: Property<boolean>;
   reduceMotionForMobile: boolean;
 }
 
+export type TourDataOpts_WithProperty = Pick<
+   ITourDataOpts,
+  'primaryColor'| 'annotationBodyBackgroundColor' |'annotationBodyBorderColor'
+  | 'annotationFontFamily' |'annotationFontColor' | 'borderRadius' | 'showFableWatermark'
+  | 'annotationPadding' | 'showStepNum'
+>
+
 export interface ITourLoaderData {
-  logo: {
-      url: string;
-  },
+  logo: {url: Property<string>},
   loader: {
       url: string;
       type: 'gif' | 'lottie' | '';
   },
   lastUpdatedAtUTC: number;
-  loadingText: string;
+  loadingText: Property<string>;
   version: string;
 }
 
@@ -217,9 +222,9 @@ export type IAnnotationButtonType = 'next' | 'prev' | 'custom';
 export interface IAnnotationButton {
   id: string;
   type: IAnnotationButtonType
-  text: string;
-  style: AnnotationButtonStyle;
-  size: AnnotationButtonSize;
+  text: Property<string>;
+  style: Property<AnnotationButtonStyle>;
+  size: Property<AnnotationButtonSize>;
   exclude?: boolean;
   // This is used to sort buttons for display
   // next button normally have very high order since it would be towards the end
@@ -231,12 +236,17 @@ export interface IAnnotationButton {
   hotspot: ITourEntityHotspot | null;
 }
 
+export type IAnnotationButton_WithProperty = Pick<
+IAnnotationButton,
+  'text' | 'style' | 'size'
+>
+
 export interface ITourEntityHotspot {
   type: 'el' | 'an-btn',
   on: 'click',
   target: string;
   actionType: 'navigate' | 'open';
-  actionValue: string;
+  actionValue: Property<string>;
 }
 
 export type EAnnotationBoxSize = 'small' | 'medium' | 'large' | 'custom';
@@ -277,16 +287,21 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   videoUrlWebm: string;
   showOverlay: boolean;
   buttonLayout: AnnotationButtonLayoutType;
-  selectionShape: AnnotationSelectionShapeType;
-  selectionEffect: AnnotationSelectionEffectType;
+  selectionShape: Property<AnnotationSelectionShapeType>;
+  selectionEffect: Property<AnnotationSelectionEffectType>;
   targetElCssStyle: string;
   annCSSStyle: string;
-  annotationSelectionColor: string;
+  annotationSelectionColor: Property<string>;
   isLeadFormPresent: boolean;
   m_id: string;
   scrollAdjustment: ScrollAdjustmentType;
   audio: null | IAnnotationAudio;
 }
+
+export type IAnnotationConfig_WithProperty = Pick<
+   IAnnotationOriginConfig,
+  'selectionEffect' | 'selectionShape' | 'annotationSelectionColor'
+>
 
 export interface IAnnotationAudio {
   webm: string;
@@ -318,7 +333,7 @@ export enum AnnotationFontSize {
 
 export interface ThemeCandidature {
   colorList: string[];
-  borderRadius: number[];
+  borderRadius: Array<number | 'global'>;
 }
 
 export const DEFAULT_BORDER_RADIUS = 4;
@@ -350,11 +365,18 @@ export interface JourneyData {
   positioning: CreateJourneyPositioning;
   title: string;
   flows: JourneyFlow[];
-  cta?: { size: AnnotationButtonSize; text: string; navigateTo: string; };
-  primaryColor: string;
+  cta?: JourneyCTA;
+  primaryColor: Property<string>;
   hideModuleOnLoad: boolean;
   hideModuleOnMobile: boolean;
 }
+
+export interface JourneyCTA {
+  size: Property<AnnotationButtonSize>;
+  text: Property<string>;
+  navigateTo: Property<string>;
+}
+
 export interface JourneyFlow {
   header1: string;
   header2: string;
@@ -365,4 +387,48 @@ export interface JourneyFlow {
 export enum CreateJourneyPositioning {
   Left_Bottom= 'leftbottom',
   Right_Bottom= 'rightbottom'
+}
+
+export interface Property<T> {
+  type: PropertyType,
+  from: string,
+  _val: T,
+}
+
+export enum PropertyType {
+  REF,
+  LITERAL,
+}
+
+export interface IGlobalConfig {
+  logo: string;
+  companyUrl: string;
+
+  demoLoadingText: string;
+  fontFamily: string;
+  primaryColor: string;
+  annBodyBgColor: string;
+  annBorderColor: string;
+  fontColor: string;
+  annBorderRadius: number;
+  annConPad: string;
+  selColor: string;
+  selShape: AnnotationSelectionShapeType;
+  selEffect: AnnotationSelectionEffectType;
+  showStepNo: boolean;
+  showWatermark: boolean;
+
+  nextBtnText: string;
+  nextBtnStyle: AnnotationButtonStyle;
+  prevBtnText: string;
+  prevBtnStyle: AnnotationButtonStyle;
+  customBtn1Text: string;
+  customBtn1Style: AnnotationButtonStyle;
+  customBtn1URL: string;
+  ctaSize: AnnotationButtonSize;
+
+  monoIncKey: number;
+  createdAt: number;
+  updatedAt: number;
+  version: number;
 }

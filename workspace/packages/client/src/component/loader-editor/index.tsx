@@ -2,6 +2,7 @@ import React, { RefObject, useEffect, useRef, useState } from 'react';
 import { DeleteOutlined, LinkOutlined, ReloadOutlined, SaveOutlined, UploadOutlined } from '@ant-design/icons';
 import { Tabs, Tooltip } from 'antd';
 import { ITourLoaderData } from '@fable/common/dist/types';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import * as Tags from './styled';
 import Loader from './loader';
 import FileInput from '../file-input';
@@ -11,8 +12,9 @@ import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import CloseIcon from '../../assets/tour/close.svg';
 import { FeatureForPlan } from '../../plans';
-import { isFeatureAvailable } from '../../utils';
+import { isFeatureAvailable, isGlobalProperty } from '../../utils';
 import Upgrade from '../upgrade';
+import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
 
 interface Props {
   data: ITourLoaderData,
@@ -31,11 +33,12 @@ function LoaderEditor(props: Props): JSX.Element {
   const [isLogoUrlEmpty, setIsLogoUrlEmpty] = useState(false);
   const [isLogoUrlChanged, setIsLogoUrlChanged] = useState(false);
   const [inputHelpText, setInputHelpText] = useState(false);
+  const [loaderText, setLoaderText] = useState(props.data.loadingText._val);
   const logoLinkIpRef = useRef<HTMLInputElement>();
   const initialLogoLink = useRef('');
 
   useEffect(() => {
-    initialLogoLink.current = props.data.logo.url;
+    initialLogoLink.current = props.data.logo.url._val;
   }, []);
 
   useEffect(() => {
@@ -43,7 +46,7 @@ function LoaderEditor(props: Props): JSX.Element {
       props.startAutosavingLoader();
       props.recordLoaderData(props.tour, loaderData);
     }
-    if ((loaderData.logo.url !== initialLogoLink.current) && (loaderData.logo.url !== DEFAULT_LOGO_URL)) {
+    if ((loaderData.logo.url._val !== initialLogoLink.current) && (loaderData.logo.url._val !== DEFAULT_LOGO_URL)) {
       setIsLogoUrlChanged(true);
     }
   }, [loaderData]);
@@ -58,6 +61,10 @@ function LoaderEditor(props: Props): JSX.Element {
       }
     }
   };
+
+  useEffect(() => {
+    setLoaderText(props.data.loadingText._val);
+  }, [props.data.loadingText]);
 
   const customizeLoaderFeatureAvailable = isFeatureAvailable(props.featureForPlan, 'custom_demo_loader');
   return (
@@ -106,46 +113,57 @@ function LoaderEditor(props: Props): JSX.Element {
                       key: '1',
                       label: <div className="typ-reg"><UploadOutlined />Upload</div>,
                       children: (
-                        <Tags.FileInputCon>
-                          <FileInput
-                            accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
-                            onChange={async (e) => {
-                              if (e.target.files) {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  props.startAutosavingLoader();
-                                  const fileUrl = await uploadFileToAws(e.target.files[0]);
-                                  setLoaderData(prev => ({ ...prev, logo: { url: fileUrl } }));
-                                  if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl;
-                                  setIsLogoUrlEmpty(false);
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <Tags.FileInputCon style={{ width: '100%' }}>
+                            <FileInput
+                              style={{ width: '100%' }}
+                              accept="image/png, image/jpeg, image/webp, image/svg+xml, image/gif"
+                              onChange={async (e) => {
+                                if (e.target.files) {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    props.startAutosavingLoader();
+                                    const fileUrl = await uploadFileToAws(e.target.files[0]);
+                                    setLoaderData(prev => ({ ...prev, logo: { url: createLiteralProperty(fileUrl) } }));
+                                    if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl;
+                                    setIsLogoUrlEmpty(false);
+                                  }
                                 }
-                              }
-                            }}
-                          />
-                          {isLogoUrlChanged && (
-                          <div>
-                            <Tooltip title="Revert logo" placement="left">
-                              <ReloadOutlined
-                                style={{ fontSize: '1.2rem' }}
-                                onClick={() => {
-                                  setIsLogoUrlChanged(false);
-                                  setLoaderData(prev => ({ ...prev, logo: { url: DEFAULT_LOGO_URL } }));
-                                }}
-                              />
-                            </Tooltip>
-                          </div>
-                          )}
-                        </Tags.FileInputCon>
+                              }}
+                            />
+                            {isLogoUrlChanged && (
+                            <div>
+                              <Tooltip title="Revert logo" placement="left">
+                                <ReloadOutlined
+                                  style={{ fontSize: '1.2rem' }}
+                                  onClick={() => {
+                                    setIsLogoUrlChanged(false);
+                                    setLoaderData(prev => (
+                                      { ...prev,
+                                        logo: {
+                                          url: createLiteralProperty(DEFAULT_LOGO_URL)
+                                        }
+                                      }
+                                    ));
+                                  }}
+                                />
+                              </Tooltip>
+                            </div>
+                            )}
+                          </Tags.FileInputCon>
+
+                        </div>
                       ),
                     },
                     {
                       key: '2',
                       label: <div className="typ-reg"><LinkOutlined />Link</div>,
                       children: (
-                        <div style={{ marginTop: '0.45rem' }}>
+                        <div className="ver-center" style={{ marginTop: '0.45rem' }}>
                           <Input
+                            containerStyle={{ width: '100%' }}
                             label="Logo link"
-                            defaultValue={loaderData.logo.url}
+                            value={loaderData.logo.url._val}
                             innerRef={logoLinkIpRef as unknown as RefObject<HTMLInputElement>}
                             onChange={async (e) => {
                               setIsLogoUrlEmpty(false);
@@ -153,7 +171,21 @@ function LoaderEditor(props: Props): JSX.Element {
                                 setIsLogoUrlEmpty(true);
                                 return;
                               }
-                              setLoaderData(prev => ({ ...prev, logo: { url: e.target.value } }));
+                              setLoaderData(prev => (
+                                {
+                                  ...prev,
+                                  logo: { url: createLiteralProperty(e.target.value) }
+                                }));
+                            }}
+                          />
+                          <ApplyStylesMenu
+                            isGlobal={isGlobalProperty(loaderData.logo.url)}
+                            onApplyGlobal={() => {
+                              setLoaderData(prev => (
+                                {
+                                  ...prev,
+                                  logo: { url: createGlobalProperty(loaderData.logo.url._val, GlobalPropsPath.logo) }
+                                }));
                             }}
                           />
                         </div>
@@ -182,44 +214,49 @@ function LoaderEditor(props: Props): JSX.Element {
                       key: '1',
                       label: <div className="typ-reg">Gif</div>,
                       children: (
-                        <Tags.FileInputCon>
+
+                        <Tags.FileInputCon style={{ width: '100%' }}>
                           <FileInput
+                            style={{ width: '100%' }}
                             accept="image/gif"
                             label="Upload Gif:"
                             onChange={(e) => setGifOrLottieFile(e, 'gif')}
                           />
                           {loaderData.loader.url && (
-                          <div>
-                            <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
-                              <DeleteOutlined
-                                style={{ fontSize: '1.2rem' }}
-                                onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
-                              />
-                            </Tooltip>
-                          </div>
+                            <div>
+                              <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
+                                <DeleteOutlined
+                                  style={{ fontSize: '1.2rem' }}
+                                  onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                                />
+                              </Tooltip>
+                            </div>
                           )}
                         </Tags.FileInputCon>
+
                       ),
                     },
                     {
                       key: '2',
                       label: <div className="typ-reg">Lottie file</div>,
                       children: (
-                        <Tags.FileInputCon>
+
+                        <Tags.FileInputCon style={{ width: '100%' }}>
                           <FileInput
+                            style={{ width: '100%' }}
                             accept="application/json"
                             label="Upload Lottie:"
                             onChange={(e) => setGifOrLottieFile(e, 'lottie')}
                           />
                           {loaderData.loader.url && (
-                          <div>
-                            <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
-                              <DeleteOutlined
-                                style={{ fontSize: '1.2rem' }}
-                                onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
-                              />
-                            </Tooltip>
-                          </div>
+                            <div>
+                              <Tooltip title={`Delete ${loaderData.loader.type} loader`} placement="left">
+                                <DeleteOutlined
+                                  style={{ fontSize: '1.2rem' }}
+                                  onClick={() => setLoaderData(prev => ({ ...prev, loader: { url: '', type: '' } }))}
+                                />
+                              </Tooltip>
+                            </div>
                           )}
                         </Tags.FileInputCon>
                       ),
@@ -232,28 +269,46 @@ function LoaderEditor(props: Props): JSX.Element {
                 <Tags.FieldName className="typ-h2">
                   <p>Loading text</p>
                 </Tags.FieldName>
-                <div>
-                  <Input
-                    label="Loading text"
-                    defaultValue={loaderData.loadingText}
-                    onFocus={(e) => {
-                      setInputHelpText(true);
-                    }}
-                    onBlur={(e) => {
-                      setInputHelpText(false);
-                      setLoaderData(prev => ({ ...prev, loadingText: e.target.value }));
-                    }}
-                  />
-                  {inputHelpText && (
-                  <div
-                    className="typ-sm"
-                    style={{
-                      margin: '0.5rem',
-                      opacity: '0.6'
-                    }}
-                  >Click outside to preview changed text
+                <div className="ver-center">
+                  <div style={{ width: '100%' }}>
+                    <Input
+                      containerStyle={{ width: '100%' }}
+                      label="Loading text"
+                      value={loaderText}
+                      onFocus={(e) => {
+                        setInputHelpText(true);
+                      }}
+                      onChange={(e) => setLoaderText(e.target.value as string)}
+                      onBlur={(e) => {
+                        setInputHelpText(false);
+                        setLoaderData(prev => ({ ...prev, loadingText: createLiteralProperty(loaderText) }));
+                      }}
+                    />
+                    {inputHelpText && (
+                    <div
+                      className="typ-sm"
+                      style={{
+                        margin: '0.5rem',
+                        opacity: '0.6'
+                      }}
+                    >Click outside to preview changed text
+                    </div>
+                    )}
                   </div>
-                  )}
+                  <div>
+                    <ApplyStylesMenu
+                      isGlobal={isGlobalProperty(loaderData.loadingText)}
+                      onApplyGlobal={() => {
+                        setLoaderData(prev => ({
+                          ...prev,
+                          loadingText: createGlobalProperty(
+                            loaderText,
+                            GlobalPropsPath.demoLoadingText
+                          )
+                        }));
+                      }}
+                    />
+                  </div>
                 </div>
               </Tags.FieldCon>
             </>

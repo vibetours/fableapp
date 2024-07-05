@@ -15,7 +15,8 @@ import {
   IAnnotationConfig,
   ITourDataOpts,
   ITourEntityHotspot,
-  ScreenData
+  ScreenData,
+  IGlobalConfig
 } from '@fable/common/dist/types';
 import { Modal, Button, Tooltip, Drawer, Radio } from 'antd';
 import { ReqTourPropUpdate, Responsiveness } from '@fable/common/dist/api-contract';
@@ -28,7 +29,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
-import { getRandomId } from '@fable/common/dist/utils';
+import { createLiteralProperty, getRandomId } from '@fable/common/dist/utils';
 import FableButton from '../button';
 import * as GTags from '../../common-styled';
 import {
@@ -152,6 +153,7 @@ type CanvasProps = {
   elpathKey: ElPathKey;
   updateElPathKey: (elPath: ElPathKey)=> void;
   featurePlan: FeatureForPlan | null;
+  globalOpts: IGlobalConfig;
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -936,12 +938,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     const nextBtnOfFromAn = fromAn.buttons.find(btn => btn.type === 'next')!;
     if (isNavigateHotspot(nextBtnOfFromAn.hotspot)) {
       const toOldAnnId = nextBtnOfFromAn.hotspot!.actionValue;
-      const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId];
+      const [toOldScrnIdx, toOldAnnIdx] = lookupMap[toOldAnnId._val];
       const toOldAn = allAnns[toOldScrnIdx].annotations[toOldAnnIdx];
       toOldAn.grpId = newGrpIdForMiddleGroup;
 
       const middleGroupedUpdates = groupUpdatesByAnnotation(updateGrpIdForTimelineTillEnd(
-        { ...toOldAn, screenId: +toOldAnnId.split('/')[0] },
+        { ...toOldAn, screenId: +toOldAnnId._val.split('/')[0] },
         allAnns,
         newGrpIdForMiddleGroup
       ));
@@ -970,7 +972,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       //  A.prev.next = null (A.prev === B) // true
       //  A.prev = C
       const fromOldAnnId = prevBtnOfToAn.hotspot!.actionValue;
-      const [fromOldScrnIdx, fromOldAnnIdx] = lookupMap[fromOldAnnId];
+      const [fromOldScrnIdx, fromOldAnnIdx] = lookupMap[fromOldAnnId._val];
       const fromOldAn = allAnns[fromOldScrnIdx].annotations[fromOldAnnIdx];
       const nextBtn = fromOldAn.buttons.find(btn => btn.type === 'next')!;
       update = updateButtonProp(fromOldAn, nextBtn.id, 'hotspot', null);
@@ -984,25 +986,28 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
     // if former connection does not exist
     //  update next btn of from annotation
     //  update prev btn of to annoatation
+
     update = updateButtonProp(toAn, prevBtnOfToAn.id, 'hotspot', {
       type: 'an-btn',
       on: 'click',
       target: '$this',
       actionType: 'navigate',
-      actionValue: `${allAnns[fromScreenIdx].screen.id}/${allAnns[fromScreenIdx].annotations[fromAnIdx].refId}`,
+      actionValue: createLiteralProperty(
+        `${allAnns[fromScreenIdx].screen.id}/${allAnns[fromScreenIdx].annotations[fromAnIdx].refId}`
+      ),
     } as ITourEntityHotspot);
     allAnns[toScreenIdx].annotations[toAnIdx] = update; // updated value push it back to the list
     updateFn('annotation-and-theme', allAnns[toScreenIdx].screen.id, {
       config: update,
       actionType: 'upsert'
     }, tx);
-
     update = updateButtonProp(fromAn, nextBtnOfFromAn.id, 'hotspot', {
       type: 'an-btn',
       on: 'click',
       target: '$this',
-      actionType: 'navigate',
-      actionValue: `${allAnns[toScreenIdx].screen.id}/${allAnns[toScreenIdx].annotations[toAnIdx].refId}`,
+      actionValue: createLiteralProperty(
+        `${allAnns[toScreenIdx].screen.id}/${allAnns[toScreenIdx].annotations[toAnIdx].refId}`
+      ),
     } as ITourEntityHotspot);
     allAnns[fromScreenIdx].annotations[fromAnIdx] = update; // updated value push it back to the list
     updateFn('annotation-and-theme', allAnns[fromScreenIdx].screen.id, {
@@ -1020,7 +1025,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       }
       const prevBtnHotspot = currAnn.buttons.find(btn => btn.type === 'prev')?.hotspot;
       if (!prevBtnHotspot) break;
-      const prevAnn = getAnnotationByRefId(prevBtnHotspot.actionValue.split('/')[1], allAnns);
+      const prevAnn = getAnnotationByRefId(prevBtnHotspot.actionValue._val.split('/')[1], allAnns);
       if (!prevAnn) break;
       currAnn = prevAnn;
       firstAnnOfNewFlow = prevAnn;
@@ -1035,7 +1040,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       const nextBtnHotspot = currAnn.buttons.find(btn => btn.type === 'next')?.hotspot;
       if (!nextBtnHotspot) break;
       if (nextBtnHotspot.actionType !== 'navigate') break;
-      const nextAnn = getAnnotationByRefId(nextBtnHotspot.actionValue.split('/')[1], allAnns);
+      const nextAnn = getAnnotationByRefId(nextBtnHotspot.actionValue._val.split('/')[1], allAnns);
       if (!nextAnn) break;
       currAnn = nextAnn;
     }
@@ -3140,6 +3145,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
                     featurePlan={props.featurePlan}
+                    globalOpts={props.globalOpts}
                   />
                   )
                 }
@@ -3215,6 +3221,8 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
                     featurePlan={props.featurePlan}
+                    globalOpts={props.globalOpts}
+
                   />
                 )
               }
@@ -3233,6 +3241,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               journey={props.journey}
               featurePlan={props.featurePlan}
               allAnnotationsForTour={props.allAnnotationsForTour}
+              globalOpts={props.globalOpts}
             />
           }
           {

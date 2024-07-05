@@ -4,12 +4,13 @@ import { connect } from 'react-redux';
 import api from '@fable/common/dist/api';
 import { ApiResp, RespApiKey, RespVanityDomain, VanityDomainDeploymentStatus } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { CheckCircleFilled, CheckCircleOutlined, ClockCircleFilled, ClockCircleOutlined, CodeOutlined, CopyOutlined, GlobalOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, CodeOutlined, CopyOutlined, FormatPainterOutlined, GlobalOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 import { timeFormat } from 'd3-time-format';
 import { Collapse, Modal, Tabs, Tag } from 'antd';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { sleep } from '@fable/common/dist/utils';
+import GlobalConfigEditor from '../global-config-editor';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
@@ -222,8 +223,19 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
             <Tags.Con>
               <Tabs
                 // defaultActiveKey="developer"
-                defaultActiveKey="customdomain"
+                defaultActiveKey="global-style"
                 items={[{
+                  key: 'global-style',
+                  label: (
+                    <>
+                      <FormatPainterOutlined /> Global Style
+                    </>
+                  ),
+                  children: (
+                    <GlobalConfigEditor />
+                  )
+                },
+                {
                   key: 'developer',
                   label: (
                     <>

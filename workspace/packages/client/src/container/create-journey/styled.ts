@@ -13,6 +13,12 @@ export const CreateJourneyCon = styled.div`
     flex-direction: column;
     gap: 1rem;
     box-shadow: 6px 0px 24px 0px rgba(0, 0, 0, 0.06);
+    .ver-center {
+      display: flex;
+      align-items: center;
+      justify-content: right;
+      gap: 0.25rem;
+    }
 `;
 
 export const EditorCon = styled.div`

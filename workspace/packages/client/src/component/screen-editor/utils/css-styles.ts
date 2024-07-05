@@ -26,7 +26,7 @@ ${cssSelector} .f-button-con {
 }
 
 ${buttonTexts.map(btnText => ` /* ${btnText} button */
-${cssSelector} .f-${generateCSSSelectorFromText(btnText)}-btn {
+${cssSelector} .f-${generateCSSSelectorFromText(btnText._val)}-btn {
 
 }
 

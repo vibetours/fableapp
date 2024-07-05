@@ -40,7 +40,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   // TODO since theme is global across the annotations, we keep only once instance of this.
   //      we reingest the theme on every render. Handle it in a better way
-  private opts: ITourDataOpts = getDefaultTourOpts();
+  private opts: ITourDataOpts;
 
   private con: HTMLDivElement;
 
@@ -160,6 +160,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
     this.screen = screen;
+    this.opts = tourDataOpts;
     this.elPathKey = elPathKey;
     this.annElsVisibilityObserver = new AnnElsVisibilityObserver(this.elVisibleHandler, this.elNotVisibleHandler);
     this.nav = opts.navigate;
@@ -396,7 +397,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 `.trim();
 
   private exportTourThemeAsCssVar(): string {
-    const padding = this.tourDataOpts.annotationPadding;
+    const padding = this.tourDataOpts.annotationPadding._val;
     const match = padding.match(/\s*(\d+)\s+(\d+)\s*/);
     let padX = 0;
     let padY = 0;
@@ -409,12 +410,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     return `
 :root {
-  --fable-primary-color: ${this.tourDataOpts.primaryColor};
+  --fable-primary-color: ${this.tourDataOpts.primaryColor._val};
   --fable-selection-color: ${this.config.selectionColor};
-  --fable-ann-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor};
-  --fable-ann-border-color: ${this.tourDataOpts.annotationBodyBorderColor};
-  --fable-ann-font-color: ${this.tourDataOpts.annotationFontColor};
-  --fable-ann-border-radius: ${this.tourDataOpts.borderRadius};
+  --fable-ann-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor._val};
+  --fable-ann-border-color: ${this.tourDataOpts.annotationBodyBorderColor._val};
+  --fable-ann-font-color: ${this.tourDataOpts.annotationFontColor._val};
+  --fable-ann-border-radius: ${this.tourDataOpts.borderRadius._val};
   --fable-ann-con-pad-x: ${padX};
   --fable-ann-con-pad-y: ${padY};
 }
@@ -457,9 +458,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   addAnnStyleTag(styleStr: string, config: IAnnotationConfig):void {
     const fableAnnOverrideStyleTagId = 'f-fable-override-ann-style';
-    let styleTag = this.doc.getElementById(fableAnnOverrideStyleTagId);
+    const umbrlDiv = getFableRtUmbrlDiv(this.doc)!;
+    let styleTag = umbrlDiv.querySelector(`#${fableAnnOverrideStyleTagId}`);
     if (!styleTag) {
-      const umbrlDiv = getFableRtUmbrlDiv(this.doc)!;
       styleTag = this.doc.createElement('style');
       styleTag.setAttribute('id', fableAnnOverrideStyleTagId);
       umbrlDiv.prepend(styleTag);
@@ -636,14 +637,14 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
         if (
-          annotationDisplayConfig.config.selectionShape === 'pulse'
-          || annotationDisplayConfig.config.selectionEffect === 'blinking'
+          annotationDisplayConfig.config.selectionShape._val === 'pulse'
+          || annotationDisplayConfig.config.selectionEffect._val === 'blinking'
         ) {
           this.updateConfig('selectionColor', 'transparent');
         } else if (hotspotElPath && annotationDisplayConfig.config.isHotspot) {
           this.updateConfig('selectionColor', '#ffffff00');
         } else {
-          this.updateConfig('selectionColor', annotationDisplayConfig.config.annotationSelectionColor);
+          this.updateConfig('selectionColor', annotationDisplayConfig.config.annotationSelectionColor._val);
         }
         if (annotationDisplayConfig.config.type === 'cover') {
           this.createFullScreenMask();

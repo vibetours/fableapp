@@ -50,11 +50,11 @@ export function getMultiAnnNodesAndEdges(
 
       if (nextBtn.hotspot && nextBtn.hotspot.actionType === 'navigate') {
         const toId = nextBtn.hotspot.actionValue;
-        const toAnnId = toId.split('/')[1];
+        const toAnnId = toId._val.split('/')[1];
         const toAnn = getAnnotationWithScreenAndIdx(toAnnId, data)!;
         edges.push({
           fromAnnId: annId,
-          toAnnId: toId,
+          toAnnId: toId._val,
           fromZId: annotation.zId,
           toZId: toAnn.zId,
         });
@@ -186,7 +186,7 @@ export const getAnnotationsInOrder = (
     if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
       break;
     }
-    const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+    const nextAnnRefId = nextBtn.hotspot.actionValue._val.split('/')[1];
     ann = getAnnotationByRefId(nextAnnRefId, allAnnotationsForTour)!;
   }
 

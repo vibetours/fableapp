@@ -1,4 +1,4 @@
-import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow } from '@fable/common/dist/types';
+import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
@@ -326,17 +326,24 @@ export const SiteThemePresets = {
 };
 
 export interface SiteData {
-    logo: string;
+    logo: Property<string>;
     title: string;
-    navLink: string;
-    ctaText: string;
-    ctaLink: string;
+    navLink: Property<string>;
+    ctaText: Property<string>;
+    ctaLink: Property<string>;
     themePreset?: keyof typeof SiteThemePresets;
     bg1: string;
     bg2: string;
     headerBg: string;
     v: number;
-  }
+}
+
+export type SiteData_WithProperty = Pick<
+SiteData,
+  'logo' | 'navLink' | 'ctaText' | 'ctaLink'
+>
+
+export const SiteDateKeysWithProperty: Array<keyof SiteData_WithProperty> = ['logo', 'navLink', 'ctaText', 'ctaLink'];
 
 export interface IframePos {
   left: number,

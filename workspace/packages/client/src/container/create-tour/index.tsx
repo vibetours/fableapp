@@ -15,7 +15,8 @@ import {
   NODE_NAME,
   SerDoc,
   ThemeCandidature,
-  ThemeStats
+  ThemeStats,
+  IGlobalConfig
 } from '@fable/common/dist/types';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { captureException, startTransaction, Transaction } from '@sentry/react';
@@ -25,7 +26,7 @@ import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { RespProxyAsset, RespTour } from '@fable/common/dist/api-contract';
-import { addNewTourToAllTours, getAllTours } from '../../action/creator';
+import { addNewTourToAllTours, getAllTours, getGlobalConfig } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
 import SkeletonCard from '../../component/create-tour/skeleton-card';
@@ -37,7 +38,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import { DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE } from './constants';
 import { deleteDataFromDb, getDataFromDb, openDb } from './db-utils';
 import * as Tags from './styled';
-import { DBData, FrameDataToBeProcessed, ScreenInfo } from './types';
+import { AnnotationThemeType, BorderRadiusThemeItem, ColorThemeItem, DBData, FrameDataToBeProcessed, ScreenInfo } from './types';
 import { getBorderRadius, getOrderedColorsWithScore, getThemeAnnotationOpts, saveAsTour, saveScreen } from './utils';
 import Button from '../../component/button';
 import Input from '../../component/input';
@@ -54,22 +55,26 @@ const { confirm } = Modal;
 interface IDispatchProps {
   getAllTours: () => void;
   addNewTourToAllTours: (tour: RespTour)=> void;
+  getGlobalConfig: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours(false)),
-  addNewTourToAllTours: (tour: RespTour) => dispatch(addNewTourToAllTours(tour))
+  addNewTourToAllTours: (tour: RespTour) => dispatch(addNewTourToAllTours(tour)),
+  getGlobalConfig: () => dispatch(getGlobalConfig()),
 });
 
 interface IAppStateProps {
   tours: P_RespTour[];
   allToursLoaded: boolean;
+  globalConfig: IGlobalConfig | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   tours: state.default.tours,
   allToursLoaded: state.default.allToursLoadingStatus === LoadingStatus.Done,
+  globalConfig: state.default.globalConfig,
 });
 
 interface IOwnProps {
@@ -111,11 +116,11 @@ type IOwnStateProps = {
   saveType: 'new_tour' | 'existing_tour' | null,
   existingTourRId: string | null,
   screens: ScreenInfo[];
-  colorList: string[];
+  colorList: ColorThemeItem[];
   selectedColor: string;
-  borderRadius: number[];
+  borderRadiusList: Array<BorderRadiusThemeItem>;
   showMoreAnnotation: number;
-  selectedBorderRadius: number | null;
+  selectedBorderRadius: number | 'global' | null;
   currentDisplayState: DisplayState;
   prevDisplayState: DisplayState;
   openSelect: boolean;
@@ -158,7 +163,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       screens: [],
       colorList: [],
       selectedColor: '',
-      borderRadius: [],
+      borderRadiusList: [],
       showMoreAnnotation: 4,
       selectedBorderRadius: null,
       currentDisplayState: DisplayState.ShowTourCreationOptions,
@@ -188,8 +193,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  createThemeCandidatesFromStats = (themeStats: ThemeStats): ThemeCandidature => {
+  createThemeCandidatesFromStats = (themeStats: ThemeStats): {
+    colorList: ColorThemeItem[],
+    borderRadius: Array<BorderRadiusThemeItem>
+  } => {
     const theme: ThemeCandidature = { colorList: [], borderRadius: [] };
+    let colorListArr: ColorThemeItem[] = [];
+    let borderListArr: Array<BorderRadiusThemeItem> = [];
     let orderedColors: {
       hex: string,
       occurrence: number,
@@ -211,13 +221,26 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
     this.defaultColorsInList = newDefaultColorInList;
-    theme.colorList = orderedColors.map(c => c.hex).slice(0, 5);
-    theme.colorList.push(''); // default color
-    theme.borderRadius = [4, 10];
-    if (themeStats && themeStats.nodeBorderRadius && Object.keys(themeStats.nodeBorderRadius).length >= 3) {
-      theme.borderRadius = getBorderRadius(themeStats.nodeBorderRadius);
+
+    colorListArr.push({ color: 'global', type: 'global' });
+    for (const orderedColor of orderedColors) {
+      const type = orderedColor.default ? 'suggested' : 'page-generated';
+      colorListArr.push({ color: orderedColor.hex, type });
     }
-    return theme;
+    colorListArr = colorListArr.slice(0, 5);
+
+    theme.borderRadius = [4, 10];
+    borderListArr = [{ value: 'global', type: 'global' }, { value: 10, type: 'suggested' }];
+
+    if (themeStats && themeStats.nodeBorderRadius && Object.keys(themeStats.nodeBorderRadius).length >= 3) {
+      const borderRadius = getBorderRadius(themeStats.nodeBorderRadius);
+      theme.borderRadius = ['global', borderRadius[1]];
+      borderListArr = [{ value: 'global', type: 'global' }, { value: borderRadius[1], type: 'page-generated' }];
+    }
+    return {
+      colorList: colorListArr,
+      borderRadius: borderListArr,
+    };
   };
 
   createSuggestionsForTheme(): void {
@@ -248,7 +271,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
 
-    this.setState({ colorList: theme.colorList, borderRadius: theme.borderRadius });
+    this.setState({ colorList: theme.colorList, borderRadiusList: theme.borderRadius });
   }
 
   processScreens = async (): Promise<void> => {
@@ -301,6 +324,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     const tour = await saveAsTour(
       this.state.screens,
       null,
+      this.props.globalConfig!,
       this.state.tourName,
       this.state.selectedColor,
       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
@@ -352,7 +376,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ saving: true, showSaveWizard: false, tourName: existingTour.displayName });
     const tour = await saveAsTour(
       this.state.screens,
-      existingTour
+      existingTour,
+      this.props.globalConfig!,
     );
     amplitudeAddScreensToTour(this.state.screens.length, 'ext');
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
@@ -365,6 +390,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ loading: true });
     this.initDbOperations();
     this.props.getAllTours();
+    this.props.getGlobalConfig();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -394,8 +420,21 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.db?.close();
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getAnnText = (type: AnnotationThemeType): string => {
+    if (type === 'global') {
+      return 'This card style is generated from global style configured inside Fable.';
+    }
+
+    if (type === 'page-generated') {
+      return 'This card style is generated from your page theme.';
+    }
+
+    return 'This card style is suggested by us based on your page theme.';
+  };
+
   render(): ReactElement {
-    if (this.state.loading) {
+    if (this.state.loading || this.props.globalConfig === null) {
       return (
         <FullPageTopLoader showLogo />
       );
@@ -738,20 +777,20 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               >
                 <div style={{ width: '100%', position: 'absolute' }}>
                   <Tags.AnnotationContainer>
-                    {this.state.colorList.map((color, idx) => (
+                    {this.state.colorList.map((item, idx) => (
                       <Tags.AnnCardContainer
                         key={idx}
                         onClick={() => {
                           this.setState({
-                            selectedColor: color,
+                            selectedColor: item.color,
                             currentDisplayState: DisplayState.ShowBorderChoices,
                             prevDisplayState: DisplayState.ShowColorThemeChoices
                           });
                         }}
                       >
                         <AnnotationContent
-                          config={getSampleConfig('$', '')}
-                          opts={getThemeAnnotationOpts(color)}
+                          config={getSampleConfig('$', '', this.props.globalConfig!, this.getAnnText(item.type))}
+                          opts={getThemeAnnotationOpts(item.color, this.props.globalConfig!)}
                           isInDisplay
                           width={320}
                           dir="l"
@@ -762,6 +801,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           navigateToAdjacentAnn={() => {}}
                           isThemeAnnotation
                         />
+
                         <Tags.AnnContentOverlay>
                           <Button
                             intent="secondary"
@@ -801,20 +841,20 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               >
                 <div style={{ width: '100%', position: 'absolute' }}>
                   <Tags.AnnotationContainer>
-                    {this.state.borderRadius.map((r, idx) => (
+                    {this.state.borderRadiusList.map((r, idx) => (
                       <Tags.AnnCardContainer
                         key={idx}
                         onClick={() => {
                           this.setState({
-                            selectedBorderRadius: r,
+                            selectedBorderRadius: r.value,
                             currentDisplayState: DisplayState.ShowReview,
                             prevDisplayState: DisplayState.ShowBorderChoices
                           });
                         }}
                       >
                         <AnnotationContent
-                          config={getSampleConfig('$', '')}
-                          opts={getThemeAnnotationOpts(this.state.selectedColor, r)}
+                          config={getSampleConfig('$', '', this.props.globalConfig!, this.getAnnText(r.type))}
+                          opts={getThemeAnnotationOpts(this.state.selectedColor, this.props.globalConfig!, r.value)}
                           isInDisplay
                           width={320}
                           dir="l"
@@ -873,9 +913,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 </div>
                 <div>
                   <AnnotationContent
-                    config={getSampleConfig('$', '')}
+                    config={getSampleConfig('$', '', this.props.globalConfig!)}
                     opts={getThemeAnnotationOpts(
                       this.state.selectedColor,
+                      this.props.globalConfig!,
                       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS
                     )}
                     isInDisplay

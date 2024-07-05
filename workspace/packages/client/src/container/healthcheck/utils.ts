@@ -66,7 +66,7 @@ function checkTimeline(
     // Flow detection
     const adjacentBtn = getAnnotationBtn(ann, type);
     if (isNavigateHotspot(adjacentBtn.hotspot)) {
-      const annRefId = getAnnIdFromActionValue(adjacentBtn.hotspot!.actionValue);
+      const annRefId = getAnnIdFromActionValue(adjacentBtn.hotspot!.actionValue._val);
       ann = getAnnotationByRefId(anns, annRefId);
       if (!ann) {
         errors.push(`Annotation doesn't exist ${annRefId} for ${type} of ${currAnnRefId}`);
@@ -97,7 +97,7 @@ export const checkIfAdjacentAnnAndCurrentAnnAreLinked = (
   const toCheckBtnTypeOfAdjAnn = getOppositeBtnType(btnTypeOfCurrAnn);
   const adjacentAnnBtn = getAnnotationBtn(adjacentAnn, toCheckBtnTypeOfAdjAnn);
   if (isNavigateHotspot(adjacentAnnBtn.hotspot)) {
-    const annId = getAnnIdFromActionValue(adjacentAnnBtn.hotspot!.actionValue);
+    const annId = getAnnIdFromActionValue(adjacentAnnBtn.hotspot!.actionValue._val);
     if (annId === currAnnRefId) {
       return true;
     }

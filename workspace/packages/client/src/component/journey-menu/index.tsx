@@ -140,13 +140,13 @@ const getMenu = (
       {journey.cta && journey.cta.navigateTo && (
       <div style={{ margin: '24px 16px 0 16px' }}>
         <GTags.CTABtn
-          size={journey.cta.size}
+          size={journey.cta.size._val}
           onClick={navigateToCta}
           style={{ width: '100%' }}
-          color={journey.primaryColor}
-          borderRadius={tourOpts.borderRadius}
+          color={journey.primaryColor._val}
+          borderRadius={tourOpts.borderRadius._val}
         >
-          {journey.cta.text}
+          {journey.cta.text._val}
         </GTags.CTABtn>
       </div>
       )}
@@ -253,7 +253,7 @@ function JourneyMenu(props: Props): JSX.Element {
             <Tags.IndexButton
               type="primary"
               shape="circle"
-              color={primaryColor}
+              color={primaryColor._val}
               applywidth="true"
               icon={<CloseOutlined />}
               scalefactor={scaleFactor || 1}
@@ -261,14 +261,14 @@ function JourneyMenu(props: Props): JSX.Element {
             />
           ) : (
             <Tags.IndexButton
-              color={primaryColor}
+              color={primaryColor._val}
               type="primary"
               applywidth="false"
               scalefactor={scaleFactor || 1}
               positioning={props.journey.positioning}
             >
               <BarsOutlined style={{
-                color: getColorContrast(primaryColor) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
+                color: getColorContrast(primaryColor._val) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
               />
               <Tags.IndexButtonContent>
                 <span style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.2' }}>

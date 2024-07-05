@@ -8,9 +8,15 @@ import {
   RespVanityDomain,
 } from '@fable/common/dist/api-contract';
 import {
+  AnnBtnKeysWithProperty,
+  AnnConfigKeysWithProperty,
   DEFAULT_ANN_DIMS,
+  GlobalPropsPath,
+  TourOptsKeysWithProperty,
+  createLiteralProperty,
   deepcopy,
   getDisplayableTime,
+  getSampleGlobalConfig,
   getSampleJourneyData
 } from '@fable/common/dist/utils';
 import {
@@ -23,6 +29,11 @@ import {
   TourDataWoScheme,
   TourScreenEntity,
   VideoAnnotationPositions,
+  PropertyType,
+  IGlobalConfig,
+  ITourLoaderData,
+  AnnotationButtonSize,
+  JourneyCTA,
 } from '@fable/common/dist/types';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import {
@@ -36,7 +47,8 @@ import {
   IdxEncodingTypeDisplay,
   IdxEncodingTypeMask,
   IdxEncodingTypeInput,
-  SiteData
+  SiteData,
+  SiteDateKeysWithProperty
 } from './types';
 import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
@@ -192,6 +204,7 @@ function getLoaderFileUri(tour: RespTour | RespTourWithScreens, config: RespComm
 export function processRawTourData(
   tour: RespTour | RespTourWithScreens,
   config: RespCommonConfig,
+  globalOpts: IGlobalConfig = getSampleGlobalConfig(),
   isPlaceholder = false,
   publishForTour: RespTour | undefined = undefined
 ): P_RespTour {
@@ -204,7 +217,7 @@ export function processRawTourData(
 
   const dataFileUri = getDataFileUri(tour, config, publishForTour);
   const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
-  const site = normalizeBackwardCompatibilityForBrandData(tour);
+  const site = processBrandData(normalizeBackwardCompatibilityForBrandData(tour, globalOpts), globalOpts);
   return {
     ...tour,
     createdAt: new Date(tour.createdAt),
@@ -218,7 +231,7 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true): {
+export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
@@ -244,12 +257,94 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, isLocal = true
   return {
     annotations: isLocal ? annotationsPerScreen : remoteToLocalAnnotationConfigMap(
       annotationsPerScreen as Record<string, IAnnotationOriginConfig[]>,
-      data.opts
+      data.opts,
+      globalOpts,
     ),
     annotationsIdMap: annotationsIdMapPerScreen,
-    opts: isLocal ? data.opts : normalizeBackwardCompatibilityForOpts(data.opts),
-    journey: normalizeBackwardCompatibilityForJourney(data.journey, data.opts)
+    opts: isLocal ? data.opts : processOpts(normalizeBackwardCompatibilityForOpts(data.opts), globalOpts),
+    journey: processJourney(normalizeBackwardCompatibilityForJourney(data.journey, data.opts, globalOpts), globalOpts)
   };
+}
+
+export function compileValue(
+  globalOpts: Object,
+  path: string
+): any {
+  const opts = { ...globalOpts };
+  const keys : string[] = path.split('.').slice(1);
+  return keys.reduce((acc, key) => acc[key], opts as any);
+}
+
+function processOpts(opts: ITourDataOpts, globalOpts: IGlobalConfig): ITourDataOpts {
+  if (opts === null || opts === undefined) {
+    return opts;
+  }
+
+  const newOpts = { ...opts };
+
+  for (const key of TourOptsKeysWithProperty) {
+    if (newOpts[key].type === PropertyType.REF) {
+      newOpts[key]._val = compileValue(globalOpts, newOpts[key].from);
+    }
+  }
+
+  return newOpts;
+}
+
+function processJourney(journey : JourneyData, globalOpts : IGlobalConfig) : JourneyData {
+  const newJourney = { ...journey };
+
+  if (newJourney.primaryColor.type === PropertyType.REF) {
+    newJourney.primaryColor._val = compileValue(
+      globalOpts,
+      newJourney.primaryColor.from,
+    );
+  }
+
+  if (newJourney.cta) {
+    const keys: Array<keyof JourneyCTA> = ['text', 'navigateTo', 'size'];
+    for (const key of keys) {
+      if (newJourney.cta[key].type === PropertyType.REF) {
+        newJourney.cta[key]._val = compileValue(
+          globalOpts,
+          newJourney.cta[key].from,
+        );
+      }
+    }
+  }
+
+  return newJourney;
+}
+
+export function normalizeBackwardCompatibilityForLoader(
+  loaderData : ITourLoaderData,
+) : ITourLoaderData {
+  if (typeof loaderData.logo.url === 'string') {
+    loaderData.logo.url = createLiteralProperty(loaderData.logo.url as string);
+  }
+
+  if (typeof loaderData.loadingText === 'string') {
+    loaderData.loadingText = createLiteralProperty(loaderData.loadingText);
+  }
+  return { ...loaderData };
+}
+
+export function processLoader(loaderData : ITourLoaderData, globalOpts : IGlobalConfig) : ITourLoaderData {
+  if (loaderData.logo.url.type === PropertyType.REF) {
+    loaderData.logo.url._val = compileValue(
+      globalOpts,
+      loaderData.logo.url.from,
+    );
+  }
+
+  if (loaderData.loadingText.type === PropertyType.REF) {
+    loaderData.loadingText._val = compileValue(
+      globalOpts,
+      loaderData.loadingText.from,
+    );
+  }
+
+  return { ...loaderData };
 }
 
 /* ************************************************************************* */
@@ -347,13 +442,50 @@ export function remoteToLocalAnnotationConfig(rc: IAnnotationOriginConfig): IAnn
 
 export function remoteToLocalAnnotationConfigMap(
   config: Record<string, IAnnotationOriginConfig[]>,
-  opts: ITourDataOpts
+  opts: ITourDataOpts,
+  globalOpts: IGlobalConfig,
 ): Record<string, IAnnotationConfig[]> {
   const config2: Record<string, IAnnotationConfig[]> = {};
   for (const [screenId, anns] of Object.entries(config)) {
-    config2[screenId] = anns.map(an => remoteToLocalAnnotationConfig(normalizeBackwardCompatibility(an, opts)));
+    config2[screenId] = anns.map(an => (
+      remoteToLocalAnnotationConfig(
+        processAnnotationConfig(
+          normalizeBackwardCompatibility(an, opts),
+          globalOpts
+        )
+      )));
   }
   return config2;
+}
+
+function processAnnotationConfig(
+  anConfig : IAnnotationOriginConfig,
+  globalOpts: IGlobalConfig
+) : IAnnotationOriginConfig {
+  const newAnConfig = { ...anConfig };
+
+  for (const key of AnnConfigKeysWithProperty) {
+    if (newAnConfig[key].type === PropertyType.REF) {
+      newAnConfig[key]._val = compileValue(globalOpts, newAnConfig[key].from);
+    }
+  }
+
+  newAnConfig.buttons.forEach(btn => {
+    for (const key of AnnBtnKeysWithProperty) {
+      if (btn[key].type === PropertyType.REF) {
+        btn[key]._val = compileValue(globalOpts, btn[key].from);
+      }
+    }
+
+    if (btn.hotspot && btn.hotspot.actionValue.type === PropertyType.REF) {
+      btn.hotspot.actionValue._val = compileValue(
+        globalOpts,
+        btn.hotspot.actionValue.from,
+      );
+    }
+  });
+
+  return newAnConfig;
 }
 
 const replaceAbsoluteFontSizesWithCSSVars = (bodyContent: string): string => {
@@ -376,16 +508,42 @@ export function normalizeBackwardCompatibility(
 
   if (an.annotationSelectionColor === undefined || an.annotationSelectionColor === null) {
     // annotationSelectionColor was present in tour opts previous versions and now this config is moved to annotation cofnig
-    const tOpts = opts as ITourDataOpts & { annotationSelectionColor?: string };
-    an.annotationSelectionColor = tOpts.annotationSelectionColor || DEFAULT_BLUE_BORDER_COLOR;
+    const tOpts = opts as ITourDataOpts & { annotationSelectionColor?: string};
+    an.annotationSelectionColor = createLiteralProperty(tOpts.annotationSelectionColor || DEFAULT_BLUE_BORDER_COLOR);
   }
 
+  if (typeof an.annotationSelectionColor === 'string') {
+    an.annotationSelectionColor = createLiteralProperty(an.annotationSelectionColor);
+  }
+
+  if (an.annotationSelectionColor._val === undefined || an.annotationSelectionColor._val === null) {
+    // annotationSelectionColor was present in tour opts previous versions and now this config is moved to annotation cofnig
+    const tOpts = opts as ITourDataOpts & { annotationSelectionColor?: string};
+    an.annotationSelectionColor = createLiteralProperty(tOpts.annotationSelectionColor || DEFAULT_BLUE_BORDER_COLOR);
+  }
   if (an.type === 'cover') an.isHotspot = false;
   else an.isHotspot = true;
 
   if (an.hideAnnotation === undefined || an.hideAnnotation === null) {
     an.hideAnnotation = false;
   }
+
+  an.buttons.forEach(btn => {
+    if (typeof btn.text === 'string') {
+      btn.text = createLiteralProperty(btn.text);
+    }
+    if (typeof btn.style === 'string') {
+      btn.style = createLiteralProperty(btn.style);
+    }
+
+    if (typeof btn.size === 'string') {
+      btn.size = createLiteralProperty(btn.size);
+    }
+
+    if (btn.hotspot && typeof btn.hotspot.actionValue === 'string') {
+      btn.hotspot.actionValue = createLiteralProperty(btn.hotspot.actionValue);
+    }
+  });
 
   if (an.videoUrl === undefined || an.videoUrl === null) {
     an.videoUrl = '';
@@ -408,11 +566,27 @@ export function normalizeBackwardCompatibility(
   }
 
   if (an.selectionShape === undefined || an.selectionShape === null) {
-    an.selectionShape = 'box';
+    an.selectionShape = createLiteralProperty('box');
+  }
+
+  if (typeof an.selectionShape === 'string') {
+    an.selectionShape = createLiteralProperty(an.selectionShape);
+  }
+
+  if (an.selectionShape._val === undefined || an.selectionShape._val === null) {
+    an.selectionShape = createLiteralProperty('box');
   }
 
   if (an.selectionEffect === undefined || an.selectionEffect === null) {
-    an.selectionEffect = 'regular';
+    an.selectionEffect = createLiteralProperty('regular');
+  }
+
+  if (typeof an.selectionEffect === 'string') {
+    an.selectionEffect = createLiteralProperty(an.selectionEffect);
+  }
+
+  if (an.selectionEffect._val === undefined || an.selectionEffect._val === null) {
+    an.selectionEffect = createLiteralProperty('regular');
   }
 
   if (an.scrollAdjustment === undefined || an.scrollAdjustment === null) {
@@ -539,16 +713,54 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
     return opts;
   }
   const newOpts = { ...opts };
+
+  if (typeof newOpts.primaryColor === 'string') {
+    const primaryColor = createLiteralProperty(newOpts.primaryColor);
+    newOpts.primaryColor = primaryColor;
+  }
+  if (typeof newOpts.annotationBodyBackgroundColor === 'string') {
+    const annBgColor = createLiteralProperty(newOpts.annotationBodyBackgroundColor);
+    newOpts.annotationBodyBackgroundColor = annBgColor;
+  }
   if (newOpts.annotationFontColor === undefined || newOpts.annotationFontColor === null) {
-    newOpts.annotationFontColor = '#424242';
+    newOpts.annotationFontColor = createLiteralProperty('#424242');
+  }
+
+  if (typeof newOpts.annotationFontColor === 'string') {
+    newOpts.annotationFontColor = createLiteralProperty(newOpts.annotationFontColor);
+  }
+
+  if (newOpts.annotationFontColor._val === undefined || newOpts.annotationFontColor._val === null) {
+    newOpts.annotationFontColor = createLiteralProperty('#424242');
   }
 
   if (newOpts.annotationFontFamily === undefined) {
-    newOpts.annotationFontFamily = null;
+    newOpts.annotationFontFamily = createLiteralProperty(null);
+  }
+
+  if (typeof newOpts.annotationFontFamily === 'string' || newOpts.annotationFontFamily === null) {
+    newOpts.annotationFontFamily = createLiteralProperty(newOpts.annotationFontFamily);
+  }
+
+  if (newOpts.annotationFontFamily._val === undefined) {
+    newOpts.annotationFontFamily = createLiteralProperty(null);
+  }
+
+  if (typeof newOpts.annotationBodyBorderColor === 'string') {
+    const annBodyBorderClr = createLiteralProperty(newOpts.annotationBodyBorderColor);
+    newOpts.annotationBodyBorderColor = annBodyBorderClr;
   }
 
   if (newOpts.borderRadius === undefined || newOpts.borderRadius === null) {
-    newOpts.borderRadius = 4;
+    newOpts.borderRadius = createLiteralProperty(4);
+  }
+
+  if (typeof newOpts.borderRadius === 'number') {
+    newOpts.borderRadius = createLiteralProperty(newOpts.borderRadius);
+  }
+
+  if (newOpts.borderRadius._val === undefined || newOpts.borderRadius._val === null) {
+    newOpts.borderRadius = createLiteralProperty(4);
   }
 
   if (newOpts.lf_pkf === undefined || newOpts.lf_pkf === null) {
@@ -556,15 +768,39 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
   }
 
   if (newOpts.annotationPadding === undefined || newOpts.annotationPadding === null) {
-    newOpts.annotationPadding = '14 14';
+    newOpts.annotationPadding = createLiteralProperty('14 14');
+  }
+
+  if (typeof newOpts.annotationPadding === 'string') {
+    newOpts.annotationPadding = createLiteralProperty(newOpts.annotationPadding);
+  }
+
+  if (newOpts.annotationPadding._val === undefined || newOpts.annotationPadding._val === null) {
+    newOpts.annotationPadding = createLiteralProperty('14 14');
   }
 
   if (newOpts.showFableWatermark === undefined || newOpts.showFableWatermark === null) {
-    newOpts.showFableWatermark = true;
+    newOpts.showFableWatermark = createLiteralProperty(true);
+  }
+
+  if (typeof newOpts.showFableWatermark === 'boolean') {
+    newOpts.showFableWatermark = createLiteralProperty(newOpts.showFableWatermark);
+  }
+
+  if (newOpts.showFableWatermark._val === undefined || newOpts.showFableWatermark._val === null) {
+    newOpts.showFableWatermark = createLiteralProperty(true);
   }
 
   if (newOpts.showStepNum === undefined || newOpts.showStepNum === null) {
-    newOpts.showStepNum = true;
+    newOpts.showStepNum = createLiteralProperty(true);
+  }
+
+  if (typeof newOpts.showStepNum === 'boolean') {
+    newOpts.showStepNum = createLiteralProperty(newOpts.showStepNum);
+  }
+
+  if (newOpts.showStepNum._val === undefined || newOpts.showStepNum._val === null) {
+    newOpts.showStepNum = createLiteralProperty(true);
   }
 
   if (newOpts.reduceMotionForMobile === undefined || newOpts.reduceMotionForMobile === null) {
@@ -576,27 +812,78 @@ export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITou
 
 export function normalizeBackwardCompatibilityForJourney(
   journey: JourneyData,
-  opts: ITourDataOpts
+  opts: ITourDataOpts,
+  globalOpts: IGlobalConfig,
 ): JourneyData {
   if (journey === null || journey === undefined) {
-    return getSampleJourneyData();
+    return getSampleJourneyData(globalOpts);
   }
 
-  if (!journey.primaryColor) {
-    journey.primaryColor = opts.primaryColor;
+  if (typeof opts.primaryColor === 'string' && typeof journey.primaryColor === 'string') {
+    journey.primaryColor = createLiteralProperty(opts.primaryColor);
+  }
+  if (typeof journey.primaryColor === 'string') {
+    journey.primaryColor = createLiteralProperty(opts.primaryColor._val);
+  }
+
+  if (!journey.primaryColor._val) {
+    journey.primaryColor = createLiteralProperty(opts.primaryColor._val);
   }
 
   if (!journey.hideModuleOnLoad) {
     journey.hideModuleOnLoad = false;
   }
 
+  if (journey.cta && typeof journey.cta.text === 'string') {
+    journey.cta.text = createLiteralProperty(journey.cta.text);
+  }
+
+  if (journey.cta && typeof journey.cta.navigateTo === 'string') {
+    journey.cta.navigateTo = createLiteralProperty(journey.cta.navigateTo);
+  }
+
+  if (journey.cta && typeof journey.cta.size === 'string') {
+    journey.cta.size = createLiteralProperty(journey.cta.size as AnnotationButtonSize);
+  }
+
   return journey;
 }
 
+function processBrandData(siteData: SiteData, globalOpts: IGlobalConfig): SiteData {
+  const newSiteData = { ...siteData };
+  for (const key of SiteDateKeysWithProperty) {
+    if (newSiteData[key].type === PropertyType.REF) {
+      newSiteData[key]._val = compileValue(globalOpts, newSiteData[key].from);
+    }
+  }
+  return newSiteData;
+}
+
 export function normalizeBackwardCompatibilityForBrandData(
-  tour: RespTour
+  tour: RespTour,
+  globalOpts: IGlobalConfig,
 ): SiteData {
-  const defaultSiteData = getDefaultSiteData(tour);
+  const defaultSiteData = getDefaultSiteData(tour, globalOpts);
+
+  if (tour.site) {
+    const siteData = tour.site as SiteData;
+    if (typeof siteData.logo === 'string') {
+      siteData.logo = createLiteralProperty(siteData.logo);
+    }
+
+    if (typeof siteData.navLink === 'string') {
+      siteData.navLink = createLiteralProperty(siteData.navLink);
+    }
+
+    if (typeof siteData.ctaText === 'string') {
+      siteData.ctaText = createLiteralProperty(siteData.ctaText);
+    }
+
+    if (typeof siteData.ctaLink === 'string') {
+      siteData.ctaLink = createLiteralProperty(siteData.ctaLink);
+    }
+  }
+
   return {
     ...defaultSiteData,
     ...(tour.site || {})

@@ -46,6 +46,8 @@ import {
   ReqCreateOrDeleteNewVanityDomain,
   RespCustomField,
   ReqCreateOrDeleteCustomFields,
+  RespGlobalOpts,
+  ReqUpdateGlobalOpts,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -58,8 +60,10 @@ import {
   TourData,
   TourDataWoScheme,
   TourScreenEntity,
+  IGlobalConfig,
+  PropertyType,
 } from '@fable/common/dist/types';
-import { deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
+import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, getSampleGlobalConfig } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -78,6 +82,8 @@ import {
   mergeAndTransformFeaturePerPlan,
   P_RespVanityDomain,
   processRawVanityDomain,
+  processLoader,
+  normalizeBackwardCompatibilityForLoader,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -766,7 +772,8 @@ export function addScreenToTour(
     if (annAdd) {
       try {
         const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}&s=1`);
-        const updatedTour = processRawTourData(data.data, getState().default.commonConfig!);
+        const state = getState().default;
+        const updatedTour = processRawTourData(data.data, state.commonConfig!, state.globalConfig!);
 
         dispatch({
           type: ActionType.SAVE_TOUR_RELAY_ENTITIES,
@@ -788,6 +795,7 @@ export function addScreenToTour(
 export interface TGetAllTours {
   type: ActionType.ALL_TOURS_LOADED;
   tours: Array<P_RespTour>;
+  globalConfig: IGlobalConfig
 }
 
 export function getAllTours(shouldRefreshIfPresent = true) {
@@ -798,10 +806,18 @@ export function getAllTours(shouldRefreshIfPresent = true) {
         type: ActionType.ALL_TOURS_LOADING,
       });
       const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
-      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState().default.commonConfig!)).filter(t => !t.inProgress);
+      let gOptsData = state.globalConfig;
+      if (!gOptsData) {
+        const respGOpts = await api<null, ApiResp<RespGlobalOpts>>('/gopts', { auth: true });
+        gOptsData = respGOpts.data.globalOpts;
+      }
+
+      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState().default.commonConfig!, gOptsData!))
+        .filter(t => !t.inProgress);
       dispatch({
         type: ActionType.ALL_TOURS_LOADED,
         tours,
+        globalConfig: gOptsData!,
       });
     }
   };
@@ -849,7 +865,8 @@ export function createNewTour(
         description,
       },
     });
-    const tour = processRawTourData(data.data, getState().default.commonConfig!);
+    const state = getState().default;
+    const tour = processRawTourData(data.data, state.commonConfig!, state.globalConfig!);
 
     if (shouldNavigate) {
       window.location.replace(`/demo/${tour.rid}`);
@@ -875,7 +892,8 @@ export function renameTour(tour: P_RespTour, newVal: string, description: string
         description
       },
     });
-    const renamedTour = processRawTourData(data.data, getState().default.commonConfig!);
+    const state = getState().default;
+    const renamedTour = processRawTourData(data.data, state.commonConfig!, state.globalConfig!);
     dispatch({
       type: ActionType.TOUR,
       tour: renamedTour,
@@ -949,13 +967,15 @@ export interface TTourWithData {
   annotations: Record<string, IAnnotationConfig[]>;
   opts: ITourDataOpts;
   allCorrespondingScreens: boolean,
-  journey: JourneyData
+  journey: JourneyData,
+  globalConfig: IGlobalConfig,
 }
 
 export interface TTourWithLoader {
   type: ActionType.TOUR_AND_LOADER_LOADED;
   tour: P_RespTour;
   loader: ITourLoaderData;
+  globalConfig: IGlobalConfig;
 }
 
 export function loadTourAndData(
@@ -996,8 +1016,13 @@ export function loadTourAndData(
       } else {
         config = state.default.commonConfig!;
       }
-
-      tour = processRawTourData(data.data, config, false, loadPublishedData ? data.data : undefined);
+      tour = processRawTourData(
+        data.data,
+        config,
+        data.data.globalOpts!,
+        false,
+        loadPublishedData ? data.data : undefined
+      );
     } catch (e) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
     }
@@ -1014,19 +1039,21 @@ export function loadTourAndData(
     dispatch({
       type: ActionType.TOUR_AND_LOADER_LOADED,
       tour,
-      loader,
+      loader: processLoader(normalizeBackwardCompatibilityForLoader(loader), tour!.globalOpts),
+      globalConfig: tour.globalOpts,
     });
 
     const data = await api<null, TourData>(tour!.dataFileUri.href);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, false);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
-      tour: processRawTourData(tour!, getState().default.commonConfig!, false, loadPublishedData ? tour : undefined),
+      tour: processRawTourData(tour!, getState().default.commonConfig!, tour.globalOpts!, false, loadPublishedData ? tour : undefined),
       annotations: annotationAndOpts.annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,
-      journey: annotationAndOpts.journey
+      journey: annotationAndOpts.journey,
+      globalConfig: tour.globalOpts,
     });
     return newTs;
   };
@@ -1047,7 +1074,7 @@ export function publishTour(tour: P_RespTour) {
         body: { tourRid: tour.rid }
       });
 
-      tour = processRawTourData(data.data, state.default.commonConfig!, false);
+      tour = processRawTourData(data.data, state.default.commonConfig!, state.default.globalConfig!, false);
       publishSuccessful = true;
     } catch (e) {
       sentryCaptureException(new Error(`Error while loading tour and corresponding data ${(e as Error).message}`));
@@ -1143,7 +1170,8 @@ export interface TSaveTourEntities {
 
 export function saveTourData(tour: P_RespTour, data: TourDataWoScheme) {
   return async (dispatch: Dispatch<TSaveTourEntities>, getState: () => TState) => {
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData);
+    const state = getState();
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data as TourData, state.default.globalConfig!);
     dispatch({
       type: ActionType.SAVE_TOUR_ENTITIES,
       tour,
@@ -1166,6 +1194,7 @@ export interface TSaveTourLoader {
 export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) {
   return async (dispatch: Dispatch<TSaveTourLoader | TTour>, getState: () => TState) => {
     const state = getState();
+    const globalOpts = state.default.globalConfig!;
     loaderData.lastUpdatedAtUTC = getCurrentUtcUnixTime();
     const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtrloaderedit', {
       auth: true,
@@ -1177,7 +1206,7 @@ export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) 
 
     dispatch({
       type: ActionType.TOUR,
-      tour: processRawTourData(data.data, state.default.commonConfig!, false),
+      tour: processRawTourData(data.data, state.default.commonConfig!, globalOpts, false),
       oldTourRid: tour.rid,
       performedAction: 'edit'
     });
@@ -1185,7 +1214,7 @@ export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) 
     dispatch({
       type: ActionType.SAVE_TOUR_LOADER,
       tour,
-      loader: loaderData
+      loader: processLoader(normalizeBackwardCompatibilityForLoader(loaderData), globalOpts)
     });
   };
 }
@@ -1202,7 +1231,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         ...mergedMasterData
       };
 
-      const annotationAndOpts = getThemeAndAnnotationFromDataFile(mergedData, false);
+      const annotationAndOpts = getThemeAndAnnotationFromDataFile(mergedData, state.default.globalConfig!, false);
       dispatch({
         type: ActionType.SAVE_TOUR_ENTITIES,
         tour,
@@ -1223,7 +1252,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
 
       dispatch({
         type: ActionType.TOUR,
-        tour: processRawTourData(data.data, state.default.commonConfig!, false),
+        tour: processRawTourData(data.data, state.default.commonConfig!, state.default.globalConfig!, false),
         oldTourRid: tour.rid,
         performedAction: 'edit'
       });
@@ -1232,6 +1261,48 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
     dispatch({
       type: ActionType.AUTOSAVING,
       isAutosaving: false
+    });
+  };
+}
+
+/* ************************************************************************* */
+
+export interface TSetGlobalConfig {
+  type: ActionType.SET_GLOBAL_CONFIG;
+  globalConfig: IGlobalConfig;
+}
+
+export const LS_GLOBAL_CONFIG_KEY = 'fable/ls-global-config';
+
+export function getGlobalConfig() {
+  return async (dispatch: Dispatch<TSetGlobalConfig>, getState: () => TState) => {
+    const state = getState();
+
+    if (state.default.globalConfig !== null) return;
+
+    const data = await api<null, ApiResp<RespGlobalOpts>>('/gopts', { auth: true });
+
+    const config: IGlobalConfig = data.data.globalOpts;
+
+    dispatch({
+      type: ActionType.SET_GLOBAL_CONFIG,
+      globalConfig: config,
+    });
+  };
+}
+
+export function updateGlobalConfig(updatedGlobalConfig: IGlobalConfig) {
+  return async (dispatch: Dispatch<TSetGlobalConfig>, getState: () => TState) => {
+    const data = await api<ReqUpdateGlobalOpts, ApiResp<RespGlobalOpts>>('/updtgopts', {
+      method: 'POST',
+      body: {
+        editData: JSON.stringify(updatedGlobalConfig)
+      }
+    });
+
+    dispatch({
+      type: ActionType.SET_GLOBAL_CONFIG,
+      globalConfig: updatedGlobalConfig,
     });
   };
 }
@@ -1282,7 +1353,7 @@ const duplicateGivenTour = async (
   tour: RespTourWithScreens,
   getState: () => TState,
 ): Promise<P_RespTour> => {
-  const duplicatedTour = processRawTourData(tour, getState().default.commonConfig!);
+  const duplicatedTour = processRawTourData(tour, getState().default.commonConfig!, getState().default.globalConfig!);
   const idxm = tour.idxm;
   if (idxm) {
     const tourDataFile = await api<null, TourData>(duplicatedTour.dataFileUri.href);
@@ -1298,10 +1369,10 @@ const duplicateGivenTour = async (
           for (const ann of Object.values(tNewEntity.annotations)) {
             for (const btn of ann.buttons) {
               if (btn.hotspot && btn.hotspot.actionType === 'navigate') {
-                const actionValueSplit = btn.hotspot.actionValue.split('/');
+                const actionValueSplit = btn.hotspot.actionValue._val.split('/');
                 if (actionValueSplit[0] in idxm) {
                   actionValueSplit[0] = idxm[actionValueSplit[0]];
-                  btn.hotspot.actionValue = actionValueSplit.join('/');
+                  btn.hotspot.actionValue = createLiteralProperty(actionValueSplit.join('/'));
                 }
               }
             }
@@ -1351,7 +1422,7 @@ const duplicateGivenTour = async (
     method: 'POST'
   });
 
-  return processRawTourData(updatedTourResp.data, getState().default.commonConfig!);
+  return processRawTourData(updatedTourResp.data, getState().default.commonConfig!, getState().default.globalConfig!);
 };
 
 // INFO this is commented out as createDefaultTour performance is very slow
@@ -1390,11 +1461,12 @@ export function addNewTourToAllTours(newTour: RespTour) {
     getState: () => TState
   ) => {
     const state = getState();
-    const processedNewTours = [processRawTourData(newTour, state.default.commonConfig!)];
+    const processedNewTours = [processRawTourData(newTour, state.default.commonConfig!, state.default.globalConfig!)];
     const tours = [...state.default.tours, ...processedNewTours];
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,
-      tours
+      tours,
+      globalConfig: state.default.globalConfig!,
     });
   };
 }
@@ -1538,7 +1610,8 @@ export function updateTourProp<T extends keyof ReqTourPropUpdate>(
       method: 'POST'
     });
 
-    const processedTour = processRawTourData(updatedTourResp.data, getState().default.commonConfig!);
+    const state = getState().default;
+    const processedTour = processRawTourData(updatedTourResp.data, state.commonConfig!, state.globalConfig!);
     dispatch({
       type: ActionType.TOUR,
       tour: processedTour,

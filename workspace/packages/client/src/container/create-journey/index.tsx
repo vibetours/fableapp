@@ -1,10 +1,11 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { AnnotationButtonSize,
-  JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow } from '@fable/common/dist/types';
+  JourneyData, CreateJourneyPositioning, ITourDataOpts, JourneyFlow,
+  IGlobalConfig } from '@fable/common/dist/types';
 import { Button as AntdButton, Select, Tooltip, Divider } from 'antd';
 import { DeleteFilled, DeleteOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
-import { getSampleJourneyData } from '@fable/common/dist/utils';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty, getSampleJourneyData } from '@fable/common/dist/utils';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
@@ -16,12 +17,13 @@ import { IAnnotationConfigWithScreen, JourneyOrOptsDataChange, AnnotationPerScre
 import { Tx } from '../tour-editor/chunk-sync-manager';
 import CreateJourneyEmptyIcon from '../../assets/create-journey-empty.svg';
 import Focus from '../../assets/icons/focus.svg';
-import { getValidUrl, isFeatureAvailable } from '../../utils';
+import { getValidUrl, isFeatureAvailable, isGlobalProperty } from '../../utils';
 import Button from '../../component/button';
 import { FeatureForPlan } from '../../plans';
 import Upgrade from '../../component/upgrade';
 import { P_RespSubscription } from '../../entity-processor';
 import { getAnnotationByRefId } from '../../component/annotation/ops';
+import ApplyStylesMenu from '../../component/screen-editor/apply-styles-menu';
 
 interface IDispatchProps {
 }
@@ -46,6 +48,7 @@ interface IOwnProps {
     journey: JourneyData;
     featurePlan: FeatureForPlan | null;
     allAnnotationsForTour: AnnotationPerScreen[];
+    globalOpts: IGlobalConfig;
 }
 
 type IProps = IOwnProps &
@@ -60,6 +63,10 @@ type IProps = IOwnProps &
 interface IOwnStateProps {
   journeyData: JourneyData;
   isUrlValid: boolean;
+  currentIpValues: {
+    ctaText: string,
+    ctaLink: string,
+  }
 }
 
 const { Option } = Select;
@@ -71,13 +78,27 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       journeyData: this.props.journey,
-      isUrlValid: true
+      isUrlValid: true,
+      currentIpValues: {
+        ctaLink: this.props.journey.cta?.navigateTo._val || '',
+        ctaText: this.props.journey.cta?.text._val || ''
+      }
     };
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevState.journeyData !== this.state.journeyData) {
       this.props.onTourJourneyChange(null, this.state.journeyData);
+    }
+
+    if (prevProps.journey !== this.props.journey) {
+      this.setState(({
+        ...prevState,
+        currentIpValues: {
+          ctaLink: this.props.journey.cta?.navigateTo._val || '',
+          ctaText: this.props.journey.cta?.text._val || ''
+        }
+      }));
     }
   }
 
@@ -92,7 +113,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
         updatedFlows[idx].mandatory = newValue as boolean;
       }
       updatedJourneyData.flows = updatedFlows;
-      return { journeyData: updatedJourneyData };
+      return { ...prevState, journeyData: updatedJourneyData };
     });
   };
 
@@ -103,7 +124,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
 
       updatedFlows.splice(idx, 1);
       updatedJourneyData.flows = updatedFlows;
-      return { journeyData: updatedJourneyData };
+      return { ...prevState, journeyData: updatedJourneyData };
     });
   };
 
@@ -115,6 +136,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
       mandatory: false
     };
     this.setState((prevState) => ({
+      ...prevState,
       journeyData: { ...prevState.journeyData, flows: [...prevState.journeyData.flows, flow] } }));
   };
 
@@ -127,7 +149,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
       updatedFlows.splice(targetIndex, 0, movedFlow);
       updatedJourneyData.flows = updatedFlows;
 
-      return { journeyData: updatedJourneyData };
+      return { ...prevState, journeyData: updatedJourneyData };
     });
   };
 
@@ -205,7 +227,12 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   label="Heading"
                   defaultValue={this.state.journeyData.title}
                   onBlur={async (e) => {
-                    this.setState(prevState => ({ journeyData: { ...prevState.journeyData, title: e.target.value } }));
+                    this.setState(prevState => ({
+                      ...prevState,
+                      journeyData: {
+                        ...prevState.journeyData,
+                        title: e.target.value }
+                    }));
                   }}
                 />
               </Tags.JourneyInnerCon>
@@ -286,15 +313,19 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                   </div>
                                   <Tags.FieldInputCon>
                                     <Input
+                                      containerStyle={{ width: '100%' }}
                                       label="Module name"
                                       defaultValue={flow.header1}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header1', e.target.value); }}
                                     />
+
                                     <Input
+                                      containerStyle={{ width: ' 100%' }}
                                       label="Module description"
                                       defaultValue={flow.header2}
                                       onBlur={(e) => { this.updateFlowAtIndex(idx, 'header2', e.target.value); }}
                                     />
+
                                     <GTags.FableSelect
                                       bordered={false}
                                       size="large"
@@ -326,6 +357,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                                         </Option>
                                       ))))}
                                     </GTags.FableSelect>
+
                                     <div>
                                       <GTags.OurCheckbox
                                         checked={flow.mandatory}
@@ -374,7 +406,21 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                             text: 'Book Demo',
                             navigateTo: ''
                           };
-                          this.setState((prevState) => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
+                          this.setState((prevState) => ({
+                            ...prevState,
+                            journeyData: {
+                              ...prevState.journeyData,
+                              cta: {
+                                ...newCta,
+                                size: createGlobalProperty(this.props.globalOpts.ctaSize, GlobalPropsPath.ctaSize),
+                                navigateTo: createGlobalProperty(
+                                  this.props.globalOpts.customBtn1URL,
+                                  GlobalPropsPath.customBtn1URL
+                                ),
+                                text: createGlobalProperty(
+                                  this.props.globalOpts.customBtn1Text,
+                                  GlobalPropsPath.customBtn1Text
+                                ) } } }));
                         }}
                         className="fullWidth typ-reg"
                         type="text"
@@ -388,78 +434,190 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         <div className="typ-reg" style={{ marginTop: 0 }}>Button settings</div>
                         <GTags.CTABtn
                           style={{ width: '50%' }}
-                          size={this.state.journeyData.cta.size}
-                          color={this.state.journeyData.primaryColor}
-                          borderRadius={this.props.tourOpts.borderRadius}
+                          size={this.state.journeyData.cta.size._val}
+                          color={this.state.journeyData.primaryColor._val}
+                          borderRadius={this.props.tourOpts.borderRadius._val}
                         >
-                          {this.state.journeyData.cta.text}
+                          {this.state.journeyData.cta.text._val}
                         </GTags.CTABtn>
                       </Tags.CTAInputCon>
                       <Tags.CTAInputCon>
                         <div className="typ-reg">Text</div>
-                        <GTags.SimpleInput
-                          defaultValue={this.state.journeyData.cta.text}
-                          size="small"
-                          style={{
-                            width: '50%',
-                            height: '40px'
-                          }}
-                          placeholder="Button text"
-                          onBlur={e => {
-                            const newCta = {
-                              ...this.state.journeyData.cta!,
-                              text: e.target.value
-                            };
-                            this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
-                          }}
-                          className="typ-ip"
-                        />
-                      </Tags.CTAInputCon>
-                      <Tags.CTAInputCon>
-                        <div className="typ-reg">Size</div>
-                        <GTags.FableSelect
-                          bordered={false}
-                          style={{ width: '50%' }}
-                          size="large"
-                          defaultValue={this.state.journeyData.cta.size}
-                          options={Object.values(AnnotationButtonSize).map(v => ({
-                            value: v,
-                            label: v,
-                          }))}
-                          onSelect={(val) => {
-                            const newCta = {
-                              ...this.state.journeyData.cta!,
-                              size: val as AnnotationButtonSize
-                            };
-                            this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
-                          }}
-                          className="typ-ip"
-                        />
-                      </Tags.CTAInputCon>
-                      <div>
-                        <Tags.CTAInputCon>
-                          <div className="typ-reg">Navigate to</div>
+                        <div className="ver-center" style={{ justifyContent: 'right' }}>
                           <GTags.SimpleInput
-                            defaultValue={this.state.journeyData.cta.navigateTo}
                             size="small"
+                            value={this.state.currentIpValues.ctaText}
                             style={{
                               width: '50%',
                               height: '40px'
                             }}
-                            placeholder="Open Url when clicked"
+                            placeholder="Button text"
+                            onChange={(e) => {
+                              this.setState((prevState) => ({
+                                ...prevState,
+                                currentIpValues: {
+                                  ...prevState.currentIpValues,
+                                  ctaText: e.target.value,
+                                }
+                              }));
+                            }}
                             onBlur={e => {
-                              const uri = e.target.value;
-                              const validUrl = getValidUrl(uri);
-                              this.setState({ isUrlValid: Boolean(validUrl) });
-                              if (!validUrl) return;
                               const newCta = {
                                 ...this.state.journeyData.cta!,
-                                navigateTo: validUrl
+                                text: e.target.value
                               };
-                              this.setState(prevState => ({ journeyData: { ...prevState.journeyData, cta: newCta } }));
+                              this.setState(prevState => (
+                                { ...prevState,
+                                  journeyData: {
+                                    ...prevState.journeyData,
+                                    cta: {
+                                      ...newCta,
+                                      text: createLiteralProperty(newCta.text)
+                                    }
+                                  }
+                                }));
                             }}
                             className="typ-ip"
                           />
+                          <ApplyStylesMenu
+                            isGlobal={isGlobalProperty(this.state.journeyData.cta.text)}
+                            onApplyGlobal={() => {
+                              this.setState(prevState => (
+                                { ...prevState,
+                                  journeyData: {
+                                    ...prevState.journeyData,
+                                    cta: prevState.journeyData.cta ? {
+                                      ...prevState.journeyData.cta,
+                                      text: createGlobalProperty(
+                                        prevState.journeyData.cta.text._val,
+                                        GlobalPropsPath.customBtn1Text
+                                      )
+                                    } : prevState.journeyData.cta,
+                                  }
+                                }
+                              ));
+                            }}
+                          />
+                        </div>
+                      </Tags.CTAInputCon>
+                      <Tags.CTAInputCon>
+                        <div className="typ-reg">Size</div>
+                        <div className="ver-center">
+                          <GTags.FableSelect
+                            bordered={false}
+                            style={{ width: '50%' }}
+                            size="large"
+                            value={this.state.journeyData.cta.size._val}
+                            options={Object.values(AnnotationButtonSize).map(v => ({
+                              value: v,
+                              label: v,
+                            }))}
+                            onSelect={(val) => {
+                              const newCta = {
+                                ...this.state.journeyData.cta!,
+                                size: val as AnnotationButtonSize
+                              };
+                              this.setState(prevState => (
+                                { ...prevState,
+                                  journeyData: {
+                                    ...prevState.journeyData,
+                                    cta: {
+                                      ...newCta,
+                                      size: createLiteralProperty(newCta.size)
+                                    }
+                                  }
+                                }));
+                            }}
+                            className="typ-ip"
+                          />
+                          <ApplyStylesMenu
+                            isGlobal={isGlobalProperty(this.state.journeyData.cta.size)}
+                            onApplyGlobal={() => {
+                              this.setState(prevState => (
+                                { ...prevState,
+                                  journeyData: {
+                                    ...prevState.journeyData,
+                                    cta: prevState.journeyData.cta ? {
+                                      ...prevState.journeyData.cta,
+                                      size: createGlobalProperty(
+                                        prevState.journeyData.cta.size._val,
+                                        GlobalPropsPath.ctaSize
+                                      )
+                                    } : prevState.journeyData.cta,
+                                  }
+                                }
+                              ));
+                            }}
+                          />
+                        </div>
+                      </Tags.CTAInputCon>
+                      <div>
+                        <Tags.CTAInputCon>
+                          <div className="typ-reg">Navigate to</div>
+                          <div className="ver-center">
+                            <GTags.SimpleInput
+                              value={this.state.currentIpValues.ctaLink}
+                              onChange={(e) => {
+                                this.setState((prevState) => ({
+                                  ...prevState,
+                                  currentIpValues: {
+                                    ...prevState.currentIpValues,
+                                    ctaLink: e.target.value,
+                                  }
+                                }));
+                              }}
+                              size="small"
+                              style={{
+                                width: '50%',
+                                height: '40px'
+                              }}
+                              placeholder="Open Url when clicked"
+                              onBlur={e => {
+                                const uri = e.target.value;
+                                const validUrl = getValidUrl(uri);
+                                this.setState(prevState => ({
+                                  ...prevState,
+                                  isUrlValid: Boolean(validUrl)
+                                }));
+                                if (!validUrl) return;
+                                const newCta = {
+                                  ...this.state.journeyData.cta!,
+                                  navigateTo: validUrl
+                                };
+                                this.setState(prevState => (
+                                  { ...prevState,
+                                    journeyData: {
+                                      ...prevState.journeyData,
+                                      cta: {
+                                        size: newCta.size,
+                                        navigateTo: createLiteralProperty(newCta.navigateTo),
+                                        text: newCta.text
+                                      }
+                                    }
+                                  }));
+                              }}
+                              className="typ-ip"
+                            />
+                            <ApplyStylesMenu
+                              isGlobal={isGlobalProperty(this.state.journeyData.cta.navigateTo)}
+                              onApplyGlobal={() => {
+                                this.setState(prevState => (
+                                  { ...prevState,
+                                    journeyData: {
+                                      ...prevState.journeyData,
+                                      cta: prevState.journeyData.cta ? {
+                                        ...prevState.journeyData.cta,
+                                        navigateTo: createGlobalProperty(
+                                          prevState.journeyData.cta.navigateTo._val,
+                                          GlobalPropsPath.customBtn1URL
+                                        )
+                                      } : prevState.journeyData.cta,
+                                    }
+                                  }
+                                ));
+                              }}
+                            />
+                          </div>
                         </Tags.CTAInputCon>
                         {!this.state.isUrlValid && (
                         <p style={{ margin: 0, fontSize: '0.75rem', color: 'red', textAlign: 'end' }}>
@@ -473,7 +631,12 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         style={{ color: '#AB2424' }}
                         type="text"
                         onClick={() => {
-                          this.setState((prevState) => ({ journeyData: { ...prevState.journeyData, cta: undefined } }));
+                          this.setState((prevState) => ({
+                            ...prevState,
+                            journeyData: {
+                              ...prevState.journeyData,
+                              cta: undefined
+                            } }));
                         }}
                         icon={<DeleteFilled style={{ color: '#d64e4d' }} />}
                       >
@@ -493,8 +656,12 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         value={CreateJourneyPositioning.Left_Bottom}
                         checked={this.state.journeyData.positioning === CreateJourneyPositioning.Left_Bottom}
                         onChange={(e) => {
-                          this.setState(prevState => ({ journeyData:
-                            { ...prevState.journeyData, positioning: e.target.value as CreateJourneyPositioning } }));
+                          this.setState(prevState => ({
+                            ...prevState,
+                            journeyData: {
+                              ...prevState.journeyData,
+                              positioning: e.target.value as CreateJourneyPositioning }
+                          }));
                         }}
                       />
                       <span>Bottom Left</span>
@@ -506,8 +673,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         value={CreateJourneyPositioning.Right_Bottom}
                         checked={this.state.journeyData.positioning === CreateJourneyPositioning.Right_Bottom}
                         onChange={(e) => {
-                          this.setState(prevState => ({ journeyData: {
-                            ...prevState.journeyData, positioning: e.target.value as CreateJourneyPositioning } }));
+                          this.setState(prevState => ({ ...prevState,
+                            journeyData: {
+                              ...prevState.journeyData, positioning: e.target.value as CreateJourneyPositioning } }));
                         }}
                       />
                       <span>Bottom Right</span>
@@ -518,15 +686,40 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 <Tags.JourneyInnerCon style={{ marginBottom: '20px' }}>
                   <Tags.CTAInputCon>
                     <div className="typ-reg">Primary color</div>
-                    <GTags.ColorPicker
-                      className="typ-ip"
-                      showText={(color) => color.toHexString()}
-                      onChangeComplete={e => {
-                        this.setState(prevState => ({ journeyData: {
-                          ...prevState.journeyData, primaryColor: e.toHexString() } }));
-                      }}
-                      defaultValue={this.state.journeyData.primaryColor}
-                    />
+                    <div className="ver-center">
+                      <GTags.ColorPicker
+                        className="typ-ip"
+                        showText={(color) => color.toHexString()}
+                        value={this.state.journeyData.primaryColor._val}
+                        onChangeComplete={e => {
+                          this.setState(prevState => (
+                            { ...prevState,
+                              journeyData: {
+                                ...prevState.journeyData,
+                                primaryColor: createLiteralProperty(e.toHexString())
+                              }
+                            }));
+                        }}
+                      />
+                      <ApplyStylesMenu
+                        isGlobal={isGlobalProperty(this.state.journeyData.primaryColor)}
+                        onApplyGlobal={
+                        () => {
+                          this.setState(prevState => (
+                            {
+                              ...prevState,
+                              journeyData: {
+                                ...prevState.journeyData,
+                                primaryColor: createGlobalProperty(
+                                  prevState.journeyData.primaryColor._val,
+                                  GlobalPropsPath.primaryColor
+                                )
+                              }
+                            }));
+                        }
+}
+                      />
+                    </div>
                   </Tags.CTAInputCon>
 
                   <Tags.CTAInputCon>
@@ -535,7 +728,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       showafterlabel="true"
                       checked={this.props.journey.hideModuleOnLoad}
                       onChange={(e) => {
-                        this.setState((prevState) => ({ journeyData:
+                        this.setState((prevState) => ({
+                          ...prevState,
+                          journeyData:
                         { ...prevState.journeyData,
                           hideModuleOnLoad: e.target.checked
                         } }));
@@ -548,7 +743,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                       showafterlabel="true"
                       checked={this.props.journey.hideModuleOnMobile}
                       onChange={(e) => {
-                        this.setState((prevState) => ({ journeyData:
+                        this.setState((prevState) => ({
+                          ...prevState,
+                          journeyData:
                         { ...prevState.journeyData,
                           hideModuleOnMobile: e.target.checked
                         } }));
@@ -563,8 +760,9 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                   style={{ color: '#AB2424' }}
                   type="text"
                   onClick={() => {
-                    this.setState({
-                      journeyData: getSampleJourneyData() });
+                    this.setState(prevState => ({
+                      ...prevState,
+                      journeyData: getSampleJourneyData(this.props.globalOpts) }));
                   }}
                   icon={<DeleteFilled style={{ color: '#d64e4d' }} />}
                 > Delete Module

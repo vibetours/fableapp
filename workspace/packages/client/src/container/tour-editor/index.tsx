@@ -9,13 +9,14 @@ import {
   ScreenDiagnostics,
   TourDataWoScheme,
   TourScreenEntity,
+  IGlobalConfig,
 } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { Tooltip, Button, Alert } from 'antd';
 import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { getDefaultTourOpts } from '@fable/common/dist/utils';
+import { createLiteralProperty, getDefaultLiteralTourOpts, getDefaultTourOpts } from '@fable/common/dist/utils';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
   AnnAdd,
@@ -176,7 +177,7 @@ const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline
       if (!nextBtn.hotspot || nextBtn.hotspot.actionType === 'open') {
         break;
       }
-      const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+      const nextAnnRefId = nextBtn.hotspot.actionValue._val.split('/')[1];
       ann = flatAnns[nextAnnRefId];
     }
     timeline.push(singleTimeline);
@@ -224,6 +225,7 @@ interface IAppStateProps {
   elpathKey: ElPathKey;
   featurePlan: FeatureForPlan | null;
   vanityDomains: P_RespVanityDomain[] | null;
+  globalOpts: IGlobalConfig | null;
 }
 
 function __dbg(anns: AnnotationPerScreen[]): void {
@@ -282,7 +284,9 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   }
   allEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
 
-  const tourOpts = state.default.localTourOpts || state.default.remoteTourOpts || getDefaultTourOpts();
+  const tourOpts = state.default.localTourOpts
+  || state.default.remoteTourOpts
+  || (state.default.globalConfig ? getDefaultTourOpts(state.default.globalConfig!) : getDefaultLiteralTourOpts());
   let tourMainVailidity: TourMainValidity = TourMainValidity.Valid;
   let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
@@ -317,6 +321,7 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     elpathKey: state.default.elpathKey,
     featurePlan: state.default.featureForPlan,
     vanityDomains: state.default.vanityDomains,
+    globalOpts: state.default.globalConfig,
   };
 };
 
@@ -399,6 +404,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         this.props.tourOpts,
         this.showHideAlert,
         this.applyAnnButtonLinkMutations,
+        this.props.globalOpts!,
         null,
         this.props.clearRelayScreenAndAnnAdd
       );
@@ -656,7 +662,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         lastAnn = ann;
         break;
       }
-      const nextAnnRefId = nextBtn.hotspot.actionValue.split('/')[1];
+      const nextAnnRefId = nextBtn.hotspot.actionValue._val.split('/')[1];
       ann = getAnnotationByRefId(nextAnnRefId, this.props.allAnnotationsForTour);
       allAnnsLength--;
     }
@@ -757,6 +763,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               elpathKey={this.props.elpathKey}
               updateElPathKey={this.props.updateElPathKey}
               featurePlan={this.props.featurePlan}
+              globalOpts={this.props.globalOpts!}
             />
 
           </div>
@@ -785,6 +792,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                   this.props.tourOpts,
                   this.showHideAlert,
                   this.applyAnnButtonLinkMutations,
+                  this.props.globalOpts!,
                 );
                 this.navFn(`${screenId}/${newAnnConfig.refId}`, 'annotation-hotspot');
               }}
@@ -819,7 +827,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         on: 'click',
         target: '$this',
         actionType: config.buttons.find(btn => btn.id === btnId)!.hotspot?.actionType || 'navigate',
-        actionValue
+        actionValue: createLiteralProperty(actionValue)
       });
     } else {
       btnUpdate = updateButtonProp(config, btnId, 'hotspot', null);

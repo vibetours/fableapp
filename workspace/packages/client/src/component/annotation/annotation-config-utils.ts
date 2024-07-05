@@ -16,8 +16,11 @@ import {
   CoverAnnotationPositions,
   ScrollAdjustmentType,
   IAnnotationAudio,
+  Property,
+  IGlobalConfig,
+  ITourEntityHotspot,
 } from '@fable/common/dist/types';
-import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { ElPathKey } from '../../types';
 import { isMediaAnnotation } from '../../utils';
 import { isLeadFormPresentInHTMLStr } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
@@ -153,7 +156,7 @@ export function updateAnnotationTypeToDefault(
 
 export function updateAnnotationSelectionEffect<T extends IAnnotationConfig>(
   config: T,
-  selectionEffect: AnnotationSelectionEffectType
+  selectionEffect: Property<AnnotationSelectionEffectType>
 ): T {
   const newConfig = newConfigFrom(config);
   newConfig.selectionEffect = selectionEffect;
@@ -223,7 +226,7 @@ export function updateAnnotationButtonLayout<T extends IAnnotationConfig>(
 
 export function updateAnnotationSelectionShape<T extends IAnnotationConfig>(
   config: T,
-  selectionShape: AnnotationSelectionShapeType
+  selectionShape: Property<AnnotationSelectionShapeType>
 ): T {
   const newConfig = newConfigFrom(config);
   newConfig.selectionShape = selectionShape;
@@ -236,16 +239,16 @@ export function updateOverlay<T extends IAnnotationConfig>(config: T, showOverla
   return newConfig;
 }
 
-export function updateSelectionColor<T extends IAnnotationConfig>(config: T, selectionColor: string): T {
+export function updateSelectionColor<T extends IAnnotationConfig>(config: T, selectionColor: Property<string>): T {
   const newConfig = newConfigFrom(config);
   newConfig.annotationSelectionColor = selectionColor;
   return newConfig;
 }
 
-export function updateTourDataOpts(
+export function updateTourDataOpts<K extends keyof ITourDataOpts>(
   opts: ITourDataOpts,
-  key: keyof ITourDataOpts,
-  value: ITourDataOpts[keyof ITourDataOpts]
+  key: K,
+  value: ITourDataOpts[K]
 ): ITourDataOpts {
   const newOpts = newConfigFrom(opts);
   (newOpts as any)[key] = value;
@@ -314,13 +317,13 @@ export function toggleBooleanButtonProp<T extends IAnnotationConfig>(
   return newConfig;
 }
 
-function getCustomBtnTemplate(order: number, size: AnnotationButtonSize): IAnnotationButton {
+function getCustomBtnTemplate(order: number, size: AnnotationButtonSize, globalOpts: IGlobalConfig): IAnnotationButton {
   return {
     id: getRandomId(),
     type: 'custom',
-    style: AnnotationButtonStyle.Outline,
-    size,
-    text: 'Get a Demo!',
+    style: createGlobalProperty(globalOpts.customBtn1Style, GlobalPropsPath.customBtn1Style),
+    size: createGlobalProperty(globalOpts.ctaSize, GlobalPropsPath.ctaSize),
+    text: createGlobalProperty(globalOpts.customBtn1Text, GlobalPropsPath.customBtn1Text),
     order,
     hotspot: null
   };
@@ -338,11 +341,22 @@ export function getLatestBtnOrder(config: IAnnotationConfig): number {
   return order;
 }
 
-export function addCustomBtn<T extends IAnnotationConfig>(config: T): T {
+export function addCustomBtn<T extends IAnnotationConfig>(config: T, globalOpts: IGlobalConfig): T {
   const order = getLatestBtnOrder(config);
   const nextBtn = config.buttons.filter(btn => btn.type === 'next')[0];
   const size = nextBtn.size;
-  const btn = getCustomBtnTemplate(order, size);
+  const btn = getCustomBtnTemplate(order, size._val, globalOpts);
+  const hostspotConfig: ITourEntityHotspot = {
+    type: 'an-btn',
+    on: 'click',
+    target: '$this',
+    actionType: 'open',
+    actionValue: createGlobalProperty(
+      globalOpts.customBtn1URL,
+      GlobalPropsPath.customBtn1URL
+    ),
+  };
+  btn.hotspot = hostspotConfig;
 
   const newConfig = newConfigFrom(config);
   newConfig.buttons = newConfig.buttons.slice(0);

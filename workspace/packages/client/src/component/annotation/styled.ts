@@ -366,7 +366,7 @@ const createBoxShadowKF = (selColor: string) : SimpleInterpolation => keyframes`
   50% {box-shadow: 0 0 0 4px ${selColor};}
 `;
 
-const BoxShadowKFRule = css`
+export const BoxShadowKFRule = css`
   ${({ selColor }: { selColor: string }) => css`
     ${createBoxShadowKF(selColor)} 2s infinite;
   `}

@@ -39,12 +39,12 @@ export default function Header(props: Props): JSX.Element {
         }}
       >
         <a
-          href={props.site.navLink || 'https://sharefable.com'}
+          href={props.site.navLink._val || 'https://sharefable.com'}
           style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
           target="_blank"
           rel="noreferrer"
         >
-          <img src={props.site.logo || FableLogo} alt="" height={35} />
+          <img src={props.site.logo._val || FableLogo} alt="" height={35} />
         </a>
         <div className="typ-h2" style={{ fontWeight: 600, color }}>
           {props.site.title}
@@ -58,7 +58,7 @@ export default function Header(props: Props): JSX.Element {
               margin: '0 1rem'
             }}
           />}
-          <a href={props.site.ctaLink} onClick={props.captureConversion} target="_blank" rel="noreferrer">
+          <a href={props.site.ctaLink._val} onClick={props.captureConversion} target="_blank" rel="noreferrer">
             <Button
               size="small"
               className="sec-btn"
@@ -70,7 +70,7 @@ export default function Header(props: Props): JSX.Element {
                 backgroundColor: 'transparent',
               }}
             >
-              {props.site.ctaText}
+              {props.site.ctaText._val}
             </Button>
           </a>
         </div>

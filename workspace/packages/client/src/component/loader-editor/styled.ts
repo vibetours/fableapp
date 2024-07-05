@@ -51,6 +51,11 @@ export const EditorWrapper = styled.div`
   padding: 2rem;
   background-color: transparent;
   backdrop-filter: blur(16px);
+
+  .ver-center {
+    display: flex;
+    align-items: center;
+  }
 `;
 
 export const EditorCon = styled.div`
