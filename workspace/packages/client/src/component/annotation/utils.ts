@@ -310,7 +310,10 @@ export const createEmptyFableIframe = (): HTMLIFrameElement => {
 export const createOverrideStyleEl = (doc: Document): HTMLStyleElement => {
   const styleEl = doc.createElement('style');
   styleEl.textContent = `
-    :host { all: initial }
+    :host { 
+      all: initial; 
+      font-family: inherit; 
+    }
   `;
   return styleEl;
 };
