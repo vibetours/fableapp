@@ -819,11 +819,14 @@ export function normalizeBackwardCompatibilityForJourney(
     return getSampleJourneyData(globalOpts);
   }
 
-  if (typeof opts.primaryColor === 'string' && typeof journey.primaryColor === 'string') {
-    journey.primaryColor = createLiteralProperty(opts.primaryColor);
-  }
   if (typeof journey.primaryColor === 'string') {
-    journey.primaryColor = createLiteralProperty(opts.primaryColor._val);
+    const optsPrimaryColor = typeof opts.primaryColor === 'string' ? opts.primaryColor : opts.primaryColor._val;
+
+    if (!journey.primaryColor) {
+      journey.primaryColor = createLiteralProperty(optsPrimaryColor);
+    } else {
+      journey.primaryColor = createLiteralProperty(journey.primaryColor);
+    }
   }
 
   if (!journey.primaryColor._val) {
