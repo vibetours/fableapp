@@ -100,7 +100,7 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.state.ts !== prevState.ts && this.state.ts) {
       const loc = window.location.toString();
       const allParams = loc.split('?')[1];
-      const baseIframeUrl = `${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.match.params.tourId}`;
+      const baseIframeUrl = `/${IFRAME_BASE_URL}/demo/${this.props.match.params.tourId}`;
       this.setState((prevS) => ({
         iframeUrl: allParams && allParams.length !== 0 ? `${baseIframeUrl}?_ts=${prevS.ts}&${allParams}`
           : `${baseIframeUrl}?_ts=${prevS.ts}`
