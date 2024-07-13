@@ -31,7 +31,9 @@ export const getFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
 
 export const createFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
   const umbrlDivShHost = doc.createElement('div');
-  umbrlDivShHost.style.display = 'block';
+  umbrlDivShHost.style.setProperty('display', 'block', 'important');
+  umbrlDivShHost.style.setProperty('visibility', 'visible', 'important');
+  umbrlDivShHost.style.setProperty('opacity', '1', 'important');
   umbrlDivShHost.classList.add(FABLE_RT_UMBRL_SH_HOST);
   umbrlDivShHost.attachShadow({ mode: 'open' });
   const shadowRoot = umbrlDivShHost.shadowRoot!;
