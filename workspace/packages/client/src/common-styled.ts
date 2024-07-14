@@ -478,3 +478,160 @@ export const LoaderProgress = styled.div<{bcolor: string, bwidth: number, bradiu
   transition: width 0.2s ease-out;
   opacity: ${p => `${p.bopacity}`};
 `;
+
+export const DemoHeaderCon = styled.div`
+  height: 48px; 
+  font-size: 14px;
+  font-weight: 700;
+  width: 100%; 
+`;
+
+interface LeadFormProps {
+  fontColor: string;
+  borderRadius: number;
+  bgColor: string;
+  fontSizeNormal?: string;
+  fontSizeLarge?: string;
+  fontSizeHuge?: string;
+  scaleDownLeadForm?: boolean;
+}
+
+export const LeadFormEntryCon = styled.div<LeadFormProps>`
+  --f-font-normal: ${(props: LeadFormProps) => props.fontSizeNormal ?? '18px'};
+  --f-font-large: ${(props: LeadFormProps) => props.fontSizeLarge ?? '24px'};
+  --f-font-huge: ${(props: LeadFormProps) => props.fontSizeHuge ?? '30px'};
+
+  @media screen and (max-width: 389px) {
+    --f-font-normal: ${(props: LeadFormProps) => props.fontSizeNormal ?? '14px'};
+    --f-font-large: ${(props: LeadFormProps) => props.fontSizeLarge ?? '18px'};
+    --f-font-huge: ${(props: LeadFormProps) => props.fontSizeHuge ?? '22px'};
+  }
+
+--f-ann-font-color: ${(props: LeadFormProps) => props.fontColor};
+--f-ann-border-radius: ${(props: LeadFormProps) => `${props.borderRadius}px`};
+--f-ann-bg-color: ${(props: LeadFormProps) => props.bgColor};
+
+  br {
+    display: block;
+    content: '';
+    margin-top: 1.25rem;
+  }
+
+  p {
+    & > img {
+      border-radius: ${(props: LeadFormProps) => (props.borderRadius ? `${props.borderRadius}px` : '4px')};
+      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    }
+  }
+
+  ${(props : LeadFormProps) => (
+    props.scaleDownLeadForm && `
+      p {
+        margin: 0.5rem 0;
+
+        &:has(span#fable-lead-form) {
+          margin: 0 1rem;
+          transform: scale(0.9) translate(0px, -2rem);
+        }
+      }
+    `
+  )}
+
+  .LeadForm__container {
+    display: block;
+    cursor: pointer;
+    user-select: none;
+    font-family: inherit;
+    color: inherit;
+    font-size: inherit;
+    border-radius: var(--f-ann-border-radius);
+    border: none;
+    margin-top: 0;
+    padding: 0 calc(var(--f-ann-padding-x) * 0.75px) 1.5rem
+  }
+
+  .LeadForm__container.focused {
+    outline: 2px solid var(--f-ann-font-color);
+  }
+
+  .LeadForm__inner {
+    width: 100%;
+    cursor: default;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .LeadForm__optionContainer {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    margin: 0px;
+  }
+
+  .LeadForm__inputValidation {
+    transform: translate(1rem, 1rem);
+    background: #f87171;
+    display: inline-block;
+    width: auto;
+    align-self: baseline;
+    color: black;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 14px;
+    visibility: hidden;
+    margin-bottom: 6px;
+  }
+
+  .LeadForm__optionInputWrapper {
+    flex: 1;
+    display: flex;
+    width: 100%;
+    border: none;
+    box-shadow: 0 0 0 2px var(--f-ann-font-color);
+    padding: 4px 0;
+    border-radius: 5px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .LeadForm__optionInputInAnn {
+    width: 100%;
+    font-size: inherit;
+    display: flex;
+    flex: 1px;
+    font-size: 1.35rem;
+    border: 0px;
+    padding: 8px 16px;
+    color: var(--fable-ann-font-color);
+    background-color: transparent;
+    font-weight: bold;
+    outline: 0px;
+    z-index: 0;
+  }
+
+  .LeadForm__optionInputInAnn:focus {
+    background-color: transparent;
+  }
+  
+  .LeadForm__optionInputInAnn::placeholder {
+    font-weight: normal;
+    color: var(--f-ann-font-color);
+    opacity: 0.75;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: ${(props: LeadFormProps) => props.fontColor};
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent;
+  }
+`;

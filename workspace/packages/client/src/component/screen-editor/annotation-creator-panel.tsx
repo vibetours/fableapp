@@ -194,7 +194,7 @@ const commonActionPanelItemStyle: React.CSSProperties = {
   color: '#212121',
 };
 
-const buttonSecStyle: React.CSSProperties = {
+export const buttonSecStyle: React.CSSProperties = {
   padding: '1rem',
   display: 'flex',
   justifyContent: 'center',
@@ -257,17 +257,21 @@ function getEffectPanelExtraIcons(props: {
   );
 }
 
-function GlobalTitle({ title }: {title: string}) : JSX.Element {
+export function GlobalTitle({ title, hideTooltip = false }: {title: string, hideTooltip?: boolean}) : JSX.Element {
   return (
     <Tags.TitleCon className="typ-reg">
       {title}
-      <Tooltip
-        placement="bottomRight"
-        overlayStyle={{ fontSize: '0.75rem' }}
-        title={globalPropertyHelpText}
-      >
-        <QuestionCircleOutlined className="ht-icn" />
-      </Tooltip>
+      {
+        !hideTooltip && (
+          <Tooltip
+            placement="bottomRight"
+            overlayStyle={{ fontSize: '0.75rem' }}
+            title={globalPropertyHelpText}
+          >
+            <QuestionCircleOutlined className="ht-icn" />
+          </Tooltip>
+        )
+      }
     </Tags.TitleCon>
   );
 }
@@ -628,7 +632,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           <AnnotationRichTextEditor
             tour={props.tour}
             updateTourProp={props.updateTourProp}
-            opts={opts}
+            lfPkf={opts.lf_pkf}
             subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {
               setConfig(c => {
@@ -642,7 +646,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             }}
             defaultValue={config.bodyContent}
             leadFormFeatureAvailable={leadFormFeatureAvailable}
-            setTourDataOpts={setTourDataOpts}
+            updatePrimaryKey={(primaryKey) => {
+              setTourDataOpts(t => updateTourDataOpts(t, 'lf_pkf', primaryKey));
+            }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
             <div style={{ opacity: 0.5, fontStyle: 'italic' }}>or</div>

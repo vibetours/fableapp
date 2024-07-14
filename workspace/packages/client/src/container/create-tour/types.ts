@@ -1,5 +1,6 @@
 import { ScreenType } from '@fable/common/dist/api-contract';
 import { SerDoc } from '@fable/common/dist/types';
+import { Vpd } from '../../types';
 
 export interface FrameDataToBeProcessed {
     oid: number;
@@ -21,11 +22,6 @@ export interface ScreenInfo {
     skipped: boolean;
     vpd: Vpd | null;
 }
-
-export interface Vpd {
-    width: number;
-    height: number;
-  }
 
 export interface DBData {
     id: string;

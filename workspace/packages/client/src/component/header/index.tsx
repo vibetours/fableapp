@@ -27,7 +27,7 @@ import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity
 import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
-import { JourneyOrOptsDataChange, SiteData, TourMainValidity } from '../../types';
+import { JourneyOrOptsDataChange, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
 import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
 import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
@@ -72,6 +72,7 @@ interface IOwnProps {
   showCalendar?: boolean;
   minimalHeader?: boolean;
   vanityDomains?: P_RespVanityDomain[] | null;
+  demoHub?: P_RespDemoHub | null;
 }
 
 export type HeaderProps = IOwnProps;
@@ -106,8 +107,12 @@ function Header(props: IOwnProps): JSX.Element {
     || props.screenDiagnostics?.length) {
       isWarning = true;
     }
+
+    if (props.demoHub) {
+      isWarning = false;
+    }
     setIsWarningPresent(isWarning);
-  }, [props.isJourneyCTASet, props.lastAnnHasCTA, props.screenDiagnostics, props.tourMainValidity]);
+  }, [props.isJourneyCTASet, props.lastAnnHasCTA, props.screenDiagnostics, props.tourMainValidity, props.demoHub]);
 
   const handleRenameScreenModalOk = (): void => {
     const newVal = screenName.trim().replace(/\s+/, ' ');
@@ -163,7 +168,6 @@ function Header(props: IOwnProps): JSX.Element {
         return false;
     }
   };
-
   return (
     <Suspense fallback={<></>}>
       <Tags.Con style={{ color: '#fff' }}>
@@ -236,7 +240,7 @@ function Header(props: IOwnProps): JSX.Element {
           </Tags.MenuItem>
           )}
 
-          {props.tour && (
+          {(props.tour || props.demoHub) && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -260,7 +264,8 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
               )
             }
-            {(!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/a')) && (
+            {(!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/a'))
+            && !location.pathname.startsWith('/hub') && (
               <>
                 <Tags.MenuItem style={{
                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
@@ -322,7 +327,7 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
                 <Tags.MenuItem>
                   <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
-                    <Link to={`/a/demo/${props.tour.rid}`}>
+                    <Link to={`/a/demo/${props.tour!.rid}`}>
                       <AntButton
                         size="small"
                         shape="circle"

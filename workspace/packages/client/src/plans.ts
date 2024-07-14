@@ -15,6 +15,7 @@ export interface PlanDetail {
 export interface FeaturePlan {
   plans: PlanDetail[],
   isInBeta: boolean,
+  requireAccess: boolean
 }
 
 export interface FeaturePerPlan {
@@ -26,7 +27,8 @@ export type IntegrationValue = 'hubspot'
 export const AnnotationValue = ['text', 'video', 'audio'];
 
 export interface PlanDetailWithBeta extends PlanDetail {
-  isInBeta: boolean
+  isInBeta: boolean,
+  requireAccess: boolean
 }
 
 export interface FeatureForPlan {

@@ -21,10 +21,10 @@ import { updateTourDataOpts } from '../../annotation/annotation-config-utils';
 import { P_RespTour } from '../../../entity-processor';
 
 interface Props {
-  opts: ITourDataOpts;
-  setTourDataOpts: React.Dispatch<React.SetStateAction<ITourDataOpts>>;
-  updateTourProp: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void;
-  tour: P_RespTour;
+  lfPkf: string;
+  updatePrimaryKey: (primaryKey: string) => void;
+  updateTourProp?: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void;
+  tour?: P_RespTour;
 }
 
 export default function LeadFormPlugin(props: Props): JSX.Element | null {
@@ -46,7 +46,7 @@ export default function LeadFormPlugin(props: Props): JSX.Element | null {
               emailField.placeholder,
               emailField.type,
               emailField.autocompleteType,
-              props.opts.lf_pkf === 'email' ? LeadFormPropertyType.PrimaryKey : LeadFormPropertyType.None,
+              props.lfPkf === 'email' ? LeadFormPropertyType.PrimaryKey : LeadFormPropertyType.None,
             ),
           ]);
 
@@ -63,8 +63,19 @@ export default function LeadFormPlugin(props: Props): JSX.Element | null {
       editor.registerCommand<string>(
         CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND,
         (pkField) => {
-          props.setTourDataOpts(t => updateTourDataOpts(t, 'lf_pkf', pkField));
-          props.updateTourProp(props.tour.rid, 'settings', { vpdHeight: props.tour.settings?.vpdHeight || 0, vpdWidth: props.tour.settings?.vpdWidth || 0, primaryKey: pkField });
+          props.updatePrimaryKey(pkField);
+
+          if (props.tour && props.updateTourProp) {
+            props.updateTourProp(
+              props.tour.rid,
+              'settings',
+              {
+                vpdHeight: props.tour.settings?.vpdHeight || 0,
+                vpdWidth: props.tour.settings?.vpdWidth || 0,
+                primaryKey: pkField
+              }
+            );
+          }
           return true;
         },
         COMMAND_PRIORITY_EDITOR,

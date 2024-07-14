@@ -23,6 +23,7 @@ import { AnnElsVisibilityObserver } from './ann-els-visibility-observer';
 import { AllDimsForAnnotation } from './types';
 import { FABLE_IFRAME_GENERIC_CLASSNAME } from '../../constants';
 import { P_RespScreen } from '../../entity-processor';
+import { IAnnotationConfigWithScreenId } from './annotation-config-utils';
 
 const scrollIntoView = require('scroll-into-view');
 
@@ -86,7 +87,11 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private screen: P_RespScreen;
 
+  private shouldSkipLeadForm: boolean;
+
   private updateJourneyProgress: (annRefId: string)=> void;
+
+  private getNextAnnotation: (annId: string) => IAnnotationConfigWithScreenId;
 
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
@@ -157,6 +162,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     elPathKey: ElPathKey,
     isScreenHTML4: boolean,
     screen: P_RespScreen,
+    shouldSkipLeadForm: boolean,
+    getNextAnnotation: (annId: string)=>IAnnotationConfigWithScreenId
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
     this.screen = screen;
@@ -184,6 +191,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.updateJourneyProgress = updateJourneyProgress;
     this.prerenderMediaAnnotations();
     this.iframeElsScrollTimeoutId = 0;
+    this.shouldSkipLeadForm = shouldSkipLeadForm;
+    this.getNextAnnotation = getNextAnnotation;
     if (this.screenType === ScreenType.SerDom) {
       this.setFramesScrollListeners();
     }
@@ -687,6 +696,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           updateJourneyProgress: this.updateJourneyProgress,
           onCompMount: () => { this.con.style.display = ''; },
           isScreenHTML4: this.isScreenHTML4,
+          shouldSkipLeadForm: this.shouldSkipLeadForm,
+          getNextAnnotation: this.getNextAnnotation
         })
       )
     );
@@ -836,6 +847,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           updateJourneyProgress: this.updateJourneyProgress,
           onCompMount: () => { },
           isScreenHTML4: this.isScreenHTML4,
+          shouldSkipLeadForm: this.shouldSkipLeadForm,
+          getNextAnnotation: this.getNextAnnotation
         })
       )
     );

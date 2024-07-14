@@ -346,10 +346,12 @@ export const InputText = styled(Input)`
   width: 125px;
   background: white;
 
-  &:hover {
+  &:hover, &:focus {
     background: white;
     border: 1px solid #747474 ;
+    box-shadow: none;
   }
+
 `;
 
 export const InputNumberBorderRadius = styled(InputNumber)`

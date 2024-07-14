@@ -22,7 +22,7 @@ function ActionPanel(props: React.PropsWithChildren<IProps>): JSX.Element {
   const [collapsed, setCollapsed] = useState(!props.alwaysOpen);
 
   return (
-    <Tags.ActionPanel className={props.id} gutter={!!props.withGutter}>
+    <Tags.ActionPanel className={`${props.id ?? ''} ${collapsed ? 'closed' : 'opened'}`} gutter={!!props.withGutter}>
       {props.title && (
         <Tags.ActionPanelTitleCon
           id={props.id}

@@ -1,4 +1,4 @@
-import { ApiOutlined, CalendarOutlined, CreditCardOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
+import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
@@ -12,7 +12,7 @@ import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
-  selected: 'tours' | 'user-management' | 'billing' | 'settings' | 'integrations' | '';
+  selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | '';
   subs: P_RespSubscription | null;
   tourAvailable?: boolean;
   firstTourRid?: string;
@@ -48,6 +48,10 @@ export default function SidePanel(props: Props): JSX.Element {
         >
           <NodeIndexOutlined />
           <p>Interactive demos</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'demo-hub' ? 'selected' : ''} to="/demo-hubs">
+          <HeatMapOutlined />
+          <p>Demo hubs</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
           <ApiOutlined />

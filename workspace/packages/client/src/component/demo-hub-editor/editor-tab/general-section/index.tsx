@@ -1,0 +1,206 @@
+import { createLiteralProperty } from '@fable/common/dist/utils';
+import { Spin, Tooltip } from 'antd';
+import React from 'react';
+import { QuestionCircleOutlined, QuestionOutlined } from '@ant-design/icons';
+import useUploadFileToAws from '../../../../hooks/useUploadFileToAws';
+import { IDemoHubConfig } from '../../../../types';
+import FileInput from '../../../file-input';
+import ActionPanel from '../../../screen-editor/action-panel';
+import { InputText } from '../../../screen-editor/styled';
+import { useEditorCtx } from '../../ctx';
+import { OurLink } from '../../../../common-styled';
+
+type GeneralProps = Pick<IDemoHubConfig, 'baseFontSize' | 'companyName' | 'fontFamily' | 'logo'>;
+
+function GeneralSection(): JSX.Element {
+  const { config, onConfigChange } = useEditorCtx();
+  const { uploadFile, loading } = useUploadFileToAws();
+
+  const updateGeneralProps = <K extends keyof GeneralProps>(
+    key: K,
+    value: GeneralProps[K]
+  ): void => {
+    onConfigChange(c => ({
+      ...c,
+      [key]: value
+    }));
+  };
+
+  const handleCompanyLogoChange = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const selectedImage = e.target.files![0];
+    if (!selectedImage) return;
+
+    const imageUrl = await uploadFile(selectedImage);
+
+    updateGeneralProps('logo', createLiteralProperty(imageUrl));
+  };
+
+  return (
+    <>
+      <ActionPanel
+        title="General"
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            margin: '8px 0'
+          }}
+        >
+          <p
+            className="typ-sm"
+            style={{
+              padding: 0,
+              margin: 0,
+            }}
+          >
+            Configure common information that affects all the pages of the demo hub.
+          </p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+            }}
+          >
+            <div className="typ-sm">Company logo</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem',
+              }}
+            >
+              <div
+                style={{
+                  width: '260px',
+                }}
+              >
+                <FileInput
+                  style={{ height: '34px' }}
+                  onChange={handleCompanyLogoChange}
+                  accept="image/png, image/gif, image/jpeg, image/webp, image/svg+xml"
+                />
+              </div>
+
+              {loading ? (
+                <div
+                  style={{
+                    height: '44px'
+                  }}
+                >
+                  <Spin />
+                </div>
+              ) : <img
+                src={config.logo._val}
+                alt=""
+                height={44}
+              />}
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+            }}
+          >
+            <div className="typ-sm">Company name</div>
+            <InputText
+              value={config.companyName._val}
+              onChange={e => updateGeneralProps('companyName', createLiteralProperty(e.target.value))}
+              style={{ height: '44px', width: '100%' }}
+            />
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                flex: 1,
+              }}
+            >
+              <div className="typ-sm">Base font size</div>
+              <InputText
+                type="number"
+                value={config.baseFontSize}
+                onChange={e => updateGeneralProps('baseFontSize', +e.target.value)}
+                style={{ height: '44px', width: '100%' }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem',
+                flex: 2,
+              }}
+            >
+              <div>
+                <span className="typ-sm">Font family</span>&nbsp;&nbsp;
+                <Tooltip
+                  title={
+                    <>
+                      <p className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        You can add any font face that is available in&nbsp;
+                        <OurLink
+                          href="https://fonts.google.com/"
+                          target="_blank"
+                          style={{
+                            display: 'inline-block',
+                            color: 'white',
+                            margin: '0'
+                          }}
+                        >google font
+                        </OurLink>.
+                      </p>
+                      <p className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        Simply copy the <em>Font face</em> here, we will take care of the rest.
+                      </p>
+                      <p className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        Remember to copy Font faces with <em>&lt;space&gt;</em> not with <em>+</em>
+                      </p>
+                      <p className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        Example of valid Font faces
+                      </p>
+                      <ul className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        <li>Roboto</li>
+                        <li>Noto Sans</li>
+                      </ul>
+                      <p className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        Example of invalid Font faces
+                      </p>
+                      <ul className="typ-sm" style={{ margin: '0.5rem 0', opacity: 1, fontWeight: 500 }}>
+                        <li>Roboto:ital,wght@0,100..900</li>
+                        <li>Noto+Sans</li>
+                      </ul>
+                    </>
+                }
+                >
+                  <QuestionCircleOutlined style={{ fontSize: '10px' }} />
+                </Tooltip>
+              </div>
+              <InputText
+                value={config.fontFamily._val}
+                onChange={e => updateGeneralProps('fontFamily', createLiteralProperty(e.target.value))}
+                style={{ height: '44px', width: '100%' }}
+              />
+            </div>
+          </div>
+        </div>
+      </ActionPanel>
+    </>
+  );
+}
+
+export default GeneralSection;

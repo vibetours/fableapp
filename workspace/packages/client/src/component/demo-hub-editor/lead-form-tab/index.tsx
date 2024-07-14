@@ -1,0 +1,153 @@
+import React from 'react';
+import Button from '../../button';
+import * as GTags from '../../../common-styled';
+import AnnotationRichTextEditor from '../../annotation-rich-text-editor';
+import { useEditorCtx } from '../ctx';
+import { IDemoHubConfig } from '../../../types';
+
+const DEFAULT_LEAD_FORM_BODY_CONTENT = '<p class="editor-paragraph"><span data-lexical-lead-form-options="[{&quot;text&quot;:&quot;Enter your Email {[email]}&quot;,&quot;uid&quot;:&quot;1720530350987c747be559a&quot;,&quot;type&quot;:&quot;email&quot;,&quot;autocompleteType&quot;:&quot;email&quot;,&quot;property&quot;:0,&quot;calculatedValue&quot;:&quot;&quot;}]" class="LeadForm__container" id="fable-lead-form"><span class="LeadForm__inner"><span class="LeadForm__optionContainer" fable-input-field-uid="1720530350987c747be559a" fable-x-f-vfn="email"><span class="LeadForm__optionInputWrapper"><input class="LeadForm__optionInputInAnn" fable-input-uid="1720530350987c747be559a" fable-lead-form-field-name="email" type="text" placeholder="Enter your Email" id="email" name="email" autocomplete="email"></span><span class="LeadForm__inputValidation" fable-validation-uid="1720530350987c747be559a">Error msg</span></span></span></span></p>';
+const DEFAULT_LEAD_FORM_DISPLAY_TEXT = '';
+
+export default function LeadformTab(): JSX.Element {
+  const { config, onConfigChange } = useEditorCtx();
+
+  const updateLeadformPrimaryKey = (
+    primaryKey: string
+  ): void => {
+    onConfigChange(c => ({
+      ...c,
+      leadform: {
+        ...c.leadform,
+        primaryKey,
+      },
+    }));
+  };
+
+  const deleteLeadformEntry = (): void => {
+    onConfigChange(c => {
+      const qfns = c.qualification_page.qualifications.map(qfn => {
+        const entries = qfn.entries;
+
+        return ({
+          ...qfn,
+          entries: entries.filter(entry => entry.type !== 'leadform-entry')
+        });
+      });
+
+      return {
+        ...c,
+        qualification_page: {
+          ...c.qualification_page,
+          qualifications: qfns,
+        }
+      };
+    });
+  };
+
+  function updateSeeAllPageProps<K extends keyof IDemoHubConfig['see_all_page']>(
+    key: K,
+    value: IDemoHubConfig['see_all_page'][K]
+  ): void {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        [key]: value,
+      }
+    }));
+  }
+
+  const updateLeadformBodyContentAndDisplayText = (
+    bodyContent: string,
+    displayText: string,
+  ): void => {
+    onConfigChange(c => ({
+      ...c,
+      leadform: {
+        ...c.leadform,
+        bodyContent,
+        displayText,
+      },
+    }));
+  };
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        margin: '1rem 2rem',
+      }}
+    >
+      {config.leadform.bodyContent && (
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '1rem',
+          border: '1px solid #DDD',
+          padding: '1rem 1rem 0 1rem',
+          width: '100%',
+          height: '280px',
+          overflowY: 'auto'
+        }}
+      >
+        <AnnotationRichTextEditor
+          lfPkf={config.leadform.primaryKey}
+          subs={null}
+          throttledChangeHandler={(htmlString, displayText) => {
+            updateLeadformBodyContentAndDisplayText(htmlString, displayText);
+          }}
+          defaultValue={config.leadform.bodyContent}
+          leadFormFeatureAvailable={{ isAvailable: true, isInBeta: false, requireAccess: false }}
+          updatePrimaryKey={updateLeadformPrimaryKey}
+        />
+      </div>
+      )}
+
+      {config.leadform.bodyContent ? (
+        <>
+          <GTags.OurLink
+            style={{
+              margin: '1rem 0',
+              color: '#ff7450',
+              fontWeight: 500
+            }}
+            onClick={() => {
+              updateLeadformBodyContentAndDisplayText('', '');
+              updateLeadformPrimaryKey('email');
+              updateSeeAllPageProps('showLeadForm', false);
+              deleteLeadformEntry();
+            }}
+          >
+            Delete this lead form
+          </GTags.OurLink>
+          <p className="typ-sm" style={{ margin: '0 0 1rem' }}>
+            Go to <i>Editor &gt; See all page</i> or <i>Editor &gt; Qualification</i> to add the lead form.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="typ-sm" style={{ margin: '0.25rem 0' }}>
+            Create and configure a leadform to capture lead information.
+          </p>
+          <p className="typ-sm" style={{ margin: '0.25rem 0' }}>
+            Once created, add the lead form in the See all page to capture lead information.
+          </p>
+          <p className="typ-sm" style={{ margin: '0.25rem 0 1rem' }}>
+            Once created, add the lead form as a qualification step to capture lead informaion.
+          </p>
+          <Button
+            intent="secondary"
+            onClick={() => {
+              updateLeadformBodyContentAndDisplayText(DEFAULT_LEAD_FORM_BODY_CONTENT, DEFAULT_LEAD_FORM_DISPLAY_TEXT);
+              updateLeadformPrimaryKey('email');
+            }}
+          >
+            Create a lead form
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}

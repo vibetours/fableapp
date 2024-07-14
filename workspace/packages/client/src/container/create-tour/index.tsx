@@ -25,7 +25,7 @@ import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespProxyAsset, RespTour } from '@fable/common/dist/api-contract';
+import { RespProxyAsset, RespDemoEntity } from '@fable/common/dist/api-contract';
 import { addNewTourToAllTours, getAllTours, getGlobalConfig } from '../../action/creator';
 import { AnnotationContent } from '../../component/annotation';
 import ScreenCard from '../../component/create-tour/screen-card';
@@ -54,14 +54,14 @@ const { confirm } = Modal;
 
 interface IDispatchProps {
   getAllTours: () => void;
-  addNewTourToAllTours: (tour: RespTour)=> void;
+  addNewTourToAllTours: (tour: RespDemoEntity)=> void;
   getGlobalConfig: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours(false)),
-  addNewTourToAllTours: (tour: RespTour) => dispatch(addNewTourToAllTours(tour)),
+  addNewTourToAllTours: (tour: RespDemoEntity) => dispatch(addNewTourToAllTours(tour)),
   getGlobalConfig: () => dispatch(getGlobalConfig()),
 });
 

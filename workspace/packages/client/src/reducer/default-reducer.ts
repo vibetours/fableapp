@@ -51,9 +51,17 @@ import {
   TUpdateCustomDomain,
   TRemoveScreenData,
   TSetGlobalConfig,
+  TDemoHubLoaded,
+  TCreateDemoHubData,
+  TDeleteDemoHub,
+  TUpdateDemoHub,
+  TGetAllDemoHubs,
+  TSetDHConfigUploadURL,
+  TUpdateDemoHubConfig,
+  TSetCurrentDemoData,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
-import { AllEdits, EditItem, ElEditType, ElPathKey, Ops } from '../types';
+import { AllEdits, EditItem, ElEditType, ElPathKey, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
 import { FeatureForPlan } from '../plans';
 
 export const initialState: {
@@ -106,6 +114,12 @@ export const initialState: {
   elpathKey: ElPathKey;
   featureForPlan: FeatureForPlan | null;
   globalConfig: IGlobalConfig | null;
+  demoHubConfig: IDemoHubConfig | null;
+  demoHubs: P_RespDemoHub[] | null;
+  currentDemoHub: P_RespDemoHub | null,
+  currentDemoHubConfig: IDemoHubConfig | null,
+  currentDemoHubLoaded: boolean,
+  demoHubConfigUploadUrl: string,
 } = {
   allUserOrgs: null,
   inited: false,
@@ -153,6 +167,12 @@ export const initialState: {
   elpathKey: 'id',
   featureForPlan: null,
   globalConfig: null,
+  demoHubConfig: null,
+  demoHubs: null,
+  currentDemoHub: null,
+  currentDemoHubConfig: null,
+  currentDemoHubLoaded: false,
+  demoHubConfigUploadUrl: '',
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -595,6 +615,87 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.screenData = tAction.allScreenData;
 
+      return newState;
+    }
+
+    case ActionType.DEMOHUB_LOADED: {
+      const tAction = action as TDemoHubLoaded;
+      const newState = { ...state };
+      newState.currentDemoHub = tAction.data;
+      newState.currentDemoHubConfig = tAction.config;
+      newState.currentDemoHubLoaded = true;
+      return newState;
+    }
+
+    case ActionType.CLEAR_CURRENT_DEMOHUB: {
+      const newState = { ...state };
+      newState.currentDemoHub = null;
+      newState.currentDemoHubConfig = null;
+      newState.currentDemoHubLoaded = false;
+      return newState;
+    }
+
+    case ActionType.CREATE_DEMOHUB_DATA: {
+      const tAction = action as TCreateDemoHubData;
+      const newState = { ...state };
+      if (newState.demoHubs) {
+        newState.demoHubs = [...newState.demoHubs, tAction.demoHub];
+      }
+      return newState;
+    }
+
+    case ActionType.DELETE_DEMOHUB_DATA: {
+      const tAction = action as TDeleteDemoHub;
+      const newState = { ...state };
+      if (newState.demoHubs) {
+        newState.demoHubs = newState.demoHubs.filter(dh => dh.rid !== tAction.rid);
+      }
+      return newState;
+    }
+
+    case ActionType.UPDATE_DEMOHUB_DATA: {
+      const tAction = action as TUpdateDemoHub;
+      const newState = { ...state };
+      if (newState.demoHubs) {
+        newState.demoHubs = newState.demoHubs.map(dh => {
+          if (dh.id === tAction.data.id) {
+            return tAction.data;
+          }
+          return dh;
+        });
+      }
+      if (newState.currentDemoHub?.id === tAction.data.id) {
+        newState.currentDemoHub = { ...tAction.data };
+      }
+      return newState;
+    }
+
+    case ActionType.SET_ALL_DEMOHUBS: {
+      const tAction = action as TGetAllDemoHubs;
+      const newState = { ...state };
+      newState.demoHubs = tAction.demoHubs;
+      return newState;
+    }
+
+    case ActionType.SET_DH_CONFIG_UPLOAD_URL: {
+      const tAction = action as TSetDHConfigUploadURL;
+      const newState = { ...state };
+      newState.demoHubConfigUploadUrl = tAction.url;
+      return newState;
+    }
+
+    case ActionType.SET_CURRENT_DEMOHUB_CONFIG: {
+      const tAction = action as TUpdateDemoHubConfig;
+      const newState = { ...state };
+      newState.currentDemoHubConfig = tAction.config;
+      return newState;
+    }
+
+    case ActionType.SET_CURRENT_DEMOHUB_DATA: {
+      const tAction = action as TSetCurrentDemoData;
+      const newState = { ...state };
+      newState.currentDemoHub = tAction.data;
+      newState.isAutoSaving = false;
       return newState;
     }
 

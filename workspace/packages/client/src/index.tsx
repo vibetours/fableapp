@@ -15,6 +15,8 @@ import Player from './container/player';
 import PreviewForCta from './container/preview-for-cta';
 import RedirectFromP from './container/redirect-from-p';
 import ErrorBoundary from './component/error-boundary';
+import DemoHubQualification from './container/dh-qualification';
+import DemoHubSeeAll from './container/demo-hub-see-all';
 
 export const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -221,6 +223,33 @@ const router = createBrowserRouter([
         },
       },
       {
+        path: '/hub/seeall/:demoHubRid',
+        element: <DemoHubSeeAll staging={staging} title="Fable" />,
+      },
+      {
+        path: 'hub/q/:demoHubRid',
+        element: <DemoHubQualification staging={staging} title="Fable" />,
+        children: [
+          {
+            path: ':qualificationSlug',
+            element: <Outlet />,
+            children: [
+              {
+                path: 's/:stepSlug',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: 'd/:demoRid',
+                    element: <Outlet />,
+
+                  }
+                ]
+              }
+            ]
+          },
+        ]
+      },
+      {
         path: 'invite/:id',
         async lazy() {
           const Invite = await import('./container/invite').then(module => module.default);
@@ -291,6 +320,20 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: 'demo-hubs',
+            async lazy() {
+              const DemoHubsList = await import('./container/demo-hubs-list').then(module => module.default);
+              return { Component: () => <DemoHubsList title="Creating demo hub | Fable" /> };
+            },
+          },
+          {
+            path: 'preview/hub/:demoHubId',
+            async lazy() {
+              const DemoHubPreview = await import('./container/preview-demo-hub').then(module => module.default);
+              return { Component: () => <DemoHubPreview title="Preview demo hub | Fable" /> };
+            },
+          },
+          {
             path: 'users',
             async lazy() {
               const UserManagement = await import('./container/user-management').then(module => module.default);
@@ -318,6 +361,26 @@ const router = createBrowserRouter([
                 children: [
                   {
                     path: ':annotationId',
+                    element: <Outlet />,
+                  }
+                ]
+              },
+            ]
+          },
+          {
+            path: 'hub/:demoHubRid',
+            async lazy() {
+              const DemoHubEditor = await import('./container/dh-editor').then(module => module.default);
+              return { Component: () => <DemoHubEditor title="Demo Hub Editor | Fable" /> };
+            },
+
+            children: [
+              {
+                path: ':pageType',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: ':qualification',
                     element: <Outlet />,
                   }
                 ]

@@ -11,11 +11,12 @@ import {
   PropertyType,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespTour, Responsiveness,
+import { RespDemoEntity, Responsiveness,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
 } from '@fable/common/dist/api-contract';
-import { GlobalPropsPath, createGlobalProperty } from '@fable/common/dist/utils';
+import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
+import { nanoid } from 'nanoid';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
@@ -31,10 +32,21 @@ import {
   SiteData,
   SiteThemePresets,
   HiddenEls,
-  FeatureAvailability
+  FeatureAvailability,
+  IDemoHubConfig,
+  SimpleStyle,
+  IDemoHubConfigCta,
+  IDemoHubConfigSeeAllPageSection,
+  P_RespDemoHub,
+  IDemoHubConfigQualification,
+  SelectEntry,
+  TextEntry,
+  LeadFormEntry,
+  SelectEntryOption,
+  IDemoHubConfigDemo,
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
-import { P_RespTour } from './entity-processor';
+import { P_RespTour, processRawDemoHubData } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
@@ -47,6 +59,9 @@ export const ANN_EDIT_PANEL_WIDTH = 350;
 export const RESP_MOBILE_SRN_WIDTH_LIMIT = 490;
 export const RESP_MOBILE_SRN_WIDTH = 390;
 export const RESP_MOBILE_SRN_HEIGHT = 844;
+export const DESKTOP_MEDIUM_SRN_WIDTH = 1000;
+export const DESKTOP_MEDIUM_SRN_HEIGHT = 563;
+
 export const preMappedLeadFormFields = {
   email: 1,
   first_name: 1,
@@ -315,7 +330,7 @@ export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { hei
     case DisplaySize.FIT_TO_SCREEN:
       return { height: '100%', width: '100%' };
     case DisplaySize.MEDIUM:
-      return { height: '563px', width: '1000px' };
+      return { height: `${DESKTOP_MEDIUM_SRN_HEIGHT}px`, width: `${DESKTOP_MEDIUM_SRN_WIDTH}px` };
     case DisplaySize.SMALL:
       return { height: '450px', width: '800px' };
     case DisplaySize.MOBILE_PORTRAIT:
@@ -812,7 +827,7 @@ export function preloadImagesInTour(
   });
 }
 
-export function getDefaultSiteData(tour: RespTour, globalOpts: IGlobalConfig): SiteData {
+export function getDefaultSiteData(tour: RespDemoEntity, globalOpts: IGlobalConfig): SiteData {
   return {
     logo: createGlobalProperty(globalOpts.logo, GlobalPropsPath.logo),
     navLink: createGlobalProperty(globalOpts.companyUrl, GlobalPropsPath.companyUrl),
@@ -954,7 +969,8 @@ function checkFeatureAvailable(test: PlanDetail['test'], value: PlanDetail['valu
 
 export const fallbackFeatureAvailability : FeatureAvailability = {
   isInBeta: false,
-  isAvailable: true
+  isAvailable: true,
+  requireAccess: false,
 };
 
 export const isFeatureAvailable = (
@@ -977,7 +993,8 @@ export const isFeatureAvailable = (
   }
   const isAvailable = checkFeatureAvailable(featureDetail.test, featureDetail.value, currentValue);
   const isInBeta = featureDetail.isInBeta;
-  return { isAvailable, isInBeta };
+  const requireAccess = featureDetail.requireAccess;
+  return { isAvailable, isInBeta, requireAccess };
 };
 
 export const mapPlanIdAndIntervals = (
@@ -1060,3 +1077,343 @@ export function shouldReduceMotionForMobile(opts: ITourDataOpts | null):boolean 
 }
 
 export const isGlobalProperty = <T>(value: Property<T>): boolean => value.type === PropertyType.REF;
+export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
+  v: 1,
+  logo: createLiteralProperty('https://s3.amazonaws.com/app.sharefable.com/favicon.png'),
+  companyName: createLiteralProperty('Fable'),
+  fontFamily: createLiteralProperty(''),
+  baseFontSize: 16,
+  cta: [
+    // TODO update links of the following sys defined ctas
+    // TODO update icons of the following sys defined ctas
+    {
+      text: 'See all demos',
+      id: 'see-all-demos',
+      deletable: false,
+      // icon?: Icon;
+      iconPlacement: 'left',
+      __linkType: 'open_ext_url',
+      link: '',
+      __definedBy: 'system',
+      type: 'outline',
+      style: { ...getSampleSimpleStyle(), bgColor: '#66cdf5' },
+    },
+    {
+      text: 'Book a demo',
+      id: 'book-a-demo',
+      deletable: true,
+      // icon?: Icon;
+      iconPlacement: 'left',
+      __linkType: 'open_ext_url',
+      link: '',
+      __definedBy: 'system',
+      type: 'solid',
+      style: { ...getSampleSimpleStyle(), bgColor: '#66cdf5' },
+    }
+  ],
+  see_all_page: {
+    showLeadForm: false,
+    header: {
+      title: '',
+      style: {
+        bgColor: '#ffffff',
+        borderColor: '#66cdf5',
+        fontColor: '#000000',
+      },
+      ctas: []
+    },
+    body: {
+      text: '',
+      style: {
+        bgColor: '#ffffff',
+        fontColor: '#000000',
+      },
+    },
+    sections: [
+      {
+        title: 'section 1',
+        slug: 'section-1',
+        desc: 'sec 1 desc',
+        simpleStyle: getSampleSimpleStyle(),
+        demos: [],
+        id: nanoid(),
+      },
+      {
+        title: 'section 2',
+        slug: 'section-2',
+        desc: 'sec 2 desc',
+        simpleStyle: getSampleSimpleStyle(),
+        demos: [],
+        id: nanoid(),
+      },
+    ],
+    demoCardStyles: getSampleSimpleStyle(),
+    demoModalStyles: {
+      overlay: {
+        bgColor: '#ffffff',
+        fontColor: '#000000',
+      },
+      body: getSampleSimpleStyle(),
+    },
+  },
+  qualification_page: {
+    header: {
+      title: '',
+      style: {
+        bgColor: '#ffffff',
+        borderColor: '#66cdf5',
+        fontColor: '#000000',
+      },
+      ctas: [],
+    },
+
+    body: {
+      text: '',
+      style: {
+        bgColor: '#ffffff',
+        fontColor: '#000000',
+      }
+    },
+    qualifications: [],
+  },
+  leadform: {
+    primaryKey: 'email',
+    bodyContent: '',
+    displayText: '',
+  },
+  customScripts: '',
+  customStyles: ''
+});
+
+export const getSampleSimpleStyle = (): SimpleStyle => ({
+  bgColor: '#ffffff',
+  borderColor: '#d4d4d400',
+  fontColor: '#000000',
+  borderRadius: 4,
+});
+
+export const getSampleCTASimpleStyle = (): SimpleStyle => ({
+  ...getSampleSimpleStyle(),
+  bgColor: '#e0e1dd',
+  fontColor: '#0d1b2a',
+  borderRadius: 24
+});
+
+export const getSampleDemoHubConfigCta = (): IDemoHubConfigCta => ({
+  text: 'Book a demo',
+  id: nanoid(),
+  // icon?: Icon;
+  deletable: true,
+  iconPlacement: 'left',
+  __linkType: 'open_ext_url',
+  link: 'https://www.sharefable.com/get-a-demo?ref=dh_others',
+  __definedBy: 'user',
+  type: 'solid',
+  style: getSampleCTASimpleStyle(),
+});
+
+export const getSampleDemoHubSeeAllPageSectionConfig = (): IDemoHubConfigSeeAllPageSection => ({
+  title: 'A new section',
+  slug: 'a-new-section',
+  desc: 'Write a description for this section from the side panel. This is a placeholder description. If you do not want this description, delete the description text for this section to make it empty.',
+  simpleStyle: getSampleSimpleStyle(),
+  demos: [],
+  id: nanoid(),
+});
+
+export const getSampleDemoHubQualification = (): IDemoHubConfigQualification => ({
+  id: nanoid(),
+  __type: 'simple_linear',
+  title: 'Choose your experience',
+  slug: 'choose-your-experience',
+  sidePanel: {
+    conStyle: getSampleSimpleStyle(),
+    cardStyle: {
+      ...getSampleSimpleStyle(),
+      bgColor: '#415a77',
+      borderColor: '#f6f6f600',
+      fontColor: '#ffffff'
+    },
+  },
+  sidepanelCTA: ['book-a-demo'],
+  qualificationEndCTA: ['book-a-demo'],
+  entries: [],
+});
+
+export const getSampleSelectEntry = (type: 'single-select' | 'multi-select'): SelectEntry => ({
+  id: nanoid(),
+  type,
+  __ops: 'or',
+  options: [getSampleSelectEntryOption(), getSampleSelectEntryOption()],
+  title: 'What\'s your role in company?',
+  slug: 'whats-your-role-in-company',
+  desc: 'This section is auto generated for you. Use the editor on the left to edit the content.',
+  style: {
+    ...getSampleSimpleStyle(),
+    borderColor: '#1b263b',
+    fontColor: '#121212'
+  },
+  continueCTA: {
+    text: 'Continue',
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: 'continue',
+    // icon?: Icon;
+    iconPlacement: 'left',
+    __linkType: 'continue_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system',
+    type: 'solid',
+    style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
+  },
+  // If skip button is not present then this is undefined
+  // STANDARD-CLASS-NAME `cta-$skip`
+  skipCTA: {
+    text: 'Skip',
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: 'skip',
+    // icon?: Icon,
+    iconPlacement: 'left',
+    __linkType: 'skip_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system',
+    type: 'solid',
+    style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
+  },
+  showSkipCta: false,
+});
+
+export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry'): TextEntry | LeadFormEntry => ({
+  id: nanoid(),
+  title: 'Sample Step Title',
+  slug: 'sample-step-title',
+  desc: 'Write a brief description of what your viewer should expect from this particular step of your demo hub.',
+  style: getSampleSimpleStyle(),
+  type,
+  continueCTA: {
+    text: 'Continue',
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: 'continue',
+    // icon?: Icon;
+    iconPlacement: 'left',
+    __linkType: 'continue_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system',
+    type: 'solid',
+    style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
+  },
+  // If skip button is not present then this is undefined
+  // STANDARD-CLASS-NAME `cta-$skip`
+  skipCTA: {
+    text: 'Skip',
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: 'skip',
+    // icon?: Icon,
+    iconPlacement: 'left',
+    __linkType: 'skip_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system',
+    type: 'solid',
+    style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
+  },
+  showSkipCta: false,
+});
+
+export const getSampleSelectEntryOption = (): SelectEntryOption => ({
+  id: nanoid(),
+  title: 'This is an option',
+  desc: 'Edit this action from the left side bar',
+  demos: []
+});
+
+export const getOrCreateDemoHubStyleEl = (customStyles: string) : void => {
+  let styleEl = document.getElementById('fable-styles');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'fable-styles';
+    document.head.append(styleEl);
+  }
+  styleEl.textContent = customStyles;
+};
+
+const isValidScript = (scriptContent : string) : boolean => {
+  try {
+    // eslint-disable-next-line no-new, no-new-func
+    new Function(scriptContent);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+export const getorCreateDemoHubScriptEl = (customScripts : string) : void => {
+  let scriptWrapperEl = document.getElementById('fable-script');
+  if (!scriptWrapperEl) {
+    scriptWrapperEl = document.createElement('div');
+    scriptWrapperEl.id = 'fable-script';
+    document.body.append(scriptWrapperEl);
+  }
+  scriptWrapperEl.style.display = 'none';
+  scriptWrapperEl.innerHTML = customScripts;
+  let scriptContainer = document.getElementById('fable-script-container');
+  if (!scriptContainer) {
+    scriptContainer = document.createElement('div');
+    scriptContainer.id = 'fable-script-container';
+    document.body.append(scriptContainer);
+  }
+  scriptContainer.innerHTML = '';
+  scriptContainer.style.display = 'none';
+  const scripts = Array.from(scriptWrapperEl.getElementsByTagName('script'));
+
+  for (const script of scripts) {
+    const scriptContent = script.src ? `src="${script.src}"` : script.textContent;
+
+    if (isValidScript(scriptContent as string)) {
+      const newScript = document.createElement('script');
+      if (script.src) {
+        newScript.src = script.src;
+      } else {
+        newScript.textContent = script.textContent;
+      }
+      scriptContainer.appendChild(newScript);
+    }
+  }
+};
+
+export const getFirstDemoOfDemoHub = (demoHubConfig: IDemoHubConfig): IDemoHubConfigDemo | null => {
+  const seeAllPageSections = demoHubConfig.see_all_page.sections;
+
+  for (const section of seeAllPageSections) {
+    if (section.demos.length) {
+      return section.demos[0];
+    }
+  }
+
+  const qualifications = demoHubConfig.qualification_page.qualifications;
+  for (const qualification of qualifications) {
+    const entries = qualification.entries
+      .filter(entry => entry.type === 'single-select' || entry.type === 'multi-select');
+
+    for (const entry of entries) {
+      for (const option of (entry as SelectEntry).options) {
+        const demos = option.demos;
+        if (demos.length) {
+          return demos[0];
+        }
+      }
+    }
+  }
+
+  return null;
+};

@@ -10,6 +10,10 @@ export const InputContainer = styled.label`
   align-items: center;
   height: 40px;
 
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
   &:hover {
     border: 1px solid #747474;
   }

@@ -4,6 +4,7 @@ import {
   BarsOutlined,
   DisconnectOutlined,
   FileAddFilled,
+  FileImageOutlined,
   HourglassFilled,
   HourglassOutlined,
   MobileFilled,
@@ -3070,6 +3071,44 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   </div>
                 </div>
                 )}
+                <div
+                  className="menu-item"
+                  onClick={() => {
+                    confirm({
+                      title: 'Are you sure you want to make this the demo thumbnail?',
+                      content: 'The image of this screen will be now the demo thumbnail.',
+                      okText: 'Save',
+                      okType: 'primary',
+                      onOk() {
+                        const [screenId, annId] = nodeMenuModalData.annId.split('/');
+                        const currentScreen = props.tour.screens!.find(srn => srn.id === +screenId);
+                        props.updateTourProp(props.tour.rid, 'info', { thumbnail: currentScreen!.thumbnail });
+                        setNodeMenuModalData(initialAnnNodeModalData);
+                      },
+                      onCancel() { }
+                    });
+                  }}
+                >
+                  <div
+                    style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}
+                  >
+                    <div style={{
+                      fontSize: '1.2rem',
+                      width: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'gray'
+                    }}
+                    >
+                      <FileImageOutlined />
+                    </div>
+                    <div>
+                      Make this demo thumbnail
+                      <div className="subtext" />
+                    </div>
+                  </div>
+                </div>
               </Tags.MenuModal>
             </Tags.MenuModalMask>
           )}

@@ -12,22 +12,20 @@ import {
   RespCommonConfig,
   RespOrg,
   RespScreen,
-  RespTour,
+  RespDemoEntity,
   RespUser,
   ReqScreenTour,
   ScreenType,
   ReqDuplicateTour,
-  RespTourWithScreens,
+  RespDemoEntityWithSubEntities,
   ReqNewScreen,
   ReqThumbnailCreation,
   ReqTourRid,
-  UserOrgAssociation,
   ReqSubscriptionInfo,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
   RespSubscription,
   ReqActivateOrDeactivateUser,
-  ResponseStatus,
   ReqTourPropUpdate,
   RespTourView,
   RespConversion,
@@ -35,12 +33,10 @@ import {
   RespTourAnnViews,
   RespTourLeads,
   RespLeadActivityUrl,
-  Responsiveness,
   ReqUpdateScreenProperty,
   ReqUpdateUser,
   ReqAssignOrgToUser,
   ReqUpdateOrg,
-  Plan,
   Status,
   RespVanityDomain,
   ReqCreateOrDeleteNewVanityDomain,
@@ -48,6 +44,9 @@ import {
   ReqCreateOrDeleteCustomFields,
   RespGlobalOpts,
   ReqUpdateGlobalOpts,
+  ReqDemoHubRid,
+  RespUploadUrl,
+  ReqDemoHubPropUpdate,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -61,9 +60,8 @@ import {
   TourDataWoScheme,
   TourScreenEntity,
   IGlobalConfig,
-  PropertyType,
 } from '@fable/common/dist/types';
-import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, getSampleGlobalConfig } from '@fable/common/dist/utils';
+import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, sleep } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -84,6 +82,8 @@ import {
   processRawVanityDomain,
   processLoader,
   normalizeBackwardCompatibilityForLoader,
+  processRawDemoHubData,
+  processDemoHubConfig,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -92,10 +92,11 @@ import {
   EditItem,
   ElEditType,
   ElPathKey,
+  IDemoHubConfig,
   LeadActivityData,
   Ops,
+  P_RespDemoHub,
   STORAGE_PREFIX_KEY_QUERY_PARAMS,
-  SiteData
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
@@ -111,7 +112,8 @@ export interface TGenericLoading {
   | ActionType.TOUR_LOADING
   | ActionType.ORG_LOADING
   | ActionType.DEFAULT_TOUR_LOADED
-  | ActionType.ALL_USERS_FOR_ORG_LOADING;
+  | ActionType.ALL_USERS_FOR_ORG_LOADING
+  | ActionType.DEMOHUB_LOADING
   shouldCache?: boolean;
 }
 
@@ -771,7 +773,7 @@ export function addScreenToTour(
 
     if (annAdd) {
       try {
-        const data = await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}&s=1`);
+        const data = await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${tourRid}&s=1`);
         const state = getState().default;
         const updatedTour = processRawTourData(data.data, state.commonConfig!, state.globalConfig!);
 
@@ -805,14 +807,14 @@ export function getAllTours(shouldRefreshIfPresent = true) {
       dispatch({
         type: ActionType.ALL_TOURS_LOADING,
       });
-      const data = await api<null, ApiResp<RespTour[]>>('/tours', { auth: true });
+      const data = await api<null, ApiResp<RespDemoEntity[]>>('/tours', { auth: true });
       let gOptsData = state.globalConfig;
       if (!gOptsData) {
         const respGOpts = await api<null, ApiResp<RespGlobalOpts>>('/gopts', { auth: true });
         gOptsData = respGOpts.data.globalOpts;
       }
 
-      const tours = data.data.map((d: RespTour) => processRawTourData(d, getState().default.commonConfig!, gOptsData!))
+      const tours = data.data.map((d: RespDemoEntity) => processRawTourData(d, getState().default.commonConfig!, gOptsData!))
         .filter(t => !t.inProgress);
       dispatch({
         type: ActionType.ALL_TOURS_LOADED,
@@ -858,7 +860,7 @@ export function createNewTour(
   description = ''
 ) {
   return async (dispatch: Dispatch<TTour | TGenericLoading>, getState: () => TState) => {
-    const data = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
+    const data = await api<ReqNewTour, ApiResp<RespDemoEntity>>('/newtour', {
       auth: true,
       body: {
         name: tourName,
@@ -884,7 +886,7 @@ export function createNewTour(
 
 export function renameTour(tour: P_RespTour, newVal: string, description: string) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
-    const data = await api<ReqRenameGeneric, ApiResp<RespTour>>('/renametour', {
+    const data = await api<ReqRenameGeneric, ApiResp<RespDemoEntity>>('/renametour', {
       auth: true,
       body: {
         newName: newVal,
@@ -916,7 +918,7 @@ export function duplicateTour(tour: P_RespTour, newVal: string) {
       ops: Ops.DuplicateTour,
     });
 
-    const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens>>('/duptour', {
+    const data = await api<ReqDuplicateTour, ApiResp<RespDemoEntityWithSubEntities>>('/duptour', {
       auth: true,
       body: {
         duplicateTourName: newVal,
@@ -951,7 +953,7 @@ export function deleteTour(tourRid: string) {
       type: ActionType.DELETE_TOUR,
       ridOfTourToBeDeleted: tourRid
     });
-    await api<ReqTourRid, ApiResp<RespTour[]>>('/deltour', {
+    await api<ReqTourRid, ApiResp<RespDemoEntity[]>>('/deltour', {
       auth: true,
       body: {
         tourRid
@@ -1002,12 +1004,12 @@ export function loadTourAndData(
 
     try {
       const data = loadPublishedData
-        ? await api<null, ApiResp<RespTour>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
-        : await api<null, ApiResp<RespTour>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
+        ? await api<null, ApiResp<RespDemoEntity>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
+        : await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
 
       let config: RespCommonConfig;
       if (loadPublishedData) {
-        const tourWithScreen: RespTourWithScreens = data.data as RespTourWithScreens;
+        const tourWithScreen: RespDemoEntityWithSubEntities = data.data as RespDemoEntityWithSubEntities;
         config = tourWithScreen.cc!;
         dispatch({
           type: ActionType.INIT,
@@ -1069,7 +1071,7 @@ export function publishTour(tour: P_RespTour) {
     const state = getState();
     let publishSuccessful: boolean;
     try {
-      const data = await api<any, ApiResp<RespTour>>('/tpub', {
+      const data = await api<any, ApiResp<RespDemoEntity>>('/tpub', {
         auth: true,
         body: { tourRid: tour.rid }
       });
@@ -1196,7 +1198,7 @@ export function recordLoaderData(tour: P_RespTour, loaderData: ITourLoaderData) 
     const state = getState();
     const globalOpts = state.default.globalConfig!;
     loaderData.lastUpdatedAtUTC = getCurrentUtcUnixTime();
-    const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtrloaderedit', {
+    const data = await api<ReqRecordEdit, ApiResp<RespDemoEntity>>('/recordtrloaderedit', {
       auth: true,
       body: {
         rid: tour.rid,
@@ -1242,7 +1244,7 @@ export function flushTourDataToMasterFile(tour: P_RespTour, localEdits: Partial<
         journey: annotationAndOpts.journey,
         isLocal: false,
       });
-      const data = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+      const data = await api<ReqRecordEdit, ApiResp<RespDemoEntity>>('/recordtredit', {
         auth: true,
         body: {
           rid: tour.rid,
@@ -1271,8 +1273,6 @@ export interface TSetGlobalConfig {
   type: ActionType.SET_GLOBAL_CONFIG;
   globalConfig: IGlobalConfig;
 }
-
-export const LS_GLOBAL_CONFIG_KEY = 'fable/ls-global-config';
 
 export function getGlobalConfig() {
   return async (dispatch: Dispatch<TSetGlobalConfig>, getState: () => TState) => {
@@ -1350,7 +1350,7 @@ export function activateOrDeactivateUser(id: number, shouldActivate: boolean) {
 }
 
 const duplicateGivenTour = async (
-  tour: RespTourWithScreens,
+  tour: RespDemoEntityWithSubEntities,
   getState: () => TState,
 ): Promise<P_RespTour> => {
   const duplicatedTour = processRawTourData(tour, getState().default.commonConfig!, getState().default.globalConfig!);
@@ -1405,7 +1405,7 @@ const duplicateGivenTour = async (
       });
     }
 
-    await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+    await api<ReqRecordEdit, ApiResp<RespDemoEntity>>('/recordtredit', {
       auth: true,
       body: {
         rid: duplicatedTour.rid,
@@ -1413,7 +1413,7 @@ const duplicateGivenTour = async (
       },
     });
   }
-  const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespTour>>('/updtrprop', {
+  const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespDemoEntity>>('/updtrprop', {
     auth: true,
     body: {
       tourRid: duplicatedTour.rid,
@@ -1431,7 +1431,7 @@ const duplicateGivenTour = async (
 //     dispatch: Dispatch<TTour | TOpsInProgress | TAutosaving | TGetAllTours | TGenericLoading>,
 //     getState: () => TState
 //   ) => {
-//     const data = await api<ReqDuplicateTour, ApiResp<RespTourWithScreens[]>>('/conbtrs', {
+//     const data = await api<ReqDuplicateTour, ApiResp<RespDemoEntityWithSubEntities[]>>('/conbtrs', {
 //       auth: true, method: 'POST'
 //     });
 //     const duplicatedTours: P_RespTour[] = [];
@@ -1455,7 +1455,7 @@ const duplicateGivenTour = async (
 //   };
 // }
 
-export function addNewTourToAllTours(newTour: RespTour) {
+export function addNewTourToAllTours(newTour: RespDemoEntity) {
   return async (
     dispatch: Dispatch<TGetAllTours>,
     getState: () => TState
@@ -1601,7 +1601,7 @@ export function updateTourProp<T extends keyof ReqTourPropUpdate>(
   value: ReqTourPropUpdate[T]
 ) {
   return async (dispatch: Dispatch<TTour>, getState: () => TState) => {
-    const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespTour>>('/updtrprop', {
+    const updatedTourResp = await api<ReqTourPropUpdate, ApiResp<RespDemoEntity>>('/updtrprop', {
       auth: true,
       body: {
         tourRid: rid,
@@ -1719,4 +1719,303 @@ export function removeScreenDataForRids(ids: number[]) {
       resolve();
     }
   });
+}
+
+/* ************************************************************************* */
+
+export interface TDemoHubLoaded {
+  type: ActionType.DEMOHUB_LOADED;
+  data: P_RespDemoHub;
+  config: IDemoHubConfig;
+}
+
+export function loadDemoHubAndData(
+  demoHubRid: string,
+  isFreshLoading = true,
+  loadPublishedData = false,
+  ts: string | null = null,
+) {
+  return async (
+    dispatch: Dispatch<TDemoHubLoaded | TGenericLoading | TInitialize | TTourPublished>,
+    getState: () => TState
+  ) => {
+    if (isFreshLoading) {
+      dispatch({
+        type: ActionType.DEMOHUB_LOADING,
+      });
+    }
+
+    const newTs = ts || +new Date();
+    const state = getState().default;
+
+    try {
+      const respDemoHub = loadPublishedData
+        ? await api<null, ApiResp<RespDemoEntity>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/pdh/${demoHubRid}/0_d_data.json?ts=${newTs}`)
+        : await api<null, ApiResp<RespDemoEntity>>(`/dh?rid=${demoHubRid}`);
+
+      const demoHub = processRawDemoHubData(
+        respDemoHub.data,
+        state.commonConfig!,
+        respDemoHub.data.globalOpts!,
+        loadPublishedData ? respDemoHub.data : undefined
+      );
+
+      let config = await api<null, IDemoHubConfig>(demoHub!.configFileUri.href);
+
+      config = processDemoHubConfig(demoHub, config);
+
+      dispatch({
+        type: ActionType.DEMOHUB_LOADED,
+        data: demoHub,
+        config,
+      });
+    } catch (err) {
+      throw new Error(`Error while loading demo hub and corresponding data ${(err as Error).message}`);
+    }
+    return newTs;
+  };
+}
+
+export function loadDemoHubConfig(
+  demoHub: P_RespDemoHub,
+) {
+  return async (
+    dispatch: Dispatch<TDemoHubLoaded | TGenericLoading>,
+    getState: () => TState
+  ) => {
+    // TODO api call goes here
+    const config = await api<null, IDemoHubConfig>(demoHub!.configFileUri.href);
+
+    await sleep(3000);
+
+    return Promise.resolve(config);
+  };
+}
+
+export function clearCurrentDemoHubSelection() {
+  return async (dispatch: Dispatch<{ type: ActionType.CLEAR_CURRENT_DEMOHUB }>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.CLEAR_CURRENT_DEMOHUB,
+    });
+  };
+}
+
+export interface TCreateDemoHubData {
+  type: ActionType.CREATE_DEMOHUB_DATA;
+  demoHub: P_RespDemoHub;
+}
+
+export function createDemoHub(name: string) {
+  return async (dispatch: Dispatch<TCreateDemoHubData>, getState: () => TState) => {
+    const dh = await api<ReqNewTour, ApiResp<RespDemoEntity>>('/demohub', {
+      auth: true,
+      body: {
+        name,
+      },
+    });
+
+    const state = getState().default;
+    const processedDh = processRawDemoHubData(dh.data, state.commonConfig!);
+
+    dispatch({
+      type: ActionType.CREATE_DEMOHUB_DATA,
+      demoHub: processedDh,
+    });
+
+    return Promise.resolve(processedDh);
+  };
+}
+
+export interface TDeleteDemoHub {
+  type: ActionType.DELETE_DEMOHUB_DATA;
+  rid: string;
+}
+
+export function deleteDemoHub(rid: string) {
+  return async (dispatch: Dispatch<TDeleteDemoHub>, getState: () => TState) => {
+    dispatch({
+      type: ActionType.DELETE_DEMOHUB_DATA,
+      rid,
+    });
+    await api<ReqDemoHubRid, ApiResp<RespDemoEntity[]>>('/deldh', {
+      auth: true,
+      body: {
+        rid
+      }
+    });
+  };
+}
+
+export interface TUpdateDemoHub {
+  type: ActionType.UPDATE_DEMOHUB_DATA;
+  data: P_RespDemoHub;
+}
+
+export function renameDemoHub(rid: string, newName: string) {
+  return async (dispatch: Dispatch<TUpdateDemoHub>, getState: () => TState) => {
+    const renamedDH = await api<ReqRenameGeneric, ApiResp<RespDemoEntity>>('/renamedh', {
+      auth: true,
+      body: {
+        rid,
+        newName
+      },
+    });
+
+    const state = getState().default;
+    const processedDh = processRawDemoHubData(renamedDH.data, state.commonConfig!);
+
+    dispatch({
+      type: ActionType.UPDATE_DEMOHUB_DATA,
+      data: processedDh,
+    });
+  };
+}
+
+export function publishDemoHub(demoHub: P_RespDemoHub) {
+  return async (dispatch: Dispatch<TUpdateDemoHub>, getState: () => TState) => {
+    let publishSuccessful: boolean;
+
+    try {
+      const publishedDH = await api<ReqDemoHubRid, ApiResp<RespDemoEntity>>('/pubdh', {
+        auth: true,
+        body: {
+          rid: demoHub.rid,
+        },
+      });
+
+      const state = getState().default;
+      demoHub = processRawDemoHubData(publishedDH.data, state.commonConfig!);
+
+      publishSuccessful = true;
+    } catch {
+      publishSuccessful = false;
+    }
+
+    dispatch({
+      type: ActionType.UPDATE_DEMOHUB_DATA,
+      data: demoHub,
+    });
+
+    return Promise.resolve(publishSuccessful);
+  };
+}
+
+export interface TGetAllDemoHubs {
+  type: ActionType.SET_ALL_DEMOHUBS;
+  demoHubs: Array<P_RespDemoHub>;
+}
+
+export function getAllDemoHubs() {
+  return async (dispatch: Dispatch<TGetAllDemoHubs>, getState: () => TState) => {
+    const demhoHubs = await api<null, ApiResp<RespDemoEntity[]>>('/dhs', { auth: true });
+    const state = getState().default;
+    const processedDhs = demhoHubs.data.map(dh => processRawDemoHubData(dh, state.commonConfig!));
+
+    dispatch({
+      type: ActionType.SET_ALL_DEMOHUBS,
+      demoHubs: processedDhs,
+    });
+  };
+}
+
+export interface TUpdateDemoHubConfig {
+  type: ActionType.SET_CURRENT_DEMOHUB_CONFIG;
+  config: IDemoHubConfig;
+}
+
+export interface TSetDHConfigUploadURL {
+  type: ActionType.SET_DH_CONFIG_UPLOAD_URL,
+  url: string,
+}
+
+export interface TSetCurrentDemoData {
+  type: ActionType.SET_CURRENT_DEMOHUB_DATA,
+  data: P_RespDemoHub,
+}
+
+export function updateDemoHubConfigData(rid: string, updatedConfig: IDemoHubConfig) {
+  return async (
+    dispatch: Dispatch<TUpdateDemoHubConfig | TSetDHConfigUploadURL | ReturnType<typeof updateDemoHubProp>>,
+    getState: () => TState
+  ) => {
+    startAutosaving();
+
+    dispatch({
+      type: ActionType.SET_CURRENT_DEMOHUB_CONFIG,
+      config: updatedConfig,
+    });
+
+    const state = getState().default;
+    const data = await uploadDataToDHConfigJSON(rid, updatedConfig, state.demoHubConfigUploadUrl);
+
+    dispatch({
+      type: ActionType.SET_DH_CONFIG_UPLOAD_URL,
+      url: data.datauploadUrl,
+    });
+
+    dispatch(updateDemoHubProp(rid, 'lastInteractedAt', (new Date().toISOString() as unknown as Date)));
+  };
+}
+
+async function uploadDataToDHConfigJSON(
+  rid: string,
+  data: IDemoHubConfig,
+  datauploadUrl: string,
+  retryCount = 0
+): Promise<{ datauploadUrl: string}> {
+  try {
+    if (!datauploadUrl) {
+      datauploadUrl = await getDHConfigUploadURl(rid);
+    }
+
+    const res = await fetch(datauploadUrl, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'max-age=0'
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed with status: ${res.status}`);
+    }
+
+    return { datauploadUrl };
+  } catch (error) {
+    if (retryCount < 3) {
+      const newuploadUrl = await getDHConfigUploadURl(rid);
+      return uploadDataToDHConfigJSON(rid, data, newuploadUrl, retryCount + 1);
+    }
+    return { datauploadUrl: '' };
+  }
+}
+
+const getDHConfigUploadURl = async (rid: string): Promise<string> => {
+  const data = await api<null, ApiResp<RespUploadUrl>>(`/recorddhedit?rid=${rid}`, { auth: true });
+  return data.data.url;
+};
+
+export function updateDemoHubProp<T extends keyof ReqDemoHubPropUpdate>(
+  rid: string,
+  demoHubProp: T,
+  value: ReqDemoHubPropUpdate[T]
+) {
+  return async (dispatch: Dispatch<TSetCurrentDemoData>, getState: () => TState) => {
+    const updatedTourResp = await api<ReqDemoHubPropUpdate, ApiResp<RespDemoEntity>>('/updtdhprops', {
+      auth: true,
+      body: {
+        rid,
+        [demoHubProp]: value
+      },
+      method: 'POST'
+    });
+
+    const state = getState().default;
+    const processedData = processRawDemoHubData(updatedTourResp.data, state.commonConfig!, state.globalConfig!);
+    dispatch({
+      type: ActionType.SET_CURRENT_DEMOHUB_DATA,
+      data: processedData,
+    });
+  };
 }

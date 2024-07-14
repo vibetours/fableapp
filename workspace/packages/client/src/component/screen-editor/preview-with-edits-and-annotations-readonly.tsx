@@ -26,7 +26,7 @@ import {
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
-import { AnnotationSerialIdMap, getAnnotationByRefId } from '../annotation/ops';
+import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserIframeEl } from './utils/deser';
 import { applyEditsToSerDom } from './utils/edits';
 import { FABLE_RT_UMBRL_SH_HOST, getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv } from '../annotation/utils';
@@ -47,6 +47,7 @@ import {
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
+import { IAnnotationConfigWithScreenId } from '../annotation/annotation-config-utils';
 
 export interface IOwnProps {
   resizeSignal: number;
@@ -83,6 +84,7 @@ export interface IOwnProps {
   updateElPathKey: (elPath: ElPathKey)=> void;
   handleMenuOnScreenResize?: ()=> void;
   isFromScreenEditor: boolean;
+  shouldSkipLeadForm: boolean;
 }
 
 interface IOwnStateProps {
@@ -210,6 +212,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.elpathKey,
           this.props.screenData.isHTML4,
           this.props.screen,
+          this.props.shouldSkipLeadForm,
+          this.getNextAnnotation
         );
 
         if (this.props.isFromScreenEditor) {
@@ -586,6 +590,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       await this.assetLoadingPromises.shift();
     }
   };
+
+  getNextAnnotation = (annId: string):IAnnotationConfigWithScreenId => getAnnotationByRefId(annId, this.props.allAnnotationsForTour)!;
 
   applyDiffAndGoToAnn: ApplyDiffAndGoToAnn = async (
     currAnnId: string,

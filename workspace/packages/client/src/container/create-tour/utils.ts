@@ -26,7 +26,7 @@ import {
   ReqThumbnailCreation,
   RespProxyAsset,
   RespScreen,
-  RespTour,
+  RespDemoEntity,
   ScreenType,
   TourSettings
 } from '@fable/common/dist/api-contract';
@@ -45,10 +45,11 @@ import {
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { FrameDataToBeProcessed, ScreenInfo, Vpd } from './types';
+import { FrameDataToBeProcessed, ScreenInfo } from './types';
 import { P_RespTour } from '../../entity-processor';
 import { getColorContrast } from '../../utils';
 import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
+import { Vpd } from '../../types';
 
 export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
   const queue: SerNode[] = [docTree];
@@ -86,7 +87,7 @@ export async function saveAsTour(
   // TODO[now] change this
   annotationBodyBackgroundColor: string = '#ffffff',
   annotationBorderRadius: number | 'global' = DEFAULT_BORDER_RADIUS,
-): Promise<ApiResp<RespTour>> {
+): Promise<ApiResp<RespDemoEntity>> {
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
   }
@@ -104,7 +105,7 @@ export async function saveAsTour(
 
 // --- tour creation util ---
 
-async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespTour> {
+async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespDemoEntity> {
   let tsettings: TourSettings | undefined;
   if (vpd) {
     tsettings = {
@@ -114,7 +115,7 @@ async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespTou
     };
   }
 
-  const { data } = await api<ReqNewTour, ApiResp<RespTour>>('/newtour', {
+  const { data } = await api<ReqNewTour, ApiResp<RespDemoEntity>>('/newtour', {
     auth: true,
     body: {
       name: tourName,
@@ -298,8 +299,8 @@ async function addAnnotationConfigs(
   return { tourDataFile, tourRid };
 }
 
-async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<RespTour>> {
-  const tourResp = await api<ReqRecordEdit, ApiResp<RespTour>>('/recordtredit', {
+async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<RespDemoEntity>> {
+  const tourResp = await api<ReqRecordEdit, ApiResp<RespDemoEntity>>('/recordtredit', {
     auth: true,
     body: {
       rid,

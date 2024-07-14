@@ -190,6 +190,18 @@ html, body, div, span, button, p, button, input {
   line-height: 1.6rem;
 }
 
+.typ-h3 {
+  font-size: 1.25rem;
+  font-weight: 300;
+  line-height: 1.6rem;
+}
+
+.typ-h4 {
+  font-size: 1.15rem;
+  font-weight: 300;
+  line-height: 1.6rem;
+}
+
 .typ-reg,.ant-modal-confirm-content {
   font-size: 1.1rem;
   font-weight: 300;
@@ -263,4 +275,8 @@ html, body, div, span, button, p, button, input {
   overflow: hidden;
   white-space: nowrap;
   max-width: 450px;
+}
+
+.demo-hub-bordered-modal {
+  padding-bottom: 0px;
 }

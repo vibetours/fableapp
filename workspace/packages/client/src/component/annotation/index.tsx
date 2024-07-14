@@ -34,10 +34,10 @@ import {
   UserAssignPayload
 } from '../../analytics/types';
 import * as VIDEO_ANN from './media-ann-constants';
-import { AnnotationSerialIdMap } from './ops';
+import { AnnotationSerialIdMap, getAnnotationBtn } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
-import { isAnnCustomPosition } from './annotation-config-utils';
+import { IAnnotationConfigWithScreenId, isAnnCustomPosition } from './annotation-config-utils';
 import { emitEvent } from '../../internal-events';
 import FocusBubble from './focus-bubble';
 import { FableLeadContactProps, getGlobalData } from '../../global';
@@ -1331,6 +1331,8 @@ interface IConProps {
   navigateToAnnByRefIdOnSameScreen: NavToAnnByRefIdFn,
   onCompMount: ()=>void,
   isScreenHTML4: boolean,
+  shouldSkipLeadForm: boolean,
+  getNextAnnotation: (annId: string)=> IAnnotationConfigWithScreenId,
 }
 
 interface HotspotProps {
@@ -1494,33 +1496,57 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           p.conf.config
         );
 
-        if (btnConf.type === 'next') {
-          this.props.updateJourneyProgress(p.conf.config.refId);
+        let newBtnConf = btnConf;
+        let annConfig = p.conf.config;
+        const navType = btnConf.type;
+        if (this.props.shouldSkipLeadForm && (navType === 'next' || navType === 'prev')) {
+          while (this.props.shouldSkipLeadForm) {
+            if (!newBtnConf.hotspot) {
+              break;
+            }
+            const [goToScreenId, goToAnnId] = newBtnConf.hotspot.actionValue._val.split('/');
+            annConfig = this.props.getNextAnnotation(goToAnnId);
+            if (!annConfig.isLeadFormPresent) {
+              break;
+            } else {
+              newBtnConf = getAnnotationBtn(annConfig, navType)!;
+            }
+          }
         }
 
-        if (!btnConf.hotspot) {
+        if (btnConf.type === 'next') {
+          this.props.updateJourneyProgress(annConfig.refId);
+        }
+
+        if (!newBtnConf.hotspot) {
           if (this.props.playMode) {
-            this.props.updateCurrentFlowMain(btnConf.type);
+            this.props.updateCurrentFlowMain(newBtnConf.type);
           }
           return;
         }
 
-        if ((type === 'custom' && btnConf.hotspot.actionType === 'open') || !this.props.playMode) {
+        if ((type === 'custom' && newBtnConf.hotspot.actionType === 'open') || !this.props.playMode) {
           this.props.nav(
-            btnConf.hotspot.actionValue._val,
-            btnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+            newBtnConf.hotspot.actionValue._val,
+            newBtnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
           );
           return;
         }
 
-        if ((btnConf.type === 'next' || btnConf.type === 'prev' || btnConf.type === 'custom')
-          && btnConf.hotspot.actionType === 'navigate'
+        if ((newBtnConf.type === 'next' || newBtnConf.type === 'prev' || newBtnConf.type === 'custom')
+          && newBtnConf.hotspot.actionType === 'navigate'
         ) {
-          this.props.applyDiffAndGoToAnn(config.refId, btnConf.hotspot.actionValue._val);
+          this.props.applyDiffAndGoToAnn(config.refId, newBtnConf.hotspot.actionValue._val);
         } else {
-          this.props.nav(btnConf.hotspot.actionValue._val, 'abs');
+          this.props.nav(newBtnConf.hotspot.actionValue._val, 'abs');
         }
       };
+
+      if (p.conf.config.isLeadFormPresent && this.props.playMode && this.props.shouldSkipLeadForm) {
+        const nextBtn = getAnnotationBtn(p.conf.config, 'next')!;
+        navigateToAdjacentAnn('next', nextBtn.id);
+        return null;
+      }
 
       const maskBoxPadding = p.maskBox
         ? HighlighterBase.getMaskPaddingWithBox(p.box, p.maskBox)

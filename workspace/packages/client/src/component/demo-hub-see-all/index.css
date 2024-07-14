@@ -1,0 +1,199 @@
+.dh-page {
+  min-height: 100%;
+  background-color: var(--f-body-bg-color);
+
+  & .header {
+    box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+    z-index: 2;
+    position: relative;
+    border-bottom: 1px solid var(--f-header-border-color);
+    color: var(--f-header-font-color);
+    background-color: var(--f-header-bg-color);
+    height: 40px;
+    padding: 0.75rem calc(var(--f-page-content-gutter) * 1%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    & .logo {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      cursor: pointer;
+
+      & > img {
+        height: 100%;
+      }
+    }
+  }
+
+  & .body {
+    background-color: var(--f-body-bg-color);
+    color: var(--f-body-font-color);
+    padding: 0.75rem calc(
+      var(--f-page-content-gutter) * 1%
+      + var(--f-body-content-gutter) * 1%);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem; 
+  }
+
+  & .section-con {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    margin-bottom: 1rem;
+
+    & > .section {
+      padding: 1rem 1.5rem;
+      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+
+      & > p {
+        margin: 0;
+      }
+    }
+
+    & .title {
+      font-weight: 500;
+      display: flex;
+      justify-content: center;
+    }
+  }
+
+  & .demo-card-con {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  & .demo-card {
+    background-color: var(--f-democard-bg-color);
+    border: 1px solid var(--f-democard-border-color);
+    border-radius: var(--f-democard-border-radius);
+    color: var(--f-democard-font-color);
+
+    padding: 0.5rem;
+    width: 200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    cursor: pointer;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    transition: all 0.2s ease-out;
+    
+    &:hover {
+      box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px, rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+
+      & > .demo-name {
+        text-decoration: underline;
+      }
+    }
+    
+    & .thumb {
+      border-radius: var(--f-democard-border-radius);
+      width: 100%;
+      margin-bottom: 1rem;
+      display: block;
+      box-shadow: rgba(9, 30, 66, 0.25) 0px 1px 1px, rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
+    }
+
+    & > .demo-name {
+      font-weight: 500;
+      padding: 0 0.5rem;
+    }
+  }
+
+  & .q-body {
+    display: flex;
+    height: 100%;
+    background-color: color-mix(in srgb, var(--f-sidepanel-con-bg-color) 92%, black);
+  }
+
+  & .sidepanel-con {
+    width: 22vw;
+    max-width: 320px;
+    border-right: 1px solid lightgray;
+    color: var(--f-sidepanel-con-font-color);
+    background-color: var(--f-sidepanel-con-bg-color);
+    border-right: 1px solid var(--f-sidepanel-con-border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+
+    & .sidepanel-card {
+      color: var(--f-sidepanel-card-font-color);
+      background-color: var(--f-sidepanel-card-bg-color);
+      border: 1px solid var(--f-sidepanel-card-border-color);
+      border-radius: var(--f-sidepanel-card-border-radius);
+      font-size: 1rem;
+      padding: 0.5rem 1rem;
+      box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease-out;
+
+      .card-title {
+        display: flex;
+        gap: 0.5rem;
+        font-weight: 500;
+      }
+
+      & .substep {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        font-weight: 400;
+        margin-top: 0.75rem;
+
+        &:before {
+          content: '';
+          position: absolute;
+          width: 1px;
+          height: 12px;
+          border-left: 1px dashed var(--f-sidepanel-card-font-color);
+          transform: translate(7px, -12px);
+        }
+
+        &.completed {
+          &:before {
+            border-left: 1px solid var(--f-sidepanel-card-font-color);
+          }
+        }
+
+        .sidepanel-card-title {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+
+    & .cta-con {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin: 0.25rem 0;
+
+      & > a {
+        min-width: 240px;
+        text-align: center;
+
+        & button {
+          width: 100% !important;
+        }
+      }
+    }
+  }
+}
+

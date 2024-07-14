@@ -3,21 +3,21 @@ import {
   RespCommonConfig,
   RespScreen,
   RespSubscription,
-  RespTour,
-  RespTourWithScreens,
+  RespDemoEntity,
+  RespDemoEntityWithSubEntities,
   RespVanityDomain,
 } from '@fable/common/dist/api-contract';
 import {
   AnnBtnKeysWithProperty,
   AnnConfigKeysWithProperty,
   DEFAULT_ANN_DIMS,
-  GlobalPropsPath,
   TourOptsKeysWithProperty,
   createLiteralProperty,
   deepcopy,
   getDisplayableTime,
   getSampleGlobalConfig,
-  getSampleJourneyData
+  getSampleJourneyData,
+  isProdEnv
 } from '@fable/common/dist/utils';
 import {
   AnnotationPositions,
@@ -48,7 +48,9 @@ import {
   IdxEncodingTypeMask,
   IdxEncodingTypeInput,
   SiteData,
-  SiteDateKeysWithProperty
+  SiteDateKeysWithProperty,
+  P_RespDemoHub,
+  IDemoHubConfig
 } from './types';
 import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
@@ -96,7 +98,7 @@ export interface P_RespScreen extends RespScreen {
 function getFileUris(
   screen: RespScreen,
   config: RespCommonConfig,
-  publishForTour?: RespTour
+  publishForTour?: RespDemoEntity
 ): {editFileUri: URL, dataFileUri: URL} {
   const screenAssetPath = config.screenAssetPath;
   const assetPrefixHash = screen.assetPrefixHash;
@@ -109,7 +111,7 @@ function getFileUris(
   return { editFileUri, dataFileUri };
 }
 
-export function processRawScreenData(screen: RespScreen, config: RespCommonConfig, publishForTour?: RespTour): P_RespScreen {
+export function processRawScreenData(screen: RespScreen, config: RespCommonConfig, publishForTour?: RespDemoEntity): P_RespScreen {
   const d = new Date(screen.updatedAt);
   const { editFileUri, dataFileUri } = getFileUris(screen, config, publishForTour);
 
@@ -171,8 +173,9 @@ export function processRawVanityDomain(domain: RespVanityDomain): P_RespVanityDo
 
 /* ************************************************************************* */
 
-export interface P_RespTour extends RespTour {
+export interface P_RespTour extends RespDemoEntity {
   dataFileUri: URL;
+  thumbnailUri: URL;
   displayableUpdatedAt: string;
   isPlaceholder: boolean;
   screens?: P_RespScreen[];
@@ -180,7 +183,7 @@ export interface P_RespTour extends RespTour {
   site: SiteData
 }
 
-function getDataFileUri(tour: RespTour | RespTourWithScreens, config: RespCommonConfig, publishForTour?: RespTour): URL {
+function getDataFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
   const tourAssetPath = config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
   const dataFileName = publishForTour
@@ -192,7 +195,7 @@ function getDataFileUri(tour: RespTour | RespTourWithScreens, config: RespCommon
   return dataFileUri;
 }
 
-function getLoaderFileUri(tour: RespTour | RespTourWithScreens, config: RespCommonConfig, publishForTour?: RespTour): URL {
+function getLoaderFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
   const tourAssetPath = config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
   const loaderFileName = publishForTour ? publishForTour.pubLoaderFileName : config.loaderFileName;
@@ -202,27 +205,32 @@ function getLoaderFileUri(tour: RespTour | RespTourWithScreens, config: RespComm
 }
 
 export function processRawTourData(
-  tour: RespTour | RespTourWithScreens,
+  tour: RespDemoEntity | RespDemoEntityWithSubEntities,
   config: RespCommonConfig,
   globalOpts: IGlobalConfig = getSampleGlobalConfig(),
   isPlaceholder = false,
-  publishForTour: RespTour | undefined = undefined
+  publishForTour: RespDemoEntity | undefined = undefined
 ): P_RespTour {
   const d = new Date(tour.updatedAt);
 
   let tTour;
-  if ((tTour = (tour as RespTourWithScreens)).screens) {
+  if ((tTour = (tour as RespDemoEntityWithSubEntities)).screens) {
     tTour.screens = tTour.screens.map(s => processRawScreenData(s, config, publishForTour));
   }
 
   const dataFileUri = getDataFileUri(tour, config, publishForTour);
   const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
   const site = processBrandData(normalizeBackwardCompatibilityForBrandData(tour, globalOpts), globalOpts);
+  const thumbnailHash = tour.info ? tour.info.thumbnail : getDefaultThumbnailHash();
+  const info = tour.info ? { ...tour.info, thumbnail: thumbnailHash } : { thumbnail: thumbnailHash };
+
   return {
     ...tour,
+    info,
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
     lastPublishedDate: tour.lastPublishedDate && new Date(tour.lastPublishedDate),
+    thumbnailUri: new URL(`${config.commonAssetPath}${thumbnailHash}`),
     displayableUpdatedAt: getDisplayableTime(d),
     dataFileUri,
     loaderFileUri,
@@ -863,7 +871,7 @@ function processBrandData(siteData: SiteData, globalOpts: IGlobalConfig): SiteDa
 }
 
 export function normalizeBackwardCompatibilityForBrandData(
-  tour: RespTour,
+  tour: RespDemoEntity,
   globalOpts: IGlobalConfig,
 ): SiteData {
   const defaultSiteData = getDefaultSiteData(tour, globalOpts);
@@ -923,9 +931,10 @@ export function mergeAndTransformFeaturePerPlan(
       let forRemainingPlan: PlanDetail | null = null;
       const planDetails = newFeaturePerPlan[key].plans;
       const isInBeta = newFeaturePerPlan[key].isInBeta || false;
+      const requireAccess = newFeaturePerPlan[key].requireAccess || false;
       for (const planDetail of planDetails) {
         if (planDetail.plan === plan) {
-          featureForPlan[key] = { ...planDetail, isInBeta };
+          featureForPlan[key] = { ...planDetail, isInBeta, requireAccess };
           planFound = true;
           break;
         } else if (planDetail.plan === '*') {
@@ -934,10 +943,66 @@ export function mergeAndTransformFeaturePerPlan(
       }
 
       if (!planFound) {
-        featureForPlan[key] = { ...forRemainingPlan!, isInBeta };
+        featureForPlan[key] = { ...forRemainingPlan!, isInBeta, requireAccess };
       }
     }
   }
 
   return featureForPlan;
 }
+
+export function processRawDemoHubData(
+  demoHub: RespDemoEntity,
+  config: RespCommonConfig,
+  globalOpts: IGlobalConfig = getSampleGlobalConfig(),
+  publishForTour: RespDemoEntity | undefined = undefined
+
+): P_RespDemoHub {
+  const d = new Date(demoHub.updatedAt);
+  const dataFileUri = getDHConfigFileUri(demoHub, config, publishForTour);
+  const thumbnailHash = demoHub.info ? demoHub.info.thumbnail : getDefaultThumbnailHash();
+  const info = demoHub.info ? { ...demoHub.info, thumbnail: thumbnailHash } : { thumbnail: thumbnailHash };
+
+  return {
+    ...demoHub,
+    info,
+    thumbnailUri: new URL(`${config.commonAssetPath}${thumbnailHash}`),
+    displayableUpdatedAt: getDisplayableTime(d),
+    configFileUri: dataFileUri,
+  };
+}
+
+export function processDemoHubConfig(
+  data: P_RespDemoHub,
+  demoHub: IDemoHubConfig,
+): IDemoHubConfig {
+  return {
+    ...demoHub,
+    cta: demoHub.cta.map(cta => {
+      if (cta.id === 'see-all-demos') {
+        cta.link = `/hub/seeall/${data.rid}`;
+      }
+
+      return cta;
+    })
+  };
+}
+
+function getDHConfigFileUri(dh: RespDemoEntity, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
+  const tourAssetPath = config.demoHubAssetPath;
+  const assetPrefixHash = dh.assetPrefixHash;
+  const dataFileName = publishForTour
+    ? publishForTour.pubDataFileName
+    : config.dataFileName;
+
+  const configFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${dataFileName}?ts=${+new Date()}`);
+
+  return configFileUri;
+}
+
+export const getDefaultThumbnailHash = (): string => {
+  if (isProdEnv()) {
+    return 'ph/placeholder1.png';
+  }
+  return 'ph/placeholder1.png';
+};

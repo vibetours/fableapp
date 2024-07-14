@@ -61,14 +61,14 @@ const editorConfig = {
 };
 
 interface Props {
-  opts: ITourDataOpts;
+  lfPkf: string;
   defaultValue: string;
   throttledChangeHandler: (bodyContent: string, displayText: string) => void;
   leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
-  setTourDataOpts: React.Dispatch<React.SetStateAction<ITourDataOpts>>;
-  updateTourProp: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void;
-  tour: P_RespTour;
+  updatePrimaryKey: (primaryKey: string) => void;
+  updateTourProp?: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void;
+  tour?: P_RespTour;
 }
 
 interface PluginProps {
@@ -153,7 +153,12 @@ export default function AnnotationRichTextEditor(props: React.PropsWithChildren<
           <OnChangePlugin onChange={onChangePluginHandler} />
           <AutoFocusPlugin />
           <LinkPlugin />
-          <LeadFormPlugin opts={props.opts} setTourDataOpts={props.setTourDataOpts} tour={props.tour} updateTourProp={props.updateTourProp} />
+          <LeadFormPlugin
+            lfPkf={props.lfPkf}
+            updatePrimaryKey={props.updatePrimaryKey}
+            tour={props.tour}
+            updateTourProp={props.updateTourProp}
+          />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />
           <PopulateEditorWithAnnotationBodyPlugin defaultAnnotationValue={props.defaultValue} />

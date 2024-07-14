@@ -1,4 +1,5 @@
 import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
+import { RespDemoEntity, ResponseBase, TourDeleted } from '@fable/common/dist/api-contract';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
@@ -372,5 +373,255 @@ export type ElPathKey = 'm_id' | 'id';
 
 export interface FeatureAvailability {
   isAvailable: boolean,
-  isInBeta: boolean
+  isInBeta: boolean,
+  requireAccess: boolean,
+}
+
+export enum DemoHubPreviewEnumMsgType {
+  UPDATE_CONFIG='UPDATE_CONFIG',
+  PREVIEW_INIT='PREVIEW_INIT',
+}
+
+export interface DemoHubPreviewInit {
+  type: DemoHubPreviewEnumMsgType.PREVIEW_INIT,
+}
+
+export interface DemoHubPreviewUpdateMsgData {
+  type: DemoHubPreviewEnumMsgType.UPDATE_CONFIG,
+  config: IDemoHubConfig,
+}
+
+export type DemoHubPreviewMsgData = DemoHubPreviewUpdateMsgData | DemoHubPreviewInit;
+
+export type OnDemoHubConfigChangeFn = (demoHubConfig: IDemoHubConfig) => void
+
+export const DemoHubConfigCtaType = ['solid', 'outline', 'link'] as const;
+export declare type DemoHubConfigCtaTypeType = typeof DemoHubConfigCtaType[number];
+
+export interface IDemoHubConfigCta {
+  text: string;
+  // this id is an derived fields from title.
+  // Ideally id = text.replace(/\W+/, '-')
+  // If this id changes reference to this cta will also be updated
+  id: string;
+  deletable: boolean;
+  icon?: Icon;
+  iconPlacement?: 'left' | 'right';
+  __linkType: 'open_ext_url',
+  link: string;
+  // by default fable adds two cta 1. See all demos & 2. Book a demo
+  // Those are 'system' defined
+  __definedBy: 'system' | 'user';
+  type: DemoHubConfigCtaTypeType;
+  style: SimpleStyle;
+}
+
+export interface IDemoHubConfigSeeAllPageSection {
+  title: string;
+  // Slug is dervied from title
+  // slug = title.substring(0,16).toLowerCase().replace(/\W+/, '-');
+  id: string;
+  slug: string;
+  desc: string;
+  simpleStyle: SimpleStyle;
+  demos: Array<IDemoHubConfigDemo>;
+}
+
+export interface IDemoHubConfigDemo {
+  name: string;
+  // For old demos (during dev or may be even in prod if we don't run migration),
+  // this might not be present, in that case use a fallback image to show thumbnail
+  thumbnail: string;
+  rid: string;
+  desc: string;
+}
+
+export interface IDemoHubConfigQualification {
+  id: string;
+  __type: 'simple_linear';
+  title: string;
+  // Slug is dervied from title
+  // slug = title.substring(0,16).toLowerCase().replace(/\W+/, '-');
+  slug: string;
+  entries: Array<SelectEntry | LeadFormEntry | TextEntry>
+  // STANDARD_CLASS_NAME `sidepanel-con` `sidepanel-card` `sidepanel-sticy-cta`
+  // `sidepanel-card-title` `sidepanel-card-desc-text`
+  sidePanel: {
+    conStyle: SimpleStyle;
+    cardStyle: SimpleStyle;
+  }
+  qualificationEndCTA: string[];
+  // If it's string then it's mapped to id of ctas TODO
+  sidepanelCTA: string[];
+}
+
+export interface IDemoHubConfig {
+  // monotonically increasing version
+  v: number;
+
+  logo: Property<string>;
+
+  companyName: Property<string>;
+
+  // In fable we take this value from a dropdown.
+  // Here if it's string, it can be any valid google font name
+  // TODO what value to enter
+  fontFamily: Property<string>;
+
+  // Base font size that would be set as part of the body of the page.
+  // All the other fontsize would be set as rem
+  baseFontSize: number;
+
+  // this contains list of all ctas.
+  // These ctas are used in other different components.
+  // By default fable adds some defualt cta to some default component.
+  // STANDARD_CLASS_NAME: `cta cta-{{id}}`
+  cta: IDemoHubConfigCta[];
+
+  see_all_page: {
+    // STANDARD_CLASS_NAME:
+    //  container `header`,  logo `logo`, title `title`,
+    //  cta con `cta-con`
+    header: {
+      title: string;
+      style: Omit<SimpleStyle, 'borderRadius'>;
+      // id of the ctas
+      ctas: string[]
+    };
+
+    // STANDARD_CLASS_NAME `body-text`
+    body: {
+      // This text is only added for /see-all page
+      text: string;
+      style: Omit<SimpleStyle, 'borderRadius' | 'borderColor'>;
+    };
+
+    // STANDARD_CLASS_NAME
+    // container `section`, title `title`, desc `desc`
+    // demo card con `demo-con
+    sections: IDemoHubConfigSeeAllPageSection[];
+    // STANDARD_CLASS_NAME
+    // container `demo-card`, thumbnail `thumb`, title `title`
+    demoCardStyles: SimpleStyle;
+    demoModalStyles: {
+      overlay: Omit<SimpleStyle, 'borderColor' | 'borderRadius'>;
+      body: SimpleStyle;
+    },
+    showLeadForm: boolean;
+  }
+  qualification_page: {
+    // STANDARD_CLASS_NAME:
+    //  container `header`,  logo `logo`, title `title`,
+    //  cta con `cta-con`
+    header: {
+      title: string;
+      style: Omit<SimpleStyle, 'borderRadius'>;
+      // id of the ctas
+      ctas: string[];
+    };
+
+    // STANDARD_CLASS_NAME `body-text`
+    body: {
+      // This text is only added for /see-all page
+      text: string;
+      style: Omit<SimpleStyle, 'borderRadius' | 'borderColor'>;
+    };
+    qualifications: IDemoHubConfigQualification[];
+  }
+  leadform: {
+    primaryKey: string;
+    bodyContent: string;
+    displayText: string;
+  },
+  customScripts: string;
+  customStyles: string;
+}
+
+export interface SelectEntryOption {
+    id: string;
+    title: string;
+    desc?: string;
+    demos: IDemoHubConfigDemo[];
+}
+
+// STANDARD-CLASS-NAME `q-con` `title` `desc` `cta-con` `opts-con`
+export interface SelectEntry extends EntryBase {
+  type: 'single-select' | 'multi-select';
+  __ops: 'or';
+  options: SelectEntryOption[];
+}
+
+export interface TextEntry extends EntryBase {
+  type: 'text-entry';
+}
+
+export interface LeadFormEntry extends EntryBase {
+  type: 'leadform-entry',
+  // INFO when  when clicked on continue -- we would do lead form validation
+}
+
+export interface EntryBase {
+  id: string;
+  title: string;
+  // Slug is dervied from title
+  // slug = title.substring(0,16).toLowerCase().replace(/\W+/, '-');
+  slug: string;
+  desc?: string;
+  style: SimpleStyle;
+  // STANDARD-CLASS-NAME `cta-$continue`
+  continueCTA: {
+    text: string;
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: string;
+    icon?: Icon;
+    iconPlacement?: 'left' | 'right';
+    __linkType: 'continue_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system';
+    type: 'solid' | 'outline' | 'link';
+    style: SimpleStyle;
+  };
+  // If skip button is not present then this is undefined
+  // STANDARD-CLASS-NAME `cta-$skip`
+  skipCTA: {
+    text: string;
+    // this id is an derived fields from title.
+    // Ideally id = text.replace(/\W+/, '-')
+    // If this id changes reference to this cta will also be updated
+    id: string;
+    icon?: Icon;
+    iconPlacement?: 'left' | 'right';
+    __linkType: 'skip_qualifcation_criteria',
+    // by default fable adds two cta 1. See all demos & 2. Book a demo
+    // Those are 'system' defined
+    __definedBy: 'system';
+    type: 'solid' | 'outline' | 'link';
+    style: SimpleStyle;
+  }
+  showSkipCta: boolean;
+}
+
+export interface Icon {
+  // ant icons
+}
+
+export interface SimpleStyle {
+  bgColor: string;
+  borderColor: string;
+  fontColor: string;
+  borderRadius: number;
+}
+
+export interface Vpd {
+  width: number;
+  height: number;
+}
+
+export interface P_RespDemoHub extends RespDemoEntity {
+  configFileUri: URL;
+  thumbnailUri: URL;
+  displayableUpdatedAt: string;
 }

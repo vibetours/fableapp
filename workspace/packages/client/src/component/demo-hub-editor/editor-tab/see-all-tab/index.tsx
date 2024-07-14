@@ -1,0 +1,611 @@
+/* eslint-disable react/no-unused-prop-types */
+import React, { useState } from 'react';
+import { DragDropContext, Draggable, DropResult, Droppable } from 'react-beautiful-dnd';
+import { HolderOutlined, PlusOutlined, StepBackwardOutlined } from '@ant-design/icons';
+import { Button, Collapse, Popover, Tooltip } from 'antd';
+import { CollapsibleType } from 'antd/es/collapse/CollapsePanel';
+import * as Tags from '../../styled';
+import * as GTags from '../../../../common-styled';
+import { useEditorCtx } from '../../ctx';
+import { IDemoHubConfig, SimpleStyle } from '../../../../types';
+import SimpleStyleEditor from '../../simple-styles-editor';
+import { OurLink } from '../../../../common-styled';
+import CaretOutlined from '../../../icons/caret-outlined';
+import { getSampleDemoHubSeeAllPageSectionConfig, rearrangeArray } from '../../../../utils';
+import SectionEditor from './section-editor';
+import { getCtaById } from '../../utils';
+import ActionPanel from '../../../screen-editor/action-panel';
+import { InputText } from '../../../screen-editor/styled';
+import CtaWrapper from '../cta-section/cta-wrapper';
+
+function SeeAllPageTab(): JSX.Element {
+  const { config, onConfigChange } = useEditorCtx();
+  const [isCtaSelectOpen, setIsCtaSelectOpen] = useState(false);
+
+  function updateSeeAllPageProps<K extends keyof IDemoHubConfig['see_all_page']>(
+    key: K,
+    value: IDemoHubConfig['see_all_page'][K]
+  ): void {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        [key]: value,
+      }
+    }));
+  }
+
+  function updateHeader<K extends keyof IDemoHubConfig['see_all_page']['header']>(
+    key: K,
+    value: IDemoHubConfig['see_all_page']['header'][K]
+  ): void {
+    updateSeeAllPageProps('header', { ...config.see_all_page.header, [key]: value });
+  }
+
+  function updateBodyText(text: string): void {
+    updateSeeAllPageProps('body', { ...config.see_all_page.body, text });
+  }
+
+  const updateHeaderStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        header: {
+          ...c.see_all_page.header,
+          style: {
+            ...c.see_all_page.header.style,
+            [key]: value,
+          }
+        }
+      }
+    }));
+  };
+
+  const updateBodyStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        body: {
+          ...c.see_all_page.body,
+          style: {
+            ...c.see_all_page.body.style,
+            [key]: value,
+          }
+        }
+      }
+    }));
+  };
+
+  const updateDemoCardStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        demoCardStyles: {
+          ...c.see_all_page.demoCardStyles,
+          [key]: value,
+        },
+      }
+    }));
+  };
+
+  const updateDemoModalBodyStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        demoModalStyles: {
+          ...c.see_all_page.demoModalStyles,
+          body: {
+            ...c.see_all_page.demoModalStyles.body,
+            [key]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const updateDemoModalOverlayStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        demoModalStyles: {
+          ...c.see_all_page.demoModalStyles,
+          overlay: {
+            ...c.see_all_page.demoModalStyles.overlay,
+            [key]: value,
+          },
+        },
+      },
+    }));
+  };
+
+  const addHeaderCta = (ctaId: string): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        header: {
+          ...c.see_all_page.header,
+          ctas: [...c.see_all_page.header.ctas, ctaId]
+        }
+      }
+    }));
+  };
+
+  const deleteHeaderCta = (ctaId: string): void => {
+    onConfigChange(c => {
+      const ctaIdToBeDeleteIdx = c.see_all_page.header.ctas.findIndex(cta => cta === ctaId);
+      c.see_all_page.header.ctas.splice(ctaIdToBeDeleteIdx, 1);
+
+      return {
+        ...c,
+        see_all_page: {
+          ...c.see_all_page,
+          header: {
+            ...c.see_all_page.header,
+            ctas: [...c.see_all_page.header.ctas],
+          }
+        }
+      };
+    });
+  };
+
+  const rearrangeHeaderCta = (r: DropResult): void => {
+    if (!r.destination) return;
+
+    const rearrangedArray = rearrangeArray(config.see_all_page.header.ctas, r.source.index, r.destination.index);
+
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        header: {
+          ...c.see_all_page.header,
+          ctas: rearrangedArray,
+        }
+      }
+    }));
+  };
+
+  const rearrangeSeeAllPageSections = (r: DropResult): void => {
+    if (!r.destination) return;
+
+    const rearrangedArray = rearrangeArray(config.see_all_page.sections, r.source.index, r.destination.index);
+
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        sections: rearrangedArray,
+      }
+    }));
+  };
+
+  return (
+    <Tags.SidepanelCon>
+      <ActionPanel
+        title="Header"
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            margin: '0 auto',
+            marginTop: '8px',
+          }}
+        >
+          <p className="typ-sm">Configure header of See all page.</p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+            }}
+          >
+            <div className="typ-sm">Title</div>
+            <InputText
+              type="text"
+              value={config.see_all_page.header.title}
+              onChange={e => updateHeader('title', e.target.value)}
+              style={{ height: '44px', width: '100%' }}
+            />
+          </div>
+          <SimpleStyleEditor
+            simpleStyle={config.see_all_page.header.style}
+            simpleStyleUpdateFn={updateHeaderStyle}
+          />
+          <p className="typ-sm">Configure CTAs to show on the right side of the header</p>
+          <DragDropContext
+            onDragEnd={rearrangeHeaderCta}
+          >
+            <Droppable droppableId="droppable">
+              {(provided, snapshot) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    marginTop: '0.5rem'
+                  }}
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                >
+                  {config.see_all_page.header.ctas.map((ctaId, index) => {
+                    const cta = getCtaById(config, ctaId);
+
+                    if (cta) {
+                      return (
+                        <Draggable
+                          key={ctaId}
+                          draggableId={ctaId + index}
+                          index={index}
+                        >
+                          {(providedInner, snapshotInner) => (
+                            <div
+                              key={ctaId}
+                              {...providedInner.draggableProps}
+                              ref={providedInner.innerRef}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  marginBottom: '0.75rem'
+                                }}
+                              >
+                                <Tooltip
+                                  placement="left"
+                                  title={<span>Drag to reorder.</span>}
+                                  overlayStyle={{ fontSize: '0.75rem' }}
+                                >
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<HolderOutlined
+                                      style={{
+                                        opacity: '0.65',
+                                        fontSize: '14px',
+                                      }}
+                                    />}
+                                    {...providedInner.dragHandleProps}
+                                  />
+                                </Tooltip>
+                                <div style={{ flex: 1 }}>
+                                  <CtaWrapper
+                                    showEditOption={false}
+                                    deleteCtaHandler={deleteHeaderCta}
+                                    cta={cta}
+                                    deletable
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                        </Draggable>
+                      );
+                    }
+
+                    return <React.Fragment key={ctaId} />;
+                  })}
+
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+
+          <Popover
+            open={isCtaSelectOpen}
+            trigger="click"
+            placement="rightTop"
+            onOpenChange={(visible) => {
+              if (!visible) setIsCtaSelectOpen(false);
+            }}
+            destroyTooltipOnHide
+            content={(
+              <div style={{
+                maxWidth: '200px'
+              }}
+              >
+                <GTags.FableSelect
+                  style={{ width: '200px' }}
+                  className="typ-ip"
+                  placeholder="Select a CTA"
+                  bordered={false}
+                  options={config.cta
+                    .filter(v => !config.see_all_page.header.ctas.includes(v.id))
+                    .map(v => ({
+                      value: v.id,
+                      label: v.text,
+                    }))}
+                  autoFocus
+                  onChange={(e) => {
+                    if (e) {
+                      addHeaderCta(e as string);
+                      setIsCtaSelectOpen(false);
+                    }
+                  }}
+                  suffixIcon={<CaretOutlined dir="down" />}
+                />
+                <p className="typ-sm">You can create a CTA at the top of this panel and add the CTA to display in the header in this page</p>
+              </div>
+            )}
+          >
+            <OurLink
+              style={{
+                display: 'flex',
+                gap: '0.5rem',
+                width: 'fit-content'
+              }}
+              onClick={() => setIsCtaSelectOpen(!isCtaSelectOpen)}
+            >
+              <PlusOutlined />
+              <div>
+                Add a CTA
+              </div>
+            </OurLink>
+          </Popover>
+
+        </div>
+      </ActionPanel>
+
+      <ActionPanel title="Body">
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            margin: '0 auto'
+          }}
+        >
+          <p className="typ-sm">
+            Configure body of See All page. You can categroize your demos in sections and add those sections in the page.
+          </p>
+          <DragDropContext
+            onDragEnd={rearrangeSeeAllPageSections}
+          >
+            <Droppable
+              droppableId="droppable"
+            >
+              {(provided, snapshot) => (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                >
+                  {config.see_all_page.sections.map((section, index) => (
+                    <Draggable
+                      key={section.id}
+                      draggableId={section.id + index}
+                      index={index}
+                    >
+                      {(providedInner, snapshotInner) => (
+                        <div
+                          key={section.id}
+                          {...providedInner.draggableProps}
+                          ref={providedInner.innerRef}
+                        >
+                          <SectionEditor
+                            section={section}
+                            providedInner={providedInner}
+                          />
+                        </div>
+                      )}
+
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+
+          <OurLink
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              width: 'fit-content'
+            }}
+            onClick={() => {
+              onConfigChange(c => ({
+                ...c,
+                see_all_page: {
+                  ...c.see_all_page,
+                  sections: [...c.see_all_page.sections, getSampleDemoHubSeeAllPageSectionConfig()],
+                },
+              }));
+            }}
+          >
+            <PlusOutlined />
+            <div>
+              Add a new section
+            </div>
+          </OurLink>
+
+          <Collapse
+            bordered={false}
+            items={[
+              {
+                key: '1',
+                label: <span className="typ-reg">Configure body</span>,
+                children: (
+                  <>
+                    <p className="typ-sm">
+                      Configure style and content of body of the See All page.
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        <div className="typ-sm">Text</div>
+                        <InputText
+                          type="text"
+                          defaultValue={config.see_all_page.body.text}
+                          onChange={e => updateBodyText(e.target.value)}
+                          style={{ height: '44px', width: '100%' }}
+                        />
+                      </div>
+
+                      <SimpleStyleEditor
+                        simpleStyle={config.see_all_page.body.style}
+                        simpleStyleUpdateFn={updateBodyStyle}
+                      />
+                    </div>
+                  </>
+                )
+              },
+              {
+                key: '2',
+                label: <span className="typ-reg">Configure demo card style</span>,
+                children: (
+                  <>
+                    <p
+                      className="typ-sm"
+                      style={{
+                        marginBottom: '1rem'
+                      }}
+                    >
+                      Demo thumbnail in each section is displayed as a demo card. Configure look and feel of the demo card.
+                    </p>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}
+                    >
+                      <SimpleStyleEditor
+                        simpleStyle={config.see_all_page.demoCardStyles}
+                        simpleStyleUpdateFn={updateDemoCardStyle}
+                      />
+                    </div>
+                  </>
+                )
+              },
+              {
+                key: '3',
+                label: <span className="typ-reg">Configure demo modal style</span>,
+                children: (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div>
+                        <div
+                          className="typ-reg"
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: '0.5rem',
+                            opacity: '0.75'
+                          }}
+                        >
+                          Body styles
+                        </div>
+                        <p className="typ-sm">
+                          When a demo is clicked, a modal is opened, configure the style of the modal here.
+                        </p>
+                        <SimpleStyleEditor
+                          simpleStyle={config.see_all_page.demoModalStyles.body}
+                          simpleStyleUpdateFn={updateDemoModalBodyStyle}
+                        />
+                      </div>
+                      <div style={{
+                        marginTop: '1rem'
+                      }}
+                      >
+                        <div
+                          className="typ-reg"
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: '0.5rem',
+                            opacity: '0.75'
+                          }}
+                        >
+                          Overlay styles
+                        </div>
+                        <p className="typ-sm">
+                          When a demo is clicked, a modal is opened with an overlay on the page, configure the style of the overlay here.
+                        </p>
+                        <SimpleStyleEditor
+                          simpleStyle={config.see_all_page.demoModalStyles.overlay}
+                          simpleStyleUpdateFn={updateDemoModalOverlayStyle}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )
+              }
+            ]}
+          />
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              alignItems: 'center',
+              marginTop: '1rem',
+            }}
+          >
+            <GTags.OurCheckbox
+              disabled={!config.leadform.bodyContent}
+              style={{ marginLeft: '-0.5rem' }}
+              checked={config.see_all_page.showLeadForm}
+              onChange={e => updateSeeAllPageProps('showLeadForm', e.target.checked)}
+            />
+            <div>Show lead form</div>
+          </div>
+
+        </div>
+      </ActionPanel>
+
+    </Tags.SidepanelCon>
+  );
+}
+
+interface PanelProps {
+  isActive?: boolean;
+  header?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  showArrow?: boolean;
+  forceRender?: boolean;
+  /** @deprecated Use `collapsible="disabled"` instead */
+  disabled?: boolean;
+  extra?: React.ReactNode;
+  collapsible?: CollapsibleType;
+}
+
+function CollapseExpandIcon(props: PanelProps): JSX.Element {
+  return (
+    <div style={{
+      // transform: 'translateY(10px)'
+    }}
+    >
+      <CaretOutlined dir={props.isActive ? 'up' : 'down'} />
+    </div>
+  );
+}
+
+export default SeeAllPageTab;

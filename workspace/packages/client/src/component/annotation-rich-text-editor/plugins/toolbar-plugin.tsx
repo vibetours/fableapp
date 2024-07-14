@@ -327,13 +327,14 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
     }
   }, [editor, isLink]);
 
-  const handleDropdownItemClick = useCallback(
+  const updateFontSize = useCallback(
     (option: string) => {
       editor.update(() => {
         const selection = $getSelection();
         if ($isRangeSelection(selection)) {
           $patchStyleText(selection, {
             'font-size': option,
+            'line-height': `calc(${option} * 1.2)`
           });
         }
       });
@@ -361,7 +362,7 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
 
               <Dropdown
                 menu={{
-                  onClick: (e) => handleDropdownItemClick(e.key),
+                  onClick: (e) => updateFontSize(e.key),
                   items: fontSizeOptions,
                 }}
                 trigger={['click']}

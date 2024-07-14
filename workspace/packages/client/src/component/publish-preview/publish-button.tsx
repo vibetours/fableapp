@@ -4,12 +4,15 @@ import { CmnEvtProp } from '@fable/common/dist/types';
 import Button from '../button';
 import { P_RespTour } from '../../entity-processor';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { P_RespDemoHub } from '../../types';
 
 interface Props {
   tour: P_RespTour | null;
-  publishTour: (tour: P_RespTour) => Promise<boolean>;
+  demoHub?: P_RespDemoHub | null;
+  publishTour?: (data: P_RespTour) => Promise<boolean>;
+  publishDemoHub?: (data: P_RespDemoHub) => Promise<boolean>;
   openShareModal: () => void;
-  setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPublishing: (isPublishing: boolean) => void;
   setIsPublishFailed: React.Dispatch<React.SetStateAction<boolean>>;
   size?: 'medium' | 'large';
   minWidth?: string;
@@ -25,13 +28,25 @@ export default function PublishButton(props: Props): JSX.Element {
     props.setIsPublishFailed(false);
     props.openShareModal();
 
-    const res = await props.publishTour(props.tour!);
-    props.setIsPublishing(false);
+    if (props.tour) {
+      const res = await props.publishTour!(props.tour);
+      props.setIsPublishing(false);
 
-    traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+      traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
 
-    if (!res) {
-      props.setIsPublishFailed(true);
+      if (!res) {
+        props.setIsPublishFailed(true);
+      }
+    }
+    if (props.demoHub) {
+      const res = await props.publishDemoHub!(props.demoHub);
+      props.setIsPublishing(false);
+
+      traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+
+      if (!res) {
+        props.setIsPublishFailed(true);
+      }
     }
   };
 
@@ -46,7 +61,7 @@ export default function PublishButton(props: Props): JSX.Element {
   return (
     <Button
       size={props.size || 'large'}
-      disabled={props.disabled || !props.tour}
+      disabled={props.disabled || !(props.tour || props.demoHub)}
       style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem', minWidth: props.minWidth }}
       onMouseUp={handleClick}
     >

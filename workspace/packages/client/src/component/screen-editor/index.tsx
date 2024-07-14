@@ -1829,6 +1829,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 elpathKey={this.props.elpathKey}
                 isResponsive={isTourResponsive(this.props.tour)}
                 updateElPathKey={this.props.updateElPathKey}
+                shouldSkipLeadForm={false}
               />
             </div>
             )}

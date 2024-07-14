@@ -1,0 +1,160 @@
+import React, { useEffect, useState } from 'react';
+import { PlusOutlined } from '@ant-design/icons';
+import { IDemoHubConfig, P_RespDemoHub } from '../../types';
+import * as Tags from './styled';
+import DemoCard from './demo-card';
+import Button from '../button';
+import * as GTags from '../../common-styled';
+import Input from '../input';
+import { FeatureForPlan } from '../../plans';
+import { isFeatureAvailable } from '../../utils';
+import DemohubIllustration from '../../assets/illustration-3.svg';
+
+interface Props {
+  demoHubsList: P_RespDemoHub[];
+  createNewDemoHub: (name: string) => Promise<P_RespDemoHub>;
+  renameDemoHub: (demoHubRid: string, name: string) => void;
+  deleteDemoHub: (demoHubRid: string) => void;
+  publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
+  loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>,
+  navigateToDemoHub: (demoHubRid: string) => void
+  featurePlan: FeatureForPlan | null;
+}
+
+function DemoHubsList(props: Props): JSX.Element {
+  const [showModal, setShowModal] = useState(false);
+  const [newDemoHubName, setNewDemoHubName] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+
+  useEffect(() => {
+    const available = isFeatureAvailable(props.featurePlan, 'demo_hub');
+    setIsAvailable(available.isAvailable && !available.isInBeta && !available.requireAccess);
+  }, [props.featurePlan]);
+  const [creating, setCreating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function handleCreateDemoHub() : Promise<void> {
+    if (newDemoHubName === '') {
+      setErrorMsg('Demo hub name needs to be a valid name');
+      return;
+    }
+    if (newDemoHubName.length > 200) {
+      setErrorMsg(
+        'Demo hub name needs to be a valid name. A valid name would contain more than 1 char and less than 200 char'
+      );
+      return;
+    }
+    setCreating(true);
+    setErrorMsg(null);
+    const res = await props.createNewDemoHub(newDemoHubName);
+    props.navigateToDemoHub(res.rid);
+    setCreating(false);
+    setShowModal(false);
+    setNewDemoHubName('');
+  }
+  return (
+    <Tags.DemoHubContainer>
+
+      <Tags.TopPanel style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+      >
+        <Tags.ToursHeading style={{ fontWeight: 400 }}>All demo hubs in your org</Tags.ToursHeading>
+        <Button
+          icon={isAvailable && <PlusOutlined />}
+          iconPlacement="left"
+          className={`typ-btn ${isAvailable ? '' : 'support-bot-open'}`}
+          onClick={() => { isAvailable && setShowModal(true); }}
+          intent="primary"
+        >
+          {isAvailable ? 'Create a demo hub' : 'Request Access'}
+        </Button>
+      </Tags.TopPanel>
+      {props.demoHubsList.length ? (
+        <Tags.DemoGrid>
+          {props.demoHubsList.map((demoHub, index) => (
+            <DemoCard
+              key={demoHub.id}
+              demoHub={demoHub}
+              renameDemoHub={props.renameDemoHub}
+              deleteDemoHub={props.deleteDemoHub}
+              publishDemoHub={props.publishDemoHub}
+              loadDemoHubConfig={props.loadDemoHubConfig}
+            />
+          ))}
+        </Tags.DemoGrid>
+      ) : (
+        <Tags.EmptyState>
+          <img src={DemohubIllustration} style={{ height: '240px' }} alt="demohub illustration" />
+          <p className="typ-reg">
+            Create a demo hub to host all your interactive demo in one place.
+          </p>
+          <p className="typ-reg">
+            You can group your demos in multiple sections or you can create personalized demo experience by qualifying your buyer.
+          </p>
+        </Tags.EmptyState>
+      )}
+      <GTags.BorderedModal
+        className="demo-hub-bordered-modal"
+        open={showModal}
+        onCancel={() => {
+          setShowModal(false);
+          setNewDemoHubName('');
+          setErrorMsg(null);
+        }}
+        footer={(
+          <div className="button-two-col-cont">
+            <Button
+              type="button"
+              intent="secondary"
+              onClick={
+                () => {
+                  setShowModal(false);
+                  setNewDemoHubName('');
+                  setErrorMsg(null);
+                }
+              }
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
+            <Button
+              style={{ flex: 1 }}
+              onClick={
+                () => {
+                  handleCreateDemoHub();
+                }
+              }
+              disabled={creating}
+            >
+              {creating ? 'Saving' : 'Save'}
+            </Button>
+          </div>
+        )}
+      >
+        <Tags.ModalContainer>
+          <div className="modal-title">Create new Demo hub</div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateDemoHub();
+            }}
+            style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
+          >
+            <Input
+              label="Give a name for this demo hub"
+              value={newDemoHubName}
+              onChange={(e) => setNewDemoHubName(e.target.value)}
+              type="text"
+            />
+          </form>
+          {errorMsg && <Tags.ErrorMsg className="error-msg">{errorMsg}</Tags.ErrorMsg>}
+        </Tags.ModalContainer>
+      </GTags.BorderedModal>
+    </Tags.DemoHubContainer>
+  );
+}
+
+export default DemoHubsList;

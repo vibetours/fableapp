@@ -215,6 +215,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private isMobileSize: boolean = getIsMobileSize();
 
+  private shouldSkipLeadForm: boolean = false;
+
   constructor(props: IProps) {
     super(props);
     this.state = {
@@ -275,6 +277,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       !this.props.staging,
       ts
     );
+
+    if (this.props.searchParams.get('skiplf') === '1') {
+      this.shouldSkipLeadForm = true;
+    }
+
     window.addEventListener('beforeunload', removeSessionId);
 
     window.addEventListener('message', this.receiveMessage, false);
@@ -947,7 +954,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                       this.navFn(newMain, 'annotation-hotspot');
                     }
                     if (btnConfig === 'next' && currentFlowMainIndex === this.props.journey!.flows.length - 1) {
-                      window.parent.postMessage({ type: 'lastAnnotation' }, '*');
+                      window.parent.postMessage({ type: 'lastAnnotation', demoRid: this.props.tour!.rid }, '*');
                     }
                   }
                 }}
@@ -974,6 +981,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                     }, 100);
                   }
                 }}
+                shouldSkipLeadForm={this.shouldSkipLeadForm}
               />
             ))
         }
