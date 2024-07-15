@@ -1421,7 +1421,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                 children: (
                   <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
                     <p className="typ-sm">
-                      Name of the criteria that is used to generate the URL slug of the page
+                      Name of the qualification that is used to generate the URL slug of the page
                     </p>
                     <div
                       style={{

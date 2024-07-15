@@ -278,7 +278,7 @@ function QualificationTab(): JSX.Element {
         </div>
       </ActionPanel>
       <ActionPanel
-        title="Criteria"
+        title="Qualification"
       >
         <p className="typ-sm">
           Qualify buyers by setting up criteria and then displaying demos based on their selection.

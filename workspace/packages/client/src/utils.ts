@@ -1202,8 +1202,7 @@ export const getSampleSimpleStyle = (): SimpleStyle => ({
   borderRadius: 4,
 });
 
-export const getSampleCTASimpleStyle = (): SimpleStyle => ({
-  ...getSampleSimpleStyle(),
+export const getSampleCTASimpleStyle = (): Omit<SimpleStyle, 'borderColor'> => ({
   bgColor: '#e0e1dd',
   fontColor: '#0d1b2a',
   borderRadius: 24
@@ -1276,7 +1275,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
+    style: { borderRadius: 4, fontColor: '#ffffff' },
   },
   // If skip button is not present then this is undefined
   // STANDARD-CLASS-NAME `cta-$skip`
@@ -1293,7 +1292,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
+    style: { borderRadius: 4, fontColor: '#ffffff' },
   },
   showSkipCta: false,
 });
@@ -1303,7 +1302,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
   title: `Sample Step Title ${idx}`,
   slug: `sample-step-title-${idx}`,
   desc: 'Write a brief description of what your viewer should expect from this particular step of your demo hub.',
-  style: getSampleSimpleStyle(),
+  style: { ...getSampleSimpleStyle(), borderColor: '1B263B' },
   type,
   continueCTA: {
     text: 'Continue',
@@ -1318,7 +1317,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
+    style: { borderRadius: 4, fontColor: '#ffffff' },
   },
   // If skip button is not present then this is undefined
   // STANDARD-CLASS-NAME `cta-$skip`
@@ -1335,7 +1334,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
+    style: { borderRadius: 4, fontColor: '#ffffff' },
   },
   showSkipCta: false,
 });
