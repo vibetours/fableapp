@@ -1302,7 +1302,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
   title: `Sample Step Title ${idx}`,
   slug: `sample-step-title-${idx}`,
   desc: 'Write a brief description of what your viewer should expect from this particular step of your demo hub.',
-  style: { ...getSampleSimpleStyle(), borderColor: '1B263B' },
+  style: { ...getSampleSimpleStyle(), borderColor: '#1b263b' },
   type,
   continueCTA: {
     text: 'Continue',
