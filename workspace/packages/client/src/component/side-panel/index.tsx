@@ -51,7 +51,7 @@ export default function SidePanel(props: Props): JSX.Element {
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'demo-hub' ? 'selected' : ''} to="/demo-hubs">
           <HeatMapOutlined />
-          <p>Demo hubs</p>
+          <p>Demo hub</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
           <ApiOutlined />

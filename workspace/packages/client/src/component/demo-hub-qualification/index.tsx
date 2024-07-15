@@ -21,6 +21,7 @@ interface Props {
   stepSlug: string | null;
   demoRid: string | null;
   navigateToStep: (stepSlug: string, demoRid?: string) => void;
+  demoParams: Record<string, any>;
 }
 
 function DemoHubQualification(props: Props): JSX.Element {
@@ -45,9 +46,11 @@ function DemoHubQualification(props: Props): JSX.Element {
       navigateToStep: props.navigateToStep,
       leadFormValues,
       setLeadFormValues,
+      demoParams: props.demoParams,
     }),
     [props.config, orderOfSteps, stepInfoMap, selectedDemosForEntries, qualificationConfig,
-      setSelectedDemosForEntries, setStepInfoMap, props.navigateToStep, leadFormValues, setLeadFormValues]
+      setSelectedDemosForEntries, setStepInfoMap, props.navigateToStep, leadFormValues, setLeadFormValues,
+      props.demoParams]
   );
 
   useEffect(() => {
@@ -190,7 +193,7 @@ function DemoHubQualification(props: Props): JSX.Element {
     }
     rootSheet.current.innerHTML = `
       :root {
-        --f-header-border-color: ${ctxValue.config.qualification_page.header.style.borderColor};
+        --f-header-border-color: ${ctxValue.config.qualification_page.header.style.bgColor};
         --f-header-font-color: ${ctxValue.config.qualification_page.header.style.fontColor};
         --f-header-bg-color: ${ctxValue.config.qualification_page.header.style.bgColor};
         --f-body-bg-color: ${ctxValue.config.qualification_page.body.style.bgColor};
@@ -224,7 +227,6 @@ function DemoHubQualification(props: Props): JSX.Element {
         --f-sidepanel-con-bg-color: ${ctxValue.qualificationConfig.sidePanel.conStyle.bgColor};
         --f-sidepanel-con-font-color: ${ctxValue.qualificationConfig.sidePanel.conStyle.fontColor};
         --f-sidepanel-con-border-color: ${ctxValue.qualificationConfig.sidePanel.conStyle.borderColor};
-        --f-sidepanel-con-border-radius: ${ctxValue.qualificationConfig.sidePanel.conStyle.borderRadius}px;
         --f-sidepanel-card-bg-color: ${ctxValue.qualificationConfig.sidePanel.cardStyle.bgColor};
         --f-sidepanel-card-font-color: ${ctxValue.qualificationConfig.sidePanel.cardStyle.fontColor};
         --f-sidepanel-card-border-color: ${ctxValue.qualificationConfig.sidePanel.cardStyle.borderColor};

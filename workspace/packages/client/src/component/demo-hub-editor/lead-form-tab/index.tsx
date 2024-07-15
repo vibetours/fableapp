@@ -9,7 +9,7 @@ const DEFAULT_LEAD_FORM_BODY_CONTENT = '<p class="editor-paragraph"><span data-l
 const DEFAULT_LEAD_FORM_DISPLAY_TEXT = '';
 
 export default function LeadformTab(): JSX.Element {
-  const { config, onConfigChange } = useEditorCtx();
+  const { config, onConfigChange, data, updateDemoHubProp } = useEditorCtx();
 
   const updateLeadformPrimaryKey = (
     primaryKey: string
@@ -21,6 +21,12 @@ export default function LeadformTab(): JSX.Element {
         primaryKey,
       },
     }));
+
+    updateDemoHubProp(data.rid, 'settings', {
+      primaryKey,
+      vpdHeight: data.settings?.vpdHeight || 0,
+      vpdWidth: data.settings?.vpdWidth || 0
+    });
   };
 
   const deleteLeadformEntry = (): void => {
@@ -122,20 +128,20 @@ export default function LeadformTab(): JSX.Element {
           >
             Delete this lead form
           </GTags.OurLink>
-          <p className="typ-sm" style={{ margin: '0 0 1rem' }}>
-            Go to <i>Editor &gt; See all page</i> or <i>Editor &gt; Qualification</i> to add the lead form.
+          <p className="typ-sm" style={{ margin: '0 0 1rem', textAlign: 'center' }}>
+            Go to <i>Editor &gt; Demo Collection Page</i> or <i>Editor &gt; Qualification Page</i> to add the lead form.
           </p>
         </>
       ) : (
         <>
           <p className="typ-sm" style={{ margin: '0.25rem 0' }}>
-            Create and configure a leadform to capture lead information.
+            Create a lead form that can be used to capture buyer information.
           </p>
           <p className="typ-sm" style={{ margin: '0.25rem 0' }}>
-            Once created, add the lead form in the See all page to capture lead information.
+            The lead form can be added to the demo collection page after its creation.
           </p>
           <p className="typ-sm" style={{ margin: '0.25rem 0 1rem' }}>
-            Once created, add the lead form as a qualification step to capture lead informaion.
+            It can also be added as a qualification step that the buyer encounters when they reach that particular step.
           </p>
           <Button
             intent="secondary"

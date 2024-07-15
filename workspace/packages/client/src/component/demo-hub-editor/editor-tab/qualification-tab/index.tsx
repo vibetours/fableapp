@@ -7,7 +7,7 @@ import { IDemoHubConfig, SimpleStyle } from '../../../../types';
 import SimpleStyleEditor from '../../simple-styles-editor';
 import * as GTags from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
-import { getCtaById } from '../../utils';
+import { getCtaById, getNewIndex } from '../../utils';
 import { getSampleDemoHubQualification, rearrangeArray } from '../../../../utils';
 import QualificationEditor from './qualification-editor';
 import ActionPanel from '../../../screen-editor/action-panel';
@@ -248,7 +248,10 @@ function QualificationTab(): JSX.Element {
                   }}
                   suffixIcon={<CaretOutlined dir="down" />}
                 />
-                <p className="typ-sm">You can create a CTA at the top of this panel and add the CTA to display in the header in this page</p>
+                <p className="typ-sm">
+                  You can create new call-to-action buttons under the CTA
+                  section of this panel and then select it here to be shown in the top right corner of the page.
+                </p>
               </div>
           )}
             trigger="click"
@@ -268,20 +271,20 @@ function QualificationTab(): JSX.Element {
             >
               <PlusOutlined />
               <div>
-                Add a CTA
+                Select a CTA
               </div>
             </GTags.OurLink>
           </Popover>
         </div>
       </ActionPanel>
       <ActionPanel
-        title="Qualifications"
+        title="Criteria"
       >
         <p className="typ-sm">
-          Qualify buyers by setting up criteria and show them relevant demos based on criteria that your buyers choose.
+          Qualify buyers by setting up criteria and then displaying demos based on their selection.
         </p>
         <p className="typ-sm">
-          You can create multiple qualification in this section. Each qualification would have it's own URL.
+          You can configure multiple criteria where each of them would have a unique URL slug.
         </p>
         {config.qualification_page.qualifications.map(q => (
           <div key={q.id} style={{ ...commonActionPanelItemStyle, margin: '5px 0' }}>
@@ -304,7 +307,12 @@ function QualificationTab(): JSX.Element {
                 ...c,
                 qualification_page: {
                   ...c.qualification_page,
-                  qualifications: [...c.qualification_page.qualifications, getSampleDemoHubQualification()],
+                  qualifications: [
+                    ...c.qualification_page.qualifications,
+                    getSampleDemoHubQualification(
+                      getNewIndex(c.qualification_page.qualifications.map(ct => ct.title), 'Choose your experience') + 1
+                    ),
+                  ],
                 },
               }));
             }}

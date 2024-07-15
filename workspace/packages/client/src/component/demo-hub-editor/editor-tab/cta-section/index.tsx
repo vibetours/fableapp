@@ -5,6 +5,7 @@ import { OurLink } from '../../../../common-styled';
 import { getSampleDemoHubConfigCta } from '../../../../utils';
 import ActionPanel from '../../../screen-editor/action-panel';
 import CtaWrapper from './cta-wrapper';
+import { getNewIndex } from '../../utils';
 
 function CTASection(): JSX.Element {
   const { config, onConfigChange } = useEditorCtx();
@@ -12,7 +13,7 @@ function CTASection(): JSX.Element {
   const addNewCta = (): void => {
     onConfigChange(c => ({
       ...c,
-      cta: [...c.cta, getSampleDemoHubConfigCta()]
+      cta: [...c.cta, getSampleDemoHubConfigCta(getNewIndex(c.cta.map(ct => ct.text), 'Book a demo') + 1)]
     }));
   };
 
@@ -55,7 +56,7 @@ function CTASection(): JSX.Element {
         title="CTA"
       >
         <p className="typ-sm">
-          Create Call to Action buttons here and use it everywhere in the demo hub.
+          Configure call-to-action buttons that can be used across the demo hub
         </p>
         <div
           style={{

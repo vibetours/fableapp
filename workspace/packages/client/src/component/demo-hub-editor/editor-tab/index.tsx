@@ -40,14 +40,14 @@ function EditorTab(): JSX.Element {
         }}
       >
         <p>
-          Demo hub can host two types of pages.
+          There are two types of pages in the demo hub:
         </p>
         <ul>
-          <li style={{ marginBottom: '0.25rem' }}>Use <i>See all</i> page to list all your demos in one place.</li>
-          <li>Use <i>Qualification</i> to qualify your buyers based on different criterias and deliver a personalized demo experience.</li>
+          <li style={{ marginBottom: '0.25rem' }}><b>Demo Collection Page:</b> Used to list a collection of demos in a single page</li>
+          <li><b>Qualification Page:</b> Used to present buyers with various criteria to create a personalized demo journey</li>
         </ul>
         <p>
-          You can configure both these pages in the following section.
+          Configure the above pages in the following section.
         </p>
       </InfoBox>
       <br />
@@ -58,12 +58,12 @@ function EditorTab(): JSX.Element {
         defaultActiveKey="see-all-page"
         items={[
           {
-            label: <span className="typ-reg">See All Page</span>,
+            label: <span className="typ-reg">Demo Collection Page</span>,
             children: <SeeAllPageTab />,
             key: 'see-all-page',
           },
           {
-            label: <span className="typ-reg">Qualification</span>,
+            label: <span className="typ-reg">Qualification Page</span>,
             children: <QualificationTab />,
             key: 'qualification',
           },

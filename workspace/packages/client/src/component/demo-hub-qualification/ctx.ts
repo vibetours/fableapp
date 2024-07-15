@@ -14,6 +14,7 @@ interface DemHubQlfcnCtxProps {
   navigateToStep: (stepSlug: string, demoRid?: string) => void;
   setLeadFormValues: React.Dispatch<React.SetStateAction<Record<string, any>>>;
   leadFormValues: Record<string, any>;
+  demoParams: Record<string, any>;
 }
 
 export const DemoHubQlfcnCtx = createContext<DemHubQlfcnCtxProps | null >(null);

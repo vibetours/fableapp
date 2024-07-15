@@ -19,6 +19,7 @@ export default function Cta(props: Props): JSX.Element {
         style={{
           width: props.width || 'fit-content',
           marginBottom: 0,
+          color: props.cta.style.fontColor
         }}
         className={props.className || ''}
       >
@@ -41,9 +42,9 @@ export default function Cta(props: Props): JSX.Element {
       <Button
         id={props.cta.id}
         iconPlacement={props.cta.iconPlacement}
-        intent={props.cta.type === 'solid' ? 'primary' : 'secondary'}
+        intent={props.cta.type === 'primary' ? 'primary' : 'secondary'}
         bgColor={props.cta.style.bgColor}
-        borderColor={props.cta.style.borderColor}
+        borderColor={props.cta.style.bgColor}
         color={props.cta.style.fontColor}
         borderRadius={props.cta.style.borderRadius}
         className={props.className || ''}

@@ -166,15 +166,6 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                   showCalendar
                   showOnboardingGuides
                   navigateToWhenLogoIsClicked="/demo-hubs"
-                  titleElOnLeft={(
-                    <div
-                      style={{ display: 'flex', alignItems: 'center' }}
-                    >
-                      <span className="overflow-ellipsis">
-                        {this.props.demoHub!.displayName}
-                      </span>
-                    </div>
-                  )}
                   rightElGroups={[(
                     <Link to={`/hub/${this.props.match.params.demoHubId}`} style={{ color: 'black' }}>
                       <AntButton

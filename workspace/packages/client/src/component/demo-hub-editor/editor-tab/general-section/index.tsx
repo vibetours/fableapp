@@ -55,7 +55,7 @@ function GeneralSection(): JSX.Element {
               margin: 0,
             }}
           >
-            Configure common information that affects all the pages of the demo hub.
+            Configure settings that apply to all the pages of the demo hub
           </p>
           <div
             style={{
@@ -129,7 +129,14 @@ function GeneralSection(): JSX.Element {
                 flex: 1,
               }}
             >
-              <div className="typ-sm">Base font size</div>
+              <div
+                className="typ-sm"
+                style={{
+                  margin: '3px 0'
+                }}
+              >
+                Base font size
+              </div>
               <InputText
                 type="number"
                 value={config.baseFontSize}

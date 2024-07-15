@@ -1079,92 +1079,102 @@ export function shouldReduceMotionForMobile(opts: ITourDataOpts | null):boolean 
 export const isGlobalProperty = <T>(value: Property<T>): boolean => value.type === PropertyType.REF;
 export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
   v: 1,
-  logo: createLiteralProperty('https://s3.amazonaws.com/app.sharefable.com/favicon.png'),
+  logo: createGlobalProperty('https://s3.amazonaws.com/app.sharefable.com/favicon.png', GlobalPropsPath.logo),
   companyName: createLiteralProperty('Fable'),
-  fontFamily: createLiteralProperty(''),
+  fontFamily: createGlobalProperty('', GlobalPropsPath.fontFamily),
   baseFontSize: 16,
   cta: [
-    // TODO update links of the following sys defined ctas
-    // TODO update icons of the following sys defined ctas
     {
       text: 'See all demos',
       id: 'see-all-demos',
-      deletable: false,
-      // icon?: Icon;
       iconPlacement: 'left',
+      deletable: false,
       __linkType: 'open_ext_url',
-      link: '',
+      link: './see-all-demos',
       __definedBy: 'system',
-      type: 'outline',
-      style: { ...getSampleSimpleStyle(), bgColor: '#66cdf5' },
+      type: 'primary',
+      style: {
+        bgColor: '#e0e1dd',
+        fontColor: '#0d1b2a',
+        borderRadius: 24
+      }
     },
     {
       text: 'Book a demo',
       id: 'book-a-demo',
-      deletable: true,
-      // icon?: Icon;
       iconPlacement: 'left',
+      deletable: true,
       __linkType: 'open_ext_url',
-      link: '',
+      link: 'https://www.sharefable.com/get-a-demo?ref=dh_others',
       __definedBy: 'system',
-      type: 'solid',
-      style: { ...getSampleSimpleStyle(), bgColor: '#66cdf5' },
+      type: 'primary',
+      style: {
+        bgColor: '#e0e1dd',
+        fontColor: '#0d1b2a',
+        borderRadius: 24
+      }
     }
   ],
   see_all_page: {
     showLeadForm: false,
     header: {
-      title: '',
+      title: 'Demo hub name',
       style: {
-        bgColor: '#ffffff',
-        borderColor: '#66cdf5',
-        fontColor: '#000000',
+        bgColor: '#1b263b',
+        fontColor: '#f7f7f7'
       },
-      ctas: []
+      ctas: [
+        'book-a-demo'
+      ]
     },
     body: {
       text: '',
       style: {
         bgColor: '#ffffff',
-        fontColor: '#000000',
-      },
+        fontColor: '#000000'
+      }
     },
     sections: [
       {
-        title: 'section 1',
-        slug: 'section-1',
-        desc: 'sec 1 desc',
-        simpleStyle: getSampleSimpleStyle(),
-        demos: [],
-        id: nanoid(),
+        ...getSampleDemoHubSeeAllPageSectionConfig(1),
+        title: 'Collection of some amazing demos',
+        slug: 'collection-of-some-amazing-demos',
       },
       {
-        title: 'section 2',
-        slug: 'section-2',
-        desc: 'sec 2 desc',
-        simpleStyle: getSampleSimpleStyle(),
-        demos: [],
-        id: nanoid(),
-      },
+        ...getSampleDemoHubSeeAllPageSectionConfig(1),
+        title: 'Second collection of amazing demos',
+        slug: 'second-collection-of-amazing demos',
+      }
     ],
-    demoCardStyles: getSampleSimpleStyle(),
+    demoCardStyles: {
+      bgColor: '#ffffff',
+      borderColor: '#ffffff00',
+      fontColor: '#0A0A0A',
+      borderRadius: 4
+    },
     demoModalStyles: {
       overlay: {
-        bgColor: '#ffffff',
-        fontColor: '#000000',
+        bgColor: '#ffffff80',
       },
-      body: getSampleSimpleStyle(),
-    },
+      body: {
+        bgColor: '#f5f5f5',
+        borderColor: '#1b263b',
+        fontColor: '#000000',
+        borderRadius: 4
+      }
+    }
   },
   qualification_page: {
     header: {
-      title: '',
+      title: 'Choose your experience',
       style: {
-        bgColor: '#ffffff',
-        borderColor: '#66cdf5',
-        fontColor: '#000000',
+        bgColor: '#1b263b',
+        fontColor: '#f7f7f7'
       },
-      ctas: [],
+      ctas: [
+        'see-all-demos',
+        'book-a-demo'
+      ]
     },
 
     body: {
@@ -1199,8 +1209,8 @@ export const getSampleCTASimpleStyle = (): SimpleStyle => ({
   borderRadius: 24
 });
 
-export const getSampleDemoHubConfigCta = (): IDemoHubConfigCta => ({
-  text: 'Book a demo',
+export const getSampleDemoHubConfigCta = (idx: number): IDemoHubConfigCta => ({
+  text: `Book a demo ${idx}`,
   id: nanoid(),
   // icon?: Icon;
   deletable: true,
@@ -1208,24 +1218,24 @@ export const getSampleDemoHubConfigCta = (): IDemoHubConfigCta => ({
   __linkType: 'open_ext_url',
   link: 'https://www.sharefable.com/get-a-demo?ref=dh_others',
   __definedBy: 'user',
-  type: 'solid',
+  type: 'primary',
   style: getSampleCTASimpleStyle(),
 });
 
-export const getSampleDemoHubSeeAllPageSectionConfig = (): IDemoHubConfigSeeAllPageSection => ({
-  title: 'A new section',
-  slug: 'a-new-section',
-  desc: 'Write a description for this section from the side panel. This is a placeholder description. If you do not want this description, delete the description text for this section to make it empty.',
+export const getSampleDemoHubSeeAllPageSectionConfig = (idx: number): IDemoHubConfigSeeAllPageSection => ({
+  title: `A new section ${idx}`,
+  slug: `a-new-section-${idx}`,
+  desc: 'This is a placeholder description which is shown above the collection of demos. You can change this text in the side panel on the left. Leave it empty to delete the description field.',
   simpleStyle: getSampleSimpleStyle(),
   demos: [],
   id: nanoid(),
 });
 
-export const getSampleDemoHubQualification = (): IDemoHubConfigQualification => ({
+export const getSampleDemoHubQualification = (idx: number): IDemoHubConfigQualification => ({
   id: nanoid(),
   __type: 'simple_linear',
-  title: 'Choose your experience',
-  slug: 'choose-your-experience',
+  title: `Choose your experience ${idx}`,
+  slug: `choose-your-experience-${idx}`,
   sidePanel: {
     conStyle: getSampleSimpleStyle(),
     cardStyle: {
@@ -1240,13 +1250,13 @@ export const getSampleDemoHubQualification = (): IDemoHubConfigQualification => 
   entries: [],
 });
 
-export const getSampleSelectEntry = (type: 'single-select' | 'multi-select'): SelectEntry => ({
+export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx: number): SelectEntry => ({
   id: nanoid(),
   type,
   __ops: 'or',
   options: [getSampleSelectEntryOption(), getSampleSelectEntryOption()],
-  title: 'What\'s your role in company?',
-  slug: 'whats-your-role-in-company',
+  title: `What's your role in company? ${idx}`,
+  slug: `whats-your-role-in-company-${idx}`,
   desc: 'This section is auto generated for you. Use the editor on the left to edit the content.',
   style: {
     ...getSampleSimpleStyle(),
@@ -1265,7 +1275,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select'): Se
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system',
-    type: 'solid',
+    type: 'primary',
     style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
   },
   // If skip button is not present then this is undefined
@@ -1282,16 +1292,16 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select'): Se
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system',
-    type: 'solid',
+    type: 'primary',
     style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
   },
   showSkipCta: false,
 });
 
-export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry'): TextEntry | LeadFormEntry => ({
+export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: number): TextEntry | LeadFormEntry => ({
   id: nanoid(),
-  title: 'Sample Step Title',
-  slug: 'sample-step-title',
+  title: `Sample Step Title ${idx}`,
+  slug: `sample-step-title-${idx}`,
   desc: 'Write a brief description of what your viewer should expect from this particular step of your demo hub.',
   style: getSampleSimpleStyle(),
   type,
@@ -1307,7 +1317,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry'): TextE
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system',
-    type: 'solid',
+    type: 'primary',
     style: { ...getSampleSimpleStyle(), fontColor: '#ffffff' },
   },
   // If skip button is not present then this is undefined
@@ -1324,7 +1334,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry'): TextE
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system',
-    type: 'solid',
+    type: 'primary',
     style: { ...getSampleSimpleStyle(), fontColor: '#000000' },
   },
   showSkipCta: false,
@@ -1417,3 +1427,11 @@ export const getFirstDemoOfDemoHub = (demoHubConfig: IDemoHubConfig): IDemoHubCo
 
   return null;
 };
+
+export function objectToSearchParams(obj: Record<string, any>): string {
+  const params = new URLSearchParams();
+  Object.keys(obj).forEach(key => {
+    params.append(key, obj[key]);
+  });
+  return params.toString();
+}

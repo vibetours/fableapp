@@ -13,7 +13,7 @@ import { OurLink } from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
 import { getSampleDemoHubSeeAllPageSectionConfig, rearrangeArray } from '../../../../utils';
 import SectionEditor from './section-editor';
-import { getCtaById } from '../../utils';
+import { getCtaById, getNewIndex } from '../../utils';
 import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import CtaWrapper from '../cta-section/cta-wrapper';
@@ -199,7 +199,7 @@ function SeeAllPageTab(): JSX.Element {
             marginTop: '8px',
           }}
         >
-          <p className="typ-sm">Configure header of See all page.</p>
+          <p className="typ-sm">Configure the header of the demo collection page</p>
           <div
             style={{
               display: 'flex',
@@ -219,7 +219,7 @@ function SeeAllPageTab(): JSX.Element {
             simpleStyle={config.see_all_page.header.style}
             simpleStyleUpdateFn={updateHeaderStyle}
           />
-          <p className="typ-sm">Configure CTAs to show on the right side of the header</p>
+          <p className="typ-sm">Select CTAs to be shown in the top right corner of the page</p>
           <DragDropContext
             onDragEnd={rearrangeHeaderCta}
           >
@@ -332,7 +332,10 @@ function SeeAllPageTab(): JSX.Element {
                   }}
                   suffixIcon={<CaretOutlined dir="down" />}
                 />
-                <p className="typ-sm">You can create a CTA at the top of this panel and add the CTA to display in the header in this page</p>
+                <p className="typ-sm">
+                  You can create new call-to-action buttons under the CTA section of this panel
+                  and then select it here to be shown in the top right corner of the page.
+                </p>
               </div>
             )}
           >
@@ -346,7 +349,7 @@ function SeeAllPageTab(): JSX.Element {
             >
               <PlusOutlined />
               <div>
-                Add a CTA
+                Select a CTA
               </div>
             </OurLink>
           </Popover>
@@ -364,7 +367,7 @@ function SeeAllPageTab(): JSX.Element {
           }}
         >
           <p className="typ-sm">
-            Configure body of See All page. You can categroize your demos in sections and add those sections in the page.
+            Configure the body of the demo collection page by adding sections and demos within the sections.
           </p>
           <DragDropContext
             onDragEnd={rearrangeSeeAllPageSections}
@@ -419,7 +422,10 @@ function SeeAllPageTab(): JSX.Element {
                 ...c,
                 see_all_page: {
                   ...c.see_all_page,
-                  sections: [...c.see_all_page.sections, getSampleDemoHubSeeAllPageSectionConfig()],
+                  sections: [
+                    ...c.see_all_page.sections,
+                    getSampleDemoHubSeeAllPageSectionConfig(getNewIndex(c.see_all_page.sections.map(ct => ct.title), 'A new section') + 1),
+                  ],
                 },
               }));
             }}
@@ -439,7 +445,7 @@ function SeeAllPageTab(): JSX.Element {
                 children: (
                   <>
                     <p className="typ-sm">
-                      Configure style and content of body of the See All page.
+                      Configure content and style of the body of the demo collection page.
                     </p>
                     <div
                       style={{
@@ -474,7 +480,7 @@ function SeeAllPageTab(): JSX.Element {
               },
               {
                 key: '2',
-                label: <span className="typ-reg">Configure demo card style</span>,
+                label: <span className="typ-reg">Configure demo card</span>,
                 children: (
                   <>
                     <p
@@ -483,7 +489,7 @@ function SeeAllPageTab(): JSX.Element {
                         marginBottom: '1rem'
                       }}
                     >
-                      Demo thumbnail in each section is displayed as a demo card. Configure look and feel of the demo card.
+                      Configure the look and feel of the demo card displayed in the demo collection page.
                     </p>
                     <div
                       style={{
@@ -502,7 +508,7 @@ function SeeAllPageTab(): JSX.Element {
               },
               {
                 key: '3',
-                label: <span className="typ-reg">Configure demo modal style</span>,
+                label: <span className="typ-reg">Configure demo modal</span>,
                 children: (
                   <>
                     <div
@@ -524,7 +530,7 @@ function SeeAllPageTab(): JSX.Element {
                           Body styles
                         </div>
                         <p className="typ-sm">
-                          When a demo is clicked, a modal is opened, configure the style of the modal here.
+                          Configure the style of the modal that is opened on the click of the demo.
                         </p>
                         <SimpleStyleEditor
                           simpleStyle={config.see_all_page.demoModalStyles.body}
@@ -546,7 +552,7 @@ function SeeAllPageTab(): JSX.Element {
                           Overlay styles
                         </div>
                         <p className="typ-sm">
-                          When a demo is clicked, a modal is opened with an overlay on the page, configure the style of the overlay here.
+                          Configure the style of the overlay on the page when the modal is opened.
                         </p>
                         <SimpleStyleEditor
                           simpleStyle={config.see_all_page.demoModalStyles.overlay}

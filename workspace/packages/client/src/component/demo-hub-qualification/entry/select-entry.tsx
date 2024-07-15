@@ -86,9 +86,9 @@ function SelectEntry(props: Props): JSX.Element {
             <div className="line1">
               <div className="opt-title">{option.title}</div>
               {isOptionSelected(option, selectedOptions) ? <Tags.CheckFilledIcon
-                style={{ color: props.entryData.continueCTA.style.bgColor, fontSize: 'calc(1.5rem + 4px)' }}
+                style={{ fontSize: 'calc(1.5rem + 4px)', color: props.entryData.style.borderColor }}
               /> : <Tags.EmptyCircle
-                style={{ color: '#9E9E9E', borderColor: props.entryData.continueCTA.style.borderColor }}
+                style={{ color: '#9E9E9E', borderColor: props.entryData.style.borderColor }}
               />}
             </div>
             {option.desc && (

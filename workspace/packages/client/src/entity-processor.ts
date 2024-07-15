@@ -50,9 +50,10 @@ import {
   SiteData,
   SiteDateKeysWithProperty,
   P_RespDemoHub,
-  IDemoHubConfig
+  IDemoHubConfig,
+  SimpleStyle
 } from './types';
-import { getDefaultSiteData, isVideoAnnotation as isVideoAnn } from './utils';
+import { getDefaultSiteData, getSampleDemoHubConfig, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 import { FeatureForPlan, FeaturePerPlan, PlanDetail } from './plans';
 
@@ -976,9 +977,10 @@ export function processDemoHubConfig(
   data: P_RespDemoHub,
   demoHub: IDemoHubConfig,
 ): IDemoHubConfig {
+  const normalizedDemoHub = normalizeBackwardCompatibilityDemoHubConfig(demoHub);
   return {
-    ...demoHub,
-    cta: demoHub.cta.map(cta => {
+    ...normalizedDemoHub,
+    cta: normalizedDemoHub.cta.map(cta => {
       if (cta.id === 'see-all-demos') {
         cta.link = `/hub/seeall/${data.rid}`;
       }
@@ -986,6 +988,64 @@ export function processDemoHubConfig(
       return cta;
     })
   };
+}
+
+function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) : IDemoHubConfig {
+  demoHub = {
+    ...getSampleDemoHubConfig(),
+    ...demoHub,
+  };
+
+  if (typeof (demoHub.see_all_page.demoModalStyles.overlay as SimpleStyle).fontColor === 'string') {
+    delete (demoHub.see_all_page.demoModalStyles.overlay as any).fontColor;
+  }
+
+  if (typeof (demoHub.qualification_page.header.style as SimpleStyle).borderColor === 'string') {
+    delete (demoHub.qualification_page.header.style as any).borderColor;
+  }
+
+  if (typeof (demoHub.see_all_page.header.style as SimpleStyle).borderColor === 'string') {
+    delete (demoHub.see_all_page.header.style as any).borderColor;
+  }
+
+  demoHub.cta.forEach(btn => {
+    if (typeof (btn.style as SimpleStyle).borderColor === 'string') {
+      delete (btn.style as any).borderColor;
+    }
+    if ((btn.type as string) === 'solid') {
+      btn.type = 'primary';
+    }
+  });
+
+  demoHub.qualification_page.qualifications.forEach((qual) => {
+    if (typeof (qual.sidePanel.conStyle as SimpleStyle).borderRadius === 'number') {
+      delete (qual.sidePanel.conStyle as any).borderRadius;
+    }
+
+    qual.entries.forEach(qualEntry => {
+      if (typeof (qualEntry.continueCTA.style as SimpleStyle).borderColor === 'string') {
+        delete (qualEntry.continueCTA.style as any).borderColor;
+      }
+      if (typeof (qualEntry.continueCTA.style as SimpleStyle).bgColor === 'string') {
+        delete (qualEntry.continueCTA.style as any).bgColor;
+      }
+      if (typeof (qualEntry.skipCTA.style as SimpleStyle).borderColor === 'string') {
+        delete (qualEntry.skipCTA.style as any).borderColor;
+      }
+      if (typeof (qualEntry.skipCTA.style as SimpleStyle).bgColor === 'string') {
+        delete (qualEntry.skipCTA.style as any).bgColor;
+      }
+
+      if ((qualEntry.continueCTA.type as string) === 'solid') {
+        qualEntry.continueCTA.type = 'primary';
+      }
+
+      if ((qualEntry.skipCTA.type as string) === 'solid') {
+        qualEntry.skipCTA.type = 'primary';
+      }
+    });
+  });
+  return demoHub;
 }
 
 function getDHConfigFileUri(dh: RespDemoEntity, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {

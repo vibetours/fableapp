@@ -6,6 +6,10 @@ import { SimpleStyle } from '../../types';
 interface Props {
   simpleStyle: Partial<SimpleStyle>;
   simpleStyleUpdateFn: <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
+  bgColorTitle ?: string;
+  borderColorTitle ?: string;
+  fontColorTitle ?: string;
+  borderRadiusTitle ?: string;
 }
 
 export default function SimpleStyleEditor(props: Props): JSX.Element {
@@ -25,7 +29,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
               marginBottom: '0.25rem'
             }}
           >
-            Background Color
+            { props.bgColorTitle || 'Background color'}
           </div>
           <GTags.ColorPicker
             style={{
@@ -47,7 +51,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
               marginBottom: '0.25rem'
             }}
           >
-            Border Color
+            {props.borderColorTitle || 'Border color'}
           </div>
           <GTags.ColorPicker
             style={{
@@ -69,7 +73,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
               marginBottom: '0.25rem'
             }}
           >
-            Font Color
+            {props.fontColorTitle || 'Font color'}
           </div>
           <GTags.ColorPicker
             style={{
@@ -91,7 +95,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
               marginBottom: '0.25rem'
             }}
           >
-            Border Radius
+            {props.borderRadiusTitle || 'Border radius'}
           </div>
           <InputNumberBorderRadius
             onChange={e => props.simpleStyleUpdateFn('borderRadius', e ? +e : 0)}

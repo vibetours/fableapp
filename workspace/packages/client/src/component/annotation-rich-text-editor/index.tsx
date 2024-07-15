@@ -10,11 +10,8 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $rootTextContent } from '@lexical/text';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { ITourDataOpts } from '@fable/common/dist/types';
 import { EditorState, LexicalEditor, $getRoot, $insertNodes, TextNode, LexicalNode, ParagraphNode } from 'lexical';
 import { SaveOutlined, } from '@ant-design/icons';
-import { getRandomId } from '@fable/common/dist/utils';
-import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import ToolbarPlugin from './plugins/toolbar-plugin';
 import ImageUploadPlugin from './plugins/image-upload-plugin';
 import Theme from './themes';
@@ -24,7 +21,7 @@ import { ExtendedTextNode } from './nodes/extended-text-node';
 import { EditorBlurPlugin } from './plugins/editor-blur-plugin';
 import LeadFormPlugin from './plugins/lead-form-plugin';
 import { LeadFormNode } from './nodes/lead-form-node';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespSubscription } from '../../entity-processor';
 import { FeatureAvailability } from '../../types';
 import { ExtendedLinkNode } from './nodes/extended-link-node';
 import { ExtendedAutoLinkNode } from './nodes/extended-auto-link-node';
@@ -67,8 +64,6 @@ interface Props {
   leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
   updatePrimaryKey: (primaryKey: string) => void;
-  updateTourProp?: <T extends keyof ReqTourPropUpdate>(rid: string, tourProp: T, value: ReqTourPropUpdate[T]) => void;
-  tour?: P_RespTour;
 }
 
 interface PluginProps {
@@ -156,8 +151,6 @@ export default function AnnotationRichTextEditor(props: React.PropsWithChildren<
           <LeadFormPlugin
             lfPkf={props.lfPkf}
             updatePrimaryKey={props.updatePrimaryKey}
-            tour={props.tour}
-            updateTourProp={props.updateTourProp}
           />
           <AutoLinkPlugin />
           <ImageUploadPlugin isModalOpen={isModalOpen} modalControls={modalControls} />

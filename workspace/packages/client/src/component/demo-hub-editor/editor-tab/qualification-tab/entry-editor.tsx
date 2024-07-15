@@ -40,12 +40,12 @@ interface Props {
 
   updateEntryContinueCtaText: (text: string) => void;
   updateEntryContinueCtaIconPlacement: (iconPlacement: 'left' | 'right') => void;
-  updateEntryContinueCtaType: (type: 'link' | 'solid' | 'outline') => void;
+  updateEntryContinueCtaType: (type: DemoHubConfigCtaTypeType) => void;
   updateEntryContinueCtaStyles: <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
 
   updateEntrySkipCtaText: (text: string) => void;
   updateEntrySkipCtaIconPlacement: (iconPlacement: 'left' | 'right') => void;
-  updateEntrySkipCtaType: (type: 'link' | 'solid' | 'outline') => void;
+  updateEntrySkipCtaType: (type: DemoHubConfigCtaTypeType) => void;
   updateEntrySkipCtaStyles: <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
 
   addSelectEntryOption: () => void;
@@ -207,6 +207,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                       <SimpleStyleEditor
                         simpleStyle={props.entry.style}
                         simpleStyleUpdateFn={props.updateEntryStyles}
+                        borderColorTitle="Accent color"
                       />
                     </div>
                   </>
@@ -225,7 +226,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                           children: (
                             <>
                               <p className="typ-sm">
-                                Continue CTA is displayed once your buyers qualify themself by choosing an option.
+                                This call-to-action is displayed after the buyer has provided a response to the question
                               </p>
                               <div
                                 key={1}
@@ -293,7 +294,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                           children: (
                             <>
                               <p className="typ-sm">
-                                You can optionally make a step skippable by configuring a Skip CTA.
+                                This configuration will allow you to provide the buyer with an option to skip the step
                               </p>
                               <div
                                 key={1}
@@ -395,30 +396,27 @@ export default function EntryEditor(props: Props): JSX.Element {
                               {...provided.droppableProps}
                               ref={provided.innerRef}
                             >
-                              {(props.entry as SelectEntry).options.map((option, index) => {
-                                // const cta = getCtaById(config, ctaId);
-                                () => { };
-
-                                return (
-                                  <Draggable
-                                    key={option.id}
-                                    draggableId={option.id + index}
-                                    index={index}
-                                  >
-                                    {(providedInner, snapshotInner) => (
-                                      <OptionEditor
-                                        deleteEntryOption={() => props.deleteEntryOption(option.id)}
-                                        deleteDemoInEntryOption={props.deleteDemoInEntryOption(option.id)}
-                                        addDemoInEntryOption={props.addDemoInEntryOption(option.id)}
-                                        updateOptionTitle={props.updateOptionTitle(option.id)}
-                                        updateOptionDesc={props.updateOptionDesc(option.id)}
-                                        option={option}
-                                        providedInner={providedInner}
-                                      />
-                                    )}
-                                  </Draggable>
-                                );
-                              })}
+                              {(props.entry as SelectEntry).options.map((option, index) => (
+                                <Draggable
+                                  key={option.id}
+                                  draggableId={option.id + index}
+                                  index={index}
+                                >
+                                  {(providedInner, snapshotInner) => (
+                                    <OptionEditor
+                                      entry={props.entry}
+                                      qualification={props.qualification}
+                                      deleteEntryOption={() => props.deleteEntryOption(option.id)}
+                                      deleteDemoInEntryOption={props.deleteDemoInEntryOption(option.id)}
+                                      addDemoInEntryOption={props.addDemoInEntryOption(option.id)}
+                                      updateOptionTitle={props.updateOptionTitle(option.id)}
+                                      updateOptionDesc={props.updateOptionDesc(option.id)}
+                                      option={option}
+                                      providedInner={providedInner}
+                                    />
+                                  )}
+                                </Draggable>
+                              ))}
 
                               {provided.placeholder}
                             </div>

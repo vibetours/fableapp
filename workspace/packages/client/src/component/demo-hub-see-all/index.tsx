@@ -8,11 +8,12 @@ import Header from './header';
 import { isLeadFormPresent, validateInput } from '../annotation/utils';
 import Button from '../button';
 import * as GTags from '../../common-styled';
-import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl } from '../../utils';
+import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, objectToSearchParams } from '../../utils';
 import './index.css';
 
 interface Props {
   config: IDemoHubConfig;
+  demoParams: Record<string, any>;
 }
 
 const GlobalStyle = createGlobalStyle<{fontSize: number}>`
@@ -109,7 +110,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
     }
     rootSheet.current.innerHTML = `
       :root {
-        --f-header-border-color: ${props.config.see_all_page.header.style.borderColor};
+        --f-header-border-color: ${props.config.see_all_page.header.style.bgColor};
         --f-header-font-color: ${props.config.see_all_page.header.style.fontColor};
         --f-header-bg-color: ${props.config.see_all_page.header.style.bgColor};
         --f-body-bg-color: ${props.config.see_all_page.body.style.bgColor};
@@ -330,7 +331,8 @@ function DemoHubSeeAll(props: Props): JSX.Element {
             <iframe
               width="100%"
               height="100%"
-              src={`${location.origin}/embed/demo/${demoRid}?skiplf=1&${paramsFromLeadForm}`}
+              // eslint-disable-next-line max-len
+              src={`${location.origin}/embed/demo/${demoRid}?${paramsFromLeadForm}&${objectToSearchParams(props.demoParams)}`}
               allowFullScreen
               title={demoRid}
               style={{ border: 'none' }}

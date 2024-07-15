@@ -6,7 +6,6 @@ export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
   textarea {
     height: ${props => (props.size === 'large' ? 140 : 100)}px;
     width: 100%;
-    border: 1px solid #D9D9D9;
     border-radius: 8px;
     box-sizing: border-box;
     padding: 16px;
@@ -15,6 +14,7 @@ export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
     color: #16023E;
     min-height: 60px;
     resize: vertical;
+    border: 1px dashed #BDBDBD;
   }
   
   .label {
@@ -33,11 +33,15 @@ export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
   
   textarea:focus {
     outline: none;
-    border: 2px solid #7567ff;
+    border: 1px solid #747474;
   }
 
   textarea:active {
-    border: 2px solid #7567ff;
+    border: 1px solid #747474;
+  }
+
+  textarea:hover {
+    border: 1px solid #747474;
   }
   
   textarea:focus+.label .text {

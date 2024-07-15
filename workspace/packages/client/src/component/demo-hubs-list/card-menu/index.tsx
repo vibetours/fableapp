@@ -22,7 +22,7 @@ function DemoOptionsMenu(props : Props) : JSX.Element {
               props.changeModalState({ type: 'rename', show: true });
             }}
           >
-            <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Demo hub
+            <EditOutlined />&nbsp;&nbsp;&nbsp;Rename demo hub
           </GTags.PopoverMenuItem>
           <GTags.PopoverMenuItemDivider color="#ff735050" />
           <GTags.PopoverMenuItem
@@ -33,7 +33,7 @@ function DemoOptionsMenu(props : Props) : JSX.Element {
               color: '#ff7350'
             }}
           >
-            <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete Demo
+            <DeleteOutlined />&nbsp;&nbsp;&nbsp;Delete demo hub
           </GTags.PopoverMenuItem>
         </div>
       }

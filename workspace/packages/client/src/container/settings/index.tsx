@@ -444,6 +444,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                                         size="medium"
                                         intent="secondary"
                                         style={{
+                                          background: '#fff'
                                         }}
                                         onClick={async () => {
                                           confirm({

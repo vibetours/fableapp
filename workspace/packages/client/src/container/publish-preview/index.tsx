@@ -234,7 +234,13 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         >
           {this.state.showReplayOverlay && (
             <div className="replay-overlay" style={{ height, width }}>
-              <Button intent="secondary" icon={<UndoOutlined />} iconPlacement="left" onClick={this.handleReplayClick}>
+              <Button
+                intent="secondary"
+                icon={<UndoOutlined />}
+                iconPlacement="left"
+                style={{ background: '#fff' }}
+                onClick={this.handleReplayClick}
+              >
                 Replay
               </Button>
 

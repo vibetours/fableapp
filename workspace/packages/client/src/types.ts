@@ -395,7 +395,7 @@ export type DemoHubPreviewMsgData = DemoHubPreviewUpdateMsgData | DemoHubPreview
 
 export type OnDemoHubConfigChangeFn = (demoHubConfig: IDemoHubConfig) => void
 
-export const DemoHubConfigCtaType = ['solid', 'outline', 'link'] as const;
+export const DemoHubConfigCtaType = ['primary', 'outline', 'link'] as const;
 export declare type DemoHubConfigCtaTypeType = typeof DemoHubConfigCtaType[number];
 
 export interface IDemoHubConfigCta {
@@ -413,7 +413,7 @@ export interface IDemoHubConfigCta {
   // Those are 'system' defined
   __definedBy: 'system' | 'user';
   type: DemoHubConfigCtaTypeType;
-  style: SimpleStyle;
+  style: Omit<SimpleStyle, 'borderColor'>;
 }
 
 export interface IDemoHubConfigSeeAllPageSection {
@@ -447,7 +447,7 @@ export interface IDemoHubConfigQualification {
   // STANDARD_CLASS_NAME `sidepanel-con` `sidepanel-card` `sidepanel-sticy-cta`
   // `sidepanel-card-title` `sidepanel-card-desc-text`
   sidePanel: {
-    conStyle: SimpleStyle;
+    conStyle: Omit<SimpleStyle, 'borderRadius'>;
     cardStyle: SimpleStyle;
   }
   qualificationEndCTA: string[];
@@ -484,7 +484,7 @@ export interface IDemoHubConfig {
     //  cta con `cta-con`
     header: {
       title: string;
-      style: Omit<SimpleStyle, 'borderRadius'>;
+      style: Omit<SimpleStyle, 'borderRadius' | 'borderColor'>;
       // id of the ctas
       ctas: string[]
     };
@@ -504,7 +504,7 @@ export interface IDemoHubConfig {
     // container `demo-card`, thumbnail `thumb`, title `title`
     demoCardStyles: SimpleStyle;
     demoModalStyles: {
-      overlay: Omit<SimpleStyle, 'borderColor' | 'borderRadius'>;
+      overlay: Omit<SimpleStyle, 'borderColor' | 'borderRadius' | 'fontColor'>;
       body: SimpleStyle;
     },
     showLeadForm: boolean;
@@ -515,7 +515,7 @@ export interface IDemoHubConfig {
     //  cta con `cta-con`
     header: {
       title: string;
-      style: Omit<SimpleStyle, 'borderRadius'>;
+      style: Omit<SimpleStyle, 'borderRadius' | 'borderColor'>;
       // id of the ctas
       ctas: string[];
     };
@@ -581,8 +581,9 @@ export interface EntryBase {
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system';
-    type: 'solid' | 'outline' | 'link';
-    style: SimpleStyle;
+    type: DemoHubConfigCtaTypeType;
+    style: Omit<SimpleStyle, 'bgColor' | 'borderColor'>;
+
   };
   // If skip button is not present then this is undefined
   // STANDARD-CLASS-NAME `cta-$skip`
@@ -598,8 +599,8 @@ export interface EntryBase {
     // by default fable adds two cta 1. See all demos & 2. Book a demo
     // Those are 'system' defined
     __definedBy: 'system';
-    type: 'solid' | 'outline' | 'link';
-    style: SimpleStyle;
+    type: DemoHubConfigCtaTypeType;
+    style: Omit<SimpleStyle, 'bgColor' | 'borderColor'>;
   }
   showSkipCta: boolean;
 }

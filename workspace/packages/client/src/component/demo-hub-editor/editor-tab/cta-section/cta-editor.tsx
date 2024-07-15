@@ -58,7 +58,7 @@ export default function CtaEditor(props: Props): JSX.Element {
             gap: '0.25rem',
           }}
         >
-          <div className="typ-sm">Button Text</div>
+          <div className="typ-sm">Button text</div>
           <InputText
             type="text"
             defaultValue={props.cta.text}
@@ -74,7 +74,7 @@ export default function CtaEditor(props: Props): JSX.Element {
             gap: '0.25rem',
           }}
         >
-          <div className="typ-sm">CTA Type</div>
+          <div className="typ-sm">CTA type</div>
           <GTags.FableSelect
             className="typ-ip"
             defaultValue={props.cta.type}

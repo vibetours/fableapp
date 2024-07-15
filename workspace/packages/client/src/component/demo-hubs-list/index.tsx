@@ -135,7 +135,7 @@ function DemoHubsList(props: Props): JSX.Element {
         )}
       >
         <Tags.ModalContainer>
-          <div className="modal-title">Create new Demo hub</div>
+          <div className="modal-title">Create a new demo hub</div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -144,7 +144,7 @@ function DemoHubsList(props: Props): JSX.Element {
             style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
           >
             <Input
-              label="Give a name for this demo hub"
+              label="New demo hub name"
               value={newDemoHubName}
               onChange={(e) => setNewDemoHubName(e.target.value)}
               type="text"

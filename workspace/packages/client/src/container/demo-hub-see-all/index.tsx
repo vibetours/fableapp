@@ -37,6 +37,7 @@ type IProps = IOwnProps &
 
 type IOwnStateProps = {
   config: IDemoHubConfig | null;
+  demoParams: Record<string, any>;
 }
 
 class DemoHubSeeAll extends React.PureComponent<IProps, IOwnStateProps> {
@@ -46,6 +47,7 @@ class DemoHubSeeAll extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       config: null,
+      demoParams: {},
     };
   }
 
@@ -61,6 +63,10 @@ class DemoHubSeeAll extends React.PureComponent<IProps, IOwnStateProps> {
       window.parent.postMessage({ type: DemoHubPreviewEnumMsgType.PREVIEW_INIT }, '*');
     } else {
       this.props.loadDemoHubAndData(this.props.match.params.demoHubRid, !this.props.staging);
+    }
+
+    if (this.isLivePreviewInEditor || this.props.staging) {
+      this.setState({ demoParams: { staging: true } });
     }
   }
 
@@ -88,11 +94,12 @@ class DemoHubSeeAll extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): JSX.Element {
     // TODO add loader here
-    if (!this.state.config) return <>Loading...</>;
+    if (!this.state.config) return <></>;
 
     return (
       <SeeAll
         config={this.state.config}
+        demoParams={this.state.demoParams}
       />
     );
   }

@@ -95,8 +95,6 @@ export const StepDesc = styled.p<{styleData: SimpleStyle}>`
 
 export const ContinueSkipCTA = styled.button<{data: EntryBase['continueCTA']}>`
   color: ${p => p.data.style.fontColor};
-  background-color: ${p => p.data.style.bgColor};
-  border-color: ${p => p.data.style.borderColor};
   border-radius: ${p => p.data.style.borderRadius}px;
 `;
 

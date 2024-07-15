@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Tabs, Button as AntButton } from 'antd';
-import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { ReqDemoHubPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CaretRightOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import EditorTab from './editor-tab';
@@ -28,6 +28,7 @@ interface Props {
   principal: RespUser | null;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
+  updateDemoHubProp: <T extends keyof ReqDemoHubPropUpdate>(rid: string, demoHubProp: T, value: ReqDemoHubPropUpdate[T]) => void;
 }
 
 function DemoHubEditor(props: Props): JSX.Element {
@@ -45,6 +46,7 @@ function DemoHubEditor(props: Props): JSX.Element {
       tours: props.tours.filter(tour => tour.lastPublishedDate),
       data: props.data,
       setPreviewUrl,
+      updateDemoHubProp: props.updateDemoHubProp,
     }),
     [config, props.tours]
   );

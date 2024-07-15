@@ -112,6 +112,7 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <Editor
+        updateDemoHubProp={this.props.updateDemoHubProp}
         data={this.props.data!}
         config={this.props.config!}
         onConfigChange={this.onDemoHubConfigChange}

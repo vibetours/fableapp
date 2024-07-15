@@ -804,6 +804,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
                         <Tags.AnnContentOverlay>
                           <Button
+                            style={{ background: '#fff' }}
                             intent="secondary"
                           >
                             Select
@@ -867,6 +868,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         />
                         <Tags.AnnContentOverlay>
                           <Button
+                            style={{ background: '#fff' }}
                             intent="secondary"
                           >
                             Select

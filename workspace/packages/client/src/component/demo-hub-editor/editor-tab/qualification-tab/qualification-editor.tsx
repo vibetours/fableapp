@@ -4,11 +4,11 @@ import { Button, Collapse, Popover, Tooltip } from 'antd';
 import { DeleteOutlined, EditOutlined, HolderOutlined, PlusOutlined } from '@ant-design/icons';
 import { DragDropContext, Draggable, Droppable, DropResult } from 'react-beautiful-dnd';
 import CustomBtn from '../../../button';
-import { IDemoHubConfig, IDemoHubConfigDemo, IDemoHubConfigQualification, SelectEntry, SimpleStyle } from '../../../../types';
+import { DemoHubConfigCtaTypeType, IDemoHubConfig, IDemoHubConfigDemo, IDemoHubConfigQualification, SelectEntry, SimpleStyle } from '../../../../types';
 import { useEditorCtx } from '../../ctx';
 import SimpleStyleEditor from '../../simple-styles-editor';
 import CaretOutlined from '../../../icons/caret-outlined';
-import { getCtaById, stringToSlug } from '../../utils';
+import { getCtaById, getNewIndex, stringToSlug } from '../../utils';
 import * as GTags from '../../../../common-styled';
 import {
   getSampleBaseEntry,
@@ -225,7 +225,7 @@ function SidePanelCta(ctaProps: SidePanelCtaProps): JSX.Element {
         >
           <PlusOutlined />
           <div>
-            Add a CTA
+            Select a CTA
           </div>
         </GTags.OurLink>
       </Popover>
@@ -518,7 +518,10 @@ export default function QualificationEditor(props: Props): JSX.Element {
           1,
           {
             ...props.qualification,
-            entries: [...props.qualification.entries, getSampleSelectEntry(type)]
+            entries: [
+              ...props.qualification.entries,
+              getSampleSelectEntry(type, getNewIndex(props.qualification.entries.map(ct => ct.title), 'What\'s your role in company?') + 1),
+            ]
           }
         );
 
@@ -547,7 +550,10 @@ export default function QualificationEditor(props: Props): JSX.Element {
           1,
           {
             ...props.qualification,
-            entries: [...props.qualification.entries, getSampleBaseEntry(type)]
+            entries: [
+              ...props.qualification.entries,
+              getSampleBaseEntry(type, getNewIndex(props.qualification.entries.map(ct => ct.title), 'Sample Step Title') + 1),
+            ]
           }
         );
 
@@ -977,7 +983,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
   const updateEntryCtaType = (
     entryId: string,
     ctaType: 'continueCTA' | 'skipCTA'
-  ) => (type: 'link' | 'solid' | 'outline') => {
+  ) => (type: DemoHubConfigCtaTypeType) => {
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -1370,7 +1376,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
               padding: '0.25rem 0rem',
             }}
           >
-            Slug is /{props.qualification.slug}
+            URL slug /{props.qualification.slug}
           </div>
         </div>
         <div
@@ -1415,7 +1421,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                 children: (
                   <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
                     <p className="typ-sm">
-                      Name of the qualification is used to genrate url slug of page.
+                      Name of the criteria that is used to generate the URL slug of the page
                     </p>
                     <div
                       style={{
@@ -1436,70 +1442,6 @@ export default function QualificationEditor(props: Props): JSX.Element {
                 )
               },
               {
-                key: 'Side Panel',
-                label: <span className="typ-reg">Side panel</span>,
-                children: (
-                  <>
-                    <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
-                      <p className="typ-sm">
-                        Qualification page has a side panel where your buyers can see overview of the criteria & demos that are available to them.
-                      </p>
-                      <p className="typ-sm">
-                        Add a qualification step below to see this sidepanel changes.
-                      </p>
-                      <div
-                        className="typ-reg"
-                        style={{
-                          fontWeight: 500,
-                          marginTop: '1rem',
-                          opacity: '0.75'
-                        }}
-                      >
-                        Card style
-                      </div>
-                      <p
-                        className="typ-sm"
-                        style={{
-                          marginTop: 0,
-                          marginBottom: '0.5rem'
-                        }}
-                      >
-                        Style step cards in the side panel.
-                      </p>
-                      <SimpleStyleEditor
-                        simpleStyle={props.qualification.sidePanel.cardStyle}
-                        simpleStyleUpdateFn={updateCardStyle}
-                      />
-                    </div>
-                    <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
-                      <div
-                        className="typ-reg"
-                        style={{
-                          fontWeight: 500,
-                          marginTop: '1rem',
-                          opacity: '0.75'
-                        }}
-                      >
-                        Container style
-                      </div>
-                      <p
-                        className="typ-sm"
-                        style={{
-                          marginTop: 0,
-                          marginBottom: '0.5rem'
-                        }}
-                      >
-                        Style sidepanel container
-                      </p>
-                      <SimpleStyleEditor
-                        simpleStyle={props.qualification.sidePanel.conStyle}
-                        simpleStyleUpdateFn={updateConStyle}
-                      />
-                    </div>
-                  </>
-                )
-              },
-              {
                 key: 'CTA',
                 label: <span className="typ-reg">CTA</span>,
                 children: (
@@ -1511,7 +1453,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      You can configure CTAs in this page that'll be shown to buyers at different stages of their journey.
+                      Configure call-to-actions buttons shown in the qualification page
                     </p>
                     <Collapse
                       items={[
@@ -1528,7 +1470,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                               addCta={addSidepanelCta}
                               qualification={props.qualification}
                               ctaType="sidepanelCTA"
-                              helpText="These CTAs are always displayed in the side panel"
+                              helpText="These call- to-action buttons are always displayed in the side panel"
                             />
                           )
                         },
@@ -1545,7 +1487,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                               addCta={addSidepanelEndCta}
                               qualification={props.qualification}
                               ctaType="qualificationEndCTA"
-                              helpText="These CTAs are shown to your buyer when they finish viewing all the demos."
+                              helpText="These call-to-action buttons are displayed at the end of viewing all the demos"
                             />
                           )
                         }
@@ -1566,7 +1508,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      You can add multiples steps (or criteria) to create a personalized demo experience for your buyers.
+                      Configure multiple steps to create a personalized demo journey for your buyers.
                     </p>
                     <p
                       className="typ-sm"
@@ -1575,10 +1517,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      In each step you can ask a question to your buyers and based on their answer you can deliver a customized experience to them.
+                      At each step, you can ask the buyer a question and based on their response,
+                      you can deliver specific demos thereby having a very personalized journey for each buyer.
                     </p>
                     <p className="typ-sm">
-                      All the steps are shown in the side panel.
+                      All the steps configured here are shown in the side panel of the qualification page.
                     </p>
                     <DragDropContext
                       onDragEnd={rearrangeEntries}
@@ -1720,7 +1663,72 @@ export default function QualificationEditor(props: Props): JSX.Element {
                     </Popover>
                   </>
                 )
-              }
+              },
+              {
+                key: 'Side Panel',
+                label: <span className="typ-reg">Side panel</span>,
+                children: (
+                  <>
+                    <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
+                      <p className="typ-sm">
+                        The qualification page has a side panel where the buyers can see the
+                        overview of criteria and the demos for each selection.
+                      </p>
+                      <p className="typ-sm">
+                        Add a qualification step below to see this sidepanel changes.
+                      </p>
+                      <div
+                        className="typ-reg"
+                        style={{
+                          fontWeight: 500,
+                          marginTop: '1rem',
+                          opacity: '0.75'
+                        }}
+                      >
+                        Card style
+                      </div>
+                      <p
+                        className="typ-sm"
+                        style={{
+                          marginTop: 0,
+                          marginBottom: '0.5rem'
+                        }}
+                      >
+                        Configure the style of step cards shown in the side panel
+                      </p>
+                      <SimpleStyleEditor
+                        simpleStyle={props.qualification.sidePanel.cardStyle}
+                        simpleStyleUpdateFn={updateCardStyle}
+                      />
+                    </div>
+                    <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
+                      <div
+                        className="typ-reg"
+                        style={{
+                          fontWeight: 500,
+                          marginTop: '1rem',
+                          opacity: '0.75'
+                        }}
+                      >
+                        Container style
+                      </div>
+                      <p
+                        className="typ-sm"
+                        style={{
+                          marginTop: 0,
+                          marginBottom: '0.5rem'
+                        }}
+                      >
+                        Configure the style of the side panel
+                      </p>
+                      <SimpleStyleEditor
+                        simpleStyle={props.qualification.sidePanel.conStyle}
+                        simpleStyleUpdateFn={updateConStyle}
+                      />
+                    </div>
+                  </>
+                )
+              },
               ]
             }
           />

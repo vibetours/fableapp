@@ -28,8 +28,6 @@ interface Props {
 
 function BaseEntry(props: Props): JSX.Element {
   // TODO[dh-now] move this to appropriate location
-  props.entryBaseData.continueCTA.style.bgColor = props.entryBaseData.style.borderColor;
-  props.entryBaseData.continueCTA.style.borderColor = props.entryBaseData.style.borderColor;
 
   return (
     <reactanimated.Animated
@@ -85,12 +83,17 @@ function BaseEntry(props: Props): JSX.Element {
 function CTAs(props: Props) {
   const { qualificationConfig, config } = useDemoHubQlfcnCtx();
 
+  const skipContBtnBgColor = props.entryBaseData.style.borderColor;
+  const skipContBtnBorderColor = props.entryBaseData.style.borderColor;
+
   return (
     <Tags.BaseEntryCTACon className="cta-con">
       {!props.hideSkip && props.entryBaseData.showSkipCta && (
       <EntryButton
         data={props.entryBaseData.skipCTA}
         onClick={props.onSkip}
+        bgColor={skipContBtnBgColor}
+        borderColor={skipContBtnBorderColor}
         disabled={false}
         icon={<FastForwardOutlined />}
       />
@@ -99,6 +102,8 @@ function CTAs(props: Props) {
       <EntryButton
         data={props.entryBaseData.continueCTA}
         onClick={props.goToNext}
+        bgColor={skipContBtnBgColor}
+        borderColor={skipContBtnBorderColor}
         disabled={props.isContBtnDisabled || false}
         icon={<ArrowRightOutlined />}
       />

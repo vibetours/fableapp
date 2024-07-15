@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, HolderOutlined } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
 import React, { useState } from 'react';
-import { DraggableProvided } from 'react-beautiful-dnd';
+import { DragDropContext, Draggable, DraggableProvided, Droppable, DropResult } from 'react-beautiful-dnd';
 import { IDemoHubConfigSeeAllPageSection, IDemoHubConfigDemo, SimpleStyle } from '../../../../types';
 import Input from '../../../input';
 import { useEditorCtx } from '../../ctx';
@@ -14,6 +14,7 @@ import { buttonSecStyle } from '../../../screen-editor/annotation-creator-panel'
 import { InputText } from '../../../screen-editor/styled';
 import { showDeleteConfirm } from '../../delete-confirm';
 import FableLogo from '../../../../assets/fable-rounded-icon.svg';
+import { rearrangeArray } from '../../../../utils';
 
 interface Props {
   section: IDemoHubConfigSeeAllPageSection;
@@ -86,6 +87,25 @@ export default function SectionEditor(props: Props): JSX.Element {
     });
   };
 
+  const rearrangeSectionDemos = (r: DropResult): void => {
+    if (!r.destination) return;
+
+    const rearrangedArray = rearrangeArray(props.section.demos, r.source.index, r.destination.index);
+
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        sections: c.see_all_page.sections.map(section => {
+          if (section.id === props.section.id) {
+            return { ...props.section, demos: rearrangedArray };
+          }
+          return section;
+        })
+      }
+    }));
+  };
+
   return (
     <div className={`grooveable ${showEditor ? 'opened' : 'closed'}`}>
       <div
@@ -119,6 +139,7 @@ export default function SectionEditor(props: Props): JSX.Element {
             justifyContent: 'space-between',
             alignItems: 'center',
             flex: 1,
+            gap: '0.3rem'
           }}
         >
           <div>
@@ -193,7 +214,7 @@ export default function SectionEditor(props: Props): JSX.Element {
                   fontSize: '0.7rem'
                 }}
               >
-                Slug is {' '}
+                URL slug {' '}
                 <span
                   style={{
                     backgroundColor: '#e4e4e4',
@@ -236,7 +257,7 @@ export default function SectionEditor(props: Props): JSX.Element {
             simpleStyleUpdateFn={updateCtaSimpleStyle}
           />
           <div>
-            <div className="typ-sm">Select demo to add in the section</div>
+            <div className="typ-sm">Select demos to add in this section</div>
             <GTags.FableSelect
               showSearch
               suffixIcon={<CaretOutlined dir="down" />}
@@ -264,64 +285,118 @@ export default function SectionEditor(props: Props): JSX.Element {
               value=""
             />
           </div>
+
           <div>
             <div style={{ fontWeight: '500' }}>
               Selected demos:
             </div>
             {props.section.demos.length ? (
-              <div
-                style={{
-                  overflowY: 'auto',
-                  maxHeight: '200px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                }}
+              <DragDropContext
+                onDragEnd={rearrangeSectionDemos}
               >
-                {props.section.demos.map(demo => (
-                  <div
-                    key={demo.rid}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      alignItems: 'center'
-                    }}
+                <Droppable
+                  droppableId="droppable"
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
                     >
-                      <img src={FableLogo} height={16} alt="Fable logo" />
-                      <GTags.OurLink
-                        href={`/preview/demo/${demo.rid}`}
-                        target="_blank"
-                        style={{
-                          display: 'inline-block',
-                          margin: 0
-                        }}
-                      >
-                        {demo.name}
-                      </GTags.OurLink>
+                      {props.section.demos.map((demo, index) => (
+                        <Draggable
+                          key={demo.rid}
+                          draggableId={demo.rid + index}
+                          index={index}
+                        >
+                          {(providedInner, snapshotInner) => (
+                            <div
+                              key={demo.rid}
+                              {...providedInner.draggableProps}
+                              ref={providedInner.innerRef}
+                            >
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  marginBottom: '0.75rem',
+                                }}
+                              >
+                                <Tooltip
+                                  placement="left"
+                                  title={<span>Drag to reorder.</span>}
+                                  overlayStyle={{ fontSize: '0.75rem' }}
+                                >
+                                  <Button
+                                    type="text"
+                                    size="small"
+                                    icon={<HolderOutlined
+                                      style={{
+                                        opacity: '0.65',
+                                        fontSize: '14px',
+                                      }}
+                                    />}
+                                    {...providedInner.dragHandleProps}
+                                  />
+                                </Tooltip>
+
+                                <div
+                                  key={demo.rid}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    flex: 1,
+                                  }}
+                                >
+                                  <div style={{
+                                    display: 'flex',
+                                    gap: '0.5rem',
+                                    alignItems: 'center'
+                                  }}
+                                  >
+                                    <img src={FableLogo} height={16} alt="Fable logo" />
+                                    <GTags.OurLink
+                                      href={`/preview/demo/${demo.rid}`}
+                                      target="_blank"
+                                      style={{
+                                        display: 'inline-block',
+                                        margin: 0
+                                      }}
+                                    >
+                                      {demo.name}
+                                    </GTags.OurLink>
+                                  </div>
+                                  <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
+                                    <Button
+                                      icon={<DeleteOutlined />}
+                                      type="text"
+                                      size="small"
+                                      style={buttonSecStyle}
+                                      onClick={() => {
+                                        showDeleteConfirm(
+                                          () => deleteDemoFromSection(demo.rid),
+                                          'Are you sure you want to delete this demo from the section?',
+                                        );
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </div>
+
+                              </div>
+                            </div>
+                          )}
+
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
-                    <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
-                      <Button
-                        icon={<DeleteOutlined />}
-                        type="text"
-                        size="small"
-                        style={buttonSecStyle}
-                        onClick={() => {
-                          showDeleteConfirm(
-                            () => deleteDemoFromSection(demo.rid),
-                            'Are you sure you want to delete this demo from the section?',
-                          );
-                        }}
-                      />
-                    </Tooltip>
-                  </div>
-                ))}
-              </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             ) : (
               <div className="typ-sm">
                 There are no demos in this section. Use the above drop down to select demo for this section.

@@ -77,7 +77,7 @@ function RenameModal(props : Props) : JSX.Element {
     >
 
       <div className="modal-content-cont">
-        <div className="modal-title">Rename Demo hub</div>
+        <div className="modal-title">Rename demo hub</div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -86,7 +86,7 @@ function RenameModal(props : Props) : JSX.Element {
           style={{ paddingTop: '1rem' }}
         >
           <Input
-            label="Rename Demo"
+            label="Rename demo hub"
             value={name}
             onChange={e => setName(e.target.value)}
           />

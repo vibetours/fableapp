@@ -36,3 +36,22 @@ export function stringToSlug(input: string): string {
     .trim()
     .replace(/\s+/g, '-');
 }
+
+function escapeRegExp(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export const getNewIndex = (currentArray: string[], text: string): number => {
+  const result: number[] = [];
+  const escapedText = escapeRegExp(text);
+  const regex = new RegExp(`^${escapedText} (\\d+)$`);
+
+  for (const item of currentArray) {
+    const match = item.match(regex);
+    if (match && match[1]) {
+      result.push(parseInt(match[1], 10));
+    }
+  }
+
+  return Math.max(...result, 0);
+};

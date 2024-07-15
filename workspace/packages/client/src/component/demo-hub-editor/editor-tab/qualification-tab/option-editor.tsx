@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { DraggableProvided } from 'react-beautiful-dnd';
+import { DragDropContext, Draggable, DraggableProvided, Droppable, DropResult } from 'react-beautiful-dnd';
 import { Button, Tooltip } from 'antd';
 import { DeleteOutlined, EditOutlined, HolderOutlined } from '@ant-design/icons';
-import { IDemoHubConfigDemo, SelectEntryOption } from '../../../../types';
+import {
+  IDemoHubConfigDemo,
+  IDemoHubConfigQualification,
+  LeadFormEntry,
+  SelectEntry,
+  SelectEntryOption,
+  TextEntry
+} from '../../../../types';
 import Input from '../../../input';
 import TextArea from '../../../text-area';
 import * as GTags from '../../../../common-styled';
@@ -13,8 +20,12 @@ import * as Tags from '../../styled';
 import { InputText } from '../../../screen-editor/styled';
 import { showDeleteConfirm } from '../../delete-confirm';
 import FableLogo from '../../../../assets/fable-rounded-icon.svg';
+import { rearrangeArray } from '../../../../utils';
+import { buttonSecStyle } from '../../../screen-editor/annotation-creator-panel';
 
 interface Props {
+  entry: SelectEntry | LeadFormEntry | TextEntry;
+  qualification: IDemoHubConfigQualification;
   option: SelectEntryOption;
   providedInner: DraggableProvided;
   updateOptionTitle: (title: string) => void;
@@ -26,7 +37,38 @@ interface Props {
 
 export default function OptionEditor(props: Props): JSX.Element {
   const [showEditor, setShowEditor] = useState(false);
-  const { tours } = useEditorCtx();
+  const { tours, onConfigChange } = useEditorCtx();
+
+  const rearrangeOptionDemos = (r: DropResult): void => {
+    if (!r.destination) return;
+
+    const rearrangedArray = rearrangeArray(props.option.demos, r.source.index, r.destination.index);
+
+    onConfigChange(c => ({
+      ...c,
+      qualification_page: {
+        ...c.qualification_page,
+        qualifications: c.qualification_page.qualifications.map(q => {
+          if (q.id === props.qualification.id) {
+            const newQ = q.entries.map(e => {
+              if (e.id === props.entry.id) {
+                const newOptions = (e as SelectEntry).options.map(o => {
+                  if (o.id === props.option.id) {
+                    return { ...o, demos: rearrangedArray };
+                  }
+                  return o;
+                });
+                return { ...e, options: newOptions };
+              }
+              return e;
+            });
+            return q;
+          }
+          return q;
+        })
+      }
+    }));
+  };
 
   return (
     <div className={`grooveable ${showEditor ? 'opened' : 'closed'}`}>
@@ -77,14 +119,18 @@ export default function OptionEditor(props: Props): JSX.Element {
             >
               {props.option.title}
             </div>
-            <div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
               <Button
-                style={{
-                  border: 'none',
-                  boxShadow: 'unset'
-                }}
-                shape="circle"
                 icon={<DeleteOutlined />}
+                type="text"
+                size="small"
+                style={buttonSecStyle}
                 onClick={() => {
                   showDeleteConfirm(
                     () => {
@@ -95,13 +141,10 @@ export default function OptionEditor(props: Props): JSX.Element {
                 }}
               />
               <Button
-                style={{
-                  border: 'none',
-                  boxShadow: 'unset',
-                  color: showEditor ? '#7567ff' : 'unset'
-                }}
-                shape="circle"
                 icon={<EditOutlined />}
+                type="text"
+                size="small"
+                style={buttonSecStyle}
                 onClick={() => setShowEditor(prevState => !prevState)}
               />
             </div>
@@ -189,52 +232,49 @@ export default function OptionEditor(props: Props): JSX.Element {
               >
                 Selected demos:
               </div>
+
               {props.option.demos.length ? (
-                <div
-                  style={{
-                    overflowY: 'auto',
-                    maxHeight: '200px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  {props.option.demos.map(demo => (
-                    <div
-                      key={demo.rid}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        gap: '0.5rem',
-                        alignItems: 'center'
-                      }}
-                      >
-                        <img src={FableLogo} height={16} alt="Fable logo" />
-                        <div>
-                          {demo.name}
-                        </div>
-                      </div>
-                      <Button
+                <>
+                  {props.option.demos.map((demo, index) => (
+                    <>
+                      <div
+                        key={demo.rid}
                         style={{
-                          border: 'none',
-                          boxShadow: 'unset'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flex: 1,
+                          marginTop: '0.5rem'
                         }}
-                        shape="circle"
-                        icon={<DeleteOutlined />}
-                        onClick={() => {
-                          showDeleteConfirm(
-                            () => props.deleteDemoInEntryOption(demo.rid),
-                            'Are you sure you want to delete this demo from the option?',
-                          );
+                      >
+                        <div style={{
+                          display: 'flex',
+                          gap: '0.5rem',
+                          alignItems: 'center'
                         }}
-                      />
-                    </div>
+                        >
+                          <img src={FableLogo} height={16} alt="Fable logo" />
+                          <div>
+                            {demo.name}
+                          </div>
+                        </div>
+                        <Button
+                          icon={<DeleteOutlined />}
+                          type="text"
+                          size="small"
+                          style={buttonSecStyle}
+                          onClick={() => {
+                            showDeleteConfirm(
+                              () => props.deleteDemoInEntryOption(demo.rid),
+                              'Are you sure you want to delete this demo from the option?',
+                            );
+                          }}
+                        />
+                      </div>
+                    </>
                   ))}
-                </div>
+                </>
+
               ) : (
                 <p className="typ-sm">
                   There are no demos for this option. Please use the above dropdown to select which demos to show when your buyer select this option.

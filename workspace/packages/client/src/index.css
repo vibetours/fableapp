@@ -280,3 +280,11 @@ html, body, div, span, button, p, button, input {
 .demo-hub-bordered-modal {
   padding-bottom: 0px;
 }
+
+.ant-select-item-option-selected{
+  background-color: #e1e1e1 !important;
+}
+
+.ant-color-picker-input-container .ant-input-number, .ant-input-affix-wrapper{
+  border: 1px solid #747474 !important;
+}

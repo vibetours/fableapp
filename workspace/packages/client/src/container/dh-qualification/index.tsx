@@ -40,6 +40,7 @@ type IProps = IOwnProps &
 
 type IOwnStateProps = {
   config: IDemoHubConfig | null;
+  demoParams: Record<string, any>;
 }
 
 class DemoHubQualification extends React.PureComponent<IProps, IOwnStateProps> {
@@ -49,6 +50,7 @@ class DemoHubQualification extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       config: null,
+      demoParams: {},
     };
   }
 
@@ -63,6 +65,10 @@ class DemoHubQualification extends React.PureComponent<IProps, IOwnStateProps> {
       window.parent.postMessage({ type: DemoHubPreviewEnumMsgType.PREVIEW_INIT }, '*');
     } else {
       this.props.loadDemoHubAndData(this.props.match.params.demoHubRid, !this.props.staging);
+    }
+
+    if (this.isLivePreviewInEditor || this.props.staging) {
+      this.setState({ demoParams: { staging: true } });
     }
   }
 
@@ -108,8 +114,7 @@ class DemoHubQualification extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render(): JSX.Element {
-    // TODO add loader here
-    if (!this.state.config) return <>Loading...</>;
+    if (!this.state.config) return <></>;
 
     return (
       <>
@@ -119,6 +124,7 @@ class DemoHubQualification extends React.PureComponent<IProps, IOwnStateProps> {
           stepSlug={this.props.match.params.stepSlug || null}
           demoRid={this.props.match.params.demoRid || null}
           navigateToStep={this.navigateToStep}
+          demoParams={this.state.demoParams}
         />
       </>
     );

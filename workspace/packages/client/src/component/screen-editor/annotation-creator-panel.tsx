@@ -630,8 +630,6 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         }}
         >
           <AnnotationRichTextEditor
-            tour={props.tour}
-            updateTourProp={props.updateTourProp}
             lfPkf={opts.lf_pkf}
             subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {
@@ -648,6 +646,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             leadFormFeatureAvailable={leadFormFeatureAvailable}
             updatePrimaryKey={(primaryKey) => {
               setTourDataOpts(t => updateTourDataOpts(t, 'lf_pkf', primaryKey));
+              props.updateTourProp(props.tour.rid, 'settings', {
+                primaryKey,
+                vpdHeight: props.tour.settings?.vpdHeight || 0,
+                vpdWidth: props.tour.settings?.vpdWidth || 0,
+              });
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>

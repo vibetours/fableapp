@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { EntryProps, SelectStep } from '../type';
 import BaseEntry from './base-entry';
 import { useDemoHubQlfcnCtx } from '../ctx';
-import { isEventValid } from '../../../utils';
+import { isEventValid, objectToSearchParams } from '../../../utils';
 
 interface Props extends EntryProps {
   entryData: SelectStep,
@@ -10,19 +10,11 @@ interface Props extends EntryProps {
 
 function DemoEntry(props: Props): JSX.Element {
   const [searchParamsStr, setSearchParamsStr] = useState<string>('');
-  const { leadFormValues } = useDemoHubQlfcnCtx();
+  const { leadFormValues, demoParams } = useDemoHubQlfcnCtx();
   const [isDemoCompleted, setIsDemoCompleted] = useState(false);
 
-  function objectToSearchParams(obj: Record<string, any>): string {
-    const params = new URLSearchParams();
-    Object.keys(obj).forEach(key => {
-      params.append(key, obj[key]);
-    });
-    return params.toString();
-  }
-
   useEffect(() => {
-    setSearchParamsStr(objectToSearchParams(leadFormValues));
+    setSearchParamsStr(objectToSearchParams({ ...leadFormValues, ...demoParams }));
   }, [leadFormValues]);
 
   const receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation', demoRid: string }>): void => {
@@ -59,7 +51,7 @@ function DemoEntry(props: Props): JSX.Element {
               width="100%"
               height="100%"
               // eslint-disable-next-line max-len
-              src={`${window.location.origin}/embed/demo/${props.entryData.demoData!.rid}?skiplf=1&${searchParamsStr}&${searchParamsStr}`}
+              src={`${window.location.origin}/embed/demo/${props.entryData.demoData!.rid}?skiplf=1&${searchParamsStr}`}
               allowFullScreen
               title={props.entryData.demoData!.rid}
               style={{
