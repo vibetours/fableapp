@@ -1501,7 +1501,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         const navType = btnConf.type;
         if (this.props.shouldSkipLeadForm && (navType === 'next' || navType === 'prev')) {
           while (this.props.shouldSkipLeadForm) {
-            if (!newBtnConf.hotspot) {
+            if (!newBtnConf.hotspot || newBtnConf.hotspot.actionType === 'open') {
               break;
             }
             const [goToScreenId, goToAnnId] = newBtnConf.hotspot.actionValue._val.split('/');

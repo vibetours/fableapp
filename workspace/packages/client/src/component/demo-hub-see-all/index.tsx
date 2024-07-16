@@ -9,7 +9,6 @@ import { isLeadFormPresent, validateInput } from '../annotation/utils';
 import Button from '../button';
 import * as GTags from '../../common-styled';
 import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, objectToSearchParams } from '../../utils';
-import './index.css';
 
 interface Props {
   config: IDemoHubConfig;
@@ -36,7 +35,7 @@ const scrollToSection = (): void => {
 };
 
 export const addFontToHeader = (doc: Document, fontFamily: string):void => {
-  const linkHref = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, '+')}:wght@100..900&display=swap`;
+  const linkHref = `https://fonts.googleapis.com/css?family=${fontFamily.replace(/\s+/g, '+')}`;
   const fableFontEl = doc.getElementById(FABLE_FONT_ID);
   if (!fableFontEl) {
     const link = doc.createElement('link');
@@ -55,10 +54,13 @@ interface Params {
   value: string
 }
 
-const getLeadFormParams = (): string => {
-  let allLfParams = 'skiplf=1';
+const getLeadFormParams = (leadFormFilled: boolean): string => {
+  let allLfParams = '';
   const newUrl = new URL(window.location.href);
 
+  if (leadFormFilled) {
+    allLfParams += 'skiplf=1';
+  }
   newUrl.searchParams.forEach((value, key) => {
     if (key !== 'show' && key !== 'lf') {
       allLfParams += `&${key}=${value}`;
@@ -76,7 +78,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
   const searchParams = new URLSearchParams(location.search);
   const demoRid = searchParams.get('show');
   const leadFormFilled = searchParams.get('lf');
-  const paramsFromLeadForm = getLeadFormParams();
+  const paramsFromLeadForm = getLeadFormParams(Boolean(leadFormFilled));
   const navigate = useNavigate();
   const rootSheet = useRef<HTMLStyleElement | null>(null);
 
@@ -136,7 +138,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
       }
 
       a.cta {
-        font-weight: 500;
+        font-weight: 600;
       }
   `;
   }, [props.config]);
@@ -195,7 +197,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
   };
 
   return (
-    <div className="dh-page">
+    <Tags.RootCon className="dh-page">
       <GlobalStyle fontSize={props.config.baseFontSize} />
       {props.config.see_all_page.showLeadForm && leadFormFilled !== '1' && (
       <Tags.DemoModal
@@ -304,7 +306,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
             <span
               className="typ-h2"
               style={{
-                fontWeight: 500
+                fontWeight: 600
               }}
             >
               {getDemoName(demoRid)}
@@ -342,7 +344,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
         )}
       </>
 
-    </div>
+    </Tags.RootCon>
   );
 }
 

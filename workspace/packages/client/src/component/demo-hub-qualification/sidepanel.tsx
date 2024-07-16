@@ -1,6 +1,5 @@
 import React from 'react';
-import { CheckCircleFilled, CiCircleOutlined, HourglassFilled, HourglassOutlined, Loading3QuartersOutlined, LockOutlined, SendOutlined, StarFilled } from '@ant-design/icons';
-import * as Tags from './styled';
+import { CheckCircleFilled, Loading3QuartersOutlined, LockOutlined, SendOutlined } from '@ant-design/icons';
 import Cta from '../demo-hub-editor/cta';
 import { useDemoHubQlfcnCtx } from './ctx';
 import { SidepanelLinks, StepInfo, } from './type';

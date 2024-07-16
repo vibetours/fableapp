@@ -49,11 +49,12 @@ export const Con = styled.div`
 `;
 
 export const Sidepanel = styled.div`
-  width: 380px;
+  width: 390px;
   background: #F5F5F5;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   z-index: 2;
   overflow-y: auto;
+  min-width: 390px;
 `;
 
 export const SidepanelCon = styled.div`

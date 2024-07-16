@@ -50,7 +50,7 @@ function LeadFormEntry(props: Props): JSX.Element {
         desc: '',
       }}
       isVisible={props.isVisible}
-      hideContinue={!!isFormFilled}
+      hideContinue={false}
       hideSkip
       goToNext={() => {
         const isValid = processLeadForm();

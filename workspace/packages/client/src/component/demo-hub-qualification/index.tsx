@@ -12,7 +12,6 @@ import SelectEntry from './entry/select-entry';
 import * as Tags from './styled';
 import DemoEntry from './entry/demo-entry';
 import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl } from '../../utils';
-import '../demo-hub-see-all/index.css';
 import { addFontToHeader } from '../demo-hub-see-all';
 
 interface Props {
@@ -211,7 +210,7 @@ function DemoHubQualification(props: Props): JSX.Element {
       }
 
       a.cta {
-        font-weight: 500;
+        font-weight: 600;
       }
   `;
   }, [ctxValue.config]);

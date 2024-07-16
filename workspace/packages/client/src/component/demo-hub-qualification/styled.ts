@@ -2,8 +2,9 @@ import styled from 'styled-components';
 import { CheckCircleFilled } from '@ant-design/icons';
 import { getColorContrast } from '../../utils';
 import { EntryBase, SimpleStyle } from '../../types';
+import * as DHTags from '../demo-hub-see-all/styled';
 
-export const RootCon = styled.div`
+export const RootCon = styled(DHTags.DHPage)`
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -196,7 +197,7 @@ export const SelectOption = styled.div<{styleData: SimpleStyle}>`
     overflow: hidden;
     white-space: nowrap;
     max-width: 220px;
-    font-weight: 500;
+    font-weight: 600;
     text-align: left;
     flex: 1 10 auto;
   }

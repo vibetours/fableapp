@@ -1,5 +1,4 @@
 import React from 'react';
-import { TextEntry as TextEntryType } from '../../../types';
 import { EntryProps } from '../type';
 import BaseEntry from './base-entry';
 

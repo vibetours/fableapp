@@ -1,5 +1,4 @@
-import { ReactNode } from 'react';
-import { EntryBase, IDemoHubConfig, LeadFormEntry, SelectEntry, TextEntry } from '../../types';
+import { IDemoHubConfig, LeadFormEntry, SelectEntry, TextEntry } from '../../types';
 
 export type QualificationConfig = IDemoHubConfig['qualification_page']['qualifications'][0];
 

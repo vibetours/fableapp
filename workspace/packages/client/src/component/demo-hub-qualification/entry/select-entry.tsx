@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { EntryBase, IDemoHubConfigDemo, SelectEntry as SelectEntryType } from '../../../types';
+import { IDemoHubConfigDemo, SelectEntry as SelectEntryType } from '../../../types';
 import { useDemoHubQlfcnCtx } from '../ctx';
 import * as Tags from '../styled';
 import { EntryProps } from '../type';

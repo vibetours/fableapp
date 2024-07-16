@@ -14,7 +14,11 @@ function DemoEntry(props: Props): JSX.Element {
   const [isDemoCompleted, setIsDemoCompleted] = useState(false);
 
   useEffect(() => {
-    setSearchParamsStr(objectToSearchParams({ ...leadFormValues, ...demoParams }));
+    const skipLeadform : Record<string, string> = {};
+    if (Object.keys(leadFormValues).length !== 0) {
+      skipLeadform.skiplf = '1';
+    }
+    setSearchParamsStr(objectToSearchParams({ ...leadFormValues, ...demoParams, ...skipLeadform }));
   }, [leadFormValues]);
 
   const receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation', demoRid: string }>): void => {
@@ -51,7 +55,7 @@ function DemoEntry(props: Props): JSX.Element {
               width="100%"
               height="100%"
               // eslint-disable-next-line max-len
-              src={`${window.location.origin}/embed/demo/${props.entryData.demoData!.rid}?skiplf=1&${searchParamsStr}`}
+              src={`${window.location.origin}/embed/demo/${props.entryData.demoData!.rid}?${searchParamsStr}`}
               allowFullScreen
               title={props.entryData.demoData!.rid}
               style={{

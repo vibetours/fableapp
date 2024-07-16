@@ -124,7 +124,13 @@ export default function EntryEditor(props: Props): JSX.Element {
             transform: 'translate(0px, 6px)'
           }}
           >
-            <span>{props.entry.title}</span>
+            <span
+              style={{
+                lineHeight: '1.25'
+              }}
+            >
+              {props.entry.title}
+            </span>
             <span
               className="typ-sm"
               style={{

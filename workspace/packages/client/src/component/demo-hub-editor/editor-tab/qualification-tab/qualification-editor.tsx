@@ -1724,6 +1724,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                       <SimpleStyleEditor
                         simpleStyle={props.qualification.sidePanel.conStyle}
                         simpleStyleUpdateFn={updateConStyle}
+                        bgColorTitle="Accent color"
                       />
                     </div>
                   </>

@@ -1,6 +1,6 @@
-import React, { ReactNode, useEffect } from 'react';
-import { ArrowLeftOutlined, ArrowRightOutlined, FastForwardOutlined } from '@ant-design/icons';
-import { EntryBase, LeadFormEntry, SelectEntry, TextEntry } from '../../../types';
+import React, { ReactNode } from 'react';
+import { ArrowRightOutlined, FastForwardOutlined } from '@ant-design/icons';
+import { LeadFormEntry, SelectEntry, TextEntry } from '../../../types';
 import * as Tags from '../styled';
 import Cta from '../../demo-hub-editor/cta';
 import EntryButton from './button';

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { IDemoHubConfig, SelectEntry, } from '../../types';
+import { IDemoHubConfig, } from '../../types';
 import { QualificationConfig, QualificationStep, SelectedDemosForAnEntry, StepInfo } from './type';
 
 interface DemHubQlfcnCtxProps {

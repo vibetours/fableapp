@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BarsOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 import Cta from '../demo-hub-editor/cta';
