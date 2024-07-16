@@ -6,7 +6,6 @@ import {
   FileAddFilled,
   FileImageOutlined,
   HourglassFilled,
-  HourglassOutlined,
   MobileFilled,
   SisternodeOutlined,
 } from '@ant-design/icons';
@@ -19,7 +18,7 @@ import {
   ScreenData,
   IGlobalConfig
 } from '@fable/common/dist/types';
-import { Modal, Button, Tooltip, Drawer, Radio } from 'antd';
+import { Modal, Button, Tooltip } from 'antd';
 import { ReqTourPropUpdate, Responsiveness } from '@fable/common/dist/api-contract';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
@@ -31,7 +30,6 @@ import { traceEvent } from '@fable/common/dist/amplitude';
 import { interpolate } from 'd3-interpolate';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { createLiteralProperty, getRandomId } from '@fable/common/dist/utils';
-import FableButton from '../button';
 import * as GTags from '../../common-styled';
 import {
   updateGrpIdForTimelineTillEnd,
@@ -43,7 +41,6 @@ import {
   AnnotationSerialIdMap,
   getAnnotationBtn
 } from '../annotation/ops';
-import newScreenDark from '../../assets/new-screen-dark.svg';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
@@ -108,7 +105,6 @@ import { UpdateScreenFn } from '../../action/creator';
 import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
 import { amplitudeOpenResponsivenessDrawer } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
-import UpgradeModal from '../upgrade/upgrade-modal';
 
 const { confirm } = Modal;
 
@@ -1006,6 +1002,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
       type: 'an-btn',
       on: 'click',
       target: '$this',
+      actionType: 'navigate',
       actionValue: createLiteralProperty(
         `${allAnns[toScreenIdx].screen.id}/${allAnns[toScreenIdx].annotations[toAnIdx].refId}`
       ),
