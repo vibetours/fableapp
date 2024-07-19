@@ -11,6 +11,8 @@ import { addToGlobalAppData, initGlobalClock } from '../../global';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
 
+export const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
+
 interface IDispatchProps {
   init: () => void;
 }
@@ -77,6 +79,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
     // don't init for published route as the data is already present in tour file
     const params = new URL(document.location.href).searchParams;
     const isStaging = params.get('staging');
+    addToGlobalAppData('settings', { shouldLogEvent: REACT_APP_ENVIRONMENT !== 'dev' && !isStaging });
     if ((document.location.pathname.startsWith(`/${IFRAME_BASE_URL}/demo`)
       || document.location.pathname.startsWith(`/${LIVE_BASE_URL}/demo`)) && !isStaging) return false;
     // don't init for same origin iframe

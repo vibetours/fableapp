@@ -64,8 +64,6 @@ import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addTo
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 
-export const REACT_APP_ENVIRONMENT = process.env.REACT_APP_ENVIRONMENT as string;
-
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
   loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null) => void,
@@ -569,8 +567,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
     let firstTimeTourLoading = false;
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
-      addToGlobalAppData('settings', { shouldLogEvent: REACT_APP_ENVIRONMENT !== 'dev' && !this.props.staging });
-
       firstTimeTourLoading = true;
       this.handleParams();
       const prerenderCount = shouldReduceMotionForMobile(this.props.tourOpts) ? 1 : 2;
