@@ -171,6 +171,13 @@ export const logEvent = (
     return;
   }
 
+  if (eventName === 'user_assign') {
+    // port event for la
+    const pkKey = eventObj.payload.pk_key;
+    eventObj.payload.pk_field = pkKey;
+    delete eventObj.payload.pk_key;
+  }
+
   api('/la', {
     body: {
       logs: [eventObj]
