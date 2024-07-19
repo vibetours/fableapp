@@ -1,3 +1,4 @@
+import { ArrowLeftOutlined } from '@ant-design/icons';
 import {
   AnnotationButtonStyle,
   AnnotationPositions,
@@ -9,40 +10,34 @@ import {
   ITourDataOpts,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import React, { Suspense, lazy } from 'react';
 import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import FableLogoWithQuill from '../../assets/fableLogo.svg';
-import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
-import HighlighterBase, { Rect } from '../base/hightligher-base';
-import * as Tags from './styled';
-import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
+import React, { Suspense, lazy } from 'react';
 import {
-  getCustomFields,
-  getPrimaryKeyValue,
+  CtaClickedInternal,
+  CtaFrom
+} from '../../analytics/types';
+import { FableLeadContactProps } from '../../global';
+import { emitEvent } from '../../internal-events';
+import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
+import {
   getTransparencyFromHexStr,
+  isAudioAnnotation,
   isCoverAnnotation as isCoverAnn,
   isEventValid,
   isMediaAnnotation as isMediaAnn,
   isVideoAnnotation,
 } from '../../utils';
-import {
-  AnalyticsEvents,
-  AnnotationBtnClickedPayload,
-  CtaClickedInternal,
-  CtaFrom,
-  UserAssignPayload
-} from '../../analytics/types';
-import * as VIDEO_ANN from './media-ann-constants';
-import { AnnotationSerialIdMap, getAnnotationBtn } from './ops';
+import HighlighterBase, { Rect } from '../base/hightligher-base';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
-import { IAnnotationConfigWithScreenId, isAnnCustomPosition } from './annotation-config-utils';
-import { emitEvent } from '../../internal-events';
-import FocusBubble from './focus-bubble';
-import { FableLeadContactProps, getGlobalData } from '../../global';
 import AnnotationWatermark, { WatermarkText } from '../watermark/annotation-watermark';
 import { WatermarkCon } from '../watermark/styled';
+import { IAnnotationConfigWithScreenId, isAnnCustomPosition } from './annotation-config-utils';
+import FocusBubble from './focus-bubble';
+import * as VIDEO_ANN from './media-ann-constants';
+import { getAnnotationBtn } from './ops';
+import * as Tags from './styled';
+import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 
 export type Positions = AnnotationPositions
   | VideoAnnotationPositions
@@ -77,7 +72,6 @@ interface IProps {
   win: Window,
   playMode: boolean,
   tourId: number;
-  annotationSerialIdMap: AnnotationSerialIdMap;
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean;
   maskBox: Rect | null;
@@ -96,7 +90,6 @@ export class AnnotationContent extends React.PureComponent<{
   left: number,
   onRender?: (el: HTMLDivElement) => void,
   tourId: number,
-  annotationSerialIdMap: AnnotationSerialIdMap,
   dir: AnimEntryDir
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean,
@@ -230,16 +223,6 @@ export class AnnotationContent extends React.PureComponent<{
               anPadding={this.props.opts.annotationPadding._val.trim()}
               className="f-button-con"
             >
-              {this.props.opts.showStepNum._val && this.props.annotationSerialIdMap[this.props.config.refId] && (
-                <Tags.Progress
-                  bg={this.props.opts.annotationBodyBackgroundColor._val}
-                  fg={this.props.opts.annotationFontColor._val}
-                  fontFamily={this.props.opts.annotationFontFamily._val || 'inherit'}
-                  className="f-progress"
-                >
-                  {this.props.annotationSerialIdMap[this.props.config.refId]}
-                </Tags.Progress>
-              )}
               {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
                 <Tags.ABtn
                   bg={this.props.opts.annotationBodyBackgroundColor._val}
@@ -267,27 +250,17 @@ export class AnnotationContent extends React.PureComponent<{
                         }
                       }
 
-                      const pk_val = getPrimaryKeyValue(leadForm, this.props.opts.lf_pkf) || '';
-                      const customFields = getCustomFields(leadForm);
+                      const pk_val = leadForm[this.props.opts.lf_pkf] || '';
                       if (shouldNavigate) {
-                        const timer = setTimeout(() => {
-                          const evt: FableLeadContactProps = {
-                            ...leadForm,
-                            pk_key: this.props.opts.lf_pkf,
-                            pk_val,
-                            email: leadForm.email,
-                            custom_fields: customFields,
-                          };
-
-                          emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
-                          clearTimeout(timer);
-                        }, 16);
-
-                        Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
+                        const evt: FableLeadContactProps = {
+                          ...leadForm,
+                          pk_key: this.props.opts.lf_pkf,
+                          pk_val,
+                        };
+                        emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
                       }
-                    } else {
-                      Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                     }
+                    Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                   }}
                 >
                   <span>{
@@ -347,6 +320,13 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   private isInitialTransitionDone = false;
 
+  getAnnotationType(): 'video' | 'text' | 'leadform' | 'audio' {
+    if (isVideoAnnotation(this.props.annotationDisplayConfig.config)) return 'video';
+    if (isAudioAnnotation(this.props.annotationDisplayConfig.config)) return 'audio';
+    if (this.props.annotationDisplayConfig.config.isLeadFormPresent) return 'leadform';
+    return 'text';
+  }
+
   componentDidMount(): void {
     if (!this.props.annotationDisplayConfig.prerender) {
       window.addEventListener('message', this.receiveMessage, false);
@@ -354,7 +334,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (this.conRef.current && !this.props.annotationDisplayConfig.prerender) { this.resetAnnPos(); }
     if (this.props.annotationDisplayConfig.isMaximized) {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
-        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId
+        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
+        annotationType: this.getAnnotationType(),
       });
     }
   }
@@ -363,7 +344,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized
        && this.props.annotationDisplayConfig.isMaximized) {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
-        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId
+        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
+        annotationType: this.getAnnotationType(),
       });
       if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) { this.resetAnnPos(); }
     }
@@ -1003,7 +985,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             {
             !isMediaAnnotation && (
               <AnnotationContent
-                annotationSerialIdMap={this.props.annotationSerialIdMap}
                 config={this.props.annotationDisplayConfig.config}
                 opts={this.props.annotationDisplayConfig.opts}
                 isInDisplay={this.props.annotationDisplayConfig.isInViewPort}
@@ -1315,7 +1296,6 @@ export interface IAnnProps {
   box: Rect;
   conf: IAnnoationDisplayConfig;
   hotspotBox?: Rect | null;
-  annotationSerialIdMap: AnnotationSerialIdMap;
   maskBox: Rect | null;
 }
 
@@ -1346,7 +1326,6 @@ interface HotspotProps {
     scrollX: number,
     scrollY: number,
     isGranularHotspot: boolean,
-    annotationIndexString: string
   }>,
   playMode: boolean,
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
@@ -1355,28 +1334,17 @@ interface HotspotProps {
 
 function handleEventLogging(
   btn: IAnnotationButton,
-  tour_id: number,
-  annotationConfig: IAnnotationConfig
 ): void {
-  setTimeout(() => {
-    const btnClickedpayload: AnnotationBtnClickedPayload = {
-      tour_id, ann_id: annotationConfig.refId, btn_id: btn.id, btn_type: btn.type
-    };
-
-    emitEvent<Partial<AnnotationBtnClickedPayload>>(InternalEvents.OnAnnotationNav, {
-      ...btnClickedpayload,
+  // if there is no hotspot for next button we still consider as cta and raise internal event
+  // if next or custom button opens up a link it's considered cta of course
+  if ((btn.type === 'custom' || btn.type === 'next') && ((btn.hotspot && btn.hotspot.actionType === 'open') || !btn.hotspot)) {
+    emitEvent<Partial<CtaClickedInternal>>(InternalEvents.OnCtaClicked, {
+      ctaFrom: CtaFrom.Annotation,
+      btnId: btn.id,
+      url: btn.hotspot ? btn.hotspot.actionValue._val : '',
+      btnTxt: btn.text._val
     });
-
-    if ((btn.type === 'custom' || btn.type === 'next') && btn.hotspot && btn.hotspot.actionType === 'open') {
-      emitEvent<Partial<CtaClickedInternal>>(InternalEvents.OnCtaClicked, {
-        ctaFrom: CtaFrom.Annotation,
-        btnId: btn.id,
-        url: btn.hotspot!.actionValue._val,
-        btnTxt: btn.text._val
-      });
-    }
-    // logEvent(AnalyticsEvents.TIME_SPENT_IN_ANN, timeSpentOnAnnPayload);
-  }, 0);
+  }
 }
 
 export class AnnotationHotspot extends React.PureComponent<HotspotProps> {
@@ -1490,11 +1458,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           ? config.buttons.filter(button => button.id === btnId)[0]
           : config.buttons.filter(button => button.type === type)[0];
 
-        handleEventLogging(
-          btnConf,
-          this.props.tourId,
-          p.conf.config
-        );
+        handleEventLogging(btnConf);
 
         let newBtnConf = btnConf;
         let annConfig = p.conf.config;
@@ -1548,10 +1512,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         return null;
       }
 
-      const maskBoxPadding = p.maskBox
-        ? HighlighterBase.getMaskPaddingWithBox(p.box, p.maskBox)
-        : { left: 0, right: 0, top: 0, bottom: 0 };
-
       return (
         <div
           key={p.conf.config.id}
@@ -1572,7 +1532,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 scrollX: this.props.win.scrollX,
                 scrollY: this.props.win.scrollY,
                 isGranularHotspot,
-                annotationIndexString: p.annotationSerialIdMap[p.conf.config.refId]
               }]}
               playMode={this.props.playMode}
               navigateToAdjacentAnn={navigateToAdjacentAnn}
@@ -1581,7 +1540,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           }
           <AnnotationCard
             el={p.el}
-            annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}
             win={this.props.win}

@@ -216,7 +216,6 @@ interface IAppStateProps {
   relayScreenId: number | null;
   relayAnnAdd: AnnAdd | null;
   tourMainVailidity: TourMainValidity;
-  annotationSerialIdMap: Record<string, string>;
   isAutoSaving: boolean;
   tourDiagnostics: ITourDiganostics;
   journey: JourneyData | null;
@@ -288,10 +287,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
   || state.default.remoteTourOpts
   || (state.default.globalConfig ? getDefaultTourOpts(state.default.globalConfig!) : getDefaultLiteralTourOpts());
   let tourMainVailidity: TourMainValidity = TourMainValidity.Valid;
-  let annotationSerialIdMap: Record<string, string> = {};
   if (state.default.tourLoaded) {
     tourMainVailidity = getTourMainValidity(tourOpts, state.default.journey, allAnnotationsForTour);
-    annotationSerialIdMap = getAnnotationSerialIdMap(tourOpts.main, allAnnotationsForTour);
   }
 
   return {
@@ -312,7 +309,6 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     principal: state.default.principal,
     relayScreenId: state.default.relayScreenId,
     relayAnnAdd: state.default.relayAnnAdd,
-    annotationSerialIdMap,
     isAutoSaving: state.default.isAutoSaving,
     tourDiagnostics: state.default.tourData?.diagnostics || {},
     journey: state.default.journey,
@@ -716,7 +712,6 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               timeline={this.props.timeline}
               commitTx={this.commitTx}
               shouldShowScreenPicker={this.updateShowScreenPicker}
-              annotationSerialIdMap={this.props.annotationSerialIdMap}
               screen={this.props.screen!}
               screenData={this.props.screenData!}
               allEdits={this.props.allEdits}

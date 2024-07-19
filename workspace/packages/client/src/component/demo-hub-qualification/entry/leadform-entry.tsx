@@ -4,7 +4,7 @@ import * as GTags from '../../../common-styled';
 import { EntryProps } from '../type';
 import { LeadFormEntry as LeadFormEntryType } from '../../../types';
 import BaseEntry from './base-entry';
-import { getCustomFields, getPrimaryKeyValue } from '../../../utils';
+// import { getCustomFields, getPrimaryKeyValue } from '../../../utils';
 import { isLeadFormPresent, validateInput } from '../../annotation/utils';
 
 interface Props extends EntryProps {
@@ -32,8 +32,8 @@ function LeadFormEntry(props: Props): JSX.Element {
 
       if (!isValidForm) return false;
 
-      const pk_val = getPrimaryKeyValue(leadForm, config.leadform.primaryKey) || '';
-      const customFields = getCustomFields(leadForm);
+      // const pk_val = getPrimaryKeyValue(leadForm, config.leadform.primaryKey) || '';
+      // const customFields = getCustomFields(leadForm);
 
       // TODO:: handle leadform data
       setLeadFormValues(leadForm);

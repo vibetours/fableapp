@@ -4,10 +4,10 @@ import { RouterProvider } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { TState } from '../../reducer';
 import { init, iam } from '../../action/creator';
-import { STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
+import { InternalEvents, STORAGE_PREFIX_KEY_QUERY_PARAMS } from '../../types';
 import { disposeInternalEvents, initInternalEvents } from '../../internal-events';
 import { P_RespTour } from '../../entity-processor';
-import { addToGlobalAppData } from '../../global';
+import { addToGlobalAppData, initGlobalClock } from '../../global';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
 
@@ -40,6 +40,8 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps;
 interface IOwnStateProps { }
 
 class App extends React.PureComponent<IProps, IOwnStateProps> {
+  private ls: Array<[InternalEvents, (e: Event) => void]> = [];
+
   componentDidMount(): void {
     const queryParamsStr = window.location.search.substring(1);
 
@@ -56,7 +58,8 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (this.shouldInit()) this.props.init();
 
-    initInternalEvents();
+    initGlobalClock();
+    this.ls = initInternalEvents();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -66,7 +69,7 @@ class App extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   componentWillUnmount(): void {
-    disposeInternalEvents();
+    disposeInternalEvents(this.ls);
   }
 
   // eslint-disable-next-line class-methods-use-this

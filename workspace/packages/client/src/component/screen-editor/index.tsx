@@ -7,7 +7,6 @@ import {
   EyeOutlined,
   FilterOutlined,
   FontSizeOutlined,
-  FormatPainterFilled,
   FormatPainterOutlined,
   HomeOutlined,
   LoadingOutlined,
@@ -15,40 +14,44 @@ import {
   PictureOutlined,
   RetweetOutlined
 } from '@ant-design/icons';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import { ReqTourPropUpdate, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { sentryCaptureException } from '@fable/common/dist/sentry';
 import {
-  AnnotationButtonLayoutType,
-  AnnotationPositions,
-  AnnotationSelectionEffectType,
-  AnnotationSelectionShapeType,
   CmnEvtProp,
-  CoverAnnotationPositions,
-  CustomAnnotationPosition,
-  EAnnotationBoxSize,
   IAnnotationButtonType,
   IAnnotationConfig,
-  IAnnotationOriginConfig,
   IGlobalConfig,
   ITourDataOpts,
   JourneyData,
-  ScreenData,
-  VideoAnnotationPositions
+  ScreenData
 } from '@fable/common/dist/types';
 import { getCurrentUtcUnixTime, getDefaultTourOpts, getRandomId, getSampleConfig } from '@fable/common/dist/utils';
-import { Button, Collapse, Dropdown, MenuProps, Modal, Popover, Radio, Switch, Tooltip } from 'antd';
-import React from 'react';
+import { Button, Dropdown, MenuProps, Modal, Popover, Switch, Tooltip } from 'antd';
 import { nanoid } from 'nanoid';
-import { traceEvent } from '@fable/common/dist/amplitude';
-import { sentryCaptureException } from '@fable/common/dist/sentry';
-import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
-import raiseDeferredError from '@fable/common/dist/deferred-error';
+import React from 'react';
+import { UpdateScreenFn } from '../../action/creator';
+import {
+  amplitudeDeviceModeChange,
+  amplitudeNewAnnotationCreated,
+  amplitudeReselectElement,
+  amplitudeResponsivenessChange,
+  amplitudeScreenEdited,
+  propertyCreatedFromWithType
+} from '../../amplitude';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import ExpandIcon from '../../assets/creator-panel/expand-arrow.svg';
 import MaskIcon from '../../assets/creator-panel/mask-icon.png';
 import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
-import NewMultiAnnotation from '../../assets/creator-panel/new_multi_annotation.svg';
 import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
+import NewMultiAnnotation from '../../assets/creator-panel/new_multi_annotation.svg';
 import * as GTags from '../../common-styled';
+import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
+import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { FeatureForPlan } from '../../plans';
 import {
   AllEdits,
   AnnotationPerScreen,
@@ -69,33 +72,9 @@ import {
   TourDataChangeFn,
   onAnnCreateOrChangeFn
 } from '../../types';
-import {
-  shallowCloneAnnotation,
-  IAnnotationConfigWithScreenId,
-  updateAnnotationZId,
-} from '../annotation/annotation-config-utils';
-import {
-  AnnotationSerialIdMap,
-  addNewAnn,
-  getAnnotationByRefId as getAnnotationByRefIdWithScreenId } from '../annotation/ops';
-import { getAnnotationByRefId } from '../annotation/utils';
-import { AnnUpdateType } from '../annotation/types';
-import AEP from './advanced-element-picker';
-import AnnotationCreatorPanel from './annotation-creator-panel';
-import ImageMaskUploadModal from './components/image-mask-modal';
-import TabBar from './components/tab-bar';
-import TabItem from './components/tab-bar/tab-item';
-import UploadButton from './components/upload-button';
-import DomElPicker, { HighlightMode } from './dom-element-picker';
-import { annotationTabHelpText, editTabHelpText } from './helptexts';
-import ListActionBtn from './list-action-btn';
-import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
-import ScreenImageBrusher from './screen-image-brushing';
-import * as Tags from './styled';
-import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
-import { ImgResolution, resizeImg } from './utils/resize-img';
-import { uploadFileToAws } from './utils/upload-img-to-aws';
-import { Tx } from '../../container/tour-editor/chunk-sync-manager';
+import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interactive-demo-guide/part-2';
+import SelectorComponent from '../../user-guides/selector-component';
+import { UserGuideMsg } from '../../user-guides/types';
 import {
   AEP_HEIGHT,
   ANN_EDIT_PANEL_WIDTH,
@@ -107,20 +86,37 @@ import {
   isFeatureAvailable,
   isTourResponsive,
 } from '../../utils';
-import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeDeviceModeChange, amplitudeNewAnnotationCreated, amplitudeReselectElement, amplitudeResponsivenessChange, amplitudeScreenEdited, propertyCreatedFromWithType } from '../../amplitude';
-import Loader from '../loader';
-import CaretOutlined from '../icons/caret-outlined';
+import {
+  IAnnotationConfigWithScreenId,
+  shallowCloneAnnotation,
+  updateAnnotationZId,
+} from '../annotation/annotation-config-utils';
 import FocusBubble from '../annotation/focus-bubble';
-import EditingInteractiveDemoGuidePart2 from '../../user-guides/editing-interactive-demo-guide/part-2';
-import SelectorComponent from '../../user-guides/selector-component';
-import { UserGuideMsg } from '../../user-guides/types';
-import { UpdateScreenFn } from '../../action/creator';
-import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste } from './types';
-import FormatPasteOptions from './format-paste';
-import { FeatureForPlan } from '../../plans';
+import {
+  addNewAnn
+} from '../annotation/ops';
+import { AnnUpdateType } from '../annotation/types';
+import { getAnnotationByRefId } from '../annotation/utils';
+import CaretOutlined from '../icons/caret-outlined';
+import Loader from '../loader';
 import Upgrade from '../upgrade';
-import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
+import AEP from './advanced-element-picker';
+import AnnotationCreatorPanel from './annotation-creator-panel';
+import ImageMaskUploadModal from './components/image-mask-modal';
+import TabBar from './components/tab-bar';
+import TabItem from './components/tab-bar/tab-item';
+import UploadButton from './components/upload-button';
+import DomElPicker, { HighlightMode } from './dom-element-picker';
+import FormatPasteOptions from './format-paste';
+import { annotationTabHelpText, editTabHelpText } from './helptexts';
+import ListActionBtn from './list-action-btn';
+import PreviewWithEditsAndAnRO from './preview-with-edits-and-annotations-readonly';
+import ScreenImageBrusher from './screen-image-brushing';
+import * as Tags from './styled';
+import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste } from './types';
+import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
+import { ImgResolution } from './utils/resize-img';
+import { uploadFileToAws } from './utils/upload-img-to-aws';
 
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
@@ -182,7 +178,7 @@ enum TabList {
 
 interface IOwnProps {
   journey: JourneyData | null;
-  annotationSerialIdMap: AnnotationSerialIdMap;
+  // annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   navigate: NavFn;
   screenData: ScreenData;
@@ -1802,7 +1798,6 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 isFromScreenEditor
                 resizeSignal={this.props.screenMode === ScreenMode.DESKTOP ? 1 : 0}
                 journey={this.props.journey}
-                annotationSerialIdMap={this.props.annotationSerialIdMap}
                 key={this.props.screen.rid}
                 screen={this.props.screen}
                 screenData={this.props.screenData}

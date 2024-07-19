@@ -71,8 +71,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private tourId: number;
 
-  private annotationSerialIdMap: AnnotationSerialIdMap;
-
   private applyDiffAndGoToAnn: ApplyDiffAndGoToAnn;
 
   private undoLastAnnStyleOverride: Array<() => void> = [];
@@ -154,7 +152,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     allAnnotationsForTour: AnnotationPerScreen[],
     tourDataOpts: ITourDataOpts,
     tourId: number,
-    annotationSerialIdMap: AnnotationSerialIdMap,
     config: HighlighterBaseConfig,
     applyDiffAndGoToAnnFn: ApplyDiffAndGoToAnn,
     updateCurrentFlowMain: (btnType: IAnnotationButtonType, main?: string)=> void,
@@ -185,7 +182,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.allAnnotationsForTour = allAnnotationsForTour;
     this.tourDataOpts = tourDataOpts;
     this.tourId = tourId;
-    this.annotationSerialIdMap = annotationSerialIdMap;
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
     this.updateJourneyProgress = updateJourneyProgress;
@@ -376,7 +372,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     el.classList.add('f-fable-anim-target');
     el.classList.add('f-fable-an-target');
     const ancestors = this.getAncestorsFromExclusive(el);
-    // const ancestors: HTMLElement[] = [];
     for (const ancestorEl of ancestors) {
       try {
         ancestorEl.classList.add('f-fable-an-t-path');
@@ -675,7 +670,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
         box,
         conf: annotationDisplayConfig,
         hotspotBox: hotspotEl ? this.getBoundingRectWrtRootFrame(hotspotEl) : null,
-        annotationSerialIdMap: this.annotationSerialIdMap,
         maskBox
       });
     }
@@ -824,7 +818,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           right: 10,
         },
         conf: displayConf,
-        annotationSerialIdMap: this.annotationSerialIdMap,
         maskBox: null,
         el: document.createElement('div'),
         hotspotEl: null
@@ -919,7 +912,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: `${config.refId}-sm-${r}`,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
@@ -935,7 +927,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: `${config.refId}-md-${r}`,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
@@ -951,7 +942,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: `${config.refId}-lg-${r}`,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
@@ -967,7 +957,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               left: -9999,
               key: `${config.refId}-custom-${r}`,
               tourId: this.tourId,
-              annotationSerialIdMap: this.annotationSerialIdMap,
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true

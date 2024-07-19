@@ -708,7 +708,6 @@ export default function Editor(props: Props): JSX.Element {
                   tourId={0}
                   top={0}
                   left={0}
-                  annotationSerialIdMap={{ refId: '1 of 1' }}
                   navigateToAdjacentAnn={() => {}}
                   isThemeAnnotation
                 />

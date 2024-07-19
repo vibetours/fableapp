@@ -1,6 +1,54 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-07-11 14:33:43.
+// Generated using typescript-generator version 2.35.1025 on 2024-07-17 10:44:44.
+
+export interface AnalyticsJob {
+    id: number;
+    createdAt: Date;
+    updatedAt: Date;
+    jobType: AnalyticsJobType;
+    jobKey: string;
+    jobStatus: ProcessingStatus;
+    lowWatermark: Date;
+    highWatermark: Date;
+    failureReason: string;
+    jobData: any;
+}
+
+export interface InActivityLog {
+    event: string;
+    target?: string;
+    aid: string;
+    sid: string;
+    offset: number;
+    tz: string;
+    payload: any;
+    evtt: Date;
+    eni: number;
+    ent: TopLevelEntityType;
+    enc: LogForEntityCategory;
+}
+
+export interface ReqActivityLog {
+    logs: InActivityLog[];
+}
+
+export interface ReqNewAnalyticsJob {
+    jobType: AnalyticsJobType;
+    jobKey: string;
+    jobStatus: ProcessingStatus;
+    lowWatermark?: Date;
+    highWatermark?: Date;
+    jobData?: any;
+}
+
+export interface ReqUpdateAnalyticsJob {
+    jobStatus?: ProcessingStatus;
+    lowWatermark?: Date;
+    highWatermark?: Date;
+    failureReason?: string;
+    jobData?: any;
+}
 
 export interface ApiResp<T> {
     status: ResponseStatus;
@@ -403,6 +451,7 @@ export interface RespDemoEntity extends ResponseBase {
     pubTourEntityFileName: string;
     site: { [index: string]: any };
     responsive: boolean;
+    logClass: ClientLogClass;
     responsive2: Responsiveness;
     deleted: TourDeleted;
     entityType: TopLevelEntityType;
@@ -657,13 +706,28 @@ export interface EntityBase {
     id: number;
 }
 
+export const enum AnalyticsJobType {
+    REFRESH_ENTITY_METRICS_MATERIALIZED_VIEW = "REFRESH_ENTITY_METRICS_MATERIALIZED_VIEW",
+    CALCULATE_ENTITY_SUB_ENTITY_METRICS = "CALCULATE_ENTITY_SUB_ENTITY_METRICS",
+    UPDATE_HOUSE_LEAD = "UPDATE_HOUSE_LEAD",
+    CALCULATE_HOUSE_LEAD_METRICS = "CALCULATE_HOUSE_LEAD_METRICS",
+    ACTIVITY_DT_DATA_TRUNCATE = "ACTIVITY_DT_DATA_TRUNCATE",
+}
+
+export const enum ProcessingStatus {
+    Waiting = "Waiting",
+    InProgress = "InProgress",
+    Successful = "Successful",
+    Failed = "Failed",
+}
+
 export const enum ConfigEntityType {
     Org = "Org",
 }
 
 export const enum TopLevelEntityType {
-    TOUR = "TOUR",
-    DEMO_HUB = "DEMO_HUB",
+    TOUR = 0,
+    DEMO_HUB = 1,
 }
 
 export const enum UnauthorizedReason {
@@ -741,6 +805,11 @@ export const enum MediaType {
     GIF = "GIF",
 }
 
+export const enum LogForEntityCategory {
+    ac = "ac",
+    acdt = "acdt",
+}
+
 export const enum ResponseStatus {
     Success = "Success",
     Failure = "Failure",
@@ -805,6 +874,12 @@ export const enum Interval {
     MONTHLY = "MONTHLY",
     YEARLY = "YEARLY",
     LIFETIME = "LIFETIME",
+}
+
+export const enum ClientLogClass {
+    na = "na",
+    Basic = "Basic",
+    Full = "Full",
 }
 
 export const enum Status {

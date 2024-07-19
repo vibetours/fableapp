@@ -3,6 +3,7 @@ import { LogoutType } from './constants';
 import { UnauthorizedReason } from './api-contract';
 
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
+const LOG_ENDPOINT = process.env.REACT_APP_LOG_ENDPOINT as string;
 const API_VERSION = '/v1';
 const BEHIND_AUTH = '/f';
 
@@ -15,6 +16,7 @@ export default async function api<T, M>(
     body?: T;
     auth?: boolean;
     noRespExpected?: boolean;
+    isLogEndpoint?: boolean;
   }
 ): Promise<M> {
   let auth = payload?.auth;
@@ -46,7 +48,7 @@ export default async function api<T, M>(
   }
 
   let path = '';
-  const apiPath = API_ENDPOINT + API_VERSION + (auth ? BEHIND_AUTH : '');
+  const apiPath = ((payload && payload.isLogEndpoint) ? LOG_ENDPOINT : API_ENDPOINT) + API_VERSION + (auth ? BEHIND_AUTH : '');
   try {
     const _ = new URL(url);
   } catch (e) {

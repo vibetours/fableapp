@@ -52,7 +52,6 @@ import { IAnnotationConfigWithScreenId } from '../annotation/annotation-config-u
 export interface IOwnProps {
   resizeSignal: number;
   journey: JourneyData | null;
-  annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
   navigate: NavFn;
@@ -204,7 +203,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.allAnnotationsForTour,
           this.props.tourDataOpts,
           this.props.tour.id,
-          this.props.annotationSerialIdMap,
           highlighterBaseConfig,
           this.applyDiffAndGoToAnn,
           this.props.updateCurrentFlowMain,

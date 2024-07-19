@@ -16,14 +16,12 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
   AnnotationPerScreen,
   EditItem,
-  FWin,
   NavFn,
   FlowProgress,
   InternalEvents,
   Payload_JourneySwitch,
   Payload_DemoLoadingStarted,
   Payload_DemoLoadingFinished,
-  JourneyNameIndexData,
   queryData,
   TourMainValidity,
   ScreenSizeData,
@@ -44,14 +42,12 @@ import {
   getTourMainValidity,
   preloadImagesInTour,
   isTourResponsive,
-  RESP_MOBILE_SRN_WIDTH_LIMIT,
   isLandscapeMode,
   isEventValid,
   getMobileOperatingSystem,
   fillLeadFormForAllAnnotationsForTour,
   fillLeadFormForAllAnnotations,
   getIsMobileSize,
-  getPrimaryKeyValue,
   shouldReduceMotionForMobile
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
@@ -64,7 +60,7 @@ import { HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZ
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
 import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../analytics/types';
-import { FableLeadContactProps, FtmQueryParams, addToGlobalAppData } from '../../global';
+import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addToGlobalAppData, initGlobalClock } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 
@@ -258,13 +254,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         btnId: data.btnId,
         url: data.url,
         btnTxt: data.btnTxt
-      });
-
-      emitEvent<AnnotationBtnClickedPayload>(InternalEvents.OnAnnotationNav, {
-        tour_id: data.tourId,
-        ann_id: data.annId,
-        btn_type: data.ctaFrom,
-        btn_id: data.btnId
       });
     }
   };
@@ -476,17 +465,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   setSerialMapAndJoruneyProgress = (annotationSerialIdMap: AnnotationSerialIdMap): AnnotationSerialIdMap => {
-    this.props.journey!.flows.forEach((flow) => {
-      const annotationSerialIdMapForFlow = getAnnotationSerialIdMap(flow.main, this.props.allAnnotationsForTour);
-      for (const annRefId in annotationSerialIdMapForFlow) {
-        if (Object.prototype.hasOwnProperty.call(annotationSerialIdMapForFlow, annRefId)) {
-          annotationSerialIdMap[annRefId] = annotationSerialIdMapForFlow[annRefId];
-        }
-      }
-      const totalSteps = Object.keys(annotationSerialIdMapForFlow).length;
-      this.initJourneyProgress(flow.main, totalSteps, this.props.tour!.id);
-    });
-
+    for (const flow of this.props.journey!.flows) {
+      const main = flow.main;
+      const annId = main.split('/')[1];
+      const idxs = annotationSerialIdMap[annId];
+      this.initJourneyProgress(main, idxs.len, this.props.tour!.id);
+    }
     saveJourneyProgress(this.localJourneyProgress);
     return annotationSerialIdMap;
   };
@@ -508,6 +492,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  // Handle query parameters for analytics / handle utm parameters
   handleParams(): void {
     const searchParams = new URLSearchParams(this.props.location.search);
     const userEmail: string | undefined = searchParams.get('email') ?? undefined;
@@ -516,27 +501,21 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const org = searchParams.get('org') ?? undefined;
     const phone = searchParams.get('phone') ?? undefined;
 
-    const queryParam: FtmQueryParams = {
+    const userFromQueryParams: UserFromQueryParams = {
       first_name: firstName,
       last_name: lastName,
       org,
       phone,
       email: userEmail
     };
-    addToGlobalAppData('ftmQueryParams', queryParam);
 
-    if (REACT_APP_ENVIRONMENT !== 'dev') {
-      (window as FWin).__fable_global_settings__ = {
-        ...((window as FWin).__fable_global_settings__ || {}),
-        shouldLogEvent: !this.props.staging
-      };
-    }
+    addToGlobalAppData('userFromQueryParams', userFromQueryParams);
 
-    const pk_val = getPrimaryKeyValue(queryParam as Record<string, string>, this.props.tourOpts!.lf_pkf);
+    const pk_val = userFromQueryParams[this.props.tourOpts!.lf_pkf];
     if (pk_val || userEmail || firstName || lastName || org || phone) {
       emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, {
         pk_key: this.props.tourOpts!.lf_pkf,
-        pk_val,
+        pk_val: pk_val as string,
         email: userEmail,
         first_name: firstName,
         last_name: lastName,
@@ -568,6 +547,16 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  // eslint-disable-next-line class-methods-use-this
+  getProgressMap(entries: Array<[string, AnnotationPerScreen[]]>): AnnotationSerialIdMap {
+    let start = 0;
+    let map: AnnotationSerialIdMap = {};
+    for (const entry of entries) {
+      [map, start] = getAnnotationSerialIdMap(entry[0], entry[1], map, start);
+    }
+    return map;
+  }
+
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
     const prevTourLoaded = prevProps.isTourLoaded;
     const currTourLoaded = this.props.isTourLoaded;
@@ -580,8 +569,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
     let firstTimeTourLoading = false;
     if (currTourLoaded && prevTourLoaded !== currTourLoaded) {
-      this.handleParams();
+      addToGlobalAppData('settings', { shouldLogEvent: REACT_APP_ENVIRONMENT !== 'dev' && !this.props.staging });
+
       firstTimeTourLoading = true;
+      this.handleParams();
       const prerenderCount = shouldReduceMotionForMobile(this.props.tourOpts) ? 1 : 2;
       this.setState({ screenPrerenderCount: prerenderCount });
       this.handleResponsiveness();
@@ -591,11 +582,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       if (this.isJourneyAdded()) {
         this.setCurrentFlowMain();
         isJourneyMenuOpen = this.isJourneyMenuDefaultOpen();
-        annotationSerialIdMap = this.setSerialMapAndJoruneyProgress(annotationSerialIdMap);
+        annotationSerialIdMap = this.getProgressMap(
+          this.props.journey!.flows.map(flow => [flow.main, this.props.allAnnotationsForTour])
+        );
+        this.setSerialMapAndJoruneyProgress(annotationSerialIdMap);
       } else {
         annotationSerialIdMap = this.props.tourOpts
-          ? getAnnotationSerialIdMap(this.props.tourOpts.main, this.props.allAnnotationsForTour) : {};
+          ? this.getProgressMap([[this.props.tourOpts.main, this.props.allAnnotationsForTour]]) : {};
       }
+      addToGlobalAppData('annotationSerialIdMap', annotationSerialIdMap);
       this.setState({ annotationSerialIdMap, isJourneyMenuOpen });
       this.navigateToMain();
 
@@ -712,17 +707,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     Promise.resolve().then(() => {
       if (type !== 'annotation-hotspot') {
         emitEvent<CtaClickedInternal>(InternalEvents.OnCtaClicked, {
-          ctaFrom: CtaFrom.Journey,
-          btnId: '$journey_cta',
+          ctaFrom: CtaFrom.Module,
           url: journeyData.cta!.navigateTo._val,
           btnTxt: journeyData.cta!.text._val
-        });
-
-        emitEvent<AnnotationBtnClickedPayload>(InternalEvents.OnAnnotationNav, {
-          tour_id: this.props.tour!.id,
-          ann_id: '$journey',
-          btn_type: CtaFrom.Journey,
-          btn_id: '$journey_cta'
         });
       }
     });
@@ -897,7 +884,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 isFromScreenEditor={false}
                 resizeSignal={1}
                 journey={this.props.journey!}
-                annotationSerialIdMap={this.state.annotationSerialIdMap}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
                 key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
@@ -963,8 +949,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 updateJourneyProgress={(annRefId: string) => {
                   if (this.state.currentFlowMain) {
-                    const currentStepNumber = this.state.annotationSerialIdMap[annRefId].split(' ')[0];
-                    this.updateJourneyProgress(parseInt(currentStepNumber, 10));
+                    const currentStepNumber = this.state.annotationSerialIdMap[annRefId].idx;
+                    this.updateJourneyProgress(currentStepNumber + 1);
                   }
                 }}
                 flows={this.props.journey?.flows || []}
@@ -1000,7 +986,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 updateJourneyMenu={(isMenuOpen: boolean): void => {
                   this.setState({ isJourneyMenuOpen: isMenuOpen });
                 }}
-                // navigateToCta={() => this.navFn(this.props.journey!.cta!.navigateTo, 'abs')}
                 navigateToCta={() => this.navigateToAndLogEvent(this.props.journey!, 'abs')}
                 tourOpts={this.props.tourOpts!}
                 currentFlowMain={this.state.currentFlowMain}

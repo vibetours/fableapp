@@ -1,5 +1,6 @@
 import { IAnnotationButtonType } from '@fable/common/dist/types';
-import { CmnLeadProps, FableLeadContactProps } from '../global';
+// import { CmnLeadProps, FableLeadContactProps } from '../global';
+// TODO[now] check what all props are needed here
 
 export enum FableAnalyticsLocalStoreKeys {
   AnonymousUserId = 'fable/aid',
@@ -22,6 +23,7 @@ export enum AnalyticsEvents {
   VIDEO_ANN_SKIPPED = 'video_ann_skipped'
 }
 
+// @Deprecated
 export enum AnalyticsEventsDirect {
   CTA_CLICKED = 'cta_clicked'
 }
@@ -53,7 +55,7 @@ export interface UserAssignPayload {
 
 export interface CtaClickedInternal {
   ctaFrom: CtaFrom;
-  btnId: string;
+  btnId?: string;
   url: string;
   btnTxt: string;
 }
@@ -66,9 +68,9 @@ export interface CtaClickedAnalytics {
 }
 
 export enum CtaFrom {
-  Annotation = 'annotation',
-  Journey = 'journey',
-  Header = 'header',
+  Annotation = 'ann-btn',
+  Module = 'module-cta',
+  SiteHeader = 'site-header-cta',
 }
 
 export interface PayloadTypeMap {
@@ -87,6 +89,7 @@ export interface EventLog {
   event: AnalyticsEvents;
 }
 
+// @Deprecated
 export interface EventLogDirect extends CtaClickedAnalytics {
   email: string;
   aid: string;

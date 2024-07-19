@@ -4,7 +4,7 @@ import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
-import { FableLeadContactProps, FtmQueryParams } from './global';
+import { FableLeadContactProps, UserFromQueryParams } from './global';
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
   isPhony?: boolean;
@@ -168,15 +168,6 @@ export enum DestinationAnnotationPosition {
   prev = 'prev'
 }
 
-export interface GlobalSettings {
-  shouldLogEvent?: boolean;
-}
-
-export type FWin = Window
-  & { __fable_global_settings__?: GlobalSettings }
-  & { __fable_global_user__?: FableLeadContactProps }
-  & { __fable_global_query_param__?: FtmQueryParams }
-
 export type ScreenPickerMode = 'create' | 'navigate';
 
 export type ScreenPickerData = {
@@ -240,6 +231,7 @@ export interface Payload_JourneySwitch {
 }
 export interface Payload_Navigation {
   currentAnnotationRefId: string;
+  annotationType: 'video' | 'text' | 'leadform' | 'audio';
   journeyIndex: number;
 }
 
@@ -248,18 +240,6 @@ export interface Payload_NavToAnnotation {
   action?: 'prev' | 'next'
 }
 
-export interface GlobalAppData {
-  ftmQueryParams?: FtmQueryParams,
-  demo?: P_RespTour,
-  journeyData?: JourneyNameIndexData
-}
-
-export interface JourneyNameIndexData {
-  journeyName?: string | null,
-  journeyIndex?: number
-}
-
-export type GlobalWin = Window & { __fable_global_app_data__?: GlobalAppData }
 export type MultiNodeModalData = {
   leftCoord: number,
   selectedMultiNode: IAnnotationConfigWithScreen[] | null

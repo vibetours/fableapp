@@ -129,10 +129,10 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.site) {
       const frame = document.getElementById('preview-frame') as HTMLIFrameElement;
       frame.contentWindow?.postMessage({
-        ctaFrom: CtaFrom.Header,
+        ctaFrom: CtaFrom.SiteHeader,
         btnId: '$header_cta',
-        url: this.props.site.ctaLink,
-        btnTxt: this.props.site.ctaText,
+        url: this.props.site.ctaLink._val,
+        btnTxt: this.props.site.ctaText._val,
         tourId: this.props.tour!.id,
         annId: '$header',
         type: HEADER_CTA

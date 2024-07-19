@@ -797,7 +797,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           tourId={0}
                           top={0}
                           left={0}
-                          annotationSerialIdMap={{}}
                           navigateToAdjacentAnn={() => {}}
                           isThemeAnnotation
                         />
@@ -862,7 +861,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           tourId={0}
                           top={0}
                           left={0}
-                          annotationSerialIdMap={{}}
                           navigateToAdjacentAnn={() => {}}
                           isThemeAnnotation
                         />
@@ -927,7 +925,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     tourId={0}
                     top={0}
                     left={0}
-                    annotationSerialIdMap={{}}
                     navigateToAdjacentAnn={() => {}}
                     isThemeAnnotation
                   />
@@ -936,7 +933,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   width: '360px',
                   margin: '2rem 0',
                   flexDirection: 'column',
-                  // alignItems: 'center'
                 }}
                 >
                   <Button

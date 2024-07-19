@@ -469,32 +469,51 @@ export const getAnnotationBtn = (
   type: 'prev' | 'next'
 ): IAnnotationButton => config.buttons.find(btn => btn.type === type)!;
 
-// TODO why create custom type for a simple type
-export type AnnotationSerialIdMap = Record<string, string>
+export type AnnotationSerialIdMap = Record<string, {
+  // in case module is present absIdx & absTotalAnns contains index and length of annotation wrt
+  // start of the module
+  // if module is not present absIdx == idx and absLen == len
+  absIdx: number;
+  absLen: number;
+  idx: number;
+  len: number;
+}>
 export const getAnnotationSerialIdMap = (
   main: string,
-  allAnnotationsForTour: AnnotationPerScreen[]
-): Record<string, string> => {
-  const annotationSerialIdMap: Record<string, string> = {};
+  allAnnotationsForTour: AnnotationPerScreen[],
+  annotationSerialIdMap: AnnotationSerialIdMap,
+  start: number,
+): [AnnotationSerialIdMap, number] => {
   let refId = main.split('/')[1];
+  const refs = [];
   let idx = 0;
   while (true) {
     const annotation = getAnnotationByRefId(refId, allAnnotationsForTour);
     if (!annotation) break; // sometime main would not point to proper annotation
-    annotationSerialIdMap[refId] = `${idx + 1}`;
+    refs.push(refId);
+    annotationSerialIdMap[refId] = {
+      absIdx: idx + start,
+      absLen: -1, // init here. to be adjusted at the end
+      idx,
+      len: -1 // init here. to be adjusted at the end
+    };
+
     const nextBtn = getAnnotationBtn(annotation!, 'next');
     if (!isNavigateHotspot(nextBtn.hotspot)) break;
     idx += 1;
     refId = nextBtn.hotspot!.actionValue._val.split('/')[1];
   }
 
-  for (const annRefId in annotationSerialIdMap) {
-    if (Object.prototype.hasOwnProperty.call(annotationSerialIdMap, annRefId)) {
-      annotationSerialIdMap[annRefId] += ` of ${idx + 1}`;
-    }
+  for (const annRefId of Object.keys(annotationSerialIdMap)) {
+    annotationSerialIdMap[annRefId].absLen = idx + start + 1;
   }
 
-  return annotationSerialIdMap;
+  // Only for current module (instance of map) update the local length
+  for (const ref of refs) {
+    annotationSerialIdMap[ref].len = idx + 1;
+  }
+
+  return [annotationSerialIdMap, idx + start + 1];
 };
 
 export const addNewAnn = (

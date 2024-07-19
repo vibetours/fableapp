@@ -781,21 +781,18 @@ export function rearrangeArray<T>(arr: T[], sourceIdx: number, destinationIdx: n
   return newArr;
 }
 
-export function getPrimaryKeyValue(
-  leadForm: Record<string, string | undefined>,
-  primaryKey: string
-): string | undefined {
-  return leadForm[primaryKey];
-}
-
-export function getCustomFields(leadForm: Record<string, string | undefined>): Record<string, string | number | null | undefined> {
-  const customFields: Record<string, string | number | null | undefined> = {};
-  for (const [key, value] of Object.entries(leadForm)) {
-    if (!(key in preMappedLeadFormFields)) {
-      customFields[key] = value;
-    }
+export function mergeL1JsonIgnoreUndefined(obj1: Record<string, any>, obj2: Record<string, any>) {
+  const obj3: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj1)) {
+    obj3[key] = value;
   }
-  return customFields;
+
+  for (const [key, value] of Object.entries(obj2)) {
+    if (key in obj3 && (value === undefined || value === null)) continue;
+    obj3[key] = value;
+  }
+
+  return obj3;
 }
 
 export function preloadImagesInTour(

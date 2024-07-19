@@ -131,7 +131,7 @@ type CanvasProps = {
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData) => void;
-  annotationSerialIdMap: AnnotationSerialIdMap;
+  // annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
   allEdits: EditItem[];
@@ -3148,7 +3148,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   props.isScreenLoaded && (
                   <ScreenEditor
                     journey={props.journey}
-                    annotationSerialIdMap={props.annotationSerialIdMap}
+                    // annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
                     screen={props.screen!}
                     tour={props.tour!}
@@ -3223,7 +3223,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 props.isScreenLoaded && showScreenEditor && (
                   <ScreenEditor
                     journey={props.journey}
-                    annotationSerialIdMap={props.annotationSerialIdMap}
+                    // annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
                     screen={props.screen!}
                     tour={props.tour!}

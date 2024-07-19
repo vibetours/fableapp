@@ -1,18 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
-import api from '@fable/common/dist/api';
-import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
-  CommonEventProps,
-  AnalyticsEvents,
-  PayloadTypeMap,
   EventLog,
   FlattendEventLog,
   FableAnalyticsLocalStoreKeys,
-  CtaClickedAnalytics,
-  EventLogDirect,
-  AnalyticsEventsDirect
 } from './types';
-import { FWin } from '../types';
 
 export const getUUID = (): string => uuidv4().replace(/\W+/g, '');
 
@@ -61,50 +52,6 @@ export const removeSessionId = (): void => {
   sessionStorage.removeItem(FableAnalyticsLocalStoreKeys.SessionId);
 };
 
-const getCommonEventProps = (date: Date, event: AnalyticsEvents | AnalyticsEventsDirect): CommonEventProps => ({
-  aid: getAnonymousUserId(),
-  ...(event !== AnalyticsEvents.ANN_USER_ASSIGN ? { sid: getSessionId() } : {}),
-  uts: getUtcUnixTimestamp(date),
-  tz: getTimezoneOffset(date)
-});
-
-export const logEvent = (event: AnalyticsEvents, payload: PayloadTypeMap[typeof event]): void => {
-  Promise.resolve().then(() => {
-    try {
-      const globalSettings = (window as FWin).__fable_global_settings__ || {};
-      if (!globalSettings.shouldLogEvent) return;
-      const data: EventLog = {
-        event,
-        payload,
-        ...getCommonEventProps(new Date(), event)
-      };
-      const eventLogs = flattenLogEvent(data);
-      sendEventToApi(event, eventLogs, '/lue');
-    } catch (e) {
-      raiseDeferredError(e as Error);
-    }
-  });
-};
-
-export const logEventDirect = (event: AnalyticsEventsDirect, payload: CtaClickedAnalytics): void => {
-  Promise.resolve().then(() => {
-    try {
-      const globalSettings = (window as FWin).__fable_global_settings__ || {};
-      const globalUser = { ...(window as FWin).__fable_global_user__ || {} };
-      if (!globalSettings.shouldLogEvent) return;
-      const data: EventLogDirect = {
-        email: globalUser.email || '',
-        event,
-        ...payload,
-        ...getCommonEventProps(new Date(), event)
-      };
-      sendEventToApi(event, data, '/lued');
-    } catch (e) {
-      raiseDeferredError(e as Error);
-    }
-  });
-};
-
 export const flattenLogEvent = (logs: EventLog): FlattendEventLog => {
   const { payload, ...rest } = logs;
   const flattenedPayload = Object.keys(payload).reduce((acc, key) => {
@@ -124,18 +71,4 @@ export function formatTimeFromSeconds(seconds: number): string {
     return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'}`;
   }
   return `${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${remainingSeconds} ${remainingSeconds === 1 ? 'Sec' : 'Secs'}`;
-}
-
-function sendEventToApi(
-  event: AnalyticsEvents | AnalyticsEventsDirect,
-  data: FlattendEventLog | EventLogDirect,
-  url: string
-): void {
-  const sub = encodeURIComponent(btoa(event));
-  api(`${url}?sub=${sub}`, {
-    auth: false,
-    method: 'POST',
-    body: data,
-    noRespExpected: true,
-  });
 }
