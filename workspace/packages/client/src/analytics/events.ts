@@ -157,7 +157,7 @@ export const logEvent = (
   const globalSettings = getGlobalData('settings') as GlobalSettings;
   if (!globalSettings.shouldLogEvent) return;
 
-  const eventObj: CommonEventParams = {
+  let eventObj: CommonEventParams = {
     event: eventName,
     ...getCommonEventParams(),
     ...getSpecificEventParams(eventName, payload || {}, metric),
@@ -173,9 +173,16 @@ export const logEvent = (
 
   if (eventName === 'user_assign') {
     // port event for la
-    const pkKey = eventObj.payload.pk_key;
-    eventObj.payload.pk_field = pkKey;
-    delete eventObj.payload.pk_key;
+    const portedEvent = {
+      ...eventObj,
+      payload: {
+        ...eventObj.payload
+      }
+    };
+    const pkKey = portedEvent.payload.pk_key;
+    portedEvent.payload.pk_field = pkKey;
+    delete portedEvent.payload.pk_key;
+    eventObj = portedEvent;
   }
 
   api('/la', {
