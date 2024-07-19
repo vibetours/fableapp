@@ -11,6 +11,9 @@ import CaretOutlined from '../../../icons/caret-outlined';
 import { getCtaById, getNewIndex, stringToSlug } from '../../utils';
 import * as GTags from '../../../../common-styled';
 import {
+  findEntryToBeUpdatedIdx,
+  findOptionToBeUpdatedIdx,
+  findQualificationToBeUpdatedIdx,
   getSampleBaseEntry,
   getSampleSelectEntry,
   getSampleSelectEntryOption,
@@ -901,7 +904,10 @@ export default function QualificationEditor(props: Props): JSX.Element {
           1,
           {
             ...(props.qualification.entries[entryToBeUpdatedIdx] as SelectEntry),
-            options: [...options, getSampleSelectEntryOption()],
+            options: [
+              ...options,
+              getSampleSelectEntryOption(getNewIndex(options.map(ct => ct.title), 'This is an option') + 1)
+            ],
           }
         );
 
@@ -1223,23 +1229,14 @@ export default function QualificationEditor(props: Props): JSX.Element {
 
   const addDemoInEntryOption = (entryId: string) => (optionId: string) => (demo: IDemoHubConfigDemo): void => {
     onConfigChange(c => {
-      const qualificationToBeUpdatedIdx = c
-        .qualification_page
-        .qualifications
-        .findIndex(q => q.id === props.qualification.id);
-
-      const entryToBeUpdatedIdx = c
-        .qualification_page
-        .qualifications[qualificationToBeUpdatedIdx]
-        .entries
-        .findIndex(entry => entry.id === entryId);
-
-      const optionToBeUpdatedIdx = (c
-        .qualification_page
-        .qualifications[qualificationToBeUpdatedIdx]
-        .entries[entryToBeUpdatedIdx] as SelectEntry)
-        .options
-        .findIndex(option => option.id === optionId);
+      const qualificationToBeUpdatedIdx = findQualificationToBeUpdatedIdx(c, props.qualification.id);
+      const entryToBeUpdatedIdx = findEntryToBeUpdatedIdx(c, entryId, qualificationToBeUpdatedIdx);
+      const optionToBeUpdatedIdx = findOptionToBeUpdatedIdx(
+        c,
+        optionId,
+        qualificationToBeUpdatedIdx,
+        entryToBeUpdatedIdx
+      );
 
       (c
         .qualification_page
@@ -1254,6 +1251,51 @@ export default function QualificationEditor(props: Props): JSX.Element {
             demos: [
               ...(props.qualification.entries[entryToBeUpdatedIdx] as SelectEntry).options[optionToBeUpdatedIdx].demos,
               demo,
+            ],
+          }
+        );
+
+      return {
+        ...c,
+        qualification_page: {
+          ...c.qualification_page,
+          qualifications: [...c.qualification_page.qualifications],
+        },
+      };
+    });
+  };
+
+  const updateDemoInEntryOption = (entryId: string) => (optionId: string) => (updatedDemo: IDemoHubConfigDemo): void => {
+    onConfigChange(c => {
+      const qualificationToBeUpdatedIdx = findQualificationToBeUpdatedIdx(c, props.qualification.id);
+      const entryToBeUpdatedIdx = findEntryToBeUpdatedIdx(c, entryId, qualificationToBeUpdatedIdx);
+      const optionToBeUpdatedIdx = findOptionToBeUpdatedIdx(
+        c,
+        optionId,
+        qualificationToBeUpdatedIdx,
+        entryToBeUpdatedIdx
+      );
+
+      (c
+        .qualification_page
+        .qualifications[qualificationToBeUpdatedIdx]
+        .entries[entryToBeUpdatedIdx] as SelectEntry)
+        .options
+        .splice(
+          optionToBeUpdatedIdx,
+          1,
+          {
+            ...(props.qualification.entries[entryToBeUpdatedIdx] as SelectEntry).options[optionToBeUpdatedIdx],
+            demos: [
+              ...(props.qualification.entries[entryToBeUpdatedIdx] as SelectEntry)
+                .options[optionToBeUpdatedIdx].demos.map(demo => {
+                  if (demo.rid === updatedDemo.rid) {
+                    demo.desc = updatedDemo.desc;
+                    demo.thumbnail = updatedDemo.thumbnail;
+                    demo.name = updatedDemo.name;
+                  }
+                  return demo;
+                })
             ],
           }
         );
@@ -1548,6 +1590,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                                     deleteDemoInEntryOption={deleteDemoInEntryOption(entry.id)}
                                     deleteEntryOption={deleteEntryOption(entry.id)}
                                     addDemoInEntryOption={addDemoInEntryOption(entry.id)}
+                                    updateDemoInEntryOption={updateDemoInEntryOption(entry.id)}
                                     updateOptionDesc={updateOptionDesc(entry.id)}
                                     updateOptionTitle={updateOptionTitle(entry.id)}
                                     rearrangeOptionsInEntry={rearrangeOptionsInEntry(entry.id)}

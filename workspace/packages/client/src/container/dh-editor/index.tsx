@@ -5,7 +5,7 @@ import { RespCommonConfig, RespOrg, RespUser } from '@fable/common/dist/api-cont
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import Editor from '../../component/demo-hub-editor';
-import { getAllTours, loadDemoHubAndData, loadDemoHubConfig, publishDemoHub, updateDemoHubConfigData, updateDemoHubProp } from '../../action/creator';
+import { getAllTours, getTourData, loadDemoHubAndData, loadDemoHubConfig, publishDemoHub, updateDemoHubConfigData, updateDemoHubProp } from '../../action/creator';
 import { IDemoHubConfig, P_RespDemoHub } from '../../types';
 import { debounce, getFirstDemoOfDemoHub } from '../../utils';
 import { getDefaultThumbnailHash, P_RespTour } from '../../entity-processor';
@@ -17,7 +17,9 @@ interface IDispatchProps {
   updateDemoHubConfig: typeof updateDemoHubConfigData;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>,
-  updateDemoHubProp: typeof updateDemoHubProp
+  updateDemoHubProp: typeof updateDemoHubProp;
+  getTourData : (tourRid : string) => Promise<P_RespTour>,
+  getUpdatedAllTours : () => void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -27,6 +29,8 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),
   loadDemoHubConfig: (demoHub) => dispatch(loadDemoHubConfig(demoHub)),
   updateDemoHubProp: (rid, prop, value) => dispatch(updateDemoHubProp(rid, prop, value)),
+  getTourData: (tourRid) => dispatch(getTourData(tourRid)),
+  getUpdatedAllTours: () => dispatch(getAllTours(false, true)),
 });
 
 interface IAppStateProps {
@@ -121,6 +125,8 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
         principal={this.props.principal}
         publishDemoHub={this.props.publishDemoHub}
         loadDemoHubConfig={this.props.loadDemoHubConfig}
+        getTourData={this.props.getTourData}
+        getUpdatedAllTours={this.props.getUpdatedAllTours}
       />
     );
   }

@@ -29,6 +29,8 @@ interface Props {
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
   updateDemoHubProp: <T extends keyof ReqDemoHubPropUpdate>(rid: string, demoHubProp: T, value: ReqDemoHubPropUpdate[T]) => void;
+  getTourData : (tourRid : string) => Promise<P_RespTour>,
+  getUpdatedAllTours : () => void;
 }
 
 function DemoHubEditor(props: Props): JSX.Element {
@@ -47,6 +49,8 @@ function DemoHubEditor(props: Props): JSX.Element {
       data: props.data,
       setPreviewUrl,
       updateDemoHubProp: props.updateDemoHubProp,
+      getTourData: props.getTourData,
+      getUpdatedAllTours: props.getUpdatedAllTours
     }),
     [config, props.tours]
   );

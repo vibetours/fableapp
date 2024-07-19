@@ -10,6 +10,8 @@ interface EditorCtxProps {
   tours: P_RespTour[];
   setPreviewUrl: React.Dispatch<React.SetStateAction<string>>;
   updateDemoHubProp: <T extends keyof ReqDemoHubPropUpdate>(rid: string, demoHubProp: T, value: ReqDemoHubPropUpdate[T]) => void;
+  getTourData : (tourRid : string) => Promise<P_RespTour>,
+  getUpdatedAllTours : () => void;
 }
 
 export const EditorCtx = createContext<EditorCtxProps | null >(null);

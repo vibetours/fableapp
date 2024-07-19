@@ -21,7 +21,6 @@ import SimpleStyleEditor from '../../simple-styles-editor';
 import * as GTags from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
 import OptionEditor from './option-editor';
-import { SectionTitle } from '../../components';
 import { useEditorCtx } from '../../ctx';
 import * as Tags from '../../styled';
 import { InputText } from '../../../screen-editor/styled';
@@ -53,6 +52,7 @@ interface Props {
   updateOptionTitle: (optionId: string) => (title: string) => void;
   updateOptionDesc: (optionId: string) => (desc: string) => void;
   addDemoInEntryOption: (optionId: string) => (demo: IDemoHubConfigDemo) => void;
+  updateDemoInEntryOption : (optionId: string) => (demo: IDemoHubConfigDemo) => void;
   deleteDemoInEntryOption: (optionId: string) => (demoRid: string) => void;
   deleteEntryOption: (optionId: string) => void;
 
@@ -415,6 +415,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                                       deleteEntryOption={() => props.deleteEntryOption(option.id)}
                                       deleteDemoInEntryOption={props.deleteDemoInEntryOption(option.id)}
                                       addDemoInEntryOption={props.addDemoInEntryOption(option.id)}
+                                      updateDemoInEntryOption={props.updateDemoInEntryOption(option.id)}
                                       updateOptionTitle={props.updateOptionTitle(option.id)}
                                       updateOptionDesc={props.updateOptionDesc(option.id)}
                                       option={option}

@@ -15,6 +15,7 @@ import { InputText } from '../../../screen-editor/styled';
 import { showDeleteConfirm } from '../../delete-confirm';
 import FableLogo from '../../../../assets/fable-rounded-icon.svg';
 import { rearrangeArray } from '../../../../utils';
+import DraggableDemosSelector from '../../components';
 
 interface Props {
   section: IDemoHubConfigSeeAllPageSection;
@@ -256,155 +257,23 @@ export default function SectionEditor(props: Props): JSX.Element {
             simpleStyle={props.section.simpleStyle}
             simpleStyleUpdateFn={updateCtaSimpleStyle}
           />
-          <div>
-            <div className="typ-sm">Select demos to add in this section</div>
-            <GTags.FableSelect
-              showSearch
-              suffixIcon={<CaretOutlined dir="down" />}
-              bordered={false}
-              size="large"
-              options={Object.values(tours)
-                .filter(tour => !props.section.demos.find(demo => demo.rid === tour.rid))
-                .map(tour => ({
-                  value: tour.rid,
-                  label: tour.displayName,
-                }))}
-              onSelect={(val) => {
-                const tour = getTourByRid(tours, val as string)!;
 
-                const newDemo: IDemoHubConfigDemo = {
-                  name: tour.displayName,
-                  thumbnail: tour.thumbnailUri.href,
-                  rid: tour.rid,
-                  desc: tour.description,
-                };
-
-                updateSectionProp('demos', [...props.section.demos, newDemo]);
-              }}
-              className="typ-ip"
-              value=""
-            />
-          </div>
-
-          <div>
-            <div style={{ fontWeight: '500' }}>
-              Selected demos:
-            </div>
-            {props.section.demos.length ? (
-              <DragDropContext
-                onDragEnd={rearrangeSectionDemos}
-              >
-                <Droppable
-                  droppableId="droppable"
-                >
-                  {(provided, snapshot) => (
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                      }}
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                    >
-                      {props.section.demos.map((demo, index) => (
-                        <Draggable
-                          key={demo.rid}
-                          draggableId={demo.rid + index}
-                          index={index}
-                        >
-                          {(providedInner, snapshotInner) => (
-                            <div
-                              key={demo.rid}
-                              {...providedInner.draggableProps}
-                              ref={providedInner.innerRef}
-                            >
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  marginBottom: '0.75rem',
-                                }}
-                              >
-                                <Tooltip
-                                  placement="left"
-                                  title={<span>Drag to reorder.</span>}
-                                  overlayStyle={{ fontSize: '0.75rem' }}
-                                >
-                                  <Button
-                                    type="text"
-                                    size="small"
-                                    icon={<HolderOutlined
-                                      style={{
-                                        opacity: '0.65',
-                                        fontSize: '14px',
-                                      }}
-                                    />}
-                                    {...providedInner.dragHandleProps}
-                                  />
-                                </Tooltip>
-
-                                <div
-                                  key={demo.rid}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    flex: 1,
-                                  }}
-                                >
-                                  <div style={{
-                                    display: 'flex',
-                                    gap: '0.5rem',
-                                    alignItems: 'center'
-                                  }}
-                                  >
-                                    <img src={FableLogo} height={16} alt="Fable logo" />
-                                    <GTags.OurLink
-                                      href={`/preview/demo/${demo.rid}`}
-                                      target="_blank"
-                                      style={{
-                                        display: 'inline-block',
-                                        margin: 0
-                                      }}
-                                    >
-                                      {demo.name}
-                                    </GTags.OurLink>
-                                  </div>
-                                  <Tooltip title="Edit button properties" overlayStyle={{ fontSize: '0.75rem' }}>
-                                    <Button
-                                      icon={<DeleteOutlined />}
-                                      type="text"
-                                      size="small"
-                                      style={buttonSecStyle}
-                                      onClick={() => {
-                                        showDeleteConfirm(
-                                          () => deleteDemoFromSection(demo.rid),
-                                          'Are you sure you want to delete this demo from the section?',
-                                        );
-                                      }}
-                                    />
-                                  </Tooltip>
-                                </div>
-
-                              </div>
-                            </div>
-                          )}
-
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            ) : (
-              <div className="typ-sm">
-                There are no demos in this section. Use the above drop down to select demo for this section.
-              </div>
-            )}
-
-          </div>
-
+          <DraggableDemosSelector
+            selectedDemos={props.section.demos}
+            deleteDemoFn={deleteDemoFromSection}
+            rearrangeFn={rearrangeSectionDemos}
+            addDemoFn={(newDemo) => updateSectionProp('demos', [...props.section.demos, newDemo])}
+            updateDemoFn={(newDemo) => updateSectionProp('demos', props.section.demos.map(demo => {
+              if (demo.rid === newDemo.rid) {
+                demo.desc = newDemo.desc;
+                demo.name = newDemo.name;
+                demo.thumbnail = newDemo.thumbnail;
+              }
+              return demo;
+            }))}
+            selectDesc="Select demos to add in this section"
+            emptyStateMsg="There are no demos in this section. Use the above drop down to select demo for this section."
+          />
         </div>
       )}
     </div>

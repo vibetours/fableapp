@@ -54,7 +54,7 @@ export const Sidepanel = styled.div`
   box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   z-index: 2;
   overflow-y: auto;
-  min-width: 390px;
+  min-width: 380px;
 `;
 
 export const SidepanelCon = styled.div`
@@ -70,13 +70,15 @@ export const SidepanelCon = styled.div`
   .grooveable {
     .expand.opened {
       width: calc(100% + 40px);
-      transform: translateX(-34px);
+      transform: none;
+      position: relative;
+      left: -34px;
       border: 1px solid #9E9E9E;
     }
 
     .expand.closed {
       width: calc(100%);
-      transform: translateX(0px);
+      left: 0px;
       border: 1px solid transparent;
     }
 

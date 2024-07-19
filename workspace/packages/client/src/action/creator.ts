@@ -65,6 +65,7 @@ import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenDat
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   convertEditsToLineItems,
   getThemeAndAnnotationFromDataFile,
@@ -800,13 +801,15 @@ export interface TGetAllTours {
   globalConfig: IGlobalConfig
 }
 
-export function getAllTours(shouldRefreshIfPresent = true) {
+export function getAllTours(shouldRefreshIfPresent = true, fetchUpdatedTours = false) {
   return async (dispatch: Dispatch<TGetAllTours | TGenericLoading>, getState: () => TState) => {
     const state = getState().default;
-    if (shouldRefreshIfPresent || state.tours.length === 0) {
-      dispatch({
-        type: ActionType.ALL_TOURS_LOADING,
-      });
+    if (shouldRefreshIfPresent || state.tours.length === 0 || fetchUpdatedTours) {
+      if (shouldRefreshIfPresent) {
+        dispatch({
+          type: ActionType.ALL_TOURS_LOADING,
+        });
+      }
       const data = await api<null, ApiResp<RespDemoEntity[]>>('/tours', { auth: true });
       let gOptsData = state.globalConfig;
       if (!gOptsData) {
@@ -823,6 +826,11 @@ export function getAllTours(shouldRefreshIfPresent = true) {
       });
     }
   };
+}
+
+export interface TTours {
+  type : ActionType
+  tours : Array<P_RespTour>;
 }
 
 /* ************************************************************************* */
@@ -1091,6 +1099,24 @@ export function publishTour(tour: P_RespTour) {
     });
 
     return Promise.resolve(publishSuccessful);
+  };
+}
+
+export function getTourData(tourRid : string) {
+  return async (dispatch : Dispatch<TTour>, getState : () => TState) => {
+    const state = getState();
+    let tour : P_RespTour | null = null;
+
+    try {
+      const data = await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${tourRid}`);
+      if (data.data) {
+        tour = processRawTourData(data.data, state.default.commonConfig!);
+      }
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+
+    return Promise.resolve(tour);
   };
 }
 
@@ -1785,8 +1811,6 @@ export function loadDemoHubConfig(
   ) => {
     // TODO api call goes here
     const config = await api<null, IDemoHubConfig>(demoHub!.configFileUri.href);
-
-    await sleep(3000);
 
     return Promise.resolve(config);
   };

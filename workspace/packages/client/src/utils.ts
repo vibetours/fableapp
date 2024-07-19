@@ -1250,7 +1250,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
   id: nanoid(),
   type,
   __ops: 'or',
-  options: [getSampleSelectEntryOption(), getSampleSelectEntryOption()],
+  options: [getSampleSelectEntryOption(1)],
   title: `What's your role in company? ${idx}`,
   slug: `whats-your-role-in-company-${idx}`,
   desc: 'This section is auto generated for you. Use the editor on the left to edit the content.',
@@ -1336,9 +1336,9 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
   showSkipCta: false,
 });
 
-export const getSampleSelectEntryOption = (): SelectEntryOption => ({
+export const getSampleSelectEntryOption = (idx: number): SelectEntryOption => ({
   id: nanoid(),
-  title: 'This is an option',
+  title: `This is an option ${idx}`,
   desc: 'Edit this action from the left side bar',
   demos: []
 });
@@ -1430,4 +1430,38 @@ export function objectToSearchParams(obj: Record<string, any>): string {
     params.append(key, obj[key]);
   });
   return params.toString();
+}
+
+export function findQualificationToBeUpdatedIdx(config : IDemoHubConfig, findId : string) : number {
+  return config
+    .qualification_page
+    .qualifications
+    .findIndex(q => q.id === findId);
+}
+
+export function findEntryToBeUpdatedIdx(
+  config : IDemoHubConfig,
+  entryId : string,
+  qualificationToBeUpdatedIdx : number
+) : number {
+  return config
+    .qualification_page
+    .qualifications[qualificationToBeUpdatedIdx]
+    .entries
+    .findIndex(entry => entry.id === entryId);
+}
+
+export function findOptionToBeUpdatedIdx(
+  config : IDemoHubConfig,
+  optionId : string,
+  qualificationToBeUpdatedIdx : number,
+  entryToBeUpdatedIdx : number
+
+) : number {
+  return (config
+    .qualification_page
+    .qualifications[qualificationToBeUpdatedIdx]
+    .entries[entryToBeUpdatedIdx] as SelectEntry)
+    .options
+    .findIndex(option => option.id === optionId);
 }
