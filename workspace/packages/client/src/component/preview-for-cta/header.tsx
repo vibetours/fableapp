@@ -21,7 +21,6 @@ export default function Header(props: Props): JSX.Element {
     const textColor = getColorContrast(bgColor) === 'dark' ? '#fff' : '#000';
     setColor(textColor);
   }, [props.site]);
-
   return (
     <Tags.HeaderCon
       color={color}
@@ -58,21 +57,27 @@ export default function Header(props: Props): JSX.Element {
               margin: '0 1rem'
             }}
           />}
-          <a href={props.site.ctaLink._val} onClick={props.captureConversion} target="_blank" rel="noreferrer">
-            <Button
-              size="small"
-              className="sec-btn"
-              type="default"
-              style={{
-                padding: '0 0.8rem',
-                height: '30px',
-                borderRadius: '16px',
-                backgroundColor: 'transparent',
-              }}
+          {props.site.ctaLink._val && props.site.ctaText._val && (
+            <a
+              href={props.site.ctaLink._val}
+              onClick={props.captureConversion}
+              target="_blank"
+              rel="noreferrer"
             >
-              {props.site.ctaText._val}
-            </Button>
-          </a>
+              <Button
+                size="small"
+                className="sec-btn"
+                type="default"
+                style={{
+                  padding: '0 0.8rem',
+                  height: '30px',
+                  borderRadius: '16px',
+                  backgroundColor: 'transparent',
+                }}
+              >
+                {props.site.ctaText._val}
+              </Button>
+            </a>)}
         </div>
       )}
     </Tags.HeaderCon>

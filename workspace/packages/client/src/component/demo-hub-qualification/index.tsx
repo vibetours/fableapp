@@ -13,6 +13,7 @@ import * as Tags from './styled';
 import DemoEntry from './entry/demo-entry';
 import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl } from '../../utils';
 import { addFontToHeader } from '../demo-hub-see-all';
+import { getDemosFromSelectedOptionsFromQConfig } from './utils';
 
 interface Props {
   config: IDemoHubConfig;
@@ -65,6 +66,19 @@ function DemoHubQualification(props: Props): JSX.Element {
       || null
     );
   }, [props.config]);
+
+  useEffect(() => {
+    if (!qualificationConfig) return;
+
+    setSelectedDemosForEntries(prev => {
+      const newState = { ...prev };
+      Object.entries(newState).forEach(([entrySlug, data]) => {
+        const newData = getDemosFromSelectedOptionsFromQConfig(qualificationConfig, entrySlug, data.options);
+        newState[entrySlug] = newData;
+      });
+      return newState;
+    });
+  }, [qualificationConfig]);
 
   const calculateOrderOfStepsAndSidepanelLinks = (): {
     order: QualificationStep[],
