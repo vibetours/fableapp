@@ -11,7 +11,7 @@ import { P_RespTour } from '../entity-processor';
 // ref https://github.com/sharefable/api/wiki/Analytics#frontend-events
 
 // AAE -> App Analytics Event
-type AppAnalyticsEvents = 'tour_opened'
+type AppAnalyticsEvents = 'demo_opened'
   | 'user_assign'
   | 'nav_to_ann'
   | 'time_spent_in_ann'
@@ -35,7 +35,7 @@ export interface CommonEventParams {
 // in contrast with product events / internal events
 
 export interface AAE_TourOpened extends CommonEventParams {
-  event: 'tour_opened';
+  event: 'demo_opened';
   enc: 'ac';
 }
 
@@ -107,7 +107,7 @@ function getSpecificEventParams(
 ): Pick<CommonEventParams, 'enc' | 'offset' | 'payload'> {
   const globalClock = getGlobalData('globalClock') as Clock;
   switch (event) {
-    case 'tour_opened':
+    case 'demo_opened':
     case 'user_assign':
     case 'nav_to_ann':
     case 'cta_clicked': {
@@ -134,12 +134,12 @@ function getSpecificEventParams(
 
 export const eventAndLogClassAssociation: Record<ClientLogClass, Partial<Record<AppAnalyticsEvents, number>>> = {
   [ClientLogClass.Basic]: {
-    tour_opened: 1,
+    demo_opened: 1,
     cta_clicked: 1,
     user_assign: 1
   },
   [ClientLogClass.Full]: {
-    tour_opened: 1,
+    demo_opened: 1,
     cta_clicked: 1,
     user_assign: 1,
     nav_to_ann: 1,

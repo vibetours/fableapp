@@ -259,7 +259,7 @@ export function initInternalEvents() : Array<[InternalEvents, (ev: Event) => voi
     // TODO only raise this across sessions
     const lead = getGlobalData('lead') as FableLeadContactProps | null;
     const demoData = getGlobalData('demo') as P_RespTour;
-    logEvent2('tour_opened');
+    logEvent2('demo_opened');
 
     logEventToCblt<CBDemoOpened & CBEventBase>({
       event: CBEvents.DEMO_OPENED,
