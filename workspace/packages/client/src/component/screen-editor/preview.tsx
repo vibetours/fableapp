@@ -5,7 +5,7 @@ import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
-import { createFableRtUmbrlDivShHost, createFablrRtUmbrlDiv, getFableRtUmbrlDiv, getFableRtUmbrlDivShHost } from '../annotation/utils';
+import { createFableRtUmbrlDivWrapper, getFableRtUmbrlDivWrapper } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem } from '../../types';
@@ -148,9 +148,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           Promise.all(this.assetLoadingPromises).then(() => {
             // create a elative container that would contain all the falbe related els
             if (frameBody) {
-              let umbrellaDiv = getFableRtUmbrlDivShHost(doc);
+              let umbrellaDiv = getFableRtUmbrlDivWrapper(doc);
               if (!umbrellaDiv) {
-                umbrellaDiv = createFableRtUmbrlDivShHost(doc);
+                umbrellaDiv = createFableRtUmbrlDivWrapper(doc);
               }
               this.props.onBeforeFrameBodyDisplay({
                 nestedFrames: this.nestedFrames,

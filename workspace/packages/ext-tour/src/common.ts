@@ -16,3 +16,11 @@ export async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
 
   return null;
 }
+
+export const PURIFY_DOM_SERIALIZATION = "fable-purify-dom-serialization";
+export const AGGRESSIVE_BUFFER_PRESERVATION = "fable-aggressibe-buffer-preservation";
+
+export enum SettingState {
+  ON = "On",
+  OFF = "Off"
+}

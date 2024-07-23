@@ -7,7 +7,7 @@ import {
   ThemeBorderRadiusCandidatePerNode,
   ThemeColorCandidatPerNode
 } from "@fable/common/dist/types";
-import { getActiveTab } from "./common";
+import { AGGRESSIVE_BUFFER_PRESERVATION, getActiveTab, PURIFY_DOM_SERIALIZATION, SettingState } from "./common";
 import { Msg, MsgPayload } from "./msg";
 import {
   IExtStoredState,
@@ -495,6 +495,12 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       break;
     }
 
+    case Msg.INIT_REGISTERED_CONTENT_SCRIPTS: {
+      await chrome.scripting.unregisterContentScripts();
+      initRegisteredContentScripts();
+      break;
+    }
+
     default:
       break;
   }
@@ -546,26 +552,47 @@ async function injectContentScriptInCrossOriginFrames(tab: { id: number, url: st
   }
 }
 
-const initScriptId = "fable/initscript";
+function registerContentScriptWithId(id: string, script: string): void {
+  chrome.scripting
+    .registerContentScripts([{
+      id,
+      js: [script],
+      persistAcrossSessions: false,
+      matches: ["https://*/*"],
+      runAt: "document_start",
+      world: "MAIN",
+      allFrames: true,
+    }])
+    .then(() => {
+    })
+    .catch((err) => sentryCaptureException(err));
+}
 
-chrome.scripting.getRegisteredContentScripts()
-  .then((scripts) => {
-    const scriptExists = scripts.find(script => script.id === initScriptId);
-    if (!scriptExists) {
-      chrome.scripting
-        .registerContentScripts([{
-          id: initScriptId,
-          js: ["init.js"],
-          persistAcrossSessions: false,
-          matches: ["https://*/*"],
-          runAt: "document_start",
-          world: "MAIN",
-          allFrames: true,
-        }])
-        .then(() => {})
-        .catch((err) => sentryCaptureException(err));
-    }
-  }).catch(err => sentryCaptureException(err));
+function initRegisteredContentScripts() {
+  const drawingBufferScriptId = "fable/preservedrawingbuffer";
+  const purifyDomScriptId = "fable/purifydom";
+
+  chrome.scripting.getRegisteredContentScripts()
+    .then((scripts) => {
+      const scriptExists = scripts.find(script => script.id === drawingBufferScriptId);
+      const purifyDomScriptExists = scripts.find(script => script.id === purifyDomScriptId);
+
+      chrome.storage.local.get([PURIFY_DOM_SERIALIZATION, AGGRESSIVE_BUFFER_PRESERVATION], (result) => {
+        const purifyDom = result[PURIFY_DOM_SERIALIZATION] || SettingState.OFF;
+        const aggressiveBuffer = result[AGGRESSIVE_BUFFER_PRESERVATION] || SettingState.ON;
+
+        if (aggressiveBuffer === SettingState.ON && !scriptExists) {
+          registerContentScriptWithId(drawingBufferScriptId, "preserve_drawing_buffer.js");
+        }
+
+        if (purifyDom === SettingState.ON && !purifyDomScriptExists) {
+          registerContentScriptWithId(purifyDomScriptId, "purify_dom_serialization.js");
+        }
+      });
+    }).catch(err => sentryCaptureException(err));
+}
+
+initRegisteredContentScripts();
 
 async function onTabStateUpdate(tabId: number, info: chrome.tabs.TabChangeInfo) {
   const tabsToLookFor = (await chrome.storage.local.get(TABS_TO_TRACK))[TABS_TO_TRACK] || {};

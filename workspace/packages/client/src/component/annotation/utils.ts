@@ -3,7 +3,6 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { IAnnoationDisplayConfig } from '.';
 import { Rect } from '../base/hightligher-base';
 import { AnnotationPerScreen } from '../../types';
-import { isVideoAnnotation } from '../../utils';
 import { AllDimsForAnnotation } from './types';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LEAD_FORM_VALIDATION_FN } from '../../constants';
 import { FIELD_NAME_VARIABLE_REGEX,
@@ -13,10 +12,11 @@ import { FIELD_NAME_VARIABLE_REGEX,
 } from '../annotation-rich-text-editor/utils/lead-form-node-utils';
 
 export const FABLE_RT_UMBRL = 'fable-rt-umbrl';
-export const FABLE_RT_UMBRL_SH_HOST = 'fable-rt-umbrl-sh-host';
+export const FABLE_RT_UMBRL_WRAPPER = 'fable-rt-umbrl-wrapper';
+export const FABLE_SH_HOST = 'fable-sh-host';
 
 export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement | null => {
-  const host = getFableRtUmbrlDivShHost(doc);
+  const host = getFableShHost(doc);
   if (!host) return null;
 
   const shadowRoot = host.shadowRoot!;
@@ -24,23 +24,35 @@ export const getFableRtUmbrlDiv = (doc: Document): HTMLDivElement | null => {
   return umbrlDiv as HTMLDivElement;
 };
 
-export const getFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
-  const umbrlDivShHost = doc.getElementsByClassName(FABLE_RT_UMBRL_SH_HOST)[0];
+export const getFableShHost = (doc: Document): HTMLDivElement => {
+  const umbrlDivShHost = doc.getElementsByClassName(FABLE_SH_HOST)[0];
   return umbrlDivShHost as HTMLDivElement;
 };
 
-export const createFableRtUmbrlDivShHost = (doc: Document): HTMLDivElement => {
+export const getFableRtUmbrlDivWrapper = (doc: Document): HTMLDivElement => {
+  const umbrlDivShHost = doc.getElementsByClassName(FABLE_RT_UMBRL_WRAPPER)[0];
+  return umbrlDivShHost as HTMLDivElement;
+};
+
+export const createFableRtUmbrlDivWrapper = (doc: Document): HTMLDivElement => {
   const umbrlDivShHost = doc.createElement('div');
   umbrlDivShHost.style.setProperty('display', 'block', 'important');
   umbrlDivShHost.style.setProperty('visibility', 'visible', 'important');
   umbrlDivShHost.style.setProperty('opacity', '1', 'important');
-  umbrlDivShHost.classList.add(FABLE_RT_UMBRL_SH_HOST);
-  umbrlDivShHost.attachShadow({ mode: 'open' });
-  const shadowRoot = umbrlDivShHost.shadowRoot!;
-  shadowRoot.appendChild(createOverrideStyleEl(doc));
-  shadowRoot.appendChild(createFablrRtUmbrlDiv(doc));
+  umbrlDivShHost.classList.add(FABLE_RT_UMBRL_WRAPPER);
+  umbrlDivShHost.appendChild(createFableShHost(doc));
   doc.body.appendChild(umbrlDivShHost);
   return umbrlDivShHost;
+};
+
+export const createFableShHost = (doc: Document): HTMLDivElement => {
+  const fableShHost = doc.createElement('div');
+  fableShHost.attachShadow({ mode: 'open' });
+  const shadowRoot = fableShHost.shadowRoot!;
+  fableShHost.classList.add(FABLE_SH_HOST);
+  shadowRoot.appendChild(createOverrideStyleEl(doc));
+  shadowRoot.appendChild(createFablrRtUmbrlDiv(doc));
+  return fableShHost;
 };
 
 export const createFablrRtUmbrlDiv = (doc: Document): HTMLDivElement => {

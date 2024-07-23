@@ -7,6 +7,7 @@ import { IExtStoredState, RecordingStatus } from "../types";
 import Loader from "./components/loader";
 import { version } from "../../package.json";
 import DisabledStopDelActionBtns from "./components/disabled-action-btns";
+import { AGGRESSIVE_BUFFER_PRESERVATION, PURIFY_DOM_SERIALIZATION, SettingState } from "../common";
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -25,6 +26,9 @@ interface State {
   // In this case logged in user, org etc
   inited: boolean;
   recordingStatus: RecordingStatus,
+  showSettings: boolean;
+  purifyDom: SettingState;
+  aggressiveBuffer: SettingState;
 }
 
 class Root extends Component<Props, State> {
@@ -33,10 +37,26 @@ class Root extends Component<Props, State> {
     this.state = {
       inited: false,
       recordingStatus: RecordingStatus.Idle,
+      showSettings: false,
+      purifyDom: SettingState.OFF,
+      aggressiveBuffer: SettingState.ON
     };
 
     chrome.runtime.onMessage.addListener(this.onMessageReceiveFromWorkerScript);
     chrome.runtime.sendMessage({ type: Msg.INIT });
+  }
+
+  componentDidMount() {
+    chrome.storage.local.get([PURIFY_DOM_SERIALIZATION, AGGRESSIVE_BUFFER_PRESERVATION], (result) => {
+      const purifyDom = result[PURIFY_DOM_SERIALIZATION];
+      const aggressiveBuffer = result[AGGRESSIVE_BUFFER_PRESERVATION];
+      if (purifyDom === SettingState.OFF || purifyDom === SettingState.ON) {
+        this.setState({ purifyDom });
+      }
+      if (aggressiveBuffer === SettingState.OFF || aggressiveBuffer === SettingState.ON) {
+        this.setState({ aggressiveBuffer });
+      }
+    });
   }
 
   onMessageReceiveFromWorkerScript = (msg: MsgPayload<any>, sender: chrome.runtime.MessageSender) => {
@@ -85,9 +105,23 @@ class Root extends Component<Props, State> {
     }, 300);
   };
 
+  updateSettings = () => {
+    this.setState(prev => ({ showSettings: !prev.showSettings }));
+  };
+
   // eslint-disable-next-line class-methods-use-this
   openLinkInNewTab = (path: string) => () => {
     chrome.tabs.create({ active: true, url: `${APP_CLIENT_ENDPOINT}/${path}` });
+  };
+
+  updateSettingState = (key: string, value: SettingState) => {
+    chrome.storage.local.set({ [key]: value }, () => {
+      if (key === AGGRESSIVE_BUFFER_PRESERVATION) {
+        this.setState({ aggressiveBuffer: value });
+      } else if (key === PURIFY_DOM_SERIALIZATION) {
+        this.setState({ purifyDom: value });
+      }
+    });
   };
 
   render() {
@@ -101,6 +135,20 @@ class Root extends Component<Props, State> {
           <span style={{ cursor: "pointer", paddingTop: "4px" }} title="Reset extension state" onClick={this.resetState}>
             ◼︎
           </span>
+          &nbsp;&nbsp;
+          {
+            this.state.showSettings
+              ? (
+                <span style={{ cursor: "pointer", paddingTop: "4px", fontSize: "0.95rem" }} title="Hide settings" onClick={this.updateSettings}>
+                  ←
+                </span>
+              )
+              : (
+                <span style={{ cursor: "pointer", paddingTop: "4px", fontSize: "0.95rem" }} title="Show settings" onClick={this.updateSettings}>
+                  ⚙
+                </span>
+              )
+          }
         </div>
         {!this.state.inited && (
           <div style={{ display: "flex", flexDirection: "column" }}>
@@ -129,54 +177,95 @@ class Root extends Component<Props, State> {
                 src="./illustration-extension.png"
               />
             </button>
-            <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
-              <div className="as-p title">Create stunning interactive demos in 5 minutes</div>
-              <div className="as-p description">
-                <ul style={{
-                  listStyleType: "none"
-                }}
-                >
-                  <li>✅ For marketing teams to create interactive tours</li>
-                  <li>✅ For sales teams to create personalized demos</li>
-                  <li>✅ For support to create interactive guides</li>
-                </ul>
-              </div>
-            </div>
-
             {
-              this.state.recordingStatus === RecordingStatus.Idle && (
-                <button type="button" className="btn-primary" onClick={this.startRecording}>
-                  {RecordBtnText}
-                </button>
-              )
-            }
-            {
-              this.state.recordingStatus === RecordingStatus.Recording && (
-                <>
-                  <button type="button" className="btn-primary" onClick={this.stopRecording}>
-                    {StopBtnText}
-                  </button>
-                  <button type="button" className="btn-secondary" onClick={this.deleteRecording}>
-                    {DeleteBtnText}
-                  </button>
-                </>
-              )
-            }
-            {
-              this.state.recordingStatus === RecordingStatus.Stopping && (
-                <DisabledStopDelActionBtns
-                  stopBtnText={StoppingBtnText}
-                  deleteBtnText={DeleteBtnText}
-                />
-              )
-            }
-            {
-              this.state.recordingStatus === RecordingStatus.Deleting && (
-                <DisabledStopDelActionBtns
-                  stopBtnText={StopBtnText}
-                  deleteBtnText={DeletingBtnText}
-                />
-              )
+              this.state.showSettings
+                ? (
+                  <div
+                    className="description"
+                    style={{ margin: "0.5rem 0rem 1rem 0rem", width: "100%" }}
+                  >
+                    <div>
+                      <p>Purify DOM serialization:&nbsp;&nbsp;
+                        <a onClick={() => this.updateSettingState(PURIFY_DOM_SERIALIZATION, SettingState.ON)}>On</a> |
+                        <a onClick={() => this.updateSettingState(PURIFY_DOM_SERIALIZATION, SettingState.OFF)}>Off</a> &nbsp;&nbsp;
+                        [Currently {this.state.purifyDom}]
+                      </p>
+                    </div>
+                    <div>
+                      <p>Aggresive buffer preservation:&nbsp;&nbsp;
+                        <a onClick={() => this.updateSettingState(AGGRESSIVE_BUFFER_PRESERVATION, SettingState.ON)}>
+                          On
+                        </a> |
+                        <a onClick={() => this.updateSettingState(AGGRESSIVE_BUFFER_PRESERVATION, SettingState.OFF)}>
+                          Off
+                        </a> &nbsp;&nbsp;
+                        [Currently {this.state.aggressiveBuffer}]
+                      </p>
+                    </div>
+                    <div>
+                      <a onClick={() => {
+                        chrome.runtime.sendMessage({ type: Msg.INIT_REGISTERED_CONTENT_SCRIPTS });
+                      }}
+                      >Reload extension to apply settings
+                      </a>
+                    </div>
+                    <div>
+                      Please reload your tab for the changes to take effect
+                    </div>
+                  </div>
+                )
+                : (
+                  <>
+                    <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
+                      <div className="as-p title">Create stunning interactive demos in 5 minutes</div>
+                      <div className="as-p description">
+                        <ul style={{
+                          listStyleType: "none"
+                        }}
+                        >
+                          <li>✅ For marketing teams to create interactive tours</li>
+                          <li>✅ For sales teams to create personalized demos</li>
+                          <li>✅ For support to create interactive guides</li>
+                        </ul>
+                      </div>
+                    </div>
+                    {
+                      this.state.recordingStatus === RecordingStatus.Idle && (
+                        <button type="button" className="btn-primary" onClick={this.startRecording}>
+                          {RecordBtnText}
+                        </button>
+                      )
+                    }
+                    {
+                      this.state.recordingStatus === RecordingStatus.Recording && (
+                        <>
+                          <button type="button" className="btn-primary" onClick={this.stopRecording}>
+                            {StopBtnText}
+                          </button>
+                          <button type="button" className="btn-secondary" onClick={this.deleteRecording}>
+                            {DeleteBtnText}
+                          </button>
+                        </>
+                      )
+                    }
+                    {
+                      this.state.recordingStatus === RecordingStatus.Stopping && (
+                        <DisabledStopDelActionBtns
+                          stopBtnText={StoppingBtnText}
+                          deleteBtnText={DeleteBtnText}
+                        />
+                      )
+                    }
+                    {
+                      this.state.recordingStatus === RecordingStatus.Deleting && (
+                        <DisabledStopDelActionBtns
+                          stopBtnText={StopBtnText}
+                          deleteBtnText={DeletingBtnText}
+                        />
+                      )
+                    }
+                  </>
+                )
             }
           </div>
         )}

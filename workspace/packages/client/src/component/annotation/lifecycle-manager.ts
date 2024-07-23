@@ -11,10 +11,10 @@ import { AnnotationPerScreen, ElPathKey, NavFn } from '../../types';
 import { isBodyEl, isMediaAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
-  createFableRtUmbrlDivShHost,
+  createFableRtUmbrlDivWrapper,
   createFablrRtUmbrlDiv,
   getFableRtUmbrlDiv,
-  getFableRtUmbrlDivShHost,
+  getFableRtUmbrlDivWrapper,
   scrollToAnn
 } from './utils';
 import { AnnotationSerialIdMap } from './ops';
@@ -238,9 +238,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   };
 
   resetCons(): void {
-    let umbrellaDiv = getFableRtUmbrlDivShHost(this.doc) as HTMLDivElement;
+    let umbrellaDiv = getFableRtUmbrlDivWrapper(this.doc) as HTMLDivElement;
     if (!umbrellaDiv) {
-      umbrellaDiv = createFableRtUmbrlDivShHost(this.doc);
+      umbrellaDiv = createFableRtUmbrlDivWrapper(this.doc);
 
       const [con, root] = this.createContainerRoot('');
       const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
@@ -400,7 +400,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 }
 `.trim();
 
-  private exportTourThemeAsCssVar(): string {
+  private exportTourThemeAsCssVar(cssVarsLoc: 'root' | 'host'): string {
     const padding = this.tourDataOpts.annotationPadding._val;
     const match = padding.match(/\s*(\d+)\s+(\d+)\s*/);
     let padX = 0;
@@ -413,7 +413,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     }
 
     return `
-:root {
+:${cssVarsLoc} {
   --fable-primary-color: ${this.tourDataOpts.primaryColor._val};
   --fable-selection-color: ${this.config.selectionColor};
   --fable-ann-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor._val};
@@ -441,10 +441,10 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (doc.body) doc.body.appendChild(styleTag);
     }
     const compiledStyleStr = AnnotationLifecycleManager.compileCSSForEffect(styleStr, config);
-    styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar() + compiledStyleStr;
+    styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar('root') + compiledStyleStr;
 
     return () => {
-      if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar();
+      if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar('root');
       this.updateConfig('showOverlay', config.showOverlay);
       this.updateConfig('selectionColor', this.config.selectionColor);
       !this.isPlayMode && this.render();
@@ -470,7 +470,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       umbrlDiv.prepend(styleTag);
     }
     const compiledStyleStr = AnnotationLifecycleManager.compileCSSForEffect(styleStr, config);
-    styleTag.innerHTML = this.exportTourThemeAsCssVar() + compiledStyleStr;
+    styleTag.innerHTML = this.exportTourThemeAsCssVar('host') + compiledStyleStr;
   }
 
   private onScrollComplete = (el: HTMLElement, config: IAnnotationConfig): void => {

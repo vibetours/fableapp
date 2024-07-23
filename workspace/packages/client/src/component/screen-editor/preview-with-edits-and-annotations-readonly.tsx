@@ -8,11 +8,10 @@ import {
   JourneyData
 } from '@fable/common/dist/types';
 import React from 'react';
-import { Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { ScreenType } from '@fable/common/dist/api-contract';
 import { captureException, startTransaction } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { sentryCaptureException } from '@fable/common/dist/sentry';
 import { sleep } from '@fable/common/dist/utils';
 import { P_RespScreen, P_RespTour } from '../../entity-processor';
 import {
@@ -26,10 +25,10 @@ import {
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
 import { scrollIframeEls } from './scroll-util';
-import { AnnotationSerialIdMap, getAnnotationBtn, getAnnotationByRefId } from '../annotation/ops';
+import { getAnnotationByRefId } from '../annotation/ops';
 import { deser, deserIframeEl } from './utils/deser';
 import { applyEditsToSerDom } from './utils/edits';
-import { FABLE_RT_UMBRL_SH_HOST, getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDiv } from '../annotation/utils';
+import { FABLE_RT_UMBRL_WRAPPER, getAnnsOfSameMultiAnnGrp, getFableRtUmbrlDivWrapper } from '../annotation/utils';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { getDiffsOfImmediateChildren, getSerNodesAttrUpdates, isSerNodeDifferent } from './utils/diffs/get-diffs';
 import { DiffsSerNode, QueueNode } from './utils/diffs/types';
@@ -134,7 +133,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           const style = doc.createElement('style');
           style.setAttribute('id', ScreenPreviewWithEditsAndAnnotationsReadonly.FONT_FAMILY_STYLE_EL_ID);
           style.innerHTML = "body { font-family: 'IBM Plex Sans'; }";
-          getFableRtUmbrlDiv(doc)!.prepend(style);
+          getFableRtUmbrlDivWrapper(doc)!.prepend(style);
         }
       }
 
@@ -164,7 +163,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     link.type = 'text/css';
     link.setAttribute(ScreenPreviewWithEditsAndAnnotationsReadonly.GF_FONT_FAMILY_LINK_ATTR, '');
 
-    getFableRtUmbrlDiv(doc)!.prepend(link);
+    getFableRtUmbrlDivWrapper(doc)!.prepend(link);
   };
 
   onBeforeFrameBodyDisplay = (params: { nestedFrames: HTMLIFrameElement[] }): void => {
@@ -506,7 +505,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       if (!nextEl && parentNode.nodeName.toLowerCase() === 'body') {
         const lastEl = node.childNodes[parentNode.childNodes.length - 1];
         const fid = getFidOfNode(lastEl);
-        const umbrellaDiv = (node as HTMLElement).querySelector(`.${FABLE_RT_UMBRL_SH_HOST}`);
+        const umbrellaDiv = (node as HTMLElement).querySelector(`.${FABLE_RT_UMBRL_WRAPPER}`);
         if (!fid && umbrellaDiv) {
           nextEl = umbrellaDiv;
         }

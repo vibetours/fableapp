@@ -1892,7 +1892,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         >
           <div>Entry point</div>
           <GTags.OurCheckbox
-            style={{ marginLeft: '0.75rem' }}
+            style={{ marginLeft: '0.75rem', marginRight: '1.5rem' }}
             checked={opts.main === qualifiedAnnotationId}
             onChange={e => {
               let newOpts;
@@ -1943,6 +1943,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               setConfig(c => updateAnnotationScrollAdjustment(c, value as ScrollAdjustmentType));
             }}
             suffixIcon={<CaretOutlined dir="down" />}
+            style={{ marginRight: '1.5rem' }}
           />
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
@@ -1985,6 +1986,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
               amplitudeAnnotationEdited('advanced-reduce_motion_for_mobile', e);
               setTourDataOpts(newOpts);
             }}
+            style={{ marginRight: '1.5rem' }}
           />
         </div>
       </ActionPanel>
