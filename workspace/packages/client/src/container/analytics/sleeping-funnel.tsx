@@ -305,6 +305,8 @@ export default function Funnel(props: Props): ReactElement {
                 Percentile distribution of time spent in this step
               </div>
               <Bar
+                conceptX="percentile"
+                conceptY="session duration"
                 noPad
                 bg="#abacc0"
                 offset="24px"

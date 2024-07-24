@@ -154,7 +154,7 @@ export default function TourCard({
                   onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
-                    window.open(`/a/demo/${tour.rid}`, '_blank')?.focus();
+                    window.open(`/analytics/demo/${tour.rid}`, '_blank')?.focus();
                   }}
                 />
               </Tooltip>

@@ -47,6 +47,11 @@ import {
   ReqDemoHubRid,
   RespUploadUrl,
   ReqDemoHubPropUpdate,
+  RespEntityMetrics,
+  RespHouseLead,
+  MEntityMetricsDaily,
+  MEntitySubEntityDistribution,
+  Activity,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -1042,7 +1047,7 @@ export function loadTourAndData(
         type: ActionType.TOUR_LOADED,
         tour,
       });
-      return newTs;
+      return [newTs, null];
     }
     const loader = await api<null, ITourLoaderData>(tour!.loaderFileUri.href);
 
@@ -1065,7 +1070,7 @@ export function loadTourAndData(
       journey: annotationAndOpts.journey,
       globalConfig: tour.globalOpts,
     });
-    return newTs;
+    return [newTs, data];
   };
 }
 
@@ -2041,5 +2046,176 @@ export function updateDemoHubProp<T extends keyof ReqDemoHubPropUpdate>(
       type: ActionType.SET_CURRENT_DEMOHUB_DATA,
       data: processedData,
     });
+  };
+}
+
+export function getEntityMetrics(tourId: string) {
+  return async () => {
+    const data = await api<null, ApiResp<RespEntityMetrics>>(`/entity_metrics?rid=${tourId}`, { auth: true });
+    return Promise.resolve(data.data);
+  };
+}
+
+export interface P_RespHouseLead extends RespHouseLead {
+  nCreatedAt: Date;
+  nUpdatedAt: Date;
+  nLastInteractedAt: Date;
+}
+
+function getLeadsByDate(leads: P_RespHouseLead[]) {
+  const leadByDateMap: Record<string, number> = {};
+
+  leads.forEach(lead => {
+    const dateStr = lead.nCreatedAt.toISOString().split('T')[0];
+    if (leadByDateMap[dateStr]) {
+      leadByDateMap[dateStr]++;
+    } else {
+      leadByDateMap[dateStr] = 1;
+    }
+  });
+
+  const leadByDate = Object.entries(leadByDateMap).map(([date, count]) => ({
+    date: new Date(date),
+    count,
+  }));
+
+  return leadByDate;
+}
+
+export function getLeads(tourId: string) {
+  return async () => {
+    const data = await api<null, ApiResp<RespHouseLead[]>>(`/leads?rid=${tourId}`, { auth: true });
+    const processedData: P_RespHouseLead[] = data.data.map(item => ({
+      ...item,
+      nCreatedAt: new Date(item.createdAt),
+      nUpdatedAt: new Date(item.updatedAt),
+      nLastInteractedAt: new Date(item.lastInteractedAt),
+    }));
+
+    return Promise.resolve({
+      leads: processedData,
+      leadsByDate: getLeadsByDate(processedData)
+    });
+  };
+}
+
+export interface P_MEntityMetricsDaily extends MEntityMetricsDaily {
+  nDate: Date;
+}
+
+export function getDailySessionsAndConversion(tourId: string) {
+  return async () => {
+    const data = await api<null, ApiResp<MEntityMetricsDaily[]>>(`/entity_metrics_daily?rid=${tourId}`, { auth: true });
+    const processedData: P_MEntityMetricsDaily[] = data.data.map(item => ({
+      ...item,
+      nDate: new Date(item.day)
+    })).sort((m, n) => +n.nDate - +m.nDate);
+    return Promise.resolve(processedData);
+  };
+}
+
+export interface HistogramData {
+  bucketMin: number;
+  bucketMax: number;
+  bucketCount: number;
+  bins: string[];
+  freq: number[];
+}
+
+export interface P_EntitySubEntityDistMetrics {
+  avgSessionTimeInSec: number;
+  avgCompletionPercentage: number;
+  sessionTimeBucket: HistogramData;
+  completionBucket: HistogramData;
+  perAnnotationStat: Record<string, {
+    viewsAll: number;
+    timeSpentBucket: HistogramData;
+  }>;
+}
+
+function createHistogramData(data: MEntitySubEntityDistribution[]): HistogramData {
+  if (!data.length) {
+    return {
+      bucketMin: 0,
+      bucketMax: 0,
+      bucketCount: 0,
+      bins: [],
+      freq: [],
+    };
+  }
+
+  const item = data[0];
+  const bins = [];
+  const freq = Array.from({ length: item.bucketCount }, () => 0);
+  const bucketSize = Math.round((item.bucketMax - item.bucketMin) / item.bucketCount);
+  for (let i = 1; i <= item.bucketCount; i++) {
+    bins.push(`${item.bucketMin + (i - 1) * bucketSize}-${item.bucketMin + i * bucketSize}`);
+  }
+
+  // This function is called once for each subentity id, hence this function executes for
+  // each and every bucket
+  for (const item2 of data) {
+    freq[item2.bucketNumber - 1] = item2.freq;
+  }
+
+  return {
+    bucketMin: item.bucketMin,
+    bucketMax: item.bucketMax,
+    bucketCount: item.bucketCount,
+    bins,
+    freq,
+  };
+}
+
+function processEntitySubEntityDist(data: MEntitySubEntityDistribution[]): P_EntitySubEntityDistMetrics {
+  // separate completion data from annotation data
+  const completionData = data.filter(item => item.subEntityType === 'completion');
+  const annotationDataWithRollup = data.filter(item => item.subEntityType === 'ann');
+
+  // separate annotation rollup data (subEntityId=$rollup) from normal annotation data
+  const sessionTimeData = annotationDataWithRollup.filter(item => item.subEntityId === '$rollup');
+  const annotationData = annotationDataWithRollup.filter(item => item.subEntityId !== '$rollup');
+
+  const annDistmap: Record<string, MEntitySubEntityDistribution[]> = {};
+  for (const item of annotationData) {
+    if (item.subEntityId in annDistmap) {
+      annDistmap[item.subEntityId].push(item);
+    } else {
+      annDistmap[item.subEntityId] = [item];
+    }
+  }
+
+  const sessionTimeHistogram = createHistogramData(sessionTimeData);
+  const completionHistogram = createHistogramData(completionData);
+  return {
+    avgCompletionPercentage: completionData[0]?.metric0 || 0,
+    avgSessionTimeInSec: sessionTimeData[0]?.metric0 || 0,
+    sessionTimeBucket: sessionTimeHistogram,
+    completionBucket: completionHistogram,
+    perAnnotationStat: Object.entries(annDistmap).reduce((store, [annId, dist]) => {
+      const head = dist[0];
+      store[annId] = {
+        viewsAll: head.metric0,
+        timeSpentBucket: createHistogramData(dist),
+      };
+      return store;
+    }, {} as Record<string, {
+      viewsAll: number;
+      timeSpentBucket: HistogramData;
+    }>),
+  };
+}
+
+export function getEntitySubEntityDistribution(tourId: string) {
+  return async () => {
+    const data = await api<null, ApiResp<MEntitySubEntityDistribution[]>>(`/entity_subentity_dist_metrics?rid=${tourId}`, { auth: true });
+    return Promise.resolve(processEntitySubEntityDist(data.data));
+  };
+}
+
+export function getActivityData(rid: string, aid: string) {
+  return async () => {
+    const data = await api<null, ApiResp<Activity[]>>(`/activity_data/${rid}/${aid}`, { auth: true });
+    return Promise.resolve(data.data);
   };
 }

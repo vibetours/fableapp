@@ -377,6 +377,8 @@ const HelpText = {
             offset={0}
             xs={[1, 5, 10, 25, 50, 75, 90, 95, 99]}
             ys={[6, 11, 11, 11, 15, 18, 22, 45, 48]}
+            conceptX="percentile"
+            conceptY="session duration"
           />
         </div>
         <p>
@@ -414,6 +416,8 @@ const HelpText = {
             offset={0}
             xs={[1, 5, 10, 25, 50, 75, 90, 95, 99]}
             ys={[12, 12, 12, 15, 18, 20, 24, 25, 28]}
+            conceptX="percentile"
+            conceptY="session duration"
           />
         </div>
       </div>
@@ -1151,6 +1155,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <br />
                   </p>
                   <Bar
+                    conceptX="percentile"
+                    conceptY="session duration"
                     ys={this.state.sessionDuration.pVals}
                     xs={this.state.sessionDuration.ps}
                   />

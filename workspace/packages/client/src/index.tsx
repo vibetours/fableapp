@@ -407,6 +407,13 @@ const router = createBrowserRouter([
             ]
           },
           {
+            path: 'analytics/demo/:tourId/:module?/:aid?',
+            async lazy() {
+              const Analytics = await import('./container/insight-dashboard').then(module => module.default);
+              return { Component: () => <Analytics /> };
+            }
+          },
+          {
             path: 'a/demo/:tourId',
             async lazy() {
               const Analytics = await import('./container/analytics').then(module => module.default);

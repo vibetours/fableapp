@@ -25,7 +25,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadPublishedTour: (
     rid: string,
     onComplete: (ts: number) => void
-  ) => dispatch(loadTourAndData(rid, false, true, true, null, true)).then(onComplete),
+  ) => dispatch(loadTourAndData(rid, false, true, true, null, true)).then(([ts]: [number]) => onComplete(ts)),
 });
 
 interface IAppStateProps {

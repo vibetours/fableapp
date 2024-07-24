@@ -2,32 +2,44 @@ import { scaleTime } from 'd3-scale';
 import { timeDay } from 'd3-time';
 import { timeFormat } from 'd3-time-format';
 import React, { ReactElement, useEffect, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, ComposedChart, Bar, Scatter, ZAxis, YAxis } from 'recharts';
 import * as Tags from './styled';
 
-interface IDatum {
+export interface IDatum {
  date: Date;
  value: number ;
+ value2?: number;
+ value3?: number;
+}
+
+interface SingluarAndPluralText {
+  singular: string;
+  plural: string;
 }
 
 interface Props {
   data: Array<IDatum>;
+  concepts?: Record<string, SingluarAndPluralText>;
   height?: number;
 }
 
-const getTicks = (data: IDatum[]): number[] => {
+export const getTicks = (data: IDatum[]): number[] => {
   if (!data.length) return [];
-  const domain = [data[0].date, data[data.length - 1].date];
+  const domain = [new Date(Math.min(
+    +data[0].date,
+    +data[data.length - 1].date - 7889400000 // 3 months in case less data
+  )), data[data.length - 1].date];
   const scale = scaleTime().domain(domain).range([0, 1]);
   const ticks = scale.ticks(timeDay);
   return ticks.map(entry => +entry);
 };
 
-const tickFormat = timeFormat('%d %b');
-const dateFormat = (time: Date): string => tickFormat(new Date(time));
+export const tickFormat = timeFormat('%d %b');
+export const dateFormat = (time: Date): string => tickFormat(new Date(time));
 
-const getTicksData = (data: IDatum[], ticks: number[]): IDatum[] => {
-  const dataMap = new Map(data.map((i) => [+i.date, i]));
+export const getTicksData = (data: IDatum[], ticks: number[]): IDatum[] => {
+  // Date is returned in ISO format. Ticks are shown in IST. 19800000 (+5.30) does the IST, ISO adjustments
+  const dataMap = new Map(data.map((i) => [+i.date - 19800000, i]));
   const data2: IDatum[] = [];
   ticks.forEach((item) => {
     if (!dataMap.has(item)) data2.push({ date: new Date(item), value: 0 });
@@ -40,6 +52,14 @@ function CustomTooltip(props: any) {
   if (!(props.active && props.payload && props.payload.length)) return null;
   const payload = props.payload[0].payload;
   const day = timeFormat('%d %b %Y')(payload.date);
+  let valueText = '';
+  let value2Text = '';
+  if (props.concepts && props.concepts.value) {
+    valueText = payload.value > 1 ? props.concepts.value.plural : props.concepts.value.singular;
+  }
+  if (props.concepts && props.concepts.value2) {
+    value2Text = payload.value2 > 1 ? props.concepts.value2.plural : props.concepts.value2.singular;
+  }
   return (
     <div
       style={{
@@ -51,7 +71,13 @@ function CustomTooltip(props: any) {
         backdropFilter: 'blur(2px)'
       }}
     >
-      <code><b>{payload.value}</b></code> sessions
+      <code><b>{payload.value}</b></code> {valueText}
+      <br />
+      {payload.value2 && (
+        <>
+          <code><b>{payload.value2}</b></code> {value2Text}
+        </>
+      )}
       <br />
       on&nbsp;&nbsp;&nbsp;<code><b>{day}</b></code>
     </div>
@@ -72,7 +98,7 @@ export default function Line(props: Props): ReactElement {
   return (
     <Tags.ChartCon>
       <ResponsiveContainer width="100%" height={160} debounce={3}>
-        <AreaChart
+        <ComposedChart
           height={props.height ?? 160}
           data={zeroFilledData}
           margin={{ top: 10, bottom: 20, left: 10, right: 10 }}
@@ -82,15 +108,21 @@ export default function Line(props: Props): ReactElement {
             angle={-45}
             textAnchor="end"
             dataKey="date"
+            xAxisId="x"
             ticks={ticks}
             axisLine={{ stroke: '#747474' }}
             tick={{ fill: '#747474', fontSize: 'x-small' }}
             tickCount={ticks.length / 2}
             tickFormatter={dateFormat}
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Area type="monotone" dataKey="value" fill="#16024547" stroke="#160245" strokeWidth={2} isAnimationActive={false} />
-        </AreaChart>
+          <Tooltip content={<CustomTooltip concepts={props.concepts} />} />
+          <Area yAxisId="area" xAxisId="x" type="monotone" dataKey="value" fill="#7567ff47" stroke="#7567ff" strokeWidth={2} isAnimationActive={false} />
+
+          <YAxis yAxisId="area" type="number" dataKey="value" hide />
+          <YAxis yAxisId="size" type="number" dataKey="value3" reversed hide />
+          <ZAxis zAxisId="size" type="number" dataKey="value2" range={[1, 200]} />
+          <Scatter yAxisId="size" zAxisId="size" xAxisId="x" fill="#7567ffbf" />
+        </ComposedChart>
 
       </ResponsiveContainer>
     </Tags.ChartCon>

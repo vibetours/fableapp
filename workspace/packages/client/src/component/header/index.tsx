@@ -244,9 +244,9 @@ function Header(props: IOwnProps): JSX.Element {
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            marginRight: '1rem',
+            marginRight: !props.minimalHeader ? '1rem' : 0,
             paddingRight: '1rem',
-            borderRight: '1px solid #ffffff42'
+            borderRight: !props.minimalHeader ? '1px solid #ffffff42' : 'none'
           }}
           >
             {
@@ -264,8 +264,7 @@ function Header(props: IOwnProps): JSX.Element {
                 </Tags.MenuItem>
               )
             }
-            {(!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/a'))
-            && !location.pathname.startsWith('/hub') && (
+            {!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/hub') && (
               <>
                 <Tags.MenuItem style={{
                   borderRight: '1px solid rgba(255, 255, 255, 0.3)',
@@ -325,20 +324,22 @@ function Header(props: IOwnProps): JSX.Element {
                     />
                   </Tooltip>
                 </Tags.MenuItem>
-                <Tags.MenuItem>
-                  <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
-                    <Link to={`/a/demo/${props.tour!.rid}`}>
-                      <AntButton
-                        size="small"
-                        shape="circle"
-                        type="text"
-                        icon={<BarChartOutlined
-                          style={{ color: 'white' }}
-                        />}
-                      />
-                    </Link>
-                  </Tooltip>
-                </Tags.MenuItem>
+                {!location.pathname.startsWith('/analytics') && (
+                  <Tags.MenuItem>
+                    <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
+                      <Link to={`/a/demo/${props.tour!.rid}`}>
+                        <AntButton
+                          size="small"
+                          shape="circle"
+                          type="text"
+                          icon={<BarChartOutlined
+                            style={{ color: 'white' }}
+                          />}
+                        />
+                      </Link>
+                    </Tooltip>
+                  </Tags.MenuItem>
+                )}
               </>
             )}
             {
