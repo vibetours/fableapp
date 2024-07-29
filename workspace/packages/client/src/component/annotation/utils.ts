@@ -239,7 +239,7 @@ export const isLeadFormPresent = (annConDiv: HTMLDivElement): boolean => {
 };
 
 function validateEmail(email: string): boolean {
-  const regex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
+  const regex = /^[\w.+-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
   return regex.test(email);
 }
 

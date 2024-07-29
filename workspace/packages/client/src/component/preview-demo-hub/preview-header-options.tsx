@@ -53,7 +53,7 @@ export default function PreviewHeaderOptions(props: Props): JSX.Element {
           </Tooltip>
           {/* TODO: uncomment after setup analytics */}
           {/* <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-                <Link to={props.demo ? `/a/demo/${props.demo.rid}` : ''}>
+                <Link to={props.demo ? `/analytics/demo/${props.demo.rid}` : ''}>
                   <AntButton
                     size="small"
                     shape="circle"

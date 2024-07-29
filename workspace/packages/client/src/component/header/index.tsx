@@ -327,7 +327,7 @@ function Header(props: IOwnProps): JSX.Element {
                 {!location.pathname.startsWith('/analytics') && (
                   <Tags.MenuItem>
                     <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem' }}>
-                      <Link to={`/a/demo/${props.tour!.rid}`}>
+                      <Link to={`/analytics/demo/${props.tour!.rid}`}>
                         <AntButton
                           size="small"
                           shape="circle"

@@ -288,3 +288,7 @@ html, body, div, span, button, p, button, input {
 .ant-color-picker-input-container .ant-input-number, .ant-input-affix-wrapper{
   border: 1px solid #747474 !important;
 }
+
+.nowrap {
+  text-wrap: nowrap;
+}

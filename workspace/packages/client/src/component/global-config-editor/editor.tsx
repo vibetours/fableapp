@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Input as AntInput, Spin, notification } from 'antd';
+import { Input as AntInput, Progress, Spin } from 'antd';
 import {
   AnnotationButtonSize,
   AnnotationButtonStyle,
@@ -41,7 +41,7 @@ interface Props {
   globalConfig: IGlobalConfig;
   updateGlobalConfig: (updatedGlobalConfig: IGlobalConfig) => void;
   republishAllPublishedDemos: () => Promise<void>;
-  totalPublishedDemos: number | null;
+  totalPublishedDemos: number;
   totalRepublishedDemos: number;
   republishingStatus: LoadingStatus;
   featurePlan: FeatureForPlan | null;
@@ -49,7 +49,6 @@ interface Props {
 }
 
 export default function Editor(props: Props): JSX.Element {
-  const [api, contextHolder] = notification.useNotification();
   const [gConfig, setGConfig] = useState(props.globalConfig);
   const [webFonts, setWebFonts] = useState<string[]>([]);
   const [sampleAnnConfig, setSampleAnnConfig] = useState<IAnnotationConfig>(() => getSampleConfig('$', '', gConfig));
@@ -114,33 +113,20 @@ export default function Editor(props: Props): JSX.Element {
   };
 
   const handleRepublishAllDemosClick = async (): Promise<void> => {
-    api.info({
-      message: 'Republishing demos...',
-      description:
-        'All the published demos are being republished with updated Global Styles. Do not close this page.',
-      duration: 10
-    });
-
     await props.republishAllPublishedDemos();
-
-    api.success({
-      message: 'Demos republished!',
-      description:
-        'All your published demos have been republished successfully with the updated Global Styles',
-      duration: 10
-    });
   };
   const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
 
   return (
     <div>
-      {contextHolder}
+
       {/* Info bar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '1rem'
+          gap: '1rem',
+          justifyContent: 'space-between'
         }}
       >
         <div
@@ -149,24 +135,38 @@ export default function Editor(props: Props): JSX.Element {
           If you make any changes to global styles, the changes will not be reflected to
           already published demo unless you republish the demos again.
         </div>
-        <Button
-          style={{
-            minWidth: '250px',
-            padding: '0.75rem 0.25rem'
-          }}
-          onClick={handleRepublishAllDemosClick}
-          disabled={props.republishingStatus === LoadingStatus.InProgress}
-        >
-          {props.republishingStatus === LoadingStatus.InProgress
-            ? (
-              <>
-                Republishing {props.totalRepublishedDemos} of {props.totalPublishedDemos} demos
-                <Spin style={{ color: '#fff' }} indicator={<LoadingOutlined spin color="#fff" />} size="small" />
-              </>
-            ) : (
-              'Republish all published demos'
-            )}
-        </Button>
+
+        {props.republishingStatus === LoadingStatus.InProgress ? (
+          <>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.25rem'
+            }}
+            >
+              <Progress
+                size={25}
+                strokeColor="gray"
+                showInfo={false}
+                type="circle"
+                percent={Math.round((props.totalRepublishedDemos / props.totalPublishedDemos) * 100)}
+              />
+              <div className="nowrap typ-sm">{props.totalRepublishedDemos} / {props.totalPublishedDemos}</div>
+            </div>
+          </>
+        ) : (
+          <Button
+            style={{
+              minWidth: '250px',
+              padding: '0.75rem 0.25rem'
+            }}
+            onClick={handleRepublishAllDemosClick}
+          >
+            Republish all published demos
+          </Button>
+        )}
+
       </div>
 
       {/* Common section */}

@@ -258,7 +258,9 @@ export class AnnotationContent extends React.PureComponent<{
                           pk_val,
                         };
                         emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
+                        Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                       }
+                      return;
                     }
                     Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
                   }}

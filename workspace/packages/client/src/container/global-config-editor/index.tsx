@@ -101,7 +101,11 @@ class GlobalConfigEditor extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   render(): JSX.Element {
-    if (!this.props.globalConfig || this.props.allToursLoadingStatus !== LoadingStatus.Done) {
+    if (
+      !this.props.globalConfig
+      || this.props.allToursLoadingStatus !== LoadingStatus.Done
+      || this.state.totalPublishedDemos === null
+    ) {
       return (
         <div style={{ height: '50vh' }}>
           <Loader width="100px" />

@@ -68,7 +68,7 @@ export default function PublishOptions(props: Props): JSX.Element {
                 </div>
               </Tooltip>
               <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-                <Link to={props.tour ? `/a/demo/${props.tour.rid}` : ''}>
+                <Link to={props.tour ? `/analytics/demo/${props.tour.rid}` : ''}>
                   <AntButton
                     size="small"
                     shape="circle"
