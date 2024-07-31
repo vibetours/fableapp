@@ -69,14 +69,21 @@ class GlobalConfigEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.getGlobalConfig();
     this.props.getAllTours();
+    if (this.props.allToursLoadingStatus === LoadingStatus.Done) {
+      this.setTotalPublishedDemos();
+    }
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (this.props.allToursLoadingStatus === LoadingStatus.Done && this.props.tours !== prevProps.tours) {
-      const totalPublishedDemos = this.props.tours.filter(t => t.lastPublishedDate).length;
-      this.setState({ totalPublishedDemos });
+      this.setTotalPublishedDemos();
     }
   }
+
+  setTotalPublishedDemos = (): void => {
+    const totalPublishedDemos = this.props.tours.filter(t => t.lastPublishedDate).length;
+    this.setState({ totalPublishedDemos });
+  };
 
   republishAllPublishedDemos = async (): Promise<void> => {
     this.setState({ totalRepublishedDemos: 0, republishingStatus: LoadingStatus.InProgress });
