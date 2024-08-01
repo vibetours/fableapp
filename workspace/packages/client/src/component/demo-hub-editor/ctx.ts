@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import { ReqDemoHubPropUpdate } from '@fable/common/dist/api-contract';
+import { IGlobalConfig } from '@fable/common/dist/types';
 import { IDemoHubConfig, OnDemoHubConfigChangeFn, P_RespDemoHub } from '../../types';
 import { P_RespTour } from '../../entity-processor';
 
@@ -12,6 +13,7 @@ interface EditorCtxProps {
   updateDemoHubProp: <T extends keyof ReqDemoHubPropUpdate>(rid: string, demoHubProp: T, value: ReqDemoHubPropUpdate[T]) => void;
   getTourData : (tourRid : string) => Promise<P_RespTour>,
   getUpdatedAllTours : () => void;
+  globalConfig : IGlobalConfig
 }
 
 export const EditorCtx = createContext<EditorCtxProps | null >(null);

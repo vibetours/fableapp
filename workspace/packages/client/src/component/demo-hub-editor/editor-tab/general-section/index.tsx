@@ -1,4 +1,4 @@
-import { createLiteralProperty } from '@fable/common/dist/utils';
+import { compileValue, createGlobalProperty, createLiteralProperty, GlobalPropsPath } from '@fable/common/dist/utils';
 import { Spin, Tooltip } from 'antd';
 import React from 'react';
 import { QuestionCircleOutlined, QuestionOutlined } from '@ant-design/icons';
@@ -9,11 +9,13 @@ import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import { useEditorCtx } from '../../ctx';
 import { OurLink } from '../../../../common-styled';
+import ApplyStylesMenu from '../../../screen-editor/apply-styles-menu';
+import { isGlobalProperty } from '../../../../utils';
 
 type GeneralProps = Pick<IDemoHubConfig, 'baseFontSize' | 'companyName' | 'fontFamily' | 'logo'>;
 
 function GeneralSection(): JSX.Element {
-  const { config, onConfigChange } = useEditorCtx();
+  const { config, onConfigChange, globalConfig } = useEditorCtx();
   const { uploadFile, loading } = useUploadFileToAws();
 
   const updateGeneralProps = <K extends keyof GeneralProps>(
@@ -33,6 +35,13 @@ function GeneralSection(): JSX.Element {
     const imageUrl = await uploadFile(selectedImage);
 
     updateGeneralProps('logo', createLiteralProperty(imageUrl));
+  };
+
+  const handleCompanyLogoChangeToGlobal = (): void => {
+    updateGeneralProps('logo', createGlobalProperty(
+      compileValue(globalConfig, GlobalPropsPath.logo),
+      GlobalPropsPath.logo
+    ));
   };
 
   return (
@@ -75,12 +84,21 @@ function GeneralSection(): JSX.Element {
               <div
                 style={{
                   width: '260px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
                 }}
               >
                 <FileInput
                   style={{ height: '34px' }}
                   onChange={handleCompanyLogoChange}
                   accept="image/png, image/gif, image/jpeg, image/webp, image/svg+xml"
+                />
+                <ApplyStylesMenu
+                  isGlobal={isGlobalProperty(config.logo)}
+                  onApplyGlobal={() => {
+                    handleCompanyLogoChangeToGlobal();
+                  }}
                 />
               </div>
 
@@ -197,11 +215,30 @@ function GeneralSection(): JSX.Element {
                   <QuestionCircleOutlined style={{ fontSize: '10px' }} />
                 </Tooltip>
               </div>
-              <InputText
-                value={config.fontFamily._val}
-                onChange={e => updateGeneralProps('fontFamily', createLiteralProperty(e.target.value))}
-                style={{ height: '44px', width: '100%' }}
-              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <InputText
+                  value={config.fontFamily._val}
+                  onChange={e => updateGeneralProps('fontFamily', createLiteralProperty(e.target.value))}
+                  style={{ height: '44px', width: '100%' }}
+                />
+                <ApplyStylesMenu
+                  isGlobal={isGlobalProperty(config.fontFamily)}
+                  onApplyGlobal={() => {
+                    updateGeneralProps(
+                      'fontFamily',
+                      createGlobalProperty(
+                        compileValue(globalConfig, GlobalPropsPath.fontFamily),
+                        GlobalPropsPath.fontFamily
+                      )
+                    );
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

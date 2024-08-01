@@ -935,7 +935,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                       newMain = allFlows[currentFlowMainIndex - 1];
                       this.navFn(newMain, 'annotation-hotspot');
                     }
-                    if (btnConfig === 'next' && currentFlowMainIndex === this.props.journey!.flows.length - 1) {
+                    if ((btnConfig === 'next' || btnConfig === 'custom') && currentFlowMainIndex === this.props.journey!.flows.length - 1) {
                       window.parent.postMessage({ type: 'lastAnnotation', demoRid: this.props.tour!.rid }, '*');
                     }
                   }

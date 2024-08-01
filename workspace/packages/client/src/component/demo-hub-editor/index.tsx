@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Tabs, Button as AntButton } from 'antd';
 import { ReqDemoHubPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CaretRightOutlined } from '@ant-design/icons';
+import { IGlobalConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import EditorTab from './editor-tab';
 import {
@@ -31,6 +32,7 @@ interface Props {
   updateDemoHubProp: <T extends keyof ReqDemoHubPropUpdate>(rid: string, demoHubProp: T, value: ReqDemoHubPropUpdate[T]) => void;
   getTourData : (tourRid : string) => Promise<P_RespTour>,
   getUpdatedAllTours : () => void;
+  globalConfig : IGlobalConfig
 }
 
 function DemoHubEditor(props: Props): JSX.Element {
@@ -50,10 +52,15 @@ function DemoHubEditor(props: Props): JSX.Element {
       setPreviewUrl,
       updateDemoHubProp: props.updateDemoHubProp,
       getTourData: props.getTourData,
-      getUpdatedAllTours: props.getUpdatedAllTours
+      getUpdatedAllTours: props.getUpdatedAllTours,
+      globalConfig: props.globalConfig
     }),
-    [config, props.tours]
+    [config, props.tours, props.globalConfig]
   );
+
+  useEffect(() => {
+    setPreviewUrl(`seeall/${props.data.rid}?lp=true`);
+  }, [props.data.rid]);
 
   useEffect(() => {
     setConfig(props.config);

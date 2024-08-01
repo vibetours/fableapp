@@ -379,7 +379,7 @@ export const DemoHubConfigCtaType = ['primary', 'outline', 'link'] as const;
 export declare type DemoHubConfigCtaTypeType = typeof DemoHubConfigCtaType[number];
 
 export interface IDemoHubConfigCta {
-  text: string;
+  text: Property<string>;
   // this id is an derived fields from title.
   // Ideally id = text.replace(/\W+/, '-')
   // If this id changes reference to this cta will also be updated
@@ -388,12 +388,12 @@ export interface IDemoHubConfigCta {
   icon?: Icon;
   iconPlacement?: 'left' | 'right';
   __linkType: 'open_ext_url',
-  link: string;
+  link: Property<string>;
   // by default fable adds two cta 1. See all demos & 2. Book a demo
   // Those are 'system' defined
   __definedBy: 'system' | 'user';
-  type: DemoHubConfigCtaTypeType;
-  style: Omit<SimpleStyle, 'borderColor'>;
+  type: Property<DemoHubConfigCtaTypeType>;
+  style: Omit<SimpleStyle, 'borderColor' | 'bgColor'> & {bgColorProp : Property<string>};
 }
 
 export interface IDemoHubConfigSeeAllPageSection {
@@ -487,7 +487,14 @@ export interface IDemoHubConfig {
       overlay: Omit<SimpleStyle, 'borderColor' | 'borderRadius' | 'fontColor'>;
       body: SimpleStyle;
     },
-    showLeadForm: boolean;
+    leadForm: {
+      showLeadForm: boolean;
+      skipLeadForm: boolean;
+      continueCTA: {
+        style: Omit<SimpleStyle, 'borderColor'>,
+        text: string
+     }
+    }
   }
   qualification_page: {
     // STANDARD_CLASS_NAME:
@@ -594,6 +601,7 @@ export interface SimpleStyle {
   borderColor: string;
   fontColor: string;
   borderRadius: number;
+  bgColorProp?: Property<string>;
 }
 
 export interface Vpd {

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { compileValue, createGlobalProperty, createLiteralProperty, GlobalPropsPath } from '@fable/common/dist/utils';
 import { DemoHubConfigCtaType, DemoHubConfigCtaTypeType, IDemoHubConfigCta, SimpleStyle } from '../../../../types';
 import Input from '../../../input';
 import * as GTags from '../../../../common-styled';
@@ -6,14 +7,15 @@ import CaretOutlined from '../../../icons/caret-outlined';
 import SimpleStyleEditor from '../../simple-styles-editor';
 import { useEditorCtx } from '../../ctx';
 import { InputText } from '../../../screen-editor/styled';
+import ApplyStylesMenu from '../../../screen-editor/apply-styles-menu';
+import { isGlobalProperty } from '../../../../utils';
 
 interface Props {
   cta: IDemoHubConfigCta;
 }
 
 export default function CtaEditor(props: Props): JSX.Element {
-  const { onConfigChange } = useEditorCtx();
-
+  const { onConfigChange, globalConfig } = useEditorCtx();
   const updateCtaProps = <K extends keyof IDemoHubConfigCta>(
     key: K,
     value: IDemoHubConfigCta[K]
@@ -32,7 +34,6 @@ export default function CtaEditor(props: Props): JSX.Element {
   const updateCtaSimpleStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
     updateCtaProps('style', { ...props.cta.style, [key]: value });
   };
-
   return (
     <div
       style={{
@@ -59,12 +60,31 @@ export default function CtaEditor(props: Props): JSX.Element {
           }}
         >
           <div className="typ-sm">Button text</div>
-          <InputText
-            type="text"
-            defaultValue={props.cta.text}
-            onChange={e => updateCtaProps('text', e.target.value)}
-            style={{ height: '44px', width: '100%' }}
-          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            <InputText
+              type="text"
+              value={props.cta.text._val}
+              onChange={e => {
+                updateCtaProps('text', createLiteralProperty(e.target.value));
+              }}
+              style={{ height: '44px', width: '100%' }}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(props.cta.text)}
+              onApplyGlobal={() => {
+                updateCtaProps('text', createGlobalProperty(
+                  compileValue(globalConfig, GlobalPropsPath.customBtn1Text),
+                  GlobalPropsPath.customBtn1Text
+                ));
+              }}
+            />
+          </div>
         </div>
 
         <div
@@ -75,23 +95,39 @@ export default function CtaEditor(props: Props): JSX.Element {
           }}
         >
           <div className="typ-sm">CTA type</div>
-          <GTags.FableSelect
-            className="typ-ip"
-            defaultValue={props.cta.type}
-            placeholder="Select CTA type"
-            bordered={false}
-            options={DemoHubConfigCtaType.map(v => ({
-              value: v,
-              label: v.charAt(0).toUpperCase() + v.slice(1),
-            }))}
-            onChange={(e) => {
-              if (e) {
-                updateCtaProps('type', e as DemoHubConfigCtaTypeType);
-              }
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center'
             }}
-            suffixIcon={<CaretOutlined dir="down" />}
-            style={{ height: '44px' }}
-          />
+          >
+            <GTags.FableSelect
+              className="typ-ip"
+              value={props.cta.type._val}
+              placeholder="Select CTA type"
+              bordered={false}
+              options={DemoHubConfigCtaType.map(v => ({
+                value: v,
+                label: v.charAt(0).toUpperCase() + v.slice(1),
+              }))}
+              onChange={(e) => {
+                if (e) {
+                  updateCtaProps('type', createLiteralProperty(e as DemoHubConfigCtaTypeType));
+                }
+              }}
+              suffixIcon={<CaretOutlined dir="down" />}
+              style={{ height: '44px' }}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(props.cta.type)}
+              onApplyGlobal={() => {
+                updateCtaProps('type', createGlobalProperty(
+                  compileValue(globalConfig, GlobalPropsPath.customBtn1Style),
+                  GlobalPropsPath.customBtn1Style
+                ));
+              }}
+            />
+          </div>
         </div>
 
       </div>
@@ -105,12 +141,30 @@ export default function CtaEditor(props: Props): JSX.Element {
           }}
         >
           <div className="typ-sm">Link</div>
-          <InputText
-            type="url"
-            defaultValue={props.cta.link}
-            onChange={e => updateCtaProps('link', e.target.value)}
-            style={{ height: '44px', width: '100%' }}
-          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <InputText
+              type="url"
+              value={props.cta.link._val}
+              onChange={e => {
+                updateCtaProps('link', createLiteralProperty(e.target.value));
+              }}
+              style={{ height: '44px', width: '100%' }}
+            />
+            <ApplyStylesMenu
+              isGlobal={isGlobalProperty(props.cta.link)}
+              onApplyGlobal={() => {
+                updateCtaProps('link', createGlobalProperty(
+                  compileValue(globalConfig, GlobalPropsPath.customBtn1URL),
+                  GlobalPropsPath.customBtn1URL
+                ));
+              }}
+            />
+          </div>
         </div>
       )}
 

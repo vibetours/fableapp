@@ -309,3 +309,35 @@ export const DHPage = styled.div`
 export const RootCon = styled(DHPage)`
 
 `;
+
+export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem;
+  position: relative;
+  margin: auto;
+
+  .replay-overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;    
+    background-color: ${({ showOverlay }) => (showOverlay ? 'rgba(0, 0, 0, 0.8)' : '')};
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .preview-frame {
+    display: block;
+    border: none;
+    border-radius: 1rem;  
+    height: 100%;
+  }
+`;

@@ -1793,7 +1793,7 @@ export function loadDemoHubAndData(
 
       let config = await api<null, IDemoHubConfig>(demoHub!.configFileUri.href);
 
-      config = processDemoHubConfig(demoHub, config);
+      config = processDemoHubConfig(demoHub, config, demoHub.globalOpts);
 
       dispatch({
         type: ActionType.DEMOHUB_LOADED,
@@ -1962,27 +1962,28 @@ export interface TSetCurrentDemoData {
   data: P_RespDemoHub,
 }
 
-export function updateDemoHubConfigData(rid: string, updatedConfig: IDemoHubConfig) {
+export function updateDemoHubConfigData(demohub: P_RespDemoHub, updatedConfig: IDemoHubConfig) {
   return async (
     dispatch: Dispatch<TUpdateDemoHubConfig | TSetDHConfigUploadURL | ReturnType<typeof updateDemoHubProp>>,
     getState: () => TState
   ) => {
     startAutosaving();
+    const state = getState().default;
+    const processedUpdateConfig = processDemoHubConfig(demohub, updatedConfig, state.globalConfig!);
 
     dispatch({
       type: ActionType.SET_CURRENT_DEMOHUB_CONFIG,
-      config: updatedConfig,
+      config: processedUpdateConfig,
     });
 
-    const state = getState().default;
-    const data = await uploadDataToDHConfigJSON(rid, updatedConfig, state.demoHubConfigUploadUrl);
+    const data = await uploadDataToDHConfigJSON(demohub.rid, updatedConfig, state.demoHubConfigUploadUrl);
 
     dispatch({
       type: ActionType.SET_DH_CONFIG_UPLOAD_URL,
       url: data.datauploadUrl,
     });
 
-    dispatch(updateDemoHubProp(rid, 'lastInteractedAt', (new Date().toISOString() as unknown as Date)));
+    dispatch(updateDemoHubProp(demohub.rid, 'lastInteractedAt', (new Date().toISOString() as unknown as Date)));
   };
 }
 

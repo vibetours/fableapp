@@ -100,6 +100,7 @@ class DemoHubSeeAll extends React.PureComponent<IProps, IOwnStateProps> {
       <SeeAll
         config={this.state.config}
         demoParams={this.state.demoParams}
+        demoHubRid={this.props.match.params.demoHubRid}
       />
     );
   }

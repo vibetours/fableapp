@@ -1,11 +1,21 @@
 import React from 'react';
+import { compileValue, createGlobalProperty, createLiteralProperty, GlobalPropsPath } from '@fable/common/dist/utils';
 import * as GTags from '../../common-styled';
 import { InputNumberBorderRadius } from '../screen-editor/styled';
 import { SimpleStyle } from '../../types';
+import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
+import { isGlobalProperty } from '../../utils';
+import { useEditorCtx } from './ctx';
 
-interface Props {
+export type SimpleStyleUpdateFn<OmittedKeys extends keyof SimpleStyle = never>
+= <K extends keyof Omit<SimpleStyle, OmittedKeys>>(
+  key: K,
+  value: Omit<SimpleStyle, OmittedKeys>[K]
+) => void;
+
+interface Props<OmittedKeys extends keyof SimpleStyle = never> {
   simpleStyle: Partial<SimpleStyle>;
-  simpleStyleUpdateFn: <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
+  simpleStyleUpdateFn: SimpleStyleUpdateFn<OmittedKeys>;
   bgColorTitle ?: string;
   borderColorTitle ?: string;
   fontColorTitle ?: string;
@@ -13,6 +23,7 @@ interface Props {
 }
 
 export default function SimpleStyleEditor(props: Props): JSX.Element {
+  const { globalConfig } = useEditorCtx();
   return (
     <div
       style={{
@@ -41,6 +52,48 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
             defaultValue={props.simpleStyle.bgColor}
           />
         </div>
+      )}
+
+      {props.simpleStyle.bgColorProp !== undefined && (
+      <div>
+        <div
+          className="typ-sm"
+          style={{
+            marginBottom: '0.25rem'
+          }}
+        >
+          { props.bgColorTitle || 'Background color'}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <GTags.ColorPicker
+            style={{
+              minWidth: 'unset',
+              width: '100%'
+            }}
+            className="typ-ip"
+            showText={(color) => color.toHexString()}
+            onChangeComplete={e => props.simpleStyleUpdateFn('bgColorProp', createLiteralProperty(e.toHexString()))}
+            value={props.simpleStyle.bgColorProp._val}
+          />
+          <ApplyStylesMenu
+            isGlobal={isGlobalProperty(props.simpleStyle.bgColorProp)}
+            onApplyGlobal={() => {
+              props.simpleStyleUpdateFn(
+                'bgColorProp',
+                createGlobalProperty(
+                  compileValue(globalConfig, GlobalPropsPath.primaryColor),
+                  GlobalPropsPath.primaryColor
+                )
+              );
+            }}
+          />
+        </div>
+      </div>
       )}
 
       {props.simpleStyle.borderColor !== undefined && (

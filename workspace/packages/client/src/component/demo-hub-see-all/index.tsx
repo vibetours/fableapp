@@ -1,18 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createGlobalStyle } from 'styled-components';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { IDemoHubConfig } from '../../types';
+import { IDemoHubConfig, IDemoHubConfigSeeAllPageSection } from '../../types';
 import * as Tags from './styled';
 import Header from './header';
 import { isLeadFormPresent, validateInput } from '../annotation/utils';
 import Button from '../button';
 import * as GTags from '../../common-styled';
-import { getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, objectToSearchParams } from '../../utils';
+import { getAllDemoRidForSection, getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, isEventValid, objectToSearchParams } from '../../utils';
+import EmbeddedDemoIframe from './embed-demo';
+
+const LEAD_FORM_DATA = 'fable/demo-hub-lead-form';
 
 interface Props {
   config: IDemoHubConfig;
   demoParams: Record<string, any>;
+  demoHubRid: string;
 }
 
 const GlobalStyle = createGlobalStyle<{fontSize: number}>`
@@ -54,33 +58,43 @@ interface Params {
   value: string
 }
 
-const getLeadFormParams = (leadFormFilled: boolean): string => {
-  let allLfParams = '';
+const getLeadFormParams = (leadFormFilled: boolean): Record<string, string> => {
+  const allLfParams: Record<string, string> = {};
   const newUrl = new URL(window.location.href);
-
   if (leadFormFilled) {
-    allLfParams += 'skiplf=1';
+    allLfParams.skiplf = '1';
   }
+
   newUrl.searchParams.forEach((value, key) => {
     if (key !== 'show' && key !== 'lf') {
-      allLfParams += `&${key}=${value}`;
+      allLfParams.key = value;
     }
   });
 
   return allLfParams;
 };
 
-function DemoHubSeeAll(props: Props): JSX.Element {
-  const conRef = useRef<HTMLDivElement | null>(null);
-  const location = window.location;
+function getLeadformDataFromLocalStore(): Record<string, string | undefined>[] {
+  const data = localStorage.getItem(LEAD_FORM_DATA);
+  return data ? JSON.parse(atob(data)) : [];
+}
 
+function DemoHubSeeAll(props: Props): JSX.Element {
+  const navigate = useNavigate();
+  const conRef = useRef<HTMLDivElement | null>(null);
+  const rootSheet = useRef<HTMLStyleElement | null>(null);
+
+  const location = window.location;
   const currentSlug = location.hash.slice(1);
   const searchParams = new URLSearchParams(location.search);
   const demoRid = searchParams.get('show');
   const leadFormFilled = searchParams.get('lf');
-  const paramsFromLeadForm = getLeadFormParams(Boolean(leadFormFilled));
-  const navigate = useNavigate();
-  const rootSheet = useRef<HTMLStyleElement | null>(null);
+
+  const [allDemoParams, setAllDemoParams] = useState('');
+  const [seeAllDemoRids, setSeeAllDemoRids] = useState(getAllDemoRidForSection(props.config.see_all_page.sections));
+  const [currentDemoIndex, setCurrentDemoIndex] = useState(seeAllDemoRids.findIndex(demo => (
+    demo.rid === demoRid && decodeURI(currentSlug) === demo.sectionSlug
+  )));
 
   const updateUrl = (addParams: Params[] | null, removeParam?: string | null, slug?: string): void => {
     const sparam = new URLSearchParams(location.search);
@@ -104,6 +118,18 @@ function DemoHubSeeAll(props: Props): JSX.Element {
       hash: newHash,
     });
   };
+
+  useEffect(() => {
+    setSeeAllDemoRids(getAllDemoRidForSection(props.config.see_all_page.sections));
+  }, [props.config.see_all_page.sections]);
+
+  useEffect(() => {
+    setCurrentDemoIndex(
+      seeAllDemoRids.findIndex(demo => (
+        demo.rid === demoRid && decodeURI(currentSlug) === demo.sectionSlug
+      ))
+    );
+  }, [demoRid, currentSlug, seeAllDemoRids]);
 
   useEffect(() => {
     if (!rootSheet.current) {
@@ -156,6 +182,43 @@ function DemoHubSeeAll(props: Props): JSX.Element {
     getOrCreateDemoHubStyleEl(props.config.customStyles);
   }, [props.config.customStyles]);
 
+  useEffect(() => {
+    const paramsFromLeadForm = getLeadFormParams(Boolean(leadFormFilled));
+    let demoParams = objectToSearchParams({ ...props.demoParams, ...paramsFromLeadForm });
+    if (demoParams) {
+      demoParams = `?${demoParams}`;
+      setAllDemoParams(demoParams);
+    }
+  }, [props.demoParams, leadFormFilled]);
+
+  useEffect(() => {
+    if (!props.config.see_all_page.leadForm.showLeadForm || !props.config.see_all_page.leadForm.skipLeadForm) {
+      // this is required because in editor if show leadform is updated we need to remove the leadform filled
+      updateUrl(null, 'lf');
+      return;
+    }
+    const data = getLeadformDataFromLocalStore();
+    const leadFormData = data.find(demoHub => demoHub.rid === props.demoHubRid);
+    if (leadFormData
+      && props.config.see_all_page.leadForm.skipLeadForm) {
+      // set leadform filled and all other leadform params
+      const leadFormSrchParams = [];
+      for (const key in leadFormData) {
+        if (leadFormData[key]) {
+          const param: Params = {
+            key,
+            value: leadFormData[key]!
+          };
+          leadFormSrchParams.push(param);
+        }
+      }
+      updateUrl(leadFormSrchParams, 'rid');
+    }
+  }, [props.demoHubRid,
+    props.config.see_all_page.leadForm.skipLeadForm,
+    props.config.see_all_page.leadForm.showLeadForm
+  ]);
+
   const processLeadForm = (): boolean => {
     if (conRef.current && isLeadFormPresent(conRef.current)) {
       const leadFormFields = conRef.current?.getElementsByClassName('LeadForm__optionContainer');
@@ -181,6 +244,11 @@ function DemoHubSeeAll(props: Props): JSX.Element {
           leadFormSrchParams.push(param);
         }
       }
+      const localStoreData = getLeadformDataFromLocalStore();
+      const leadFormFilledData = [{ rid: props.demoHubRid, ...leadForm, lf: '1' }];
+      const allData = [...localStoreData, ...leadFormFilledData];
+      localStorage.setItem(LEAD_FORM_DATA, btoa(JSON.stringify(allData)));
+
       updateUrl(leadFormSrchParams);
     }
 
@@ -199,10 +267,10 @@ function DemoHubSeeAll(props: Props): JSX.Element {
   return (
     <Tags.RootCon className="dh-page">
       <GlobalStyle fontSize={props.config.baseFontSize} />
-      {props.config.see_all_page.showLeadForm && leadFormFilled !== '1' && (
+      { props.config.see_all_page.leadForm.showLeadForm && leadFormFilled !== '1' && (
       <Tags.DemoModal
         title={currentSlug.replace(/-/g, ' ')}
-        open={Boolean(props.config.see_all_page.showLeadForm)}
+        open={Boolean(props.config.see_all_page.leadForm.showLeadForm)}
         style={{
           maxWidth: '480px'
         }}
@@ -212,13 +280,12 @@ function DemoHubSeeAll(props: Props): JSX.Element {
             onClick={() => {
               processLeadForm();
             }}
-            borderRadius={props.config.see_all_page.demoCardStyles.borderRadius}
-            bgColor={props.config.see_all_page.demoCardStyles.bgColor}
-            color={props.config.see_all_page.demoCardStyles.fontColor}
-            borderColor={props.config.see_all_page.demoCardStyles.borderColor}
+            borderRadius={props.config.see_all_page.leadForm.continueCTA.style.borderRadius}
+            bgColor={props.config.see_all_page.leadForm.continueCTA.style.bgColor}
+            color={props.config.see_all_page.leadForm.continueCTA.style.fontColor}
             style={{ flex: 1 }}
           >
-            Continue
+            {props.config.see_all_page.leadForm.continueCTA.text}
           </Button>
         ]}
         closable={false}
@@ -299,49 +366,27 @@ function DemoHubSeeAll(props: Props): JSX.Element {
             ))}
           </div>
         </div>
-        {demoRid && (
-        <Tags.DemoModal
-          className="demo-display-modal-con"
-          title={
-            <span
-              className="typ-h2"
-              style={{
-                fontWeight: 600
-              }}
-            >
-              {getDemoName(demoRid)}
-            </span>
-          }
-          open={Boolean(demoRid)}
-          destroyOnClose
-          footer={null}
-          onCancel={() => {
-            updateUrl(null, 'show', currentSlug);
-          }}
-          width="80vw"
-          centered
-          maskStyle={{
-            background: props.config.see_all_page.demoModalStyles.overlay.bgColor,
-            backdropFilter: 'blur(3px)'
-          }}
-        >
-          <div
-            style={{
-              height: '80vh',
+        {
+        demoRid && (
+          <EmbeddedDemoIframe
+            demoRid={demoRid}
+            onClose={() => {
+              updateUrl(null, 'show', currentSlug);
             }}
-          >
-            <iframe
-              width="100%"
-              height="100%"
-              // eslint-disable-next-line max-len
-              src={`${location.origin}/embed/demo/${demoRid}?${paramsFromLeadForm}&${objectToSearchParams(props.demoParams)}`}
-              allowFullScreen
-              title={demoRid}
-              style={{ border: 'none' }}
-            />
-          </div>
-        </Tags.DemoModal>
-        )}
+            demoName={getDemoName(demoRid)}
+            maskBg={props.config.see_all_page.demoModalStyles.overlay.bgColor}
+            embedSrc={
+              `${location.origin}/embed/demo/${demoRid}${allDemoParams}`
+            }
+            goToNext={() => {
+              updateUrl([
+                { key: 'show', value: seeAllDemoRids[currentDemoIndex + 1].rid }
+              ], null, seeAllDemoRids[currentDemoIndex + 1].sectionSlug);
+            }}
+            showNextBtn={currentDemoIndex + 1 !== seeAllDemoRids.length}
+          />
+        )
+      }
       </>
 
     </Tags.RootCon>

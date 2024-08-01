@@ -1491,6 +1491,18 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           return;
         }
 
+        if (newBtnConf.hotspot && newBtnConf.hotspot.actionType === 'open') {
+          if (newBtnConf.type === 'custom') {
+            const nextBtn = getAnnotationBtn(annConfig, 'next');
+            const isLastAnnotation = !nextBtn || nextBtn.hotspot === null || nextBtn.hotspot.actionType === 'open';
+            if (isLastAnnotation) {
+              this.props.updateCurrentFlowMain(newBtnConf.type);
+            }
+          } else {
+            this.props.updateCurrentFlowMain(newBtnConf.type);
+          }
+        }
+
         if ((type === 'custom' && newBtnConf.hotspot.actionType === 'open') || !this.props.playMode) {
           this.props.nav(
             newBtnConf.hotspot.actionValue._val,

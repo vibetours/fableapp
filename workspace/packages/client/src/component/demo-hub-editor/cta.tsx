@@ -10,10 +10,10 @@ interface Props {
 }
 
 export default function Cta(props: Props): JSX.Element {
-  if (props.cta.type === 'link') {
+  if (props.cta.type._val === 'link') {
     return (
       <OurLink
-        href={props.cta.link}
+        href={props.cta.link._val}
         target="_blank"
         rel="noreferrer"
         style={{
@@ -23,14 +23,14 @@ export default function Cta(props: Props): JSX.Element {
         }}
         className={props.className || ''}
       >
-        {props.cta.text}
+        {props.cta.text._val}
       </OurLink>
     );
   }
 
   return (
     <a
-      href={props.cta.link}
+      href={props.cta.link._val}
       target="_blank"
       rel="noreferrer"
       style={{
@@ -42,15 +42,15 @@ export default function Cta(props: Props): JSX.Element {
       <Button
         id={props.cta.id}
         iconPlacement={props.cta.iconPlacement}
-        intent={props.cta.type === 'primary' ? 'primary' : 'secondary'}
-        bgColor={props.cta.style.bgColor}
-        borderColor={props.cta.style.bgColor}
+        intent={props.cta.type._val === 'primary' ? 'primary' : 'secondary'}
+        bgColor={props.cta.style.bgColorProp._val}
+        borderColor={props.cta.style.bgColorProp._val}
         color={props.cta.style.fontColor}
         borderRadius={props.cta.style.borderRadius}
         className={props.className || ''}
         style={{ width: props.width || 'auto' }}
       >
-        {props.cta.text}
+        {props.cta.text._val}
       </Button>
     </a>
   );

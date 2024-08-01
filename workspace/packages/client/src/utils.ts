@@ -1082,38 +1082,37 @@ export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
   baseFontSize: 16,
   cta: [
     {
-      text: 'See all demos',
+      text: createGlobalProperty('See all demos', GlobalPropsPath.customBtn1Text),
       id: 'see-all-demos',
       iconPlacement: 'left',
       deletable: false,
       __linkType: 'open_ext_url',
-      link: './see-all-demos',
+      link: createGlobalProperty('./see-all-demos', GlobalPropsPath.customBtn1URL),
       __definedBy: 'system',
-      type: 'primary',
+      type: createGlobalProperty('primary', GlobalPropsPath.customBtn1Style),
       style: {
-        bgColor: '#e0e1dd',
+        bgColorProp: createGlobalProperty('#e0e1dd', GlobalPropsPath.primaryColor),
         fontColor: '#0d1b2a',
         borderRadius: 24
       }
     },
     {
-      text: 'Book a demo',
+      text: createGlobalProperty('Book a demo', GlobalPropsPath.customBtn1Style),
       id: 'book-a-demo',
       iconPlacement: 'left',
       deletable: true,
       __linkType: 'open_ext_url',
-      link: 'https://www.sharefable.com/get-a-demo?ref=dh_others',
+      link: createGlobalProperty('https://www.sharefable.com/get-a-demo?ref=dh_others', GlobalPropsPath.customBtn1URL),
       __definedBy: 'system',
-      type: 'primary',
+      type: createGlobalProperty('primary', GlobalPropsPath.customBtn1Style),
       style: {
-        bgColor: '#e0e1dd',
+        bgColorProp: createGlobalProperty('#e0e1dd', GlobalPropsPath.primaryColor),
         fontColor: '#0d1b2a',
         borderRadius: 24
       }
     }
   ],
   see_all_page: {
-    showLeadForm: false,
     header: {
       title: 'Demo hub name',
       style: {
@@ -1159,6 +1158,18 @@ export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
         fontColor: '#000000',
         borderRadius: 4
       }
+    },
+    leadForm: {
+      showLeadForm: false,
+      skipLeadForm: false,
+      continueCTA: {
+        style: {
+          bgColor: '#f5f5f5',
+          fontColor: '#000000',
+          borderRadius: 4
+        },
+        text: 'Continue'
+      }
     }
   },
   qualification_page: {
@@ -1199,22 +1210,22 @@ export const getSampleSimpleStyle = (): SimpleStyle => ({
   borderRadius: 4,
 });
 
-export const getSampleCTASimpleStyle = (): Omit<SimpleStyle, 'borderColor'> => ({
-  bgColor: '#e0e1dd',
+export const getSampleCTASimpleStyle = (): IDemoHubConfigCta['style'] => ({
+  bgColorProp: createGlobalProperty('#e0e1dd', GlobalPropsPath.primaryColor),
   fontColor: '#0d1b2a',
   borderRadius: 24
 });
 
 export const getSampleDemoHubConfigCta = (idx: number): IDemoHubConfigCta => ({
-  text: `Book a demo ${idx}`,
+  text: createGlobalProperty(`Book a demo ${idx}`, GlobalPropsPath.customBtn1Style),
   id: nanoid(),
   // icon?: Icon;
   deletable: true,
   iconPlacement: 'left',
   __linkType: 'open_ext_url',
-  link: 'https://www.sharefable.com/get-a-demo?ref=dh_others',
+  link: createGlobalProperty('https://www.sharefable.com/get-a-demo?ref=dh_others', GlobalPropsPath.customBtn1URL),
   __definedBy: 'user',
-  type: 'primary',
+  type: createGlobalProperty('primary', GlobalPropsPath.customBtn1Style),
   style: getSampleCTASimpleStyle(),
 });
 
@@ -1464,4 +1475,16 @@ export function findOptionToBeUpdatedIdx(
     .entries[entryToBeUpdatedIdx] as SelectEntry)
     .options
     .findIndex(option => option.id === optionId);
+}
+
+export function getAllDemoRidForSection(
+  sections: IDemoHubConfigSeeAllPageSection[]
+) : {sectionSlug : string, rid : string}[] {
+  const rids : {sectionSlug : string, rid : string}[] = [];
+  sections.forEach(section => {
+    section.demos.forEach(demo => {
+      rids.push({ sectionSlug: section.slug, rid: demo.rid });
+    });
+  });
+  return rids;
 }

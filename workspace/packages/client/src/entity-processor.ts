@@ -976,23 +976,46 @@ export function processRawDemoHubData(
 export function processDemoHubConfig(
   data: P_RespDemoHub,
   demoHub: IDemoHubConfig,
+  globalConfig : IGlobalConfig
 ): IDemoHubConfig {
   const normalizedDemoHub = normalizeBackwardCompatibilityDemoHubConfig(demoHub);
-  return {
-    ...normalizedDemoHub,
-    cta: normalizedDemoHub.cta.map(cta => {
-      if (cta.id === 'see-all-demos') {
-        cta.link = `/hub/seeall/${data.rid}`;
-      }
 
-      return cta;
-    })
-  };
+  if (normalizedDemoHub.logo.type === PropertyType.REF) {
+    normalizedDemoHub.logo._val = compileValue(globalConfig, normalizedDemoHub.logo.from);
+  }
+
+  if (normalizedDemoHub.fontFamily.type === PropertyType.REF) {
+    normalizedDemoHub.fontFamily._val = compileValue(globalConfig, normalizedDemoHub.fontFamily.from);
+  }
+
+  normalizedDemoHub.cta.forEach(cta => {
+    if (cta.text.type === PropertyType.REF) {
+      cta.text._val = compileValue(globalConfig, cta.text.from);
+    }
+
+    if (cta.id === 'see-all-demos') {
+      cta.link = createLiteralProperty(`/hub/seeall/${data.rid}`);
+    }
+
+    if (cta.link.type === PropertyType.REF) {
+      cta.link._val = compileValue(globalConfig, cta.link.from);
+    }
+
+    if (cta.type.type === PropertyType.REF) {
+      cta.type._val = compileValue(globalConfig, cta.type.from);
+    }
+
+    if (cta.style.bgColorProp.type === PropertyType.REF) {
+      cta.style.bgColorProp._val = compileValue(globalConfig, cta.style.bgColorProp.from);
+    }
+  });
+  return normalizedDemoHub;
 }
 
 function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) : IDemoHubConfig {
+  const sampleDemoHubConfig = getSampleDemoHubConfig();
   demoHub = {
-    ...getSampleDemoHubConfig(),
+    ...sampleDemoHubConfig,
     ...demoHub,
   };
 
@@ -1009,11 +1032,30 @@ function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) :
   }
 
   demoHub.cta.forEach(btn => {
-    if (typeof (btn.style as SimpleStyle).borderColor === 'string') {
+    if (typeof btn.text === 'string') {
+      btn.text = createLiteralProperty(btn.text);
+    }
+
+    if (typeof btn.link === 'string') {
+      btn.link = createLiteralProperty(btn.link);
+    }
+
+    if (typeof btn.type === 'string') {
+      btn.type = createLiteralProperty(btn.type);
+    }
+  });
+
+  demoHub.cta.forEach(btn => {
+    if (typeof (btn.style as any).borderColor === 'string') {
       delete (btn.style as any).borderColor;
     }
-    if ((btn.type as string) === 'solid') {
-      btn.type = 'primary';
+    if ((btn.type._val as string) === 'solid') {
+      btn.type._val = 'primary';
+    }
+
+    if ((btn.style as SimpleStyle).bgColor) {
+      btn.style.bgColorProp = createLiteralProperty((btn.style as SimpleStyle).bgColor);
+      delete (btn.style as any).bgColor;
     }
   });
 
@@ -1045,6 +1087,19 @@ function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) :
       }
     });
   });
+
+  if (demoHub.see_all_page.leadForm === undefined) {
+    demoHub.see_all_page.leadForm = sampleDemoHubConfig.see_all_page.leadForm;
+    if (typeof ((demoHub.see_all_page as any).showLeadForm) === 'boolean') {
+      demoHub.see_all_page.leadForm.showLeadForm = (demoHub.see_all_page as any).showLeadForm;
+      delete (demoHub.see_all_page as any).showLeadForm;
+    }
+  } else if (demoHub.see_all_page.leadForm.continueCTA === undefined) {
+    demoHub.see_all_page.leadForm.continueCTA = {
+      style: sampleDemoHubConfig.see_all_page.leadForm.continueCTA.style,
+      text: sampleDemoHubConfig.see_all_page.leadForm.continueCTA.text
+    };
+  }
   return demoHub;
 }
 

@@ -40,6 +40,7 @@ export const createFableRtUmbrlDivWrapper = (doc: Document): HTMLDivElement => {
   umbrlDivShHost.style.setProperty('visibility', 'visible', 'important');
   umbrlDivShHost.style.setProperty('opacity', '1', 'important');
   umbrlDivShHost.classList.add(FABLE_RT_UMBRL_WRAPPER);
+  umbrlDivShHost.appendChild(createOverrideDivEmptyStyleEl(doc));
   umbrlDivShHost.appendChild(createFableShHost(doc));
   doc.body.appendChild(umbrlDivShHost);
   return umbrlDivShHost;
@@ -328,6 +329,17 @@ export const createOverrideStyleEl = (doc: Document): HTMLStyleElement => {
     :host { 
       all: initial; 
       font-family: inherit; 
+    }
+  `;
+  return styleEl;
+};
+
+export const createOverrideDivEmptyStyleEl = (doc: Document): HTMLStyleElement => {
+  const styleEl = doc.createElement('style');
+  styleEl.textContent = `
+    .${FABLE_SH_HOST}:empty,
+    .${FABLE_SH_HOST} div:empty {
+      display: block !important;
     }
   `;
   return styleEl;

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { Button as AntButton, } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import {
+  clearCurrentDemoHubSelection,
   getAllDemoHubs,
   loadDemoHubAndData,
   loadDemoHubConfig,
@@ -23,7 +24,6 @@ import {
   DisplaySize,
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
-  getDimensionsBasedOnDisplaySize
 } from '../../utils';
 import { TOP_LOADER_DURATION } from '../../constants';
 import TopLoader from '../../component/loader/top-loader';
@@ -34,6 +34,7 @@ interface IDispatchProps {
   loadDemoHubAndData: (demoHubRid: string) => void;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>,
+  clearCurrentDemoHubSelection: ()=> void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -41,6 +42,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadDemoHubAndData: (demoHubRid) => dispatch(loadDemoHubAndData(demoHubRid)),
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),
   loadDemoHubConfig: (demoHub) => dispatch(loadDemoHubConfig(demoHub)),
+  clearCurrentDemoHubSelection: () => dispatch(clearCurrentDemoHubSelection())
 });
 
 interface IAppStateProps {
@@ -115,6 +117,10 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
     } else if (this.props.searchParams.get('s') === '1' || !this.props.searchParams.get('s')) {
       this.handleDisplaySizeChange(DESKTOP_MEDIUM_SRN_WIDTH, DESKTOP_MEDIUM_SRN_HEIGHT, 60);
     }
+  }
+
+  componentWillUnmount(): void {
+    this.props.clearCurrentDemoHubSelection();
   }
 
   handleDisplaySizeChange = (vpdW: number, vpdH: number, paddingSpace: number): void => {

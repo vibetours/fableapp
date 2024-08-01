@@ -8,7 +8,7 @@ import * as Tags from '../../styled';
 import * as GTags from '../../../../common-styled';
 import { useEditorCtx } from '../../ctx';
 import { IDemoHubConfig, SimpleStyle } from '../../../../types';
-import SimpleStyleEditor from '../../simple-styles-editor';
+import SimpleStyleEditor, { SimpleStyleUpdateFn } from '../../simple-styles-editor';
 import { OurLink } from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
 import { getSampleDemoHubSeeAllPageSectionConfig, rearrangeArray } from '../../../../utils';
@@ -184,6 +184,57 @@ function SeeAllPageTab(): JSX.Element {
       }
     }));
   };
+
+  const updateLeadformContinueBtnStyle: SimpleStyleUpdateFn<'borderColor'> = (key, value): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        leadForm: {
+          ...c.see_all_page.leadForm,
+          continueCTA: {
+            ...c.see_all_page.leadForm.continueCTA,
+            style: {
+              ...c.see_all_page.leadForm.continueCTA.style,
+              [key]: value,
+            },
+          },
+        },
+      },
+    }));
+  };
+
+  const updateLeadformContinueBtnText = <K extends keyof IDemoHubConfig['see_all_page']['leadForm']['continueCTA']>(key: K, value: string): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        leadForm: {
+          ...c.see_all_page.leadForm,
+          continueCTA: {
+            ...c.see_all_page.leadForm.continueCTA,
+            [key]: value
+          },
+        },
+      },
+    }));
+  };
+
+  function updateSeeAllLeadformProps<K extends keyof IDemoHubConfig['see_all_page']['leadForm']>(
+    key: K,
+    value: IDemoHubConfig['see_all_page']['leadForm'][K]
+  ): void {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        leadForm: {
+          ...c.see_all_page.leadForm,
+          [key]: value,
+        }
+      }
+    }));
+  }
 
   return (
     <Tags.SidepanelCon>
@@ -562,27 +613,84 @@ function SeeAllPageTab(): JSX.Element {
                     </div>
                   </>
                 )
+              },
+              {
+                key: '4',
+                label: <span className="typ-reg">Configure leadform</span>,
+                children: (
+                  <>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1rem'
+                      }}
+                    >
+                      <div>
+                        <p className="typ-sm">
+                          Configure the style of the button to submit leadform.
+                        </p>
+                        <div
+                          style={{
+                            marginBottom: '1rem',
+                          }}
+                        >
+                          <div className="typ-sm">Text</div>
+                          <InputText
+                            type="text"
+                            defaultValue={config.see_all_page.leadForm.continueCTA.text}
+                            onChange={e => updateLeadformContinueBtnText('text', e.target.value)}
+                            style={{ height: '44px', width: '100%' }}
+                          />
+                        </div>
+                        <SimpleStyleEditor
+                          simpleStyle={config.see_all_page.leadForm.continueCTA.style}
+                          simpleStyleUpdateFn={updateLeadformContinueBtnStyle}
+
+                        />
+                      </div>
+                      <div
+                        className="typ-reg"
+                        style={{
+                          fontWeight: 500,
+                          opacity: '0.75',
+                          display: 'flex',
+                          gap: '1rem',
+                          marginTop: '1rem'
+                        }}
+                      >
+                        <GTags.OurCheckbox
+                          disabled={!config.leadform.bodyContent}
+                          style={{ marginLeft: '-0.5rem' }}
+                          checked={config.see_all_page.leadForm.showLeadForm}
+                          onChange={e => updateSeeAllLeadformProps('showLeadForm', e.target.checked)}
+                        />
+                        <div>Show lead form</div>
+                      </div>
+                      <div
+                        className="typ-reg"
+                        style={{
+                          fontWeight: 500,
+                          marginBottom: '0.5rem',
+                          opacity: '0.75',
+                          display: 'flex',
+                          gap: '1rem',
+                        }}
+                      >
+                        <GTags.OurCheckbox
+                          disabled={!config.leadform.bodyContent}
+                          style={{ marginLeft: '-0.5rem' }}
+                          checked={config.see_all_page.leadForm.skipLeadForm}
+                          onChange={e => updateSeeAllLeadformProps('skipLeadForm', e.target.checked)}
+                        />
+                        <div>Skip lead form</div>
+                      </div>
+                    </div>
+                  </>
+                )
               }
             ]}
           />
-
-          <div
-            style={{
-              display: 'flex',
-              gap: '1rem',
-              alignItems: 'center',
-              marginTop: '1rem',
-            }}
-          >
-            <GTags.OurCheckbox
-              disabled={!config.leadform.bodyContent}
-              style={{ marginLeft: '-0.5rem' }}
-              checked={config.see_all_page.showLeadForm}
-              onChange={e => updateSeeAllPageProps('showLeadForm', e.target.checked)}
-            />
-            <div>Show lead form</div>
-          </div>
-
         </div>
       </ActionPanel>
 

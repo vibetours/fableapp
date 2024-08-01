@@ -1,11 +1,11 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { LoadingStatus } from '@fable/common/dist/types';
+import { IGlobalConfig, LoadingStatus } from '@fable/common/dist/types';
 import { RespCommonConfig, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import Editor from '../../component/demo-hub-editor';
-import { getAllTours, getTourData, loadDemoHubAndData, loadDemoHubConfig, publishDemoHub, updateDemoHubConfigData, updateDemoHubProp } from '../../action/creator';
+import { clearCurrentDemoHubSelection, getAllTours, getTourData, loadDemoHubAndData, loadDemoHubConfig, publishDemoHub, updateDemoHubConfigData, updateDemoHubProp } from '../../action/creator';
 import { IDemoHubConfig, P_RespDemoHub } from '../../types';
 import { debounce, getFirstDemoOfDemoHub } from '../../utils';
 import { getDefaultThumbnailHash, P_RespTour } from '../../entity-processor';
@@ -20,17 +20,19 @@ interface IDispatchProps {
   updateDemoHubProp: typeof updateDemoHubProp;
   getTourData : (tourRid : string) => Promise<P_RespTour>,
   getUpdatedAllTours : () => void;
+  clearCurrentDemoHubSelection: ()=> void;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   getAllTours: () => dispatch(getAllTours(false)),
   loadDemoHubAndData: (rid) => dispatch(loadDemoHubAndData(rid)),
-  updateDemoHubConfig: (rid, updatedDemoHubConfig) => dispatch(updateDemoHubConfigData(rid, updatedDemoHubConfig)),
+  updateDemoHubConfig: (demohub, updatedDemoHubConfig) => dispatch(updateDemoHubConfigData(demohub, updatedDemoHubConfig)),
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),
   loadDemoHubConfig: (demoHub) => dispatch(loadDemoHubConfig(demoHub)),
   updateDemoHubProp: (rid, prop, value) => dispatch(updateDemoHubProp(rid, prop, value)),
   getTourData: (tourRid) => dispatch(getTourData(tourRid)),
   getUpdatedAllTours: () => dispatch(getAllTours(false, true)),
+  clearCurrentDemoHubSelection: () => dispatch(clearCurrentDemoHubSelection())
 });
 
 interface IAppStateProps {
@@ -41,6 +43,7 @@ interface IAppStateProps {
   org: RespOrg | null;
   principal: RespUser | null;
   cConfig: RespCommonConfig;
+  globalConfig: IGlobalConfig;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -51,6 +54,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   org: state.default.org,
   principal: state.default.principal,
   cConfig: state.default.commonConfig!,
+  globalConfig: state.default.globalConfig!
 });
 
 interface IOwnProps {
@@ -76,9 +80,13 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.getAllTours();
   }
 
+  componentWillUnmount(): void {
+    this.props.clearCurrentDemoHubSelection();
+  }
+
   debouncedOnDemoHubConfigChangeHandler = debounce(
     (updatedDemoHubConfig) => {
-      this.props.updateDemoHubConfig(this.props.match.params.demoHubRid, updatedDemoHubConfig);
+      this.props.updateDemoHubConfig(this.props.data!, updatedDemoHubConfig);
       const firstDemoOfDemoHub = getFirstDemoOfDemoHub(updatedDemoHubConfig);
       const currentThumbnailHash = this.props.data!.info.thumbnail;
 
@@ -127,6 +135,7 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
         loadDemoHubConfig={this.props.loadDemoHubConfig}
         getTourData={this.props.getTourData}
         getUpdatedAllTours={this.props.getUpdatedAllTours}
+        globalConfig={this.props.globalConfig}
       />
     );
   }

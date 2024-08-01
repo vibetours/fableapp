@@ -50,15 +50,18 @@ export default function LeadformTab(): JSX.Element {
     });
   };
 
-  function updateSeeAllPageProps<K extends keyof IDemoHubConfig['see_all_page']>(
+  function updateSeeAllLeadformProps<K extends keyof IDemoHubConfig['see_all_page']['leadForm']>(
     key: K,
-    value: IDemoHubConfig['see_all_page'][K]
+    value: IDemoHubConfig['see_all_page']['leadForm'][K]
   ): void {
     onConfigChange(c => ({
       ...c,
       see_all_page: {
         ...c.see_all_page,
-        [key]: value,
+        leadForm: {
+          ...c.see_all_page.leadForm,
+          [key]: value,
+        }
       }
     }));
   }
@@ -122,7 +125,8 @@ export default function LeadformTab(): JSX.Element {
             onClick={() => {
               updateLeadformBodyContentAndDisplayText('', '');
               updateLeadformPrimaryKey('email');
-              updateSeeAllPageProps('showLeadForm', false);
+              updateSeeAllLeadformProps('showLeadForm', false);
+              updateSeeAllLeadformProps('skipLeadForm', false);
               deleteLeadformEntry();
             }}
           >

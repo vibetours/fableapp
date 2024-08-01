@@ -118,6 +118,8 @@ import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './ut
 import { ImgResolution } from './utils/resize-img';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
 
+const BLUR_VALUE = 8;
+
 const INPUT_TYPE_WITHOUT_PLACEHOLDER = [
   'button',
   'checkbox',
@@ -1079,6 +1081,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!selectedEl) {
       return <></>;
     }
+    const selectedElPath = this.iframeElManager!.elPath(selectedEl);
     const isTextUpdateAvailable = editsFeaturesAvailable.includes(EditFeaturesAvailable.UpdateText);
 
     const CommonOptions = (
@@ -1093,6 +1096,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 unCheckedChildren={<EyeInvisibleOutlined />}
                 defaultChecked={!!selectedEl && getComputedStyle(selectedEl).display !== 'none'}
                 size="small"
+                key={`${selectedElPath}-show`}
                 onChange={((t) => (checked) => {
                   const refEl = (t.nodeType === Node.TEXT_NODE ? t.parentNode : t) as HTMLElement;
                   const path = this.iframeElManager!.elPath(refEl);
@@ -1133,11 +1137,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           editsFeaturesAvailable.includes(EditFeaturesAvailable.Blur)
             ? (
               <Switch
+                key={`${selectedElPath}-blur`}
                 checkedChildren={<EyeOutlined />}
                 unCheckedChildren={<EyeInvisibleOutlined />}
                 defaultChecked={
               !!selectedEl
-              && ScreenEditor.getBlurValueFromFilter(getComputedStyle(selectedEl).filter) === 3
+              && (ScreenEditor.getBlurValueFromFilter(getComputedStyle(selectedEl).filter) === BLUR_VALUE
+              || ScreenEditor.getBlurValueFromFilter(getComputedStyle(selectedEl).filter) === 3)
             }
                 onChange={((t) => (checked) => {
                   const filterStyle = getComputedStyle(t).filter;
@@ -1161,7 +1167,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   }
 
                   if (checked) {
-                    newBlurValue = 3;
+                    newBlurValue = BLUR_VALUE;
                     newFilterStr = ScreenEditor.updateBlurValueToFilter(oldFilterStr, newBlurValue);
                     t.style.filter = newFilterStr;
                   } else {
@@ -1202,6 +1208,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               editsFeaturesAvailable.includes(EditFeaturesAvailable.UploadMask)
                 ? (
                   <button
+                    key={`${selectedElPath}-mask`}
                     onClick={() => this.setState({ showImageMaskUploadModal: true })}
                     type="button"
                     className="typ-ip"
@@ -1245,6 +1252,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   ? (<UploadButton
                       accept="image/png, image/jpeg, image/webp, image/svg+xml"
                       onChange={this.handleSelectedImageChange(selectedEl!)}
+                      key={`${selectedElPath}-replace`}
                   />)
                   : (
                     <Tags.EditUpgradeBtnCon>
@@ -1269,6 +1277,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
                 <Tags.CtrlTxtEditBox
                   className="typ-ip"
+                  key={`${selectedElPath}-text`}
                   defaultValue={targetEl?.textContent!}
                   autoFocus={isTextUpdateAvailable}
                   onBlur={() => this.flushMicroEdits()}
@@ -1315,6 +1324,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               <Tags.EditCtrlLabel className="typ-reg">Update Placeholder Text</Tags.EditCtrlLabel>
               <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
                 <Tags.CtrlTxtEditBox
+                  key={`${selectedElPath}-placeholder`}
                   className="typ-ip"
                   defaultValue={(targetEl as HTMLInputElement)?.placeholder}
                   autoFocus={isTextUpdateAvailable}
@@ -1486,7 +1496,57 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         editTargetType: editTargetType.targetType,
         targetEl: editTargetType.target || selectedEl,
       });
+      if (selectedEl.getAttribute('fab-edit-attr-added') !== '1') {
+        this.setEditElAttribute(selectedEl);
+      }
     }
+  };
+
+  setEditElAttribute = (selectedEl: HTMLElement) : void => {
+    selectedEl.setAttribute('fab-edit-attr-added', '1');
+    const selectedElPth = this.iframeElManager?.elPath(selectedEl);
+    this.props.allEdits.forEach(edit => {
+      if (edit[1] === selectedElPth) {
+        const elType = edit[IdxEditItem.TYPE];
+        const refEl = (selectedEl.nodeType === Node.TEXT_NODE
+          ? selectedEl.parentNode : selectedEl) as HTMLElement;
+
+        switch (elType) {
+          case ElEditType.Text: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Text}`;
+            refEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEditEncodingText.OLD_VALUE] as string);
+            break;
+          }
+          case ElEditType.Blur: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Blur}`;
+            refEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeBlur.OLD_FILTER_VALUE] as string);
+            break;
+          }
+          case ElEditType.Display: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Display}`;
+            selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeDisplay.OLD_VALUE] as string);
+            break;
+          }
+          case ElEditType.Input: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Input}`;
+            selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeInput.OLD_VALUE] as string);
+            break;
+          }
+          case ElEditType.Image: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
+            selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeImage.OLD_VALUE] as string);
+            break;
+          }
+          case ElEditType.Mask: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Mask}`;
+            selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeMask.OLD_STYLE] as string);
+            break;
+          }
+          default:
+            break;
+        }
+      }
+    });
   };
 
   editExistOnEl(el: HTMLElement): boolean {
