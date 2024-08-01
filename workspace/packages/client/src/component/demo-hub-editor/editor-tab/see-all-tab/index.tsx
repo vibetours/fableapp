@@ -372,7 +372,7 @@ function SeeAllPageTab(): JSX.Element {
                     .filter(v => !config.see_all_page.header.ctas.includes(v.id))
                     .map(v => ({
                       value: v.id,
-                      label: v.text,
+                      label: v.text._val,
                     }))}
                   autoFocus
                   onChange={(e) => {

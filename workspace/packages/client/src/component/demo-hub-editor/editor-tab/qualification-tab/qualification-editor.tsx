@@ -197,7 +197,7 @@ function SidePanelCta(ctaProps: SidePanelCtaProps): JSX.Element {
                 .filter(v => !ctaProps.CTA.includes(v.id))
                 .map(v => ({
                   value: v.id,
-                  label: v.text,
+                  label: v.text._val,
                 }))}
               autoFocus
               onChange={(e) => {

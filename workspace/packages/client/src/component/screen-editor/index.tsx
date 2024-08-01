@@ -2314,6 +2314,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       throw new Error(`Could not resolve element from path ${path}`);
     }
 
+    this.highlightEditElIfSelected(el);
     // This is kind of a hack that moves the element in the view instantly and then after
     // 3 frame shows the selector.
     // Caveat: if the scroll is taking time to finish then this would not work
