@@ -15,7 +15,7 @@ import { RespDemoEntity, Responsiveness,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
 } from '@fable/common/dist/api-contract';
-import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
+import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { TState } from './reducer';
 import {
@@ -1210,23 +1210,35 @@ export const getSampleSimpleStyle = (): SimpleStyle => ({
   borderRadius: 4,
 });
 
-export const getSampleCTASimpleStyle = (): IDemoHubConfigCta['style'] => ({
-  bgColorProp: createGlobalProperty('#e0e1dd', GlobalPropsPath.primaryColor),
+export const getSampleCTASimpleStyle = (globalConfig : IGlobalConfig): IDemoHubConfigCta['style'] => ({
+  bgColorProp: createGlobalProperty(
+    compileValue(globalConfig, GlobalPropsPath.primaryColor),
+    GlobalPropsPath.primaryColor
+  ),
   fontColor: '#0d1b2a',
   borderRadius: 24
 });
 
-export const getSampleDemoHubConfigCta = (idx: number): IDemoHubConfigCta => ({
-  text: createGlobalProperty(`Book a demo ${idx}`, GlobalPropsPath.customBtn1Style),
+export const getSampleDemoHubConfigCta = (globalConfig : IGlobalConfig): IDemoHubConfigCta => ({
+  text: createGlobalProperty(
+    compileValue(globalConfig, GlobalPropsPath.customBtn1Text),
+    GlobalPropsPath.customBtn1Text
+  ),
   id: nanoid(),
   // icon?: Icon;
   deletable: true,
   iconPlacement: 'left',
   __linkType: 'open_ext_url',
-  link: createGlobalProperty('https://www.sharefable.com/get-a-demo?ref=dh_others', GlobalPropsPath.customBtn1URL),
+  link: createGlobalProperty(
+    compileValue(globalConfig, GlobalPropsPath.customBtn1URL),
+    GlobalPropsPath.customBtn1URL
+  ),
   __definedBy: 'user',
-  type: createGlobalProperty('primary', GlobalPropsPath.customBtn1Style),
-  style: getSampleCTASimpleStyle(),
+  type: createGlobalProperty(
+    compileValue(globalConfig, GlobalPropsPath.customBtn1Style),
+    GlobalPropsPath.customBtn1Style
+  ),
+  style: getSampleCTASimpleStyle(globalConfig),
 });
 
 export const getSampleDemoHubSeeAllPageSectionConfig = (idx: number): IDemoHubConfigSeeAllPageSection => ({

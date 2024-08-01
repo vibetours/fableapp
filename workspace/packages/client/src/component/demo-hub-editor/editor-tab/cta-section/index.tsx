@@ -8,12 +8,12 @@ import CtaWrapper from './cta-wrapper';
 import { getNewIndex } from '../../utils';
 
 function CTASection(): JSX.Element {
-  const { config, onConfigChange } = useEditorCtx();
+  const { config, onConfigChange, globalConfig } = useEditorCtx();
 
   const addNewCta = (): void => {
     onConfigChange(c => ({
       ...c,
-      cta: [...c.cta, getSampleDemoHubConfigCta(getNewIndex(c.cta.map(ct => ct.text._val), 'Book a demo') + 1)]
+      cta: [...c.cta, getSampleDemoHubConfigCta(globalConfig)]
     }));
   };
 
