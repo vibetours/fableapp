@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-08-08 09:25:15.
+// Generated using typescript-generator version 2.35.1025 on 2024-08-08 18:31:51.
 
 export interface Activity extends ActivityBase {
 }
@@ -779,6 +779,7 @@ export const enum TopLevelEntityType {
 
 export const enum UnauthorizedReason {
     OrgSuggestedButInvalidAssociation = "OrgSuggestedButInvalidAssociation",
+    EmailIdExistsButLoginMethodDoesNotMatch = "EmailIdExistsButLoginMethodDoesNotMatch",
 }
 
 export const enum AudioProcessingSub {

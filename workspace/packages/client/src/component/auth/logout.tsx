@@ -8,6 +8,7 @@ import Loader from '../loader';
 import InfoCon, { InfoBtn } from '../info-con';
 import FullPageTopLoader from '../loader/full-page-top-loader';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../../constants';
+import { OurLink } from '../../common-styled';
 
 interface Props {
   title: string,
@@ -57,28 +58,41 @@ export default function Logout(props: Props): JSX.Element {
         break;
 
       case LogoutType.APINotAutorized: {
+        const reason = searchParams.get('r');
         setHeading('Insufficient permission');
         setMsg(
-          <p>
-            Either your session has expired or you don't have access to requested resource. Please login using correct account.
-          </p>
+          reason === UnauthorizedReason.EmailIdExistsButLoginMethodDoesNotMatch ? (
+            <>
+              <p>
+                EmailId exists but a different login method has been used previously. Please logout and use correct login method.
+              </p>
+              <p>
+                <OurLink target="_self" href="https://www.sharefable.com/contact-support" style={{ display: 'inline' }}>Contact support</OurLink> if you think you are using the correct login method.
+              </p>
+            </>
+          ) : (
+            <p>
+              Either your session has expired or you don't have access to requested resource. Please login using correct account.
+            </p>
+          )
         );
         setShowLoader(false);
         const actionBtns: InfoBtn[] = [{
-          type: 'primary',
-          text: 'Select organization',
-          linkTo: '/select-org'
-        }, {
           type: 'secondary',
           text: 'Logout',
           linkTo: '/logout'
         }];
-        const reason = searchParams.get('r');
-        if (reason !== UnauthorizedReason.OrgSuggestedButInvalidAssociation) {
+        if (!(reason === UnauthorizedReason.OrgSuggestedButInvalidAssociation || reason === UnauthorizedReason.EmailIdExistsButLoginMethodDoesNotMatch)) {
           actionBtns.push({
             type: 'secondary',
             text: 'See all demos',
             linkTo: '/demos'
+          });
+        } else if (reason !== UnauthorizedReason.EmailIdExistsButLoginMethodDoesNotMatch) {
+          actionBtns.push({
+            type: 'primary',
+            text: 'Select organization',
+            linkTo: '/select-org'
           });
         } else {
           localStorage.removeItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY);
