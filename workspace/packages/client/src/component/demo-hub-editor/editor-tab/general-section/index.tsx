@@ -9,10 +9,9 @@ import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import { useEditorCtx } from '../../ctx';
 import { OurLink } from '../../../../common-styled';
-import { amplitudeDemoHubGeneralSectionEdited } from '../../../../amplitude';
+import { amplitudeDemoHubGeneralSectionEdited, amplitudeApplyGlobalStyles } from '../../../../amplitude';
 import ApplyStylesMenu from '../../../screen-editor/apply-styles-menu';
 import { isGlobalProperty } from '../../../../utils';
-import { amplitudeApplyGlobalStyles } from '../../../../amplitude';
 
 type GeneralProps = Pick<IDemoHubConfig, 'baseFontSize' | 'companyName' | 'fontFamily' | 'logo'>;
 

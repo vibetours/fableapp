@@ -287,6 +287,7 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
 
   private static LEAD_FORM_FIELD_DISPLAY_ORDER = ['first_name', 'last_name', 'email', 'phone', 'company'].reverse();
 
+  // eslint-disable-next-line class-methods-use-this
   getLeadCardDisplayBlock = (info: Record<string, string>) => (
     <>
       {info.pk_field && (
