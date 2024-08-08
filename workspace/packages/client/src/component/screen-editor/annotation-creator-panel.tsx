@@ -118,6 +118,7 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import {
   amplitudeAnnotationApplyAll,
   amplitudeAnnotationEdited,
+  amplitudeApplyGlobalStyles,
   amplitudeRemoveWatermark,
   amplitudeScrollAdjustmentChanged
 } from '../../amplitude';
@@ -715,6 +716,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(opts.primaryColor)}
               onApplyGlobal={() => {
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'cta_primary_color',
+                  config.refId
+                );
                 setTourDataOpts(t => updateTourDataOpts(
                   t,
                   'primaryColor',
@@ -744,6 +750,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(opts.annotationBodyBackgroundColor)}
               onApplyGlobal={() => {
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'body_bg_color',
+                  config.refId
+                );
                 setTourDataOpts(t => updateTourDataOpts(
                   t,
                   'annotationBodyBackgroundColor',
@@ -773,6 +784,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(opts.annotationFontColor)}
               onApplyGlobal={() => {
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'font_color',
+                  config.refId
+                );
                 setTourDataOpts(t => updateTourDataOpts(
                   t,
                   'annotationFontColor',
@@ -803,6 +819,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(opts.borderRadius)}
               onApplyGlobal={() => {
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'container_border_radius',
+                  config.refId
+                );
                 setTourDataOpts(t => updateTourDataOpts(
                   t,
                   'borderRadius',
@@ -842,6 +863,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(opts.showFableWatermark)}
               onApplyGlobal={() => {
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'show_watermark',
+                  config.refId
+                );
                 setTourDataOpts(t => updateTourDataOpts(
                   t,
                   'showFableWatermark',
@@ -880,6 +906,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       <ApplyStylesMenu
                         isGlobal={isGlobalProperty(opts.annotationBodyBorderColor)}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'body_border_color',
+                            config.refId
+                          );
                           setTourDataOpts(t => updateTourDataOpts(
                             t,
                             'annotationBodyBorderColor',
@@ -913,6 +944,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           });
                         }}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'selection_color',
+                            config.refId
+                          );
                           setConfig(c => updateSelectionColor(
                             c,
                             createGlobalProperty(c.annotationSelectionColor._val, GlobalPropsPath.selColor)
@@ -960,6 +996,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       <ApplyStylesMenu
                         isGlobal={isGlobalProperty(opts.annotationFontFamily)}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'font_family',
+                            config.refId
+                          );
                           setTourDataOpts(t => updateTourDataOpts(
                             t,
                             'annotationFontFamily',
@@ -1000,6 +1041,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           });
                         }}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'selection_effect',
+                            config.refId
+                          );
                           setConfig(c => updateAnnotationSelectionEffect(
                             c,
                             createGlobalProperty(c.selectionEffect._val, GlobalPropsPath.selEffect)
@@ -1040,6 +1086,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           });
                         }}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'selection_shape',
+                            config.refId
+                          );
                           setConfig(c => updateAnnotationSelectionShape(
                             c,
                             createGlobalProperty(c.selectionShape._val, GlobalPropsPath.selShape)
@@ -1078,6 +1129,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                       <ApplyStylesMenu
                         isGlobal={isGlobalProperty(opts.annotationPadding)}
                         onApplyGlobal={() => {
+                          amplitudeApplyGlobalStyles(
+                            'annotation',
+                            'container_padding',
+                            config.refId
+                          );
                           setTourDataOpts(t => updateTourDataOpts(
                             t,
                             'annotationPadding',
@@ -1276,11 +1332,17 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                               GlobalPropsPath.customBtn1URL
                                             ),
                                           };
+
                                           const thisAntn = updateButtonProp(
                                             config,
                                             btnConf.id,
                                             'hotspot',
                                             hostspotConfig
+                                          );
+                                          amplitudeApplyGlobalStyles(
+                                            'annotation',
+                                            'custom_cta_url',
+                                            config.refId
                                           );
                                           setConfig(thisAntn);
                                         }}
@@ -1476,10 +1538,25 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           isGlobal={isGlobalProperty(btnConf.style)}
                           onApplyGlobal={() => {
                             let fromValue : typeof GlobalPropsPath[keyof typeof GlobalPropsPath];
-
-                            if (btnConf.type === 'next') fromValue = GlobalPropsPath.nextBtnStyle;
-                            if (btnConf.type === 'prev') fromValue = GlobalPropsPath.prevBtnStyle;
-                            if (btnConf.type === 'custom') fromValue = GlobalPropsPath.customBtn1Style;
+                            let config_prop
+                            : 'next_button_type' | 'prev_button_type' | 'custom_cta_type' = 'next_button_type';
+                            if (btnConf.type === 'next') {
+                              config_prop = 'next_button_type';
+                              fromValue = GlobalPropsPath.nextBtnStyle;
+                            }
+                            if (btnConf.type === 'prev') {
+                              config_prop = 'prev_button_type';
+                              fromValue = GlobalPropsPath.prevBtnStyle;
+                            }
+                            if (btnConf.type === 'custom') {
+                              config_prop = 'custom_cta_type';
+                              fromValue = GlobalPropsPath.customBtn1Style;
+                            }
+                            amplitudeApplyGlobalStyles(
+                              'annotation',
+                              config_prop,
+                              config.refId
+                            );
                             setConfig(c => updateButtonProp(
                               c,
                               btnConf.id,
@@ -1526,6 +1603,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                             });
                           }}
                           onApplyGlobal={() => {
+                            amplitudeApplyGlobalStyles(
+                              'annotation',
+                              'cta_btn_size',
+                              config.refId
+                            );
                             setConfig(c => updateButtonProp(
                               c,
                               btnConf.id,
@@ -1590,10 +1672,26 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           } : undefined}
                           onApplyGlobal={() => {
                             let fromValue : typeof GlobalPropsPath[keyof typeof GlobalPropsPath];
+                            let config_prop :
+                            'next_button_text' | 'prev_button_text' | 'custom_cta_text' = 'next_button_text';
+                            if (btnConf.type === 'next') {
+                              config_prop = 'next_button_text';
+                              fromValue = GlobalPropsPath.nextBtnText;
+                            }
+                            if (btnConf.type === 'prev') {
+                              config_prop = 'prev_button_text';
+                              fromValue = GlobalPropsPath.prevBtnText;
+                            }
+                            if (btnConf.type === 'custom') {
+                              config_prop = 'custom_cta_text';
+                              fromValue = GlobalPropsPath.customBtn1Text;
+                            }
 
-                            if (btnConf.type === 'next') fromValue = GlobalPropsPath.nextBtnText;
-                            if (btnConf.type === 'prev') fromValue = GlobalPropsPath.prevBtnText;
-                            if (btnConf.type === 'custom') fromValue = GlobalPropsPath.customBtn1Text;
+                            amplitudeApplyGlobalStyles(
+                              'annotation',
+                              config_prop,
+                              config.refId
+                            );
                             setConfig(c => updateButtonProp(
                               c,
                               btnConf.id,
@@ -1948,7 +2046,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
         </div>
         <div style={{ ...commonActionPanelItemStyle, marginTop: '0.5rem', height: 'auto' }}>
           <div>
-            <div>Show Step Number</div>
+            <div>Show Step Progress</div>
           </div>
           <div className="ver-center">
             <Tags.StyledSwitch
@@ -1968,6 +2066,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                   opts,
                   'showStepNum',
                   createGlobalProperty(opts.showStepNum._val, GlobalPropsPath.showStepNo)
+                );
+                amplitudeApplyGlobalStyles(
+                  'annotation',
+                  'show_step_number',
+                  config.refId
                 );
                 setTourDataOpts(newOpts);
               }}

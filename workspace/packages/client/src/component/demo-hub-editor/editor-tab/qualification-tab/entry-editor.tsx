@@ -26,6 +26,8 @@ import * as Tags from '../../styled';
 import { InputText } from '../../../screen-editor/styled';
 import { buttonSecStyle } from '../../../screen-editor/annotation-creator-panel';
 import { showDeleteConfirm } from '../../delete-confirm';
+import { amplitudeDemoQualEdit, amplitudeQualStepEdit } from '../../../../amplitude';
+import { AMPLITUDE_STEP_TYPE } from '../../../../amplitude/types';
 
 interface Props {
   entry: SelectEntry | LeadFormEntry | TextEntry;
@@ -58,6 +60,10 @@ interface Props {
 
   activeEntryId: string;
   setActiveEntryId: (id: string) => void;
+
+  amplitudeEntryStyles : <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
+  amplitudeContinueCtaStyles : <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
+  amplitudeSkipCtaStyles : <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void;
 }
 
 export default function EntryEditor(props: Props): JSX.Element {
@@ -165,7 +171,14 @@ export default function EntryEditor(props: Props): JSX.Element {
               type="text"
               size="small"
               style={buttonSecStyle}
-              onClick={() => setShowEditor(!showEditor)}
+              onClick={() => {
+                amplitudeDemoQualEdit({
+                  qualification_id: props.qualification.id,
+                  demo_qualification_prop: 'step_edit',
+                  demo_qualification_value: props.entry.id
+                });
+                setShowEditor(!showEditor);
+              }}
             />
           </div>
         </div>
@@ -196,7 +209,17 @@ export default function EntryEditor(props: Props): JSX.Element {
                         <InputText
                           type="text"
                           value={props.entry.title}
-                          onChange={e => props.updateEntryTitle(e.target.value)}
+                          onBlur={(e) => {
+                            amplitudeQualStepEdit({
+                              step_id: props.entry.id,
+                              step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                              qualification_step_prop: 'general_title',
+                              qualification_step_value: e.target.value
+                            });
+                          }}
+                          onChange={e => {
+                            props.updateEntryTitle(e.target.value);
+                          }}
                           style={{ height: '44px', width: '100%' }}
                         />
                       </Tags.InputTextCon>
@@ -206,6 +229,14 @@ export default function EntryEditor(props: Props): JSX.Element {
                         <TextArea
                           label=""
                           value={props.entry.desc}
+                          onBlur={(e) => {
+                            amplitudeQualStepEdit({
+                              step_id: props.entry.id,
+                              step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                              qualification_step_prop: 'general_description',
+                              qualification_step_value: e.target.value
+                            });
+                          }}
                           onChange={e => props.updateEntryDesc(e.target.value)}
                         />
                       </Tags.InputTextCon>
@@ -214,6 +245,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                         simpleStyle={props.entry.style}
                         simpleStyleUpdateFn={props.updateEntryStyles}
                         borderColorTitle="Accent color"
+                        amplitudeStyleEvent={props.amplitudeEntryStyles}
                       />
                     </div>
                   </>
@@ -248,6 +280,14 @@ export default function EntryEditor(props: Props): JSX.Element {
                                   <InputText
                                     type="text"
                                     value={props.entry.continueCTA.text}
+                                    onBlur={(e) => {
+                                      amplitudeQualStepEdit({
+                                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                        step_id: props.entry.id,
+                                        qualification_step_prop: 'continue_cta_text',
+                                        qualification_step_value: e.target.value
+                                      });
+                                    }}
                                     onChange={(e) => props.updateEntryContinueCtaText(e.target.value)}
                                     style={{ height: '44px', width: '100%' }}
                                   />
@@ -256,7 +296,15 @@ export default function EntryEditor(props: Props): JSX.Element {
                                 <Tags.InputTextCon>
                                   <div className="typ-sm">Icon placement</div>
                                   <GTags.OurRadio.Group
-                                    onChange={(e) => props.updateEntryContinueCtaIconPlacement(e.target.value)}
+                                    onChange={(e) => {
+                                      amplitudeQualStepEdit({
+                                        step_id: props.entry.id,
+                                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                        qualification_step_prop: 'continue_cta_placement',
+                                        qualification_step_value: e.target.value
+                                      });
+                                      props.updateEntryContinueCtaIconPlacement(e.target.value);
+                                    }}
                                     value={props.entry.continueCTA.iconPlacement}
                                   >
                                     <GTags.OurRadio value="left">Left</GTags.OurRadio>
@@ -278,6 +326,12 @@ export default function EntryEditor(props: Props): JSX.Element {
                                     }))}
                                     onChange={(e) => {
                                       if (e) {
+                                        amplitudeQualStepEdit({
+                                          step_id: props.entry.id,
+                                          step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                          qualification_step_prop: 'continue_cta_btn_type',
+                                          qualification_step_value: e as string
+                                        });
                                         props.updateEntryContinueCtaType(e as DemoHubConfigCtaTypeType);
                                       }
                                     }}
@@ -289,6 +343,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                                 <SimpleStyleEditor
                                   simpleStyle={props.entry.continueCTA.style}
                                   simpleStyleUpdateFn={props.updateEntryContinueCtaStyles}
+                                  amplitudeStyleEvent={props.amplitudeContinueCtaStyles}
                                 />
                               </div>
                             </>
@@ -317,6 +372,14 @@ export default function EntryEditor(props: Props): JSX.Element {
                                   <InputText
                                     type="text"
                                     value={props.entry.skipCTA.text}
+                                    onBlur={(e) => {
+                                      amplitudeQualStepEdit({
+                                        step_id: props.entry.id,
+                                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                        qualification_step_prop: 'skip_cta_text',
+                                        qualification_step_value: e.target.value
+                                      });
+                                    }}
                                     onChange={(e) => props.updateEntrySkipCtaText(e.target.value)}
                                     style={{ height: '44px', width: '100%' }}
                                   />
@@ -325,7 +388,15 @@ export default function EntryEditor(props: Props): JSX.Element {
                                 <Tags.InputTextCon>
                                   <div className="typ-sm">Icon placement</div>
                                   <GTags.OurRadio.Group
-                                    onChange={(e) => props.updateEntrySkipCtaIconPlacement(e.target.value)}
+                                    onChange={(e) => {
+                                      amplitudeQualStepEdit({
+                                        step_id: props.entry.id,
+                                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                        qualification_step_prop: 'skip_cta_placement',
+                                        qualification_step_value: e.target.value as string
+                                      });
+                                      props.updateEntrySkipCtaIconPlacement(e.target.value);
+                                    }}
                                     value={props.entry.skipCTA.iconPlacement}
                                   >
                                     <GTags.OurRadio value="left">Left</GTags.OurRadio>
@@ -346,6 +417,12 @@ export default function EntryEditor(props: Props): JSX.Element {
                                     }))}
                                     onChange={(e) => {
                                       if (e) {
+                                        amplitudeQualStepEdit({
+                                          step_id: props.entry.id,
+                                          step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                          qualification_step_prop: 'skip_cta_btn_type',
+                                          qualification_step_value: e as string
+                                        });
                                         props.updateEntrySkipCtaType(e as DemoHubConfigCtaTypeType);
                                       }
                                     }}
@@ -357,6 +434,7 @@ export default function EntryEditor(props: Props): JSX.Element {
                                 <SimpleStyleEditor
                                   simpleStyle={props.entry.skipCTA.style}
                                   simpleStyleUpdateFn={props.updateEntrySkipCtaStyles}
+                                  amplitudeStyleEvent={props.amplitudeSkipCtaStyles}
                                 />
                                 <div
                                   style={{
@@ -367,7 +445,15 @@ export default function EntryEditor(props: Props): JSX.Element {
                                 >
                                   <GTags.OurCheckbox
                                     checked={props.entry.showSkipCta}
-                                    onChange={e => props.updateEntryShowSkipCta(e.target.checked)}
+                                    onChange={e => {
+                                      amplitudeQualStepEdit({
+                                        step_id: props.entry.id,
+                                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                                        qualification_step_prop: 'skip_cta_show',
+                                        qualification_step_value: e.target.checked
+                                      });
+                                      props.updateEntryShowSkipCta(e.target.checked);
+                                    }}
                                   />
                                   <div>Show Skip CTA</div>
                                 </div>
@@ -438,7 +524,15 @@ export default function EntryEditor(props: Props): JSX.Element {
                           width: 'fit-content',
                           marginTop: '1rem',
                         }}
-                        onClick={props.addSelectEntryOption}
+                        onClick={() => {
+                          amplitudeQualStepEdit({
+                            step_id: props.entry.id,
+                            step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                            qualification_step_prop: 'option_add',
+                            qualification_step_value: true
+                          });
+                          props.addSelectEntryOption();
+                        }}
                       >
                         <Button
                           type="text"

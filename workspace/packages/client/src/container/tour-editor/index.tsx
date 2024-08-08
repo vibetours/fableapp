@@ -79,7 +79,6 @@ import {
 } from '../../utils';
 import ChunkSyncManager, { SyncTarget, Tx } from './chunk-sync-manager';
 import {
-  getAnnotationSerialIdMap,
   getAnnotationByRefId,
   addNewAnn,
   getAnnotationBtn

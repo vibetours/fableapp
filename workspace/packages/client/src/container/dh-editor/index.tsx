@@ -1,13 +1,13 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { IGlobalConfig, LoadingStatus } from '@fable/common/dist/types';
+import { CmnEvtProp, IGlobalConfig, LoadingStatus } from '@fable/common/dist/types';
 import { RespCommonConfig, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
 import Editor from '../../component/demo-hub-editor';
 import { clearCurrentDemoHubSelection, getAllTours, getTourData, loadDemoHubAndData, loadDemoHubConfig, publishDemoHub, updateDemoHubConfigData, updateDemoHubProp } from '../../action/creator';
 import { IDemoHubConfig, P_RespDemoHub } from '../../types';
-import { debounce, getFirstDemoOfDemoHub } from '../../utils';
+import { debounce, getFirstDemoOfDemoHub, setEventCommonState } from '../../utils';
 import { getDefaultThumbnailHash, P_RespTour } from '../../entity-processor';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 
@@ -77,7 +77,9 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     this.props.loadDemoHubAndData(this.props.match.params.demoHubRid);
+    setEventCommonState(CmnEvtProp.DEMO_HUB_RID, this.props.match.params.demoHubRid);
     this.props.getAllTours();
+    setEventCommonState(CmnEvtProp.DEMO_HUB_RID, this.props.match.params.demoHubRid);
   }
 
   componentWillUnmount(): void {

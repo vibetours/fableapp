@@ -6,6 +6,7 @@ import { SimpleStyle } from '../../types';
 import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
 import { isGlobalProperty } from '../../utils';
 import { useEditorCtx } from './ctx';
+import { amplitudeApplyGlobalStyles } from '../../amplitude';
 
 export type SimpleStyleUpdateFn<OmittedKeys extends keyof SimpleStyle = never>
 = <K extends keyof Omit<SimpleStyle, OmittedKeys>>(
@@ -20,10 +21,15 @@ interface Props<OmittedKeys extends keyof SimpleStyle = never> {
   borderColorTitle ?: string;
   fontColorTitle ?: string;
   borderRadiusTitle ?: string;
+  amplitudeStyleEvent ?: <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => void
 }
 
 export default function SimpleStyleEditor(props: Props): JSX.Element {
   const { globalConfig } = useEditorCtx();
+
+  function isAnyPropertyGlobal() : boolean {
+    return props.simpleStyle.bgColorProp !== undefined;
+  }
   return (
     <div
       style={{
@@ -44,11 +50,17 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
           </div>
           <GTags.ColorPicker
             style={{
-              minWidth: 'unset'
+              minWidth: 'unset',
+              width: isAnyPropertyGlobal() ? '125px' : '100%'
             }}
             className="typ-ip"
             showText={(color) => color.toHexString()}
-            onChangeComplete={e => props.simpleStyleUpdateFn('bgColor', e.toHexString())}
+            onChangeComplete={e => {
+              if (props.amplitudeStyleEvent) {
+                props.amplitudeStyleEvent('bgColor', e.toHexString());
+              }
+              props.simpleStyleUpdateFn('bgColor', e.toHexString());
+            }}
             defaultValue={props.simpleStyle.bgColor}
           />
         </div>
@@ -73,11 +85,16 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
           <GTags.ColorPicker
             style={{
               minWidth: 'unset',
-              width: '100%'
+              width: '125px'
             }}
             className="typ-ip"
             showText={(color) => color.toHexString()}
-            onChangeComplete={e => props.simpleStyleUpdateFn('bgColorProp', createLiteralProperty(e.toHexString()))}
+            onChangeComplete={e => {
+              if (props.amplitudeStyleEvent) {
+                props.amplitudeStyleEvent('bgColor', e.toHexString());
+              }
+              props.simpleStyleUpdateFn('bgColorProp', createLiteralProperty(e.toHexString()));
+            }}
             value={props.simpleStyle.bgColorProp._val}
           />
           <ApplyStylesMenu
@@ -90,6 +107,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
                   GlobalPropsPath.primaryColor
                 )
               );
+              amplitudeApplyGlobalStyles('demo_hub', 'cta_primary_color', null, true);
             }}
           />
         </div>
@@ -108,11 +126,17 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
           </div>
           <GTags.ColorPicker
             style={{
-              minWidth: 'unset'
+              minWidth: 'unset',
+              width: isAnyPropertyGlobal() ? '125px' : '100%'
             }}
             className="typ-ip"
             showText={(color) => color.toHexString()}
-            onChangeComplete={e => props.simpleStyleUpdateFn('borderColor', e.toHexString())}
+            onChangeComplete={e => {
+              if (props.amplitudeStyleEvent) {
+                props.amplitudeStyleEvent('borderColor', e.toHexString());
+              }
+              props.simpleStyleUpdateFn('borderColor', e.toHexString());
+            }}
             defaultValue={props.simpleStyle.borderColor}
           />
         </div>
@@ -130,11 +154,17 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
           </div>
           <GTags.ColorPicker
             style={{
-              minWidth: 'unset'
+              minWidth: 'unset',
+              width: isAnyPropertyGlobal() ? '125px' : '100%'
             }}
             className="typ-ip"
             showText={(color) => color.toHexString()}
-            onChangeComplete={e => props.simpleStyleUpdateFn('fontColor', e.toHexString())}
+            onChangeComplete={e => {
+              if (props.amplitudeStyleEvent) {
+                props.amplitudeStyleEvent('fontColor', e.toHexString());
+              }
+              props.simpleStyleUpdateFn('fontColor', e.toHexString());
+            }}
             defaultValue={props.simpleStyle.fontColor}
           />
         </div>
@@ -151,6 +181,11 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
             {props.borderRadiusTitle || 'Border radius'}
           </div>
           <InputNumberBorderRadius
+            onBlur={(e) => {
+              if (props.amplitudeStyleEvent) {
+                props.amplitudeStyleEvent('borderRadius', Number(e.target.value));
+              }
+            }}
             onChange={e => props.simpleStyleUpdateFn('borderRadius', e ? +e : 0)}
             defaultValue={props.simpleStyle.borderRadius}
             className="typ-ip"
@@ -158,7 +193,7 @@ export default function SimpleStyleEditor(props: Props): JSX.Element {
             addonAfter="px"
             style={{
               height: '40px',
-              width: '100%'
+              width: isAnyPropertyGlobal() ? '125px' : '100%'
             }}
           />
         </div>

@@ -63,6 +63,7 @@ import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../
 import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addToGlobalAppData, initGlobalClock } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
+import DemoProgressBar from '../../component/demo-progress-bar';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
@@ -589,7 +590,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       addToGlobalAppData('annotationSerialIdMap', annotationSerialIdMap);
       this.setState({ annotationSerialIdMap, isJourneyMenuOpen });
       this.navigateToMain();
-
       emitEvent<Partial<Payload_DemoLoadingStarted>>(InternalEvents.DemoLoadingStarted, {});
 
       // add images to preload
@@ -967,6 +967,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
               />
             ))
         }
+        {this.state.screenSizeData[this.getCurrScreenId()]
+        && this.props.tourOpts && this.props.tourOpts.showStepNum._val
+        && (
+        <DemoProgressBar
+          iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
+          primaryColor={this.props.tourOpts?.primaryColor._val || '#7567FF'}
+          annotationSerialIdMap={this.state.annotationSerialIdMap}
+        />
+        )}
         <Suspense fallback={null}>
           {
             this.isInitialPrerenderingComplete()

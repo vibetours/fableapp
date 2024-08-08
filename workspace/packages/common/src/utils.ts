@@ -171,7 +171,7 @@ export function createEmptyTourDataFile(globalOpts: IGlobalConfig): TourData {
 }
 
 export const DEFAULT_ANN_DIMS: CustomAnnDims = {
-  width: 320,
+  width: 256,
 };
 
 const SAMPLE_ANN_CONFIG_TEXT = 'Write a brief description of what your buyer should expect from this particular module of your product';

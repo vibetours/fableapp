@@ -3,6 +3,7 @@ import TextEditor from './text-editor';
 import * as Tags from './styled';
 import { useEditorCtx } from '../ctx';
 import { defaultCustomStyle } from './constants';
+import { amplitudeDemohubDeveloper } from '../../../amplitude';
 
 function DeveloperTab() : JSX.Element {
   const { onConfigChange, config } = useEditorCtx();
@@ -27,6 +28,11 @@ function DeveloperTab() : JSX.Element {
       <Tags.EditorContainer>
         <div className="typ-h2">Custom Scripts</div>
         <TextEditor
+          onFocusEvent={() => {
+            amplitudeDemohubDeveloper({
+              action: 'edit_custom_script'
+            });
+          }}
           value={config.customScripts}
           changeHandler={handleScriptChange}
         />
@@ -34,6 +40,11 @@ function DeveloperTab() : JSX.Element {
       <Tags.EditorContainer>
         <div className="typ-h2">Custom Styles</div>
         <TextEditor
+          onFocusEvent={() => {
+            amplitudeDemohubDeveloper({
+              action: 'edit_custom_style'
+            });
+          }}
           value={customStyle}
           changeHandler={handleStyleChange}
         />

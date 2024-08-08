@@ -2,19 +2,35 @@ import React from 'react';
 import { PlusOutlined, StepBackwardOutlined } from '@ant-design/icons';
 import { useEditorCtx } from '../../ctx';
 import { OurLink } from '../../../../common-styled';
-import { getSampleDemoHubConfigCta } from '../../../../utils';
+import { CTAPrevConfig, getSampleCTASimpleStyle, getSampleDemoHubConfigCta } from '../../../../utils';
 import ActionPanel from '../../../screen-editor/action-panel';
 import CtaWrapper from './cta-wrapper';
-import { getNewIndex } from '../../utils';
+import { amplitudeDemoHubCta } from '../../../../amplitude';
 
 function CTASection(): JSX.Element {
   const { config, onConfigChange, globalConfig } = useEditorCtx();
 
   const addNewCta = (): void => {
-    onConfigChange(c => ({
-      ...c,
-      cta: [...c.cta, getSampleDemoHubConfigCta(globalConfig)]
-    }));
+    let ctaId = '';
+    onConfigChange(c => {
+      const lastCTAStyle = c.cta.at(-1)?.style || getSampleCTASimpleStyle(globalConfig);
+
+      const prevConfig: CTAPrevConfig = {
+        borderRadius: lastCTAStyle.borderRadius,
+        fontColor: lastCTAStyle.fontColor
+      };
+
+      const newConfig = {
+        ...c,
+        cta: [...c.cta, getSampleDemoHubConfigCta(prevConfig, globalConfig)]
+      };
+
+      ctaId = newConfig.cta.at(-1)!.id;
+
+      return newConfig;
+    });
+
+    amplitudeDemoHubCta('add', ctaId);
   };
 
   const deleteCta = (id: string): void => {
@@ -48,6 +64,8 @@ function CTASection(): JSX.Element {
         },
       };
     });
+
+    amplitudeDemoHubCta('delete', id);
   };
 
   return (

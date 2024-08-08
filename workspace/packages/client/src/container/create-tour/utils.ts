@@ -28,7 +28,9 @@ import {
   RespScreen,
   RespDemoEntity,
   ScreenType,
-  TourSettings
+  TourSettings,
+  ReqTourPropUpdate,
+  EntityInfo
 } from '@fable/common/dist/api-contract';
 import {
   createEmptyTourDataFile,
@@ -91,6 +93,7 @@ export async function saveAsTour(
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
   }
+
   const { tourDataFile, tourRid } = await addAnnotationConfigs(
     screens,
     existingTour,
@@ -100,12 +103,13 @@ export async function saveAsTour(
     globalOpts,
   );
   const res = await saveTour(tourRid, tourDataFile);
+
   return res;
 }
 
 // --- tour creation util ---
 
-async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespDemoEntity> {
+async function createNewTour(tourName: string, vpd: null | Vpd, thumbnail: null | string): Promise<RespDemoEntity> {
   let tsettings: TourSettings | undefined;
   if (vpd) {
     tsettings = {
@@ -114,13 +118,20 @@ async function createNewTour(tourName: string, vpd: null | Vpd): Promise<RespDem
       primaryKey: 'email'
     };
   }
+  let info: EntityInfo | undefined;
+  if (thumbnail) {
+    info = {
+      thumbnail
+    };
+  }
 
   const { data } = await api<ReqNewTour, ApiResp<RespDemoEntity>>('/newtour', {
     auth: true,
     body: {
       name: tourName,
       description: '',
-      settings: tsettings
+      settings: tsettings,
+      info
     },
   });
   return data;
@@ -184,10 +195,14 @@ async function addAnnotationConfigs(
     if (!tourDataFile.diagnostics) tourDataFile.diagnostics = {};
   } else {
     let settings = null;
+    let thumbnail = null;
     if (screenInfo.length > 0 && screenInfo[0].vpd) {
       settings = screenInfo[0].vpd;
     }
-    const tourData = await createNewTour(tourName, settings);
+    if (screenInfo.length > 0 && screenInfo[0].info && screenInfo[0].info.thumbnail) {
+      thumbnail = screenInfo[0].info.thumbnail;
+    }
+    const tourData = await createNewTour(tourName, settings, thumbnail);
     tourRid = tourData.rid;
     tourDataFile = createEmptyTourDataFile(globalOpts);
   }
@@ -336,6 +351,7 @@ async function processScreen(
       type: data.type,
       rid: data.rid,
       replacedWithImgScreen: res.replacedWithImgScreen,
+      thumbnail: data.thumbnail
     },
     skipped: res.skipped,
     vpd: res.vpd

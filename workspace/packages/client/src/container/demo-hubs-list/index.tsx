@@ -12,7 +12,7 @@ import {
 import * as GTags from '../../common-styled';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { IDemoHubConfig, P_RespDemoHub, } from '../../types';
+import { IDemoHubConfig, P_RespDemoHub, RenameDemoHubFn, } from '../../types';
 import DemoHubsListing from '../../component/demo-hubs-list';
 import TopLoader from '../../component/loader/top-loader';
 import Header from '../../component/header';
@@ -25,7 +25,7 @@ import { FeatureForPlan } from '../../plans';
 interface IDispatchProps {
   getAllDemoHubs: () => void;
   createNewDemoHub: (name: string) => Promise<P_RespDemoHub>;
-  renameDemoHub: (demoHubRid: string, name: string) => void;
+  renameDemoHub: RenameDemoHubFn;
   deleteDemoHub: (demoHubRid: string) => void;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>;
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
@@ -41,8 +41,8 @@ export enum CtxAction {
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   getAllDemoHubs: () => dispatch(getAllDemoHubs()),
   createNewDemoHub: (name: string) => dispatch(createDemoHub(name)),
-  renameDemoHub: (demoHubRid: string, name: string) => dispatch(
-    renameDemoHub(demoHubRid, name)
+  renameDemoHub: (demoHub: P_RespDemoHub, name: string) => dispatch(
+    renameDemoHub(demoHub, name)
   ),
   deleteDemoHub: (demoHubRid: string) => dispatch(deleteDemoHub(demoHubRid)),
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),

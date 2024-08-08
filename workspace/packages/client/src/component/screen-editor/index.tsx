@@ -180,7 +180,6 @@ enum TabList {
 
 interface IOwnProps {
   journey: JourneyData | null;
-  // annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   navigate: NavFn;
   screenData: ScreenData;
@@ -2432,7 +2431,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
     const highlighterBaseConfig = {
       selectionColor: an ? an.annotationSelectionColor._val : DEFAULT_BLUE_BORDER_COLOR,
-      showOverlay: an?.showOverlay || true
+      showOverlay: an?.showOverlay || true,
+      showMaskBorder: true,
     };
 
     let doc;

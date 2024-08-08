@@ -47,6 +47,7 @@ import {
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
 import { IAnnotationConfigWithScreenId } from '../annotation/annotation-config-utils';
+import { HighlighterBaseConfig } from '../base/hightligher-base';
 
 export interface IOwnProps {
   resizeSignal: number;
@@ -181,9 +182,10 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   private initAnnotationLCM(nestedFrames: HTMLIFrameElement[]):void {
     const an = this.props.allAnnotationsForScreen.find(antn => antn.refId === this.props.toAnnotationId);
 
-    const highlighterBaseConfig = {
+    const highlighterBaseConfig : HighlighterBaseConfig = {
       selectionColor: an ? an.annotationSelectionColor._val : DEFAULT_BLUE_BORDER_COLOR,
-      showOverlay: !!an?.showOverlay
+      showOverlay: !!an?.showOverlay,
+      showMaskBorder: !an?.showOverlay
     };
 
     const el = this.embedFrameRef?.current;
@@ -349,7 +351,9 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         return;
       }
     }
-    this.reachAnnotation(this.state.currentAnn);
+    if (!this.props.hidden) {
+      this.reachAnnotation(this.state.currentAnn);
+    }
   }, 100);
 
   getScreenById = (id: number): P_RespScreen | undefined => this.props.allScreens!.find(screen => screen.id === id);

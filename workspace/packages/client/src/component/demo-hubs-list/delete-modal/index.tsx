@@ -3,6 +3,8 @@ import * as GTags from '../../../common-styled';
 import * as Tags from './styled';
 import { ModalState } from '../types';
 import Button from '../../button';
+import { sendAmplitudeDemoHubDataEvent } from '../../../amplitude';
+import { AMPLITUDE_EVENTS } from '../../../amplitude/events';
 
 interface Props {
     deleteDemoHub: (demoHubRid: string) => void;
@@ -43,6 +45,10 @@ function DeleteModal(props : Props) : JSX.Element {
             onClick={
               () => {
                 props.deleteDemoHub(props.demoHubRid);
+                sendAmplitudeDemoHubDataEvent({
+                  type: AMPLITUDE_EVENTS.DELETE_DEMO_HUB,
+                  payload: { demo_hub_rid: props.demoHubRid }
+                });
                 props.changeModalState({ show: false, type: '' });
               }
             }

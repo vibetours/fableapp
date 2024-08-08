@@ -11,12 +11,17 @@ import { IDemoHubConfig, SimpleStyle } from '../../../../types';
 import SimpleStyleEditor, { SimpleStyleUpdateFn } from '../../simple-styles-editor';
 import { OurLink } from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
-import { getSampleDemoHubSeeAllPageSectionConfig, rearrangeArray } from '../../../../utils';
+import { getSampleDemoHubSeeAllPageSectionConfig, getSampleSimpleStyle, rearrangeArray } from '../../../../utils';
 import SectionEditor from './section-editor';
 import { getCtaById, getNewIndex } from '../../utils';
 import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import CtaWrapper from '../cta-section/cta-wrapper';
+import { amplitudeDemoCollectionBodyEdited, amplitudeDemoCollectionHeader } from '../../../../amplitude';
+import { AMPLITUDE_COLLECTION_CARD_STYLE,
+  AMPLITUDE_COLLECTION_MODAL_STYLE,
+  AMPLITUDE_LEADFORM_CONTINUE_BTN_STYLE
+} from '../../../../amplitude/types';
 
 function SeeAllPageTab(): JSX.Element {
   const { config, onConfigChange } = useEditorCtx();
@@ -60,6 +65,12 @@ function SeeAllPageTab(): JSX.Element {
         }
       }
     }));
+
+    if (key === 'bgColor') {
+      amplitudeDemoCollectionHeader('bg_color', value as string);
+    } else if (key === 'fontColor') {
+      amplitudeDemoCollectionHeader('font_color', value as string);
+    }
   };
 
   const updateBodyStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
@@ -76,9 +87,25 @@ function SeeAllPageTab(): JSX.Element {
         }
       }
     }));
+
+    if (key === 'bgColor') {
+      amplitudeDemoCollectionBodyEdited('body_bg_color', value as string);
+    } else if (key === 'fontColor') {
+      amplitudeDemoCollectionBodyEdited('body_font_color', value as string);
+    }
   };
 
-  const updateDemoCardStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+  const amplitudeDemoCardStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoCollectionBodyEdited(AMPLITUDE_COLLECTION_CARD_STYLE[key]!, value as string);
+  };
+
+  const updateDemoCardStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
     onConfigChange(c => ({
       ...c,
       see_all_page: {
@@ -91,7 +118,17 @@ function SeeAllPageTab(): JSX.Element {
     }));
   };
 
-  const updateDemoModalBodyStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+  const amplitudeDemoModalStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoCollectionBodyEdited(AMPLITUDE_COLLECTION_MODAL_STYLE[key]!, value as string);
+  };
+
+  const updateDemoModalBodyStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
     onConfigChange(c => ({
       ...c,
       see_all_page: {
@@ -121,6 +158,9 @@ function SeeAllPageTab(): JSX.Element {
         },
       },
     }));
+    if (key === 'bgColor') {
+      amplitudeDemoCollectionBodyEdited('overlay_bg_color', value as string);
+    }
   };
 
   const addHeaderCta = (ctaId: string): void => {
@@ -140,7 +180,6 @@ function SeeAllPageTab(): JSX.Element {
     onConfigChange(c => {
       const ctaIdToBeDeleteIdx = c.see_all_page.header.ctas.findIndex(cta => cta === ctaId);
       c.see_all_page.header.ctas.splice(ctaIdToBeDeleteIdx, 1);
-
       return {
         ...c,
         see_all_page: {
@@ -152,6 +191,7 @@ function SeeAllPageTab(): JSX.Element {
         }
       };
     });
+    amplitudeDemoCollectionHeader('cta_delete', ctaId);
   };
 
   const rearrangeHeaderCta = (r: DropResult): void => {
@@ -183,6 +223,13 @@ function SeeAllPageTab(): JSX.Element {
         sections: rearrangedArray,
       }
     }));
+  };
+
+  const amplitudeLeadformContinueBtnStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoCollectionBodyEdited(AMPLITUDE_LEADFORM_CONTINUE_BTN_STYLE[key]!, value as string);
   };
 
   const updateLeadformContinueBtnStyle: SimpleStyleUpdateFn<'borderColor'> = (key, value): void => {
@@ -264,6 +311,7 @@ function SeeAllPageTab(): JSX.Element {
               value={config.see_all_page.header.title}
               onChange={e => updateHeader('title', e.target.value)}
               style={{ height: '44px', width: '100%' }}
+              onBlur={(e) => { amplitudeDemoCollectionHeader('title', e.target.value); }}
             />
           </div>
           <SimpleStyleEditor
@@ -378,6 +426,7 @@ function SeeAllPageTab(): JSX.Element {
                   onChange={(e) => {
                     if (e) {
                       addHeaderCta(e as string);
+                      amplitudeDemoCollectionHeader('cta_select', e as string);
                       setIsCtaSelectOpen(false);
                     }
                   }}
@@ -469,16 +518,27 @@ function SeeAllPageTab(): JSX.Element {
               width: 'fit-content'
             }}
             onClick={() => {
-              onConfigChange(c => ({
-                ...c,
-                see_all_page: {
-                  ...c.see_all_page,
-                  sections: [
-                    ...c.see_all_page.sections,
-                    getSampleDemoHubSeeAllPageSectionConfig(getNewIndex(c.see_all_page.sections.map(ct => ct.title), 'A new section') + 1),
-                  ],
-                },
-              }));
+              let sectionId = '';
+              onConfigChange(c => {
+                const newSectionIndex = getNewIndex(c.see_all_page.sections.map(ct => ct.title), 'A new section') + 1;
+                const sectionInfo = getSampleDemoHubSeeAllPageSectionConfig(
+                  c.see_all_page.sections.at(-1)?.simpleStyle || getSampleSimpleStyle(),
+                  newSectionIndex
+                );
+                sectionId = sectionInfo.id;
+
+                return {
+                  ...c,
+                  see_all_page: {
+                    ...c.see_all_page,
+                    sections: [
+                      ...c.see_all_page.sections,
+                      sectionInfo,
+                    ],
+                  },
+                };
+              });
+              amplitudeDemoCollectionBodyEdited('section_add', sectionId);
             }}
           >
             <PlusOutlined />
@@ -518,6 +578,7 @@ function SeeAllPageTab(): JSX.Element {
                           defaultValue={config.see_all_page.body.text}
                           onChange={e => updateBodyText(e.target.value)}
                           style={{ height: '44px', width: '100%' }}
+                          onBlur={e => amplitudeDemoCollectionBodyEdited('body_title', e.target.value)}
                         />
                       </div>
 
@@ -552,6 +613,7 @@ function SeeAllPageTab(): JSX.Element {
                       <SimpleStyleEditor
                         simpleStyle={config.see_all_page.demoCardStyles}
                         simpleStyleUpdateFn={updateDemoCardStyle}
+                        amplitudeStyleEvent={amplitudeDemoCardStyle}
                       />
                     </div>
                   </>
@@ -586,6 +648,7 @@ function SeeAllPageTab(): JSX.Element {
                         <SimpleStyleEditor
                           simpleStyle={config.see_all_page.demoModalStyles.body}
                           simpleStyleUpdateFn={updateDemoModalBodyStyle}
+                          amplitudeStyleEvent={amplitudeDemoModalStyle}
                         />
                       </div>
                       <div style={{
@@ -641,12 +704,13 @@ function SeeAllPageTab(): JSX.Element {
                             defaultValue={config.see_all_page.leadForm.continueCTA.text}
                             onChange={e => updateLeadformContinueBtnText('text', e.target.value)}
                             style={{ height: '44px', width: '100%' }}
+                            onBlur={e => amplitudeDemoCollectionBodyEdited('leadform_btn_text', e.target.value)}
                           />
                         </div>
                         <SimpleStyleEditor
                           simpleStyle={config.see_all_page.leadForm.continueCTA.style}
                           simpleStyleUpdateFn={updateLeadformContinueBtnStyle}
-
+                          amplitudeStyleEvent={amplitudeLeadformContinueBtnStyle}
                         />
                       </div>
                       <div
@@ -663,7 +727,10 @@ function SeeAllPageTab(): JSX.Element {
                           disabled={!config.leadform.bodyContent}
                           style={{ marginLeft: '-0.5rem' }}
                           checked={config.see_all_page.leadForm.showLeadForm}
-                          onChange={e => updateSeeAllLeadformProps('showLeadForm', e.target.checked)}
+                          onChange={e => {
+                            updateSeeAllLeadformProps('showLeadForm', e.target.checked);
+                            amplitudeDemoCollectionBodyEdited('leadform_show', e.target.checked);
+                          }}
                         />
                         <div>Show lead form</div>
                       </div>
@@ -681,7 +748,10 @@ function SeeAllPageTab(): JSX.Element {
                           disabled={!config.leadform.bodyContent}
                           style={{ marginLeft: '-0.5rem' }}
                           checked={config.see_all_page.leadForm.skipLeadForm}
-                          onChange={e => updateSeeAllLeadformProps('skipLeadForm', e.target.checked)}
+                          onChange={e => {
+                            updateSeeAllLeadformProps('skipLeadForm', e.target.checked);
+                            amplitudeDemoCollectionBodyEdited('leadform_skip', e.target.checked);
+                          }}
                         />
                         <div>Skip lead form</div>
                       </div>

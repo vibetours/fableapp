@@ -178,7 +178,7 @@ export const AnContent = styled.div<{
   }
 `;
 
-const getAnnotationPadding = (annotationPadding: string): string => {
+const getAnnotationPadding = (annotationPadding: string, hasWatermark: boolean): string => {
   const formatRegex = /^\s*(\d+)\s*(\d*)\s*$/;
   const formatedPadding = annotationPadding.match(formatRegex);
   if (!formatedPadding) {
@@ -195,23 +195,18 @@ const getAnnotationPadding = (annotationPadding: string): string => {
     return '14px 14px';
   }
 
-  return `${verticalPadding}px ${horizontalPadding}px`;
-};
-
-const getVerticalPadding = (annotationPadding: string) : string => {
-  const formatedPadding = getAnnotationPadding(annotationPadding);
-  const verticalPadding = formatedPadding.split(/\s/)[0];
-  return verticalPadding;
+  return `${verticalPadding}px ${horizontalPadding}px ${hasWatermark ? '4px' : ''}`;
 };
 
 interface AnInnerConProps {
   anPadding: string;
+  hasWatermark: boolean;
 }
 
 export const AnInnerContainer = styled.div`
   display:flex;
   flex-direction:column;
-  padding: ${(props: AnInnerConProps) => `${getAnnotationPadding(props.anPadding)}`};
+  padding: ${(props: AnInnerConProps) => `${getAnnotationPadding(props.anPadding, props.hasWatermark)}`};
   z-index: 9999;
 `;
 
@@ -257,11 +252,9 @@ export const ButtonCon = styled.div`
   position: relative;
   display: flex;
   justify-content: ${(props: ButtonConProps) => props.justifyContent};
-  align-items: center;
-  margin-top: ${(props: ButtonConProps) => `calc(0.25rem + ${getVerticalPadding(props.anPadding)})`};
+  align-items: flex-end;
   padding-top: 1rem;
-  border-top: 1px solid ${(props: ButtonConProps) => props.borderTopColor};
-  row-gap: 0.5rem;
+  gap: 2rem;
   flex-direction: ${(props: ButtonConProps) => props.flexDirection};
 
   ${(props: ButtonConProps) => (
@@ -322,11 +315,11 @@ export const ABtn = styled.button`
 
   padding: ${(p: BtnConf) => {
     if (p.size === AnnotationButtonSize.Large) {
-      return p.noPad ? '12px 0px' : '12px 22px';
+      return p.noPad ? '0px 0px' : '12px 22px';
     } if (p.size === AnnotationButtonSize.Medium) {
-      return p.noPad ? '8px 0px' : '8px 18px';
+      return p.noPad ? '0px 0px' : '8px 18px';
     }
-    return p.noPad ? '4px 0px' : '4px 12px';
+    return p.noPad ? '0px 0px' : '4px 12px';
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {

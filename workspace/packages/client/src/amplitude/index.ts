@@ -3,6 +3,11 @@ import { CmnEvtProp, ScrollAdjustmentType } from '@fable/common/dist/types';
 import { Responsiveness } from '@fable/common/dist/api-contract';
 import { AMPLITUDE_EVENTS } from './events';
 import { ScreenMode, SiteData } from '../types';
+import {
+  DemohubDeveloperEvent, DemohubLeadFormEvent, DemoQualBodyEditEvent,
+  DemoQualEditEvent, QualStepEditEvent, QualStepOptionEditEvent,
+  Amp_Edit_DH_Evt, Amp_Preview_DH_Evt, Amp_Publish_DH_Evt, Amp_Share_DH_Evt, AmplitudeDHDataEvent,
+} from './types';
 
 export const enum propertyCreatedFromWithType {
   CANVAS_PLUS_ICON_COVER_NEW_SCREEN = 'canvas_plus_icon_cover_new_screen',
@@ -181,4 +186,239 @@ export const amplitudeScrollAdjustmentChanged = (
     },
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );
+};
+
+export const amplitudeDemoHubGeneralSectionEdited = (
+  demoHubConfig: 'company_logo' | 'company_name' | 'base_font_size' | 'font_family',
+  value: string
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.GENERAL_SECTION_EDITED,
+    {
+      demo_hub_config: demoHubConfig,
+      demo_hub_value: value
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+interface demoHubCTAEventProperites {
+  action: 'add' | 'delete' | 'edit',
+  cta_value: string,
+  cta_edit_prop?: 'button_text' | 'button_type' | 'border_radius' | 'font_color' | 'bg_color' | 'button_link',
+  cta_edit_value?: string | number
+}
+
+export const amplitudeDemoHubCta = (
+  action: 'add' | 'delete' | 'edit',
+  value: string,
+  cta_edit_prop?: 'button_text' | 'button_type' | 'border_radius' | 'font_color' | 'bg_color' | 'button_link',
+  cta_edit_value?: string | number
+): void => {
+  let eventProperties: demoHubCTAEventProperites = {
+    action,
+    cta_value: value,
+  };
+  if (cta_edit_prop) {
+    eventProperties = { ...eventProperties, cta_edit_prop, cta_edit_value };
+  }
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_HUB_CTA,
+    { ...eventProperties },
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeDemoCollectionHeader = (
+  prop: 'title' | 'bg_color' | 'font_color' | 'cta_select' | 'cta_delete',
+  value: string
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_COLLECTION_HEADER_EDITED,
+    {
+      demo_collection_header_prop: prop,
+      demo_collection_header_value: value
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeDemoCollectionBodyEdited = (
+  prop: 'body_title' | 'body_bg_color' | 'body_font_color' | 'card_bg_color' | 'card_border_color' |
+  'card_font_color' | 'card_border_radius' | 'modal_bg_color' | 'modal_border_color' | 'modal_font_color' |
+  'modal_border_radius' | 'overlay_bg_color' | 'leadform_show' | 'leadform_skip' | 'leadform_btn_text' |
+  'leadform_btn_bg_color' | 'leadform_btn_font_color' | 'leadform_btn_border_radius' | 'section_add' |
+  'section_edit' | 'section_delete',
+  value: string | boolean
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_COLLECTION_BODY_EDITED,
+    {
+      demo_collection_body_prop: prop,
+      demo_collection_body_value: value
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const ampliteDemoCollectionSectionEdited = (
+  sectionName: string,
+  prop: 'title' | 'description' | 'bg_color' | 'border_color'
+  | 'font_color' | 'border_radius' | 'demo_add' | 'demo_reload' | 'demo_delete',
+  value: string
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_COLLECTION_SECTION_EDITED,
+    {
+      section_name: sectionName,
+      demo_collection_section_prop: prop,
+      demo_collection_section_value: value
+    }
+  );
+};
+
+export const amplitudeGlobalStyleEdited = (
+  prop: 'company_logo' | 'company_url' | 'demo_loading_text' | 'font_family' | 'cta_btn_size' | 'cta_btn_color' |
+    'body_bg_color' | 'body_border_color' | 'font_color' | 'container_border_radius' | 'container_padding' |
+    'selection_color' | 'selection_shape' | 'selection_effect' | 'show_step_number' | 'show_watermark' |
+    'next_button_text' | 'next_button_type' | 'prev_button_text' | 'prev_button_type' |
+    'custom_cta_text' | 'custom_cta_type' | 'custom_cta_url',
+  value: string | number | boolean,
+  section: 'common' | 'annotation_style'
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.GLOBAL_STYLE_EDITED,
+    {
+      config_prop: prop,
+      config_value: value,
+      section
+    },
+    [CmnEvtProp.EMAIL]
+  );
+};
+
+export const sendAmplitudeDemoHubDataEvent = (eventData: AmplitudeDHDataEvent): void => {
+  traceEvent(
+    eventData.type,
+    eventData.payload,
+    [CmnEvtProp.EMAIL]
+  );
+};
+
+export const amplitudeDemoQualBodyEdit = (
+  payload : DemoQualBodyEditEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_QUALIFICATION_BODY_EDITED,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeApplyGlobalStyles = (
+  apply_to: 'annotation' | 'loader' | 'module' | 'demo_hub',
+  config_prop: 'cta_primary_color' | 'company_logo' | 'company_url' | 'demo_loading_text' |
+  'font_family' | 'cta_btn_size' | 'cta_btn_color' | 'body_bg_color' |
+  'body_border_color' | 'font_color' | 'container_border_radius' |
+  'container_padding' | 'selection_color' | 'selection_shape' |
+  'selection_effect' | 'show_step_number' | 'show_watermark' |
+  'next_button_text' | 'next_button_type' | 'prev_button_text' |
+  'prev_button_type' | 'custom_cta_text' | 'custom_cta_type' | 'custom_cta_url',
+  annotation_id: string | null = null,
+  from_demo_hub: boolean = false
+) : void => {
+  const eventProperties : Record<string, string | boolean | number | null> = { apply_to, config_prop };
+  if (annotation_id) {
+    eventProperties.annotation_id = annotation_id;
+  }
+
+  const commonProperties = [CmnEvtProp.EMAIL];
+  if (from_demo_hub) {
+    commonProperties.push(CmnEvtProp.DEMO_HUB_RID);
+  } else {
+    commonProperties.push(CmnEvtProp.TOUR_URL);
+  }
+  traceEvent(
+    AMPLITUDE_EVENTS.APPLY_GLOBAL_STYLE,
+    eventProperties,
+    commonProperties
+  );
+};
+
+export const amplitudeDemoQualEdit = (
+  payload : DemoQualEditEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMO_QUALIFICATION_EDITED,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeQualStepEdit = (
+  payload : QualStepEditEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.QUALIFICATION_STEP_EDITED,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeQualStepOptionEdit = (
+  payload : QualStepOptionEditEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.QUALIFICATION_STEP_OPTION_EDITED,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeDemohubLeadForm = (
+  payload : DemohubLeadFormEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMOHUB_LEADFORM,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeDemohubDeveloper = (
+  payload : DemohubDeveloperEvent['payload']
+) : void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.DEMOHUB_DEVELOPER,
+    payload,
+    [CmnEvtProp.EMAIL, CmnEvtProp.DEMO_HUB_RID]
+  );
+};
+
+export const amplitudeDemoHubPublished = (payload: Amp_Publish_DH_Evt['payload']): void => {
+  sendAmplitudeDemoHubDataEvent({
+    type: AMPLITUDE_EVENTS.PUBLISH_DEMO_HUB,
+    payload
+  });
+};
+
+export const amplitudeDemoHubEditorOpened = (payload: Amp_Edit_DH_Evt['payload']): void => {
+  sendAmplitudeDemoHubDataEvent({
+    type: AMPLITUDE_EVENTS.EDIT_DEMO_HUB,
+    payload
+  });
+};
+
+export const amplitudeDemoHubPreviewOpened = (payload: Amp_Preview_DH_Evt['payload']): void => {
+  sendAmplitudeDemoHubDataEvent({
+    type: AMPLITUDE_EVENTS.PREVIEW_DEMO_HUB,
+    payload
+  });
+};
+
+export const amplitudeDemoHubShareModalOpened = (payload: Amp_Share_DH_Evt['payload']): void => {
+  sendAmplitudeDemoHubDataEvent({
+    type: AMPLITUDE_EVENTS.SHARE_DEMO_HUB,
+    payload
+  });
 };

@@ -4,6 +4,7 @@ import * as GTags from '../../../common-styled';
 import AnnotationRichTextEditor from '../../annotation-rich-text-editor';
 import { useEditorCtx } from '../ctx';
 import { IDemoHubConfig } from '../../../types';
+import { amplitudeDemohubLeadForm } from '../../../amplitude';
 
 const DEFAULT_LEAD_FORM_BODY_CONTENT = '<p class="editor-paragraph"><span data-lexical-lead-form-options="[{&quot;text&quot;:&quot;Enter your Email {[email]}&quot;,&quot;uid&quot;:&quot;1720530350987c747be559a&quot;,&quot;type&quot;:&quot;email&quot;,&quot;autocompleteType&quot;:&quot;email&quot;,&quot;property&quot;:0,&quot;calculatedValue&quot;:&quot;&quot;}]" class="LeadForm__container" id="fable-lead-form"><span class="LeadForm__inner"><span class="LeadForm__optionContainer" fable-input-field-uid="1720530350987c747be559a" fable-x-f-vfn="email"><span class="LeadForm__optionInputWrapper"><input class="LeadForm__optionInputInAnn" fable-input-uid="1720530350987c747be559a" fable-lead-form-field-name="email" type="text" placeholder="Enter your Email" id="email" name="email" autocomplete="email"></span><span class="LeadForm__inputValidation" fable-validation-uid="1720530350987c747be559a">Error msg</span></span></span></span></p>';
 const DEFAULT_LEAD_FORM_DISPLAY_TEXT = '';
@@ -105,6 +106,9 @@ export default function LeadformTab(): JSX.Element {
           lfPkf={config.leadform.primaryKey}
           subs={null}
           throttledChangeHandler={(htmlString, displayText) => {
+            amplitudeDemohubLeadForm({
+              action: 'edit'
+            });
             updateLeadformBodyContentAndDisplayText(htmlString, displayText);
           }}
           defaultValue={config.leadform.bodyContent}
@@ -123,6 +127,9 @@ export default function LeadformTab(): JSX.Element {
               fontWeight: 500
             }}
             onClick={() => {
+              amplitudeDemohubLeadForm({
+                action: 'delete'
+              });
               updateLeadformBodyContentAndDisplayText('', '');
               updateLeadformPrimaryKey('email');
               updateSeeAllLeadformProps('showLeadForm', false);
@@ -150,6 +157,9 @@ export default function LeadformTab(): JSX.Element {
           <Button
             intent="secondary"
             onClick={() => {
+              amplitudeDemohubLeadForm({
+                action: 'create'
+              });
               updateLeadformBodyContentAndDisplayText(DEFAULT_LEAD_FORM_BODY_CONTENT, DEFAULT_LEAD_FORM_DISPLAY_TEXT);
               updateLeadformPrimaryKey('email');
             }}

@@ -5,6 +5,7 @@ import { P_RespScreen, P_RespTour } from './entity-processor';
 import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { FableLeadContactProps, UserFromQueryParams } from './global';
+import { RenameDemoHubResult } from './action/creator';
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
   isPhony?: boolean;
@@ -416,6 +417,11 @@ export interface IDemoHubConfigDemo {
   desc: string;
 }
 
+export interface DemoHubQualificationSidePanel {
+  conStyle: SimpleStyle;
+  cardStyle: SimpleStyle;
+}
+
 export interface IDemoHubConfigQualification {
   id: string;
   __type: 'simple_linear';
@@ -426,10 +432,7 @@ export interface IDemoHubConfigQualification {
   entries: Array<SelectEntry | LeadFormEntry | TextEntry>
   // STANDARD_CLASS_NAME `sidepanel-con` `sidepanel-card` `sidepanel-sticy-cta`
   // `sidepanel-card-title` `sidepanel-card-desc-text`
-  sidePanel: {
-    conStyle: Omit<SimpleStyle, 'borderRadius'>;
-    cardStyle: SimpleStyle;
-  }
+  sidePanel: DemoHubQualificationSidePanel;
   qualificationEndCTA: string[];
   // If it's string then it's mapped to id of ctas TODO
   sidepanelCTA: string[];
@@ -614,3 +617,5 @@ export interface P_RespDemoHub extends RespDemoEntity {
   thumbnailUri: URL;
   displayableUpdatedAt: string;
 }
+
+export type RenameDemoHubFn = (demoHub: P_RespDemoHub, newName: string) => Promise<RenameDemoHubResult>;

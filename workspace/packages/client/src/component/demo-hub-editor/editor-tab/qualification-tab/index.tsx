@@ -8,11 +8,17 @@ import SimpleStyleEditor from '../../simple-styles-editor';
 import * as GTags from '../../../../common-styled';
 import CaretOutlined from '../../../icons/caret-outlined';
 import { getCtaById, getNewIndex } from '../../utils';
-import { getSampleDemoHubQualification, rearrangeArray } from '../../../../utils';
+import {
+  getSampleDemoHubQualification,
+  getSampleDemoHubQualificationSidePanel,
+  rearrangeArray
+} from '../../../../utils';
 import QualificationEditor from './qualification-editor';
 import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import CtaWrapper from '../cta-section/cta-wrapper';
+import { amplitudeDemoQualBodyEdit } from '../../../../amplitude';
+import { AMPLITUDE_HEADER_STYLE, DemoQualBodyEditEvent } from '../../../../amplitude/types';
 
 export const commonActionPanelItemStyle: React.CSSProperties = {
   width: '100%',
@@ -59,6 +65,14 @@ function QualificationTab(): JSX.Element {
     key: K,
     value: SimpleStyle[K]
   ): void => {
+    let headerAmpProp : 'bg_color' | 'font_color' = 'bg_color';
+    if (key === 'fontColor') {
+      headerAmpProp = 'font_color';
+    }
+    amplitudeDemoQualBodyEdit({
+      demo_qualification_body_prop: headerAmpProp,
+      demo_qualification_body_value: value as string
+    });
     onConfigChange(c => ({
       ...c,
       qualification_page: {
@@ -92,6 +106,10 @@ function QualificationTab(): JSX.Element {
   };
 
   const deleteHeaderCta = (ctaId: string): void => {
+    amplitudeDemoQualBodyEdit({
+      demo_qualification_body_prop: 'cta_delete',
+      demo_qualification_body_value: ctaId
+    });
     onConfigChange(c => {
       const ctaIdToBeDeleteIdx = c.qualification_page.header.ctas.findIndex(cta => cta === ctaId);
       c.qualification_page.header.ctas.splice(ctaIdToBeDeleteIdx, 1);
@@ -128,7 +146,15 @@ function QualificationTab(): JSX.Element {
           <span className="typ-sm">Title</span>
           <InputText
             value={config.qualification_page.header.title}
-            onChange={e => updateHeader('title', e.target.value)}
+            onBlur={(e) => {
+              amplitudeDemoQualBodyEdit({
+                demo_qualification_body_prop: 'title',
+                demo_qualification_body_value: e.target.value
+              });
+            }}
+            onChange={e => {
+              updateHeader('title', e.target.value);
+            }}
             style={{ height: '44px', width: '100%' }}
           />
         </div>
@@ -242,6 +268,10 @@ function QualificationTab(): JSX.Element {
                   autoFocus
                   onChange={(e) => {
                     if (e) {
+                      amplitudeDemoQualBodyEdit({
+                        demo_qualification_body_prop: 'cta_select',
+                        demo_qualification_body_value: e as string
+                      });
                       addHeaderCta(e as string);
                       setIsCtaSelectOpen(false);
                     }
@@ -303,6 +333,10 @@ function QualificationTab(): JSX.Element {
               width: 'fit-content'
             }}
             onClick={() => {
+              amplitudeDemoQualBodyEdit({
+                demo_qualification_body_prop: 'qualification_add',
+                demo_qualification_body_value: true
+              });
               onConfigChange(c => ({
                 ...c,
                 qualification_page: {
@@ -310,6 +344,7 @@ function QualificationTab(): JSX.Element {
                   qualifications: [
                     ...c.qualification_page.qualifications,
                     getSampleDemoHubQualification(
+                      c.qualification_page.qualifications.at(-1)?.sidePanel || getSampleDemoHubQualificationSidePanel(),
                       getNewIndex(c.qualification_page.qualifications.map(ct => ct.title), 'Choose your experience') + 1
                     ),
                   ],

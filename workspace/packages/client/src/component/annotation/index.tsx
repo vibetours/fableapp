@@ -28,6 +28,7 @@ import {
   isVideoAnnotation,
 } from '../../utils';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
+import { AnnotationSerialIdMap, getAnnotationBtn } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import AnnotationWatermark, { WatermarkText } from '../watermark/annotation-watermark';
@@ -35,7 +36,6 @@ import { WatermarkCon } from '../watermark/styled';
 import { IAnnotationConfigWithScreenId, isAnnCustomPosition } from './annotation-config-utils';
 import FocusBubble from './focus-bubble';
 import * as VIDEO_ANN from './media-ann-constants';
-import { getAnnotationBtn } from './ops';
 import * as Tags from './styled';
 import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
 
@@ -96,8 +96,6 @@ export class AnnotationContent extends React.PureComponent<{
   doc?: Document,
   isProbing?: boolean,
 }> {
-  static readonly MIN_WIDTH = DEFAULT_ANN_DIMS.width;
-
   static readonly WIDTH_MOBILE = 240;
 
   private readonly conRef: React.RefObject<HTMLDivElement> = React.createRef();
@@ -145,12 +143,7 @@ export class AnnotationContent extends React.PureComponent<{
 
   getAnnotationBorder(hasOverlay: boolean): string {
     const borderColor = this.props.opts.annotationBodyBorderColor._val;
-    const defaultBorderColor = '#BDBDBD';
-
-    const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
-    const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
-
-    return `0 0 ${blur} ${spread} ${borderColor}, rgba(0, 0, 0) 0px 0px ${hasOverlay ? 0 : 4}px -1px`;
+    return `0px 0px 0px 1px ${borderColor}, 0px 8px 20px ${hasOverlay ? 'rgba(250, 250, 250, 0.5)' : 'rgba(50, 50, 50, 0.5)'}`;
   }
 
   componentWillUnmount(): void {
@@ -158,7 +151,14 @@ export class AnnotationContent extends React.PureComponent<{
   }
 
   render(): JSX.Element {
-    const btns = this.props.config.buttons.filter(c => !c.exclude);
+    const allBtns = this.props.config.buttons.filter(c => !c.exclude);
+    let backBtn: IAnnotationButton | null = null;
+    const btns: IAnnotationButton[] = [];
+
+    for (const btn of allBtns) {
+      if (btn.type === 'prev') backBtn = btn;
+      else btns.push(btn);
+    }
 
     return (
       <Tags.AnContent
@@ -187,6 +187,7 @@ export class AnnotationContent extends React.PureComponent<{
       >
         <Tags.AnInnerContainer
           anPadding={this.props.opts.annotationPadding._val.trim()}
+          hasWatermark={this.props.opts.showFableWatermark._val}
           className="f-inner-con"
         >
           {/* TODO: use some other mechanism to populate the following
@@ -214,58 +215,94 @@ export class AnnotationContent extends React.PureComponent<{
               />
             )
           }
-          {btns.length > 0 && (
+          {allBtns.length > 0 && (
             <Tags.ButtonCon
-              justifyContent={btns.length > 1 ? 'space-between' : 'center'}
+              justifyContent={backBtn && allBtns.length > 1 ? 'space-between' : 'center'}
               borderTopColor={generateShadeColor(this.props.opts.annotationBodyBackgroundColor._val)}
-              btnLength={btns.length}
-              flexDirection={this.props.config.buttonLayout === 'default' ? 'row' : 'column'}
+              btnLength={allBtns.length}
+              flexDirection="row"
               anPadding={this.props.opts.annotationPadding._val.trim()}
               className="f-button-con"
             >
-              {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
+              {backBtn && (
                 <Tags.ABtn
                   bg={this.props.opts.annotationBodyBackgroundColor._val}
-                  className={`f-${generateCSSSelectorFromText(btnConf.text._val)}-btn f-ann-btn`}
-                  idx={idx}
-                  key={btnConf.id}
-                  noPad={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default'}
-                  btnStyle={btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? AnnotationButtonStyle.Link : btnConf.style._val}
+                  className={`f-${generateCSSSelectorFromText(backBtn.text._val)}-btn f-ann-btn`}
+                  idx={-1}
+                  key={backBtn.id}
+                  noPad
+                  btnStyle={AnnotationButtonStyle.Link}
                   color={this.props.opts.primaryColor._val}
-                  size={btnConf.size._val}
+                  size={backBtn.size._val}
                   fontFamily={this.props.opts.annotationFontFamily._val}
-                  btnLayout={this.props.config.buttonLayout}
+                  btnLayout="default"
                   borderRadius={this.props.opts.borderRadius._val}
                   onClick={() => {
-                    if (this.conRef.current && isLeadFormPresent(this.conRef.current) && btnConf.type === 'next') {
-                      const leadFormFields = this.conRef.current?.getElementsByClassName('LeadForm__optionContainer');
-
-                      let shouldNavigate = true;
-                      const leadForm: Record<string, string | undefined> = {};
-                      if (leadFormFields) {
-                        for (const field of Array.from(leadFormFields)) {
-                          const { isValid, fieldName, fieldValue } = validateInput(field as HTMLDivElement);
-                          if (!isValid) shouldNavigate = false;
-                          leadForm[fieldName] = fieldValue;
-                        }
-                      }
-
-                      const pk_val = leadForm[this.props.opts.lf_pkf] || '';
-                      if (shouldNavigate) {
-                        const evt: FableLeadContactProps = {
-                          ...leadForm,
-                          pk_key: this.props.opts.lf_pkf,
-                          pk_val,
-                        };
-                        emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
-                        Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
-                      }
-                      return;
-                    }
-                    Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
+                    this.props.navigateToAdjacentAnn(backBtn!.type, backBtn!.id);
                   }}
                 >
-                  <span>{
+                  <ArrowLeftOutlined
+                    style={{
+                      fontSize: '1.5rem',
+                      color: this.props.opts.primaryColor._val
+                    }}
+                  />
+                </Tags.ABtn>
+              )}
+
+              <div
+                className="f-button-con-2"
+                style={{
+                  display: 'flex',
+                  flexDirection: this.props.config.buttonLayout === 'default' ? 'row' : 'column',
+                  gap: '0.5rem',
+                  justifyContent: backBtn ? 'flex-end' : 'center',
+                  flex: '1 1 auto',
+                  flexWrap: 'wrap'
+                }}
+              >
+                {btns.sort((m, n) => m.order - n.order).map((btnConf, idx) => (
+                  <Tags.ABtn
+                    bg={this.props.opts.annotationBodyBackgroundColor._val}
+                    className={`f-${generateCSSSelectorFromText(btnConf.text._val)}-btn f-ann-btn`}
+                    idx={idx}
+                    key={btnConf.id}
+                    btnStyle={btnConf.style._val}
+                    color={this.props.opts.primaryColor._val}
+                    size={btnConf.size._val}
+                    fontFamily={this.props.opts.annotationFontFamily._val}
+                    btnLayout={this.props.config.buttonLayout}
+                    borderRadius={this.props.opts.borderRadius._val}
+                    onClick={() => {
+                      if (this.conRef.current && isLeadFormPresent(this.conRef.current) && btnConf.type === 'next') {
+                        const leadFormFields = this.conRef.current?.getElementsByClassName('LeadForm__optionContainer');
+
+                        let shouldNavigate = true;
+                        const leadForm: Record<string, string | undefined> = {};
+                        if (leadFormFields) {
+                          for (const field of Array.from(leadFormFields)) {
+                            const { isValid, fieldName, fieldValue } = validateInput(field as HTMLDivElement);
+                            if (!isValid) shouldNavigate = false;
+                            leadForm[fieldName] = fieldValue;
+                          }
+                        }
+
+                        const pk_val = leadForm[this.props.opts.lf_pkf] || '';
+                        if (shouldNavigate) {
+                          const evt: FableLeadContactProps = {
+                            ...leadForm,
+                            pk_key: this.props.opts.lf_pkf,
+                            pk_val,
+                          };
+                          emitEvent<Partial<FableLeadContactProps>>(InternalEvents.LeadAssign, evt);
+                          Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
+                        }
+                        return;
+                      }
+                      Promise.resolve().then(() => this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id));
+                    }}
+                  >
+                    <span>{
                     btnConf.type === 'prev' && this.props.config.buttonLayout === 'default' ? (
                       <ArrowLeftOutlined
                         style={{
@@ -275,9 +312,11 @@ export class AnnotationContent extends React.PureComponent<{
                         className="f-back-btn-icon"
                       />) : btnConf.text._val
                     }
-                  </span>
-                </Tags.ABtn>
-              ))}
+                    </span>
+                  </Tags.ABtn>
+                ))}
+              </div>
+
             </Tags.ButtonCon>
           )}
         </Tags.AnInnerContainer>
@@ -832,6 +871,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let l: number = 0;
     let dir: AnimEntryDir = 't';
     let isUltrawideBox: boolean = false;
+    let isAnnRenderedInScreenCorner = false;
 
     const annType = isMediaAnn(config) ? 'media' : config.type;
 
@@ -864,6 +904,14 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           l = adjustedPos.l;
           t = adjustedPos.t;
         }
+
+        const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
+        if (annOutsideOfViewport) {
+          const win = this.props.win;
+          l = win.innerWidth - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE - w;
+          t = win.innerHeight - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE - h;
+          isAnnRenderedInScreenCorner = true;
+        }
       }
     }
 
@@ -875,10 +923,11 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
     const [cdx, cdy] = HighlighterBase.getCumulativeDxDy(this.props.win);
     const maskBoxRect = HighlighterBase.getMaskBoxRect(this.props.box, this.props.win, cdx, cdy, this.props.isScreenHTML4);
-    let arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor._val;
+    let arrowStroke = this.props.annotationDisplayConfig.opts.annotationBodyBorderColor._val;
+    const arrowFill = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val;
     let isBorderColorDefault = false;
-    if (arrowColor.toUpperCase() === '#BDBDBD' || getTransparencyFromHexStr(arrowColor) <= 30) {
-      arrowColor = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val;
+    if (arrowStroke.toUpperCase() === '#BDBDBD' || getTransparencyFromHexStr(arrowStroke) <= 30) {
+      arrowStroke = this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val;
       isBorderColorDefault = true;
     }
 
@@ -934,7 +983,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           >
             {/* this is arrow head */}
             {
-            this.shouldShowArrowHead() && !isUltrawideBox && (
+            this.shouldShowArrowHead() && !isAnnRenderedInScreenCorner && !isUltrawideBox && (
               <AnnotationIndicator
                 box={{
                   ...this.props.box,
@@ -943,7 +992,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 }}
                 pos={dir}
                 maskBoxRect={maskBoxRect}
-                arrowColor={arrowColor}
+                arrowStroke={arrowStroke}
+                arrowFill={arrowFill}
                 annBox={{
                   top: t,
                   left: l,
@@ -1070,7 +1120,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 interface AnnotationArrowHeadProps {
   box: Rect;
   pos: AnimEntryDir;
-  arrowColor: string;
+  arrowFill: string;
+  arrowStroke: string;
   maskBoxRect: Rect;
   annBox: {
     top: number;
@@ -1267,7 +1318,10 @@ export class AnnotationIndicator extends React.PureComponent<AnnotationArrowHead
         >
           <path
             className="fab-arr-path"
-            fill={this.props.arrowColor}
+            stroke={this.props.arrowStroke}
+            strokeWidth={4}
+            fill={this.props.arrowFill}
+            strokeDasharray={270}
             d={this.getTrianglePath()}
           />
         </svg>
@@ -1328,6 +1382,7 @@ interface HotspotProps {
     scrollX: number,
     scrollY: number,
     isGranularHotspot: boolean,
+    // annotationIndexString: string
   }>,
   playMode: boolean,
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
@@ -1546,6 +1601,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
                 scrollX: this.props.win.scrollX,
                 scrollY: this.props.win.scrollY,
                 isGranularHotspot,
+                // annotationIndexString: p.annotationSerialIdMap[p.conf.config.refId]
               }]}
               playMode={this.props.playMode}
               navigateToAdjacentAnn={navigateToAdjacentAnn}
@@ -1554,6 +1610,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
           }
           <AnnotationCard
             el={p.el}
+            // annotationSerialIdMap={p.annotationSerialIdMap}
             annotationDisplayConfig={p.conf}
             box={p.box}
             win={this.props.win}

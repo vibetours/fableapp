@@ -7,6 +7,7 @@ import {
   AnnotationSelectionEffectType,
   AnnotationSelectionShape,
   AnnotationSelectionShapeType,
+  CmnEvtProp,
   IAnnotationConfig,
   IGlobalConfig,
   ITourDataOpts,
@@ -14,6 +15,7 @@ import {
 } from '@fable/common/dist/types';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { LoadingOutlined } from '@ant-design/icons';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import FileInput from '../file-input';
 import Input from '../input';
 import * as GTags from '../../common-styled';
@@ -36,6 +38,8 @@ import UpgradeIcon from '../upgrade/icon';
 import UpgradeModal from '../upgrade/upgrade-modal';
 import { P_RespSubscription } from '../../entity-processor';
 import { FeatureAvailability } from '../../types';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { amplitudeGlobalStyleEdited } from '../../amplitude';
 
 interface Props {
   globalConfig: IGlobalConfig;
@@ -110,10 +114,13 @@ export default function Editor(props: Props): JSX.Element {
     const selectedImage = e.target.files[0];
     const newImageUrl = await uploadFile(selectedImage);
     setGConfig(gc => updateGlobalConfig(gc, 'logo', newImageUrl));
+    amplitudeGlobalStyleEdited('company_logo', newImageUrl, 'common');
   };
 
   const handleRepublishAllDemosClick = async (): Promise<void> => {
     await props.republishAllPublishedDemos();
+
+    traceEvent(AMPLITUDE_EVENTS.REPUBLISH_ALL_DEMOS, {}, [CmnEvtProp.EMAIL]);
   };
   const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
 
@@ -249,8 +256,11 @@ export default function Editor(props: Props): JSX.Element {
               <Input
                 type="url"
                 label=""
-                value={gConfig.companyUrl}
-                onChange={e => setGConfig(gc => updateGlobalConfig(gc, 'companyUrl', e.target.value))}
+                defaultValue={gConfig.companyUrl}
+                onBlur={e => {
+                  setGConfig(gc => updateGlobalConfig(gc, 'companyUrl', e.target.value));
+                  amplitudeGlobalStyleEdited('company_url', e.target.value, 'common');
+                }}
               />
               <div
                 className="typ-sm"
@@ -267,9 +277,12 @@ export default function Editor(props: Props): JSX.Element {
 
             <Tags.CommonSecActionCon>
               <Input
-                value={gConfig.demoLoadingText}
+                defaultValue={gConfig.demoLoadingText}
                 label=""
-                onChange={e => setGConfig(gc => updateGlobalConfig(gc, 'demoLoadingText', e.target.value))}
+                onBlur={e => {
+                  setGConfig(gc => updateGlobalConfig(gc, 'demoLoadingText', e.target.value));
+                  amplitudeGlobalStyleEdited('demo_loading_text', e.target.value, 'common');
+                }}
               />
               <div
                 className="typ-sm"
@@ -300,11 +313,12 @@ export default function Editor(props: Props): JSX.Element {
                   label: v,
                 }))}
                 onChange={(e) => {
+                  let fontFamily = '';
                   if (e) {
-                    setGConfig(gc => updateGlobalConfig(gc, 'fontFamily', e as string));
-                  } else {
-                    setGConfig(gc => updateGlobalConfig(gc, 'fontFamily', ''));
+                    fontFamily = e as string;
                   }
+                  setGConfig(gc => updateGlobalConfig(gc, 'fontFamily', fontFamily));
+                  amplitudeGlobalStyleEdited('font_family', fontFamily, 'common');
                 }}
               />
               <div
@@ -352,6 +366,7 @@ export default function Editor(props: Props): JSX.Element {
                     }))}
                     onSelect={(val) => {
                       setGConfig(gc => updateGlobalConfig(gc, 'ctaSize', val as AnnotationButtonSize));
+                      amplitudeGlobalStyleEdited('cta_btn_size', val as string, 'common');
                     }}
                   />
                 </div>
@@ -363,6 +378,7 @@ export default function Editor(props: Props): JSX.Element {
                     showText={(color) => color.toHexString()}
                     onChangeComplete={e => {
                       setGConfig(gc => updateGlobalConfig(gc, 'primaryColor', e.toHexString()));
+                      amplitudeGlobalStyleEdited('cta_btn_color', e.toHexString(), 'common');
                     }}
                     defaultValue={gConfig.primaryColor}
                   />
@@ -474,7 +490,9 @@ export default function Editor(props: Props): JSX.Element {
                 className="typ-ip"
                 showText={(color) => color.toHexString()}
                 onChangeComplete={e => {
-                  setGConfig(gc => updateGlobalConfig(gc, 'annBodyBgColor', e.toHexString()));
+                  const color = e.toHexString();
+                  setGConfig(gc => updateGlobalConfig(gc, 'annBodyBgColor', color));
+                  amplitudeGlobalStyleEdited('body_bg_color', color, 'annotation_style');
                 }}
                 defaultValue={gConfig.annBodyBgColor}
               />
@@ -489,7 +507,9 @@ export default function Editor(props: Props): JSX.Element {
                 className="typ-ip"
                 showText={(color) => color.toHexString()}
                 onChangeComplete={e => {
-                  setGConfig(gc => updateGlobalConfig(gc, 'annBorderColor', e.toHexString()));
+                  const color = e.toHexString();
+                  setGConfig(gc => updateGlobalConfig(gc, 'annBorderColor', color));
+                  amplitudeGlobalStyleEdited('body_border_color', color, 'annotation_style');
                 }}
                 defaultValue={gConfig.annBorderColor}
               />
@@ -504,7 +524,9 @@ export default function Editor(props: Props): JSX.Element {
                 className="typ-ip"
                 showText={(color) => color.toHexString()}
                 onChangeComplete={e => {
-                  setGConfig(gc => updateGlobalConfig(gc, 'fontColor', e.toHexString()));
+                  const color = e.toHexString();
+                  setGConfig(gc => updateGlobalConfig(gc, 'fontColor', color));
+                  amplitudeGlobalStyleEdited('font_color', color, 'annotation_style');
                 }}
                 defaultValue={gConfig.fontColor}
               />
@@ -527,6 +549,9 @@ export default function Editor(props: Props): JSX.Element {
                 onChange={(e) => {
                   setGConfig(gc => updateGlobalConfig(gc, 'annBorderRadius', e as number));
                 }}
+                onBlur={(e) => {
+                  amplitudeGlobalStyleEdited('container_border_radius', e.target.value, 'annotation_style');
+                }}
               />
             </Tags.CommonSecActionCon>
 
@@ -544,13 +569,11 @@ export default function Editor(props: Props): JSX.Element {
                 bordered={false}
                 placeholder="Enter padding"
                 defaultValue={gConfig.annConPad}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.keyCode === 13) {
-                    setGConfig(gc => updateGlobalConfig(gc, 'annConPad', (e.target as HTMLInputElement).value));
-                  }
-                }}
                 onChange={(e) => {
                   setGConfig(gc => updateGlobalConfig(gc, 'annConPad', e.target.value));
+                }}
+                onBlur={(e) => {
+                  amplitudeGlobalStyleEdited('container_padding', e.target.value, 'annotation_style');
                 }}
               />
             </Tags.CommonSecActionCon>
@@ -566,7 +589,9 @@ export default function Editor(props: Props): JSX.Element {
                 showText={(color) => color.toHexString()}
                 defaultValue={gConfig.selColor}
                 onChangeComplete={e => {
-                  setGConfig(gc => updateGlobalConfig(gc, 'selColor', e.toHexString()));
+                  const color = e.toHexString();
+                  setGConfig(gc => updateGlobalConfig(gc, 'selColor', color));
+                  amplitudeGlobalStyleEdited('selection_color', color, 'annotation_style');
                 }}
               />
             </Tags.CommonSecActionCon>
@@ -588,6 +613,7 @@ export default function Editor(props: Props): JSX.Element {
                 }))}
                 onChange={(value) => {
                   setGConfig(gc => updateGlobalConfig(gc, 'selShape', value as AnnotationSelectionShapeType));
+                  amplitudeGlobalStyleEdited('selection_shape', value as string, 'annotation_style');
                 }}
 
               />
@@ -611,6 +637,7 @@ export default function Editor(props: Props): JSX.Element {
                 }))}
                 onChange={(value) => {
                   setGConfig(gc => updateGlobalConfig(gc, 'selEffect', value as AnnotationSelectionEffectType));
+                  amplitudeGlobalStyleEdited('selection_effect', value as string, 'annotation_style');
                 }}
               />
             </Tags.CommonSecActionCon>
@@ -623,7 +650,7 @@ export default function Editor(props: Props): JSX.Element {
               }}
             >
               <Tags.OptionTitle className="typ-reg">
-                Show step number
+                Show step progress
               </Tags.OptionTitle>
 
               <StyledSwitch
@@ -631,6 +658,7 @@ export default function Editor(props: Props): JSX.Element {
                 defaultChecked={gConfig.showStepNo}
                 onChange={(e) => {
                   setGConfig(gc => updateGlobalConfig(gc, 'showStepNo', e));
+                  amplitudeGlobalStyleEdited('show_step_number', e as boolean, 'annotation_style');
                 }}
               />
             </div>
@@ -671,6 +699,7 @@ export default function Editor(props: Props): JSX.Element {
                     return;
                   }
                   setGConfig(gc => updateGlobalConfig(gc, 'showWatermark', e));
+                  amplitudeGlobalStyleEdited('show_watermark', e, 'annotation_style');
                 }}
               />
             </div>
@@ -803,8 +832,11 @@ export default function Editor(props: Props): JSX.Element {
                       }}
                       placeholder="Button text"
                       defaultValue={gConfig.nextBtnText}
-                      onChange={e => {
+                      onChange={(e) => {
                         setGConfig(gc => updateGlobalConfig(gc, 'nextBtnText', e.target.value));
+                      }}
+                      onBlur={e => {
+                        amplitudeGlobalStyleEdited('next_button_text', e.target.value, 'annotation_style');
                       }}
                     />
                   </div>
@@ -829,6 +861,7 @@ export default function Editor(props: Props): JSX.Element {
                       }))}
                       onSelect={(val) => {
                         setGConfig(gc => updateGlobalConfig(gc, 'nextBtnStyle', val as AnnotationButtonStyle));
+                        amplitudeGlobalStyleEdited('next_button_type', val as string, 'annotation_style');
                       }}
                     />
                   </div>
@@ -881,8 +914,11 @@ export default function Editor(props: Props): JSX.Element {
                       }}
                       placeholder="Button text"
                       defaultValue={gConfig.prevBtnText}
-                      onBlur={e => {
+                      onChange={(e) => {
                         setGConfig(gc => updateGlobalConfig(gc, 'prevBtnText', e.target.value));
+                      }}
+                      onBlur={e => {
+                        amplitudeGlobalStyleEdited('prev_button_text', e.target.value, 'annotation_style');
                       }}
                     />
                   </div>
@@ -907,6 +943,7 @@ export default function Editor(props: Props): JSX.Element {
                       }))}
                       onSelect={(val) => {
                         setGConfig(gc => updateGlobalConfig(gc, 'prevBtnStyle', val as AnnotationButtonStyle));
+                        amplitudeGlobalStyleEdited('prev_button_type', val as string, 'annotation_style');
                       }}
                     />
                   </div>
@@ -968,6 +1005,7 @@ export default function Editor(props: Props): JSX.Element {
                         defaultValue={gConfig.customBtn1Text}
                         onBlur={e => {
                           setGConfig(gc => updateGlobalConfig(gc, 'customBtn1Text', e.target.value));
+                          amplitudeGlobalStyleEdited('custom_cta_text', e.target.value, 'annotation_style');
                         }}
                       />
                     </div>
@@ -992,6 +1030,7 @@ export default function Editor(props: Props): JSX.Element {
                         }))}
                         onSelect={(val) => {
                           setGConfig(gc => updateGlobalConfig(gc, 'customBtn1Style', val as AnnotationButtonStyle));
+                          amplitudeGlobalStyleEdited('custom_cta_type', val as string, 'annotation_style');
                         }}
                       />
                     </div>
@@ -1001,13 +1040,9 @@ export default function Editor(props: Props): JSX.Element {
                     label="URL to open"
                     className="typ-ip"
                     defaultValue={gConfig.customBtn1URL}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' || e.keyCode === 13) {
-                        setGConfig(gc => updateGlobalConfig(gc, 'customBtn1URL', (e.target as HTMLInputElement).value));
-                      }
-                    }}
-                    onChange={(e) => {
+                    onBlur={(e) => {
                       setGConfig(gc => updateGlobalConfig(gc, 'customBtn1URL', e.target.value));
+                      amplitudeGlobalStyleEdited('custom_cta_url', e.target.value, 'annotation_style');
                     }}
                   />
                 </div>

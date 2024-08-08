@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-07-23 16:23:36.
+// Generated using typescript-generator version 2.35.1025 on 2024-07-30 13:30:39.
 
 export interface Activity extends ActivityBase {
 }
@@ -371,6 +371,7 @@ export interface ReqNewTour {
     name: string;
     description?: string;
     settings?: TourSettings;
+    info?: EntityInfo;
 }
 
 export interface ReqNfHook {
@@ -788,6 +789,7 @@ export const enum AnalyticsJobType {
     UPDATE_HOUSE_LEAD = "UPDATE_HOUSE_LEAD",
     CALCULATE_HOUSE_LEAD_METRICS = "CALCULATE_HOUSE_LEAD_METRICS",
     ACTIVITY_DT_DATA_TRUNCATE = "ACTIVITY_DT_DATA_TRUNCATE",
+    REFRESH_DAILY_ENTITY_METRICS = "REFRESH_DAILY_ENTITY_METRICS",
 }
 
 export const enum ProcessingStatus {

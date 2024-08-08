@@ -4,22 +4,22 @@ import { Tooltip } from 'antd';
 import { CaretRightOutlined, EditOutlined, ShareAltOutlined } from '@ant-design/icons';
 import * as Tags from '../styled';
 import DemoOptionsMenu from '../card-menu';
-import { IDemoHubConfig, P_RespDemoHub } from '../../../types';
+import { IDemoHubConfig, P_RespDemoHub, RenameDemoHubFn } from '../../../types';
 import { ModalState } from '../types';
 import RenameModal from '../rename-modal';
 import DeleteModal from '../delete-modal';
-import ShareTourModal from '../../publish-preview/share-modal';
-import { P_RespTour, P_RespVanityDomain } from '../../../entity-processor';
-import { IFRAME_BASE_URL } from '../../../constants';
-import { getIframeShareCode } from '../../header/utils';
 import DemoHubShareModal from '../share-modal';
+import { amplitudeDemoHubEditorOpened,
+  amplitudeDemoHubPreviewOpened, amplitudeDemoHubPublished,
+  amplitudeDemoHubShareModalOpened,
+} from '../../../amplitude';
 
 interface Props {
-    demoHub : P_RespDemoHub;
-    renameDemoHub: (demoHubRid: string, name: string) => void;
-    deleteDemoHub: (demoHubRid: string) => void;
-    publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>;
-    loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
+  demoHub: P_RespDemoHub;
+  renameDemoHub: RenameDemoHubFn;
+  deleteDemoHub: (demoHubRid: string) => void;
+  publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>;
+  loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
 }
 
 function DemoCard(props : Props) : JSX.Element {
@@ -39,8 +39,26 @@ function DemoCard(props : Props) : JSX.Element {
           style={{ transform: 'translate(4px, -4px)', }}
         />
         <div className="option-overlay">
-          <Link to={`/hub/${props.demoHub.rid}`} className="buttons edit" type="button"><EditOutlined />&nbsp;Edit</Link>
-          <Link to={`/preview/hub/${props.demoHub.rid}`} className="buttons preview" type="button"><CaretRightOutlined />&nbsp;Preview</Link>
+          <Link
+            to={`/hub/${props.demoHub.rid}`}
+            className="buttons edit"
+            type="button"
+            onClick={() => {
+              amplitudeDemoHubEditorOpened({ clicked_from: 'card', demo_hub_rid: props.demoHub.rid });
+            }}
+          >
+            <EditOutlined />&nbsp;Edit
+          </Link>
+          <Link
+            to={`/preview/hub/${props.demoHub.rid}`}
+            className="buttons preview"
+            type="button"
+            onClick={() => {
+              amplitudeDemoHubPreviewOpened({ clicked_from: 'card', demo_hub_rid: props.demoHub.rid });
+            }}
+          >
+            <CaretRightOutlined />&nbsp;Preview
+          </Link>
         </div>
       </div>
       <div className="footer-con">
@@ -55,6 +73,7 @@ function DemoCard(props : Props) : JSX.Element {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsShareModalVisible(true);
+                  amplitudeDemoHubShareModalOpened({ clicked_from: 'card', demo_hub_rid: props.demoHub.rid });
                 }}
               >
                 <ShareAltOutlined />&nbsp;&nbsp;
@@ -74,9 +93,11 @@ function DemoCard(props : Props) : JSX.Element {
       {
         editDemoModalState.show && editDemoModalState.type === 'rename' && (
         <RenameModal
-          renameDemoHub={props.renameDemoHub}
+          renameDemoHub={async (newName: string) => {
+            const result = await props.renameDemoHub(props.demoHub, newName);
+            return result;
+          }}
           changeModalState={setEditDemoModalState}
-          demoHubRid={props.demoHub.rid}
           demoName={props.demoHub.displayName}
           modalState={editDemoModalState}
         />
@@ -100,7 +121,11 @@ function DemoCard(props : Props) : JSX.Element {
         openModal={() => setIsShareModalVisible(true)}
         isPublishing={isPublishing}
         setIsPublishing={setIsPublishing}
-        publishDemoHub={props.publishDemoHub}
+        publishDemoHub={async (demoHub: P_RespDemoHub) => {
+          const res = await props.publishDemoHub(demoHub);
+          amplitudeDemoHubPublished({ clicked_from: 'card', demo_hub_rid: demoHub.rid });
+          return res;
+        }}
         loadDemoHubConfig={props.loadDemoHubConfig}
       />
     </Tags.Demo>

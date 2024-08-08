@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { IDemoHubConfig, P_RespDemoHub } from '../../types';
+import { IDemoHubConfig, P_RespDemoHub, RenameDemoHubFn } from '../../types';
 import * as Tags from './styled';
 import DemoCard from './demo-card';
 import Button from '../button';
@@ -9,11 +9,13 @@ import Input from '../input';
 import { FeatureForPlan } from '../../plans';
 import { isFeatureAvailable } from '../../utils';
 import DemohubIllustration from '../../assets/illustration-3.svg';
+import { sendAmplitudeDemoHubDataEvent } from '../../amplitude';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
   demoHubsList: P_RespDemoHub[];
   createNewDemoHub: (name: string) => Promise<P_RespDemoHub>;
-  renameDemoHub: (demoHubRid: string, name: string) => void;
+  renameDemoHub: RenameDemoHubFn;
   deleteDemoHub: (demoHubRid: string) => void;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>,
@@ -47,6 +49,10 @@ function DemoHubsList(props: Props): JSX.Element {
     setCreating(true);
     setErrorMsg(null);
     const res = await props.createNewDemoHub(newDemoHubName);
+    sendAmplitudeDemoHubDataEvent({
+      type: AMPLITUDE_EVENTS.CREATE_NEW_DEMO_HUB,
+      payload: { value: newDemoHubName }
+    });
     props.navigateToDemoHub(res.rid);
     setCreating(false);
     setShowModal(false);

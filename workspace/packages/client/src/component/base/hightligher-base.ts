@@ -16,6 +16,7 @@ export interface Rect {
 export interface HighlighterBaseConfig {
   selectionColor: string;
   showOverlay: boolean;
+  showMaskBorder : boolean;
 }
 
 export default abstract class HighlighterBase {
@@ -245,7 +246,13 @@ export default abstract class HighlighterBase {
 
   updateMask(): void {
     if (!this.maskEl) return;
-    this.maskEl.style.boxShadow = `${this.config.selectionColor} 0px 0px 0px 2px, rgba(0, 0, 0, ${(this.maskHasDarkBg() && this.config.showOverlay) ? '0.3' : '0.0'
+
+    let selectionColor = this.config.selectionColor;
+    if (selectionColor !== 'transparent') {
+      selectionColor = `${selectionColor}${this.config.showMaskBorder ? 'ff' : '00'}`;
+    }
+
+    this.maskEl.style.boxShadow = `${selectionColor} 0px 0px 0px 2px, rgba(0, 0, 0, ${(this.maskHasDarkBg() && this.config.showOverlay) ? '0.3' : '0.0'
     }) 0px 0px 0px 1000vw`;
   }
 

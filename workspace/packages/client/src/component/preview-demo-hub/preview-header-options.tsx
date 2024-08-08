@@ -4,7 +4,7 @@ import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
 import ShareIcon from '../../assets/icons/share.svg';
 import PublishButton from '../publish-preview/publish-button';
 import { DisplaySize } from '../../utils';
-import { amplitudeShareModalOpen } from '../../amplitude';
+import { amplitudeDemoHubShareModalOpened, amplitudeShareModalOpen } from '../../amplitude';
 import * as HTags from '../publish-preview/styled';
 import { P_RespDemoHub } from '../../types';
 
@@ -17,6 +17,7 @@ interface Props {
   setShowShareModal: (showShareModal: boolean) => void;
   isPublishing: boolean;
   setIsPublishing: (isPublishing: boolean) => void;
+  renderedIn: 'preview' | 'editor';
 }
 
 export default function PreviewHeaderOptions(props: Props): JSX.Element {
@@ -44,7 +45,7 @@ export default function PreviewHeaderOptions(props: Props): JSX.Element {
           )}
           <Tooltip title="Embed" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
             <div onClick={() => {
-              amplitudeShareModalOpen('preview');
+              amplitudeDemoHubShareModalOpened({ clicked_from: props.renderedIn, demo_hub_rid: props.demoHub!.rid });
               props.setShowShareModal(true);
             }}
             >

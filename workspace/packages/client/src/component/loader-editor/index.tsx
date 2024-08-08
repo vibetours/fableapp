@@ -15,6 +15,7 @@ import { FeatureForPlan } from '../../plans';
 import { isFeatureAvailable, isGlobalProperty } from '../../utils';
 import Upgrade from '../upgrade';
 import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
+import { amplitudeApplyGlobalStyles } from '../../amplitude';
 
 interface Props {
   data: ITourLoaderData,
@@ -181,6 +182,10 @@ function LoaderEditor(props: Props): JSX.Element {
                           <ApplyStylesMenu
                             isGlobal={isGlobalProperty(loaderData.logo.url)}
                             onApplyGlobal={() => {
+                              amplitudeApplyGlobalStyles(
+                                'loader',
+                                'company_logo'
+                              );
                               setLoaderData(prev => (
                                 {
                                   ...prev,
@@ -299,6 +304,10 @@ function LoaderEditor(props: Props): JSX.Element {
                     <ApplyStylesMenu
                       isGlobal={isGlobalProperty(loaderData.loadingText)}
                       onApplyGlobal={() => {
+                        amplitudeApplyGlobalStyles(
+                          'loader',
+                          'demo_loading_text',
+                        );
                         setLoaderData(prev => ({
                           ...prev,
                           loadingText: createGlobalProperty(

@@ -28,6 +28,7 @@ import {
 import { TOP_LOADER_DURATION } from '../../constants';
 import TopLoader from '../../component/loader/top-loader';
 import DemoHubShareModal from '../../component/demo-hubs-list/share-modal';
+import { amplitudeDemoHubEditorOpened, amplitudeDemoHubPublished } from '../../amplitude';
 
 interface IDispatchProps {
   getAllDemoHubs: () => void;
@@ -142,6 +143,13 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.navigate(updatedUrl);
   };
 
+  publishDemoHub = async (demoHub: P_RespDemoHub): Promise<boolean> => {
+    if (!this.props.demoHub) return false;
+    const res = await this.props.publishDemoHub(demoHub);
+    amplitudeDemoHubPublished({ clicked_from: 'preview', demo_hub_rid: this.props.demoHub!.rid });
+    return res;
+  };
+
   render(): ReactElement {
     const displaySize = this.props.searchParams.get('s') || '1';
 
@@ -173,7 +181,14 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                   showOnboardingGuides
                   navigateToWhenLogoIsClicked="/demo-hubs"
                   rightElGroups={[(
-                    <Link to={`/hub/${this.props.match.params.demoHubId}`} style={{ color: 'black' }}>
+                    <Link
+                      to={`/hub/${this.props.match.params.demoHubId}`}
+                      style={{ color: 'black' }}
+                      onClick={() => amplitudeDemoHubEditorOpened({
+                        clicked_from: 'preview',
+                        demo_hub_rid: this.props.match.params.demoHubId
+                      })}
+                    >
                       <AntButton
                         size="small"
                         className="edit-btn"
@@ -189,7 +204,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                     setShowShareModal={(showShareModal: boolean) => this.setState({ showShareModal })}
                     publishDemoHub={async (demoHub) => {
                       this.setState({ isPublishing: true });
-                      const res = await this.props.publishDemoHub(demoHub);
+                      const res = await this.publishDemoHub(demoHub);
                       this.setState({ isPublishing: false });
                       return res;
                     }}
@@ -198,6 +213,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                     setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
                     isPublishing={this.state.isPublishing}
                     setIsPublishing={(val) => this.setState({ isPublishing: val })}
+                    renderedIn="preview"
                   />}
                 />
               </GTags.DemoHeaderCon>
@@ -215,7 +231,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                 openModal={() => this.setState({ showShareModal: true })}
                 isPublishing={this.state.isPublishing}
                 setIsPublishing={(val) => this.setState({ isPublishing: val })}
-                publishDemoHub={this.props.publishDemoHub}
+                publishDemoHub={this.publishDemoHub}
                 loadDemoHubConfig={this.props.loadDemoHubConfig}
               />
             </GTags.ColCon>

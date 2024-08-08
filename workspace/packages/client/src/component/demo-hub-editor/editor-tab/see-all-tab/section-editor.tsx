@@ -16,6 +16,8 @@ import { showDeleteConfirm } from '../../delete-confirm';
 import FableLogo from '../../../../assets/fable-rounded-icon.svg';
 import { rearrangeArray } from '../../../../utils';
 import DraggableDemosSelector from '../../components';
+import { ampliteDemoCollectionSectionEdited, amplitudeDemoCollectionBodyEdited } from '../../../../amplitude';
+import { AMPLITUDE_SIMPLE_STYLE } from '../../../../amplitude/types';
 
 interface Props {
   section: IDemoHubConfigSeeAllPageSection;
@@ -26,7 +28,19 @@ export default function SectionEditor(props: Props): JSX.Element {
   const { onConfigChange, tours } = useEditorCtx();
   const [showEditor, setShowEditor] = useState(false);
 
-  const updateCtaSimpleStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+  const amplitudeSectionStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    const sectionId = props.section.id;
+    ampliteDemoCollectionSectionEdited(sectionId, AMPLITUDE_SIMPLE_STYLE[key]!, value as string);
+  };
+
+  const updateSectionSimpleStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    const sectionId = props.section.id;
     updateSectionProp('simpleStyle', { ...props.section.simpleStyle, [key]: value });
   };
 
@@ -71,13 +85,13 @@ export default function SectionEditor(props: Props): JSX.Element {
     const demoToBeDeletedIdx = props.section.demos.findIndex(demo => demo.rid === rid);
     props.section.demos.splice(demoToBeDeletedIdx, 1,);
     updateSectionProp('demos', [...props.section.demos]);
+    ampliteDemoCollectionSectionEdited(props.section.id, 'demo_delete', rid);
   };
 
   const deleteSection = (sectionId: string): void => {
     onConfigChange(c => {
       const sectionToBeDeletedIdx = c.see_all_page.sections.findIndex(section => section.id === sectionId);
       c.see_all_page.sections.splice(sectionToBeDeletedIdx, 1);
-
       return {
         ...c,
         see_all_page: {
@@ -86,6 +100,8 @@ export default function SectionEditor(props: Props): JSX.Element {
         },
       };
     });
+
+    amplitudeDemoCollectionBodyEdited('section_delete', sectionId);
   };
 
   const rearrangeSectionDemos = (r: DropResult): void => {
@@ -177,7 +193,10 @@ export default function SectionEditor(props: Props): JSX.Element {
                   ...buttonSecStyle,
                   color: showEditor ? '#7567ff' : 'unset'
                 }}
-                onClick={() => setShowEditor(prevState => !prevState)}
+                onClick={() => {
+                  setShowEditor(prevState => !prevState);
+                  amplitudeDemoCollectionBodyEdited('section_edit', props.section.id);
+                }}
               />
             </Tooltip>
           </div>
@@ -234,6 +253,7 @@ export default function SectionEditor(props: Props): JSX.Element {
               }}
               type="text"
               style={{ height: '44px', width: '100%' }}
+              onBlur={e => ampliteDemoCollectionSectionEdited(props.section.id, 'title', e.target.value)}
             />
           </div>
 
@@ -250,27 +270,35 @@ export default function SectionEditor(props: Props): JSX.Element {
               onChange={e => updateSectionProp('desc', e.target.value)}
               type="text"
               style={{ height: '44px', width: '100%' }}
+              onBlur={e => ampliteDemoCollectionSectionEdited(props.section.id, 'description', e.target.value)}
             />
           </div>
 
           <SimpleStyleEditor
             simpleStyle={props.section.simpleStyle}
-            simpleStyleUpdateFn={updateCtaSimpleStyle}
+            simpleStyleUpdateFn={updateSectionSimpleStyle}
+            amplitudeStyleEvent={amplitudeSectionStyle}
           />
 
           <DraggableDemosSelector
             selectedDemos={props.section.demos}
             deleteDemoFn={deleteDemoFromSection}
             rearrangeFn={rearrangeSectionDemos}
-            addDemoFn={(newDemo) => updateSectionProp('demos', [...props.section.demos, newDemo])}
-            updateDemoFn={(newDemo) => updateSectionProp('demos', props.section.demos.map(demo => {
-              if (demo.rid === newDemo.rid) {
-                demo.desc = newDemo.desc;
-                demo.name = newDemo.name;
-                demo.thumbnail = newDemo.thumbnail;
-              }
-              return demo;
-            }))}
+            addDemoFn={(newDemo) => {
+              updateSectionProp('demos', [...props.section.demos, newDemo]);
+              ampliteDemoCollectionSectionEdited(props.section.id, 'demo_add', newDemo.rid);
+            }}
+            updateDemoFn={(newDemo) => {
+              updateSectionProp('demos', props.section.demos.map(demo => {
+                if (demo.rid === newDemo.rid) {
+                  demo.desc = newDemo.desc;
+                  demo.name = newDemo.name;
+                  demo.thumbnail = newDemo.thumbnail;
+                }
+                return demo;
+              }));
+              ampliteDemoCollectionSectionEdited(props.section.id, 'demo_reload', newDemo.rid);
+            }}
             selectDesc="Select demos to add in this section"
             emptyStateMsg="There are no demos in this section. Use the above drop down to select demo for this section."
           />

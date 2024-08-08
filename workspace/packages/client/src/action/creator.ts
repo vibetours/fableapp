@@ -1880,12 +1880,23 @@ export interface TUpdateDemoHub {
   data: P_RespDemoHub;
 }
 
-export function renameDemoHub(rid: string, newName: string) {
+export interface RenameDemoHubResult {
+  oldValue: {
+    rid: string;
+    name: string;
+  }
+  newValue: {
+    rid: string;
+    name: string;
+  }
+}
+
+export function renameDemoHub(demoHub: P_RespDemoHub, newName: string) {
   return async (dispatch: Dispatch<TUpdateDemoHub>, getState: () => TState) => {
     const renamedDH = await api<ReqRenameGeneric, ApiResp<RespDemoEntity>>('/renamedh', {
       auth: true,
       body: {
-        rid,
+        rid: demoHub.rid,
         newName
       },
     });
@@ -1897,6 +1908,18 @@ export function renameDemoHub(rid: string, newName: string) {
       type: ActionType.UPDATE_DEMOHUB_DATA,
       data: processedDh,
     });
+
+    const res: RenameDemoHubResult = {
+      oldValue: {
+        rid: demoHub.rid,
+        name: demoHub.displayName,
+      },
+      newValue: {
+        rid: processedDh.rid,
+        name: processedDh.displayName,
+      },
+    };
+    return Promise.resolve(res);
   };
 }
 

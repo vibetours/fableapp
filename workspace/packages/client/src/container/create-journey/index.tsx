@@ -24,6 +24,7 @@ import Upgrade from '../../component/upgrade';
 import { P_RespSubscription } from '../../entity-processor';
 import { getAnnotationByRefId } from '../../component/annotation/ops';
 import ApplyStylesMenu from '../../component/screen-editor/apply-styles-menu';
+import { amplitudeApplyGlobalStyles } from '../../amplitude';
 
 interface IDispatchProps {
 }
@@ -482,6 +483,10 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                           <ApplyStylesMenu
                             isGlobal={isGlobalProperty(this.state.journeyData.cta.text)}
                             onApplyGlobal={() => {
+                              amplitudeApplyGlobalStyles(
+                                'module',
+                                'custom_cta_text',
+                              );
                               this.setState(prevState => (
                                 { ...prevState,
                                   journeyData: {
@@ -533,6 +538,10 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                           <ApplyStylesMenu
                             isGlobal={isGlobalProperty(this.state.journeyData.cta.size)}
                             onApplyGlobal={() => {
+                              amplitudeApplyGlobalStyles(
+                                'module',
+                                'custom_cta_type'
+                              );
                               this.setState(prevState => (
                                 { ...prevState,
                                   journeyData: {
@@ -601,6 +610,10 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                             <ApplyStylesMenu
                               isGlobal={isGlobalProperty(this.state.journeyData.cta.navigateTo)}
                               onApplyGlobal={() => {
+                                amplitudeApplyGlobalStyles(
+                                  'module',
+                                  'custom_cta_url',
+                                );
                                 this.setState(prevState => (
                                   { ...prevState,
                                     journeyData: {
@@ -705,6 +718,10 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                         isGlobal={isGlobalProperty(this.state.journeyData.primaryColor)}
                         onApplyGlobal={
                         () => {
+                          amplitudeApplyGlobalStyles(
+                            'module',
+                            'cta_primary_color'
+                          );
                           this.setState(prevState => (
                             {
                               ...prevState,

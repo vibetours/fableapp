@@ -4,13 +4,15 @@ import * as Tags from '../styled';
 import { ModalState } from '../types';
 import Input from '../../input';
 import Button from '../../button';
+import { AMPLITUDE_EVENTS } from '../../../amplitude/events';
+import { sendAmplitudeDemoHubDataEvent } from '../../../amplitude';
+import { RenameDemoHubResult } from '../../../action/creator';
 
 interface Props {
-    renameDemoHub: (demoHubRid: string, name: string) => void;
-    changeModalState : Dispatch<SetStateAction<ModalState>>;
-    demoHubRid:string;
-    demoName:string;
-    modalState :ModalState
+  renameDemoHub: (newName: string) => Promise<RenameDemoHubResult>;
+  changeModalState: Dispatch<SetStateAction<ModalState>>;
+  demoName: string;
+  modalState: ModalState;
 }
 
 function RenameModal(props : Props) : JSX.Element {
@@ -25,7 +27,7 @@ function RenameModal(props : Props) : JSX.Element {
       'Demo hub name needs to be a valid name. A valid name would contain more than 1 char and less than 200 char'
     );
   }
-  function handleRenameForm() : void {
+  async function handleRenameForm() : Promise<void> {
     if (name === '') {
       handleEmptyName();
       return;
@@ -34,7 +36,16 @@ function RenameModal(props : Props) : JSX.Element {
       handleLongName();
       return;
     }
-    props.renameDemoHub(props.demoHubRid, name);
+    const res = await props.renameDemoHub(name);
+    sendAmplitudeDemoHubDataEvent({
+      type: AMPLITUDE_EVENTS.RENAME_DEMO_HUB,
+      payload: {
+        value: res.oldValue.name,
+        demo_hub_rid: res.oldValue.rid,
+        new_value: res.newValue.name,
+        new_demo_hub_rid: res.newValue.rid,
+      }
+    });
     setErrorMsg(null);
     props.changeModalState({ show: false, type: '' });
     setName('');

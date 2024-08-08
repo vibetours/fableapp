@@ -131,7 +131,6 @@ type CanvasProps = {
   commitTx: (tx: Tx) => void,
   setAlert: (msg?: string) => void,
   shouldShowScreenPicker: (screenPickerData: ScreenPickerData) => void;
-  // annotationSerialIdMap: AnnotationSerialIdMap;
   screen: P_RespScreen;
   screenData: ScreenData;
   allEdits: EditItem[];

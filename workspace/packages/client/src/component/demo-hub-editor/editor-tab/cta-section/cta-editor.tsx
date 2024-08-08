@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { compileValue, createGlobalProperty, createLiteralProperty, GlobalPropsPath } from '@fable/common/dist/utils';
+import { Property } from '@fable/common/dist/types';
 import { DemoHubConfigCtaType, DemoHubConfigCtaTypeType, IDemoHubConfigCta, SimpleStyle } from '../../../../types';
 import Input from '../../../input';
 import * as GTags from '../../../../common-styled';
@@ -9,6 +10,8 @@ import { useEditorCtx } from '../../ctx';
 import { InputText } from '../../../screen-editor/styled';
 import ApplyStylesMenu from '../../../screen-editor/apply-styles-menu';
 import { isGlobalProperty } from '../../../../utils';
+import { amplitudeDemoHubCta, amplitudeApplyGlobalStyles } from '../../../../amplitude';
+import { AMPLITUDE_CTA_STYLE } from '../../../../amplitude/types';
 
 interface Props {
   cta: IDemoHubConfigCta;
@@ -31,7 +34,21 @@ export default function CtaEditor(props: Props): JSX.Element {
     });
   };
 
-  const updateCtaSimpleStyle = <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]): void => {
+  const amplitudeCtaSimpleStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ):void => {
+    let amplitudeVal = value as string;
+    if (key === 'bgColorProp') {
+      amplitudeVal = (value as Property<string>)._val;
+    }
+    amplitudeDemoHubCta('edit', props.cta.id, AMPLITUDE_CTA_STYLE[key], amplitudeVal);
+  };
+
+  const updateCtaSimpleStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
     updateCtaProps('style', { ...props.cta.style, [key]: value });
   };
   return (
@@ -74,6 +91,7 @@ export default function CtaEditor(props: Props): JSX.Element {
                 updateCtaProps('text', createLiteralProperty(e.target.value));
               }}
               style={{ height: '44px', width: '100%' }}
+              onBlur={e => amplitudeDemoHubCta('edit', props.cta.id, 'button_text', e.target.value)}
             />
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(props.cta.text)}
@@ -82,6 +100,7 @@ export default function CtaEditor(props: Props): JSX.Element {
                   compileValue(globalConfig, GlobalPropsPath.customBtn1Text),
                   GlobalPropsPath.customBtn1Text
                 ));
+                amplitudeApplyGlobalStyles('demo_hub', 'custom_cta_text', null, true);
               }}
             />
           </div>
@@ -113,6 +132,7 @@ export default function CtaEditor(props: Props): JSX.Element {
               onChange={(e) => {
                 if (e) {
                   updateCtaProps('type', createLiteralProperty(e as DemoHubConfigCtaTypeType));
+                  amplitudeDemoHubCta('edit', props.cta.id, 'button_text', e as string);
                 }
               }}
               suffixIcon={<CaretOutlined dir="down" />}
@@ -125,6 +145,7 @@ export default function CtaEditor(props: Props): JSX.Element {
                   compileValue(globalConfig, GlobalPropsPath.customBtn1Style),
                   GlobalPropsPath.customBtn1Style
                 ));
+                amplitudeApplyGlobalStyles('demo_hub', 'custom_cta_type', null, true);
               }}
             />
           </div>
@@ -154,6 +175,7 @@ export default function CtaEditor(props: Props): JSX.Element {
                 updateCtaProps('link', createLiteralProperty(e.target.value));
               }}
               style={{ height: '44px', width: '100%' }}
+              onBlur={e => amplitudeDemoHubCta('edit', props.cta.id, 'button_link', e.target.value)}
             />
             <ApplyStylesMenu
               isGlobal={isGlobalProperty(props.cta.link)}
@@ -162,6 +184,7 @@ export default function CtaEditor(props: Props): JSX.Element {
                   compileValue(globalConfig, GlobalPropsPath.customBtn1URL),
                   GlobalPropsPath.customBtn1URL
                 ));
+                amplitudeApplyGlobalStyles('demo_hub', 'custom_cta_url', null, true);
               }}
             />
           </div>
@@ -171,6 +194,7 @@ export default function CtaEditor(props: Props): JSX.Element {
       <SimpleStyleEditor
         simpleStyle={props.cta.style}
         simpleStyleUpdateFn={updateCtaSimpleStyle}
+        amplitudeStyleEvent={amplitudeCtaSimpleStyle}
       />
     </div>
   );

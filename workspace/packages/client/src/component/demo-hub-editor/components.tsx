@@ -11,6 +11,7 @@ import { IDemoHubConfigDemo } from '../../types';
 import CaretOutlined from '../icons/caret-outlined';
 import { useEditorCtx } from './ctx';
 import { getTourByRid } from './utils';
+import { amplitudeQualStepOptionEdit } from '../../amplitude';
 
 interface Props {
   selectedDemos: IDemoHubConfigDemo[];
@@ -20,6 +21,7 @@ interface Props {
   updateDemoFn: (newDemo: IDemoHubConfigDemo) => void;
   selectDesc: string;
   emptyStateMsg: string;
+  amplitudeDemoReload ?: (demoRid : string) => void
 }
 
 export default function DraggableDemosSelector(props: Props): JSX.Element {
@@ -192,6 +194,9 @@ export default function DraggableDemosSelector(props: Props): JSX.Element {
                                     size="small"
                                     style={buttonSecStyle}
                                     onClick={() => {
+                                      if (props.amplitudeDemoReload) {
+                                        props.amplitudeDemoReload(demo.rid);
+                                      }
                                       updateDemo(demo.rid);
                                     }}
                                   />

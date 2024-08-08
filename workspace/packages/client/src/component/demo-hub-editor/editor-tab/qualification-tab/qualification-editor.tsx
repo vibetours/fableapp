@@ -17,6 +17,7 @@ import {
   getSampleBaseEntry,
   getSampleSelectEntry,
   getSampleSelectEntryOption,
+  getSampleSimpleStyle,
   rearrangeArray
 } from '../../../../utils';
 import EntryEditor from './entry-editor';
@@ -27,6 +28,8 @@ import * as LTags from './styled';
 import * as Tags from '../../styled';
 import CtaWrapper from '../cta-section/cta-wrapper';
 import { showDeleteConfirm } from '../../delete-confirm';
+import { amplitudeDemoQualBodyEdit, amplitudeDemoQualEdit, amplitudeQualStepEdit, amplitudeQualStepOptionEdit } from '../../../../amplitude';
+import { AMPLITUDE_SIDEPANEL_CARD_STYLE, AMPLITUDE_SIDEPANEL_CON_STYLE, AMPLITUDE_STEP_CONTINUE_STYLE, AMPLITUDE_STEP_SKIP_STYLE, AMPLITUDE_STEP_STYLE, AMPLITUDE_STEP_TYPE, DemoQualEditEvent, QualStepEditEvent } from '../../../../amplitude/types';
 
 interface Props {
   qualification: IDemoHubConfigQualification;
@@ -290,6 +293,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const addSidepanelCta = (ctaId: string): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.id,
+      demo_qualification_prop: 'sidepanel_cta_select',
+      demo_qualification_value: ctaId
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -319,6 +327,13 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const addSidepanelEndCta = (ctaId: string): void => {
+    amplitudeDemoQualEdit(
+      {
+        qualification_id: props.qualification.id,
+        demo_qualification_prop: 'qualification_end_cta_select',
+        demo_qualification_value: ctaId
+      }
+    );
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -348,6 +363,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const deleteSidepanelCta = (ctaId: string): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.id,
+      demo_qualification_prop: 'sidepanel_cta_delete',
+      demo_qualification_value: ctaId
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -377,6 +397,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const deleteSidepanelEndCta = (ctaId: string): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.id,
+      demo_qualification_prop: 'qualification_end_cta_delete',
+      demo_qualification_value: ctaId
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -405,6 +430,17 @@ export default function QualificationEditor(props: Props): JSX.Element {
     });
   };
 
+  const amplitudeCardStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.id,
+      demo_qualification_prop:
+      AMPLITUDE_SIDEPANEL_CARD_STYLE[key] as DemoQualEditEvent['payload']['demo_qualification_prop'],
+      demo_qualification_value: value as string
+    });
+  };
   const updateCardStyle = <K extends keyof SimpleStyle>(
     key: K,
     value: SimpleStyle[K]
@@ -443,6 +479,17 @@ export default function QualificationEditor(props: Props): JSX.Element {
     });
   };
 
+  const amplitudeContainerStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.title,
+      demo_qualification_prop:
+      AMPLITUDE_SIDEPANEL_CON_STYLE[key] as DemoQualEditEvent['payload']['demo_qualification_prop'],
+      demo_qualification_value: value as string
+    });
+  };
   const updateConStyle = <K extends keyof SimpleStyle>(
     key: K,
     value: SimpleStyle[K]
@@ -482,6 +529,10 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const deleteQualification = (qualificationId: string): void => {
+    amplitudeDemoQualBodyEdit({
+      demo_qualification_body_prop: 'qualification_delete',
+      demo_qualification_body_value: props.qualification.id
+    });
     onConfigChange(c => {
       const qualificationToBeDeletedIdx = c
         .qualification_page
@@ -523,7 +574,28 @@ export default function QualificationEditor(props: Props): JSX.Element {
             ...props.qualification,
             entries: [
               ...props.qualification.entries,
-              getSampleSelectEntry(type, getNewIndex(props.qualification.entries.map(ct => ct.title), 'What\'s your role in company?') + 1),
+              getSampleSelectEntry(
+                type,
+                getNewIndex(
+                  props.qualification.entries.map(ct => ct.title),
+                  'What\'s your role in company?'
+                ) + 1,
+                {
+                  style: props.qualification.entries.at(-1)?.style || {
+                    ...getSampleSimpleStyle(),
+                    borderColor: '#1b263b',
+                    fontColor: '#121212'
+                  },
+                  continueCtaStyle: props.qualification.entries.at(-1)?.continueCTA.style || {
+                    borderRadius: 4,
+                    fontColor: '#ffffff'
+                  },
+                  skipCtaStyle: props.qualification.entries.at(-1)?.skipCTA.style || {
+                    borderRadius: 4,
+                    fontColor: '#ffffff'
+                  },
+                }
+              ),
             ]
           }
         );
@@ -555,7 +627,24 @@ export default function QualificationEditor(props: Props): JSX.Element {
             ...props.qualification,
             entries: [
               ...props.qualification.entries,
-              getSampleBaseEntry(type, getNewIndex(props.qualification.entries.map(ct => ct.title), 'Sample Step Title') + 1),
+              getSampleBaseEntry(
+                type,
+                getNewIndex(props.qualification.entries.map(ct => ct.title), 'Sample Step Title') + 1,
+                {
+                  style: props.qualification.entries.at(-1)?.style || {
+                    ...getSampleSimpleStyle(),
+                    borderColor: '#1b263b'
+                  },
+                  continueCtaStyle: props.qualification.entries.at(-1)?.continueCTA.style || {
+                    borderRadius: 4,
+                    fontColor: '#ffffff'
+                  },
+                  skipCtaStyle: props.qualification.entries.at(-1)?.skipCTA.style || {
+                    borderRadius: 4,
+                    fontColor: '#ffffff'
+                  },
+                }
+              ),
             ]
           }
         );
@@ -604,6 +693,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const deleteEntry = (entryId: string): void => {
+    amplitudeDemoQualEdit({
+      qualification_id: props.qualification.id,
+      demo_qualification_prop: 'step_delete',
+      demo_qualification_value: entryId
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -629,6 +723,20 @@ export default function QualificationEditor(props: Props): JSX.Element {
           qualifications: [...c.qualification_page.qualifications],
         },
       };
+    });
+  };
+
+  const amplitudeEntryStyles = (entryId: string) => <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => {
+    const qualifications = config.qualification_page.qualifications;
+    const qualIdx = qualifications.findIndex(q => q.id === props.qualification.id);
+    const entryIdx = qualifications[qualIdx].entries.findIndex(entry => entry.id === entryId);
+    const updatedEntry = qualifications[qualIdx].entries[entryIdx];
+
+    amplitudeQualStepEdit({
+      step_id: updatedEntry.id,
+      step_type: AMPLITUDE_STEP_TYPE[updatedEntry.type],
+      qualification_step_prop: AMPLITUDE_STEP_STYLE[key] as QualStepEditEvent['payload']['qualification_step_prop'],
+      qualification_step_value: value as string
     });
   };
 
@@ -1039,6 +1147,24 @@ export default function QualificationEditor(props: Props): JSX.Element {
     });
   };
 
+  const amplitudeEntryCtaStyles = (
+    entryId: string,
+    ctaType: 'continueCTA' | 'skipCTA'
+  ) => <K extends keyof SimpleStyle>(key: K, value: SimpleStyle[K]) => {
+    const qualifications = config.qualification_page.qualifications;
+    const qualIdx = qualifications.findIndex(q => q.id === props.qualification.id);
+    const entryIdx = qualifications[qualIdx].entries.findIndex(entry => entry.id === entryId);
+    const updatedEntry = qualifications[qualIdx].entries[entryIdx];
+    amplitudeQualStepEdit({
+      step_id: updatedEntry.id,
+      step_type: AMPLITUDE_STEP_TYPE[updatedEntry.type],
+      qualification_step_prop: ctaType === 'continueCTA'
+        ? AMPLITUDE_STEP_CONTINUE_STYLE[key]!
+        : AMPLITUDE_STEP_SKIP_STYLE[key]!,
+      qualification_step_value: value as string
+    });
+  };
+
   const updateEntryCtaStyles = (
     entryId: string,
     ctaType: 'continueCTA' | 'skipCTA'
@@ -1228,6 +1354,12 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const addDemoInEntryOption = (entryId: string) => (optionId: string) => (demo: IDemoHubConfigDemo): void => {
+    amplitudeQualStepOptionEdit({
+      step_id: entryId,
+      option_id: optionId,
+      step_option_prop: 'demo_add',
+      step_option_value: demo.rid
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = findQualificationToBeUpdatedIdx(c, props.qualification.id);
       const entryToBeUpdatedIdx = findEntryToBeUpdatedIdx(c, entryId, qualificationToBeUpdatedIdx);
@@ -1311,6 +1443,12 @@ export default function QualificationEditor(props: Props): JSX.Element {
   };
 
   const deleteDemoInEntryOption = (entryId: string) => (optionId: string) => (demoRid: string): void => {
+    amplitudeQualStepOptionEdit({
+      step_id: entryId,
+      option_id: optionId,
+      step_option_prop: 'demo_delete',
+      step_option_value: demoRid
+    });
     onConfigChange(c => {
       const qualificationToBeUpdatedIdx = c
         .qualification_page
@@ -1445,7 +1583,13 @@ export default function QualificationEditor(props: Props): JSX.Element {
             type="text"
             size="small"
             style={buttonSecStyle}
-            onClick={() => setShowEditor(!showEditor)}
+            onClick={() => {
+              amplitudeDemoQualBodyEdit({
+                demo_qualification_body_prop: 'qualification_edit',
+                demo_qualification_body_value: props.qualification.id
+              });
+              setShowEditor(!showEditor);
+            }}
           />
         </div>
       </div>
@@ -1476,7 +1620,16 @@ export default function QualificationEditor(props: Props): JSX.Element {
                       <InputText
                         type="url"
                         value={props.qualification.title}
-                        onChange={(e) => updateTitle(e.target.value)}
+                        onBlur={(e) => {
+                          amplitudeDemoQualEdit({
+                            qualification_id: props.qualification.id,
+                            demo_qualification_prop: 'general_title',
+                            demo_qualification_value: e.target.value
+                          });
+                        }}
+                        onChange={(e) => {
+                          updateTitle(e.target.value);
+                        }}
                         style={{ height: '44px', width: '100%' }}
                       />
                     </div>
@@ -1598,6 +1751,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                                     providedInner={providedInner}
                                     deleteEntry={deleteEntry}
                                     updateEntryStyles={updateEntryStyles(entry.id)}
+                                    amplitudeEntryStyles={amplitudeEntryStyles(entry.id)}
                                     updateEntryTitle={updateEntryTitle(entry.id)}
                                     updateEntryDesc={updateEntryDesc(entry.id)}
                                     updateEntryShowSkipCta={updateEntryShowSkipCta(entry.id)}
@@ -1605,10 +1759,12 @@ export default function QualificationEditor(props: Props): JSX.Element {
                                     updateEntryContinueCtaIconPlacement={updateEntryCtaIconPlacement(entry.id, 'continueCTA')}
                                     updateEntryContinueCtaType={updateEntryCtaType(entry.id, 'continueCTA')}
                                     updateEntryContinueCtaStyles={updateEntryCtaStyles(entry.id, 'continueCTA')}
+                                    amplitudeContinueCtaStyles={amplitudeEntryCtaStyles(entry.id, 'continueCTA')}
                                     updateEntrySkipCtaText={updateEntryCtaText(entry.id, 'skipCTA')}
                                     updateEntrySkipCtaIconPlacement={updateEntryCtaIconPlacement(entry.id, 'skipCTA')}
                                     updateEntrySkipCtaType={updateEntryCtaType(entry.id, 'skipCTA')}
                                     updateEntrySkipCtaStyles={updateEntryCtaStyles(entry.id, 'skipCTA')}
+                                    amplitudeSkipCtaStyles={amplitudeEntryCtaStyles(entry.id, 'skipCTA')}
                                     addSelectEntryOption={addSelectEntryOption(entry.id)}
                                     activeEntryId={activeEntryId}
                                     setActiveEntryId={setActiveEntryId}
@@ -1641,6 +1797,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
                           <CustomBtn
                             intent="secondary"
                             onClick={() => {
+                              amplitudeDemoQualEdit({
+                                qualification_id: props.qualification.id,
+                                demo_qualification_prop: 'step_add',
+                                demo_qualification_value: 'single-select'
+                              });
                               setIsAddAStepPopoverOpen(false);
                               addSelectEntry('single-select');
                             }}
@@ -1650,6 +1811,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
                           <CustomBtn
                             intent="secondary"
                             onClick={() => {
+                              amplitudeDemoQualEdit({
+                                qualification_id: props.qualification.id,
+                                demo_qualification_prop: 'step_add',
+                                demo_qualification_value: 'multi-select'
+                              });
                               setIsAddAStepPopoverOpen(false);
                               addSelectEntry('multi-select');
                             }}
@@ -1659,6 +1825,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
                           <CustomBtn
                             intent="secondary"
                             onClick={() => {
+                              amplitudeDemoQualEdit({
+                                qualification_id: props.qualification.id,
+                                demo_qualification_prop: 'step_add',
+                                demo_qualification_value: 'leadform-entry'
+                              });
                               setIsAddAStepPopoverOpen(false);
                               addBaseEntry('leadform-entry');
                             }}
@@ -1669,6 +1840,11 @@ export default function QualificationEditor(props: Props): JSX.Element {
                           <CustomBtn
                             intent="secondary"
                             onClick={() => {
+                              amplitudeDemoQualEdit({
+                                qualification_id: props.qualification.id,
+                                demo_qualification_prop: 'step_add',
+                                demo_qualification_value: 'text-entry'
+                              });
                               setIsAddAStepPopoverOpen(false);
                               addBaseEntry('text-entry');
                             }}
@@ -1742,6 +1918,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                       <SimpleStyleEditor
                         simpleStyle={props.qualification.sidePanel.cardStyle}
                         simpleStyleUpdateFn={updateCardStyle}
+                        amplitudeStyleEvent={amplitudeCardStyle}
                       />
                     </div>
                     <div style={{ ...commonActionPanelItemStyle, gap: '5px' }}>
@@ -1767,6 +1944,7 @@ export default function QualificationEditor(props: Props): JSX.Element {
                       <SimpleStyleEditor
                         simpleStyle={props.qualification.sidePanel.conStyle}
                         simpleStyleUpdateFn={updateConStyle}
+                        amplitudeStyleEvent={amplitudeContainerStyle}
                         bgColorTitle="Accent color"
                       />
                     </div>

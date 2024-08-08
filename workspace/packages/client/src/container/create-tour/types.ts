@@ -18,6 +18,7 @@ export interface ScreenInfo {
         type: ScreenType;
         rid: string;
         replacedWithImgScreen: boolean;
+        thumbnail: string | null;
     } | null
     skipped: boolean;
     vpd: Vpd | null;

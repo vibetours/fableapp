@@ -611,7 +611,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           });
                         }}
                         icon={<DownOutlined />}
-                        style={{ paddingTop: '14px', paddingBottom: '14px' }}
+                        style={{ paddingTop: '14px', paddingBottom: '14px', background: 'white' }}
                       >
                         Save in an existing interactive demo
                       </Button>
@@ -943,6 +943,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     icon={<ArrowLeftOutlined />}
                     iconPlacement="left"
                     intent="secondary"
+                    style={{ background: '#fff' }}
                   >
                     Back
                   </Button>

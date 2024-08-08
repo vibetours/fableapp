@@ -431,6 +431,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (!styleStr) return () => {};
 
     this.updateConfig('showOverlay', false);
+
     this.updateConfig('selectionColor', 'transparent');
 
     const doc = el.ownerDocument;
@@ -446,6 +447,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     return () => {
       if (styleTag) styleTag.innerHTML = AnnotationLifecycleManager.ANIM_ONLY_CSS + this.exportTourThemeAsCssVar('root');
       this.updateConfig('showOverlay', config.showOverlay);
+      this.updateConfig('showMaskBorder', !config.showOverlay);
       this.updateConfig('selectionColor', this.config.selectionColor);
       !this.isPlayMode && this.render();
     };
@@ -599,6 +601,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     if (!isBodyEl(el)) {
       scrollIntoView(el, {
         time: AnnotationLifecycleManager.SCROLL_TO_EL_TIME_MS,
+        align: {
+          top: 0.2,
+        }
       }, (type: 'complete' | 'canceled') => {
         this.checkIfAllScrollsComplete(el, config);
       });
@@ -640,6 +645,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
       if (annotationDisplayConfig.isMaximized) {
         this.updateConfig('showOverlay', annotationDisplayConfig.config.showOverlay);
+        this.updateConfig('showMaskBorder', !annotationDisplayConfig.config.showOverlay);
         if (
           annotationDisplayConfig.config.selectionShape._val === 'pulse'
           || annotationDisplayConfig.config.selectionEffect._val === 'blinking'
@@ -852,9 +858,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const vp = this.getVp();
 
     if (this.elPathKey === 'id') {
-      const smallWidth = AnnotationContent.MIN_WIDTH;
-      const mediumWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 3.5 | 0);
-      const largeWidth = Math.max(AnnotationContent.MIN_WIDTH, vp.w / 2.5 | 0);
+      const smallWidth = 256;
+      const mediumWidth = 340;
+      const largeWidth = 480;
 
       return {
         smallWidth,
@@ -863,6 +869,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       };
     }
 
+    // for mobile
     const width = annType === 'default' ? AnnotationContent.WIDTH_MOBILE : (vp.w - 60);
     return {
       smallWidth: width,

@@ -3,6 +3,7 @@ import * as Tags from './styled';
 import { useEditorCtx } from '../../ctx';
 
 interface Props {
+    onFocusEvent : () => void
     changeHandler : (value : string) => void;
     value : string
 }
@@ -12,6 +13,9 @@ function TextEditor(props : Props) : JSX.Element {
     <div>
       <Tags.EditorCon>
         <textarea
+          onFocus={() => {
+            props.onFocusEvent();
+          }}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"

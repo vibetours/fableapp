@@ -18,6 +18,8 @@ import { showDeleteConfirm } from '../../delete-confirm';
 import { rearrangeArray } from '../../../../utils';
 import { buttonSecStyle } from '../../../screen-editor/annotation-creator-panel';
 import DraggableDemosSelector from '../../components';
+import { amplitudeQualStepEdit, amplitudeQualStepOptionEdit } from '../../../../amplitude';
+import { AMPLITUDE_STEP_TYPE } from '../../../../amplitude/types';
 
 interface Props {
   entry: SelectEntry | LeadFormEntry | TextEntry;
@@ -133,6 +135,12 @@ export default function OptionEditor(props: Props): JSX.Element {
                 onClick={() => {
                   showDeleteConfirm(
                     () => {
+                      amplitudeQualStepEdit({
+                        step_id: props.entry.id,
+                        step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                        qualification_step_prop: 'option_delete',
+                        qualification_step_value: props.option.id
+                      });
                       props.deleteEntryOption();
                     },
                     'Are you sure you want to delete this option?',
@@ -144,7 +152,15 @@ export default function OptionEditor(props: Props): JSX.Element {
                 type="text"
                 size="small"
                 style={buttonSecStyle}
-                onClick={() => setShowEditor(prevState => !prevState)}
+                onClick={() => {
+                  amplitudeQualStepEdit({
+                    step_id: props.entry.id,
+                    step_type: AMPLITUDE_STEP_TYPE[props.entry.type],
+                    qualification_step_prop: 'option_edit',
+                    qualification_step_value: props.option.id
+                  });
+                  setShowEditor(prevState => !prevState);
+                }}
               />
             </div>
           </div>
@@ -166,6 +182,14 @@ export default function OptionEditor(props: Props): JSX.Element {
                 <InputText
                   type="text"
                   value={props.option.title}
+                  onBlur={(e) => {
+                    amplitudeQualStepOptionEdit({
+                      step_id: props.entry.id,
+                      option_id: props.option.id,
+                      step_option_prop: 'title',
+                      step_option_value: e.target.value
+                    });
+                  }}
                   onChange={(e) => props.updateOptionTitle(e.target.value)}
                   style={{ height: '44px', width: '100%' }}
                 />
@@ -176,12 +200,28 @@ export default function OptionEditor(props: Props): JSX.Element {
                 <TextArea
                   label=""
                   value={props.option.desc}
+                  onBlur={(e) => {
+                    amplitudeQualStepOptionEdit({
+                      step_id: props.entry.id,
+                      option_id: props.option.id,
+                      step_option_prop: 'description',
+                      step_option_value: e.target.value
+                    });
+                  }}
                   onChange={(e) => props.updateOptionDesc(e.target.value)}
                 />
               </Tags.InputTextCon>
             </div>
 
             <DraggableDemosSelector
+              amplitudeDemoReload={(demoRid : string) => {
+                amplitudeQualStepOptionEdit({
+                  step_id: props.entry.id,
+                  option_id: props.option.id,
+                  step_option_prop: 'demo_reload',
+                  step_option_value: demoRid
+                });
+              }}
               selectedDemos={props.option.demos}
               addDemoFn={props.addDemoInEntryOption}
               updateDemoFn={props.updateDemoInEntryOption}

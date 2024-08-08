@@ -358,7 +358,8 @@ export enum CmnEvtProp {
   FIRST_NAME = 'first_name',
   LAST_NAME = 'last_name',
   EMAIL = 'email',
-  TOUR_URL = 'tour_url'
+  TOUR_URL = 'tour_url',
+  DEMO_HUB_RID = 'demo_hub_rid'
 }
 
 export interface JourneyData {

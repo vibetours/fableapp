@@ -19,6 +19,7 @@ import * as GTags from '../../common-styled';
 import LeadformTab from './lead-form-tab';
 import DeveloperTab from './developer-tab';
 import DemoHubShareModal from '../demo-hubs-list/share-modal';
+import { amplitudeDemoHubPreviewOpened, amplitudeDemoHubPublished } from '../../amplitude';
 
 interface Props {
   onConfigChange: OnDemoHubConfigChangeFn;
@@ -100,6 +101,12 @@ function DemoHubEditor(props: Props): JSX.Element {
     }, '*');
   };
 
+  const publishDemoHub = async (demoHub: P_RespDemoHub): Promise<boolean> => {
+    const res = await props.publishDemoHub(demoHub);
+    amplitudeDemoHubPublished({ clicked_from: 'editor', demo_hub_rid: props.data.rid });
+    return res;
+  };
+
   return (
     <EditorCtx.Provider value={ctxValue}>
       <GTags.DemoHeaderCon>
@@ -138,6 +145,7 @@ function DemoHubEditor(props: Props): JSX.Element {
                 fontWeight: 500
               }}
               onClick={(e) => {
+                amplitudeDemoHubPreviewOpened({ clicked_from: 'header', demo_hub_rid: props.data.rid });
                 window.open(`/preview/hub/${props.data.rid}`)?.focus();
               }}
             >
@@ -148,11 +156,12 @@ function DemoHubEditor(props: Props): JSX.Element {
           publishOptions={<PreviewHeaderOptions
             showShareModal={showShareModal}
             setShowShareModal={(shareModal: boolean) => setShareModal(shareModal)}
-            publishDemoHub={props.publishDemoHub}
+            publishDemoHub={publishDemoHub}
             demoHub={props.data}
             setSelectedDisplaySize={(selectedDisplaySize) => {}}
             isPublishing={isPublishing}
             setIsPublishing={setIsPublishing}
+            renderedIn="editor"
           />}
         />
       </GTags.DemoHeaderCon>
@@ -196,7 +205,7 @@ function DemoHubEditor(props: Props): JSX.Element {
           openModal={() => setShareModal(true)}
           isPublishing={isPublishing}
           setIsPublishing={(val) => setIsPublishing(val)}
-          publishDemoHub={props.publishDemoHub}
+          publishDemoHub={publishDemoHub}
           loadDemoHubConfig={props.loadDemoHubConfig}
         />
       </Tags.Con>

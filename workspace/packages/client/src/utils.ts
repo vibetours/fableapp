@@ -44,6 +44,7 @@ import {
   LeadFormEntry,
   SelectEntryOption,
   IDemoHubConfigDemo,
+  DemoHubQualificationSidePanel,
 } from './types';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { P_RespTour, processRawDemoHubData } from './entity-processor';
@@ -1132,12 +1133,12 @@ export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
     },
     sections: [
       {
-        ...getSampleDemoHubSeeAllPageSectionConfig(1),
+        ...getSampleDemoHubSeeAllPageSectionConfig(getSampleSimpleStyle(), 1),
         title: 'Collection of some amazing demos',
         slug: 'collection-of-some-amazing-demos',
       },
       {
-        ...getSampleDemoHubSeeAllPageSectionConfig(1),
+        ...getSampleDemoHubSeeAllPageSectionConfig(getSampleSimpleStyle(), 1),
         title: 'Second collection of amazing demos',
         slug: 'second-collection-of-amazing demos',
       }
@@ -1219,7 +1220,11 @@ export const getSampleCTASimpleStyle = (globalConfig : IGlobalConfig): IDemoHubC
   borderRadius: 24
 });
 
-export const getSampleDemoHubConfigCta = (globalConfig : IGlobalConfig): IDemoHubConfigCta => ({
+export interface CTAPrevConfig {
+  fontColor: string;
+  borderRadius: number;
+}
+export const getSampleDemoHubConfigCta = (prevConfig: CTAPrevConfig, globalConfig : IGlobalConfig): IDemoHubConfigCta => ({
   text: createGlobalProperty(
     compileValue(globalConfig, GlobalPropsPath.customBtn1Text),
     GlobalPropsPath.customBtn1Text
@@ -1238,24 +1243,20 @@ export const getSampleDemoHubConfigCta = (globalConfig : IGlobalConfig): IDemoHu
     compileValue(globalConfig, GlobalPropsPath.customBtn1Style),
     GlobalPropsPath.customBtn1Style
   ),
-  style: getSampleCTASimpleStyle(globalConfig),
+  style: { ...getSampleCTASimpleStyle(globalConfig), ...prevConfig },
 });
 
-export const getSampleDemoHubSeeAllPageSectionConfig = (idx: number): IDemoHubConfigSeeAllPageSection => ({
+export const getSampleDemoHubSeeAllPageSectionConfig = (simpleStyle: SimpleStyle, idx: number): IDemoHubConfigSeeAllPageSection => ({
   title: `A new section ${idx}`,
   slug: `a-new-section-${idx}`,
   desc: 'This is a placeholder description which is shown above the collection of demos. You can change this text in the side panel on the left. Leave it empty to delete the description field.',
-  simpleStyle: getSampleSimpleStyle(),
+  simpleStyle,
   demos: [],
   id: nanoid(),
 });
 
-export const getSampleDemoHubQualification = (idx: number): IDemoHubConfigQualification => ({
-  id: nanoid(),
-  __type: 'simple_linear',
-  title: `Choose your experience ${idx}`,
-  slug: `choose-your-experience-${idx}`,
-  sidePanel: {
+export const getSampleDemoHubQualificationSidePanel = (): DemoHubQualificationSidePanel => {
+  const res = {
     conStyle: getSampleSimpleStyle(),
     cardStyle: {
       ...getSampleSimpleStyle(),
@@ -1263,13 +1264,36 @@ export const getSampleDemoHubQualification = (idx: number): IDemoHubConfigQualif
       borderColor: '#f6f6f600',
       fontColor: '#ffffff'
     },
-  },
+  };
+
+  return res;
+};
+
+export const getSampleDemoHubQualification = (
+  sidePanel: DemoHubQualificationSidePanel,
+  idx: number
+): IDemoHubConfigQualification => ({
+  id: nanoid(),
+  __type: 'simple_linear',
+  title: `Choose your experience ${idx}`,
+  slug: `choose-your-experience-${idx}`,
+  sidePanel,
   sidepanelCTA: ['book-a-demo'],
   qualificationEndCTA: ['book-a-demo'],
   entries: [],
 });
 
-export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx: number): SelectEntry => ({
+interface SampleEntryConfig {
+  style: SimpleStyle;
+  continueCtaStyle: { borderRadius: number, fontColor: string; };
+  skipCtaStyle: { borderRadius: number, fontColor: string; };
+}
+
+export const getSampleSelectEntry = (
+  type: 'single-select' | 'multi-select',
+  idx: number,
+  prevConfig: SampleEntryConfig,
+): SelectEntry => ({
   id: nanoid(),
   type,
   __ops: 'or',
@@ -1277,11 +1301,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
   title: `What's your role in company? ${idx}`,
   slug: `whats-your-role-in-company-${idx}`,
   desc: 'This section is auto generated for you. Use the editor on the left to edit the content.',
-  style: {
-    ...getSampleSimpleStyle(),
-    borderColor: '#1b263b',
-    fontColor: '#121212'
-  },
+  style: prevConfig.style,
   continueCTA: {
     text: 'Continue',
     // this id is an derived fields from title.
@@ -1295,7 +1315,7 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { borderRadius: 4, fontColor: '#ffffff' },
+    style: prevConfig.continueCtaStyle,
   },
   // If skip button is not present then this is undefined
   // STANDARD-CLASS-NAME `cta-$skip`
@@ -1312,17 +1332,21 @@ export const getSampleSelectEntry = (type: 'single-select' | 'multi-select', idx
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { borderRadius: 4, fontColor: '#ffffff' },
+    style: prevConfig.skipCtaStyle,
   },
   showSkipCta: false,
 });
 
-export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: number): TextEntry | LeadFormEntry => ({
+export const getSampleBaseEntry = (
+  type: 'text-entry' | 'leadform-entry',
+  idx: number,
+  prevConfig: SampleEntryConfig,
+): TextEntry | LeadFormEntry => ({
   id: nanoid(),
   title: `Sample Step Title ${idx}`,
   slug: `sample-step-title-${idx}`,
   desc: 'Write a brief description of what your viewer should expect from this particular step of your demo hub.',
-  style: { ...getSampleSimpleStyle(), borderColor: '#1b263b' },
+  style: prevConfig.style,
   type,
   continueCTA: {
     text: 'Continue',
@@ -1337,7 +1361,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { borderRadius: 4, fontColor: '#ffffff' },
+    style: prevConfig.continueCtaStyle,
   },
   // If skip button is not present then this is undefined
   // STANDARD-CLASS-NAME `cta-$skip`
@@ -1354,7 +1378,7 @@ export const getSampleBaseEntry = (type: 'text-entry' | 'leadform-entry', idx: n
     // Those are 'system' defined
     __definedBy: 'system',
     type: 'primary',
-    style: { borderRadius: 4, fontColor: '#ffffff' },
+    style: prevConfig.skipCtaStyle,
   },
   showSkipCta: false,
 });
