@@ -27,12 +27,6 @@ import {
   RespSubscription,
   ReqActivateOrDeactivateUser,
   ReqTourPropUpdate,
-  RespTourView,
-  RespConversion,
-  RespTourAnnWithPercentile,
-  RespTourAnnViews,
-  RespTourLeads,
-  RespLeadActivityUrl,
   ReqUpdateScreenProperty,
   ReqUpdateUser,
   ReqAssignOrgToUser,
@@ -52,6 +46,8 @@ import {
   MEntityMetricsDaily,
   MEntitySubEntityDistribution,
   Activity,
+  RespAggregateLeadAnalytics,
+  LeadOwnerEntity,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -116,6 +112,7 @@ export interface TGenericLoading {
   | ActionType.ALL_TOURS_LOADING
   | ActionType.USER_LOADING
   | ActionType.TOUR_LOADING
+  | ActionType.ORG_WIDE_ANALYTICS_LOADING
   | ActionType.ORG_LOADING
   | ActionType.DEFAULT_TOUR_LOADED
   | ActionType.ALL_USERS_FOR_ORG_LOADING
@@ -1502,130 +1499,6 @@ export function addNewTourToAllTours(newTour: RespDemoEntity) {
   };
 }
 
-export interface TAnalyticsTourTotalViews{
-  type: ActionType.ANALYTICS_TOTAL_TOUR_VIEW,
-  tourTotalView: RespTourView,
-}
-
-export function getTotalViewsForTour(rid: string, days: number) {
-  return async (dispatch: Dispatch<TAnalyticsTourTotalViews>) => {
-    const data = await api<null, ApiResp<RespTourView>>(`/totalviews?rid=${rid}&d=${days}`, {
-      auth: true,
-    });
-    dispatch({
-      type: ActionType.ANALYTICS_TOTAL_TOUR_VIEW,
-      tourTotalView: data.data,
-    });
-
-    return Promise.resolve(data.data);
-  };
-}
-
-export interface TAnalyticsConversion{
-  type: ActionType.ANALYTICS_TOUR_CONVERSION,
-  tourConversion: RespConversion,
-}
-
-export function getConversionDataForTour(rid: string, days: number) {
-  return async (dispatch: Dispatch<TAnalyticsConversion>) => {
-    const data = await api<null, ApiResp<RespConversion>>(`/convrsn?rid=${rid}&d=${days}`, {
-      auth: true,
-    });
-    dispatch({
-      type: ActionType.ANALYTICS_TOUR_CONVERSION,
-      tourConversion: data.data,
-    });
-
-    return Promise.resolve(data.data);
-  };
-}
-
-export interface TAnalyticsStepsVisited{
-  type: ActionType.ANALYTICS_STEPS_VISITED,
-  tourStepsVisited: RespTourAnnWithPercentile,
-}
-
-export function getStepsVisitedForTour(rid: string, days: number) {
-  return async (dispatch: Dispatch<TAnalyticsStepsVisited>) => {
-    const data = await api<null, ApiResp<RespTourAnnWithPercentile>>(`/stpsdur?rid=${rid}&d=${days}`, {
-      auth: true,
-    });
-    dispatch({
-      type: ActionType.ANALYTICS_STEPS_VISITED,
-      tourStepsVisited: data.data,
-    });
-    return Promise.resolve(data.data);
-  };
-}
-
-export interface TAnalyticsAnnInfo{
-    type: ActionType.ANALYTICS_ANN_INFO,
-    tourAnnViews: RespTourAnnViews,
-}
-
-export function getAnnViewsForTour(rid: string, days: number) {
-  return async (dispatch: Dispatch<TAnalyticsAnnInfo>) => {
-    const data = await api<null, ApiResp<RespTourAnnViews>>(`/annviews?rid=${rid}&d=${days}`, {
-      auth: true,
-    });
-    dispatch({
-      type: ActionType.ANALYTICS_ANN_INFO,
-      tourAnnViews: data.data,
-    });
-    return Promise.resolve(data.data);
-  };
-}
-
-export interface TAnalyticsLeads{
-  type: ActionType.ANALYTICS_LEADS,
-  leads: RespTourLeads,
-}
-
-export function getLeadsForTour(rid: string, days: number) {
-  return async (dispatch: Dispatch<TAnalyticsLeads>) => {
-    const data = await api<null, ApiResp<RespTourLeads>>(`/gettrleads?rid=${rid}&d=${days}`, {
-      auth: true,
-    });
-    dispatch({
-      type: ActionType.ANALYTICS_LEADS,
-      leads: data.data,
-    });
-    return Promise.resolve(data.data);
-  };
-}
-
-export interface TLeadActivity{
-  type: ActionType.ANALYTICS_LEAD_ACTIVITY,
-  leadData: LeadActivityData[],
-}
-
-export function getLeadActivityForTour(rid: string, aid: string) {
-  return async (dispatch: Dispatch<TLeadActivity>) => {
-    try {
-      const data = await api<null, ApiResp<RespLeadActivityUrl>>(`/getleadactvitydatafile?rid=${rid}&aid=${aid}`, {
-        auth: true,
-      });
-      const tmpActivityData = await api<null, any[]>(data.data.leadActivityUrl);
-      const activityData: LeadActivityData[] = tmpActivityData.map(tmpData => ({
-        sid: tmpData.sid,
-        aid: tmpData.aid,
-        uts: tmpData.uts,
-        payloadAnnId: tmpData.payload_ann_id,
-        payloadButtonId: tmpData.payload_btn_id
-      }));
-
-      dispatch({
-        type: ActionType.ANALYTICS_LEAD_ACTIVITY,
-        leadData: activityData,
-      });
-      return Promise.resolve(activityData);
-    } catch (e) {
-      console.warn(`Can't find lead activity for ${aid}`);
-      return Promise.resolve([]);
-    }
-  };
-}
-
 export function updateTourProp<T extends keyof ReqTourPropUpdate>(
   rid: string,
   tourProp: T,
@@ -2084,6 +1957,11 @@ export interface P_RespHouseLead extends RespHouseLead {
   nCreatedAt: Date;
   nUpdatedAt: Date;
   nLastInteractedAt: Date;
+  aggOwners: LeadOwnerEntity[];
+  _aggRaw: {
+    ctaClickRate: number[],
+    completionPercentage: number[],
+  }
 }
 
 function getLeadsByDate(leads: P_RespHouseLead[]) {
@@ -2114,6 +1992,11 @@ export function getLeads(tourId: string) {
       nCreatedAt: new Date(item.createdAt),
       nUpdatedAt: new Date(item.updatedAt),
       nLastInteractedAt: new Date(item.lastInteractedAt),
+      aggOwners: [],
+      _aggRaw: {
+        completionPercentage: [],
+        ctaClickRate: [],
+      }
     }));
 
     return Promise.resolve({
@@ -2241,5 +2124,98 @@ export function getActivityData(rid: string, aid: string) {
   return async () => {
     const data = await api<null, ApiResp<Activity[]>>(`/activity_data/${rid}/${aid}`, { auth: true });
     return Promise.resolve(data.data);
+  };
+}
+
+export interface P_RespAggregateLeadAnalytics extends RespAggregateLeadAnalytics {
+  leads: P_RespHouseLead[];
+  leadsByDate: {
+    date: Date;
+    count: number;
+  }[];
+}
+
+export interface TOrgWideAnalytics {
+  type: ActionType.ORG_WIDE_ANALYTICS;
+  data: P_RespAggregateLeadAnalytics;
+}
+
+function dedup(leads: P_RespHouseLead[]): P_RespHouseLead[] {
+  const nLeads: P_RespHouseLead[] = [];
+  const leadIdMap: Record<string, P_RespHouseLead> = {};
+  for (const lead of leads) {
+    const id = lead.info.pk_val ? `${lead.aid}/${lead.info.pk_field}/${lead.info.pk_val}`
+      : `${lead.aid}/email/${lead.info.email}`;
+    if (id in leadIdMap) {
+      const target = leadIdMap[id];
+      target.nCreatedAt = new Date(Math.min(+target.nCreatedAt, +lead.nCreatedAt));
+      target.nUpdatedAt = new Date(Math.min(+target.nUpdatedAt, +lead.nUpdatedAt));
+      target.nLastInteractedAt = new Date(Math.min(+target.nLastInteractedAt, +lead.nLastInteractedAt));
+      target.sessionCreated += lead.sessionCreated;
+      target.timeSpentSec += lead.timeSpentSec;
+      target._aggRaw.ctaClickRate.push(lead.ctaClickRate);
+      target._aggRaw.completionPercentage.push(lead.completionPercentage);
+      lead.owner && target.aggOwners.push(lead.owner);
+      target.info = {
+        ...target.info,
+        ...lead.info
+      };
+    } else {
+      nLeads.push(lead);
+      leadIdMap[id] = lead;
+      lead._aggRaw.ctaClickRate.push(lead.ctaClickRate);
+      lead._aggRaw.completionPercentage.push(lead.completionPercentage);
+      lead.owner && lead.aggOwners.push(lead.owner);
+    }
+  }
+
+  // second pass to update the aggregate values
+  for (const lead of Object.values(leadIdMap)) {
+    lead.ctaClickRate = lead._aggRaw.ctaClickRate.reduce((carry, val) => carry + val, 0) / lead._aggRaw.ctaClickRate.length;
+    lead.completionPercentage = lead._aggRaw.completionPercentage.reduce((carry, val) => carry + val, 0) / lead._aggRaw.ctaClickRate.length;
+    lead.aggOwners = Object.values(lead.aggOwners.reduce((map, v) => {
+      map[v.rid] = v;
+      return map;
+    }, {} as Record<string, LeadOwnerEntity>));
+  }
+  return nLeads;
+}
+
+export function fetchOrgWideAnalytics() {
+  return async (dispatch: Dispatch<TOrgWideAnalytics | TGenericLoading>, getState: () => TState) => {
+    const state = getState();
+
+    if (state.default.orgWideRespHouseLeadLoadingStatus === LoadingStatus.NotStarted) {
+      dispatch({
+        type: ActionType.ORG_WIDE_ANALYTICS_LOADING,
+      });
+      const data = await api<null, ApiResp<RespAggregateLeadAnalytics>>('/org/lead_analytics', { auth: true });
+      const aggregateData = data.data;
+
+      const processedLeads = dedup(aggregateData.leads.map(lead => ({
+        ...lead,
+        nCreatedAt: new Date(lead.createdAt),
+        nUpdatedAt: new Date(lead.updatedAt),
+        nLastInteractedAt: new Date(lead.lastInteractedAt),
+        aggOwners: [],
+        _aggRaw: {
+          completionPercentage: [],
+          ctaClickRate: [],
+        }
+      })));
+      const processedData: P_RespAggregateLeadAnalytics = {
+        ...aggregateData,
+        leads: processedLeads,
+        leadsByDate: getLeadsByDate(processedLeads),
+      };
+
+      dispatch({
+        type: ActionType.ORG_WIDE_ANALYTICS,
+        data: processedData,
+      });
+      return Promise.resolve(processedData);
+    }
+
+    return Promise.resolve(state.default.orgWideRespHouseLead);
   };
 }

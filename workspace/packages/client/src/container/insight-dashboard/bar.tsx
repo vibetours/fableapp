@@ -1,6 +1,5 @@
 import React, { ReactElement, useEffect, useState } from 'react';
-import { Bar as BarMark, AreaChart, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import * as Tags from './styled';
+import { BarChart, Bar as BarMark, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 
 interface IDatum {
  x: number | string;
@@ -8,7 +7,6 @@ interface IDatum {
 }
 
 interface Props {
-  offset?: number | string;
   noPad?: boolean;
   xs: (number | string)[];
   ys: number[];
@@ -16,7 +14,6 @@ interface Props {
   conceptY: string;
   height?: number;
   bg?: string;
-  noAbs?: boolean;
 }
 
 function CustomTooltip(props: any) {
@@ -57,32 +54,30 @@ export default function Bar(props: Props): ReactElement {
   const bg = props.bg ?? '#7567ff';
   const axisLineColors = props.bg ?? '#160245';
   return (
-    <Tags.ChartCon style={{ top: props.offset ?? '14.5rem', position: props.noAbs ? 'unset' : 'absolute' }}>
-      <ResponsiveContainer width="100%" height={140} debounce={3}>
-        <BarChart
-          height={props.height ?? 160}
-          data={data}
-          margin={{
-            top: props.noPad ? 4 : 10,
-            bottom: props.noPad ? 16 : 20,
-            left: props.noPad ? 4 : 50,
-            right: props.noPad ? 4 : 50
-          }}
-          barGap={0}
-          barCategoryGap={0}
-        >
-          <XAxis
-            angle={-45}
-            textAnchor="end"
-            dataKey="x"
-            axisLine={{ stroke: axisLineColors }}
-            tick={{ fill: axisLineColors, fontSize: 'x-small' }}
-          />
-          <Tooltip content={<CustomTooltip conceptX={props.conceptX} conceptY={props.conceptY} />} />
-          <BarMark dataKey="y" fill={bg} stroke="white" strokeWidth={1} />
-        </BarChart>
+    <ResponsiveContainer width="100%" height={140} debounce={3}>
+      <BarChart
+        height={props.height ?? 160}
+        data={data}
+        margin={{
+          top: props.noPad ? 4 : 10,
+          bottom: props.noPad ? 16 : 20,
+          left: props.noPad ? 4 : 50,
+          right: props.noPad ? 4 : 50
+        }}
+        barGap={0}
+        barCategoryGap={0}
+      >
+        <XAxis
+          angle={-45}
+          textAnchor="end"
+          dataKey="x"
+          axisLine={{ stroke: axisLineColors }}
+          tick={{ fill: axisLineColors, fontSize: 'x-small' }}
+        />
+        <Tooltip content={<CustomTooltip conceptX={props.conceptX} conceptY={props.conceptY} />} />
+        <BarMark dataKey="y" fill={bg} stroke="white" strokeWidth={1} />
+      </BarChart>
 
-      </ResponsiveContainer>
-    </Tags.ChartCon>
+    </ResponsiveContainer>
   );
 }

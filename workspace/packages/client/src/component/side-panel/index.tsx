@@ -1,9 +1,8 @@
-import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled } from '@ant-design/icons';
+import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plan, Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
-import packageJSON from '../../../package.json';
 import * as Tags from './styled';
 import { P_RespSubscription, getNumberOfDaysFromNow } from '../../entity-processor';
 import UserGuideProgress from './user-guide-progess';
@@ -12,7 +11,7 @@ import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
-  selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | '';
+  selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads' | '';
   subs: P_RespSubscription | null;
   tourAvailable?: boolean;
   firstTourRid?: string;
@@ -40,7 +39,6 @@ export default function SidePanel(props: Props): JSX.Element {
   return (
     <Tags.Con>
       <Tags.ConNav>
-
         <Tags.ConNavBtn
           className={props.selected === 'tours' ? 'selected' : ''}
           to="/demos"
@@ -52,6 +50,10 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.ConNavBtn className={props.selected === 'demo-hub' ? 'selected' : ''} to="/demo-hubs">
           <HeatMapOutlined />
           <p>Demo hub</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'leads' ? 'selected' : ''} to="/leads">
+          <RiseOutlined />
+          <p>Leads</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
           <ApiOutlined />

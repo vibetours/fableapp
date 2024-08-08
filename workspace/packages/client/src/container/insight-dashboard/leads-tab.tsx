@@ -10,9 +10,8 @@ import Card from './card';
 import * as Tags from './styled';
 import { P_RespHouseLead } from '../../action/creator';
 import Bubble from './bubble';
-import { AnnInverseLookupIndex } from '../../types';
 
-function getFormattedDate(d: Date): { date: string, time: string } {
+export function getFormattedDate(d: Date): { date: string, time: string } {
   const date = `${SHORT_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 
   const time = d.toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
@@ -82,7 +81,7 @@ function getEventDisplayNameAndNormalizedEventPayload(activity: P_Activity): {
   };
 }
 
-function readableTimeUnit(ts: number) {
+export function readableTimeUnit(ts: number) {
   if (ts >= 3600) {
     const m = Math.round(ts / 3600);
     return [m, m <= 1 ? 'hour' : 'hours'];
@@ -94,7 +93,7 @@ function readableTimeUnit(ts: number) {
   return [ts, ts <= 1 ? 'sec' : 'secs'];
 }
 
-function readableFormKey(key:string) {
+export function readableFormKey(key:string) {
   return key.replace(/_+/g, ' ').split(/\s+/)
     .filter(w => w)
     .map(word => word.substring(0, 1).toUpperCase() + word.substring(1))

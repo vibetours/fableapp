@@ -1,21 +1,15 @@
-import { scaleTime } from 'd3-scale';
-import { timeDay } from 'd3-time';
 import { timeFormat } from 'd3-time-format';
 import React, { ReactElement, useEffect, useState } from 'react';
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
-  ResponsiveContainer, Tooltip, XAxis, ComposedChart, Bar, Scatter, ZAxis, YAxis, ScatterChart } from 'recharts';
-import * as Tags from './styled';
-import { IDatum, dateFormat, getTicks, getTicksData } from '../analytics/line';
-
-// interface IDatum {
-//  date: Date;
-//  value: number ;
-//  value2?: number;
-//  value3?: number;
-// }
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip, XAxis,
+  YAxis,
+  ZAxis
+} from 'recharts';
+import { IDatum, dateFormat, getTicks, getTicksData } from './line';
 
 interface SingluarAndPluralText {
   singular: string;

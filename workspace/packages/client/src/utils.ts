@@ -1,57 +1,56 @@
-import { useEffect, useRef } from 'react';
 import {
-  IAnnotationConfig,
-  ITourEntityHotspot,
-  SerNode,
-  JourneyFlow,
-  ITourDataOpts,
-  JourneyData,
-  IGlobalConfig,
-  Property,
-  PropertyType,
-} from '@fable/common/dist/types';
-import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespDemoEntity, Responsiveness,
+  RespDemoEntity, Responsiveness,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
 } from '@fable/common/dist/api-contract';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
+import {
+  IAnnotationConfig,
+  IGlobalConfig,
+  ITourDataOpts,
+  ITourEntityHotspot,
+  JourneyData,
+  JourneyFlow,
+  Property,
+  PropertyType,
+  SerNode,
+} from '@fable/common/dist/types';
 import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
+import { useEffect, useRef } from 'react';
+import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
+import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
+import { FABLE_LEAD_FORM_FIELD_NAME } from './constants';
+import { P_RespTour } from './entity-processor';
+import { AnalyticsValue, AnnotationValue, FeatureForPlan, PlanDetail } from './plans';
 import { TState } from './reducer';
 import {
   AnnotationPerScreen,
-  IAnnotationConfigWithScreen,
-  JOURNEY_PROGRESS_LOCAL_STORE_KEY,
-  FlowProgress,
   ExtMsg,
-  Timeline,
+  FeatureAvailability,
+  FlowProgress,
+  HiddenEls,
+  IAnnotationConfigWithLocation,
+  IAnnotationConfigWithScreen,
+  IDemoHubConfig,
+  IDemoHubConfigCta,
+  IDemoHubConfigDemo,
+  IDemoHubConfigQualification,
+  IDemoHubConfigSeeAllPageSection,
+  JOURNEY_PROGRESS_LOCAL_STORE_KEY,
   JourneyModuleWithAnns,
-  queryData,
-  AnnInverseLookupIndex,
-  TourMainValidity,
+  SelectEntry,
+  SimpleStyle,
   SiteData,
   SiteThemePresets,
-  HiddenEls,
-  FeatureAvailability,
-  IDemoHubConfig,
-  SimpleStyle,
-  IDemoHubConfigCta,
-  IDemoHubConfigSeeAllPageSection,
-  P_RespDemoHub,
-  IDemoHubConfigQualification,
-  SelectEntry,
   TextEntry,
   LeadFormEntry,
   SelectEntryOption,
-  IDemoHubConfigDemo,
   DemoHubQualificationSidePanel,
+  Timeline,
+  TourMainValidity,
+  queryData
 } from './types';
-import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
-import { P_RespTour, processRawDemoHubData } from './entity-processor';
-import { IAnnotationConfigWithLocation } from './container/analytics';
-import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
-import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_LOCAL_STORAGE_ORG_ID_KEY } from './constants';
-import { FeatureForPlan, PlanDetail, AnalyticsValue, AnnotationValue } from './plans';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -565,34 +564,6 @@ export function getJourneyWithAnnotationsNormalized(
   };
   annsOrderedByJourney.unshift(phony);
   return annsOrderedByJourney;
-}
-
-export function annotationInverseLookupIndex(orderedAnnsWithJourney: JourneyModuleWithAnns[]): AnnInverseLookupIndex {
-  const hm: AnnInverseLookupIndex = {};
-
-  // the first element of the joureny is phoney it contains all the annotations irrespective of journey
-  // is present or not.
-  // hence we check if the journey is present (len > 1) we omit the first element as it contains information
-  // that in turn is present in the subsequent journeys
-  const unitJourneys = orderedAnnsWithJourney.length === 1 ? orderedAnnsWithJourney : orderedAnnsWithJourney.slice(1);
-
-  let flowIndex = 0;
-  for (const flow of unitJourneys) {
-    let stepNo = 0;
-    for (const ann of flow.annsInOrder) {
-      hm[ann.refId] = {
-        journeyName: flow.header1,
-        flowIndex,
-        flowLength: unitJourneys.length,
-        isJourneyPhony: !!flow.isPhony,
-        stepNo: ++stepNo,
-        ann
-      };
-    }
-    flowIndex++;
-  }
-
-  return hm;
 }
 
 export const getJourneyWithAnnotations = (

@@ -81,15 +81,6 @@ class DemoHubsList extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.getAllDemoHubs();
     document.title = this.props.title;
-
-    // TODO[current] the following code lines is written to suppress ts error
-    this.props.createNewDemoHub;
-    this.props.renameDemoHub;
-    this.props.deleteDemoHub;
-    this.props.publishDemoHub;
-    this.props.demoHubs;
-    this.props.tours;
-    this.props.vanityDomains;
   }
 
   navigateToDemoHub = (demoHubRid: string): void => {

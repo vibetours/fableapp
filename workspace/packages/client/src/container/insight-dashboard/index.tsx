@@ -25,8 +25,8 @@ import {
   P_RespHouseLead,
   getActivityData
 } from '../../action/creator';
-import Bar from '../analytics/bar';
-import Line from '../analytics/line';
+import Bar from './bar';
+import Line from './line';
 import Funnel from './funnel';
 import Leads, { IAnnotationOriginConfigWithModule } from './leads-tab';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
@@ -443,7 +443,6 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
                         conceptY="sessions spent"
                         conceptX="seconds"
                         noPad
-                        noAbs
                       />
                     </div>
                   </div>
@@ -466,7 +465,6 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
                         conceptY="sessions completed"
                         conceptX="%"
                         noPad
-                        noAbs
                       />
                     </div>
                   </div>

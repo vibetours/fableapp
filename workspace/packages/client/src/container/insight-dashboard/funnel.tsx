@@ -1,7 +1,6 @@
 /* eslint-disable no-mixed-operators */
-import React, { useEffect, useRef, useState } from 'react';
-import { Bar as BarMark, BarChart, ResponsiveContainer, Tooltip, XAxis, CartesianGrid, YAxis, Bar, Label, LabelList } from 'recharts';
-import OurBar from '../analytics/bar';
+import React, { useEffect, useState } from 'react';
+import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { HistogramData } from '../../action/creator';
 
 interface IDatum {

@@ -327,6 +327,13 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: 'leads',
+            async lazy() {
+              const AggregateAnalytics = await import('./container/aggregate-analytics').then(module => module.default);
+              return { Component: () => <AggregateAnalytics title="Creating demo hub | Fable" /> };
+            },
+          },
+          {
             path: 'preview/hub/:demoHubId',
             async lazy() {
               const DemoHubPreview = await import('./container/preview-demo-hub').then(module => module.default);
@@ -410,20 +417,6 @@ const router = createBrowserRouter([
             path: 'analytics/demo/:tourId/:module?/:aid?',
             async lazy() {
               const Analytics = await import('./container/insight-dashboard').then(module => module.default);
-              return { Component: () => <Analytics /> };
-            }
-          },
-          {
-            path: 'a/demo/:tourId',
-            async lazy() {
-              const Analytics = await import('./container/analytics').then(module => module.default);
-              return { Component: () => <Analytics /> };
-            }
-          },
-          {
-            path: 'a/demo/:tourId/:activeKey',
-            async lazy() {
-              const Analytics = await import('./container/analytics').then(module => module.default);
               return { Component: () => <Analytics /> };
             }
           },

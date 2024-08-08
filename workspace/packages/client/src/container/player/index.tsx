@@ -34,8 +34,6 @@ import {
   getJourneyProgress,
   saveJourneyProgress,
   getCurrentFlowMain,
-  getJourneyWithAnnotations,
-  getOrderedAnnotaionFromMain,
   updateAllAnnotationsForTour,
   updateAllAnnotations,
   getSearchParamData,
@@ -815,19 +813,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (!this.isLoadingCompleteMsgSentRef.current) {
-      let annConfigs = null;
-      let journeyData = null;
-      if (this.props.journey?.flows.length !== 0) {
-        journeyData = getJourneyWithAnnotations(this.props.allAnnotationsForTour, this.props.journey!.flows);
-      } else {
-        annConfigs = getOrderedAnnotaionFromMain(this.props.allAnnotationsForTour, this.props.tourOpts!.main);
-      }
-
-      emitEvent<Partial<Payload_DemoLoadingFinished>>(InternalEvents.DemoLoadingFinished, {
-        journeyData,
-        annConfigs
-      });
-
+      emitEvent<Partial<Payload_DemoLoadingFinished>>(InternalEvents.DemoLoadingFinished, {});
       this.isLoadingCompleteMsgSentRef.current = true;
     }
     return true;

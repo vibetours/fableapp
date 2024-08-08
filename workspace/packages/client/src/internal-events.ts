@@ -251,11 +251,7 @@ export function initInternalEvents() : Array<[InternalEvents, (ev: Event) => voi
     postMessageForEvent(ExtMsg.DemoLoadingStarted, tPayload as Payload_IE_DemoLoadingStarted);
   });
 
-  registerListenerForInternalEvent(InternalEvents.DemoLoadingFinished, (payload: Payload_IE_All) => {
-    const tPayload = {
-      ...payload,
-    };
-    postMessageForEvent(ExtMsg.DemoLoadingFinished, tPayload as Payload_IE_DemoLoadingFinished);
+  registerListenerForInternalEvent(InternalEvents.DemoLoadingFinished, () => {
     // TODO only raise this across sessions
     const lead = getGlobalData('lead') as FableLeadContactProps | null;
     const demoData = getGlobalData('demo') as P_RespTour;

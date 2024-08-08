@@ -2,8 +2,7 @@ import { scaleTime } from 'd3-scale';
 import { timeDay } from 'd3-time';
 import { timeFormat } from 'd3-time-format';
 import React, { ReactElement, useEffect, useState } from 'react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, ComposedChart, Bar, Scatter, ZAxis, YAxis } from 'recharts';
-import * as Tags from './styled';
+import { Area, CartesianGrid, ComposedChart, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 
 export interface IDatum {
  date: Date;
@@ -28,7 +27,7 @@ export const getTicks = (data: IDatum[]): number[] => {
   const domain = [new Date(Math.min(
     +data[0].date,
     +data[data.length - 1].date - 7889400000 // 3 months in case less data
-  )), data[data.length - 1].date];
+  )), Math.max(+data[data.length - 1].date, +new Date())];
   const scale = scaleTime().domain(domain).range([0, 1]);
   const ticks = scale.ticks(timeDay);
   return ticks.map(entry => +entry);
@@ -96,35 +95,33 @@ export default function Line(props: Props): ReactElement {
   }, [props.data]);
 
   return (
-    <Tags.ChartCon>
-      <ResponsiveContainer width="100%" height={160} debounce={3}>
-        <ComposedChart
-          height={props.height ?? 160}
-          data={zeroFilledData}
-          margin={{ top: 10, bottom: 20, left: 10, right: 10 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis
-            angle={-45}
-            textAnchor="end"
-            dataKey="date"
-            xAxisId="x"
-            ticks={ticks}
-            axisLine={{ stroke: '#747474' }}
-            tick={{ fill: '#747474', fontSize: 'x-small' }}
-            tickCount={ticks.length / 2}
-            tickFormatter={dateFormat}
-          />
-          <Tooltip content={<CustomTooltip concepts={props.concepts} />} />
-          <Area yAxisId="area" xAxisId="x" type="monotone" dataKey="value" fill="#7567ff47" stroke="#7567ff" strokeWidth={2} isAnimationActive={false} />
+    <ResponsiveContainer width="100%" height={160} debounce={3}>
+      <ComposedChart
+        height={props.height ?? 160}
+        data={zeroFilledData}
+        margin={{ top: 10, bottom: 20, left: 10, right: 10 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis
+          angle={-45}
+          textAnchor="end"
+          dataKey="date"
+          xAxisId="x"
+          ticks={ticks}
+          axisLine={{ stroke: '#747474' }}
+          tick={{ fill: '#747474', fontSize: 'x-small' }}
+          tickCount={ticks.length / 2}
+          tickFormatter={dateFormat}
+        />
+        <Tooltip content={<CustomTooltip concepts={props.concepts} />} />
+        <Area yAxisId="area" xAxisId="x" type="monotone" dataKey="value" fill="#7567ff47" stroke="#7567ff" strokeWidth={2} isAnimationActive={false} />
 
-          <YAxis yAxisId="area" type="number" dataKey="value" hide />
-          <YAxis yAxisId="size" type="number" dataKey="value3" reversed hide />
-          <ZAxis zAxisId="size" type="number" dataKey="value2" range={[1, 200]} />
-          <Scatter yAxisId="size" zAxisId="size" xAxisId="x" fill="#7567ffbf" />
-        </ComposedChart>
+        <YAxis yAxisId="area" type="number" dataKey="value" hide />
+        <YAxis yAxisId="size" type="number" dataKey="value3" reversed hide />
+        <ZAxis zAxisId="size" type="number" dataKey="value2" range={[1, 200]} />
+        <Scatter yAxisId="size" zAxisId="size" xAxisId="x" fill="#7567ffbf" />
+      </ComposedChart>
 
-      </ResponsiveContainer>
-    </Tags.ChartCon>
+    </ResponsiveContainer>
   );
 }

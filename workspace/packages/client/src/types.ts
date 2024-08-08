@@ -1,11 +1,13 @@
+import { RespDemoEntity } from '@fable/common/dist/api-contract';
 import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
-import { RespDemoEntity, ResponseBase, TourDeleted } from '@fable/common/dist/api-contract';
-import { Tx } from './container/tour-editor/chunk-sync-manager';
-import { P_RespScreen, P_RespTour } from './entity-processor';
-import { IAnnotationConfigWithLocation } from './container/analytics';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
-import { FableLeadContactProps, UserFromQueryParams } from './global';
 import { RenameDemoHubResult } from './action/creator';
+import { Tx } from './container/tour-editor/chunk-sync-manager';
+import { P_RespScreen } from './entity-processor';
+
+export interface IAnnotationConfigWithLocation extends IAnnotationConfigWithScreenId {
+  location: string;
+}
 
 export interface JourneyModuleWithAnns extends JourneyFlow {
   isPhony?: boolean;

@@ -1,6 +1,8 @@
 import { Action } from 'redux';
 import {
+  RespAggregateLeadAnalytics,
   RespCommonConfig,
+  RespHouseLead,
   RespOrg,
   RespUser
 } from '@fable/common/dist/api-contract';
@@ -59,6 +61,8 @@ import {
   TSetDHConfigUploadURL,
   TUpdateDemoHubConfig,
   TSetCurrentDemoData,
+  TOrgWideAnalytics,
+  P_RespAggregateLeadAnalytics,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
 import { AllEdits, EditItem, ElEditType, ElPathKey, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
@@ -116,10 +120,12 @@ export const initialState: {
   globalConfig: IGlobalConfig | null;
   demoHubConfig: IDemoHubConfig | null;
   demoHubs: P_RespDemoHub[] | null;
-  currentDemoHub: P_RespDemoHub | null,
-  currentDemoHubConfig: IDemoHubConfig | null,
-  currentDemoHubLoaded: boolean,
-  demoHubConfigUploadUrl: string,
+  currentDemoHub: P_RespDemoHub | null;
+  currentDemoHubConfig: IDemoHubConfig | null;
+  currentDemoHubLoaded: boolean;
+  demoHubConfigUploadUrl: string;
+  orgWideRespHouseLead: P_RespAggregateLeadAnalytics;
+  orgWideRespHouseLeadLoadingStatus: LoadingStatus;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -173,6 +179,12 @@ export const initialState: {
   currentDemoHubConfig: null,
   currentDemoHubLoaded: false,
   demoHubConfigUploadUrl: '',
+  orgWideRespHouseLead: {
+    noOfDemos: 0,
+    leads: [],
+    leadsByDate: [],
+  },
+  orgWideRespHouseLeadLoadingStatus: LoadingStatus.NotStarted,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -696,6 +708,20 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.currentDemoHub = tAction.data;
       newState.isAutoSaving = false;
+      return newState;
+    }
+
+    case ActionType.ORG_WIDE_ANALYTICS_LOADING: {
+      const newState = { ...state };
+      newState.orgWideRespHouseLeadLoadingStatus = LoadingStatus.InProgress;
+      return newState;
+    }
+
+    case ActionType.ORG_WIDE_ANALYTICS: {
+      const tAction = action as TOrgWideAnalytics;
+      const newState = { ...state };
+      newState.orgWideRespHouseLead = tAction.data;
+      newState.orgWideRespHouseLeadLoadingStatus = LoadingStatus.Done;
       return newState;
     }
 
