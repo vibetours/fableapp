@@ -796,12 +796,18 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     return 0;
   };
 
-  isAnnOutSideOfViewPort = (l: number, t: number, w: number, h: number): boolean => {
+  isAnnOutSideOfViewPort = (
+    l: number,
+    t: number,
+    w: number,
+    h: number,
+    minSpace = AnnotationCard.MIN_SPACE
+  ): boolean => {
     const winW = this.props.annotationDisplayConfig.windowWidth;
     const winH = this.props.annotationDisplayConfig.windowHeight;
 
-    if (l < AnnotationCard.MIN_SPACE) return true;
-    if (t < AnnotationCard.MIN_SPACE) return true;
+    if (l < minSpace) return true;
+    if (t < minSpace) return true;
     if (l + w > winW) return true;
     if (t + h > winH) return true;
 
@@ -905,7 +911,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
           t = adjustedPos.t;
         }
 
-        const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h);
+        const annOutsideOfViewport = this.isAnnOutSideOfViewPort(l, t, w, h, 0);
         if (annOutsideOfViewport) {
           const win = this.props.win;
           l = win.innerWidth - HighlighterBase.ANNOTATION_PADDING_ONE_SIDE - w;
