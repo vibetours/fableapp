@@ -177,7 +177,7 @@ export default abstract class HighlighterBase {
     const [dx, dy] = this.getCumulativeDxdy(el.ownerDocument);
     const elSize: DOMRect = el.getBoundingClientRect();
     const elBorderRadius = getComputedStyle(el).borderRadius;
-    this.drawMask(elSize, this.win, dx, dy, elBorderRadius);
+    this.drawMask(elSize, this.win, dx, dy, elBorderRadius === '0px' ? '2px' : elBorderRadius);
   }
 
   selectBoxInDoc(scaleCoords: Coords): void {

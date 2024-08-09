@@ -957,8 +957,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         && this.props.tourOpts && this.props.tourOpts.showStepNum._val
         && (
         <DemoProgressBar
+          bg={this.props.tourOpts.annotationBodyBackgroundColor._val}
+          fg={this.props.tourOpts.primaryColor._val}
+          textColor={this.props.tourOpts.annotationFontColor._val}
           iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
-          primaryColor={this.props.tourOpts?.primaryColor._val || '#7567FF'}
           annotationSerialIdMap={this.state.annotationSerialIdMap}
         />
         )}

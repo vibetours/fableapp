@@ -143,7 +143,7 @@ export class AnnotationContent extends React.PureComponent<{
 
   getAnnotationBorder(hasOverlay: boolean): string {
     const borderColor = this.props.opts.annotationBodyBorderColor._val;
-    return `0px 0px 0px 1px ${borderColor}, 0px 8px 20px ${hasOverlay ? 'rgba(250, 250, 250, 0.5)' : 'rgba(50, 50, 50, 0.5)'}`;
+    return `0px 0px 0px 1px ${borderColor}, rgba(0, 0, 0, 0.3) 0px 19px 38px, rgba(0, 0, 0, 0.22) 0px 15px 12px`;
   }
 
   componentWillUnmount(): void {
@@ -160,6 +160,9 @@ export class AnnotationContent extends React.PureComponent<{
       else btns.push(btn);
     }
 
+    const padding: number[] = this.props.opts.annotationPadding._val.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14));
+    if (padding.length === 1) padding.push(padding[0]);
+    if (padding.length === 0) padding.push(14, 14);
     return (
       <Tags.AnContent
         key={this.props.config.refId}
@@ -167,7 +170,7 @@ export class AnnotationContent extends React.PureComponent<{
         primaryColor={this.props.opts.primaryColor._val}
         fontColor={this.props.opts.annotationFontColor._val}
         borderRadius={this.props.opts.borderRadius._val}
-        padding={this.props.opts.annotationPadding._val.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14)) as [number, number]}
+        padding={padding as [number, number]}
         bgColor={this.props.opts.annotationBodyBackgroundColor._val}
         style={{
           flexDirection: 'column',
@@ -185,11 +188,7 @@ export class AnnotationContent extends React.PureComponent<{
         id={this.props.isProbing ? '' : 'fable-ann-card-rendered'}
         className={`fable-ann-card f-a-c-${this.props.config.refId} dir-${this.props.dir}`}
       >
-        <Tags.AnInnerContainer
-          anPadding={this.props.opts.annotationPadding._val.trim()}
-          hasWatermark={this.props.opts.showFableWatermark._val}
-          className="f-inner-con"
-        >
+        <Tags.AnInnerContainer className="f-inner-con">
           {/* TODO: use some other mechanism to populate the following
           div with bodyContent. DO NOT USE "dangerouslySetInnerHTML" */}
           {

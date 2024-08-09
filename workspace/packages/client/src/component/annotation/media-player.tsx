@@ -3,7 +3,9 @@ import Hls from 'hls.js';
 import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
   ArrowLeftOutlined,
+  PauseCircleFilled,
   PauseCircleOutlined,
+  PlayCircleFilled,
   PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
@@ -321,6 +323,9 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     const config = this.props.conf.config;
     const hlsURl = this.props.type === 'audio' ? config.audio?.hls : config.videoUrlHls;
     const isHlsSupported = this.hls && hlsURl && this.props.playMode;
+    const padding: number[] = this.props.conf.opts.annotationPadding._val.split(/\s+/).map(v => (Number.isFinite(+v) ? +v : 14));
+    if (padding.length === 1) padding.push(padding[0]);
+    if (padding.length === 0) padding.push(14, 14);
 
     return (
       <Tags.AnMediaContainer
@@ -446,7 +451,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                       }}
                       className={FABLE_AUDIO_MEDIA_CONTROLS}
                     >
-                      <PlayCircleOutlined />
+                      <PlayCircleFilled />
                     </Tags.AnMediaCtrlBtn>
                   )
                 }
@@ -461,7 +466,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                       }}
                       className={FABLE_AUDIO_MEDIA_CONTROLS}
                     >
-                      <PauseCircleOutlined />
+                      <PauseCircleFilled />
                     </Tags.AnMediaCtrlBtn>
                   )
                 }
@@ -469,6 +474,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
                 { this.state.showControls
               && (
               <Tags.NavButtonCon
+                padding={padding as [number, number]}
                 pcolor={this.props.conf.opts.primaryColor._val}
               >
                 {this.props.conf.config.buttons.sort((m, n) => m.order - n.order).map((btnConf, idx) => (

@@ -22,15 +22,19 @@ export const AnContent = styled.div<{
   --f-ann-font-color: ${(p) => p.fontColor};
   --f-ann-padding-y: ${(p) => p.padding[0]};
   --f-ann-padding-x: ${(p) => p.padding[1]};
+  --f-pad-multi: 1px;
 
   --f-font-normal: 18px;
   --f-font-large: 24px;
   --f-font-huge: 30px;
 
-  @media screen and (max-width: 389px) {
+  @media screen and (max-width: 480px) {
     --f-font-normal: 14px;
     --f-font-large: 18px;
     --f-font-huge: 22px;
+    --f-ann-padding-y: ${(p) => p.padding[0] * 0.5};
+    --f-ann-padding-x: ${(p) => p.padding[1] * 0.5};
+    --f-pad-multi: 0.75px;
   }
 
   background: ${(p) => `linear-gradient(45deg, color-mix(in srgb, ${p.bgColor} 97%, white) 0%, color-mix(in srgb, ${p.bgColor} 97%, black) 100%)`};
@@ -178,35 +182,10 @@ export const AnContent = styled.div<{
   }
 `;
 
-const getAnnotationPadding = (annotationPadding: string, hasWatermark: boolean): string => {
-  const formatRegex = /^\s*(\d+)\s*(\d*)\s*$/;
-  const formatedPadding = annotationPadding.match(formatRegex);
-  if (!formatedPadding) {
-    return '14px 14px';
-  }
-
-  const verticalPadding = parseInt(formatedPadding[1], 10);
-  const horizontalPadding = parseInt(formatedPadding[2], 10);
-  if (Number.isNaN(horizontalPadding)) {
-    return `${verticalPadding}px ${verticalPadding}px`;
-  }
-
-  if (Number.isNaN(verticalPadding)) {
-    return '14px 14px';
-  }
-
-  return `${verticalPadding}px ${horizontalPadding}px ${hasWatermark ? '4px' : ''}`;
-};
-
-interface AnInnerConProps {
-  anPadding: string;
-  hasWatermark: boolean;
-}
-
 export const AnInnerContainer = styled.div`
   display:flex;
   flex-direction:column;
-  padding: ${(props: AnInnerConProps) => `${getAnnotationPadding(props.anPadding, props.hasWatermark)}`};
+  padding: calc(var(--f-ann-padding-x) * 1px);
   z-index: 9999;
 `;
 
@@ -253,7 +232,7 @@ export const ButtonCon = styled.div`
   display: flex;
   justify-content: ${(props: ButtonConProps) => props.justifyContent};
   align-items: flex-end;
-  padding-top: 1rem;
+  padding-top: calc(var(--f-ann-padding-y) * 1px);
   gap: 2rem;
   flex-direction: ${(props: ButtonConProps) => props.flexDirection};
 
@@ -281,7 +260,7 @@ export const Progress = styled.p<{bg: string; fg: string, fontFamily: string}>`
 
 export const ABtn = styled.button`
   border-radius: 2px;
-  font-size: 18px;
+  font-size: var(--f-font-normal);
   font-weight: bold;
   box-sizing: border-box;
   text-align: center;
@@ -315,11 +294,11 @@ export const ABtn = styled.button`
 
   padding: ${(p: BtnConf) => {
     if (p.size === AnnotationButtonSize.Large) {
-      return p.noPad ? '0px 0px' : '12px 22px';
+      return p.noPad ? '0px 0px' : 'calc(12 * var(--f-pad-multi)) calc(22 * var(--f-pad-multi))';
     } if (p.size === AnnotationButtonSize.Medium) {
-      return p.noPad ? '0px 0px' : '8px 18px';
+      return p.noPad ? '0px 0px' : 'calc(8 * var(--f-pad-multi)) calc(18 * var(--f-pad-multi))';
     }
-    return p.noPad ? '0px 0px' : '4px 12px';
+    return p.noPad ? '0px 0px' : 'calc(4 * var(--f-pad-multi)) calc(12 * var(--f-pad-multi))';
   }};
   font-family: ${(p: BtnConf) => p.fontFamily || 'inherit'};
   &:hover {
@@ -453,7 +432,7 @@ export const AnMediaCtrlBtnsCon = styled.div`
 export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
   color: white;
   background-color: transparent;
-  font-size: 2rem;
+  font-size: 3rem;
   border: none;
   display: ${p => (p.showButton ? 'flex' : 'none')};
   cursor: pointer;
@@ -535,7 +514,17 @@ const bottomToTop = keyframes`
   }
 `;
 
-export const NavButtonCon = styled.div<{ pcolor: string }>`
+export const NavButtonCon = styled.div<{ pcolor: string, padding: [number, number] }>`
+  --f-ann-padding-y: ${(p) => p.padding[0]};
+  --f-ann-padding-x: ${(p) => p.padding[1]};
+  --f-pad-multi: 1px;
+
+  @media screen and (max-width: 480px) {
+    --f-ann-padding-y: ${(p) => p.padding[0] * 0.5};
+    --f-ann-padding-x: ${(p) => p.padding[1] * 0.5};
+    --f-pad-multi: 0.75px;
+  }
+
   position: absolute;
   display: flex;
   justify-content: space-between;

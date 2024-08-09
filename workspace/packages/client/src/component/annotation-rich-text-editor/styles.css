@@ -81,7 +81,7 @@
   --f-font-large: 24px;
   --f-font-huge: 30px;
 
-  @media screen and (max-width: 389px) {
+  @media screen and (max-width: 480px) {
     --f-font-normal: 14px;
     --f-font-large: 18px;
     --f-font-huge: 22px;

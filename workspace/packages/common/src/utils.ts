@@ -195,7 +195,7 @@ export const getSampleConfig = (elPath: string, grpId: string, globalOpts: IGlob
     zId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
-    bodyContent: `<p class="editor-paragraph" dir="ltr"><span style="font-size: 18px;">${text}</span></p>`,
+    bodyContent: `<p class="editor-paragraph" dir="ltr"><span>${text}</span></p>`,
     displayText: text,
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
