@@ -20,8 +20,8 @@ export const AnContent = styled.div<{
   --f-ann-border-radius: ${(p) => p.borderRadius}px;
   --f-ann-primary-color: ${(p) => p.primaryColor};
   --f-ann-font-color: ${(p) => p.fontColor};
-  --f-ann-padding-y: ${(p) => p.padding[0]};
-  --f-ann-padding-x: ${(p) => p.padding[1]};
+  --f-ann-padding-x: ${(p) => p.padding[0]};
+  --f-ann-padding-y: ${(p) => p.padding[1]};
   --f-pad-multi: 1px;
 
   --f-font-normal: 18px;
@@ -32,8 +32,8 @@ export const AnContent = styled.div<{
     --f-font-normal: 14px;
     --f-font-large: 18px;
     --f-font-huge: 22px;
-    --f-ann-padding-y: ${(p) => p.padding[0] * 0.5};
-    --f-ann-padding-x: ${(p) => p.padding[1] * 0.5};
+    --f-ann-padding-x: ${(p) => p.padding[0] * 0.5};
+    --f-ann-padding-y: ${(p) => p.padding[1] * 0.5};
     --f-pad-multi: 0.75px;
   }
 
@@ -515,13 +515,13 @@ const bottomToTop = keyframes`
 `;
 
 export const NavButtonCon = styled.div<{ pcolor: string, padding: [number, number] }>`
-  --f-ann-padding-y: ${(p) => p.padding[0]};
-  --f-ann-padding-x: ${(p) => p.padding[1]};
+  --f-ann-padding-x: ${(p) => p.padding[0]};
+  --f-ann-padding-y: ${(p) => p.padding[1]};
   --f-pad-multi: 1px;
 
   @media screen and (max-width: 480px) {
-    --f-ann-padding-y: ${(p) => p.padding[0] * 0.5};
-    --f-ann-padding-x: ${(p) => p.padding[1] * 0.5};
+    --f-ann-padding-x: ${(p) => p.padding[0] * 0.5};
+    --f-ann-padding-y: ${(p) => p.padding[1] * 0.5};
     --f-pad-multi: 0.75px;
   }
 

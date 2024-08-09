@@ -64,6 +64,7 @@ export const ProgressIndicatorCon = styled.div`
       transition: all 0.2s ease-out;
       background: ${p => p.bg};
       box-shadow: ${p => `${p.fg} -1px 1px 3px 0px`};
+      white-space: nowrap;
     }
   }
 `;
