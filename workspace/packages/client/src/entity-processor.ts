@@ -1031,6 +1031,22 @@ function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) :
     delete (demoHub.see_all_page.header.style as any).borderColor;
   }
 
+  demoHub.see_all_page.sections.forEach(section => {
+    if ((section as any).simpleStyle) {
+      delete (section as any).simpleStyle;
+    }
+  });
+
+  if ((demoHub.see_all_page.demoCardStyles).card === undefined) {
+    const demoHubCardStyle = demoHub.see_all_page.demoCardStyles as unknown as SimpleStyle;
+    demoHub.see_all_page.demoCardStyles.card = { ...demoHubCardStyle };
+    demoHub.see_all_page.demoCardStyles.cta = sampleDemoHubConfig.see_all_page.demoCardStyles.cta;
+  }
+
+  if (typeof (demoHub.see_all_page.demoCardStyles.cta.style as SimpleStyle).borderColor === 'string') {
+    delete (demoHub.see_all_page.demoCardStyles.cta.style as any).borderColor;
+  }
+
   demoHub.cta.forEach(btn => {
     if (typeof btn.text === 'string') {
       btn.text = createLiteralProperty(btn.text);
@@ -1062,6 +1078,10 @@ function normalizeBackwardCompatibilityDemoHubConfig(demoHub : IDemoHubConfig) :
   demoHub.qualification_page.qualifications.forEach((qual) => {
     if (typeof (qual.sidePanel.conStyle as SimpleStyle).borderRadius === 'number') {
       delete (qual.sidePanel.conStyle as any).borderRadius;
+    }
+
+    if ((qual as any).sidepanelCTA !== undefined) {
+      delete (qual as any).sidepanelCTA;
     }
 
     qual.entries.forEach(qualEntry => {

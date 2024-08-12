@@ -9,17 +9,9 @@ const size = {
 };
 
 interface SectionProps {
-  fontColor: string;
-  borderRadius: number;
-  bgColor: string;
-  borderColor: string;
 }
 
 export const Section = styled.div`
-  background: ${(props: SectionProps) => props.bgColor};
-  border-radius: ${(props: SectionProps) => `${props.borderRadius}px`};
-  color: ${(props: SectionProps) => props.fontColor};
-  border: 1px solid ${(props: SectionProps) => props.borderColor};
 `;
 
 export const DemoModal = styled(Modal)`
@@ -102,14 +94,15 @@ export const DHPage = styled.div`
   background-color: var(--f-body-bg-color);
 
   .header {
-    box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
     z-index: 999;
-    position: relative;
-    border-bottom: 1px solid var(--f-header-border-color);
+    position: fixed;
+    width: 100%;
+    box-sizing: border-box;
+    top: 0;
     color: var(--f-header-font-color);
     background-color: var(--f-header-bg-color);
-    height: 40px;
-    padding: 0.75rem calc(var(--f-page-content-gutter) * 1%);
+    height: 60px;
+    padding: 0.75rem 1.9rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -123,20 +116,59 @@ export const DHPage = styled.div`
 
       > img {
         height: 100%;
+        max-height: 40px;
       }
+    }
+
+    .title{
+      margin-left: 8rem;
+      font-size: 1.85rem;
+      font-weight: 500;
+    }
+  }
+
+  .banner {
+    display: flex;
+    padding: 2rem 0 3rem 0;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--f-header-bg-color);
+    color: var(--f-header-font-color);
+
+    .title {
+      margin: 1.5rem;
+      font-size: 2.4rem;
+      font-weight: 700;
+    }
+
+     .subtitle {
+      margin: 0rem;
+      font-size: 1.6rem;
+      line-height: 1.8rem;
+      font-weight: 300;
     }
   }
 
   .body {
+    padding: 2rem 0 3rem 0;
     background-color: var(--f-body-bg-color);
     color: var(--f-body-font-color);
-    padding: 0.75rem
+    // padding: 0.75rem
       calc(
         var(--f-page-content-gutter) * 1% + var(--f-body-content-gutter) * 1%
       );
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    margin: 2rem auto;
+    max-width: 940px;
+    align-items: center;
+  }
+
+  .desc {
+    font-size: 1.3rem;
+    text-align: center;
   }
 
   .section-con {
@@ -144,14 +176,14 @@ export const DHPage = styled.div`
     flex-direction: column;
     gap: 3rem;
     margin-bottom: 1rem;
+    align-items: center;
 
     > .section {
       padding: 1rem 1.5rem;
-      box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px,
-        rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 2rem;
+      align-items: center;
 
       > p {
         margin: 0;
@@ -159,16 +191,17 @@ export const DHPage = styled.div`
     }
 
     .title {
-      font-weight: 600;
+      font-weight: 400;
       display: flex;
       justify-content: center;
+      font-size: 1.8rem;
     }
   }
 
   .demo-card-con {
+    gap: 25px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(3, 1fr);
     margin-bottom: 0.5rem;
   }
 
@@ -179,35 +212,77 @@ export const DHPage = styled.div`
     color: var(--f-democard-font-color);
 
     padding: 0.5rem;
-    width: 200px;
+    width: 280px;
+    height: 340px;
     margin: 0 auto;
     box-sizing: border-box;
     cursor: pointer;
-    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
-      rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    box-shadow: rgba(26, 19, 72, 0.2) 0px 0px 25px 0px;
     transition: all 0.2s ease-out;
 
     &:hover {
-      box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-        rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
-
-      > .demo-name {
-        text-decoration: underline;
-      }
+    transform: translateY(-15px);
+    transition: transform .4s ease;
     }
 
-    .thumb {
-      border-radius: var(--f-democard-border-radius);
+    .thumb-con{
+      position: relative;
       width: 100%;
+      height: 200px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: hidden;
       margin-bottom: 1rem;
+      border-radius: var(--f-democard-border-radius);
+    }
+
+    .thumb-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .thumb {
+      width: 100%;
       display: block;
-      box-shadow: rgba(9, 30, 66, 0.25) 0px 1px 1px,
-        rgba(9, 30, 66, 0.13) 0px 0px 1px 1px;
-      height: 130px;
+      object-fit: cover;
+      height: 100%;
+    }
+
+    .card-cta {
+      font-size: 1rem;
+      width: 40px;
+      height: 40px;
+      padding: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .card-cta-active {
+      width: 155px;
+      height: 42px;
+      transition: all .3s ease;
     }
 
     > .demo-name {
       font-weight: 600;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+      text-align: center;
+    }
+    
+    > .demo-description {
+     margin-top: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     }
   }
 
@@ -304,6 +379,18 @@ export const DHPage = styled.div`
       }
     }
   }
+
+  @media (max-width: 940px) {
+    .demo-card-con {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }     
+
+  @media (max-width: 640px) {
+  .demo-card-con {
+    grid-template-columns: repeat(1, 1fr);
+  }
+  }   
 `;
 
 export const RootCon = styled(DHPage)`

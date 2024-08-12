@@ -245,7 +245,8 @@ export const amplitudeDemoCollectionHeader = (
 
 export const amplitudeDemoCollectionBodyEdited = (
   prop: 'body_title' | 'body_bg_color' | 'body_font_color' | 'card_bg_color' | 'card_border_color' |
-  'card_font_color' | 'card_border_radius' | 'modal_bg_color' | 'modal_border_color' | 'modal_font_color' |
+  'card_font_color' | 'card_border_radius' | 'card_cta_bg_color' | 'card_cta_font_color' | 'card_cta_text' |
+  'card_cta_border_radius' | 'card_cta_border_color' | 'modal_bg_color' | 'modal_border_color' | 'modal_font_color' |
   'modal_border_radius' | 'overlay_bg_color' | 'leadform_show' | 'leadform_skip' | 'leadform_btn_text' |
   'leadform_btn_bg_color' | 'leadform_btn_font_color' | 'leadform_btn_border_radius' | 'section_add' |
   'section_edit' | 'section_delete',

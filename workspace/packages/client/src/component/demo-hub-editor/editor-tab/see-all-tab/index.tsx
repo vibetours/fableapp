@@ -18,7 +18,7 @@ import ActionPanel from '../../../screen-editor/action-panel';
 import { InputText } from '../../../screen-editor/styled';
 import CtaWrapper from '../cta-section/cta-wrapper';
 import { amplitudeDemoCollectionBodyEdited, amplitudeDemoCollectionHeader } from '../../../../amplitude';
-import { AMPLITUDE_COLLECTION_CARD_STYLE,
+import { AMPLITUDE_COLLECTION_CARD_CTA_STYLE, AMPLITUDE_COLLECTION_CARD_STYLE,
   AMPLITUDE_COLLECTION_MODAL_STYLE,
   AMPLITUDE_LEADFORM_CONTINUE_BTN_STYLE
 } from '../../../../amplitude/types';
@@ -112,7 +112,53 @@ function SeeAllPageTab(): JSX.Element {
         ...c.see_all_page,
         demoCardStyles: {
           ...c.see_all_page.demoCardStyles,
-          [key]: value,
+          card: {
+            ...c.see_all_page.demoCardStyles.card,
+            [key]: value,
+          }
+        },
+      }
+    }));
+  };
+
+  const amplitudeDemoCardCtaStyle = <K extends keyof SimpleStyle>(
+    key: K,
+    value: SimpleStyle[K]
+  ): void => {
+    amplitudeDemoCollectionBodyEdited(AMPLITUDE_COLLECTION_CARD_CTA_STYLE[key]!, value as string);
+  };
+
+  const updateDemoCardCtaStyle : SimpleStyleUpdateFn<'borderColor'> = (key, value): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        demoCardStyles: {
+          ...c.see_all_page.demoCardStyles,
+          cta: {
+            ...c.see_all_page.demoCardStyles.cta,
+            style: {
+              ...c.see_all_page.demoCardStyles.cta.style,
+              [key]: value,
+            }
+          }
+        },
+      }
+    }));
+  };
+
+  const updateDemoCardText = <
+  K extends keyof IDemoHubConfig['see_all_page']['demoCardStyles']['cta']>(key: K, value: string): void => {
+    onConfigChange(c => ({
+      ...c,
+      see_all_page: {
+        ...c.see_all_page,
+        demoCardStyles: {
+          ...c.see_all_page.demoCardStyles,
+          cta: {
+            ...c.see_all_page.demoCardStyles.cta,
+            [key]: value
+          }
         },
       }
     }));
@@ -522,7 +568,6 @@ function SeeAllPageTab(): JSX.Element {
               onConfigChange(c => {
                 const newSectionIndex = getNewIndex(c.see_all_page.sections.map(ct => ct.title), 'A new section') + 1;
                 const sectionInfo = getSampleDemoHubSeeAllPageSectionConfig(
-                  c.see_all_page.sections.at(-1)?.simpleStyle || getSampleSimpleStyle(),
                   newSectionIndex
                 );
                 sectionId = sectionInfo.id;
@@ -595,14 +640,6 @@ function SeeAllPageTab(): JSX.Element {
                 label: <span className="typ-reg">Configure demo card</span>,
                 children: (
                   <>
-                    <p
-                      className="typ-sm"
-                      style={{
-                        marginBottom: '1rem'
-                      }}
-                    >
-                      Configure the look and feel of the demo card displayed in the demo collection page.
-                    </p>
                     <div
                       style={{
                         display: 'flex',
@@ -610,11 +647,71 @@ function SeeAllPageTab(): JSX.Element {
                         gap: '1rem'
                       }}
                     >
-                      <SimpleStyleEditor
-                        simpleStyle={config.see_all_page.demoCardStyles}
-                        simpleStyleUpdateFn={updateDemoCardStyle}
-                        amplitudeStyleEvent={amplitudeDemoCardStyle}
-                      />
+                      <div>
+                        <div
+                          className="typ-reg"
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: '0.5rem',
+                            opacity: '0.75'
+                          }}
+                        >
+                          Card styles
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                          }}
+                        >
+
+                          <SimpleStyleEditor
+                            simpleStyle={config.see_all_page.demoCardStyles.card}
+                            simpleStyleUpdateFn={updateDemoCardStyle}
+                            amplitudeStyleEvent={amplitudeDemoCardStyle}
+                          />
+                        </div>
+                      </div>
+                      <div style={{
+                        marginTop: '1rem'
+                      }}
+                      >
+                        <div
+                          className="typ-reg"
+                          style={{
+                            fontWeight: 500,
+                            marginBottom: '0.5rem',
+                            opacity: '0.75'
+                          }}
+                        >
+                          Card CTA styles
+                        </div>
+                        <p
+                          className="typ-sm"
+                          style={{
+                            marginBottom: '1rem'
+                          }}
+                        >
+                          Configure the look and feel of the demo card CTA displayed on hover of demo card.
+                        </p>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <div className="typ-sm">Text</div>
+                          <InputText
+                            type="text"
+                            defaultValue={config.see_all_page.demoCardStyles.cta.text}
+                            onChange={e => updateDemoCardText('text', e.target.value)}
+                            style={{ height: '44px', width: '100%' }}
+                            onBlur={e => amplitudeDemoCollectionBodyEdited('card_cta_text', e.target.value)}
+                          />
+                        </div>
+                        <SimpleStyleEditor
+                          simpleStyle={config.see_all_page.demoCardStyles.cta.style}
+                          simpleStyleUpdateFn={updateDemoCardCtaStyle}
+                          amplitudeStyleEvent={amplitudeDemoCardCtaStyle}
+                        />
+                      </div>
                     </div>
                   </>
                 )

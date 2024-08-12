@@ -2,14 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createGlobalStyle } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { IDemoHubConfig, IDemoHubConfigSeeAllPageSection } from '../../types';
+import { createLiteralProperty } from '@fable/common/dist/utils';
+import { ThunderboltFilled } from '@ant-design/icons';
+import { IDemoHubConfig } from '../../types';
 import * as Tags from './styled';
 import Header from './header';
 import { isLeadFormPresent, validateInput } from '../annotation/utils';
 import Button from '../button';
 import * as GTags from '../../common-styled';
-import { getAllDemoRidForSection, getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, isEventValid, objectToSearchParams } from '../../utils';
+import { getAllDemoRidForSection, getorCreateDemoHubScriptEl, getOrCreateDemoHubStyleEl, objectToSearchParams } from '../../utils';
 import EmbeddedDemoIframe from './embed-demo';
+import Cta from '../demo-hub-editor/cta';
 
 const LEAD_FORM_DATA = 'fable/demo-hub-lead-form';
 
@@ -95,6 +98,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
   const [currentDemoIndex, setCurrentDemoIndex] = useState(seeAllDemoRids.findIndex(demo => (
     demo.rid === demoRid && decodeURI(currentSlug) === demo.sectionSlug
   )));
+  const [showCardButtonText, setShowCardButtonText] = useState('');
 
   const updateUrl = (addParams: Params[] | null, removeParam?: string | null, slug?: string): void => {
     const sparam = new URLSearchParams(location.search);
@@ -143,10 +147,10 @@ function DemoHubSeeAll(props: Props): JSX.Element {
         --f-header-bg-color: ${props.config.see_all_page.header.style.bgColor};
         --f-body-bg-color: ${props.config.see_all_page.body.style.bgColor};
         --f-body-font-color: ${props.config.see_all_page.body.style.fontColor};
-        --f-democard-bg-color: ${props.config.see_all_page.demoCardStyles.bgColor};
-        --f-democard-border-color: ${props.config.see_all_page.demoCardStyles.borderColor};
-        --f-democard-border-radius: ${props.config.see_all_page.demoCardStyles.borderRadius}px;
-        --f-democard-font-color: ${props.config.see_all_page.demoCardStyles.fontColor};
+        --f-democard-bg-color: ${props.config.see_all_page.demoCardStyles.card.bgColor};
+        --f-democard-border-color: ${props.config.see_all_page.demoCardStyles.card.borderColor};
+        --f-democard-border-radius: ${props.config.see_all_page.demoCardStyles.card.borderRadius}px;
+        --f-democard-font-color: ${props.config.see_all_page.demoCardStyles.card.fontColor};
         --f-demomodal-bg-color: ${props.config.see_all_page.demoModalStyles.body.bgColor};
         --f-demomodal-font-color: ${props.config.see_all_page.demoModalStyles.body.fontColor};
         --f-demomodal-border-color: ${props.config.see_all_page.demoModalStyles.body.borderColor};
@@ -300,8 +304,8 @@ function DemoHubSeeAll(props: Props): JSX.Element {
           fontSizeNormal="1rem"
           fontSizeLarge="1.6rem"
           fontSizeHuge="2.1rem"
-          fontColor={props.config.see_all_page.demoCardStyles.fontColor}
-          bgColor={props.config.see_all_page.demoCardStyles.bgColor}
+          fontColor={props.config.see_all_page.demoCardStyles.card.fontColor}
+          bgColor={props.config.see_all_page.demoCardStyles.card.bgColor}
           scaleDownLeadForm
           borderRadius={props.config.see_all_page.demoModalStyles.body.borderRadius}
           ref={conRef}
@@ -312,6 +316,10 @@ function DemoHubSeeAll(props: Props): JSX.Element {
       )}
       <>
         <Header config={props.config} />
+        {/* <div className="banner">
+          <h1 className="typ-h1 title">{props.config.see_all_page.header.title}</h1>
+          <h2 className="subtitle">{props.config.see_all_page.header.title}</h2>
+        </div> */}
         <div className="body">
           {/* <Tags.BodyText
             bgColor={props.config.see_all_page.body.style.bgColor}
@@ -323,13 +331,9 @@ function DemoHubSeeAll(props: Props): JSX.Element {
           <div className="section-con">
             {props.config.see_all_page.sections.map(section => (
               <Tags.Section
-                bgColor={section.simpleStyle.bgColor}
-                borderRadius={section.simpleStyle.borderRadius}
-                fontColor={section.simpleStyle.fontColor}
                 key={section.id}
                 id={section.slug}
                 className="section"
-                borderColor={section.simpleStyle.borderColor}
               >
                 <div
                   className="typ-h2 title"
@@ -341,7 +345,7 @@ function DemoHubSeeAll(props: Props): JSX.Element {
                 >
                   {section.title}
                 </div>
-                <p className="typ-reg desc">{section.desc}</p>
+                <p className="typ-reg section-desc">{section.desc}</p>
                 <div className="demo-card-con">
                   {section.demos.map((demo) => (
                     <div
@@ -352,13 +356,52 @@ function DemoHubSeeAll(props: Props): JSX.Element {
                           { key: 'show', value: demo.rid }
                         ], null, section.slug);
                       }}
+                      onMouseEnter={() => {
+                        setShowCardButtonText(section.id + demo.rid);
+                      }}
+                      onMouseLeave={() => {
+                        setShowCardButtonText('');
+                      }}
                     >
-                      <img
-                        src={demo.thumbnail}
-                        alt={demo.rid}
-                        className="thumb"
-                      />
-                      <span className="typ-reg demo-name">{demo.name}</span>
+                      <div className="thumb-con">
+                        <img
+                          src={demo.thumbnail}
+                          alt={demo.rid}
+                          className="thumb"
+                        />
+                        <div className="thumb-overlay">
+                          <Cta
+                            cta={{
+                              text: createLiteralProperty(showCardButtonText === section.id + demo.rid
+                                ? props.config.see_all_page.demoCardStyles.cta.text : ''),
+                              id: 'card-cta',
+                              deletable: false,
+                              link: createLiteralProperty(''),
+                              type: createLiteralProperty('primary'),
+                              style: {
+                                borderRadius: props.config.see_all_page.demoCardStyles.cta.style.borderRadius,
+                                fontColor: props.config.see_all_page.demoCardStyles.cta.style.fontColor,
+                                bgColorProp:
+                                 createLiteralProperty(props.config.see_all_page.demoCardStyles.cta.style.bgColor),
+                              },
+                              __definedBy: 'user',
+                              __linkType: 'open_demo_modal',
+                              icon: <ThunderboltFilled
+                                style={{
+                                  color: props.config.see_all_page.demoCardStyles.cta.style.fontColor,
+                                  fontSize: '1rem'
+                                }}
+                              />,
+                              iconPlacement: 'left',
+                            }}
+                            width="40"
+                            className={showCardButtonText === section.id + demo.rid
+                              ? 'card-cta card-cta-active' : 'card-cta'}
+                          />
+                        </div>
+                      </div>
+                      <span className="typ-h3 demo-name">{demo.name}</span>
+                      <span className="typ-reg demo-description">{demo.desc}</span>
                     </div>
                   ))}
                 </div>

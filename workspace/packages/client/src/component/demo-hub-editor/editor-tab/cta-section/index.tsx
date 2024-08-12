@@ -45,9 +45,6 @@ function CTASection(): JSX.Element {
       if (ctaIdToBeDeleteIdxInQualificationPageHeader >= 0) c.qualification_page.header.ctas.splice(ctaIdToBeDeleteIdxInQualificationPageHeader, 1);
 
       for (let i = 0; i < c.qualification_page.qualifications.length; i++) {
-        const ctaIdToBeDeleteIdx = c.qualification_page.qualifications[i].sidepanelCTA.findIndex(cta => cta === id);
-        if (ctaIdToBeDeleteIdx >= 0) c.qualification_page.qualifications[i].sidepanelCTA.splice(ctaIdToBeDeleteIdx, 1);
-
         const endCtaIdToBeDeleteIdx = c.qualification_page.qualifications[i].qualificationEndCTA.findIndex(cta => cta === id);
         if (endCtaIdToBeDeleteIdx >= 0) c.qualification_page.qualifications[i].qualificationEndCTA.splice(endCtaIdToBeDeleteIdx, 1);
       }

@@ -388,9 +388,9 @@ export interface IDemoHubConfigCta {
   // If this id changes reference to this cta will also be updated
   id: string;
   deletable: boolean;
-  icon?: Icon;
+  icon?: React.ReactNode;
   iconPlacement?: 'left' | 'right';
-  __linkType: 'open_ext_url',
+  __linkType: 'open_ext_url' | 'open_demo_modal',
   link: Property<string>;
   // by default fable adds two cta 1. See all demos & 2. Book a demo
   // Those are 'system' defined
@@ -406,7 +406,6 @@ export interface IDemoHubConfigSeeAllPageSection {
   id: string;
   slug: string;
   desc: string;
-  simpleStyle: SimpleStyle;
   demos: Array<IDemoHubConfigDemo>;
 }
 
@@ -436,8 +435,6 @@ export interface IDemoHubConfigQualification {
   // `sidepanel-card-title` `sidepanel-card-desc-text`
   sidePanel: DemoHubQualificationSidePanel;
   qualificationEndCTA: string[];
-  // If it's string then it's mapped to id of ctas TODO
-  sidepanelCTA: string[];
 }
 
 export interface IDemoHubConfig {
@@ -487,7 +484,13 @@ export interface IDemoHubConfig {
     sections: IDemoHubConfigSeeAllPageSection[];
     // STANDARD_CLASS_NAME
     // container `demo-card`, thumbnail `thumb`, title `title`
-    demoCardStyles: SimpleStyle;
+    demoCardStyles: {
+     card: SimpleStyle;
+     cta: {
+      style: Omit<SimpleStyle, 'borderColor' >,
+      text: string
+    }
+    }
     demoModalStyles: {
       overlay: Omit<SimpleStyle, 'borderColor' | 'borderRadius' | 'fontColor'>;
       body: SimpleStyle;

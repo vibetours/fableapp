@@ -17,7 +17,6 @@ function Header(): JSX.Element {
     <div className="header">
       <div className="logo">
         <img src={config.logo._val} alt={config.companyName._val} />
-        <h2 className="typ-h2">{config.companyName._val}</h2>
       </div>
       <div>
         <h1 className="typ-h1 title">{header.title}</h1>

@@ -1,19 +1,14 @@
 import { DeleteOutlined, EditOutlined, HolderOutlined } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
 import React, { useState } from 'react';
-import { DragDropContext, Draggable, DraggableProvided, Droppable, DropResult } from 'react-beautiful-dnd';
-import { IDemoHubConfigSeeAllPageSection, IDemoHubConfigDemo, SimpleStyle } from '../../../../types';
-import Input from '../../../input';
+import { DraggableProvided, DropResult } from 'react-beautiful-dnd';
+import { IDemoHubConfigSeeAllPageSection, SimpleStyle } from '../../../../types';
 import { useEditorCtx } from '../../ctx';
-import TextArea from '../../../text-area';
-import * as GTags from '../../../../common-styled';
 import SimpleStyleEditor from '../../simple-styles-editor';
-import { getTourByRid, stringToSlug } from '../../utils';
-import CaretOutlined from '../../../icons/caret-outlined';
+import { stringToSlug } from '../../utils';
 import { buttonSecStyle } from '../../../screen-editor/annotation-creator-panel';
 import { InputText } from '../../../screen-editor/styled';
 import { showDeleteConfirm } from '../../delete-confirm';
-import FableLogo from '../../../../assets/fable-rounded-icon.svg';
 import { rearrangeArray } from '../../../../utils';
 import DraggableDemosSelector from '../../components';
 import { ampliteDemoCollectionSectionEdited, amplitudeDemoCollectionBodyEdited } from '../../../../amplitude';
@@ -27,22 +22,6 @@ interface Props {
 export default function SectionEditor(props: Props): JSX.Element {
   const { onConfigChange, tours } = useEditorCtx();
   const [showEditor, setShowEditor] = useState(false);
-
-  const amplitudeSectionStyle = <K extends keyof SimpleStyle>(
-    key: K,
-    value: SimpleStyle[K]
-  ): void => {
-    const sectionId = props.section.id;
-    ampliteDemoCollectionSectionEdited(sectionId, AMPLITUDE_SIMPLE_STYLE[key]!, value as string);
-  };
-
-  const updateSectionSimpleStyle = <K extends keyof SimpleStyle>(
-    key: K,
-    value: SimpleStyle[K]
-  ): void => {
-    const sectionId = props.section.id;
-    updateSectionProp('simpleStyle', { ...props.section.simpleStyle, [key]: value });
-  };
 
   const updateSectionProp = <K extends keyof IDemoHubConfigSeeAllPageSection>(
     key: K,
@@ -273,12 +252,6 @@ export default function SectionEditor(props: Props): JSX.Element {
               onBlur={e => ampliteDemoCollectionSectionEdited(props.section.id, 'description', e.target.value)}
             />
           </div>
-
-          <SimpleStyleEditor
-            simpleStyle={props.section.simpleStyle}
-            simpleStyleUpdateFn={updateSectionSimpleStyle}
-            amplitudeStyleEvent={amplitudeSectionStyle}
-          />
 
           <DraggableDemosSelector
             selectedDemos={props.section.demos}

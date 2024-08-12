@@ -5,6 +5,7 @@ import * as Tags from '../styled';
 import Cta from '../../demo-hub-editor/cta';
 import EntryButton from './button';
 import { useDemoHubQlfcnCtx } from '../ctx';
+import { SelectStep } from '../type';
 
 const reactanimated = require('react-animated-css');
 
@@ -46,34 +47,36 @@ function BaseEntry(props: Props): JSX.Element {
         styleData={props.entryBaseData.style}
         className="q-con"
       >
-        <Tags.BaseEntryContent
-          maxWidth={props.isDemo ? 'full' : 'content'}
-          styleData={props.entryBaseData.style}
-          className={`${props.compact ? 'compact' : ''}`}
-        >
-          <div className={`line1 ${props.compact ? 'compact' : ''}`}>
-            {props.entryBaseData.title && (
+        <div className={(props.entryBaseData as SelectStep).demoData ? 'q-inner-con-full-w' : 'q-inner-con'}>
+          <Tags.BaseEntryContent
+            maxWidth={props.isDemo ? 'full' : 'content'}
+            styleData={props.entryBaseData.style}
+            className={`${props.compact ? 'compact' : ''}`}
+          >
+            <div className={`line1 ${props.compact ? 'compact' : ''}`}>
+              {props.entryBaseData.title && (
               <Tags.StepTitle
                 className={`step-title title ${props.compact ? 'compact' : ''}`}
                 styleData={props.entryBaseData.style}
               >
                 {props.entryBaseData.title}
               </Tags.StepTitle>
-            )}
-            {props.compact && (<CTAs {...props} />)}
-          </div>
-          {props.entryBaseData.desc && (
+              )}
+              {props.compact && (<CTAs {...props} />)}
+            </div>
+            {props.entryBaseData.desc && (
             <Tags.StepDesc
               className="step-desc desc"
               styleData={props.entryBaseData.style}
             >
               {props.entryBaseData.desc}
             </Tags.StepDesc>
-          )}
+            )}
 
-          {props.children}
-          {!props.compact && (<CTAs {...props} />)}
-        </Tags.BaseEntryContent>
+            {props.children}
+            {!props.compact && (<CTAs {...props} />)}
+          </Tags.BaseEntryContent>
+        </div>
       </Tags.BaseEntryCon>
     </reactanimated.Animated>
 

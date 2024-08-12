@@ -19,6 +19,16 @@ export const AMPLITUDE_COLLECTION_CARD_STYLE: {
   borderColor: 'card_border_color'
 } as const;
 
+export const AMPLITUDE_COLLECTION_CARD_CTA_STYLE: {
+  [K in keyof SimpleStyle]: 'card_cta_bg_color' | 'card_cta_font_color' |
+  'card_cta_border_radius' | 'card_cta_border_color'
+} = {
+  bgColor: 'card_cta_bg_color',
+  fontColor: 'card_cta_font_color',
+  borderRadius: 'card_cta_border_radius',
+  borderColor: 'card_cta_border_color'
+} as const;
+
 export const AMPLITUDE_SIMPLE_STYLE: {
     [K in keyof SimpleStyle]: 'bg_color' | 'font_color' | 'border_radius' | 'border_color'
 } = {

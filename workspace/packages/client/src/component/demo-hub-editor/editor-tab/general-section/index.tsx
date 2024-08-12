@@ -124,22 +124,6 @@ function GeneralSection(): JSX.Element {
           <div
             style={{
               display: 'flex',
-              flexDirection: 'column',
-              gap: '0.25rem',
-            }}
-          >
-            <div className="typ-sm">Company name</div>
-            <InputText
-              value={config.companyName._val}
-              onChange={e => updateGeneralProps('companyName', createLiteralProperty(e.target.value))}
-              onBlur={e => amplitudeDemoHubGeneralSectionEdited('company_name', e.target.value)}
-              style={{ height: '44px', width: '100%' }}
-            />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
               gap: '1rem'
             }}
           >

@@ -36,11 +36,13 @@ export default function Cta(props: Props): JSX.Element {
       style={{
         width: props.width || 'fit-content',
         display: 'block',
-        textDecoration: 'none'
+        textDecoration: 'none',
+        pointerEvents: props.cta.__linkType === 'open_demo_modal' ? 'none' : 'auto',
       }}
     >
       <Button
         id={props.cta.id}
+        icon={props.cta.icon}
         iconPlacement={props.cta.iconPlacement}
         intent={props.cta.type._val === 'primary' ? 'primary' : 'secondary'}
         bgColor={props.cta.style.bgColorProp._val}

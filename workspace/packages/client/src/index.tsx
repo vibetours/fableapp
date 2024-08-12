@@ -44,7 +44,10 @@ if (document.location.pathname !== '/aboutblank') {
 
   if (window.location.pathname.includes('/embed/')
     || window.location.pathname.includes('/live/')
-    || window.location.pathname.includes('/p/')) {
+    || window.location.pathname.includes('/p/')
+    || window.location.pathname.includes('/hub/q')
+    || window.location.pathname.includes('/hub/seeall')
+  ) {
     sentryInit('client-preview', packageJSON.version);
   } else {
     sentryInit('client', packageJSON.version);

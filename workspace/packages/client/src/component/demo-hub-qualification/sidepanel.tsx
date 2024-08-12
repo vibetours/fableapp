@@ -63,19 +63,6 @@ function Sidepanel(props: Props): JSX.Element {
           </div>
         ))
       }
-      <div className="cta-con">
-        {qualificationConfig.sidepanelCTA.map((ctaId) => {
-          const cta = config.cta.find(item => item.id === ctaId);
-          if (!cta) return null;
-          return (
-            <Cta
-              cta={cta}
-              key={ctaId}
-              className={`cta cta-${ctaId} sidepanel-cta`}
-            />
-          );
-        })}
-      </div>
     </div>
   );
 }

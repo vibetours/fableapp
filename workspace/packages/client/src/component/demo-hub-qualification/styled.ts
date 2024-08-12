@@ -9,6 +9,9 @@ export const RootCon = styled(DHTags.DHPage)`
   flex-direction: column;
   height: 100vh;
   max-height: 100vh;
+  padding-top: 60px;
+  box-sizing: border-box;
+  
   .animated {
     position: absolute;
     left: 0;
@@ -42,21 +45,28 @@ export const BaseEntryCon = styled.div<{isVisible: boolean, styleData: SimpleSty
   color: ${p => p.styleData.fontColor};
   background-color: ${p => p.styleData.bgColor};
   border-color: ${p => p.styleData.borderColor};
+  padding: 2rem;
+  overflow: auto;
+  box-sizing: border-box;
+
+  .q-inner-con-full-w{
+  height: calc(100% - 4rem);
+  }
 `;
 
 export const BaseEntryContent = styled.div<{maxWidth: 'full' | 'content', styleData: SimpleStyle}>`
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   text-align: center;
   gap: 1rem;
   height: 100%;
   max-width: ${props => (props.maxWidth === 'content' ? '450px' : '100%')};
   margin: auto;
   color: ${p => p.styleData.fontColor};
-  padding: 0 1rem;
-
+  padding: 2rem 1rem;
+  
   &.compact {
     gap: 0.25rem;
   }
@@ -77,7 +87,8 @@ export const BaseEntryCTACon = styled.div`
 export const StepTitle = styled.h1<{styleData: SimpleStyle}>`
   margin: 0;
   padding: 0;
-  font-size: 2.5rem;
+  font-size: 1.8rem;
+  font-weight: 500;
   color: ${p => p.styleData.fontColor};
 
   &.compact {
@@ -150,7 +161,7 @@ export const EmptyCircle = styled.div`
 
 export const SelectionOptionsList = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(1, 1fr);
   justify-content: center;
   gap: 1rem;
   font-size: 1.15rem;
@@ -166,12 +177,12 @@ export const SelectOption = styled.div<{styleData: SimpleStyle}>`
   justify-content: flex-start;
   flex-direction: column;
   align-items: flex-start;
-  padding: 0.5rem 1rem;
+  padding: 1rem;
   color: ${p => p.styleData.fontColor};
   background-color: transparent;
   border: 2px solid ${p => p.styleData.borderColor};
   border-radius: ${p => p.styleData.borderRadius / 2}px;
-  width: 240px;
+  width: 500px;
   cursor: pointer;
   transition: all 0.2s ease-out;
 

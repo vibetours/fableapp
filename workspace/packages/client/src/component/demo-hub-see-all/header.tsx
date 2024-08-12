@@ -15,7 +15,6 @@ function Header(props: Props): JSX.Element {
     <div className="header">
       <div className="logo">
         <img src={props.config.logo._val} alt={props.config.companyName._val} />
-        <div className="typ-h2">{props.config.companyName._val}</div>
       </div>
       <div>
         <h1 className="typ-h1 title">{props.config.see_all_page.header.title}</h1>

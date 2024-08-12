@@ -1104,21 +1104,31 @@ export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
     },
     sections: [
       {
-        ...getSampleDemoHubSeeAllPageSectionConfig(getSampleSimpleStyle(), 1),
+        ...getSampleDemoHubSeeAllPageSectionConfig(1),
         title: 'Collection of some amazing demos',
         slug: 'collection-of-some-amazing-demos',
       },
       {
-        ...getSampleDemoHubSeeAllPageSectionConfig(getSampleSimpleStyle(), 1),
+        ...getSampleDemoHubSeeAllPageSectionConfig(1),
         title: 'Second collection of amazing demos',
         slug: 'second-collection-of-amazing demos',
       }
     ],
     demoCardStyles: {
-      bgColor: '#ffffff',
-      borderColor: '#ffffff00',
-      fontColor: '#0A0A0A',
-      borderRadius: 4
+      card: {
+        bgColor: '#ffffff',
+        borderColor: '#ffffff00',
+        fontColor: '#0A0A0A',
+        borderRadius: 4
+      },
+      cta: {
+        style: {
+          bgColor: '#ffffff',
+          fontColor: '#0A0A0A',
+          borderRadius: 4,
+        },
+        text: 'Start tour'
+      }
     },
     demoModalStyles: {
       overlay: {
@@ -1217,11 +1227,10 @@ export const getSampleDemoHubConfigCta = (prevConfig: CTAPrevConfig, globalConfi
   style: { ...getSampleCTASimpleStyle(globalConfig), ...prevConfig },
 });
 
-export const getSampleDemoHubSeeAllPageSectionConfig = (simpleStyle: SimpleStyle, idx: number): IDemoHubConfigSeeAllPageSection => ({
+export const getSampleDemoHubSeeAllPageSectionConfig = (idx: number): IDemoHubConfigSeeAllPageSection => ({
   title: `A new section ${idx}`,
   slug: `a-new-section-${idx}`,
   desc: 'This is a placeholder description which is shown above the collection of demos. You can change this text in the side panel on the left. Leave it empty to delete the description field.',
-  simpleStyle,
   demos: [],
   id: nanoid(),
 });
@@ -1249,7 +1258,6 @@ export const getSampleDemoHubQualification = (
   title: `Choose your experience ${idx}`,
   slug: `choose-your-experience-${idx}`,
   sidePanel,
-  sidepanelCTA: ['book-a-demo'],
   qualificationEndCTA: ['book-a-demo'],
   entries: [],
 });

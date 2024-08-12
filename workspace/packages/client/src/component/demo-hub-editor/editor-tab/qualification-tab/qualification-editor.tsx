@@ -37,7 +37,7 @@ interface Props {
   setActiveQualificationId: (id: string) => void;
 }
 
-interface SidePanelCtaProps {
+interface QualificationEndCtaProps {
   CTA: string[],
   config: IDemoHubConfig,
   deleteCta: (ctaId: string) => void,
@@ -45,11 +45,11 @@ interface SidePanelCtaProps {
   setIsCtaSelectOpen: React.Dispatch<React.SetStateAction<boolean>>,
   addCta: (ctaId: string) => void,
   qualification: IDemoHubConfigQualification;
-  ctaType: 'qualificationEndCTA' | 'sidepanelCTA'
+  ctaType: 'qualificationEndCTA'
   helpText: string;
 }
 
-function SidePanelCta(ctaProps: SidePanelCtaProps): JSX.Element {
+function QualificationEndCta(ctaProps: QualificationEndCtaProps): JSX.Element {
   const { onConfigChange } = useEditorCtx();
 
   const rearrangeCtaFn = (r: DropResult): void => {
@@ -241,7 +241,6 @@ function SidePanelCta(ctaProps: SidePanelCtaProps): JSX.Element {
 
 export default function QualificationEditor(props: Props): JSX.Element {
   const { config, onConfigChange, setPreviewUrl, data } = useEditorCtx();
-  const [isSidepanelCtaSelectOpen, setIsSidepanelCtaSelectOpen] = useState(false);
   const [isEndCtaSelectOpen, setIsEndCtaSelectOpen] = useState(false);
   const [isAddAStepPopoverOpen, setIsAddAStepPopoverOpen] = useState(false);
   const [activeEntryId, setActiveEntryId] = useState('');
@@ -292,40 +291,6 @@ export default function QualificationEditor(props: Props): JSX.Element {
     setPreviewUrl(`q/${data.rid}/${slug}?lp=true`);
   };
 
-  const addSidepanelCta = (ctaId: string): void => {
-    amplitudeDemoQualEdit({
-      qualification_id: props.qualification.id,
-      demo_qualification_prop: 'sidepanel_cta_select',
-      demo_qualification_value: ctaId
-    });
-    onConfigChange(c => {
-      const qualificationToBeUpdatedIdx = c
-        .qualification_page
-        .qualifications
-        .findIndex(q => q.id === props.qualification.id);
-
-      c
-        .qualification_page
-        .qualifications
-        .splice(
-          qualificationToBeUpdatedIdx,
-          1,
-          {
-            ...props.qualification,
-            sidepanelCTA: [...props.qualification.sidepanelCTA, ctaId],
-          }
-        );
-
-      return {
-        ...c,
-        qualification_page: {
-          ...c.qualification_page,
-          qualifications: [...c.qualification_page.qualifications],
-        },
-      };
-    });
-  };
-
   const addSidepanelEndCta = (ctaId: string): void => {
     amplitudeDemoQualEdit(
       {
@@ -350,40 +315,6 @@ export default function QualificationEditor(props: Props): JSX.Element {
             ...props.qualification,
             qualificationEndCTA: [...props.qualification.qualificationEndCTA, ctaId],
           }
-        );
-
-      return {
-        ...c,
-        qualification_page: {
-          ...c.qualification_page,
-          qualifications: [...c.qualification_page.qualifications],
-        },
-      };
-    });
-  };
-
-  const deleteSidepanelCta = (ctaId: string): void => {
-    amplitudeDemoQualEdit({
-      qualification_id: props.qualification.id,
-      demo_qualification_prop: 'sidepanel_cta_delete',
-      demo_qualification_value: ctaId
-    });
-    onConfigChange(c => {
-      const qualificationToBeUpdatedIdx = c
-        .qualification_page
-        .qualifications
-        .findIndex(q => q.id === props.qualification.id);
-
-      c
-        .qualification_page
-        .qualifications
-        .splice(
-          qualificationToBeUpdatedIdx,
-          1,
-          {
-            ...props.qualification,
-            sidepanelCTA: props.qualification.sidepanelCTA.filter(cId => cId !== ctaId)
-          },
         );
 
       return {
@@ -1641,6 +1572,15 @@ export default function QualificationEditor(props: Props): JSX.Element {
                 label: <span className="typ-reg">CTA</span>,
                 children: (
                   <Tags.QfcnStepsCollapseCon>
+                    <div
+                      style={{
+                        marginBottom: '0.5rem',
+                        opacity: '0.75',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Configure qualification end CTA
+                    </div>
                     <p
                       className="typ-sm"
                       style={{
@@ -1648,45 +1588,18 @@ export default function QualificationEditor(props: Props): JSX.Element {
                         marginBottom: '0.5rem'
                       }}
                     >
-                      Configure call-to-actions buttons shown in the qualification page
+                      Configure call-to-action buttons that are shown at the end
                     </p>
-                    <Collapse
-                      items={[
-                        {
-                          key: '1',
-                          label: 'Configure sidepanel CTA',
-                          children: (
-                            <SidePanelCta
-                              CTA={props.qualification.sidepanelCTA}
-                              config={config}
-                              deleteCta={deleteSidepanelCta}
-                              isCtaSelectOpen={isSidepanelCtaSelectOpen}
-                              setIsCtaSelectOpen={setIsSidepanelCtaSelectOpen}
-                              addCta={addSidepanelCta}
-                              qualification={props.qualification}
-                              ctaType="sidepanelCTA"
-                              helpText="These call- to-action buttons are always displayed in the side panel"
-                            />
-                          )
-                        },
-                        {
-                          key: '2',
-                          label: 'Configure qualification end CTA',
-                          children: (
-                            <SidePanelCta
-                              CTA={props.qualification.qualificationEndCTA}
-                              config={config}
-                              deleteCta={deleteSidepanelEndCta}
-                              isCtaSelectOpen={isEndCtaSelectOpen}
-                              setIsCtaSelectOpen={setIsEndCtaSelectOpen}
-                              addCta={addSidepanelEndCta}
-                              qualification={props.qualification}
-                              ctaType="qualificationEndCTA"
-                              helpText="These call-to-action buttons are displayed at the end of viewing all the demos"
-                            />
-                          )
-                        }
-                      ]}
+                    <QualificationEndCta
+                      CTA={props.qualification.qualificationEndCTA}
+                      config={config}
+                      deleteCta={deleteSidepanelEndCta}
+                      isCtaSelectOpen={isEndCtaSelectOpen}
+                      setIsCtaSelectOpen={setIsEndCtaSelectOpen}
+                      addCta={addSidepanelEndCta}
+                      qualification={props.qualification}
+                      ctaType="qualificationEndCTA"
+                      helpText=""
                     />
                   </Tags.QfcnStepsCollapseCon>
                 )
