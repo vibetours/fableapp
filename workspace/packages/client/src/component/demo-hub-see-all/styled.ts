@@ -274,7 +274,7 @@ export const DHPage = styled.div`
       -webkit-box-orient: vertical;
       overflow: hidden;
       word-break: break-word;
-      text-align: center;
+      text-align: left;
     }
     
     > .demo-description {
