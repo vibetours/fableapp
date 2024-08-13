@@ -441,6 +441,8 @@ export interface IDemoHubConfig {
   // monotonically increasing version
   v: number;
 
+  lastUpdatedAt: number;
+
   logo: Property<string>;
 
   companyName: Property<string>;

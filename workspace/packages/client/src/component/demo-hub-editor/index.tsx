@@ -3,6 +3,7 @@ import { Tabs, Button as AntButton } from 'antd';
 import { ReqDemoHubPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CaretRightOutlined } from '@ant-design/icons';
 import { IGlobalConfig } from '@fable/common/dist/types';
+import { getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import * as Tags from './styled';
 import EditorTab from './editor-tab';
 import {
@@ -44,10 +45,24 @@ function DemoHubEditor(props: Props): JSX.Element {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const isInited = useRef<boolean>(false);
 
+  const onConfigChange = (
+    value: IDemoHubConfig
+    | ((prevState: IDemoHubConfig) => IDemoHubConfig)
+  ): void => {
+    if (typeof value === 'function') {
+      setConfig(prevState => {
+        const newData = value(prevState);
+        return { ...newData, lastUpdatedAt: getCurrentUtcUnixTime() };
+      });
+    } else {
+      setConfig({ ...value, lastUpdatedAt: getCurrentUtcUnixTime() });
+    }
+  };
+
   const ctxValue = useMemo(
     () => ({
       config,
-      onConfigChange: setConfig,
+      onConfigChange,
       tours: props.tours.filter(tour => tour.lastPublishedDate),
       data: props.data,
       setPreviewUrl,
@@ -64,7 +79,9 @@ function DemoHubEditor(props: Props): JSX.Element {
   }, [props.data.rid]);
 
   useEffect(() => {
-    setConfig(props.config);
+    if (config.lastUpdatedAt !== props.config.lastUpdatedAt) {
+      setConfig(config);
+    }
   }, [props.config]);
 
   useEffect(() => {

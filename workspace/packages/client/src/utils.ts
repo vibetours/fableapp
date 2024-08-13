@@ -15,7 +15,7 @@ import {
   PropertyType,
   SerNode,
 } from '@fable/common/dist/types';
-import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
+import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef } from 'react';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
@@ -1048,6 +1048,7 @@ export function shouldReduceMotionForMobile(opts: ITourDataOpts | null):boolean 
 export const isGlobalProperty = <T>(value: Property<T>): boolean => value.type === PropertyType.REF;
 export const getSampleDemoHubConfig = (): IDemoHubConfig => ({
   v: 1,
+  lastUpdatedAt: getCurrentUtcUnixTime(),
   logo: createGlobalProperty('https://s3.amazonaws.com/app.sharefable.com/favicon.png', GlobalPropsPath.logo),
   companyName: createLiteralProperty('Fable'),
   fontFamily: createGlobalProperty('', GlobalPropsPath.fontFamily),
