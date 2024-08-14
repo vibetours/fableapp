@@ -4,4 +4,3 @@ Disallow: /
 Allow: /live/
 Allow: /p/
 Allow: /embed/
-Allow: /hub/
