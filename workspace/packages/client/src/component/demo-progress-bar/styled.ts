@@ -20,7 +20,7 @@ export const ProgressIndicatorCon = styled.div`
   position: relative;
   height: 10px;
   border-radius: 2px;
-  z-index: 99999;
+  z-index: 9;
 
   &:before {
     content: '';

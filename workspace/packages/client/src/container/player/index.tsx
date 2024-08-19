@@ -5,7 +5,8 @@ import {
   LoadingStatus, ScreenData
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { FrameSettings, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { DownSquareOutlined, ExpandOutlined, LoginOutlined, ReloadOutlined } from '@ant-design/icons';
 import { loadScreenAndData, loadTourAndData, removeScreenDataForRids, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
@@ -46,7 +47,10 @@ import {
   fillLeadFormForAllAnnotationsForTour,
   fillLeadFormForAllAnnotations,
   getIsMobileSize,
-  shouldReduceMotionForMobile
+  shouldReduceMotionForMobile,
+  getProcessedJourney,
+  isMobileOperatingSystem,
+  isFrameSettingsValidValue
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -62,6 +66,8 @@ import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addTo
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 import DemoProgressBar from '../../component/demo-progress-bar';
+import { getMenu } from '../../component/journey-menu';
+import DemoFrame from '../../component/demo-frame/demo-frame';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
@@ -166,6 +172,8 @@ interface IOwnStateProps {
   showRotateScreenModal: boolean;
   isIOSPhone: boolean;
   screenPrerenderCount: number;
+  previewReplayerKey: number;
+  frameSetting: FrameSettings;
 }
 
 interface ScreenInfo {
@@ -210,8 +218,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private shouldSkipLeadForm: boolean = false;
 
+  private paramsFrameSettingValue: FrameSettings | null = null;
+
+  private playerRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
   constructor(props: IProps) {
     super(props);
+
     this.state = {
       tourMainValidity: TourMainValidity.Valid,
       initialScreenRid: '',
@@ -223,7 +236,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       screenSizeData: {},
       showRotateScreenModal: false,
       isIOSPhone: getMobileOperatingSystem() === 'iOS',
-      screenPrerenderCount: 2
+      screenPrerenderCount: 2,
+      previewReplayerKey: Math.random(),
+      frameSetting: (this.props.tour?.info.frameSettings || FrameSettings.NOFRAME)
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -266,6 +281,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (this.props.searchParams.get('skiplf') === '1') {
       this.shouldSkipLeadForm = true;
+    }
+
+    const queryFrameSetting = this.props.searchParams.get('fframe');
+    if (queryFrameSetting) {
+      this.paramsFrameSettingValue = isFrameSettingsValidValue(queryFrameSetting);
     }
 
     window.addEventListener('beforeunload', removeSessionId);
@@ -397,7 +417,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   navigateToMain = (): void => {
     this.preRender();
     const opts = this.props.tourOpts;
-    const flowIdx = Number(this.props.searchParams.get('n'));
 
     if (this.props.match.params.screenRid && this.props.match.params.annotationId) return;
 
@@ -407,6 +426,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       return;
     }
 
+    this.goToMain();
+  };
+
+  goToMain = (): void => {
+    const opts = this.props.tourOpts;
+    const flowIdx = Number(this.props.searchParams.get('n'));
     let main = '';
     if (flowIdx && flowIdx >= 1 && this.props.journey && this.props.journey.flows.length >= flowIdx) {
       main = this.props.journey!.flows[flowIdx - 1].main;
@@ -524,7 +549,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleResponsiveness = (): void => {
     if (!getIsMobileSize()) return;
-
     if (this.props.tour && isTourResponsive(this.props.tour)) {
       this.props.updateElpathKey('m_id');
       return;
@@ -593,6 +617,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       // add images to preload
       const main = this.props.tourOpts ? this.props.tourOpts.main : '';
       preloadImagesInTour(this.props.allAnnotationsForTour, this.props.journey, main);
+
+      this.setState({
+        frameSetting: this.paramsFrameSettingValue || this.props.tour!.info.frameSettings
+      });
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
       if (this.state.initialScreenRid) {
@@ -790,6 +818,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   getCurrScreenId(): number {
     if (!this.props.match.params.screenRid) return -1;
+    if (this.props.allScreens.length === 0) return -1;
     return this.props.allScreens.find(screen => screen.rid === this.props.match.params.screenRid!)!.id;
   }
 
@@ -853,12 +882,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     return (
-      <GTags.BodyCon style={{
-        height: '100%',
-        padding: 0,
-        overflowY: 'hidden',
-      }}
-      > {
+      <GTags.BodyCon
+        style={{
+          height: '100%',
+          padding: 0,
+          overflowY: 'hidden',
+          gap: '0',
+          position: 'relative',
+        }}
+        ref={this.playerRef}
+      >
+        {
           this.isLoadingComplete() && this.getScreenWithRenderSlot()
             .filter(c => c.isRenderReady)
             .map(config => (
@@ -867,7 +901,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 resizeSignal={1}
                 journey={this.props.journey!}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
-                key={config.screen.id}
+                key={config.screen.id + this.state.previewReplayerKey}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
                 hidden={config.screen.id !== this.getCurrScreenId()}
@@ -950,6 +984,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 }}
                 shouldSkipLeadForm={this.shouldSkipLeadForm}
+                frameSetting={this.state.frameSetting}
               />
             ))
         }
@@ -964,12 +999,59 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           annotationSerialIdMap={this.state.annotationSerialIdMap}
         />
         )}
+        {
+          !isMobileOperatingSystem()
+          && this.state.frameSetting !== FrameSettings.NOFRAME
+          && this.state.screenSizeData[this.getCurrScreenId()]
+          && (
+            <DemoFrame
+              mode={this.state.frameSetting}
+              iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
+              screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+              showModule={
+                this.isInitialPrerenderingComplete()
+                && this.isJourneyAdded()
+                && (!this.queryData || !this.queryData.hm)
+                && !this.shouldHideJourney()
+              }
+              isJourneyMenuOpen={this.state.isJourneyMenuOpen}
+              setIsJourneyMenuOpen={() => {
+                this.setState(prevState => ({
+                  isJourneyMenuOpen: !prevState.isJourneyMenuOpen
+                }));
+              }}
+              JourneyMenuComponent={
+                getMenu(
+                  getProcessedJourney(this.props.journey!),
+                  this.navigateTo,
+                  () => this.navigateToAndLogEvent(this.props.journey!, 'abs'),
+                  this.props.tourOpts!,
+                  this.state.currentFlowMain,
+                  this.localJourneyProgress[this.props.tour!.id],
+                  (isMenuOpen: boolean): void => {
+                    this.setState({ isJourneyMenuOpen: isMenuOpen });
+                  },
+                  this.state.screenSizeData[this.getCurrScreenId()].iframePos.width
+                )
+              }
+              tour={this.props.tour!}
+              replayHandler={() => {
+                this.goToMain();
+                this.setState({
+                  previewReplayerKey: Math.random()
+                });
+              }}
+              makeEmbedFrameFullScreen={() => this.playerRef.current!.requestFullscreen()}
+            />
+          )
+        }
         <Suspense fallback={null}>
           {
-            this.isInitialPrerenderingComplete()
+             this.isInitialPrerenderingComplete()
             && this.isJourneyAdded()
             && (!this.queryData || !this.queryData.hm)
             && !this.shouldHideJourney()
+            && (this.state.frameSetting === FrameSettings.NOFRAME || isMobileOperatingSystem())
             && (
               <JourneyMenu
                 currScreenId={this.getCurrScreenId()}

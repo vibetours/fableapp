@@ -2,6 +2,7 @@ import {
   RespDemoEntity, Responsiveness,
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
+  FrameSettings,
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
@@ -339,6 +340,16 @@ export const getDimensionsBasedOnDisplaySize = (displaySize: DisplaySize): { hei
       return { width: `${RESP_MOBILE_SRN_HEIGHT}px`, height: `${RESP_MOBILE_SRN_WIDTH}px` };
     default:
       return { height: '100%', width: '100%' };
+  }
+};
+
+export const isMobilePreviewDisplaySize = (displaySize: DisplaySize): boolean => {
+  switch (displaySize) {
+    case DisplaySize.MOBILE_PORTRAIT:
+    case DisplaySize.MOBILE_LANDSCAPE:
+      return true;
+    default:
+      return false;
   }
 };
 
@@ -1504,3 +1515,54 @@ export function getAllDemoRidForSection(
   });
   return rids;
 }
+
+interface FlowWithLastMandatory extends JourneyFlow{
+  lastMandatory: number
+}
+
+interface JourneyWithLastMandatory extends JourneyData {
+  flows: FlowWithLastMandatory[]
+}
+
+export function getProcessedJourney(journey : JourneyData) : JourneyWithLastMandatory {
+  const flows = journey.flows;
+  let lastMandatory = -1;
+  (flows as FlowWithLastMandatory[]).forEach((flow, idx) => {
+    flow.lastMandatory = lastMandatory;
+    if (flow.mandatory) {
+      lastMandatory = idx;
+    }
+  });
+
+  const updatedJourney: JourneyWithLastMandatory = { ...journey, flows: flows as FlowWithLastMandatory[] };
+  return (updatedJourney);
+}
+
+interface FrameSettingItem {
+  title: string;
+  value: FrameSettings;
+  key: keyof typeof FrameSettings;
+}
+
+export const FrameSettingsArray : FrameSettingItem[] = [
+  {
+    title: 'Light',
+    value: FrameSettings.LIGHT,
+    key: 'LIGHT'
+  }, {
+    title: 'Dark',
+    value: FrameSettings.DARK,
+    key: 'DARK'
+  }, {
+    title: 'No Frame',
+    value: FrameSettings.NOFRAME,
+    key: 'NOFRAME'
+  },
+];
+
+export const isFrameSettingsValidValue = (str: string): FrameSettings | null => {
+  const item = FrameSettingsArray.find(el => el.value.toLowerCase() === str.toLowerCase());
+  return item ? item.value : null;
+};
+
+export const MAC_FRAME_HEIGHT = 36;

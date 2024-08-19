@@ -8,7 +8,7 @@ import {
   JourneyData
 } from '@fable/common/dist/types';
 import React from 'react';
-import { ScreenType } from '@fable/common/dist/api-contract';
+import { FrameSettings, ScreenType } from '@fable/common/dist/api-contract';
 import { captureException, startTransaction } from '@sentry/react';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
@@ -42,7 +42,8 @@ import {
   debounce,
   isTourResponsive,
   RESP_MOBILE_SRN_WIDTH_LIMIT,
-  shouldReduceMotionForMobile
+  shouldReduceMotionForMobile,
+  MAC_FRAME_HEIGHT
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
@@ -84,6 +85,7 @@ export interface IOwnProps {
   handleMenuOnScreenResize?: ()=> void;
   isFromScreenEditor: boolean;
   shouldSkipLeadForm: boolean;
+  frameSetting: FrameSettings
 }
 
 interface IOwnStateProps {
@@ -827,6 +829,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       isScreenPreview={false}
       playMode={this.props.playMode}
       isResponsive={this.props.isResponsive}
+      heightOffset={this.props.frameSetting !== FrameSettings.NOFRAME ? MAC_FRAME_HEIGHT : 0}
     />;
   }
 }

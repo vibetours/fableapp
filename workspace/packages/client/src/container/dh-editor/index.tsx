@@ -95,10 +95,10 @@ class DemoHubEditor extends React.PureComponent<IProps, IOwnStateProps> {
       if (firstDemoOfDemoHub) {
         const firstDemoHash = firstDemoOfDemoHub.thumbnail.split(this.props.cConfig.commonAssetPath)[1];
         if (currentThumbnailHash !== firstDemoHash) {
-          this.props.updateDemoHubProp(this.props.data!.rid, 'info', { thumbnail: firstDemoHash });
+          this.props.updateDemoHubProp(this.props.data!.rid, 'info', { ...this.props.data!.info, thumbnail: firstDemoHash });
         }
       } else if (currentThumbnailHash !== getDefaultThumbnailHash()) {
-        this.props.updateDemoHubProp(this.props.data!.rid, 'info', { thumbnail: getDefaultThumbnailHash() });
+        this.props.updateDemoHubProp(this.props.data!.rid, 'info', { ...this.props.data!.info, thumbnail: getDefaultThumbnailHash() });
       }
     },
     2000

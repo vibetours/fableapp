@@ -48,6 +48,7 @@ import {
   Activity,
   RespAggregateLeadAnalytics,
   LeadOwnerEntity,
+  FrameSettings,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -86,6 +87,7 @@ import {
   normalizeBackwardCompatibilityForLoader,
   processRawDemoHubData,
   processDemoHubConfig,
+  getDefaultThumbnailHash,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -875,6 +877,10 @@ export function createNewTour(
       body: {
         name: tourName,
         description,
+        info: {
+          frameSettings: FrameSettings.LIGHT,
+          thumbnail: getDefaultThumbnailHash(),
+        }
       },
     });
     const state = getState().default;

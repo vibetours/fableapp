@@ -15,7 +15,7 @@ import {
   RetweetOutlined
 } from '@ant-design/icons';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { ReqTourPropUpdate, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { FrameSettings, ReqTourPropUpdate, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -1884,6 +1884,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 isResponsive={isTourResponsive(this.props.tour)}
                 updateElPathKey={this.props.updateElPathKey}
                 shouldSkipLeadForm={false}
+                frameSetting={FrameSettings.NOFRAME}
               />
             </div>
             )}

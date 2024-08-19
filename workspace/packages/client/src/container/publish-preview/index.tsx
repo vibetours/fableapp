@@ -13,7 +13,8 @@ import {
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
   getDimensionsBasedOnDisplaySize,
-  isEventValid
+  isEventValid,
+  isMobilePreviewDisplaySize
 } from '../../utils';
 import * as Tags from './styled';
 import BackgroundGradient from '../../component/publish-preview/bg-gradient';
@@ -175,6 +176,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   render(): JSX.Element {
     const displaySize = this.props.searchParams.get('s') || '0';
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
+    const isMobilePreview = isMobilePreviewDisplaySize(+displaySize);
+    const embedParams = isMobilePreview ? '&fframe=noframe' : '';
     return (
       <Tags.Con ref={this.frameConRef}>
         <BackgroundGradient />
@@ -277,7 +280,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true`}
+              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true${embedParams}`}
               title="hello"
             />
           )}

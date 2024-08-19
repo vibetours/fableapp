@@ -25,6 +25,7 @@ export interface IOwnProps {
   isScreenPreview: boolean;
   playMode: boolean;
   isResponsive: boolean;
+  heightOffset: number;
 }
 
 export interface DeSerProps {
@@ -218,12 +219,14 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
     frame.style.position = 'absolute';
     frame.style.transformOrigin = '0 0';
-    frame.style.top = '0px';
+    frame.style.top = `${this.props.heightOffset}px`;
     frame.style.left = '0px';
 
     if (this.props.screen.type === ScreenType.Img) {
       this.handleImgScreenResponsiveness();
     }
+
+    origFrameViewPort.height -= this.props.heightOffset;
 
     if (!this.props.isResponsive) {
       // INFO for now we use a constant image scaling size of 1280 / 720 (with ratio 16:9)
@@ -256,8 +259,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         iframePos.left = (origFrameViewPort.width - viewPortAfterScaling.width) / 2;
       }
       if (origFrameViewPort.height > viewPortAfterScaling.height) {
-        frame.style.top = `${(origFrameViewPort.height - viewPortAfterScaling.height) / 2}px`;
-        iframePos.top = (origFrameViewPort.height - viewPortAfterScaling.height) / 2;
+        const scaledOffset = this.props.heightOffset * scale;
+        frame.style.top = `${((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset)}px`;
+        iframePos.top = ((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset);
       }
 
       this.handleWatermarkPositioning(
@@ -275,7 +279,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     frame.style.width = `${origFrameViewPort.width}px`;
     frame.style.height = `${origFrameViewPort.height}px`;
     frame.style.left = '0';
-    frame.style.top = '0';
+    frame.style.top = `${this.props.heightOffset}px`;
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = 1;
     frame.style.transform = 'scale(1)';
@@ -288,7 +292,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     );
     const iframePos = {
       left: origFrameViewPort.left,
-      top: origFrameViewPort.top,
+      top: origFrameViewPort.top + this.props.heightOffset,
       height: origFrameViewPort.height,
       width: origFrameViewPort.width
     };
@@ -302,6 +306,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
     const doc = frame.contentDocument!;
     const screenImage = doc.getElementById('img');
+    origFrameViewPort.height -= this.props.heightOffset;
 
     if (screenImage) {
       if (this.props.screen.responsive) {
@@ -337,6 +342,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               this.props.innerRefs.forEach(r => r.current = ref);
             }
           }}
+          heightOffset={this.props.heightOffset}
           {...props}
         />
 

@@ -4,7 +4,7 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import { getColorContrast, isBlankString } from '../../utils';
+import { getColorContrast, getProcessedJourney, isBlankString } from '../../utils';
 import { FlowProgress, ScreenSizeData } from '../../types';
 import { ProgressCircle } from '../progress-circle';
 
@@ -29,7 +29,7 @@ interface JourneyWithLastMandatory extends JourneyData {
   flows: FlowWithLastMandatory[]
 }
 
-const getMenu = (
+export const getMenu = (
   journey: JourneyWithLastMandatory,
   navigateToJourney: (main: string)=> void,
   navigateToCta: ()=> void,
@@ -180,17 +180,7 @@ function JourneyMenu(props: Props): JSX.Element {
   }, [props.isJourneyMenuOpen, scaleFactor]);
 
   useEffect(() => {
-    const flows = props.journey.flows;
-    let lastMandatory = -1;
-    (flows as FlowWithLastMandatory[]).forEach((flow, idx) => {
-      flow.lastMandatory = lastMandatory;
-      if (flow.mandatory) {
-        lastMandatory = idx;
-      }
-    });
-
-    const updatedJourney: JourneyWithLastMandatory = { ...props.journey, flows: flows as FlowWithLastMandatory[] };
-    setProcessedJourney(updatedJourney);
+    setProcessedJourney(getProcessedJourney(props.journey));
   }, [props.journey]);
 
   useEffect(() => {

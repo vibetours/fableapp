@@ -30,7 +30,8 @@ import {
   ScreenType,
   TourSettings,
   ReqTourPropUpdate,
-  EntityInfo
+  EntityInfo,
+  FrameSettings
 } from '@fable/common/dist/api-contract';
 import {
   createEmptyTourDataFile,
@@ -48,7 +49,7 @@ import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameDataToBeProcessed, ScreenInfo } from './types';
-import { P_RespTour } from '../../entity-processor';
+import { getDefaultThumbnailHash, P_RespTour } from '../../entity-processor';
 import { getColorContrast } from '../../utils';
 import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
 import { Vpd } from '../../types';
@@ -121,7 +122,13 @@ async function createNewTour(tourName: string, vpd: null | Vpd, thumbnail: null 
   let info: EntityInfo | undefined;
   if (thumbnail) {
     info = {
+      frameSettings: FrameSettings.LIGHT,
       thumbnail
+    };
+  } else {
+    info = {
+      frameSettings: FrameSettings.LIGHT,
+      thumbnail: getDefaultThumbnailHash(),
     };
   }
 

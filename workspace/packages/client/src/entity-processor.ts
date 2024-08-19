@@ -6,6 +6,8 @@ import {
   RespDemoEntity,
   RespDemoEntityWithSubEntities,
   RespVanityDomain,
+  EntityInfo,
+  FrameSettings,
 } from '@fable/common/dist/api-contract';
 import {
   AnnBtnKeysWithProperty,
@@ -223,7 +225,7 @@ export function processRawTourData(
   const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
   const site = processBrandData(normalizeBackwardCompatibilityForBrandData(tour, globalOpts), globalOpts);
   const thumbnailHash = tour.info ? tour.info.thumbnail : getDefaultThumbnailHash();
-  const info = tour.info ? { ...tour.info, thumbnail: thumbnailHash } : { thumbnail: thumbnailHash };
+  const info = normalizeBackwardCompatibilityForEntityInfo(tour.info);
 
   return {
     ...tour,
@@ -962,7 +964,7 @@ export function processRawDemoHubData(
   const d = new Date(demoHub.updatedAt);
   const dataFileUri = getDHConfigFileUri(demoHub, config, publishForTour);
   const thumbnailHash = demoHub.info ? demoHub.info.thumbnail : getDefaultThumbnailHash();
-  const info = demoHub.info ? { ...demoHub.info, thumbnail: thumbnailHash } : { thumbnail: thumbnailHash };
+  const info = normalizeBackwardCompatibilityForEntityInfo(demoHub.info);
 
   return {
     ...demoHub,
@@ -1141,3 +1143,17 @@ export const getDefaultThumbnailHash = (): string => {
   }
   return 'ph/placeholder1.png';
 };
+
+export function normalizeBackwardCompatibilityForEntityInfo(info: EntityInfo): EntityInfo {
+  const defaultInfo: EntityInfo = {
+    thumbnail: getDefaultThumbnailHash(),
+    frameSettings: FrameSettings.LIGHT,
+  };
+
+  if (!info) return defaultInfo;
+
+  return {
+    ...defaultInfo,
+    ...info,
+  };
+}

@@ -7,6 +7,7 @@ import {
   FileImageOutlined,
   HourglassFilled,
   MobileFilled,
+  SettingFilled,
   SisternodeOutlined,
 } from '@ant-design/icons';
 import {
@@ -19,7 +20,7 @@ import {
   IGlobalConfig
 } from '@fable/common/dist/types';
 import { Modal, Button, Tooltip } from 'antd';
-import { ReqTourPropUpdate, Responsiveness } from '@fable/common/dist/api-contract';
+import { FrameSettings, ReqTourPropUpdate, Responsiveness } from '@fable/common/dist/api-contract';
 import { D3DragEvent, drag, DragBehavior, SubjectPosition } from 'd3-drag';
 import { pointer as fromPointer, select, selectAll, Selection as D3Selection } from 'd3-selection';
 import { curveBasis, line } from 'd3-shape';
@@ -105,6 +106,7 @@ import { UpdateScreenFn } from '../../action/creator';
 import ResponsiveStrategyDrawer from './responsive-strategy-drawer';
 import { amplitudeOpenResponsivenessDrawer } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
+import FrameSettingsDrawer from './miscalleneous-drawer';
 
 const { confirm } = Modal;
 
@@ -306,6 +308,7 @@ interface CreateJourneyModal {
 export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [showMobileResponsivenessDrawer, setShowMobileResponsivenessDrawer] = useState(false);
   const [selectedResponsivenessStrategy, setSelectedResponsivenessStrategy] = useState(props.tour.responsive2);
+  const [showAdditionalSettingsDrawer, setShowAdditionalSettingsDrawer] = useState(false);
   const [selectorComponentKey, setSelectorComponentKey] = useState(0);
   const isGuideArrowDrawing = useRef(0);
   const reorderPropsRef = useRef({ ...initialReorderPropsValue });
@@ -2924,6 +2927,33 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     </div>
                   </Tooltip>
                 </Tags.CanvasMenuItemCon>
+                <Tags.CanvasMenuItemCon>
+                  <Tooltip
+                    title="Miscellaneous"
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <div style={{
+                      background: isTourResponsive(props.tour) ? '#EEEEEE' : 'transparent',
+                      borderRadius: '8px'
+                    }}
+                    >
+                      <Button
+                        onClick={() => {
+                          setShowAdditionalSettingsDrawer(true);
+                        }}
+                        icon={<SettingFilled style={CANVAS_MENU_ITEM_STYLE} />}
+                        size="large"
+                        type="text"
+                        style={{
+                          margin: 0,
+                          borderRadius: '4px',
+                        }}
+
+                      />
+                    </div>
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
               </Tags.CanvasMenuCon>
             )
       }
@@ -3078,7 +3108,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                       onOk() {
                         const [screenId, annId] = nodeMenuModalData.annId.split('/');
                         const currentScreen = props.tour.screens!.find(srn => srn.id === +screenId);
-                        props.updateTourProp(props.tour.rid, 'info', { thumbnail: currentScreen!.thumbnail });
+                        props.updateTourProp(props.tour.rid, 'info', { ...props.tour.info, thumbnail: currentScreen!.thumbnail });
                         setNodeMenuModalData(initialAnnNodeModalData);
                       },
                       onCancel() { }
@@ -3346,6 +3376,14 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               props.updateTourProp(props.tour.rid, 'responsive2', responsiveness);
               resetScreenModeAndElPathKey();
             }}
+          />
+          <FrameSettingsDrawer
+            showFrameSettingsDrawer={showAdditionalSettingsDrawer}
+            setShowFrameSettingsDrawer={setShowAdditionalSettingsDrawer}
+            updateFrameSetting={(frameSetting : FrameSettings) => {
+              props.updateTourProp(props.tour.rid, 'info', { ...props.tour.info, frameSettings: frameSetting });
+            }}
+            tour={props.tour}
           />
         </GTags.BodyCon>
       </GTags.ColCon>
