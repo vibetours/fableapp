@@ -36,7 +36,7 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    
+    width:  ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '50%' : 'auto')};
     .central-btn {
       border: none;
       outline: none;
@@ -54,16 +54,15 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
-      
+      width: ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '80%' : '480px')};
       color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#404040' : '#e5e5e5')};
       p {
-        margin: 0;
-        width: 480px;
+        margin: 0 auto;
         text-align: center;
         text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-          max-width: 480px;
+        overflow: hidden;
+        white-space: nowrap;
+        max-width: 480px;
       }
     }
     .module-btn-container {
@@ -78,8 +77,35 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
         top: 2rem;
         z-index: ${Number.MAX_SAFE_INTEGER};
         animation: module-menu 200ms;
+        transform: scale(${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 || iframePos.height < 480 ? ((iframePos.width * (1 / scaleFactor) < 640 ? 0.6 : 0.8)) : 1)});
+        transform-origin: top center;
+        margin-left: ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '8rem' : '0rem')};
       }
     }
+
+    @media (max-width: 640px) {
+    .module-btn-container {
+      .module-menu {
+        top:2rem;
+        margin-left: 8rem;
+        transform: scale(0.6);
+        transform-origin: top center
+      }
+    }
+    .central-options {
+      max-width : 50%;
+      .central-title {
+        width: 80%;
+        p {
+          text-overflow: ellipsis;
+          overflow: hidden;
+          white-space: nowrap;
+          max-width: 80%;
+          background-color: red;
+        }
+      }
+    }
+  }
   }
 
   @keyframes module-menu {
@@ -126,14 +152,6 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
           white-space: nowrap;
           max-width: 80%;
         }
-      }
-    }
-  }
-  @media (max-width: 640px) {
-    .module-btn-container {
-      .module-menu {
-        transform: scale(0.6);
-        transform-origin: top center
       }
     }
   }

@@ -51,7 +51,7 @@ export default function DemoFrame(props : Props) : JSX.Element {
         {
               props.showModule && (
                 <div className="module-btn-container">
-                  <Tooltip placement="bottom" title={!props.isJourneyMenuOpen ? 'Module' : ''}>
+                  <Tooltip trigger={['hover']} placement="bottom" title={!props.isJourneyMenuOpen ? 'Module' : ''}>
                     <button
                       className="module-btn central-btn"
                       onClick={() => {
@@ -73,7 +73,7 @@ export default function DemoFrame(props : Props) : JSX.Element {
               }
         <div className="central-title">
           <p>{props.tour?.displayName}</p>
-          <Tooltip placement="bottom" title="Reload">
+          <Tooltip trigger={['hover']} placement="bottom" title="Reload">
             <button
               className="central-btn"
               onClick={props.replayHandler}
@@ -86,7 +86,7 @@ export default function DemoFrame(props : Props) : JSX.Element {
       </div>
       <div className="right-btns">
         {!isIOsPhone && isLandscapeModeState && (
-          <Tooltip placement="bottom" title="Fullscreen">
+          <Tooltip trigger={['hover']} placement="bottom" title="Fullscreen">
             <button
               onClick={props.makeEmbedFrameFullScreen}
               type="button"
@@ -96,7 +96,7 @@ export default function DemoFrame(props : Props) : JSX.Element {
           </Tooltip>
         )}
         {props.tour.site.ctaText._val && props.tour.site.ctaLink._val && (
-          <Tooltip placement="bottomLeft" title={props.tour.site.ctaText._val}>
+          <Tooltip trigger={['hover']} placement="bottomLeft" title={props.tour.site.ctaText._val}>
             <a
               href={props.tour.site.ctaLink._val}
               target="_blank"
