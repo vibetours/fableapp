@@ -20,21 +20,6 @@ interface Props {
   screenSizeData: ScreenSizeData
 }
 export default function DemoFrame(props : Props) : JSX.Element {
-  const [isLandscapeModeState, setIsLandscapeModeState] = useState(true);
-  const [isIOsPhone, setIsIOsPhone] = useState(getMobileOperatingSystem() === 'iOS');
-  useEffect(() => {
-    setIsIOsPhone(getMobileOperatingSystem() === 'iOS');
-    window.screen.orientation.addEventListener('change', screenOrientationChangeListener);
-
-    return () => {
-      window.screen.orientation.removeEventListener('change', screenOrientationChangeListener);
-    };
-  }, []);
-
-  const screenOrientationChangeListener = (e: ScreenOrientationEventMap['change']): void => {
-    const evTarget = e.target as ScreenOrientation;
-    setIsLandscapeModeState(isLandscapeMode(evTarget.type));
-  };
   return (
     <Tags.Frame
       mode={props.mode}
@@ -85,16 +70,16 @@ export default function DemoFrame(props : Props) : JSX.Element {
         </div>
       </div>
       <div className="right-btns">
-        {!isIOsPhone && isLandscapeModeState && (
-          <Tooltip trigger={['hover']} placement="bottom" title="Fullscreen">
-            <button
-              onClick={props.makeEmbedFrameFullScreen}
-              type="button"
-            >
-              <CompassFilled />
-            </button>
-          </Tooltip>
-        )}
+
+        <Tooltip trigger={['hover']} placement="bottom" title="Fullscreen">
+          <button
+            onClick={props.makeEmbedFrameFullScreen}
+            type="button"
+          >
+            <CompassFilled />
+          </button>
+        </Tooltip>
+
         {props.tour.site.ctaText._val && props.tour.site.ctaLink._val && (
           <Tooltip trigger={['hover']} placement="bottomLeft" title={props.tour.site.ctaText._val}>
             <a
