@@ -102,8 +102,8 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
       const allParams = loc.split('?')[1];
       const baseIframeUrl = `/${IFRAME_BASE_URL}/demo/${this.props.match.params.tourId}`;
       this.setState((prevS) => ({
-        iframeUrl: allParams && allParams.length !== 0 ? `${baseIframeUrl}?_ts=${prevS.ts}&${allParams}`
-          : `${baseIframeUrl}?_ts=${prevS.ts}`
+        iframeUrl: allParams && allParams.length !== 0 ? `${baseIframeUrl}?_ts=${prevS.ts}&${allParams}&fframe=noframe`
+          : `${baseIframeUrl}?_ts=${prevS.ts}&fframe=noframe`
       }));
     }
 
@@ -183,7 +183,7 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={this.state.iframeUrl}
+              src={`${this.state.iframeUrl}`}
               title={this.props.title}
             />
           </Tags.PreviewFrameWrapper>
