@@ -49,6 +49,7 @@ import {
   RespAggregateLeadAnalytics,
   LeadOwnerEntity,
   FrameSettings,
+  SchemaVersion,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -1070,8 +1071,22 @@ export function loadTourAndData(
 
     const data = await api<null, TourData>(tour!.dataFileUri.href);
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
-    const editData = await api<null, GlobalEditFile>(tour!.editFileUri.href);
-    const globalEdits = convertGlobalEditsToLineItems(editData.edits, false);
+
+    let editData: GlobalEditFile;
+    let globalEdits: EditItem[] = [];
+    try {
+      editData = await api<null, GlobalEditFile>(tour!.editFileUri.href);
+      globalEdits = convertGlobalEditsToLineItems(editData.edits, false);
+    } catch (err) {
+      editData = {
+        v: SchemaVersion.V1,
+        lastUpdatedAtUtc: -1,
+        edits: {}
+      };
+      globalEdits = [];
+      raiseDeferredError(err as Error);
+    }
+
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
