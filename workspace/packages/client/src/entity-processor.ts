@@ -36,8 +36,10 @@ import {
   ITourLoaderData,
   AnnotationButtonSize,
   JourneyCTA,
+  SerNode,
 } from '@fable/common/dist/types';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
+import { nanoid } from 'nanoid';
 import {
   AllEdits,
   EditItem,
@@ -53,11 +55,23 @@ import {
   SiteDateKeysWithProperty,
   P_RespDemoHub,
   IDemoHubConfig,
-  SimpleStyle
+  SimpleStyle,
+  ElIdentifierType,
+  GlobalEditFile,
+  GlobalElEditValueEncoding,
+  AllGlobalElEdits,
+  EncodingTypeText,
+  EncodingTypeImage,
+  EncodingTypeBlur,
+  EncodingTypeDisplay,
+  EncodingTypeMask,
+  EncodingTypeInput
 } from './types';
-import { getDefaultSiteData, getSampleDemoHubConfig, isVideoAnnotation as isVideoAnn } from './utils';
+import { getDefaultSiteData, getFidOfSerNode, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 import { FeatureForPlan, FeaturePerPlan, PlanDetail } from './plans';
+import { getSerNodeFromPath } from './component/screen-editor/utils/edits';
+import { EMPTY_EL_PATH } from './constants';
 
 export function getNumberOfDaysFromNow(d: Date): [string, number] {
   const msDiffs = +d - +new Date();
@@ -178,6 +192,7 @@ export function processRawVanityDomain(domain: RespVanityDomain): P_RespVanityDo
 
 export interface P_RespTour extends RespDemoEntity {
   dataFileUri: URL;
+  editFileUri: URL;
   thumbnailUri: URL;
   displayableUpdatedAt: string;
   isPlaceholder: boolean;
@@ -207,6 +222,19 @@ function getLoaderFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, 
   return loaderFileUri;
 }
 
+function getEditFileUri(
+  tour: RespDemoEntity | RespDemoEntityWithSubEntities,
+  config: RespCommonConfig,
+  publishForTour?: RespDemoEntity
+): URL {
+  const tourAssetPath = config.tourAssetPath;
+  const assetPrefixHash = tour.assetPrefixHash;
+  const editFileName = publishForTour ? publishForTour.pubEditFileName : config.editFileName;
+  const editFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${editFileName}?ts=${+new Date()}`);
+
+  return editFileUri;
+}
+
 export function processRawTourData(
   tour: RespDemoEntity | RespDemoEntityWithSubEntities,
   config: RespCommonConfig,
@@ -223,6 +251,7 @@ export function processRawTourData(
 
   const dataFileUri = getDataFileUri(tour, config, publishForTour);
   const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
+  const editFileUri = getEditFileUri(tour, config, publishForTour);
   const site = processBrandData(normalizeBackwardCompatibilityForBrandData(tour, globalOpts), globalOpts);
   const thumbnailHash = tour.info ? tour.info.thumbnail : getDefaultThumbnailHash();
   const info = normalizeBackwardCompatibilityForEntityInfo(tour.info);
@@ -238,7 +267,8 @@ export function processRawTourData(
     dataFileUri,
     loaderFileUri,
     isPlaceholder,
-    site
+    site,
+    editFileUri,
   } as P_RespTour;
 }
 
@@ -388,8 +418,32 @@ const isEditToBeRemoved = (
   }
 };
 
+const isGlobalEditToBeRemoved = (
+  editItem: GlobalElEditValueEncoding[keyof GlobalElEditValueEncoding]
+): boolean => {
+  switch (editItem.type) {
+    case ElEditType.Text:
+    case ElEditType.Image:
+    case ElEditType.Input:
+    case ElEditType.Display:
+      return editItem.newValue === null;
+    case ElEditType.Blur:
+      return editItem.newBlurValue === null;
+
+    case ElEditType.Mask:
+      return editItem.newStyle === null;
+
+    default:
+      return false;
+  }
+};
+
 export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits<ElEditType>): AllEdits<ElEditType> {
   for (const path of Object.keys(incomingEdits)) {
+    if (!(path in master)) {
+      master[path] = incomingEdits[path];
+    }
+
     if (path in master) {
       const perElEdit = incomingEdits[path];
       for (const editType of Object.keys(perElEdit)) {
@@ -401,6 +455,42 @@ export function mergeEdits(master: AllEdits<ElEditType>, incomingEdits: AllEdits
       }
     } else {
       master[path] = incomingEdits[path];
+    }
+    const isMasterPathEmpty = Object.keys(master[path]).length === 0;
+    if (isMasterPathEmpty) {
+      delete master[path];
+    }
+  }
+
+  return master;
+}
+
+export type GlobalEditsData = AllGlobalElEdits<ElEditType>
+
+export function mergeGlobalEdits(
+  master: GlobalEditsData,
+  incomingEdits: GlobalEditsData,
+): GlobalEditsData {
+  for (const path of Object.keys(incomingEdits)) {
+    if (!(path in master)) {
+      master[path] = incomingEdits[path];
+    }
+    if (path in master) {
+      const perElEdit = incomingEdits[path];
+      for (const editType of Object.keys(perElEdit)) {
+        if (isGlobalEditToBeRemoved(perElEdit[+editType as ElEditType]!)) {
+          delete master[path][+editType as ElEditType];
+        } else {
+          master[path][+editType as ElEditType] = perElEdit[+editType as ElEditType];
+        }
+      }
+    } else {
+      master[path] = incomingEdits[path];
+    }
+
+    const isMasterPathEmpty = Object.keys(master[path]).length === 0;
+    if (isMasterPathEmpty) {
+      delete master[path];
     }
   }
 
@@ -709,14 +799,262 @@ export function mergeTourData(
   return newMaster;
 }
 
-export function convertEditsToLineItems(editChunks: AllEdits<ElEditType>, editTypeLocal: boolean): EditItem[] {
+export function convertEditsToLineItems(
+  editChunks: AllEdits<ElEditType>,
+  editTypeLocal: boolean,
+  serDom: SerNode
+): EditItem[] {
   const editList: EditItem[] = [];
-  for (const [path, edits] of Object.entries(editChunks)) {
+  for (const [key, edits] of Object.entries(editChunks)) {
+    const [elIdentifier, elIdentifierType] = getElIdentifierInfoFromKey(key);
     for (const [type, editDetails] of Object.entries(edits)) {
-      editList.push([`${path}:${type}`, path, +type, editTypeLocal, editDetails[0], editDetails]);
+      let fid = getFidFromEdit(+type, editDetails);
+      if (!fid) {
+        fid = getSerNodeFidFromElPath(serDom, elIdentifier);
+      }
+
+      let editKey;
+      if (fid) {
+        editKey = `fid/${fid}:${type}`;
+      } else {
+        editKey = `elpath/${key}:${type}`;
+      }
+      // Note: fid will be undefined if the demo was created before the diffs-fid feature,
+      // in that case we will save elpath/elpathvalue as the fid it is not required now,
+      // but it is saved this way to figure out if it is an actual fid or not if it is required in the future
+      editList.push([editKey, elIdentifier, fid || `elpath/${key}`, +type, editTypeLocal, editDetails[0], editDetails,
+        elIdentifierType, false,]);
     }
   }
   return editList;
+}
+
+export function convertGlobalEditsToLineItems(editChunks: GlobalEditFile['edits'], editTypeLocal: boolean): EditItem[] {
+  const editList: EditItem[] = [];
+  for (const [key, edits] of Object.entries(editChunks)) {
+    const [elIdentifier, elIdentifierType] = getElIdentifierInfoFromKey(key);
+    for (const [type, editDetails] of Object.entries(edits)) {
+      const tupleEditDetails = convertGlobalElEditToTuple(editDetails)!;
+      editList.push([
+        `${key}:${type}`,
+        EMPTY_EL_PATH,
+        editDetails.fid,
+        +type,
+        editTypeLocal,
+        editDetails.timeInSec,
+        tupleEditDetails,
+        elIdentifierType,
+        true,
+      ]);
+    }
+  }
+  return editList;
+}
+
+const getFidFromEdit = (
+  editType: ElEditType,
+  editArray: EditValueEncoding[keyof EditValueEncoding]
+): string | undefined => {
+  switch (editType) {
+    case ElEditType.Text:
+      return editArray[IdxEncodingTypeText.FID];
+
+    case ElEditType.Image:
+      return editArray[IdxEncodingTypeImage.FID];
+
+    case ElEditType.Blur:
+      return editArray[IdxEncodingTypeBlur.FID];
+
+    case ElEditType.Display:
+      return editArray[IdxEncodingTypeDisplay.FID];
+
+    case ElEditType.Mask:
+      return editArray[IdxEncodingTypeMask.FID];
+
+    case ElEditType.Input:
+      return editArray[IdxEncodingTypeInput.FID];
+
+    default:
+      return undefined;
+  }
+};
+
+export const convertGlobalElEditToTuple = (
+  globalEditItem: GlobalElEditValueEncoding[keyof GlobalElEditValueEncoding]
+): EditValueEncoding[keyof EditValueEncoding] | null => {
+  switch (globalEditItem.type) {
+    case ElEditType.Text: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Text] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldValue,
+        globalEditItem.newValue,
+        globalEditItem.fid
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.Image: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Image] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldValue,
+        globalEditItem.newValue,
+        globalEditItem.height,
+        globalEditItem.width,
+        globalEditItem.fid
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.Blur: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Blur] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldBlurValue,
+        globalEditItem.newBlurValue,
+        globalEditItem.oldFilterPropertyValue,
+        globalEditItem.newFilterPropertyValue,
+        globalEditItem.fid
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.Display: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Display] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldValue,
+        globalEditItem.newValue,
+        globalEditItem.fid,
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.Mask: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Mask] = [
+        globalEditItem.timeInSec,
+        globalEditItem.newStyle,
+        globalEditItem.oldStyle,
+        globalEditItem.fid,
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.Input: {
+      const tupleEditItem: EditValueEncoding[ElEditType.Input] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldValue,
+        globalEditItem.newValue,
+        globalEditItem.fid,
+      ];
+      return tupleEditItem;
+    }
+
+    default:
+      return null;
+  }
+};
+
+export const convertTupleToGlobalElEdit = <K extends keyof EditValueEncoding>(
+  editType: K,
+  edit: EditValueEncoding[K],
+  srnId: number,
+): GlobalElEditValueEncoding[keyof GlobalElEditValueEncoding] | null => {
+  switch (editType) {
+    case ElEditType.Text: {
+      const editItem = edit as EncodingTypeText;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Text] = {
+        type: ElEditType.Text,
+        timeInSec: editItem[IdxEncodingTypeText.TIMESTAMP],
+        oldValue: editItem[IdxEncodingTypeText.OLD_VALUE],
+        newValue: editItem[IdxEncodingTypeText.NEW_VALUE],
+        fid: editItem[IdxEncodingTypeText.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.Image: {
+      const editItem = edit as EncodingTypeImage;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Image] = {
+        type: ElEditType.Image,
+        timeInSec: editItem[IdxEncodingTypeImage.TIMESTAMP],
+        oldValue: editItem[IdxEncodingTypeImage.OLD_VALUE],
+        newValue: editItem[IdxEncodingTypeImage.NEW_VALUE],
+        height: editItem[IdxEncodingTypeImage.HEIGHT],
+        width: editItem[IdxEncodingTypeImage.WIDTH],
+        fid: editItem[IdxEncodingTypeImage.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.Blur: {
+      const editItem = edit as EncodingTypeBlur;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Blur] = {
+        type: ElEditType.Blur,
+        timeInSec: editItem[IdxEncodingTypeBlur.TIMESTAMP],
+        oldBlurValue: editItem[IdxEncodingTypeBlur.OLD_BLUR_VALUE],
+        newBlurValue: editItem[IdxEncodingTypeBlur.NEW_BLUR_VALUE],
+        oldFilterPropertyValue: editItem[IdxEncodingTypeBlur.OLD_FILTER_VALUE],
+        newFilterPropertyValue: editItem[IdxEncodingTypeBlur.NEW_FILTER_VALUE],
+        fid: editItem[IdxEncodingTypeBlur.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.Display: {
+      const editItem = edit as EncodingTypeDisplay;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Display] = {
+        type: ElEditType.Display,
+        timeInSec: editItem[IdxEncodingTypeDisplay.TIMESTAMP],
+        oldValue: editItem[IdxEncodingTypeDisplay.OLD_VALUE],
+        newValue: editItem[IdxEncodingTypeDisplay.NEW_VALUE],
+        fid: editItem[IdxEncodingTypeDisplay.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.Mask: {
+      const editItem = edit as EncodingTypeMask;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Mask] = {
+        type: ElEditType.Mask,
+        timeInSec: editItem[IdxEncodingTypeMask.TIMESTAMP],
+        oldStyle: editItem[IdxEncodingTypeMask.OLD_STYLE],
+        newStyle: editItem[IdxEncodingTypeMask.NEW_STYLE],
+        fid: editItem[IdxEncodingTypeMask.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.Input: {
+      const editItem = edit as EncodingTypeInput;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.Input] = {
+        type: ElEditType.Input,
+        timeInSec: editItem[IdxEncodingTypeInput.TIMESTAMP],
+        oldValue: editItem[IdxEncodingTypeInput.OLD_VALUE],
+        newValue: editItem[IdxEncodingTypeInput.NEW_VALUE],
+        fid: editItem[IdxEncodingTypeInput.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    default:
+      return null;
+  }
+};
+
+/**
+ * screen-level el identifiers will have just the path
+ * demo-level el identifiers will have fid/fid
+ */
+function getElIdentifierInfoFromKey(key: string): [string, ElIdentifierType] {
+  if (key.startsWith('fid/')) {
+    const fid = key.split('fid/')[1];
+    return [fid, ElIdentifierType.FID];
+  }
+  return [key, ElIdentifierType.PATH];
 }
 
 export function normalizeBackwardCompatibilityForOpts(opts: ITourDataOpts): ITourDataOpts {

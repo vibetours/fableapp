@@ -50,7 +50,8 @@ import {
   shouldReduceMotionForMobile,
   getProcessedJourney,
   isMobileOperatingSystem,
-  isFrameSettingsValidValue
+  isFrameSettingsValidValue,
+  combineAllEdits
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -101,6 +102,7 @@ interface IAppStateProps {
   tourLoaderData: ITourLoaderData | null;
   journey: JourneyData | null;
   elpathKey: ElPathKey;
+  globalEdits: EditItem[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -142,7 +144,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     editsAcrossScreens: state.default.remoteEdits,
     allAnnotationsForTour,
     journey: state.default.journey,
-    elpathKey: state.default.elpathKey
+    elpathKey: state.default.elpathKey,
+    globalEdits: state.default.remoteGlobalEdits,
   };
 };
 
@@ -912,7 +915,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 onBeforeFrameBodyDisplay={() => { }}
                 allAnnotationsForScreen={this.props.allAnnotations[config.screen.id]}
                 tourDataOpts={this.props.tourOpts!}
-                allEdits={config.screenEdits}
+                allEdits={combineAllEdits([...config.screenEdits, ...this.props.globalEdits])}
+                globalEdits={this.props.globalEdits}
                 toAnnotationId={
                   config.screen.id === this.getCurrScreenId() ? this.props.match.params.annotationId || '' : ''
                 }

@@ -43,7 +43,8 @@ import {
   isTourResponsive,
   RESP_MOBILE_SRN_WIDTH_LIMIT,
   shouldReduceMotionForMobile,
-  MAC_FRAME_HEIGHT
+  MAC_FRAME_HEIGHT,
+  combineAllEdits
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
@@ -85,7 +86,8 @@ export interface IOwnProps {
   handleMenuOnScreenResize?: ()=> void;
   isFromScreenEditor: boolean;
   shouldSkipLeadForm: boolean;
-  frameSetting: FrameSettings
+  frameSetting: FrameSettings;
+  globalEdits: EditItem[];
 }
 
 interface IOwnStateProps {
@@ -702,7 +704,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     const doc = this.annotationLCM!.getDoc();
 
     try {
-      goToScreenData = applyEditsToSerDom(goToScreenEdits, goToScreenData);
+      const allEdits = combineAllEdits([...goToScreenEdits, ...this.props.globalEdits]);
+      goToScreenData = applyEditsToSerDom(allEdits, goToScreenData);
       const startTime = performance.now();
       const sentryTransaction = startTransaction({ name: 'getAndApplyDiffsTx' });
 

@@ -86,7 +86,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const frameHtml = doc?.documentElement;
     if (doc) {
       if (frameHtml && frameBody) {
-        const screenData = applyEditsToSerDom(this.props.allEdits, this.props.screenData);
+        let screenData = this.props.screenData;
+        if (this.props.screen.type === ScreenType.SerDom) {
+          screenData = applyEditsToSerDom(this.props.allEdits, this.props.screenData);
+        }
         deserFrame(
           screenData.docTree,
           doc,

@@ -62,6 +62,7 @@ import {
   TourDataWoScheme,
   TourScreenEntity,
   IGlobalConfig,
+  SerNode,
 } from '@fable/common/dist/types';
 import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, sleep } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
@@ -88,14 +89,18 @@ import {
   processRawDemoHubData,
   processDemoHubConfig,
   getDefaultThumbnailHash,
+  convertGlobalEditsToLineItems,
+  mergeGlobalEdits,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
   AllEdits,
+  AllGlobalElEdits,
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
   ElPathKey,
+  GlobalEditFile,
   IDemoHubConfig,
   LeadActivityData,
   Ops,
@@ -662,7 +667,7 @@ export function loadScreenAndData(
           : Promise.resolve(null),
       ]);
       if (edits !== null) {
-        remoteEdits = convertEditsToLineItems(edits.edits, false);
+        remoteEdits = convertEditsToLineItems(edits.edits, false, data.docTree);
       }
     }
 
@@ -987,6 +992,8 @@ export interface TTourWithData {
   allCorrespondingScreens: boolean,
   journey: JourneyData,
   globalConfig: IGlobalConfig,
+  editData: GlobalEditFile,
+  globalEdits: EditItem[];
 }
 
 export interface TTourWithLoader {
@@ -1058,11 +1065,13 @@ export function loadTourAndData(
       type: ActionType.TOUR_AND_LOADER_LOADED,
       tour,
       loader: processLoader(normalizeBackwardCompatibilityForLoader(loader), tour!.globalOpts),
-      globalConfig: tour.globalOpts,
+      globalConfig: tour.globalOpts
     });
 
     const data = await api<null, TourData>(tour!.dataFileUri.href);
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
+    const editData = await api<null, GlobalEditFile>(tour!.editFileUri.href);
+    const globalEdits = convertGlobalEditsToLineItems(editData.edits, false);
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
@@ -1072,6 +1081,8 @@ export function loadTourAndData(
       allCorrespondingScreens: shouldGetScreens,
       journey: annotationAndOpts.journey,
       globalConfig: tour.globalOpts,
+      editData,
+      globalEdits,
     });
     return [newTs, data];
   };
@@ -1138,12 +1149,29 @@ export interface TSaveEditChunks {
   editFile?: EditFile<AllEdits<ElEditType>>
 }
 
-export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEditType>) {
+export function saveEditChunks(screen: P_RespScreen, editChunks: AllEdits<ElEditType>, serDom: SerNode) {
   return async (dispatch: Dispatch<TSaveEditChunks>) => {
     dispatch({
       type: ActionType.SAVE_EDIT_CHUNKS,
       screenId: screen.id,
-      editList: convertEditsToLineItems(editChunks, true),
+      editList: convertEditsToLineItems(editChunks, true, serDom),
+      isLocal: true,
+    });
+  };
+}
+
+export interface TSaveGlobalEditChunks {
+  type: ActionType.SAVE_GLOBAL_EDIT_CHUNKS;
+  editList: EditItem[];
+  isLocal: boolean;
+  editFile?: GlobalEditFile
+}
+
+export function saveGlobalEditChunks(editChunks: GlobalEditFile['edits']) {
+  return async (dispatch: Dispatch<TSaveGlobalEditChunks>) => {
+    dispatch({
+      type: ActionType.SAVE_GLOBAL_EDIT_CHUNKS,
+      editList: convertGlobalEditsToLineItems(editChunks, true),
       isLocal: true,
     });
   };
@@ -1155,7 +1183,9 @@ export function flushEditChunksToMasterFile(screenRidIdStr: string, localEdits: 
     const screenId = +id;
     const screenRid = rid.join('/');
     const savedEditData = getState().default.screenEdits[screenId];
-    if (savedEditData) {
+    const savedScreenData = getState().default.screenData[screenId];
+    const currScreenRid = getState().default.currentScreen?.rid;
+    if (savedEditData && savedScreenData) {
       let masterEdit = savedEditData?.edits;
       if (masterEdit) {
         if (masterEdit instanceof Array) {
@@ -1174,10 +1204,45 @@ export function flushEditChunksToMasterFile(screenRidIdStr: string, localEdits: 
           },
         });
 
+        if (currScreenRid === screenRidIdStr.split('/')[1]) {
+          dispatch({
+            type: ActionType.SAVE_EDIT_CHUNKS,
+            screenId,
+            editList: convertEditsToLineItems(savedEditData.edits, false, savedScreenData.docTree),
+            editFile: savedEditData,
+            isLocal: false,
+          });
+        }
+      }
+    }
+
+    dispatch({
+      type: ActionType.AUTOSAVING,
+      isAutosaving: false
+    });
+  };
+}
+
+export function flushGlobalEditChunksToMasterFile(tourRid: string, localEdits: AllGlobalElEdits<ElEditType>) {
+  return async (dispatch: Dispatch<TSaveGlobalEditChunks | TAutosaving>, getState: () => TState) => {
+    const savedEditData = getState().default.globalEditFile;
+    if (savedEditData) {
+      const masterEdit = savedEditData?.edits;
+      if (masterEdit) {
+        savedEditData.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+        savedEditData.edits = mergeGlobalEdits(masterEdit, localEdits);
+
+        const tourResp = await api<ReqRecordEdit, ApiResp<RespDemoEntity>>('/recordtrgbedit', {
+          auth: true,
+          body: {
+            rid: tourRid,
+            editData: JSON.stringify(savedEditData),
+          },
+        });
+
         dispatch({
-          type: ActionType.SAVE_EDIT_CHUNKS,
-          screenId,
-          editList: convertEditsToLineItems(savedEditData.edits, false),
+          type: ActionType.SAVE_GLOBAL_EDIT_CHUNKS,
+          editList: convertGlobalEditsToLineItems(savedEditData.edits, false),
           editFile: savedEditData,
           isLocal: false,
         });

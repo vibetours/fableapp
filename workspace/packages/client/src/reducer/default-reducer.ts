@@ -63,9 +63,10 @@ import {
   TSetCurrentDemoData,
   TOrgWideAnalytics,
   P_RespAggregateLeadAnalytics,
+  TSaveGlobalEditChunks,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
-import { AllEdits, EditItem, ElEditType, ElPathKey, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
+import { AllEdits, EditItem, ElEditType, ElPathKey, GlobalEditFile, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
 import { FeatureForPlan } from '../plans';
 
 export const initialState: {
@@ -126,6 +127,9 @@ export const initialState: {
   demoHubConfigUploadUrl: string;
   orgWideRespHouseLead: P_RespAggregateLeadAnalytics;
   orgWideRespHouseLeadLoadingStatus: LoadingStatus;
+  localGlobalEdits: EditItem[];
+  remoteGlobalEdits: EditItem[];
+  globalEditFile: GlobalEditFile | null;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -185,6 +189,9 @@ export const initialState: {
     leadsByDate: [],
   },
   orgWideRespHouseLeadLoadingStatus: LoadingStatus.NotStarted,
+  localGlobalEdits: [],
+  remoteGlobalEdits: [],
+  globalEditFile: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -521,6 +528,8 @@ export default function projectReducer(state = initialState, action: Action) {
       newState.tourLoaded = true;
       newState.journey = tAction.journey;
       newState.globalConfig = tAction.globalConfig;
+      newState.globalEditFile = tAction.editData;
+      newState.remoteGlobalEdits = tAction.globalEdits;
 
       if (tAction.allCorrespondingScreens && tAction.tour.screens) {
         newState.allScreens = tAction.tour.screens;
@@ -543,6 +552,19 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.remoteEdits[tAction.screenId] = [...tAction.editList];
         newState.localEdits[tAction.screenId] = [];
         newState.screenEdits[tAction.screenId] = tAction.editFile!;
+      }
+      return newState;
+    }
+
+    case ActionType.SAVE_GLOBAL_EDIT_CHUNKS: {
+      const tAction = action as TSaveGlobalEditChunks;
+      const newState = { ...state };
+      if (tAction.isLocal) {
+        newState.localGlobalEdits = [...tAction.editList];
+      } else {
+        newState.localGlobalEdits = [...tAction.editList];
+        newState.remoteGlobalEdits = [...tAction.editList];
+        newState.globalEditFile = tAction.editFile!;
       }
       return newState;
     }

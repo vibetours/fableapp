@@ -48,18 +48,19 @@ import NewAnnotation from '../../assets/creator-panel/new-annotation.svg';
 import NewCoverAnnotation from '../../assets/creator-panel/new-cover-annotation.svg';
 import NewMultiAnnotation from '../../assets/creator-panel/new_multi_annotation.svg';
 import * as GTags from '../../common-styled';
-import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
+import { FABLE_AUDIO_MEDIA_CONTROLS, SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
-import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { convertTupleToGlobalElEdit, P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { FeatureForPlan } from '../../plans';
 import {
   AllEdits,
+  AllGlobalElEdits,
   AnnotationPerScreen,
   DestinationAnnotationPosition, EditItem,
   EditValueEncoding,
   ElEditType,
   ElPathKey,
-  FrameAssetLoadFn, IAnnotationConfigWithScreen, IdxEditEncodingText,
+  FrameAssetLoadFn, GlobalElEditValueEncoding, IAnnotationConfigWithScreen, IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
@@ -82,6 +83,7 @@ import {
   RESP_MOBILE_SRN_WIDTH,
   doesBtnOpenALink,
   getAnnotationWithScreenAndIdx,
+  getFidOfNode,
   isEventValid,
   isFeatureAvailable,
   isTourResponsive,
@@ -193,6 +195,7 @@ interface IOwnProps {
   toAnnotationId: string;
   onScreenEditFinish: () => void;
   onScreenEditChange: (forScreen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
+  onGlobalEditChange: (editChunks: AllGlobalElEdits<ElEditType>) => void;
   allAnnotationsForTour: AnnotationPerScreen[];
   applyAnnButtonLinkMutations: (mutations: AnnUpdateType) => void;
   commitTx: (tx: Tx) => void;
@@ -217,6 +220,7 @@ interface IOwnProps {
   ) => void;
   featurePlan: FeatureForPlan | null;
   globalOpts: IGlobalConfig;
+  allGlobalEdits: EditItem[]
 }
 
 const enum ElSelReqType {
@@ -273,6 +277,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private microEdits: AllEdits<ElEditType>;
 
+  private microGlobalEdits: AllGlobalElEdits<ElEditType>;
+
   private lastSelectedAnnId = '';
 
   constructor(props: IOwnProps) {
@@ -280,6 +286,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     this.embedFrameRef = React.createRef();
     this.frameConRef = React.createRef();
     this.microEdits = {};
+    this.microGlobalEdits = {};
 
     this.state = {
       viewScale: 1,
@@ -312,6 +319,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   showDeleteConfirm = (e: EditItem): void => {
     const path = e[IdxEditItem.PATH];
+    const fid = e[IdxEditItem.FID];
     const elType = e[IdxEditItem.TYPE];
     const encoding = e[IdxEditItem.ENCODING];
     const el = this.state.selectedEl;
@@ -329,10 +337,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         switch (elType) {
           case ElEditType.Text: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Text];
-            this.addToMicroEdit(path, ElEditType.Text, [
+            this.addToMicroEdit(path, fid, ElEditType.Text, [
               getCurrentUtcUnixTime(),
               tEncoding[IdxEditEncodingText.OLD_VALUE],
               null,
+              fid,
             ]);
             this.flushMicroEdits();
             el!.textContent = tEncoding[IdxEditEncodingText.OLD_VALUE];
@@ -341,10 +350,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
           case ElEditType.Input: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Input];
-            this.addToMicroEdit(path, ElEditType.Input, [
+            this.addToMicroEdit(path, fid, ElEditType.Input, [
               getCurrentUtcUnixTime(),
               tEncoding[IdxEncodingTypeInput.OLD_VALUE],
               null,
+              fid,
             ]);
             this.flushMicroEdits();
             (el as HTMLInputElement).placeholder = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
@@ -353,12 +363,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
           case ElEditType.Image: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Image];
-            this.addToMicroEdit(path, ElEditType.Image, [
+            this.addToMicroEdit(path, fid, ElEditType.Image, [
               getCurrentUtcUnixTime(),
               tEncoding[IdxEncodingTypeImage.OLD_VALUE],
               null,
               encoding[IdxEncodingTypeImage.HEIGHT]!,
               encoding[IdxEncodingTypeImage.WIDTH]!,
+              fid,
             ]);
             this.flushMicroEdits();
             (el as HTMLImageElement).src = tEncoding[IdxEncodingTypeImage.OLD_VALUE];
@@ -368,12 +379,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
           case ElEditType.Blur: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Blur];
-            this.addToMicroEdit(path, ElEditType.Blur, [
+            this.addToMicroEdit(path, fid, ElEditType.Blur, [
               getCurrentUtcUnixTime(),
               tEncoding[IdxEncodingTypeBlur.OLD_BLUR_VALUE],
               null,
               tEncoding[IdxEncodingTypeBlur.OLD_FILTER_VALUE]!,
-              null
+              null,
+              fid,
             ]);
             this.flushMicroEdits();
             el!.style.filter = tEncoding[IdxEncodingTypeBlur.OLD_FILTER_VALUE]!;
@@ -382,10 +394,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
           case ElEditType.Display: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Display];
-            this.addToMicroEdit(path, ElEditType.Display, [
+            this.addToMicroEdit(path, fid, ElEditType.Display, [
               getCurrentUtcUnixTime(),
               tEncoding[IdxEncodingTypeDisplay.OLD_VALUE],
-              null
+              null,
+              fid,
             ]);
             this.flushMicroEdits();
             el!.style.display = tEncoding[IdxEncodingTypeDisplay.OLD_VALUE]!;
@@ -394,10 +407,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
           case ElEditType.Mask: {
             const tEncoding = encoding as EditValueEncoding[ElEditType.Mask];
-            this.addToMicroEdit(path, ElEditType.Mask, [
+            this.addToMicroEdit(path, fid, ElEditType.Mask, [
               getCurrentUtcUnixTime(),
               null,
-              tEncoding[IdxEncodingTypeMask.OLD_STYLE]!
+              tEncoding[IdxEncodingTypeMask.OLD_STYLE]!,
+              fid,
             ]);
             this.flushMicroEdits();
 
@@ -657,6 +671,13 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     };
   }
 
+  getFidOfNodeWrapper = (node: Node, elPath: string): string => {
+    if (this.props.screenData.version !== SCREEN_DIFFS_SUPPORTED_VERSION) {
+      return `elpath/${elPath}`;
+    }
+    return getFidOfNode(node);
+  };
+
   handleSelectedImageChange = (imgEl: HTMLElement) => async (e: any): Promise<void> => {
     const originalImgSrc = ScreenEditor.getOriginalImgSrc(imgEl);
     const selectedImage = e.target.files[0];
@@ -673,7 +694,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       origVal = originalImgSrc || '';
       imgEl.setAttribute(attrName, origVal);
     }
-    this.addToMicroEdit(path, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW]);
+    const fid = this.getFidOfNodeWrapper(imgEl, path);
+    this.addToMicroEdit(path, fid, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW, fid], true, false);
     amplitudeScreenEdited('replace_image', '');
     this.flushMicroEdits();
   };
@@ -705,7 +727,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         el.setAttribute(attrName, origVal);
       }
 
-      this.addToMicroEdit(path, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles]);
+      const fid = this.getFidOfNodeWrapper(el, path);
+      this.addToMicroEdit(path, fid, ElEditType.Mask, [getCurrentUtcUnixTime(), newElInlineStyles, oldElInlineStyles, fid], true, false);
       this.flushMicroEdits();
       amplitudeScreenEdited('mask_el', '');
     } catch (err) {
@@ -1112,7 +1135,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   if (checked) newVal = t.style.display = origVal;
                   else newVal = t.style.display = 'none';
 
-                  this.addToMicroEdit(path, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal]);
+                  const fid = this.getFidOfNodeWrapper(t, path);
+                  this.addToMicroEdit(path, fid, ElEditType.Display, [getCurrentUtcUnixTime(), origVal, newVal, fid], true, false);
                   this.flushMicroEdits();
                   amplitudeScreenEdited('show_or_hide_el', checked);
                 })(selectedEl!)}
@@ -1174,13 +1198,17 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     newFilterStr = oldFilterStr;
                     t.style.filter = oldFilterStr;
                   }
-                  this.addToMicroEdit(path, ElEditType.Blur, [
+
+                  const fid = this.getFidOfNodeWrapper(t, path);
+
+                  this.addToMicroEdit(path, fid, ElEditType.Blur, [
                     getCurrentUtcUnixTime(),
                     oldBlurValue,
                     newBlurValue,
                     oldFilterStr,
                     newFilterStr,
-                  ]);
+                    fid,
+                  ], true, false);
                   this.flushMicroEdits();
                   amplitudeScreenEdited('blur_el', checked);
                 })(selectedEl!)}
@@ -1290,7 +1318,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       origVal = t.textContent || '';
                       refEl.setAttribute(attrName, origVal);
                     }
-                    this.addToMicroEdit(path, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+                    const fid = this.getFidOfNodeWrapper(refEl, path);
+                    this.addToMicroEdit(path, fid, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
 
                     t.textContent = e.target.value;
                   })(targetEl!)}
@@ -1338,8 +1367,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       origVal = (t as HTMLInputElement).placeholder;
                       t.setAttribute(attrName, origVal);
                     }
-
-                    this.addToMicroEdit(path, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value]);
+                    const fid = this.getFidOfNodeWrapper(t, path);
+                    this.addToMicroEdit(path, fid, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
 
                     (t as HTMLInputElement).placeholder = e.target.value;
                   })(targetEl!)}
@@ -1374,6 +1403,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (hasEdits) {
       this.props.onScreenEditChange(this.props.screen, this.microEdits);
       this.microEdits = {};
+    }
+
+    const hasGlobalMicroEdits = Object.keys(this.microGlobalEdits).length !== 0;
+    if (hasGlobalMicroEdits) {
+      this.props.onGlobalEditChange(this.microGlobalEdits);
+      this.microGlobalEdits = {};
     }
   }
 
@@ -1885,6 +1920,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 updateElPathKey={this.props.updateElPathKey}
                 shouldSkipLeadForm={false}
                 frameSetting={FrameSettings.NOFRAME}
+                globalEdits={this.props.allGlobalEdits}
               />
             </div>
             )}
@@ -2369,6 +2405,34 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
   private addToMicroEdit<K extends keyof EditValueEncoding>(
     path: string,
+    fid: string,
+    editType: K,
+    edit: EditValueEncoding[K],
+    addInGlobalLevelEdit: boolean = true,
+    addInScreenLevelEdit: boolean = true,
+  ): void {
+    const isFidSupportedInSrn = this.props.screenData.version === SCREEN_DIFFS_SUPPORTED_VERSION;
+    if (!isFidSupportedInSrn) {
+      this.addToSrnLevelMicroEdit(path, editType, edit);
+      return;
+    }
+
+    if (addInGlobalLevelEdit) {
+      const globalEdit = convertTupleToGlobalElEdit(editType, edit, this.props.screen.id)!;
+      this.addToGlobalMicroEdit(
+        `fid/${fid}`,
+        globalEdit.type,
+        convertTupleToGlobalElEdit(globalEdit.type, edit, this.props.screen.id)!,
+      );
+    }
+
+    if (addInScreenLevelEdit) {
+      this.addToSrnLevelMicroEdit(path, editType, edit);
+    }
+  }
+
+  private addToSrnLevelMicroEdit<K extends keyof EditValueEncoding>(
+    path: string,
     editType: K,
     edit: EditValueEncoding[K]
   ): void {
@@ -2376,6 +2440,18 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       this.microEdits[path] = {};
     }
     const edits = this.microEdits[path];
+    edits[editType] = edit;
+  }
+
+  private addToGlobalMicroEdit<K extends keyof GlobalElEditValueEncoding>(
+    key: string,
+    editType: K,
+    edit: GlobalElEditValueEncoding[K]
+  ): void {
+    if (!(key in this.microGlobalEdits)) {
+      this.microGlobalEdits[key] = {};
+    }
+    const edits = this.microGlobalEdits[key];
     edits[editType] = edit;
   }
 

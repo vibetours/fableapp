@@ -50,7 +50,9 @@ import {
   DemoHubQualificationSidePanel,
   Timeline,
   TourMainValidity,
-  queryData
+  queryData,
+  EditItem,
+  IdxEditItem
 } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -1566,3 +1568,135 @@ export const isFrameSettingsValidValue = (str: string): FrameSettings | null => 
 };
 
 export const MAC_FRAME_HEIGHT = 36;
+export function combineAllEdits(
+  allEdits: EditItem[]
+) : EditItem[] {
+  const hm2: Record<string, EditItem> = {};
+  for (const edit of allEdits) {
+    const key = edit[IdxEditItem.KEY];
+    if (key in hm2) {
+      if (
+        !hm2[key][IdxEditItem.IS_GLOBAL_EDIT] && edit[IdxEditItem.IS_GLOBAL_EDIT]
+      ) {
+        hm2[key] = edit;
+      }
+      if (hm2[key][IdxEditItem.TIMESTAMP] < edit[IdxEditItem.TIMESTAMP]) {
+        hm2[key] = edit;
+      }
+    } else {
+      hm2[key] = edit;
+    }
+  }
+
+  const combinedEdits = Object.values(hm2).sort((m, n) => m[IdxEditItem.TIMESTAMP] - n[IdxEditItem.TIMESTAMP]);
+  return combinedEdits;
+}
+
+export function processGlobalEditsWithElpath(root: SerNode, globalEdits: EditItem[]) : EditItem[] {
+  const fidsToFind: string[] = globalEdits
+    .filter(edit => edit[IdxEditItem.FID])
+    .map(edit => edit[IdxEditItem.FID]!);
+
+  const fidElPathMap = getSerNodesElPathFromFids(root, fidsToFind);
+
+  const processedGlobalEdits = globalEdits
+    .filter(edit => edit[IdxEditItem.FID] && Object.keys(fidElPathMap).includes(edit[IdxEditItem.FID]!))
+    .map(edit => {
+      const editItem: EditItem = [...edit];
+      const res = fidElPathMap[editItem[IdxEditItem.FID]!];
+      editItem[IdxEditItem.PATH] = res.elPath;
+      return editItem;
+    });
+
+  return processedGlobalEdits;
+}
+
+export function isTextFidCommentNode(node: SerNode) : boolean {
+  if (node.type !== Node.COMMENT_NODE) {
+    return false;
+  }
+
+  return Boolean(node.props.textContent?.startsWith('textfid/'));
+}
+
+export function getSerNodesElPathFromFids(
+  root: SerNode,
+  fids : string[]
+) : Record<string, {elPath: string, serNode: SerNode}> {
+  const fidMap: Record<string, {elPath: string, serNode: SerNode}> = {};
+  const queue : {node: SerNode, elPath: string, fid: string}[] = [
+    { node: root, elPath: '1', fid: root.attrs['f-id'] || nanoid() }
+  ];
+  while (queue.length > 0) {
+    const { node, elPath, fid } = queue.shift()!;
+    if (fids.includes(fid)) {
+      fidMap[fid] = { elPath, serNode: node };
+    }
+
+    if (fids.every(findFid => fidMap[findFid] !== undefined)) {
+      return fidMap;
+    }
+
+    for (let i = 0; i < node.chldrn.length; i++) {
+      const currentNode = node.chldrn[i];
+
+      if (isTextFidCommentNode(currentNode)) {
+        continue;
+      } else if (currentNode.type === Node.TEXT_NODE) {
+        const foundFid = getFidOfSerNode(node.chldrn[i - 1]);
+        const newElPath = `${elPath}.${i}`;
+        queue.push({
+          node: currentNode,
+          elPath: newElPath,
+          fid: foundFid
+        });
+      } else {
+        queue.push({
+          node: currentNode,
+          elPath: `${elPath}.${i}`,
+          fid: getFidOfSerNode(currentNode)
+        });
+      }
+    }
+  }
+  return fidMap;
+}
+
+export function getSerNodeFidFromElPath(
+  root: SerNode,
+  elPathToFind: string
+): string | undefined {
+  const queue : {node: SerNode, elPath: string, fid: string}[] = [
+    { node: root, elPath: '1', fid: root.attrs['f-id'] || nanoid() }
+  ];
+  while (queue.length > 0) {
+    const { node, elPath, fid } = queue.shift()!;
+
+    if (elPathToFind === elPath) {
+      return fid;
+    }
+
+    for (let i = 0; i < node.chldrn.length; i++) {
+      const currentNode = node.chldrn[i];
+
+      if (isTextFidCommentNode(currentNode)) {
+        continue;
+      } else if (currentNode.type === Node.TEXT_NODE) {
+        const foundFid = getFidOfSerNode(node.chldrn[i - 1]);
+        const newElPath = `${elPath}.${i}`;
+        queue.push({
+          node: currentNode,
+          elPath: newElPath,
+          fid: foundFid
+        });
+      } else {
+        queue.push({
+          node: currentNode,
+          elPath: `${elPath}.${i}`,
+          fid: getFidOfSerNode(currentNode)
+        });
+      }
+    }
+  }
+  return undefined;
+}

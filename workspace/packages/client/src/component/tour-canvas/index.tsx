@@ -46,6 +46,7 @@ import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
 import {
   AllEdits,
+  AllGlobalElEdits,
   AnnotationPerScreen,
   DestinationAnnotationPosition,
   EditItem,
@@ -141,6 +142,7 @@ type CanvasProps = {
   onScreenEditStart: () => void;
   onScreenEditFinish: () => void;
   onScreenEditChange: (forScreen: P_RespScreen, editChunks: AllEdits<ElEditType>) => void;
+  onGlobalEditChange: (editChunks: AllGlobalElEdits<ElEditType>) => void;
   isScreenLoaded: boolean;
   shouldShowOnlyScreen: boolean;
   updateScreen: UpdateScreenFn;
@@ -152,6 +154,7 @@ type CanvasProps = {
   updateElPathKey: (elPath: ElPathKey)=> void;
   featurePlan: FeatureForPlan | null;
   globalOpts: IGlobalConfig;
+  allGlobalEdits: EditItem[];
 };
 
 type AnnoationLookupMap = Record<string, [number, number]>;
@@ -3176,6 +3179,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 {
                   props.isScreenLoaded && (
                   <ScreenEditor
+                    allGlobalEdits={props.allGlobalEdits}
                     journey={props.journey}
                     // annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -3195,6 +3199,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onScreenEditStart={props.onScreenEditStart}
                     onScreenEditFinish={props.onScreenEditFinish}
                     onScreenEditChange={props.onScreenEditChange}
+                    onGlobalEditChange={props.onGlobalEditChange}
                     onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
                     applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
                     isScreenLoaded={props.isScreenLoaded}
@@ -3251,6 +3256,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                   {
                 props.isScreenLoaded && showScreenEditor && (
                   <ScreenEditor
+                    allGlobalEdits={props.allGlobalEdits}
                     journey={props.journey}
                     // annotationSerialIdMap={props.annotationSerialIdMap}
                     key={props.screen!.rid}
@@ -3270,6 +3276,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     onScreenEditStart={props.onScreenEditStart}
                     onScreenEditFinish={props.onScreenEditFinish}
                     onScreenEditChange={props.onScreenEditChange}
+                    onGlobalEditChange={props.onGlobalEditChange}
                     onAnnotationCreateOrChange={props.onAnnotationCreateOrChange}
                     applyAnnButtonLinkMutations={props.applyAnnButtonLinkMutations}
                     isScreenLoaded={props.isScreenLoaded}

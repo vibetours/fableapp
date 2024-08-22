@@ -1,5 +1,5 @@
 import { RespDemoEntity } from '@fable/common/dist/api-contract';
-import { IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
+import { EditFile, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { RenameDemoHubResult } from './action/creator';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
@@ -23,26 +23,55 @@ export const enum ElEditType {
   Input
 }
 
-export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string | null];
+export type GlobalEditFile = EditFile<AllGlobalElEdits<ElEditType>>;
+
+export interface BaseGlobalElEdit {
+  type: ElEditType,
+  timeInSec: number,
+  fid: string,
+  srnId: number,
+}
+
+export interface GlobalElEditText extends BaseGlobalElEdit {
+  type: ElEditType.Text,
+  oldValue: string,
+  newValue: string | null,
+}
+export type EncodingTypeText = [timeInSec: number, oldValue: string, newValue: string | null, fid: string];
 export const enum IdxEncodingTypeText {
   TIMESTAMP = 0,
   OLD_VALUE,
   NEW_VALUE,
+  FID,
 }
 
-export type EncodingTypeInput = [timeInSec: number, oldValue: string, newValue: string | null];
+export interface GlobalElEditInput extends BaseGlobalElEdit {
+  type: ElEditType.Input,
+  oldValue: string,
+  newValue: string | null,
+}
+export type EncodingTypeInput = [timeInSec: number, oldValue: string, newValue: string | null, fid: string];
 export const enum IdxEncodingTypeInput {
   TIMESTAMP = 0,
   OLD_VALUE,
   NEW_VALUE,
+  FID,
 }
 
+export interface GlobalElEditImage extends BaseGlobalElEdit {
+  type: ElEditType.Image,
+  oldValue: string,
+  newValue: string | null,
+  height: string,
+  width: string,
+}
 export type EncodingTypeImage = [
   timeInSec: number,
   oldValue: string,
   newValue: string | null,
   height: string,
-  width: string
+  width: string,
+  fid: string,
 ];
 
 export const enum IdxEncodingTypeImage {
@@ -51,6 +80,15 @@ export const enum IdxEncodingTypeImage {
   NEW_VALUE,
   HEIGHT,
   WIDTH,
+  FID,
+}
+
+export interface GlobalElEditBlur extends BaseGlobalElEdit {
+  type: ElEditType.Blur,
+  oldBlurValue: number,
+  newBlurValue: number | null,
+  oldFilterPropertyValue: string,
+  newFilterPropertyValue: string | null,
 }
 
 export type EncodingTypeBlur = [
@@ -58,7 +96,8 @@ export type EncodingTypeBlur = [
   oldBlurValue: number,
   newBlurValue: number | null,
   oldFilterPropertyValue: string,
-  newFilterPropertyValue: string | null
+  newFilterPropertyValue: string | null,
+  fid: string,
 ];
 export const enum IdxEncodingTypeBlur {
   TIMESTAMP = 0,
@@ -66,20 +105,45 @@ export const enum IdxEncodingTypeBlur {
   NEW_BLUR_VALUE,
   OLD_FILTER_VALUE,
   NEW_FILTER_VALUE,
+  FID,
 }
 
-export type EncodingTypeDisplay = [timeInSec: number, oldValue: string, newVal: string | null];
+export interface GlobalElEditDisplay extends BaseGlobalElEdit {
+  type: ElEditType.Display,
+  oldValue: string,
+  newValue: string | null,
+}
+export type EncodingTypeDisplay = [timeInSec: number, oldValue: string, newVal: string | null, fid: string];
 export const enum IdxEncodingTypeDisplay {
   TIMESTAMP = 0,
   OLD_VALUE,
   NEW_VALUE,
+  FID,
 }
 
-export type EncodingTypeMask = [timeInSec: number, newStyle: string | null, oldStyle: string];
+export interface GlobalElEditMask extends BaseGlobalElEdit {
+  type: ElEditType.Mask,
+  newStyle: string | null,
+  oldStyle: string,
+}
+export type EncodingTypeMask = [timeInSec: number, newStyle: string | null, oldStyle: string, fid: string,];
 export const enum IdxEncodingTypeMask {
   TIMESTAMP = 0,
   NEW_STYLE,
   OLD_STYLE,
+  FID,
+}
+
+export type GlobalElEdit = GlobalElEditText | GlobalElEditImage | GlobalElEditBlur
+  | GlobalElEditDisplay | GlobalElEditMask | GlobalElEditInput
+
+export interface GlobalElEditValueEncoding {
+  [ElEditType.Text]: GlobalElEditText;
+  [ElEditType.Image]: GlobalElEditImage;
+  [ElEditType.Blur]: GlobalElEditBlur;
+  [ElEditType.Display]: GlobalElEditDisplay;
+  [ElEditType.Mask]: GlobalElEditMask;
+  [ElEditType.Input]: GlobalElEditInput;
 }
 
 export interface EditValueEncoding {
@@ -99,22 +163,35 @@ export const enum IdxEditEncodingText {
 
 export type AllEdits<K extends keyof EditValueEncoding> = Record<string, Partial<Record<K, EditValueEncoding[K]>>>;
 
+export type AllGlobalElEdits<K extends keyof GlobalElEditValueEncoding> = Record<string, Partial<Record<K, GlobalElEditValueEncoding[K]>>>;
+
 export type EditItem = [
   key: string,
   path: string,
+  fid: string,
   type: ElEditType,
   isLocalEdit: boolean,
   timestamp: number,
-  edit: Partial<EditValueEncoding[keyof EditValueEncoding]>
+  edit: Partial<EditValueEncoding[keyof EditValueEncoding]>,
+  elIdentifierType: ElIdentifierType,
+  isGlobalEdit: boolean,
 ];
 
 export const enum IdxEditItem {
   KEY = 0,
   PATH,
+  FID,
   TYPE,
   EDIT_TYPE_LOCAL,
   TIMESTAMP,
   ENCODING,
+  EL_IDENTIFIER_TYPE,
+  IS_GLOBAL_EDIT,
+}
+
+export enum ElIdentifierType {
+  PATH = 0,
+  FID,
 }
 
 export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;

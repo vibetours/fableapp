@@ -12,3 +12,4 @@ export const PREVIEW_BASE_URL = 'preview';
 export const HEADER_CTA = 'header_cta';
 export const FABLE_LOCAL_STORAGE_ORG_ID_KEY = 'fable/oid';
 export const FABLE_AUDIO_MEDIA_CONTROLS = 'fable-audio-media-ctrls';
+export const EMPTY_EL_PATH = '-1';

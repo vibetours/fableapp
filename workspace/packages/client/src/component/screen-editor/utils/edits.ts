@@ -4,6 +4,7 @@ import {
   EditItem,
   EditValueEncoding,
   ElEditType,
+  ElIdentifierType,
   EncodingTypeBlur,
   EncodingTypeDisplay,
   EncodingTypeImage,
@@ -20,6 +21,8 @@ import {
   IdxEncodingTypeText
 } from '../../../types';
 import { hideChildren, hideChildrenInSerDom, unhideChildren } from './creator-actions';
+import { getSerNodesElPathFromFids } from '../../../utils';
+import { EMPTY_EL_PATH } from '../../../constants';
 
 export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTMLElement): void => {
   if (el.dataset.deleted === 'true') return;
@@ -129,11 +132,27 @@ export const getSerNodeFromPath = (path: string, docTree: SerNode): SerNode => {
 export const applyEditsToSerDom = (allEdits: EditItem[], screenData: ScreenData): ScreenData => {
   const mem: Record<string, SerNode> = {};
 
+  const fids: string[] = allEdits
+    .filter(item => (
+      item[IdxEditItem.FID]
+      && (item[IdxEditItem.EL_IDENTIFIER_TYPE] === ElIdentifierType.FID)
+      && item[IdxEditItem.PATH] === EMPTY_EL_PATH))
+    .map(item => item[IdxEditItem.FID]!);
+  const fidSerNodeMap = getSerNodesElPathFromFids(screenData.docTree, fids);
+
   for (const edit of allEdits) {
     const path = edit[IdxEditItem.PATH];
     let node: SerNode;
-    if (path in mem) node = mem[path];
-    else {
+    if (path === EMPTY_EL_PATH) {
+      const fid = edit[IdxEditItem.FID] || '-1';
+      const item = fidSerNodeMap[fid];
+      if (!item) {
+        continue;
+      }
+      node = item.serNode;
+    } else if (path in mem) {
+      node = mem[path];
+    } else {
       node = getSerNodeFromPath(path, screenData.docTree);
       mem[path] = node;
     }
