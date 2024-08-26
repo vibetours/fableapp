@@ -3,7 +3,7 @@ import * as Tags from './styled';
 
 export interface Props extends React.InputHTMLAttributes<HTMLTextAreaElement> {
   label: string;
-  sz?: 'large' | 'medium';
+  sz?: 'large' | 'medium' | 'small';
   innerRef?: RefObject<HTMLTextAreaElement>;
   icon?: React.ReactNode;
 }

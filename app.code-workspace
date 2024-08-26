@@ -14,5 +14,11 @@
 		}
 	],
 	"settings": {
+		"editor.fontSize": 13,
+		"editor.fontFamily": "Jetbrains Mono",
+		"editor.fontLigatures": true,
+		"editor.codeActionsOnSave": {
+			"source.fixAll.eslint": "always"
+		}
 	}
 }

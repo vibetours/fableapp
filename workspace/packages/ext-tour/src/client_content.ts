@@ -82,6 +82,12 @@ function init() {
         break;
       }
 
+      case Msg.SAVE_VERSION_DATA: {
+        const versionDiv = createDataDiv("version-data", message.data.version);
+        document.body.appendChild(versionDiv);
+        break;
+      }
+
       default: {
         break;
       }

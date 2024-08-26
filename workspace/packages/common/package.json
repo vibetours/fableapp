@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.2.3",
+    "@anthropic-ai/sdk": "^0.26.1",
     "posthog-js": "^1.130.1"
   },
   "devDependencies": {

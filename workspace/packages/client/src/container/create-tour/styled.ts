@@ -248,3 +248,206 @@ export const SubheaderText = styled.div`
   color: #16023E;  
   margin-bottom: 2rem;
 `;
+
+export const NewHeaderText = styled.div`
+  text-align: center;
+  font-weight: 600;
+`;
+
+export const CardContentCon = styled.div`
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    pointer-events: all;
+    height: 100%;
+    width: 100%;
+    
+    .ant-checkbox-wrapper {
+      align-items: start;
+    }
+    
+    .ant-checkbox {
+      align-self: start;
+    }
+`;
+
+export const ManualDemoContainer = styled.div`
+    margin: 1rem 0 0;
+    text-align: center;
+`;
+
+export const ManualDemo = styled.span`
+  color: #7567FF;
+  text-decoration: dotted underline;
+  display: block;
+  cursor: pointer;
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+export const ProductCardCon = styled.div`
+  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+  max-height: 600px;
+  min-height: 300px;
+  min-width: 400px;
+  background-color: white;
+  border-radius: 5px;
+  padding: 2rem;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  border-radius: 26px;
+
+  .subinfo {
+    opacity: 0.75;
+    margin: 0;
+  }
+`;
+
+export const Con = styled.div`
+  max-width: 600px;
+`;
+
+export const CheckboxContent = styled.div`
+  margin-top: -3px;
+
+  p {
+    margin: 0;
+    font-weight: 400;
+  }
+`;
+
+export const TextAreaContentCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  pointer-events: all;
+  width: 100%;
+`;
+
+export const ColorPaletteCon = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex-direction: column;
+`;
+
+export const ColorPaletteSuggest = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  p {
+    margin: 5px 0;
+    font-weight: 400;
+    font-size: 1rem;
+  }
+`;
+
+export const ColorPalette = styled.div<{bgColor: string, borderColor: string, fontColor: string, primaryColor: string}>`
+  cursor: pointer;
+  background: ${props => props.bgColor};
+  width: 160px;
+  border: ${props => `1px solid ${props.borderColor}`}; /* borderColor */
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-radius: 8px;
+  position: relative;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  .text-container {
+    background: transparent;
+  }
+
+  .text-container > div{
+    height: 8px;
+    background: ${props => `${props.fontColor}c1`}; /* fontColor + 'c1' */
+    margin-bottom: 4px;
+    border-radius: 8px;
+  }
+
+  .text-container {
+    width: 100%;
+  }
+
+  .line:nth-child(odd) {
+      width: 100%;
+  }
+  .line:nth-child(even) {
+      width: 50%;
+      margin-bottom: 12px !important;
+  }
+
+  .line:last-child {
+      width: 80%;
+  }
+
+  .btn-container {
+    margin-top: 100px;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+
+  .btn {
+    height: 24px;
+    width: 48px;
+    border-radius: 8px;
+    background: ${props => props.primaryColor}; /* primaryColor */
+  }
+`;
+
+export const RetryOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0,0,0,0.7);
+  z-index: 9999;
+  gap: 1rem;
+  color: #fff;
+
+  .ai-err-info{
+    color: yellow;
+    margin: 0;
+  }
+
+  .typ-btn{
+    background: white;
+    color: #000;
+
+    &.sec {
+      background: transparent;
+      border: 1px solid white;
+      color: white;
+    }
+  }
+`;
+
+export const CardHeading = styled.div`
+  margin: 0;
+  text-align: left;
+
+  p {
+    margin: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .typ-sm {
+    opacity: 0.75;
+  }
+`;
+
+export const CardSubHeading = styled.div`
+  margin: 0;
+`;

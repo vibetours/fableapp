@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { OurCheckbox } from '../../common-styled';
 
 /**
  * ONBOARDING CARD

@@ -380,6 +380,10 @@ export function getSearializedDom(
         height: rect.height,
         width: rect.width,
       };
+      sNode.props.aidxdy = {
+        dx: rect.x,
+        dy: rect.y
+      };
 
       if (rect.height === 0 || rect.width === 0 || !isVisible(tNode)) {
         // If an iframe is not visible we skip it from DOM. While other element can be hidden and we still
@@ -660,6 +664,10 @@ export function addFableIdsToAllEls(
       sNode.props.rect = {
         height: rect.height,
         width: rect.width,
+      };
+      sNode.props.aidxdy = {
+        dx: rect.x,
+        dy: rect.y
       };
 
       if (rect.height === 0 || rect.width === 0 || !isVisible(tNode)) {

@@ -314,10 +314,6 @@ export const OurCheckbox = styled(Checkbox)<CheckboxProps>`
   &.ant-checkbox-wrapper {
     flex-direction: ${(props: CheckboxProps) => (props.showafterlabel ? 'row-reverse' : 'unset')};
   }
-
-  & span{
-    padding-inline-start: ${(props: CheckboxProps) => (props.showafterlabel ? '0px' : '8px')};
-  }
 `;
 
 export const OurRadio = styled(Radio)`

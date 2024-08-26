@@ -43,6 +43,7 @@ interface FrameDataToBeProcessed {
   tabId: number;
   type: "serdom" | "thumbnail" | "sigstop" | "sigskip";
   data: SerDoc | string;
+  interactionCtx: ScreenSerDataFromCS["interactionCtx"] | null;
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -54,10 +55,15 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onMessageExternal.addListener(
-  (data, sender, sendResponse) => {
+  async (data, sender, sendResponse) => {
     if (data && data.message && data.message === "version") {
       sendResponse({ version });
     }
+    // used for capture screen editor screenshot. commented as not required for AI v1
+    // if (data && data.sender && data.sender === "fable") {
+    //   const lastTabCaptureImageData = await chrome.tabs.captureVisibleTab({ format: "png" });
+    //   sendResponse({ data: lastTabCaptureImageData });
+    // }
     return true;
   }
 );
@@ -353,6 +359,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
             tabId: sender.tab!.id!,
             type: "thumbnail",
             data: lastTabCaptureImageData,
+            interactionCtx: null,
           });
         }
       }
@@ -393,6 +400,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         tabId: sender.tab!.id!,
         type: "serdom",
         data: tMsg.data.serDoc,
+        interactionCtx: tMsg.data.interactionCtx,
       });
       // INFO This iterates some html elements to figure out what are the dominant color etc
       //      It's made part of this message, that could lead to slowness of the page. As serialization and
@@ -449,6 +457,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
         tabId: tab.id!,
         type: endMsg,
         data: "",
+        interactionCtx: null,
       });
       await chrome.tabs.sendMessage<MsgPayload<StopRecordingData>>(tab.id!, {
         type: Msg.STOP_RECORDING,
@@ -486,6 +495,11 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
       await chrome.tabs.sendMessage(sender.tab.id!, {
         type: Msg.SAVE_STYLE_DATA,
         data: { screenStyleData }
+      });
+
+      await chrome.tabs.sendMessage(sender.tab.id!, {
+        type: Msg.SAVE_VERSION_DATA,
+        data: { version: "2" }
       });
 
       await chrome.tabs.sendMessage(sender.tab.id!, { type: Msg.SAVE_TOUR_DATA });

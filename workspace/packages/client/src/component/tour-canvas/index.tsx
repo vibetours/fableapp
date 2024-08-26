@@ -39,8 +39,6 @@ import {
   getAnnotationByRefId,
   reorderAnnotation,
   groupUpdatesByAnnotation,
-  AnnotationSerialIdMap,
-  getAnnotationBtn
 } from '../annotation/ops';
 import { Tx } from '../../container/tour-editor/chunk-sync-manager';
 import { P_RespScreen, P_RespSubscription, P_RespTour } from '../../entity-processor';
@@ -87,7 +85,14 @@ import {
   getAnnotationsInOrder, getEndPointsUsingPath, getJourneyIntroMDStr,
   getMultiAnnNodesAndEdges, getTourIntroMDStr, getValidFileName
 } from './utils';
-import { doesBtnOpenALink, isEventValid, isFeatureAvailable, isNavigateHotspot, isTourResponsive, updateLocalTimelineGroupProp } from '../../utils';
+import {
+  doesBtnOpenALink,
+  isEventValid,
+  isFeatureAvailable,
+  isNavigateHotspot,
+  isTourResponsive,
+  updateLocalTimelineGroupProp
+} from '../../utils';
 import NewAnnotationPopup from './new-annotation-popup';
 import ShareEmbedDemoGuide from '../../user-guides/share-embed-demo-guide';
 import SelectorComponent from '../../user-guides/selector-component';
@@ -341,11 +346,12 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
   const [allAnnsLookupMap, setAllAnnsLookupMap] = useState<AnnoationLookupMap>({});
   const dagreGraphRef = useRef<dagre.graphlib.Graph>();
   const [screenMode, setScreenMode] = useState<ScreenMode>(ScreenMode.DESKTOP);
-
+  const [img, setImg] = useState<null | string>(null);
   const [init] = useState(1);
   const expandedMultAnnZIds = useRef<string[]>([]);
   const zoomPanState = dSaveZoomPanState(props.tour.rid);
   const multiAnnFeatureAvailable = isFeatureAvailable(props.featurePlan, 'multi_annontation');
+  // const [hideAnnForCapture, setHideAnnForCapture] = useState(false);
 
   useEffect(() => {
     const receiveMessage = (e: MessageEvent<{ type: UserGuideMsg }>): void => {
@@ -3215,6 +3221,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
                     featurePlan={props.featurePlan}
+                    // hideAnnForCapture={hideAnnForCapture}
                     globalOpts={props.globalOpts}
                   />
                   )
@@ -3293,6 +3300,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     updateElPathKey={props.updateElPathKey}
                     updateTourProp={props.updateTourProp}
                     featurePlan={props.featurePlan}
+                    // hideAnnForCapture={hideAnnForCapture}
                     globalOpts={props.globalOpts}
 
                   />
@@ -3371,8 +3379,49 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
             </Tags.MultiNodeModalWrapper>
             )
           }
+          {/* {
+            annEditorModal && (
+              <Tags.CaptureCon
+                onClick={prevent}
+                onMouseUp={prevent}
+                onMouseDown={prevent}
+              >
+                <Tags.CanvasMenuItemCon id="new-screen-btn">
+                  <Tooltip
+                    title="Capture"
+                    overlayStyle={{ fontSize: '0.75rem' }}
+                    placement="right"
+                  >
+                    <Button
+                      onClick={async () => {
+                        const iframe = document.querySelectorAll('[id^="fab-reifi-"]');
+                        if (iframe.length > 0) {
+                          const rect = iframe[0].getBoundingClientRect();
+                          if (rect) {
+                            setHideAnnForCapture(true);
+                            setTimeout(async () => {
+                              const res = await captureScreenEditor(rect.x, rect.y, rect.width, rect.height);
+                              res && setImg(res);
+                              setHideAnnForCapture(false);
+                            }, 1000);
+                          }
+                        }
+                      }}
+                      icon={<CameraOutlined style={CANVAS_MENU_ITEM_STYLE} />}
+                      size="large"
+                      type="text"
+                      style={{
+                        margin: 0,
+                        borderRadius: '4px',
+                      }}
+                    />
+                  </Tooltip>
+                </Tags.CanvasMenuItemCon>
+              </Tags.CaptureCon>
+            )
+          } */}
           {props.timeline.length && <SelectorComponent key={selectorComponentKey} userGuides={userGuides} />}
-
+          {img && <img src={img} id="fable-srn-ed" alt="captured frame" style={{ zIndex: 9999, height: '20vh', width: '40vw' }} />}
           <ResponsiveStrategyDrawer
             showMobileResponsivenessDrawer={showMobileResponsivenessDrawer}
             setShowMobileResponsivenessDrawer={setShowMobileResponsivenessDrawer}

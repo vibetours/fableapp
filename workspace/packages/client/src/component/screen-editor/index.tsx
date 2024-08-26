@@ -92,6 +92,7 @@ import {
   IAnnotationConfigWithScreenId,
   shallowCloneAnnotation,
   updateAnnotationZId,
+  updateAnnotationHideAnnotation,
 } from '../annotation/annotation-config-utils';
 import FocusBubble from '../annotation/focus-bubble';
 import {
@@ -219,6 +220,7 @@ interface IOwnProps {
     value: ReqTourPropUpdate[T]
   ) => void;
   featurePlan: FeatureForPlan | null;
+  // hideAnnForCapture: boolean;
   globalOpts: IGlobalConfig;
   allGlobalEdits: EditItem[]
 }
@@ -942,6 +944,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (this.props.featurePlan && prevProps.featurePlan !== this.props.featurePlan) {
       this.handleEditsFeatureAvailable();
     }
+
+    // if (this.props.hideAnnForCapture && this.props.hideAnnForCapture !== prevProps.hideAnnForCapture) {
+    //   if (this.state.activeTab === TabList.Annotations && this.state.selectedAnnotationId) {
+    //     const config = getAnnotationWithScreenAndIdx(this.props.toAnnotationId, this.props.timeline);
+    //     if (config) {
+    //       const newConf = updateAnnotationHideAnnotation(config, true);
+    //       this.props.onAnnotationCreateOrChange(this.props.screen.id, newConf, 'upsert', this.props.tourDataOpts);
+    //       setTimeout(() => {
+    //         const conf = updateAnnotationHideAnnotation(config, false);
+    //         this.props.onAnnotationCreateOrChange(this.props.screen.id, conf, 'upsert', this.props.tourDataOpts);
+    //       }, 2000);
+    //     }
+    //   }
+    // }
   }
 
   callback = (e: MouseEvent): void => this.handleClickOutside(e, this.props.screen.id);

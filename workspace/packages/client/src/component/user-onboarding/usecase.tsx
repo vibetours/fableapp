@@ -132,7 +132,7 @@ export default function Usecase(props: Props): JSX.Element {
         <OurCheckbox
           checked={showOthersOption}
           onChange={e => setShowOthersOption(e.target.checked)}
-          style={{ transform: `translate(-8px, ${showOthersOption ? 0 : -16}px` }}
+          style={{ transform: `translate(0px, ${showOthersOption ? 0 : -16}px` }}
         >
           <CheckboxOption title="Others" description="" />
         </OurCheckbox>

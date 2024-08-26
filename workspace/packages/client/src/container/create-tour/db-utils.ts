@@ -1,3 +1,6 @@
+import { ApiResp, PvtAssetType, RespUploadUrl } from '@fable/common/dist/api-contract';
+import api from '@fable/common/dist/api';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { DBData } from './types';
 
 export function openDb(dbName: string, storeName: string, version: number, keyPath: string):Promise<IDBDatabase> {
@@ -94,3 +97,24 @@ export function deleteDataFromDb(db: IDBDatabase, storeName: string, key: string
     };
   });
 }
+
+export const saveDbDataToAws = async (dbData: DBData, anonDemoId: string): Promise<void> => {
+  try {
+    const nameOfSerdomFile = 'index.json';
+    const contentType = 'application/json';
+    const data = await api<null, ApiResp<RespUploadUrl>>(`/getpvtuploadlink?te=${btoa(contentType)}&pre=${anonDemoId}&fe=${btoa(nameOfSerdomFile)}&t=${PvtAssetType.TourInputData}`, {
+      auth: true
+    });
+    const s3PresignedUploadUrl = data.data.url;
+
+    const res = await fetch(s3PresignedUploadUrl, {
+      method: 'PUT',
+      body: JSON.stringify(dbData),
+      headers: { 'Content-Type': contentType },
+    });
+  } catch (err) {
+    if (err instanceof Error) {
+      raiseDeferredError(err);
+    }
+  }
+};

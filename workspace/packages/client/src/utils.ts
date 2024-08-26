@@ -1048,6 +1048,34 @@ export const getIsMobileSize = (): boolean => {
   return false;
 };
 
+// export const captureScreenEditor = (x1:number, y1:number, width:number, height:number)
+//   :Promise<null | string> => new Promise((resolve) => {
+//   if (typeof chrome === 'undefined' || !chrome.runtime) resolve(null);
+//   const dpr = window.devicePixelRatio || 1;
+//   chrome.runtime.sendMessage(
+//     EXTENSION_ID,
+//     { sender: 'fable' },
+//     (response) => {
+//       if (response && response.data) {
+//         const img = new Image();
+//         img.onload = () => {
+//           const canvas = document.createElement('canvas');
+//           canvas.width = width * dpr;
+//           canvas.height = height * dpr;
+//           const ctx = canvas.getContext('2d');
+//           ctx!.drawImage(img, x1 * dpr, y1 * dpr, width * dpr, height * dpr, 0, 0, width * dpr, height * dpr);
+//           const dataURL = canvas.toDataURL('image/png');
+//           canvas.remove();
+//           resolve(dataURL);
+//         };
+
+//         img.src = response.data;
+//       }
+//       if (chrome.runtime.lastError) resolve(null);
+//     }
+//   );
+// });
+
 export function addPointerEventsAutoToEl(el: HTMLElement): void {
   const styleAttrValue = el.getAttribute('style') || '';
   const stylesToOverride = '; pointer-events: auto !important;';

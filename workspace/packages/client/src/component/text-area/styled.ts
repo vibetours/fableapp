@@ -1,10 +1,10 @@
 import styled from 'styled-components';
 
-export const InputContainer = styled.div<{ size: 'large' | 'medium'}>`
+export const InputContainer = styled.div<{ size: 'large' | 'medium' | 'small'}>`
   position: relative;
 
   textarea {
-    height: ${props => (props.size === 'large' ? 140 : 100)}px;
+    height: ${props => (props.size === 'large' ? 140 : props.size === 'medium' ? 100 : 60)}px;
     width: 100%;
     border-radius: 8px;
     box-sizing: border-box;

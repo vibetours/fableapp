@@ -2,6 +2,7 @@ import { getRandomId, sleep, snowflake } from "@fable/common/dist/utils";
 import { init as sentryInit } from "@fable/common/dist/sentry";
 import raiseDeferredError from "@fable/common/dist/deferred-error";
 import { nanoid } from "nanoid";
+import { RectWithFId } from "@fable/common/dist/types";
 import { Msg, MsgPayload } from "./msg";
 import { addFableIdsToAllEls, getScreenStyle, getSearializedDom } from "./doc";
 import {
@@ -92,7 +93,15 @@ const calculatePathFromElInsideShadowDom = (el: Node, loc: number[]): number[] =
   return loc;
 };
 
-function serialize(elPath: string, isSource: boolean, id: number, el: EventTarget | null | undefined = null, isInsideShadowDom: boolean = false) {
+function serialize(
+  isSource: boolean,
+  id: number,
+  els: {
+    targetEl: HTMLElement,
+    candidates: HTMLElement[]
+  } | null | undefined = undefined, // el = null when the click is for a cover annotation
+  isInsideShadowDom: boolean = false
+) {
   chrome.runtime.sendMessage<MsgPayload<ScreenSerStartData>>({
     type: Msg.FRAME_SERIALIZATION_START,
     data: {
@@ -107,38 +116,119 @@ function serialize(elPath: string, isSource: boolean, id: number, el: EventTarge
   });
 
   addFableIdsToAllEls();
+  let elPath;
+  const el = els?.targetEl;
   if (el) {
     if (isInsideShadowDom) {
       elPath = calculatePathFromElInsideShadowDom(el as Node, []).join(".");
     } else {
       elPath = calculatePathFromEl(el as Node, []).join(".");
     }
-  }
+  } else if (el === null) elPath = "$";
+
   const fablePresenceDiv = document.getElementById(FABLE_DOM_EVT_LISTENER_DIV);
   const frameId = fablePresenceDiv?.getAttribute(FABLE_ID_ID) || null;
 
   const serDoc = getSearializedDom({ frameId });
   const screenStyle = getScreenStyle();
   elPath && serDoc.postProcesses.push({ type: "elpath", path: elPath });
+
+  // TODO
+  // interactionCtx is used for creating images with marks on the page for llm to use.
+  // el is the element that was clicked on to create the screenshot. This el might be adjusted based on hueiristic
+  // Along side el, we calculate the candidates that might be used for llm to create the annotaiton properly with more
+  // context.
+  // Although drawing the boundbox of the clicked el might sound trivial, it might get very complicated for
+  // nested cross origin or same origin iframes or iframes inside shadow dom.
+  //
+  // Since this is more of a POC, we just support click on element in the root frame. If this is working well,
+  // then we have to add complete support
+
   chrome.runtime.sendMessage<MsgPayload<ScreenSerDataFromCS>>({
     type: Msg.FRAME_SERIALIZED,
     data: {
       eventType: isSource ? "source" : "cascade",
       id,
-      isLast: elPath === "$",
+      isLast: el === null,
       serDoc,
       location: document.location.origin,
-      screenStyle
+      screenStyle,
+      // this information is only used for drawing marks on the screenshot and discarded there after
+      interactionCtx: getInteractionCtxData(els, isInsideShadowDom)
     }
   });
 }
 
+function getClientRect(el: HTMLElement): RectWithFId {
+  const rect = el.getBoundingClientRect();
+  return {
+    x: rect.left,
+    y: rect.top,
+    width: rect.width,
+    height: rect.height,
+    fid: el.getAttribute("f-id") || ""
+  };
+}
+
+function getInteractionCtxData(els: { targetEl: HTMLElement; candidates: HTMLElement[]; } | null | undefined, isInsideShadowDom: boolean): ScreenSerDataFromCS["interactionCtx"] | null {
+  if (!els) return null;
+  const { targetEl, candidates } = els;
+  return {
+    type: "click",
+    focusEl: getClientRect(targetEl),
+    candidates: candidates.map(getClientRect),
+  };
+}
+
+// Once the element is selected on screen there might be possiblity that only an inner div got selected.
+// In that case we need to find the closest ancestor that has a bounding box of almost similar size
+// This guards against the case of drawing selection box that is partly on the choosen element.
+function getSelectionCandidate(element: HTMLElement): HTMLElement {
+  let el = element;
+  let tel = element;
+  let prevArea = Infinity;
+  let elItr = 10;
+  while (el && elItr > 0) {
+    elItr--;
+    const box = el.getBoundingClientRect();
+    const area = box.width * box.height;
+    if (!area) continue;
+    if (area - prevArea <= 5000) { // 5000 is a magic number. We can tweak this if needed
+      tel = el;
+      el = el.parentElement as HTMLElement;
+      prevArea = area;
+    } else break;
+  }
+
+  if (tel === document.body) {
+    tel = element;
+  }
+
+  return tel;
+}
+
+// Once an element is selected we adjust the selection as well as get other candidate selection
+// in the traversal hierarchy
+function adjustElementAndGetCandidates(element: HTMLElement) {
+  const el = getSelectionCandidate(element);
+  const candidates: HTMLElement[] = [];
+  const maxCandidates = 3;
+  let i = 0;
+  let anchor = el;
+  while (i < maxCandidates) {
+    if (anchor.parentElement === null) break;
+    anchor = anchor.parentElement;
+    const candidate = getSelectionCandidate(anchor);
+    if (candidate === document.body) break;
+    candidates.push(candidate);
+    anchor = candidate;
+    i++;
+  }
+  return [el, ...candidates];
+}
+
 const onClickHandler = async (e: MouseEvent) => {
   if ((e.target as HTMLElement).classList.contains(FABLE_DONT_SER_CLASSNAME)) return;
-  // const elPath = calculatePathFromEl(e.target as Node, []).join(".");
-  // TODO ask siddhi why is this required when the method is already calculating elPath
-  const elPath = "";
-
   let el = e.target;
   let isInsideShadowDom = false;
   try {
@@ -151,7 +241,12 @@ const onClickHandler = async (e: MouseEvent) => {
     raiseDeferredError(err as Error);
   }
 
-  serialize(elPath, true, snowflake(), el, isInsideShadowDom);
+  const tEl = el as HTMLElement;
+  const [rEl, ...candidates] = adjustElementAndGetCandidates(tEl);
+  serialize(true, snowflake(), {
+    targetEl: rEl,
+    candidates
+  }, isInsideShadowDom);
 };
 
 function createListenerMarkerDivIfNotPresent(doc: Document) {
@@ -351,14 +446,14 @@ function init() {
       case Msg.SERIALIZE_FRAME: {
         const tMsg = msg as MsgPayload<SerializeFrameData>;
         if (tMsg.data.srcFrameId !== initData.frameId) {
-          serialize("", false, tMsg.data.id);
+          serialize(false, tMsg.data.id);
         }
         break;
       }
 
       case Msg.STOP_RECORDING: {
         const tMsg = msg as MsgPayload<StopRecordingData>;
-        serialize("$", false, tMsg.data.id);
+        serialize(false, tMsg.data.id, null);
         break;
       }
 

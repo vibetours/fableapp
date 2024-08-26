@@ -379,3 +379,29 @@ export const StyledDrawer = styled(Drawer)`
     border-radius: 4px;
   }
 `;
+
+export const CaptureCon = styled.div`
+  position: absolute;
+  background: white;
+  right: 30px;
+  position: absolute;
+  top: 30px;
+  border-radius: 8px;
+  padding: 0px 0px 0px 0px;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+
+  & > div:first-child {
+    margin-top: 0.75rem;
+  }
+
+  & > div:last-child {
+    border-bottom-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    margin-bottom: 0.75rem;
+  }
+`;

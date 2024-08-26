@@ -12,7 +12,9 @@ import {
   ThemeBorderRadiusCandidatePerNode,
   ThemeColorCandidatPerNode,
   ProxyAttrs,
-  IGlobalConfig
+  AiDxDy,
+  IGlobalConfig,
+  InteractionCtx
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import {
@@ -42,16 +44,49 @@ import {
   rgbToHex,
   getImgScreenData,
   createLiteralProperty,
-  createGlobalProperty,
-  GlobalPropsPath
+  SAMPLE_ANN_CONFIG_TEXT
 } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { FrameDataToBeProcessed, ScreenInfo } from './types';
-import { getDefaultThumbnailHash, P_RespTour } from '../../entity-processor';
-import { getColorContrast } from '../../utils';
-import { uploadFileToAws, uploadImageAsBinary } from '../../component/screen-editor/utils/upload-img-to-aws';
+import {
+  CreateNewDemoV1,
+  LLMResp,
+  PostProcessDemoV1,
+  RefForMMV,
+  RouterForTypeOfDemoCreation,
+  ThemeForGuideV1
+} from '@fable/common/dist/llm-contract';
+import { create_guides_router } from '@fable/common/dist/llm-fn-schema/create_guides_router';
+import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources';
+import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
+import { post_process_demo } from '@fable/common/dist/llm-fn-schema/post_process_demo';
+import { create_guides_step_by_step } from '@fable/common/dist/llm-fn-schema/create_guides_step_by_step';
+import { create_guides_marketing } from '@fable/common/dist/llm-fn-schema/create_guides_marketing';
+import {
+  AiData,
+  AiItem,
+  AnnotationStyle,
+  create_guides_marketing_p,
+  create_guides_step_by_step_p,
+  FrameDataToBeProcessed,
+  InteractionCtxDetail,
+  InteractionCtxWithCandidateElpath,
+  LLM_EXTRA_COLORS,
+  LLM_IMAGE_TYPE,
+  LLMOpsType,
+  ScreenInfo,
+  post_process_demo_p,
+  ScreenInfoWithAI
+} from './types';
+import { P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
+import { getColorContrast, getFidOfSerNode } from '../../utils';
+import {
+  uploadFileToAws,
+  uploadImageAsBinary,
+  uploadImageDataToAws,
+  uploadMarkedImageToAws
+} from '../../component/screen-editor/utils/upload-img-to-aws';
 import { Vpd } from '../../types';
 
 export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
@@ -72,21 +107,15 @@ export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode 
   return null;
 }
 
-export async function saveScreen(
-  proxyCache: Map<string, RespProxyAsset>,
-  frames: FrameDataToBeProcessed[],
-  cookies: chrome.cookies.Cookie[],
-  onProgress: (doneProcessing: number, totalProcessing: number) => void,
-): Promise<ScreenInfo> {
-  const screenInfo = await processScreen(proxyCache, frames, cookies, onProgress);
-  return screenInfo;
-}
-
 export async function saveAsTour(
-  screens: ScreenInfo[],
+  screens: ScreenInfoWithAI[],
   existingTour: P_RespTour | null,
   globalOpts: IGlobalConfig,
+  aiThemeData: suggest_guide_theme | null,
+  selectedPallete: 'ai' | 'global' | null,
+  creationMode: 'ai'|'manual',
   tourName: string = 'Untitled',
+  tourDescription: string = '',
   // TODO[now] change this
   annotationBodyBackgroundColor: string = '#ffffff',
   annotationBorderRadius: number | 'global' = DEFAULT_BORDER_RADIUS,
@@ -94,14 +123,35 @@ export async function saveAsTour(
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
   }
+  console.log('<<< screens', screens);
+  const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
+  const annStyle: AnnotationStyle = {
+    backgroundColor: annotationBodyBackgroundColor,
+    borderRadius: annotationBorderRadius,
+    selectionColor: relevantColors.selection,
+    fontColor: relevantColors.font,
+    primaryColor: relevantColors.primary
+  };
+
+  if (selectedPallete === 'global') {
+    annStyle.backgroundColor = 'global';
+    annStyle.borderRadius = 'global';
+  } else if (selectedPallete === 'ai' && aiThemeData) {
+    annStyle.backgroundColor = aiThemeData.backgroundColor;
+    annStyle.borderRadius = aiThemeData.borderRadius;
+    annStyle.fontColor = aiThemeData.fontColor;
+    annStyle.primaryColor = aiThemeData.primaryColor;
+    annStyle.selectionColor = aiThemeData.borderColor;
+  }
 
   const { tourDataFile, tourRid } = await addAnnotationConfigs(
     screens,
     existingTour,
     tourName,
-    annotationBodyBackgroundColor,
-    annotationBorderRadius,
+    tourDescription,
     globalOpts,
+    annStyle,
+    creationMode
   );
   const res = await saveTour(tourRid, tourDataFile);
 
@@ -110,7 +160,12 @@ export async function saveAsTour(
 
 // --- tour creation util ---
 
-async function createNewTour(tourName: string, vpd: null | Vpd, thumbnail: null | string): Promise<RespDemoEntity> {
+async function createNewTour(
+  tourName: string,
+  tourDescription: string,
+  vpd: null | Vpd,
+  thumbnail: null | string
+): Promise<RespDemoEntity> {
   let tsettings: TourSettings | undefined;
   if (vpd) {
     tsettings = {
@@ -136,7 +191,7 @@ async function createNewTour(tourName: string, vpd: null | Vpd, thumbnail: null 
     auth: true,
     body: {
       name: tourName,
-      description: '',
+      description: tourDescription,
       settings: tsettings,
       info
     },
@@ -182,18 +237,26 @@ function createAnnotationHotspot(screenId: number, annotationRefId: string): ITo
   };
 }
 
+const SAMPLE_AI_ANN_CONFIG_TEXT = '‼️‼️‼️ Quill, Fable’s AI Demo Copilot, was unable to confidently generate this step. We’ve included it for your review. You can either manually edit the content or choose to delete this step entirely.';
+
 async function addAnnotationConfigs(
-  screenInfo: Array<ScreenInfo>,
+  screenInfo: Array<ScreenInfoWithAI>,
   existingTour: P_RespTour | null,
   tourName: string,
-  annotationBodyBackgroundColor: string,
-  annotationBorderRadius: number | 'global',
+  tourDescription: string,
   globalOpts: IGlobalConfig,
+  annStyle: AnnotationStyle,
+  creationMode: 'ai' | 'manual'
 ): Promise<{ tourDataFile: TourData, tourRid: string }> {
-  const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
   let tourDataFile: TourData;
   let tourRid: string;
-  screenInfo = screenInfo.filter(screen => !screen.skipped);
+
+  screenInfo = screenInfo.filter((screen, idx) => {
+    if (screen.aiAnnotationData) {
+      return !screen.skipped && !screen.aiAnnotationData.skip;
+    }
+    return !screen.skipped;
+  });
 
   if (existingTour) {
     tourRid = existingTour.rid;
@@ -209,7 +272,7 @@ async function addAnnotationConfigs(
     if (screenInfo.length > 0 && screenInfo[0].info && screenInfo[0].info.thumbnail) {
       thumbnail = screenInfo[0].info.thumbnail;
     }
-    const tourData = await createNewTour(tourName, settings, thumbnail);
+    const tourData = await createNewTour(tourName, tourDescription, settings, thumbnail);
     tourRid = tourData.rid;
     tourDataFile = createEmptyTourDataFile(globalOpts);
   }
@@ -217,13 +280,32 @@ async function addAnnotationConfigs(
   const annConfigs: Array<IAnnotationConfig> = [];
   const screensInTourPromises: Array<Promise<RespScreen>> = [];
 
-  const grpId = nanoid();
+  let grpId = nanoid();
 
   for (let i = 0; i < screenInfo.length; i++) {
     const screen = screenInfo[i].info!;
+    if (screenInfo[i].moduleData) {
+      grpId = nanoid();
+    }
+    const screenAiData = screenInfo[i].aiAnnotationData;
+    const annotationText = screenAiData && screenAiData.text ? screenAiData.text
+      : creationMode === 'manual' ? SAMPLE_ANN_CONFIG_TEXT : SAMPLE_AI_ANN_CONFIG_TEXT;
+
+    const isAiIntroOrOutro = (i === 0 || i === screenInfo.length - 1) && creationMode === 'ai';
+    const isModuleIntro = screenInfo[i].moduleData !== undefined;
+    const nextBtnText = screenAiData?.nextButtonText || undefined;
     const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid);
     screensInTourPromises.push(newScreen);
-    const screenConfig = getSampleConfig(screen.elPath, grpId, globalOpts);
+    const elPath = screen.elPath;
+    const screenConfig = getSampleConfig(
+      elPath,
+      grpId,
+      globalOpts,
+      annotationText,
+      nextBtnText,
+      screenAiData && screenAiData.richText,
+      isAiIntroOrOutro || isModuleIntro
+    );
     screenConfig.showOverlay = false;
     screenConfig.isHotspot = true;
 
@@ -267,31 +349,48 @@ async function addAnnotationConfigs(
     tourDataFile.opts.main = `${screensInTour[0].id}/${annConfigs[0].refId}`;
   }
   tourDataFile.lastUpdatedAtUtc = getCurrentUtcUnixTime();
+  const journey = tourDataFile.journey;
 
   for (let i = 0; i < screenInfo.length; i++) {
     const screen = screenInfo[i];
+    let isModuleMain = false;
+    if (screen.moduleData) {
+      isModuleMain = true;
+      journey.flows.push({
+        header1: screen.moduleData!.name,
+        header2: screen.moduleData!.description,
+        main: `${screensInTour[i].id}/${annConfigs[i].refId}`,
+        mandatory: false
+      });
+    }
     const annotationConfig = annConfigs[i];
-    if (annotationBodyBackgroundColor !== 'global') {
-      annotationConfig.annotationSelectionColor = createLiteralProperty(relevantColors.selection);
+    if (annStyle.backgroundColor !== 'global') {
+      annotationConfig.annotationSelectionColor = createLiteralProperty(annStyle.selectionColor!);
     }
     if (!(i === 0 && i === screenInfo.length - 1)) {
       // If there is only one annotation in the tour then there is no point in connection, as both next and prev
       // will be empty
       const nextBtn = annotationConfig.buttons.filter(btn => btn.type === 'next')[0];
       const prevBtn = annotationConfig.buttons.filter(btn => btn.type === 'prev')[0];
-      switch (i) {
-        case 0:
-          nextBtn.hotspot = createAnnotationHotspot(screensInTour[i + 1].id, annConfigs[i + 1].refId);
-          // first annotation won't have any prev
-          break;
-        case screenInfo.length - 1:
-          prevBtn.hotspot = createAnnotationHotspot(screensInTour[i - 1].id, annConfigs[i - 1].refId);
-          // last annotation won't have any next
-          break;
-        default:
-          nextBtn.hotspot = createAnnotationHotspot(screensInTour[i + 1].id, annConfigs[i + 1].refId);
-          prevBtn.hotspot = createAnnotationHotspot(screensInTour[i - 1].id, annConfigs[i - 1].refId);
-          break;
+
+      if (isModuleMain) {
+        nextBtn.hotspot = createAnnotationHotspot(screensInTour[i + 1].id, annConfigs[i + 1].refId);
+        // current ann won't have prev
+        // previous ann won't have next
+        if (i > 0) {
+          const prevConfig = annConfigs[i - 1];
+          const nextBtnForPrevAnn = prevConfig.buttons.filter(btn => btn.type === 'next')[0];
+          nextBtnForPrevAnn.hotspot = null;
+        }
+      } else if (i === 0) {
+        nextBtn.hotspot = createAnnotationHotspot(screensInTour[i + 1].id, annConfigs[i + 1].refId);
+        // first annotation won't have any prev
+      } else if (i === screenInfo.length - 1) {
+        prevBtn.hotspot = createAnnotationHotspot(screensInTour[i - 1].id, annConfigs[i - 1].refId);
+        // last annotation won't have any next
+      } else {
+        nextBtn.hotspot = createAnnotationHotspot(screensInTour[i + 1].id, annConfigs[i + 1].refId);
+        prevBtn.hotspot = createAnnotationHotspot(screensInTour[i - 1].id, annConfigs[i - 1].refId);
       }
     }
 
@@ -304,17 +403,17 @@ async function addAnnotationConfigs(
       }
     } as TourScreenEntity;
   }
-
+  tourDataFile.journey = { ...journey };
   // If we are adding annotations to existing tour then don't change anything from the theme
   if (!existingTour) {
-    if (annotationBodyBackgroundColor !== 'global') {
-      tourDataFile.opts.annotationBodyBackgroundColor = createLiteralProperty(annotationBodyBackgroundColor);
-      tourDataFile.opts.primaryColor = createLiteralProperty(relevantColors.primary);
-      tourDataFile.opts.annotationFontColor = createLiteralProperty(relevantColors.font);
+    if (annStyle.backgroundColor !== 'global') {
+      tourDataFile.opts.annotationBodyBackgroundColor = createLiteralProperty(annStyle.backgroundColor);
+      tourDataFile.opts.primaryColor = createLiteralProperty(annStyle.primaryColor!);
+      tourDataFile.opts.annotationFontColor = createLiteralProperty(annStyle.fontColor!);
     }
 
-    if (annotationBorderRadius !== 'global') {
-      tourDataFile.opts.borderRadius = createLiteralProperty(annotationBorderRadius);
+    if (annStyle.borderRadius !== 'global') {
+      tourDataFile.opts.borderRadius = createLiteralProperty(annStyle.borderRadius);
     }
   }
 
@@ -330,39 +429,6 @@ async function saveTour(rid: string, tourDataFile: TourData): Promise<ApiResp<Re
     },
   });
   return tourResp;
-}
-
-async function processScreen(
-  proxyCache: Map<string, RespProxyAsset>,
-  frames: Array<FrameDataToBeProcessed>,
-  cookies: chrome.cookies.Cookie[],
-  onProgress: (doneProcessing: number, totalProcessing: number) => void,
-): Promise<ScreenInfo> {
-  for (const frame of frames) {
-    if (frame.type === 'serdom') {
-      const serDoc = frame.data as SerDoc;
-      serDoc.docTree = JSON.parse(serDoc.docTreeStr);
-    }
-  }
-  const res = await postProcessSerDocs(proxyCache, frames, cookies, onProgress);
-  if (res.skipped) {
-    return { info: null, skipped: true, vpd: null };
-  }
-
-  const data = res.data!;
-  return {
-    info: {
-      id: data.id,
-      elPath: res.elPath,
-      icon: data.icon,
-      type: data.type,
-      rid: data.rid,
-      replacedWithImgScreen: res.replacedWithImgScreen,
-      thumbnail: data.thumbnail
-    },
-    skipped: res.skipped,
-    vpd: res.vpd
-  };
 }
 
 function resolveElementFromPath(node: SerNode, path: Array<number>): SerNode {
@@ -389,7 +455,7 @@ function shouldProxyAsset(
   return true;
 }
 
-interface PostProcessSerDocsReturnType {
+export interface PostProcessSerDocsReturnType {
   data: RespScreen | null;
   elPath: string;
   replacedWithImgScreen: boolean;
@@ -397,59 +463,226 @@ interface PostProcessSerDocsReturnType {
   vpd: Vpd | null;
 }
 
-async function postProcessSerDocs(
+export const handleAssetOperation = async (
+  assetOperatons: AssetOperationProps[],
   proxyCache: Map<string, RespProxyAsset>,
-  results: Array<FrameDataToBeProcessed>,
+  mainFrame: FrameDataToBeProcessed | undefined,
+): Promise<void> => {
+  const svgSpriteUrls: Record<string, number> = {};
+
+  for (const operation of assetOperatons) {
+    const node = operation.node;
+    const baseURI = operation.frameBaseURI;
+    const frameUrl = operation.frameFrameUrl;
+    try {
+      if (operation.type === 'base64') {
+        try {
+          const binaryData = atob(operation.node.props.base64Img!);
+          const arrayBuffer = new ArrayBuffer(binaryData.length);
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          for (let i = 0; i < binaryData.length; i++) {
+            uint8Array[i] = binaryData.charCodeAt(i);
+          }
+
+          const blob = new Blob([uint8Array]);
+          const file = new File([blob], 'image.png', { type: 'image/png' });
+          const urlString = await uploadFileToAws(file);
+
+          operation.node.attrs[operation.attr!] = urlString;
+          operation.node.props.base64Img = '';
+        } catch (e) {
+          raiseDeferredError(e as Error);
+          operation.node.attrs.src = getAbsoluteUrl(
+            operation.originalBlobUrl!,
+            operation.frameBaseURI,
+            operation.frameFrameUrl
+          );
+        } finally {
+          operation.node.props.origHref = operation.originalBlobUrl;
+        }
+      } else {
+        const clientInfo = operation.clientInfo;
+        for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
+          for (const pUrl of proxyUrls) {
+            let assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, baseURI, frameUrl);
+            let assetUrl;
+            try {
+              assetUrl = new URL(assetUrlStr);
+            } catch (e) {
+              raiseDeferredError(e as Error);
+              assetUrl = new URL(getAbsoluteUrl(pUrl, baseURI, frameUrl));
+              assetUrlStr = assetUrl.href;
+            }
+
+            if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
+
+            let proxyiedUrl = assetUrlStr;
+            let proxyiedContent: string = '';
+
+            if (proxyAttr === 'style' && operation.frameIriReferencedSvgEls![pUrl]) {
+              proxyiedUrl = pUrl;
+            }
+
+            if (shouldProxyAsset(assetUrl, svgSpriteUrls, proxyCache) && !operation.frameIriReferencedSvgEls![pUrl]) {
+              try {
+                const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
+                  method: 'POST',
+                  body: {
+                    origin: assetUrlStr,
+                    clientInfo,
+                    body: node.props.isInlineSprite || false
+                  },
+                });
+                if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
+                proxyiedContent = data.data.content ?? '';
+                proxyCache.set(assetUrlStr, data.data);
+              } catch (e) {
+                raiseDeferredError(e as Error);
+              }
+            } else {
+              const possibleCachedResp = proxyCache.get(assetUrlStr);
+              if (possibleCachedResp) {
+                proxyiedUrl = possibleCachedResp.proxyUri;
+                proxyiedContent = possibleCachedResp.content ?? '';
+              }
+            }
+
+            try {
+              if (proxyAttr === 'style') {
+                const attrVal = node.attrs[proxyAttr];
+                if (attrVal) node.attrs[proxyAttr] = getAllPossibleCssUrlReplace(attrVal, pUrl, proxyiedUrl);
+              } else if (proxyAttr === 'cssRules') {
+                const propsVal = node.props[proxyAttr];
+                if (propsVal) node.props[proxyAttr] = getAllPossibleCssUrlReplace(propsVal, pUrl, proxyiedUrl);
+              } else if (proxyAttr === 'adoptedStylesheets') {
+                const propsVal = node.props[proxyAttr];
+                if (propsVal) node.props[proxyAttr] = getAllPossibleAdoptedStylesheetsUrlReplace(propsVal, pUrl, proxyiedUrl);
+              } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
+                node.props.origHref = pUrl;
+                if (node.props.isInlineSprite) {
+                  node.attrs.href = node.props.spriteId ?? assetUrl.hash;
+                  if (!(`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls)) {
+                    operation.headNode?.chldrn.push({
+                      type: -1,
+                      name: '-data-f-sprite',
+                      attrs: {
+                        'f-id': nanoid(),
+                      },
+                      props: {
+                        proxyUrlMap: {},
+                        content: proxyiedContent,
+                      },
+                      chldrn: [],
+                      sv: 2
+                    });
+                  }
+                  svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
+                } else {
+                  node.attrs[proxyAttr] = proxyiedUrl;
+                }
+              } else if (proxyAttr === 'srcset') {
+                node.attrs.srcset = replaceSrcsetUrl(node.attrs.srcset!, pUrl, proxyiedUrl);
+              }
+            } catch (e) {
+              raiseDeferredError(e as Error);
+            }
+          }
+        }
+      }
+
+      if (operation.frameId === 0 && operation.postProcessPath === operation.frameIconPath && mainFrame) {
+        // Only save icon for main frame
+        mainFrame.iconPath = node.attrs.href || undefined;
+      }
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+  }
+};
+
+export interface AssetOperationProps {
+  type: 'base64' | 'proxyAsset',
+  originalBlobUrl?: string,
+  clientInfo: string,
+  base64?: string,
+  attr?: string,
+  node: SerNode,
+  headNode?: SerNode | null,
+  frameBaseURI: string,
+  frameFrameUrl: string,
+  frameIconPath: string | undefined,
+  frameIriReferencedSvgEls?: Record<string, string>,
+  frameId: number,
+  postProcessPath: string
+}
+
+export function processScreen(
+  frames: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
-  onProgress: (doneProcessing: number, totalProcessing: number) => void,
-): Promise<PostProcessSerDocsReturnType> {
+  frameThumbnailPromise: Promise<string>[],
+  interactionCtx: Array<InteractionCtxDetail>
+): FrameProcessResult {
   let imageData = '';
   let mainFrame: FrameDataToBeProcessed | undefined;
-  let iconPath: string | undefined;
   let totalItemsToPostProcess = 0;
   const lookupWithProp = new CreateLookupWithProp<FrameDataToBeProcessed>();
+  let frameWithInteractionData: FrameDataToBeProcessed | null = null;
 
   let isMainFrameFound = true;
-  let replacedWithImgScreen = false;
 
-  for (const r of results) {
-    if (r.type === 'thumbnail') {
-      imageData = r.data as string;
+  for (const frame of frames) {
+    if (frame.type === 'thumbnail') {
+      imageData = frame.data as string;
+      try {
+        frameThumbnailPromise.push(uploadImageDataToAws(imageData, 'image/png'));
+
+        // const imageName = `un_marked_image_${id}.jpeg`;
+        // const file = new File([imageData], `temp${Math.random()}`, { type: 'image/jpeg' });
+        // frameThumbnailPromise.push(uploadMarkedImageToAws('image/jpeg', anonymousDemoId, imageName, file));
+      } catch (error) {
+        console.error('Failed to upload thumbnail to S3:', error);
+      }
       continue;
-    } else if (r.type !== 'serdom') {
+    } else if (frame.type !== 'serdom') {
       continue;
     }
+    if (frame.interactionCtx) {
+      frameWithInteractionData = frame;
+    }
 
-    const data = r.data as SerDoc;
+    const data = frame.data as SerDoc;
+    data.docTree = JSON.parse(data.docTreeStr);
     totalItemsToPostProcess += data.postProcesses.length;
-    if (r.frameId === 0) {
-      mainFrame = r;
+    if (frame.frameId === 0) {
+      mainFrame = frame;
     } else {
-      data.frameId && lookupWithProp.push('fableGenFrameId', data.frameId, r);
-      lookupWithProp.push('frameId', `${r.frameId}`, r);
+      data.frameId && lookupWithProp.push('fableGenFrameId', data.frameId, frame);
+      lookupWithProp.push('frameId', `${frame.frameId}`, frame);
       !(data.name === undefined || data.name === null || data.name === '')
-        && lookupWithProp.push('name', data.name, r);
-      lookupWithProp.push('url', data.frameUrl, r);
-      lookupWithProp.push('urlBase', data.frameUrl, r);
-      lookupWithProp.push('dim', `${data.rect.width}:${data.rect.height}`, r);
+        && lookupWithProp.push('name', data.name, frame);
+      lookupWithProp.push('url', data.frameUrl, frame);
+      lookupWithProp.push('urlBase', data.frameUrl, frame);
+      lookupWithProp.push('dim', `${data.rect.width}:${data.rect.height}`, frame);
     }
   }
 
   if (!(mainFrame && mainFrame.data)) {
     isMainFrameFound = false;
-    sentryCaptureExceptionWithData('Main frame not found, this should never happen');
+    sentryCaptureExceptionWithData('Main frame not found, this should never happen', frames);
   }
 
   let elPath = '';
   const allCookies = cookies;
   const processedFrames = new Set<number>();
-  async function process(
+  const assetOperation: AssetOperationProps[] = [];
+
+  function process(
     frame: SerDoc,
     frameId: number,
     traversePath: string,
     numberOfProcessingDone: number
-  ): Promise<void> {
-    const svgSpriteUrls: Record<string, number> = {};
+  ): void {
     for (const postProcess of frame.postProcesses) {
       numberOfProcessingDone++;
       if (postProcess.type === 'elpath') {
@@ -487,7 +720,7 @@ async function postProcessSerDocs(
         if (!subFrame) {
           console.warn('Node', node);
           raiseDeferredError(new Error(`No sub frame present for node ^^^. src=${node.attrs.src}`));
-          sentryCaptureExceptionWithData(`No sub frame present for node ^^^. src=${node.attrs.src}`);
+          sentryCaptureExceptionWithData(`No sub frame present for node ^^^. src=${node.attrs.src}`, frames);
         } else if (processedFrames.has(subFrame.frameId)) {
           raiseDeferredError(new Error(`Circular reference for frame. ${subFrame.frameId}`));
         } else {
@@ -504,7 +737,7 @@ async function postProcessSerDocs(
             });
           }
           node.chldrn.push(subFrameData.docTree!);
-          await process(
+          process(
             subFrameData,
             subFrame.frameId,
             `${traversePath}1.${postProcess.path}.`,
@@ -561,140 +794,98 @@ async function postProcessSerDocs(
 
           if (!originalBlobUrl) continue;
 
-          try {
-            const binaryData = atob(node.props.base64Img);
-            const arrayBuffer = new ArrayBuffer(binaryData.length);
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            for (let i = 0; i < binaryData.length; i++) {
-              uint8Array[i] = binaryData.charCodeAt(i);
-            }
-
-            const blob = new Blob([uint8Array]);
-            const file = new File([blob], 'image.png', { type: 'image/png' });
-            const urlString = await uploadFileToAws(file);
-
-            node.attrs[attr] = urlString;
-            node.props.base64Img = '';
-          } catch (e) {
-            raiseDeferredError(e as Error);
-            node.attrs.src = getAbsoluteUrl(
-              originalBlobUrl,
-              frame.baseURI,
-              frame.frameUrl
-            );
-          } finally {
-            node.props.origHref = originalBlobUrl;
-          }
+          assetOperation.push({
+            type: 'base64',
+            originalBlobUrl,
+            clientInfo,
+            attr,
+            node,
+            frameBaseURI: frame.baseURI,
+            frameFrameUrl: frame.frameUrl,
+            frameIconPath: frame.icon?.path,
+            frameId,
+            postProcessPath: postProcess.path
+          });
         } else {
           const headNode = getNodeFromDocTree(frame.docTree!, 'head');
-          for (const [proxyAttr, proxyUrls] of Object.entries(node.props.proxyUrlMap)) {
-            for (const pUrl of proxyUrls) {
-              let assetUrlStr = node.props.absoluteUrl ?? getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl);
-              let assetUrl;
-              try {
-                assetUrl = new URL(assetUrlStr);
-              } catch (e) {
-                raiseDeferredError(e as Error);
-                assetUrl = new URL(getAbsoluteUrl(pUrl, frame.baseURI, frame.frameUrl));
-                assetUrlStr = assetUrl.href;
-              }
-
-              if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
-
-              let proxyiedUrl = assetUrlStr;
-              let proxyiedContent: string = '';
-
-              if (proxyAttr === 'style' && frame.iriReferencedSvgEls[pUrl]) {
-                proxyiedUrl = pUrl;
-              }
-
-              if (
-                !frame.iriReferencedSvgEls[pUrl]
-                && shouldProxyAsset(assetUrl, svgSpriteUrls, proxyCache)
-              ) {
-                try {
-                  const data = await api<ReqProxyAsset, ApiResp<RespProxyAsset>>('/proxyasset', {
-                    method: 'POST',
-                    body: {
-                      origin: assetUrlStr,
-                      clientInfo,
-                      body: node.props.isInlineSprite || false
-                    },
-                  });
-                  if (data && data.data && data.data.proxyUri) proxyiedUrl = data.data.proxyUri;
-                  proxyiedContent = data.data.content ?? '';
-                  proxyCache.set(assetUrlStr, data.data);
-                } catch (e) {
-                  raiseDeferredError(e as Error);
-                }
-              } else {
-                const possibleCachedResp = proxyCache.get(assetUrlStr);
-                if (possibleCachedResp) {
-                  proxyiedUrl = possibleCachedResp.proxyUri;
-                  proxyiedContent = possibleCachedResp.content ?? '';
-                }
-              }
-
-              try {
-                if (proxyAttr === 'style') {
-                  const attrVal = node.attrs[proxyAttr];
-                  if (attrVal) node.attrs[proxyAttr] = getAllPossibleCssUrlReplace(attrVal, pUrl, proxyiedUrl);
-                } else if (proxyAttr === 'cssRules') {
-                  const propsVal = node.props[proxyAttr];
-                  if (propsVal) node.props[proxyAttr] = getAllPossibleCssUrlReplace(propsVal, pUrl, proxyiedUrl);
-                } else if (proxyAttr === 'adoptedStylesheets') {
-                  const propsVal = node.props[proxyAttr];
-                  if (propsVal) node.props[proxyAttr] = getAllPossibleAdoptedStylesheetsUrlReplace(propsVal, pUrl, proxyiedUrl);
-                } else if (proxyAttr === 'xlink:href' || proxyAttr === 'href' || proxyAttr === 'src') {
-                  node.props.origHref = pUrl;
-                  if (node.props.isInlineSprite) {
-                    node.attrs.href = node.props.spriteId ?? assetUrl.hash;
-                    if (!(`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}` in svgSpriteUrls)) {
-                      headNode?.chldrn.push({
-                        type: -1,
-                        name: '-data-f-sprite',
-                        attrs: {
-                          'f-id': nanoid(),
-                        },
-                        props: {
-                          proxyUrlMap: {},
-                          content: proxyiedContent,
-                        },
-                        chldrn: [],
-                        sv: 2
-                      });
-                    }
-                    svgSpriteUrls[`${assetUrl.origin}${assetUrl.pathname}${assetUrl.search}`] = 1;
-                  } else {
-                    node.attrs[proxyAttr] = proxyiedUrl;
-                  }
-                } else if (proxyAttr === 'srcset') {
-                  node.attrs.srcset = replaceSrcsetUrl(node.attrs.srcset!, pUrl, proxyiedUrl);
-                }
-              } catch (e) {
-                raiseDeferredError(e as Error);
-              }
-            }
-          }
-        }
-
-        if (frameId === 0 && postProcess.path === frame.icon?.path) {
-          // Only save icon for main frame
-          iconPath = node.attrs.href || undefined;
+          assetOperation.push({
+            type: 'proxyAsset',
+            clientInfo,
+            node,
+            headNode,
+            frameBaseURI: frame.baseURI,
+            frameFrameUrl: frame.frameUrl,
+            frameIriReferencedSvgEls: frame.iriReferencedSvgEls,
+            frameIconPath: frame.icon?.path,
+            frameId,
+            postProcessPath: postProcess.path
+          });
         }
       }
-      onProgress(numberOfProcessingDone, totalItemsToPostProcess);
     }
   }
 
-  let data: RespScreen | null = null;
-  let shouldReplaceWithImgScreen = true;
-  let vpd: Vpd | null = null;
+  let cumulativeDxDy = {
+    dx: 0,
+    dy: 0
+  };
   if (isMainFrameFound) {
     const mainFrameData = mainFrame!.data as SerDoc;
+    process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
+
+    // use elpath to traverse and get cumulative dydx
+    const pathArr = elPath.split('.').map(Number);
+    cumulativeDxDy = traverseTreeByElPath(mainFrameData.docTree!, pathArr);
+    if (frameWithInteractionData) {
+      const interactionData = {
+        frameRect: (mainFrameData as SerDoc).rect,
+        interactionCtx: frameWithInteractionData.interactionCtx,
+        dxdy: cumulativeDxDy
+      };
+
+      if (interactionData.interactionCtx) {
+        const allFids = interactionData.interactionCtx!.candidates.map((candidate) => candidate.fid);
+        const fidElPathMap = getSerNodesElPathFromFids(mainFrameData.docTree!, allFids);
+        interactionData.interactionCtx?.candidates.forEach((candidate) => {
+          candidate.elPath = fidElPathMap[candidate.fid].elPath;
+        });
+      }
+
+      interactionCtx.push(interactionData);
+    }
+  }
+  const frameResult: FrameProcessResult = {
+    mainFrame,
+    imageData,
+    elPath: elPath || '$',
+    assetOperation,
+    frames
+  };
+  return frameResult;
+}
+
+export interface FrameProcessResult {
+  mainFrame: FrameDataToBeProcessed | undefined;
+  imageData: string;
+  elPath: string;
+  assetOperation: AssetOperationProps[],
+  frames: FrameDataToBeProcessed[]
+}
+
+export async function processNewScreenApiCalls(
+  frames: Array<FrameDataToBeProcessed>,
+  mainFrame: FrameDataToBeProcessed | undefined,
+  imageData: string,
+  elPath: string
+): Promise<PostProcessSerDocsReturnType> {
+  let shouldReplaceWithImgScreen = true;
+  let vpd: Vpd | null = null;
+  let data: RespScreen | null = null;
+  let replacedWithImgScreen = false;
+
+  if (mainFrame) {
+    const mainFrameData = mainFrame!.data as SerDoc;
     try {
-      await process(mainFrameData as SerDoc, mainFrame!.frameId, '', 1);
       shouldReplaceWithImgScreen = false;
       const screenBody: ScreenData = {
         version: '2023-07-27',
@@ -709,6 +900,7 @@ async function postProcessSerDocs(
         height: mainFrameData.rect.height,
         width: mainFrameData.rect.width,
       };
+
       const resp = await api<ReqNewScreen, ApiResp<RespScreen>>('/newscreen', {
         method: 'POST',
         body: {
@@ -716,7 +908,7 @@ async function postProcessSerDocs(
           url: mainFrameData.frameUrl,
           thumbnail: imageData,
           body: JSON.stringify(screenBody),
-          favIcon: iconPath,
+          favIcon: mainFrame.iconPath,
           type: ScreenType.SerDom,
         },
       });
@@ -724,15 +916,14 @@ async function postProcessSerDocs(
     } catch (e) {
       raiseDeferredError(e as Error);
       // eslint-disable-next-line max-len
-      sentryCaptureExceptionWithData('Error while processing screens data, will replace serdom screen with image screen');
+      sentryCaptureExceptionWithData('Error while processing screens data, will replace serdom screen with image screen', frames);
       if (!shouldReplaceWithImgScreen) {
         // in this case the process call is successful but for some reason the screen has not been created
         return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
       }
     }
-    // }
   } else if (!imageData) {
-    sentryCaptureExceptionWithData('Screen skipped, could not find image data when main frame was not found');
+    sentryCaptureExceptionWithData('Screen skipped, could not find image data when main frame was not found', frames);
     return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
   }
 
@@ -759,25 +950,46 @@ async function postProcessSerDocs(
       });
       elPath = '$';
       replacedWithImgScreen = true;
-      sentryCaptureExceptionWithData('Screen replaced with image screen.');
+      sentryCaptureExceptionWithData('Screen replaced with image screen.', frames);
     } catch (e) {
       raiseDeferredError(e as Error);
-      sentryCaptureExceptionWithData('Screen skipped, could not replace with image screen');
+      sentryCaptureExceptionWithData('Screen skipped, could not replace with image screen', frames);
       return { data: null, elPath: '', replacedWithImgScreen: false, skipped: true, vpd: null };
     }
   }
-
-  // TODO error handling with data
-
   return { data, elPath, replacedWithImgScreen, skipped: false, vpd };
+}
 
-  function sentryCaptureExceptionWithData(errStr: string): void {
-    sentryCaptureException(
-      new Error(errStr),
-      JSON.stringify(results),
-      'screendata.txt'
-    );
+function sentryCaptureExceptionWithData(errStr: string, results: Array<FrameDataToBeProcessed>): void {
+  sentryCaptureException(
+    new Error(errStr),
+    JSON.stringify(results),
+    'screendata.txt'
+  );
+}
+
+function traverseTreeByElPath(node: SerNode, path: number[]): AiDxDy {
+  let currNode = node;
+  const cumulativeDxDy = {
+    dx: 0,
+    dy: 0
+  };
+  for (let i = 1; i < path.length; i++) {
+    if (currNode.name === 'iframe') {
+      if (currNode.chldrn.length === 0) {
+        return cumulativeDxDy;
+      }
+      cumulativeDxDy.dx += currNode.props.aidxdy?.dx || 0;
+      cumulativeDxDy.dy += currNode.props.aidxdy?.dy || 0;
+    }
+    const index = path[i];
+    const nextNode = currNode.chldrn[index];
+    if (!nextNode) {
+      return cumulativeDxDy;
+    }
+    currNode = nextNode;
   }
+  return cumulativeDxDy;
 }
 
 function getAllPossibleCssUrlReplace(str: string, replaceThisUrl: string, replaceWithUrl: string): string {
@@ -1112,3 +1324,389 @@ export const getBorderRadius = (nodeBorderRadius: ThemeBorderRadiusCandidatePerN
 
   return [option1, option2];
 };
+
+const THEME_BASE_IMAGE_URL = 'https://pvt-mics.s3.ap-south-1.amazonaws.com/staging/root/global/sample_ann.png';
+export const getThemeData = async (
+  anonymousDemoId: string,
+  imagesUrl: string[],
+  lookAndFeelRequirement: string
+): Promise<suggest_guide_theme | null> => {
+  try {
+    if (imagesUrl.length <= 0) throw new Error('Images not found');
+    const imageUrl = imagesUrl[Math.floor(imagesUrl.length / 2)];
+    // imageUrl needs to be from private bucket pvt so upload it and use that url.
+    console.log('<<<<<< imageURL', imageUrl, imagesUrl);
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const imageName = `unmarked_image_${anonymousDemoId}.jpeg`;
+    const file = new File([blob], `temp${Math.random()}`, { type: 'image/jpeg' });
+    const pvtImageUrl = await uploadMarkedImageToAws('image/jpeg', anonymousDemoId, imageName, file);
+
+    const refs: RefForMMV[] = [
+      { id: 1, url: removeBaseUrl(THEME_BASE_IMAGE_URL) },
+      { id: 2, url: removeBaseUrl(pvtImageUrl), type: 'image/jpeg' }
+    ];
+
+    const payload: ThemeForGuideV1 = {
+      v: 1,
+      type: LLMOpsType.ThemeSuggestionForGuides,
+      thread: `${anonymousDemoId}|theme_suggestion_for_guides`,
+      model: 'default',
+      user_payload: {
+        theme_objective: lookAndFeelRequirement,
+        refsForMMV: refs
+      }
+    };
+
+    const resp = await api<ThemeForGuideV1, ApiResp<LLMResp>>('/llmops', {
+      method: 'POST',
+      body: payload,
+      isJobEndpoint: true,
+      auth: true
+    });
+
+    if (!resp.data) {
+      throw new Error('Failed to get theme response');
+    }
+
+    const data = resp.data as LLMResp;
+
+    const toolUse = processToolUseLLMResp(data);
+    const inp = toolUse.input as suggest_guide_theme;
+    return inp;
+  } catch (err) {
+    if (err instanceof Error) raiseDeferredError(err);
+    return null;
+  }
+};
+
+const defaultCategory = 'marketing';
+
+const removeBaseUrl = (url:string): string => {
+  const parsedUrl = new URL(url);
+  return parsedUrl.pathname.substring(1);
+};
+
+export const getAllDemoAnnotationText = async (
+  anonymousDemoId: string,
+  refsForMMV: RefForMMV[],
+  aboutProject: string,
+  demoObjective: string,
+  baseAiData: create_guides_router,
+  updateProgress: (val: number)=>void
+): Promise<AiData | null> => {
+  try {
+    // TODO - addd last 3 screen for step-by-step guide
+    const BATCH_SIZE = 5;
+    const totalBatch = Math.ceil(refsForMMV.length / BATCH_SIZE);
+    const usecase: CreateNewDemoV1['user_payload']['usecase'] = baseAiData.categoryOfDemo === 'step-by-step'
+      ? 'step-by-step-guide'
+      : baseAiData.categoryOfDemo === 'na'
+        ? defaultCategory : baseAiData.categoryOfDemo;
+
+    const demoState = [];
+    const completeDemoData: AiData = { items: [] };
+    for (let i = 0; i < totalBatch; i++) {
+      const start = i * BATCH_SIZE;
+      const end = start + BATCH_SIZE;
+
+      const urlsForBatch = refsForMMV.slice(start, end);
+      const parsedUrlForBatch = urlsForBatch.map(item => ({
+        id: item.id,
+        url: removeBaseUrl(item.url)
+      }));
+
+      const payload: CreateNewDemoV1 = {
+        v: 1,
+        type: LLMOpsType.CreateDemoPerUsecase,
+        model: 'default',
+        user_payload: {
+          usecase,
+          totalBatch,
+          currentBatch: i + 1,
+          demoState: JSON.stringify(demoState),
+          product_details: aboutProject,
+          demo_objective: demoObjective,
+          functional_requirement: baseAiData.functionalRequirement,
+          refsForMMV: parsedUrlForBatch
+        },
+        thread: `${anonymousDemoId}|create-demo-per-use-case`
+      };
+
+      const batchResp = await getDemoAnnotationText(payload);
+      const batchDemoState = batchResp.items.map(item => ({
+        screenId: item.screenId,
+        text: item.text,
+        nextButtonText: item.nextButtonText
+      }));
+
+      demoState.push([...batchDemoState]);
+      completeDemoData.items.push(...batchResp.items as any);
+
+      const progress = Math.min(((i + 1) / totalBatch) * 100, 95);
+      updateProgress(progress);
+    }
+    console.log('<< allann text', completeDemoData);
+    return completeDemoData;
+  } catch (err) {
+    console.log(err);
+    if (err instanceof Error) raiseDeferredError(err);
+    return null;
+  }
+};
+
+const getDemoAnnotationText = async (payload: CreateNewDemoV1): Promise<
+create_guides_marketing_p | create_guides_step_by_step_p
+> => {
+  const resp = await api<CreateNewDemoV1, ApiResp<LLMResp>>('/llmops', {
+    method: 'POST',
+    body: payload,
+    isJobEndpoint: true,
+    auth: true
+  });
+
+  const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+  let richAiData = toolUse.input as create_guides_marketing | create_guides_step_by_step;
+
+  if (richAiData && richAiData.items) {
+    richAiData = {
+      items: richAiData.items.map(item => ({
+        richText: item.richText || '',
+        screenId: item.screenId || randomScreenId(),
+        element: item.element || 'black',
+        nextButtonText: item.nextButtonText || '',
+        skip: item.skip
+      }))
+    };
+  }
+  const annTexts = addTextToDemoAnnRichText(richAiData);
+  return annTexts;
+};
+
+export const createDemoUsingAI = async (
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string
+): Promise<create_guides_router | null> => {
+  try {
+    const resp = await api<RouterForTypeOfDemoCreation, ApiResp<LLMResp>>('/llmops', {
+      method: 'POST',
+      body: {
+        v: 1,
+        type: LLMOpsType.CreateDemoRouter,
+        model: 'default',
+        user_payload: {
+          product_details: productDetails,
+          demo_objective: demoObjective
+        },
+        thread: `${anonymousDemoId}|${LLMOpsType.CreateDemoRouter}`,
+      },
+      isJobEndpoint: true,
+      auth: true
+    });
+
+    // TODO remove any later
+    const result = processLLMDemoRouterResponse(resp.data as any);
+    return result;
+  } catch (err) {
+    if (err instanceof Error) raiseDeferredError(err);
+    console.log(err);
+    return null;
+  }
+};
+
+const processToolUseLLMResp = (response: LLMResp): ToolUseBlockParam => {
+  if (response.err || !response.data) {
+    throw new Error((response.err as any)?.name || 'API call error');
+  }
+  const data = response.data;
+  if (!Array.isArray(data?.content)) {
+    throw new Error('Invalid response format: content is not an array');
+  }
+  const toolUse = data.content.find((item: { type: string; }) => item.type === 'tool_use');
+
+  if (!toolUse || !(toolUse as ToolUseBlockParam).name) {
+    throw new Error('Invalid response format: type not valid');
+  }
+  return toolUse as ToolUseBlockParam;
+};
+
+const processLLMDemoRouterResponse = (response: LLMResp): create_guides_router => {
+  const toolUse = processToolUseLLMResp(response);
+  const inp = toolUse.input as create_guides_router;
+  const result: create_guides_router = {
+    categoryOfDemo: inp.categoryOfDemo || defaultCategory,
+    functionalRequirement: inp.functionalRequirement || '',
+    lookAndFeelRequirement: inp.lookAndFeelRequirement || ''
+  };
+
+  if (!['marketing', 'product', 'step-by-step'].includes(result.categoryOfDemo)) {
+    result.categoryOfDemo = defaultCategory;
+  }
+
+  return result;
+};
+
+export const postProcessAIText = async (
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string,
+  demoState: string,
+  shouldBreakIntoModule: boolean,
+  moduleRequirement?: string
+): Promise<post_process_demo_p | null> => {
+  try {
+    const resp = await api<PostProcessDemoV1, ApiResp<LLMResp>>('/llmops', {
+      method: 'POST',
+      body: {
+        v: 1,
+        type: LLMOpsType.PostProcessDemo,
+        model: 'default',
+        user_payload: {
+          product_details: productDetails,
+          demo_objective: demoObjective,
+          module_recommendations: shouldBreakIntoModule ? moduleRequirement || 'yes' : 'no',
+          demo_state: demoState
+        },
+        thread: `${anonymousDemoId}|${LLMOpsType.PostProcessDemo}`,
+      },
+      isJobEndpoint: true,
+      auth: true
+    });
+
+    const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+    const richAnnData = toolUse.input as post_process_demo;
+
+    const normalizedRichAnnData: post_process_demo = {
+      title: richAnnData.title || '',
+      description: richAnnData.description || '',
+      updateCurrentDemoStateContent: richAnnData.updateCurrentDemoStateContent || [],
+      modules: richAnnData.modules || [],
+      demo_intro_guide: {
+        richText: richAnnData.demo_intro_guide.richText || '',
+        nextButtonText: richAnnData.demo_intro_guide.nextButtonText || ''
+      },
+      demo_outro_guide: {
+        richText: richAnnData.demo_outro_guide.richText || '',
+        nextButtonText: richAnnData.demo_outro_guide.nextButtonText || ''
+      }
+    };
+
+    const annTexts = addTextToPostProcessRichText(normalizedRichAnnData);
+    return annTexts;
+  } catch (err) {
+    if (err instanceof Error) raiseDeferredError(err);
+    console.log(err);
+    return null;
+  }
+};
+
+export const getElpathFromCandidate = (
+  currElpath: string,
+  currAiData: AiItem | null,
+  ctx?: InteractionCtxWithCandidateElpath
+): string => {
+  if (!currAiData || !ctx || ctx.candidates.length === 0) return currElpath;
+  const color = currAiData.element;
+  const index = LLM_EXTRA_COLORS.indexOf(color);
+  if (index === -1 || ctx.candidates.length < index) return currElpath;
+  return ctx.candidates[index].elPath;
+};
+
+const addTextToPostProcessRichText = (richAiData: post_process_demo): post_process_demo_p => {
+  const aiTextData:post_process_demo_p = {
+    ...richAiData,
+    demo_intro_guide: {
+      ...richAiData.demo_intro_guide,
+      text: extractTextFromHTMLString(richAiData.demo_intro_guide.richText)
+    },
+    demo_outro_guide: {
+      ...richAiData.demo_outro_guide,
+      text: extractTextFromHTMLString(richAiData.demo_outro_guide.richText)
+    },
+    updateCurrentDemoStateContent: richAiData.updateCurrentDemoStateContent
+    && richAiData.updateCurrentDemoStateContent.map(content => ({
+      ...content,
+      text: extractTextFromHTMLString(content.richText)
+    })),
+    modules: richAiData.modules && richAiData.modules.map(module => ({
+      ...module,
+      module_intro_guide: module.module_intro_guide
+        ? {
+          ...module.module_intro_guide,
+          text: extractTextFromHTMLString(module.module_intro_guide.richText)
+        } : undefined
+    }))
+  };
+  return aiTextData;
+};
+
+const addTextToDemoAnnRichText = (richAiData: create_guides_marketing | create_guides_step_by_step): AiData => ({
+  ...richAiData,
+  items: richAiData.items.map(item => ({
+    ...item,
+    text: extractTextFromHTMLString(item.richText)
+  }))
+});
+
+const extractTextFromHTMLString = (richText: string | undefined): string => {
+  if (!richText) return '';
+  const textEl = document.createElement('div');
+  textEl.innerHTML = richText;
+  const annText = textEl.innerText || richText;
+  textEl.remove();
+  return annText;
+};
+
+export function getSerNodesElPathFromFids(
+  root: SerNode,
+  fids : string[]
+) : Record<string, {elPath: string, serNode: SerNode}> {
+  const fidMap: Record<string, {elPath: string, serNode: SerNode}> = {};
+  const queue : {node: SerNode, elPath: string, fid: string}[] = [
+    { node: root, elPath: '1', fid: root.attrs['f-id'] || nanoid() }
+  ];
+  while (queue.length > 0) {
+    const { node, elPath, fid } = queue.shift()!;
+    if (fids.includes(fid)) {
+      fidMap[fid] = { elPath, serNode: node };
+    }
+
+    if (fids.every(findFid => fidMap[findFid] !== undefined)) {
+      return fidMap;
+    }
+
+    for (let i = 0; i < node.chldrn.length; i++) {
+      const currentNode = node.chldrn[i];
+
+      if (isTextFidCommentNode(currentNode)) {
+        continue;
+      } else if (currentNode.type === Node.TEXT_NODE) {
+        const foundFid = getFidOfSerNode(node.chldrn[i - 1]);
+        const newElPath = `${elPath}.${i}`;
+        queue.push({
+          node: currentNode,
+          elPath: newElPath,
+          fid: foundFid
+        });
+      } else {
+        queue.push({
+          node: currentNode,
+          elPath: `${elPath}.${i}`,
+          fid: getFidOfSerNode(currentNode)
+        });
+      }
+    }
+  }
+  return fidMap;
+}
+
+export function isTextFidCommentNode(node: SerNode) : boolean {
+  if (node.type !== Node.COMMENT_NODE) {
+    return false;
+  }
+
+  return Boolean(node.props.textContent?.startsWith('textfid/'));
+}
+
+export const randomScreenId = (): number => Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MAX_SAFE_INTEGER;

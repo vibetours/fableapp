@@ -174,11 +174,27 @@ export const DEFAULT_ANN_DIMS: CustomAnnDims = {
   width: 256,
 };
 
-const SAMPLE_ANN_CONFIG_TEXT = 'Write a brief description of what your buyer should expect from this particular module of your product';
-
-export const getSampleConfig = (elPath: string, grpId: string, globalOpts: IGlobalConfig, text: string = SAMPLE_ANN_CONFIG_TEXT): IAnnotationConfig => {
+export const SAMPLE_ANN_CONFIG_TEXT = 'Write a brief description of what your buyer should expect from this particular module of your product';
+export const getSampleConfig = (
+  elPath: string,
+  grpId: string,
+  globalOpts: IGlobalConfig,
+  text: string = SAMPLE_ANN_CONFIG_TEXT,
+  nextBtnText: string | null = null,
+  richText: string | null = '',
+  isAiIntroOrOutro: boolean = false,
+): IAnnotationConfig => {
+  richText = richText || `<p class="editor-paragraph" dir="ltr"><span>${text}</span></p>`;
   const isCoverAnn = elPath === '$';
   const id = getRandomId();
+
+  const nextButtonText = nextBtnText ? createLiteralProperty(nextBtnText) : createGlobalProperty(
+    compileValue(globalOpts, GlobalPropsPath.nextBtnText),
+    GlobalPropsPath.nextBtnText,
+  );
+
+  const size = isAiIntroOrOutro ? 'large'
+    : isCoverAnn || (nextButtonText._val as string).length > 12 ? 'medium' : 'small';
 
   return {
     selectionEffect: createGlobalProperty(
@@ -195,13 +211,13 @@ export const getSampleConfig = (elPath: string, grpId: string, globalOpts: IGlob
     zId: id,
     createdAt: getCurrentUtcUnixTime(),
     updatedAt: getCurrentUtcUnixTime(),
-    bodyContent: `<p class="editor-paragraph" dir="ltr"><span>${text}</span></p>`,
+    bodyContent: richText,
     displayText: text,
     positioning: AnnotationPositions.Auto,
     monoIncKey: 0,
     syncPending: true,
     type: isCoverAnn ? 'cover' : 'default',
-    size: isCoverAnn ? 'medium' : 'small',
+    size,
     customDims: DEFAULT_ANN_DIMS,
     isHotspot: !isCoverAnn,
     hideAnnotation: false,
@@ -227,10 +243,7 @@ export const getSampleConfig = (elPath: string, grpId: string, globalOpts: IGlob
         compileValue(globalOpts, GlobalPropsPath.ctaSize),
         GlobalPropsPath.ctaSize,
       ),
-      text: createGlobalProperty(
-        compileValue(globalOpts, GlobalPropsPath.nextBtnText),
-        GlobalPropsPath.nextBtnText,
-      ),
+      text: nextButtonText,
       order: 9999,
       hotspot: null,
     }, {

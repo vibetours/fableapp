@@ -4,6 +4,7 @@ import { UnauthorizedReason } from './api-contract';
 
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT as string;
 const LOG_ENDPOINT = process.env.REACT_APP_LOG_ENDPOINT as string;
+const JOB_ENDPOINT = process.env.REACT_APP_JOB_ENDPOINT as string;
 const API_VERSION = '/v1';
 const BEHIND_AUTH = '/f';
 
@@ -17,6 +18,7 @@ export default async function api<T, M>(
     auth?: boolean;
     noRespExpected?: boolean;
     isLogEndpoint?: boolean;
+    isJobEndpoint?: boolean;
   }
 ): Promise<M> {
   let auth = payload?.auth;
@@ -48,7 +50,12 @@ export default async function api<T, M>(
   }
 
   let path = '';
-  const apiPath = ((payload && payload.isLogEndpoint) ? LOG_ENDPOINT : API_ENDPOINT) + API_VERSION + (auth ? BEHIND_AUTH : '');
+  let endpoint = API_ENDPOINT;
+  if (payload) {
+    if (payload.isLogEndpoint) endpoint = LOG_ENDPOINT;
+    else if (payload.isJobEndpoint) endpoint = JOB_ENDPOINT;
+  }
+  const apiPath = endpoint + API_VERSION + (auth ? BEHIND_AUTH : '');
   try {
     const _ = new URL(url);
   } catch (e) {

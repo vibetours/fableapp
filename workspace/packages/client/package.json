@@ -7,6 +7,7 @@
   "dependencies": {
     "@amplitude/analytics-browser": "^2.2.3",
     "@ant-design/icons": "^4.8.0",
+    "@anthropic-ai/sdk": "^0.26.1",
     "@auth0/auth0-react": "^2.0.1",
     "@cobaltio/cobalt-js": "^8.2.0",
     "@cobaltio/react-cobalt-js": "^1.0.0-beta.18",
@@ -40,6 +41,7 @@
     "posthog-js": "^1.130.1",
     "react-animated-css": "^1.2.1",
     "react-beautiful-dnd": "^13.1.1",
+    "react-type-animation": "^3.2.0",
     "recharts": "^2.12.1",
     "scroll-into-view": "^1.16.2",
     "uuid": "^9.0.0"
@@ -64,6 +66,7 @@
     "@types/dagre": "^0.7.48",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.11.56",
+    "@types/offscreencanvas": "^2019.7.3",
     "@types/react": "^18.0.18",
     "@types/react-dom": "^18.0.6",
     "@types/styled-components": "^5.1.26",

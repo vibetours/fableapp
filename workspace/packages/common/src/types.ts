@@ -14,6 +14,20 @@ export type ProxyUrlMap = {
   [key in ProxyAttrs]?: string[];
 };
 
+export interface RectWithFId {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fid: string;
+}
+
+export interface InteractionCtx {
+  type: 'click',
+  focusEl: RectWithFId,
+  candidates: RectWithFId[]
+}
+
 export interface SerNode {
   type: number;
   name: string;
@@ -42,11 +56,16 @@ export interface SerNode {
       width: number;
     };
     adoptedStylesheets?: string[];
+    aidxdy?: AiDxDy;
   };
   chldrn: SerNode[];
   sv: number;
 }
 
+export interface AiDxDy {
+    dx: number,
+    dy: number
+}
 export interface SerNodeWithPath extends SerNode {
   path: string;
 }
