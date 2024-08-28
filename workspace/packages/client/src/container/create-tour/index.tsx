@@ -8,7 +8,6 @@ import {
   ThemeCandidature,
   ThemeStats,
   IGlobalConfig,
-  InteractionCtx,
 } from '@fable/common/dist/types';
 import { captureException, startTransaction, Transaction } from '@sentry/react';
 import React, { ReactElement, Suspense, lazy } from 'react';
@@ -16,7 +15,7 @@ import { connect } from 'react-redux';
 import { TypeAnimation } from 'react-type-animation';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespProxyAsset, RespDemoEntity } from '@fable/common/dist/api-contract';
+import { RespProxyAsset, RespDemoEntity, ReqSubscriptionInfo, RespSubscription } from '@fable/common/dist/api-contract';
 import {
   EditFilled,
   ArrowLeftOutlined,
@@ -31,8 +30,9 @@ import { Modal, Progress, Select, Tooltip } from 'antd';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { create_guides_router } from '@fable/common/dist/llm-fn-schema/create_guides_router';
 import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
-import { addNewTourToAllTours, getAllTours, getGlobalConfig } from '../../action/creator';
-import { P_RespTour } from '../../entity-processor';
+import api from '@fable/common/dist/api';
+import { addNewTourToAllTours, getAllTours, getGlobalConfig, getSubscriptionOrCheckoutNew } from '../../action/creator';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE } from './constants';
@@ -58,6 +58,7 @@ import {
   FrameProcessResult,
   getAllDemoAnnotationText,
   getBorderRadius,
+  getDemoMetaData,
   getElpathFromCandidate,
   getOrderedColorsWithScore,
   getThemeAnnotationOpts,
@@ -89,8 +90,11 @@ import SkeletonCard from '../../component/create-tour/skeleton-card';
 import { AnnotationContent } from '../../component/annotation';
 import Loader from '../../component/loader';
 import { FeatureForPlan } from '../../plans';
+import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
 
 const reactanimated = require('react-animated-css');
+
+declare const Chargebee: any;
 
 const LottiePlayer = lazy(() => import('@lottiefiles/react-lottie-player').then(({ Player }) => ({
   default: Player
@@ -102,6 +106,7 @@ interface IDispatchProps {
   getAllTours: () => void;
   addNewTourToAllTours: (tour: RespDemoEntity) => void;
   getGlobalConfig: () => void;
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -109,6 +114,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   getAllTours: () => dispatch(getAllTours(false)),
   addNewTourToAllTours: (tour: RespDemoEntity) => dispatch(addNewTourToAllTours(tour)),
   getGlobalConfig: () => dispatch(getGlobalConfig()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 interface IAppStateProps {
@@ -116,6 +122,7 @@ interface IAppStateProps {
   allToursLoaded: boolean;
   globalConfig: IGlobalConfig | null;
   featurePlan: FeatureForPlan | null;
+  subs: P_RespSubscription | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -123,6 +130,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   allToursLoaded: state.default.allToursLoadingStatus === LoadingStatus.Done,
   globalConfig: state.default.globalConfig,
   featurePlan: state.default.featureForPlan,
+  subs: state.default.subs
 });
 
 interface IOwnProps {
@@ -161,10 +169,11 @@ type IOwnStateProps = {
   prevDisplayState: DisplayState;
   openSelect: boolean;
   showBreakIntoModule: boolean;
-  aiCreditsAvailable: boolean;
+  isAiCreditsAvailable: boolean;
+  aiCreditsAvailable: number;
   shouldBreakIntoModule: boolean;
   anonymousDemoId: string;
-  aboutProject: string;
+  productDetails: string;
   demoObjective: string;
   baseAiData: create_guides_router | null;
   imageWithMarkUrls: { id: number, url: string }[];
@@ -177,6 +186,9 @@ type IOwnStateProps = {
   creationMode: 'ai' | 'manual';
   batchProgress: number;
   aiDemoCreationSupported: boolean;
+  buyCreditModalOpen: boolean;
+  isBuyMoreCreditInProcess: boolean;
+  aiGenerationNotPossible: boolean;
 }
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -228,10 +240,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       openSelect: false,
       showBreakIntoModule: true,
       shouldBreakIntoModule: false,
-      aiCreditsAvailable: true,
+      isAiCreditsAvailable: true,
+      aiCreditsAvailable: 0,
       anonymousDemoId: getUUID(),
       demoObjective: '',
-      aboutProject: '',
+      productDetails: '',
       baseAiData: null,
       aiAnnData: null,
       aiThemeData: null,
@@ -243,6 +256,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       creationMode: 'ai',
       batchProgress: 0,
       aiDemoCreationSupported: false,
+      buyCreditModalOpen: false,
+      isBuyMoreCreditInProcess: false,
+      aiGenerationNotPossible: false,
     };
     this.data = null;
     this.db = null;
@@ -464,6 +480,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     const unmarkedImages = await Promise.all(frameThumbnailPromise);
     this.setState({ unmarkedImages });
 
+    if (interactionCtx.length === 0) this.setState({ aiGenerationNotPossible: true });
+
     const llmWorker = new Worker(new URL('./llm-opts.ts', import.meta.url));
     const imagesWithMarkPromise: {prm: Promise<string>, idx: number}[] = [];
     let markedImagesReceived = 0;
@@ -474,6 +492,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         const { frameRect, interactionCtx: ctx, dxdy } = interactionCtx[k];
 
         if (ctx && frameRect.height === ctx.focusEl.height && frameRect.width === ctx.focusEl.width) {
+          // skip marking image if selection === screen size
           markedImagesReceived++;
           this.skipAnnForMarkedImages.set(index, true);
         } else {
@@ -544,6 +563,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.aiThemeData,
       this.state.selectedPallete,
       this.state.creationMode,
+      this.state.anonymousDemoId,
+      this.state.productDetails,
+      this.state.demoObjective,
       demoTitle || this.state.tourName,
       demoDescription,
       this.state.selectedColor,
@@ -603,7 +625,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.globalConfig!,
       this.state.aiThemeData,
       this.state.selectedPallete,
-      this.state.creationMode
+      this.state.creationMode,
+      this.state.anonymousDemoId,
+      this.state.productDetails,
+      this.state.demoObjective,
     );
     amplitudeAddScreensToTour(this.state.screens.length, 'ext');
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
@@ -617,7 +642,43 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.initDbOperations();
     this.props.getAllTours();
     this.props.getGlobalConfig();
+    this.updateCreditsAvailability();
+    Chargebee.init({
+      site: process.env.REACT_APP_CHARGEBEE_SITE,
+    });
   }
+
+  buyMoreCredit = async (): Promise<void> => {
+    this.setState({ buyCreditModalOpen: true, isBuyMoreCreditInProcess: true });
+
+    const checkCredit = (): void => {
+      const interval = setInterval(() => {
+        this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
+          if (data.creditInfo.value > this.state.aiCreditsAvailable) {
+            this.updateCreditsAvailability();
+            this.setState({ isBuyMoreCreditInProcess: false });
+            clearInterval(interval);
+          }
+        });
+      }, 2000);
+    };
+    const cbInstance = Chargebee.getInstance();
+    cbInstance.openCheckout({
+      hostedPage() {
+        return api<ReqSubscriptionInfo | undefined, null>('/credittopupurl', {
+          method: 'POST',
+          auth: true
+        });
+      },
+      loaded() { },
+      error(e: Error) { raiseDeferredError(e); },
+      close() { },
+      success() {
+        checkCredit();
+      },
+      step() { }
+    });
+  };
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevState.isReadyToSave !== this.state.isReadyToSave
@@ -644,11 +705,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         this.addTextToAllAns(
           this.state.anonymousDemoId,
           this.state.imageWithMarkUrls,
-          this.state.aboutProject,
+          this.state.productDetails,
           this.state.demoObjective,
           this.state.baseAiData,
           this.state.shouldBreakIntoModule,
-          this.state.unmarkedImages
+          this.state.unmarkedImages,
         );
       }
     }
@@ -659,7 +720,19 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         this.hideShouldBreakIntoModule();
       }
     }
+
+    if (this.props.subs !== prevProps.subs && !this.state.buyCreditModalOpen) {
+      this.updateCreditsAvailability();
+    }
   }
+
+  updateCreditsAvailability = (): void => {
+    if (this.props.subs) {
+      const numberOfScreens = this.frameDataToBeProcessed.length;
+      const isAiCreditsAvailable = this.props.subs.creditInfo.value - numberOfScreens > 0;
+      this.setState({ isAiCreditsAvailable, aiCreditsAvailable: this.props.subs.creditInfo.value });
+    }
+  };
 
   processAIDataAndCallSaveTour = (): void => {
     let screensWithAIAnnData: ScreenInfoWithAI[] = this.state.screens.map((screenInfo, index) => ({
@@ -757,6 +830,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   ...currentScreenData,
                   moduleData: undefined
                 });
+              } else {
+                processedAiAnnData.push(currentScreenData);
               }
             }
             guideIndex++;
@@ -828,21 +903,24 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   addTextToAllAns = async (
     anonymousDemoId: string,
     imageWithMarkUrls: { id: number; url: string; }[],
-    aboutProject: string,
+    productDetails: string,
     demoObjective: string,
     baseAiData: create_guides_router,
     shouldBreakIntoModule: boolean,
     unmarkedImages: string[]
   ): Promise<void> => {
+    const llmMetadata = await getDemoMetaData(anonymousDemoId, productDetails, demoObjective, imageWithMarkUrls);
+
     const annTextDataPromise = getAllDemoAnnotationText(
       anonymousDemoId,
       imageWithMarkUrls,
-      aboutProject,
+      productDetails,
       demoObjective,
       baseAiData,
       (progress) => {
         this.setState({ batchProgress: progress });
-      }
+      },
+      llmMetadata
     );
 
     const themeData = await getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement);
@@ -855,13 +933,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     const demoState = annTextData.items.map(item => ({
-      screenId: item.screenId,
+      id: item.screenId,
       text: item.text,
       nextButtonText: item.nextButtonText
     }));
     const processedTextData = await postProcessAIText(
       anonymousDemoId,
-      aboutProject,
+      productDetails,
       demoObjective,
       JSON.stringify(demoState),
       shouldBreakIntoModule,
@@ -894,12 +972,12 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleCreateDemoUsingAI = async (
     anonymousDemoId: string,
-    aboutProject: string,
+    productDetails: string,
     demoObjective: string
   ): Promise<void> => {
     const data = await createDemoUsingAI(
       anonymousDemoId,
-      aboutProject,
+      productDetails,
       demoObjective
     );
 
@@ -989,7 +1067,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         break;
     }
 
-    if (this.state.loading || this.props.globalConfig === null) {
+    if (this.state.loading || this.props.globalConfig === null || this.props.subs === null) {
       return (
         <FullPageTopLoader showLogo />
       );
@@ -1243,11 +1321,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                             onClick={() => {
                               let displayState = DisplayState.ShowAIAddExistingTourCreditOptions;
                               if (this.state.creationMode === 'ai') {
-                                if (this.state.aiCreditsAvailable) {
+                                if (this.state.isAiCreditsAvailable) {
                                 // TODO: fetch the tour and call the method after tour is fetched
                                   this.handleCreateDemoUsingAI(
                                     this.state.anonymousDemoId,
-                                    this.state.aboutProject,
+                                    this.state.productDetails,
                                     this.state.demoObjective
                                   );
                                   displayState = DisplayState.ShowColorPaletteOptions;
@@ -1555,7 +1633,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     this.addTextToAllAns(
                       this.state.anonymousDemoId,
                       this.state.imageWithMarkUrls,
-                      this.state.aboutProject,
+                      this.state.productDetails,
                       this.state.demoObjective,
                       this.state.baseAiData,
                       this.state.shouldBreakIntoModule,
@@ -1564,7 +1642,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   } else if (this.state.baseAiData === null) {
                     this.handleCreateDemoUsingAI(
                       this.state.anonymousDemoId,
-                      this.state.aboutProject,
+                      this.state.productDetails,
                       this.state.demoObjective
                     );
                   }
@@ -1621,8 +1699,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         <div style={{ width: '100%' }}>
                           <TextArea
                             label="Tell us about the product feature you just recorded"
-                            defaultValue={this.state.aboutProject}
-                            onChange={e => { this.setState({ aboutProject: e.target.value }); }}
+                            defaultValue={this.state.productDetails}
+                            onChange={e => { this.setState({ productDetails: e.target.value }); }}
                           />
                           <p className="typ-sm subinfo">
                             <MessageFilled />&nbsp;
@@ -1689,7 +1767,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           </Tags.CheckboxContent>
                         </OurCheckbox>
                       )}
-                      {this.state.aiCreditsAvailable ? (
+                      {this.state.isAiCreditsAvailable ? (
                         <Button
                           type="submit"
                           onClick={() => {
@@ -1699,7 +1777,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                             });
                             this.handleCreateDemoUsingAI(
                               this.state.anonymousDemoId,
-                              this.state.aboutProject,
+                              this.state.productDetails,
                               this.state.demoObjective
                             );
                           }}
@@ -1708,24 +1786,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         </Button>
                       )
                         : (
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '1rem',
-                              alignItems: 'center',
-                            }}
-                          >
-                            <span>Your credit for Demo Copilot is over</span>
-                            <Button
-                              type="submit"
-                              style={{
-                                backgroundColor: '#fedf64',
-                                color: 'black',
-                              }}
-                            >
-                              Buy more credit
-                            </Button>
-                          </div>
+                          <BuyMoreCredit
+                            isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
+                            buyMoreCredit={this.buyMoreCredit}
+                          />
                         )}
 
                     </Tags.CardContentCon>
@@ -1911,27 +1975,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 <Tags.Con>
                   <Tags.ProductCardCon className="typ-reg">
                     <Tags.CardContentCon>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '1rem',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span>Your credit for Demo Copilot is over</span>
-                        <Button
-                          type="submit"
-                          style={{
-                            backgroundColor: '#fedf64',
-                            color: 'black',
-                          }}
-                          onClick={() => {
-                          // After credit add continue operation
-                          }}
-                        >
-                          Buy more credit
-                        </Button>
-                      </div>
+                      <BuyMoreCredit
+                        isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
+                        buyMoreCredit={this.buyMoreCredit}
+                      />
                     </Tags.CardContentCon>
                   </Tags.ProductCardCon>
                   <Tags.ManualDemoContainer>

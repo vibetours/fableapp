@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-08-22 18:19:51.
+// Generated using typescript-generator version 2.35.1025 on 2024-08-27 16:35:28.
 
 export interface Activity extends ActivityBase {
 }
@@ -99,9 +99,19 @@ export interface ApiResp<T> {
     errCode: ErrorCode;
 }
 
+export interface CreditInfo {
+    value: number;
+    updatedAt: Date;
+}
+
 export interface EntityInfo {
     thumbnail: string;
     frameSettings: FrameSettings;
+    annDemoId?: string;
+    threadId?: string;
+    productDetails?: string;
+    demoObjective?: string;
+    demoRouter?: any;
 }
 
 export interface LLMOps extends EntityBase {
@@ -128,6 +138,10 @@ export interface ButtonClicks {
 export interface CreateGifJobInfo extends JobProcessingInfo {
     manifestFilePath: string;
     gifFilePath: string;
+}
+
+export interface Credit {
+    value: number;
 }
 
 export interface EntityHoldingInfoBase extends Serializable {
@@ -619,6 +633,7 @@ export interface RespSubscription extends ResponseBase {
     status: Status;
     trialStartedOn: Date;
     trialEndsOn: Date;
+    creditInfo: Credit;
 }
 
 export interface RespTenantIntegration extends ResponseBase {

@@ -76,7 +76,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
         clearInterval(intervalId);
         const screensData = el.textContent;
         const cookies = cookiesEl.textContent || '';
-        const version = versionEl.textContent || '1';
+        const version = versionEl && versionEl.textContent ? versionEl.textContent : '1';
         let screenStyleData = '';
         if (styleDataEl && styleDataEl.textContent) {
           screenStyleData = styleDataEl.textContent;

@@ -490,7 +490,7 @@ export function getSubscriptionOrCheckoutNew() {
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
     localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
 
-    return Promise.resolve();
+    return Promise.resolve(subs);
   };
 }
 

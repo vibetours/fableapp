@@ -51,6 +51,7 @@ import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   CreateNewDemoV1,
+  DemoMetadata,
   LLMResp,
   PostProcessDemoV1,
   RefForMMV,
@@ -63,6 +64,7 @@ import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_gu
 import { post_process_demo } from '@fable/common/dist/llm-fn-schema/post_process_demo';
 import { create_guides_step_by_step } from '@fable/common/dist/llm-fn-schema/create_guides_step_by_step';
 import { create_guides_marketing } from '@fable/common/dist/llm-fn-schema/create_guides_marketing';
+import { demo_metadata } from '@fable/common/dist/llm-fn-schema/demo_metadata';
 import {
   AiData,
   AiItem,
@@ -80,7 +82,7 @@ import {
   ScreenInfoWithAI
 } from './types';
 import { P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
-import { getColorContrast, getFidOfSerNode } from '../../utils';
+import { getColorContrast, getSerNodesElPathFromFids } from '../../utils';
 import {
   uploadFileToAws,
   uploadImageAsBinary,
@@ -114,6 +116,9 @@ export async function saveAsTour(
   aiThemeData: suggest_guide_theme | null,
   selectedPallete: 'ai' | 'global' | null,
   creationMode: 'ai'|'manual',
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string,
   tourName: string = 'Untitled',
   tourDescription: string = '',
   // TODO[now] change this
@@ -123,7 +128,6 @@ export async function saveAsTour(
   if (annotationBodyBackgroundColor.length === 0) {
     annotationBodyBackgroundColor = '#ffffff';
   }
-  console.log('<<< screens', screens);
   const relevantColors = getRelevantColors(annotationBodyBackgroundColor);
   const annStyle: AnnotationStyle = {
     backgroundColor: annotationBodyBackgroundColor,
@@ -151,7 +155,10 @@ export async function saveAsTour(
     tourDescription,
     globalOpts,
     annStyle,
-    creationMode
+    creationMode,
+    anonymousDemoId,
+    productDetails,
+    demoObjective
   );
   const res = await saveTour(tourRid, tourDataFile);
 
@@ -164,7 +171,10 @@ async function createNewTour(
   tourName: string,
   tourDescription: string,
   vpd: null | Vpd,
-  thumbnail: null | string
+  thumbnail: null | string,
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string,
 ): Promise<RespDemoEntity> {
   let tsettings: TourSettings | undefined;
   if (vpd) {
@@ -178,12 +188,18 @@ async function createNewTour(
   if (thumbnail) {
     info = {
       frameSettings: FrameSettings.LIGHT,
-      thumbnail
+      thumbnail,
+      annDemoId: anonymousDemoId,
+      productDetails,
+      demoObjective
     };
   } else {
     info = {
       frameSettings: FrameSettings.LIGHT,
       thumbnail: getDefaultThumbnailHash(),
+      annDemoId: anonymousDemoId,
+      productDetails,
+      demoObjective
     };
   }
 
@@ -246,7 +262,10 @@ async function addAnnotationConfigs(
   tourDescription: string,
   globalOpts: IGlobalConfig,
   annStyle: AnnotationStyle,
-  creationMode: 'ai' | 'manual'
+  creationMode: 'ai' | 'manual',
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string,
 ): Promise<{ tourDataFile: TourData, tourRid: string }> {
   let tourDataFile: TourData;
   let tourRid: string;
@@ -272,7 +291,15 @@ async function addAnnotationConfigs(
     if (screenInfo.length > 0 && screenInfo[0].info && screenInfo[0].info.thumbnail) {
       thumbnail = screenInfo[0].info.thumbnail;
     }
-    const tourData = await createNewTour(tourName, tourDescription, settings, thumbnail);
+    const tourData = await createNewTour(
+      tourName,
+      tourDescription,
+      settings,
+      thumbnail,
+      anonymousDemoId,
+      productDetails,
+      demoObjective
+    );
     tourRid = tourData.rid;
     tourDataFile = createEmptyTourDataFile(globalOpts);
   }
@@ -1335,7 +1362,6 @@ export const getThemeData = async (
     if (imagesUrl.length <= 0) throw new Error('Images not found');
     const imageUrl = imagesUrl[Math.floor(imagesUrl.length / 2)];
     // imageUrl needs to be from private bucket pvt so upload it and use that url.
-    console.log('<<<<<< imageURL', imageUrl, imagesUrl);
     const response = await fetch(imageUrl);
     const blob = await response.blob();
     const imageName = `unmarked_image_${anonymousDemoId}.jpeg`;
@@ -1358,20 +1384,7 @@ export const getThemeData = async (
       }
     };
 
-    const resp = await api<ThemeForGuideV1, ApiResp<LLMResp>>('/llmops', {
-      method: 'POST',
-      body: payload,
-      isJobEndpoint: true,
-      auth: true
-    });
-
-    if (!resp.data) {
-      throw new Error('Failed to get theme response');
-    }
-
-    const data = resp.data as LLMResp;
-
-    const toolUse = processToolUseLLMResp(data);
+    const toolUse = await handleLlmApi(payload);
     const inp = toolUse.input as suggest_guide_theme;
     return inp;
   } catch (err) {
@@ -1393,7 +1406,8 @@ export const getAllDemoAnnotationText = async (
   aboutProject: string,
   demoObjective: string,
   baseAiData: create_guides_router,
-  updateProgress: (val: number)=>void
+  updateProgress: (val: number)=>void,
+  metaData: string,
 ): Promise<AiData | null> => {
   try {
     // TODO - addd last 3 screen for step-by-step guide
@@ -1428,25 +1442,26 @@ export const getAllDemoAnnotationText = async (
           product_details: aboutProject,
           demo_objective: demoObjective,
           functional_requirement: baseAiData.functionalRequirement,
-          refsForMMV: parsedUrlForBatch
+          refsForMMV: parsedUrlForBatch,
+          req: metaData
         },
         thread: `${anonymousDemoId}|create-demo-per-use-case`
       };
 
       const batchResp = await getDemoAnnotationText(payload);
       const batchDemoState = batchResp.items.map(item => ({
-        screenId: item.screenId,
+        id: item.screenId,
         text: item.text,
         nextButtonText: item.nextButtonText
       }));
 
-      demoState.push([...batchDemoState]);
+      demoState.push(...batchDemoState);
       completeDemoData.items.push(...batchResp.items as any);
 
       const progress = Math.min(((i + 1) / totalBatch) * 100, 95);
       updateProgress(progress);
     }
-    console.log('<< allann text', completeDemoData);
+
     return completeDemoData;
   } catch (err) {
     console.log(err);
@@ -1458,21 +1473,14 @@ export const getAllDemoAnnotationText = async (
 const getDemoAnnotationText = async (payload: CreateNewDemoV1): Promise<
 create_guides_marketing_p | create_guides_step_by_step_p
 > => {
-  const resp = await api<CreateNewDemoV1, ApiResp<LLMResp>>('/llmops', {
-    method: 'POST',
-    body: payload,
-    isJobEndpoint: true,
-    auth: true
-  });
-
-  const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+  const toolUse = await handleLlmApi(payload);
   let richAiData = toolUse.input as create_guides_marketing | create_guides_step_by_step;
 
   if (richAiData && richAiData.items) {
     richAiData = {
       items: richAiData.items.map(item => ({
         richText: item.richText || '',
-        screenId: item.screenId || randomScreenId(),
+        screenId: item.screenId === undefined ? randomScreenId() : item.screenId,
         element: item.element || 'black',
         nextButtonText: item.nextButtonText || '',
         skip: item.skip
@@ -1489,24 +1497,19 @@ export const createDemoUsingAI = async (
   demoObjective: string
 ): Promise<create_guides_router | null> => {
   try {
-    const resp = await api<RouterForTypeOfDemoCreation, ApiResp<LLMResp>>('/llmops', {
-      method: 'POST',
-      body: {
-        v: 1,
-        type: LLMOpsType.CreateDemoRouter,
-        model: 'default',
-        user_payload: {
-          product_details: productDetails,
-          demo_objective: demoObjective
-        },
-        thread: `${anonymousDemoId}|${LLMOpsType.CreateDemoRouter}`,
+    const payload : RouterForTypeOfDemoCreation = {
+      v: 1,
+      type: LLMOpsType.CreateDemoRouter,
+      model: 'default',
+      user_payload: {
+        product_details: productDetails,
+        demo_objective: demoObjective
       },
-      isJobEndpoint: true,
-      auth: true
-    });
+      thread: `${anonymousDemoId}|${LLMOpsType.CreateDemoRouter}`,
+    };
 
-    // TODO remove any later
-    const result = processLLMDemoRouterResponse(resp.data as any);
+    const toolUse = await handleLlmApi(payload);
+    const result = processLLMDemoRouterResponse(toolUse);
     return result;
   } catch (err) {
     if (err instanceof Error) raiseDeferredError(err);
@@ -1531,8 +1534,7 @@ const processToolUseLLMResp = (response: LLMResp): ToolUseBlockParam => {
   return toolUse as ToolUseBlockParam;
 };
 
-const processLLMDemoRouterResponse = (response: LLMResp): create_guides_router => {
-  const toolUse = processToolUseLLMResp(response);
+const processLLMDemoRouterResponse = (toolUse: ToolUseBlockParam): create_guides_router => {
   const inp = toolUse.input as create_guides_router;
   const result: create_guides_router = {
     categoryOfDemo: inp.categoryOfDemo || defaultCategory,
@@ -1547,6 +1549,62 @@ const processLLMDemoRouterResponse = (response: LLMResp): create_guides_router =
   return result;
 };
 
+type LLM_PAYLOAD = PostProcessDemoV1 | ThemeForGuideV1 | CreateNewDemoV1 | RouterForTypeOfDemoCreation | DemoMetadata;
+
+const handleLlmApi = async (payload: LLM_PAYLOAD) : Promise<ToolUseBlockParam> => {
+  const resp = await api<LLM_PAYLOAD, ApiResp<LLMResp>>('/llmops', {
+    method: 'POST',
+    body: payload,
+    isJobEndpoint: true,
+    auth: true
+  });
+
+  if (!resp) {
+    throw new Error('Failed to complete request');
+  }
+  const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+  return toolUse;
+};
+
+export const getDemoMetaData = async (
+  anonymousDemoId: string,
+  productDetails: string,
+  demoObjective: string,
+  refsForMMV: RefForMMV[],
+): Promise<string> => {
+  try {
+    const parsedRefsForMMV = refsForMMV.map(item => ({
+      id: item.id,
+      url: removeBaseUrl(item.url)
+    }));
+
+    const payload: DemoMetadata = {
+      v: 1,
+      type: LLMOpsType.DemoMetadata,
+      model: 'default',
+      user_payload: {
+        demo_objective: demoObjective,
+        product_details: productDetails,
+        metReq: 'product_enablement',
+        refsForMMV: parsedRefsForMMV
+      },
+      thread: `${anonymousDemoId}|${LLMOpsType.DemoMetadata}`
+    };
+
+    const toolUse = await handleLlmApi(payload);
+    const richAnnData = toolUse.input as demo_metadata;
+
+    if (richAnnData.product_enablement) {
+      return richAnnData.product_enablement;
+    }
+    return '';
+  } catch (err) {
+    if (err instanceof Error) raiseDeferredError(err);
+    console.log(err);
+    return '';
+  }
+};
+
 export const postProcessAIText = async (
   anonymousDemoId: string,
   productDetails: string,
@@ -1556,25 +1614,20 @@ export const postProcessAIText = async (
   moduleRequirement?: string
 ): Promise<post_process_demo_p | null> => {
   try {
-    const resp = await api<PostProcessDemoV1, ApiResp<LLMResp>>('/llmops', {
-      method: 'POST',
-      body: {
-        v: 1,
-        type: LLMOpsType.PostProcessDemo,
-        model: 'default',
-        user_payload: {
-          product_details: productDetails,
-          demo_objective: demoObjective,
-          module_recommendations: shouldBreakIntoModule ? moduleRequirement || 'yes' : 'no',
-          demo_state: demoState
-        },
-        thread: `${anonymousDemoId}|${LLMOpsType.PostProcessDemo}`,
+    const payload : PostProcessDemoV1 = {
+      v: 1,
+      type: LLMOpsType.PostProcessDemo,
+      model: 'default',
+      user_payload: {
+        product_details: productDetails,
+        demo_objective: demoObjective,
+        module_recommendations: shouldBreakIntoModule ? moduleRequirement || 'yes' : 'no',
+        demo_state: demoState
       },
-      isJobEndpoint: true,
-      auth: true
-    });
+      thread: `${anonymousDemoId}|${LLMOpsType.PostProcessDemo}`,
+    };
 
-    const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+    const toolUse = await handleLlmApi(payload);
     const richAnnData = toolUse.input as post_process_demo;
 
     const normalizedRichAnnData: post_process_demo = {
@@ -1657,56 +1710,5 @@ const extractTextFromHTMLString = (richText: string | undefined): string => {
   textEl.remove();
   return annText;
 };
-
-export function getSerNodesElPathFromFids(
-  root: SerNode,
-  fids : string[]
-) : Record<string, {elPath: string, serNode: SerNode}> {
-  const fidMap: Record<string, {elPath: string, serNode: SerNode}> = {};
-  const queue : {node: SerNode, elPath: string, fid: string}[] = [
-    { node: root, elPath: '1', fid: root.attrs['f-id'] || nanoid() }
-  ];
-  while (queue.length > 0) {
-    const { node, elPath, fid } = queue.shift()!;
-    if (fids.includes(fid)) {
-      fidMap[fid] = { elPath, serNode: node };
-    }
-
-    if (fids.every(findFid => fidMap[findFid] !== undefined)) {
-      return fidMap;
-    }
-
-    for (let i = 0; i < node.chldrn.length; i++) {
-      const currentNode = node.chldrn[i];
-
-      if (isTextFidCommentNode(currentNode)) {
-        continue;
-      } else if (currentNode.type === Node.TEXT_NODE) {
-        const foundFid = getFidOfSerNode(node.chldrn[i - 1]);
-        const newElPath = `${elPath}.${i}`;
-        queue.push({
-          node: currentNode,
-          elPath: newElPath,
-          fid: foundFid
-        });
-      } else {
-        queue.push({
-          node: currentNode,
-          elPath: `${elPath}.${i}`,
-          fid: getFidOfSerNode(currentNode)
-        });
-      }
-    }
-  }
-  return fidMap;
-}
-
-export function isTextFidCommentNode(node: SerNode) : boolean {
-  if (node.type !== Node.COMMENT_NODE) {
-    return false;
-  }
-
-  return Boolean(node.props.textContent?.startsWith('textfid/'));
-}
 
 export const randomScreenId = (): number => Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MAX_SAFE_INTEGER;

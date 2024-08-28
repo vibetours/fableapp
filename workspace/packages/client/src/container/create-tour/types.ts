@@ -89,7 +89,8 @@ export enum LLMOpsType {
   CreateDemoPerUsecase = 'create_demo_per_usecase',
   CreateDemoRouter = 'create_demo_router',
   ThemeSuggestionForGuides = 'theme_suggestion_for_guides',
-  PostProcessDemo = 'post_process_demo'
+  PostProcessDemo = 'post_process_demo',
+  DemoMetadata='demo_metadata'
 }
 
 export type AiData = create_guides_marketing_p | create_guides_step_by_step_p;
