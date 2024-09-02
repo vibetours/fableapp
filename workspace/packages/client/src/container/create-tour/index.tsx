@@ -776,6 +776,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
             : {
               ...screenInfo.info,
               elPath: getElpathFromCandidate(
+                screenInfo.info.replacedWithImgScreen,
                 screenInfo.info.elPath,
                 currAiData!,
                 this.interactionCtxFromId.get(index)

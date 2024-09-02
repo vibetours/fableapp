@@ -229,10 +229,11 @@ async function addScreenToTour(
   tourRid: string,
   screenId: number,
   screenType: ScreenType,
-  screenRid: string
+  screenRid: string,
+  createdUsingAI: boolean
 ): Promise<RespScreen> {
   let screenResp: ApiResp<RespScreen>;
-  if (screenType === ScreenType.Img) {
+  if (screenType === ScreenType.Img && !createdUsingAI) {
     screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
       method: 'POST',
       body: {
@@ -331,7 +332,7 @@ async function addAnnotationConfigs(
     const isAiIntroOrOutro = (i === 0 || i === screenInfo.length - 1) && creationMode === 'ai';
     const isModuleIntro = screenInfo[i].moduleData !== undefined;
     const nextBtnText = screenAiData?.nextButtonText || undefined;
-    const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid);
+    const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid, creationMode === 'ai');
     screensInTourPromises.push(newScreen);
     const elPath = screen.elPath;
     const screenConfig = getSampleConfig(
@@ -1695,11 +1696,13 @@ export const postProcessAIText = async (
 };
 
 export const getElpathFromCandidate = (
+  replaceWithImgScreen: boolean,
   currElpath: string,
   currAiData: AiItem | null,
   ctx?: InteractionCtxWithCandidateElpath
 ): string => {
   if (!currAiData || !ctx || ctx.candidates.length === 0) return currElpath;
+  if (replaceWithImgScreen) return currElpath;
   const color = currAiData.element;
   const index = LLM_EXTRA_COLORS.indexOf(color);
   if (index === -1 || ctx.candidates.length < index) return currElpath;
