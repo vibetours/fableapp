@@ -3,6 +3,7 @@ import { InteractionCtx, RectWithFId, SerDoc } from '@fable/common/dist/types';
 import { create_guides_marketing } from '@fable/common/dist/llm-fn-schema/create_guides_marketing';
 import { create_guides_step_by_step } from '@fable/common/dist/llm-fn-schema/create_guides_step_by_step';
 import { post_process_demo } from '@fable/common/dist/llm-fn-schema/post_process_demo';
+import { MessageParam } from '@anthropic-ai/sdk/resources';
 import { Vpd } from '../../types';
 
 export enum DisplayState {
@@ -15,6 +16,7 @@ export enum DisplayState {
   ShowAddProductDescriptionOptions,
   ShowAIAddExistingTourCreditOptions,
   ShowColorPaletteOptions,
+  ShowAiGenerationNotPossible
 }
 
 export interface FrameDataToBeProcessed {
@@ -102,7 +104,9 @@ export type AnnotationStyle = {
   fontColor: string | null,
   primaryColor: string | null,
   borderRadius: number | 'global',
-  selectionColor: string | null
+  selectionColor: string | null,
+  showOverlay: boolean,
+  borderColor: string
 }
 
 export const LLM_IMAGE_TYPE = 'image/png';
@@ -136,4 +140,12 @@ export interface create_guides_step_by_step_p extends create_guides_step_by_step
   items: Array<create_guides_step_by_step['items'][number] & {
     text: string
   }>
+}
+
+export interface LLMRunData {
+  ip: any;
+  err: null | any;
+  opMeta: any;
+  messages: MessageParam[],
+  systemPrompt: any;
 }

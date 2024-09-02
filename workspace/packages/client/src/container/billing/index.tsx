@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubsValidation, RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubsValidation, RespUser, Status } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
@@ -360,7 +360,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
 
                                 const validation = await this.checkSubscriptionValidation();
                                 const planId = plan.planId;
-                                if (validation.cardPresent) {
+                                if (validation.cardPresent || planId === 'solo' || this.props.subs!.status === Status.IN_TRIAL) {
                                   await this.props.checkout(planId, interval);
                                   this.setState({ shouldBlock: false, reqPlanId: null });
                                 } else {

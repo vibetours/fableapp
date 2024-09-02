@@ -33,7 +33,8 @@ import {
   TourSettings,
   ReqTourPropUpdate,
   EntityInfo,
-  FrameSettings
+  FrameSettings,
+  LLMOps
 } from '@fable/common/dist/api-contract';
 import {
   createEmptyTourDataFile,
@@ -79,7 +80,8 @@ import {
   LLMOpsType,
   ScreenInfo,
   post_process_demo_p,
-  ScreenInfoWithAI
+  ScreenInfoWithAI,
+  LLMRunData
 } from './types';
 import { P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
 import { getColorContrast, getSerNodesElPathFromFids } from '../../utils';
@@ -134,18 +136,26 @@ export async function saveAsTour(
     borderRadius: annotationBorderRadius,
     selectionColor: relevantColors.selection,
     fontColor: relevantColors.font,
-    primaryColor: relevantColors.primary
+    primaryColor: relevantColors.primary,
+    showOverlay: false,
+    borderColor: relevantColors.selection,
   };
 
   if (selectedPallete === 'global') {
     annStyle.backgroundColor = 'global';
     annStyle.borderRadius = 'global';
+    annStyle.borderColor = 'global';
   } else if (selectedPallete === 'ai' && aiThemeData) {
     annStyle.backgroundColor = aiThemeData.backgroundColor;
     annStyle.borderRadius = aiThemeData.borderRadius;
     annStyle.fontColor = aiThemeData.fontColor;
     annStyle.primaryColor = aiThemeData.primaryColor;
     annStyle.selectionColor = aiThemeData.borderColor;
+    annStyle.borderColor = aiThemeData.borderColor;
+  }
+  // for save in existing tour we need to show overlay
+  if (creationMode === 'ai') {
+    annStyle.showOverlay = true;
   }
 
   const { tourDataFile, tourRid } = await addAnnotationConfigs(
@@ -333,7 +343,7 @@ async function addAnnotationConfigs(
       screenAiData && screenAiData.richText,
       isAiIntroOrOutro || isModuleIntro
     );
-    screenConfig.showOverlay = false;
+    screenConfig.showOverlay = annStyle.showOverlay;
     screenConfig.isHotspot = true;
 
     if (screen.replacedWithImgScreen) {
@@ -437,6 +447,9 @@ async function addAnnotationConfigs(
       tourDataFile.opts.annotationBodyBackgroundColor = createLiteralProperty(annStyle.backgroundColor);
       tourDataFile.opts.primaryColor = createLiteralProperty(annStyle.primaryColor!);
       tourDataFile.opts.annotationFontColor = createLiteralProperty(annStyle.fontColor!);
+    }
+    if (annStyle.borderColor !== 'global') {
+      tourDataFile.opts.annotationBodyBorderColor = createLiteralProperty(annStyle.borderColor);
     }
 
     if (annStyle.borderRadius !== 'global') {
@@ -1386,7 +1399,15 @@ export const getThemeData = async (
 
     const toolUse = await handleLlmApi(payload);
     const inp = toolUse.input as suggest_guide_theme;
-    return inp;
+    const relevantColor = getRelevantColors('#ffffff');
+    const themeData : suggest_guide_theme = {
+      backgroundColor: inp.backgroundColor || '#ffffff',
+      borderRadius: inp.borderRadius || 4,
+      borderColor: inp.borderColor || relevantColor.selection,
+      primaryColor: inp.primaryColor || relevantColor.primary,
+      fontColor: inp.fontColor || relevantColor.font
+    };
+    return themeData;
   } catch (err) {
     if (err instanceof Error) raiseDeferredError(err);
     return null;
@@ -1563,6 +1584,11 @@ const handleLlmApi = async (payload: LLM_PAYLOAD) : Promise<ToolUseBlockParam> =
     throw new Error('Failed to complete request');
   }
   const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+
+  if (!toolUse.input) {
+    throw new Error('response data not found');
+  }
+
   return toolUse;
 };
 
@@ -1571,13 +1597,15 @@ export const getDemoMetaData = async (
   productDetails: string,
   demoObjective: string,
   refsForMMV: RefForMMV[],
-): Promise<string> => {
+  demoCategory: create_guides_router['categoryOfDemo']
+): Promise<{metaData: string, screenCleanup: number[]}> => {
   try {
     const parsedRefsForMMV = refsForMMV.map(item => ({
       id: item.id,
       url: removeBaseUrl(item.url)
     }));
 
+    const metReq = demoCategory === 'step-by-step' ? 'user_intent' : 'product_enablement';
     const payload: DemoMetadata = {
       v: 1,
       type: LLMOpsType.DemoMetadata,
@@ -1585,7 +1613,7 @@ export const getDemoMetaData = async (
       user_payload: {
         demo_objective: demoObjective,
         product_details: productDetails,
-        metReq: 'product_enablement',
+        metReq,
         refsForMMV: parsedRefsForMMV
       },
       thread: `${anonymousDemoId}|${LLMOpsType.DemoMetadata}`
@@ -1594,14 +1622,26 @@ export const getDemoMetaData = async (
     const toolUse = await handleLlmApi(payload);
     const richAnnData = toolUse.input as demo_metadata;
 
-    if (richAnnData.product_enablement) {
-      return richAnnData.product_enablement;
+    // TODO - uncomment when we need to use screen_cleanup
+    // const screenCleanup = richAnnData.screen_cleanup && Array.isArray(richAnnData.screen_cleanup) ? richAnnData.screen_cleanup : [];
+
+    let screenCleanup :number[] = [];
+    if (metReq === 'product_enablement' && richAnnData.product_enablement) {
+      // TODO[now]
+      screenCleanup = [];
+      return { screenCleanup, metaData: richAnnData.product_enablement };
     }
-    return '';
+
+    if (metReq === 'user_intent' && richAnnData.user_intent) {
+      screenCleanup = [];
+      return { screenCleanup, metaData: richAnnData.user_intent };
+    }
+
+    return { metaData: '', screenCleanup };
   } catch (err) {
     if (err instanceof Error) raiseDeferredError(err);
     console.log(err);
-    return '';
+    return { metaData: '', screenCleanup: [] };
   }
 };
 
@@ -1712,3 +1752,51 @@ const extractTextFromHTMLString = (richText: string | undefined): string => {
 };
 
 export const randomScreenId = (): number => Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MAX_SAFE_INTEGER;
+
+export const getDemoRouterFromExistingDemo = async (anonymousDemoId: string): Promise<create_guides_router> => {
+  const defaultData: create_guides_router = {
+    categoryOfDemo: 'marketing',
+    functionalRequirement: '',
+    lookAndFeelRequirement: '',
+  };
+
+  try {
+    const toolUse = await llmRunsCall(anonymousDemoId, LLMOpsType.CreateDemoRouter);
+    if (!toolUse) {
+      return defaultData;
+    }
+
+    const result = processLLMDemoRouterResponse(toolUse);
+    return result;
+  } catch (err) {
+    if (err instanceof Error) raiseDeferredError(err);
+    console.log(err);
+    return defaultData;
+  }
+};
+
+const llmRunsCall = async (anonymousDemoId: string, opsType: LLMOpsType) : Promise<ToolUseBlockParam | null> => {
+  const thread_id = `${anonymousDemoId}|${opsType}`;
+  const resp = await api<null, ApiResp<LLMOps[]>>(`/llmruns/${thread_id}`, {
+    auth: true,
+  });
+
+  const respData = resp.data;
+  if (!respData || respData.length === 0 || !respData[0].data) {
+    return null;
+  }
+
+  const responseData = respData[0].data as LLMRunData;
+  const assistantMessage = responseData.messages.find((data) => data.role === 'assistant');
+
+  if (!assistantMessage || assistantMessage.content.length === 0) {
+    return null;
+  }
+
+  const assistantMessageContent = assistantMessage!.content[0] as ToolUseBlockParam;
+  if (assistantMessageContent.name !== opsType) {
+    return null;
+  }
+
+  return assistantMessageContent;
+};

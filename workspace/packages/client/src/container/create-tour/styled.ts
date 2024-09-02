@@ -243,7 +243,7 @@ export const HeaderText = styled.div`
 export const SubheaderText = styled.div`
   font-weight: 400;
   font-size: 1rem;
-  line-height: 1.625;
+  line-height: 1.25rem;
   margin: 0;
   color: #16023E;  
   margin-bottom: 2rem;
@@ -259,7 +259,7 @@ export const CardContentCon = styled.div`
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2rem;
     pointer-events: all;
     height: 100%;
     width: 100%;
@@ -271,6 +271,24 @@ export const CardContentCon = styled.div`
     .ant-checkbox {
       align-self: start;
     }
+
+    .anim-bg {
+      position: relative;
+      display: inline;
+      background: linear-gradient(to right, rgb(255, 230, 0, 0) 50%, #7ceaf3 50.1% );
+      word-wrap: break-word;
+      background-size: 200%;
+      background-position: 0%;
+      transition: background-position 1s ease-in-out;
+      border-radius: 2px;
+
+      &.hl {
+        background-position: -100%;
+        color: black;
+        opacity: 1;
+        font-weight: bold;
+      }
+    }
 `;
 
 export const ManualDemoContainer = styled.div`
@@ -279,7 +297,8 @@ export const ManualDemoContainer = styled.div`
 `;
 
 export const ManualDemo = styled.span`
-  color: #7567FF;
+  color: #424242;
+  font-size: 1rem;
   text-decoration: dotted underline;
   display: block;
   cursor: pointer;
@@ -288,10 +307,10 @@ export const ManualDemo = styled.span`
   }
 `;
 
-export const ProductCardCon = styled.div`
+export const ProductCardCon = styled.div<{large?: boolean}>`
   box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
-  max-height: 600px;
-  min-height: 300px;
+  max-height: ${props => (props.large ? '680px' : '600px')};
+  min-height: ${props => (props.large ? '400px' : '300px')};
   min-width: 400px;
   background-color: white;
   border-radius: 5px;
@@ -324,7 +343,7 @@ export const TextAreaContentCon = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.25rem;
   pointer-events: all;
   width: 100%;
 `;
@@ -437,6 +456,7 @@ export const RetryOverlay = styled.div`
 export const CardHeading = styled.div`
   margin: 0;
   text-align: left;
+  width: 100%;
 
   p {
     margin: 0;

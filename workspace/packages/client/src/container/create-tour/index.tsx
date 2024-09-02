@@ -25,6 +25,7 @@ import {
   PlusOutlined,
   CheckOutlined,
   MessageFilled,
+  WalletFilled,
 } from '@ant-design/icons';
 import { Modal, Progress, Select, Tooltip } from 'antd';
 import { getSampleConfig } from '@fable/common/dist/utils';
@@ -59,6 +60,7 @@ import {
   getAllDemoAnnotationText,
   getBorderRadius,
   getDemoMetaData,
+  getDemoRouterFromExistingDemo,
   getElpathFromCandidate,
   getOrderedColorsWithScore,
   getThemeAnnotationOpts,
@@ -150,6 +152,8 @@ type IOwnStateProps = {
   loading: boolean;
   showSaveWizard: boolean;
   saving: boolean;
+  highlightDemoObjHelpText: boolean;
+  highlightProductDetailsHelpText: boolean;
   showAiFlow: boolean;
   notDataFound: boolean;
   tourName: string;
@@ -212,7 +216,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   private interactionCtxFromId = new Map<number, InteractionCtxWithCandidateElpath>();
 
-  private skipAnnForMarkedImages = new Map<number, boolean>();
+  private skipAnnForScreenIds: number[] = [];
 
   constructor(props: IProps) {
     super(props);
@@ -227,6 +231,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       tourName: 'Untitled',
       isReadyToSave: false,
       isScreenProcessed: false,
+      highlightDemoObjHelpText: false,
+      highlightProductDetailsHelpText: false,
       isAIProcessed: false,
       saveType: null,
       existingTourRId: null,
@@ -494,7 +500,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         if (ctx && frameRect.height === ctx.focusEl.height && frameRect.width === ctx.focusEl.width) {
           // skip marking image if selection === screen size
           markedImagesReceived++;
-          this.skipAnnForMarkedImages.set(index, true);
+          this.skipAnnForScreenIds.push(index);
         } else {
           llmWorker.postMessage({ frameRect, img, ctx, dxdy, sender: 'fable', index });
         }
@@ -555,7 +561,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       return;
     }
     this.setState({ saving: true, showSaveWizard: false });
-    console.log('<< screens:', this.state.screens, this.state.imageWithMarkUrls, this.state.unmarkedImages);
+
     const tour = await saveAsTour(
       screensWithAIInfo,
       null,
@@ -649,14 +655,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   buyMoreCredit = async (): Promise<void> => {
-    this.setState({ buyCreditModalOpen: true, isBuyMoreCreditInProcess: true });
+    this.setState({ buyCreditModalOpen: true });
 
     const checkCredit = (): void => {
+      this.setState({ isBuyMoreCreditInProcess: true });
       const interval = setInterval(() => {
         this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
-          if (data.creditInfo.value > this.state.aiCreditsAvailable) {
-            this.updateCreditsAvailability();
-            this.setState({ isBuyMoreCreditInProcess: false });
+          if (data.availableCredits > this.state.aiCreditsAvailable) {
+            this.setState({ isBuyMoreCreditInProcess: false, buyCreditModalOpen: false });
             clearInterval(interval);
           }
         });
@@ -710,6 +716,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           this.state.baseAiData,
           this.state.shouldBreakIntoModule,
           this.state.unmarkedImages,
+          this.state.saveType
         );
       }
     }
@@ -721,16 +728,32 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    if (this.props.subs !== prevProps.subs && !this.state.buyCreditModalOpen) {
+    if ((this.props.subs !== prevProps.subs
+      || this.state.buyCreditModalOpen !== prevState.buyCreditModalOpen)
+       && !this.state.buyCreditModalOpen) {
       this.updateCreditsAvailability();
+    }
+
+    if ((this.state.aiGenerationNotPossible !== prevState.aiGenerationNotPossible
+      || this.state.saveType !== prevState.saveType)
+      && this.state.creationMode === 'ai'
+      && this.state.saveType
+      && this.state.aiGenerationNotPossible
+    ) {
+      this.setState({
+        prevDisplayState: DisplayState.ShowAiGenerationNotPossible,
+        currentDisplayState: DisplayState.ShowAiGenerationNotPossible,
+        showAiFlow: true,
+        showSaveWizard: false
+      });
     }
   }
 
   updateCreditsAvailability = (): void => {
     if (this.props.subs) {
       const numberOfScreens = this.frameDataToBeProcessed.length;
-      const isAiCreditsAvailable = this.props.subs.creditInfo.value - numberOfScreens > 0;
-      this.setState({ isAiCreditsAvailable, aiCreditsAvailable: this.props.subs.creditInfo.value });
+      const isAiCreditsAvailable = this.props.subs.availableCredits - numberOfScreens > 0;
+      this.setState({ isAiCreditsAvailable, aiCreditsAvailable: this.props.subs.availableCredits });
     }
   };
 
@@ -746,7 +769,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       screensWithAIAnnData = this.state.screens.map((screenInfo, index) => {
         const currAiData = this.state.aiAnnData && this.state.aiAnnData.get(index)
           ? this.state.aiAnnData.get(index) : null;
-        const shouldSkipIfMarkIsSameAAsWidth = Boolean(this.skipAnnForMarkedImages.get(index));
+        const shouldSkipIfMarkIsSameAAsWidth = this.skipAnnForScreenIds.includes(index);
         return {
           ...screenInfo,
           info: screenInfo.info === null ? null
@@ -907,26 +930,32 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     demoObjective: string,
     baseAiData: create_guides_router,
     shouldBreakIntoModule: boolean,
-    unmarkedImages: string[]
+    unmarkedImages: string[],
+    saveType: 'new_tour' | 'existing_tour' | null
   ): Promise<void> => {
-    const llmMetadata = await getDemoMetaData(anonymousDemoId, productDetails, demoObjective, imageWithMarkUrls);
+    const [llmMetadata, themeData] = await Promise.all([
+      getDemoMetaData(anonymousDemoId, productDetails, demoObjective, imageWithMarkUrls, baseAiData.categoryOfDemo),
+      saveType === 'existing_tour' ? null
+        : getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement)
+    ]);
 
-    const annTextDataPromise = getAllDemoAnnotationText(
+    // handle skip
+    const newImageWithMarkUrls = imageWithMarkUrls.filter(obj => !llmMetadata.screenCleanup.includes(obj.id));
+
+    this.setState({ aiThemeData: themeData });
+
+    const annTextData = await getAllDemoAnnotationText(
       anonymousDemoId,
-      imageWithMarkUrls,
+      newImageWithMarkUrls,
       productDetails,
       demoObjective,
       baseAiData,
       (progress) => {
         this.setState({ batchProgress: progress });
       },
-      llmMetadata
+      llmMetadata.metaData
     );
 
-    const themeData = await getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement);
-    this.setState({ aiThemeData: themeData });
-
-    const annTextData = await annTextDataPromise;
     if (!annTextData) {
       this.setState({ showRetryAI: true });
       return;
@@ -955,6 +984,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     if (themeData === null) {
       this.setState({ isReadyToSave: true, selectedPallete: 'global' });
     }
+
+    // if ai content is fetched successfully, add screen_cleanup to skipScreen
+    this.skipAnnForScreenIds = [...this.skipAnnForScreenIds, ...llmMetadata.screenCleanup];
   };
 
   // eslint-disable-next-line class-methods-use-this
@@ -1011,6 +1043,45 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
   selectColorPalette = (palette: 'global' | 'ai'): void => {
     this.setState({ saving: true, showAiFlow: false, isReadyToSave: true, selectedPallete: palette });
+  };
+
+  addToExistingDemo = async (): Promise<void> => {
+    let displayState = DisplayState.ShowAIAddExistingTourCreditOptions;
+
+    let anonymousDemoId = this.state.anonymousDemoId;
+    if (this.state.creationMode === 'ai') {
+      if (this.state.isAiCreditsAvailable) {
+        const currentTour = this.props.tours.find(
+          item => item.rid === this.state.existingTourRId
+        );
+
+        const productDetails = currentTour?.info.productDetails || '';
+        const demoObjective = currentTour?.info.demoObjective || '';
+        anonymousDemoId = currentTour?.info.annDemoId || anonymousDemoId;
+        const resp = await getDemoRouterFromExistingDemo(anonymousDemoId);
+
+        this.setState({
+          baseAiData: resp,
+          demoObjective,
+          productDetails,
+          anonymousDemoId
+        });
+        displayState = DisplayState.ShowColorPaletteOptions;
+      }
+      this.setState({
+        showSaveWizard: false,
+        showAiFlow: true,
+        prevDisplayState: displayState,
+        currentDisplayState: displayState
+      });
+    } else {
+      this.setState({
+        isReadyToSave: true,
+        saveType: 'existing_tour',
+        saving: true,
+        showSaveWizard: false
+      });
+    }
   };
 
   render(): ReactElement {
@@ -1174,7 +1245,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       }}
                     >
                       ⚠️ Looks like you are using an older version of Fable's chrome extension.
-                      Update Fable's chrome extension to enable Fable's AI Demo copilot.
+                      Update Fable's chrome extension to enable Quilly (Fable's AI Demo copilot).
                     </div>
                   )}
                   <Button
@@ -1318,33 +1389,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           </Button>
                           {this.state.existingTourRId && (
                           <Button
-                            onClick={() => {
-                              let displayState = DisplayState.ShowAIAddExistingTourCreditOptions;
-                              if (this.state.creationMode === 'ai') {
-                                if (this.state.isAiCreditsAvailable) {
-                                // TODO: fetch the tour and call the method after tour is fetched
-                                  this.handleCreateDemoUsingAI(
-                                    this.state.anonymousDemoId,
-                                    this.state.productDetails,
-                                    this.state.demoObjective
-                                  );
-                                  displayState = DisplayState.ShowColorPaletteOptions;
-                                }
-                                this.setState({
-                                  showSaveWizard: false,
-                                  showAiFlow: true,
-                                  prevDisplayState: displayState,
-                                  currentDisplayState: displayState
-                                });
-                              } else {
-                                this.setState({
-                                  isReadyToSave: true,
-                                  saveType: 'existing_tour',
-                                  saving: true,
-                                  showSaveWizard: false
-                                });
-                              }
-                            }}
+                            onClick={this.addToExistingDemo}
                             disabled={this.state.showAiFlow}
                             icon={<CheckOutlined />}
                             iconPlacement="left"
@@ -1615,10 +1660,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 <p
                   className="typ-h1"
                 >
-                  Fable's AI Demo Copilot has faced a problem while fine tuning the demo.
+                  Quilly has faced a problem while fine tuning the demo.
                 </p>
                 <div className="typ-reg">
-                  This issue might be transient, try again to create demo using Fable's AI Demo Copilot. If the issue persists you can go can go ahead and create the demo manually. Our engineering team has been notified about the issue. If you have any concerns you can use the in app chatbot.
+                  This issue might be transient, try again to create demo using Quilly. If the issue persists you can go can go ahead and create the demo manually. Our engineering team has been notified about the issue. If you have any concerns you can use the in app chatbot.
                 </div>
               </div>
               <Button
@@ -1637,7 +1682,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       this.state.demoObjective,
                       this.state.baseAiData,
                       this.state.shouldBreakIntoModule,
-                      this.state.unmarkedImages
+                      this.state.unmarkedImages,
+                      this.state.saveType
                     );
                   } else if (this.state.baseAiData === null) {
                     this.handleCreateDemoUsingAI(
@@ -1670,7 +1716,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               height: '100%',
               justifyContent: 'center',
               alignItems: 'center',
-              overflow: 'hidden'
+              overflow: 'auto',
             }}
             >
               <reactanimated.Animated
@@ -1684,34 +1730,75 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 }}
                 isVisible={this.state.currentDisplayState === DisplayState.ShowAddProductDescriptionOptions}
               >
-                <Tags.Con>
-                  <Tags.ProductCardCon className="typ-reg">
+                <Tags.Con style={{ transform: 'translate(50px, 50px)' }}>
+                  <Tags.ProductCardCon className="typ-reg" large>
                     <Tags.CardContentCon>
                       <Tags.CardHeading>
                         <p className="typ-h1">
-                          Tell us how we should create the demo
+                          Meet Quilly, your AI Demo Copilot
                         </p>
-                        <div className="typ-sm subinfo">
-                          We have successfully recorded the demo. Tell us little bit about your product and your demo objective so that Fable's AI demo copilot can tune the demo for you so that you don't put any effort.
+                        <div
+                          className="typ-reg subinfo"
+                          style={{
+                            display: 'flex',
+                            gap: '3rem',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <Suspense fallback={null}>
+                            <div>
+                              <LottiePlayer
+                                style={{ height: '80px' }}
+                                src="./quilly.json"
+                                autoplay
+                                loop
+                              />
+                            </div>
+                          </Suspense>
+                          <div>
+                            <p>
+                              Quilly automagically creates your demo by
+                            </p>
+                            <ul style={{ paddingLeft: '1rem', margin: 0 }}>
+                              <li>Applying appropriate theme</li>
+                              <li>Filtering out unecessary steps</li>
+                              <li>Generating content based on your prompt below</li>
+                              <li>Adjusting selected element on screen</li>
+                            </ul>
+                          </div>
                         </div>
                       </Tags.CardHeading>
                       <Tags.TextAreaContentCon>
-                        <div style={{ width: '100%' }}>
+                        <Tags.CardHeading>
+                          <p className="typ-h1">
+                            Tell Quilly how she should create the demo
+                          </p>
+                        </Tags.CardHeading>
+                        <div style={{ width: '100%', marginBottom: '1rem' }}>
                           <TextArea
-                            label="Tell us about the product feature you just recorded"
+                            label="Tell Quilly about the product feature you just recorded"
                             defaultValue={this.state.productDetails}
+                            onFocus={() => this.setState({ highlightProductDetailsHelpText: true })}
+                            onBlur={() => this.setState({ highlightProductDetailsHelpText: false })}
                             onChange={e => { this.setState({ productDetails: e.target.value }); }}
                           />
                           <p className="typ-sm subinfo">
                             <MessageFilled />&nbsp;
-                            Tell us how the product feature you just recorded helps your buyers.&nbsp;
+                            <span className={`anim-bg ${this.state.highlightProductDetailsHelpText ? 'hl' : ''}`}>
+                              You should write about the product feature you just recorded and how it helps your buyers.
+                              You should explain any kind of product knowledge relevant to this recording.
+                            </span>
+                            &nbsp;
                             <Tooltip
                               placement="right"
                               title={(
-                                <ul>
-                                  <li style={{ marginBottom: '1rem' }}>Slack organises conversations into dedicated spaces called channels. Public channels promote transparency and inclusivity. Private channels are for conversations that should not be open to all members.</li>
-                                  <li>With Zoom, share your screen, desktop, or other content during a meeting, even while your video is on. Screen sharing during Zoom meetings is designed with a collaborative environment in mind. This feature gives only the users, who choose to share their screen, full control over their own screen and what other meeting participants can or cannot see.</li>
-                                </ul>
+                                <>
+                                  <p>Example:</p>
+                                  <ul>
+                                    <li style={{ marginBottom: '1rem' }}>Slack organises conversations into dedicated spaces called channels. Public channels promote transparency and inclusivity. Private channels are for conversations that should not be open to all members.</li>
+                                    <li>With Zoom, share your screen, desktop, or other content during a meeting, even while your video is on. Screen sharing during Zoom meetings is designed with a collaborative environment in mind. This feature gives only the users, who choose to share their screen, full control over their own screen and what other meeting participants can or cannot see.</li>
+                                  </ul>
+                                </>
                             )}
                             >
                               <span
@@ -1726,12 +1813,19 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         </div>
                         <div style={{ width: '100%' }}>
                           <TextArea
-                            label="Tell us what customization you need on the demo?"
+                            label="Tell Quilly about this demo's objective"
                             defaultValue={this.state.demoObjective}
+                            onFocus={() => this.setState({ highlightDemoObjHelpText: true })}
+                            onBlur={() => this.setState({ highlightDemoObjHelpText: false })}
                             onChange={e => { this.setState({ demoObjective: e.target.value }); }}
                           />
                           <p className="typ-sm subinfo">
-                            <MessageFilled />&nbsp;Tell us your demo objective so that we can customize the demo exactly the way you want.&nbsp;
+                            <MessageFilled />&nbsp;
+                            <span className={`anim-bg ${this.state.highlightDemoObjHelpText ? 'hl' : ''}`}>
+                              You should write about how the demo content should be generated.
+                              For example, tell Quilly how you are gonna use this demo, target audience of this demo, tone of the demo, module, language requirement etc.
+                            </span>
+                            &nbsp;
                             <Tooltip
                               placement="right"
                               title={(
@@ -1767,7 +1861,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           </Tags.CheckboxContent>
                         </OurCheckbox>
                       )}
-                      {this.state.isAiCreditsAvailable ? (
+                      { this.state.isAiCreditsAvailable ? (
                         <Button
                           type="submit"
                           onClick={() => {
@@ -1782,21 +1876,19 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                             );
                           }}
                         >
-                          Finish creating demo using AI Demo Copilot
+                          Finish creating demo using Quilly
                         </Button>
-                      )
-                        : (
-                          <BuyMoreCredit
-                            isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                            buyMoreCredit={this.buyMoreCredit}
-                          />
-                        )}
-
+                      ) : (
+                        <BuyMoreCredit
+                          currentCredit={this.props.subs.availableCredits}
+                          isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
+                          buyMoreCredit={this.buyMoreCredit}
+                        />
+                      )}
                     </Tags.CardContentCon>
                   </Tags.ProductCardCon>
                   <Tags.ManualDemoContainer>
                     <Tags.ManualDemo
-                      className="typ-sm"
                       onClick={this.handleFinishCreatingDemoManually}
                     >
                       Finish creating the demo manually
@@ -1914,7 +2006,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                                     <div className="btn" />
                                   </div>
                                 </Tags.ColorPalette>
-                                <p className="typ-sm subinfo" style={{ marginTop: '1rem' }}>This theme suggested by Fable's AI demo copilot</p>
+                                <p className="typ-sm subinfo" style={{ marginTop: '1rem' }}>This theme suggested by Quilly</p>
                               </Tags.ColorPaletteSuggest>
                               <Tags.ColorPaletteSuggest>
                                 <Tags.ColorPalette
@@ -1976,9 +2068,34 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   <Tags.ProductCardCon className="typ-reg">
                     <Tags.CardContentCon>
                       <BuyMoreCredit
+                        currentCredit={this.props.subs.availableCredits}
                         isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
                         buyMoreCredit={this.buyMoreCredit}
                       />
+                    </Tags.CardContentCon>
+                  </Tags.ProductCardCon>
+                  <Tags.ManualDemoContainer>
+                    <Tags.ManualDemo
+                      className="typ-sm"
+                      onClick={this.handleFinishCreatingDemoManually}
+                    >
+                      Finish creating the demo manually
+                    </Tags.ManualDemo>
+                  </Tags.ManualDemoContainer>
+                </Tags.Con>
+              </reactanimated.Animated>
+              <reactanimated.Animated
+                animationIn="fadeInRight"
+                animationOut="fadeOutLeft"
+                animationInDuration={200}
+                animationOutDuration={200}
+                animateOnMount={false}
+                isVisible={this.state.currentDisplayState === DisplayState.ShowAiGenerationNotPossible}
+              >
+                <Tags.Con>
+                  <Tags.ProductCardCon className="typ-reg">
+                    <Tags.CardContentCon>
+                      You haven't recorded enough screens for AI Demo creation. Please manually create the demo.
                     </Tags.CardContentCon>
                   </Tags.ProductCardCon>
                   <Tags.ManualDemoContainer>

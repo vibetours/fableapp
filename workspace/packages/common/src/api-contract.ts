@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-08-27 16:35:28.
+// Generated using typescript-generator version 2.35.1025 on 2024-09-01 05:28:58.
 
 export interface Activity extends ActivityBase {
 }
@@ -101,6 +101,7 @@ export interface ApiResp<T> {
 
 export interface CreditInfo {
     value: number;
+    absValue?: number;
     updatedAt: Date;
 }
 
@@ -321,6 +322,11 @@ export interface ReqCreateOrUpdateTenantIntegration {
     disabled?: boolean;
     tourId?: number;
     tenantConfig: { [index: string]: any };
+}
+
+export interface ReqDeductCredit {
+    deductBy: number;
+    creditType: SubscriptionCreditType;
 }
 
 export interface ReqDeleteTenantIntegration {
@@ -633,7 +639,7 @@ export interface RespSubscription extends ResponseBase {
     status: Status;
     trialStartedOn: Date;
     trialEndsOn: Date;
-    creditInfo: Credit;
+    availableCredits: number;
 }
 
 export interface RespTenantIntegration extends ResponseBase {
@@ -938,6 +944,10 @@ export const enum LeadInfoKey {
 export const enum PlatformIntegrationType {
     FableWebhook = "FableWebhook",
     Zapier = "Zapier",
+}
+
+export const enum SubscriptionCreditType {
+    AI_CREDIT = "AI_CREDIT",
 }
 
 export const enum ExpiryTimeUnit {
