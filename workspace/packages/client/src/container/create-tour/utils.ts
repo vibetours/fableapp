@@ -14,7 +14,6 @@ import {
   ProxyAttrs,
   AiDxDy,
   IGlobalConfig,
-  InteractionCtx
 } from '@fable/common/dist/types';
 import api from '@fable/common/dist/api';
 import {
@@ -31,7 +30,6 @@ import {
   RespDemoEntity,
   ScreenType,
   TourSettings,
-  ReqTourPropUpdate,
   EntityInfo,
   FrameSettings,
   LLMOps
@@ -76,15 +74,15 @@ import {
   InteractionCtxDetail,
   InteractionCtxWithCandidateElpath,
   LLM_EXTRA_COLORS,
-  LLM_IMAGE_TYPE,
   LLMOpsType,
-  ScreenInfo,
   post_process_demo_p,
   ScreenInfoWithAI,
-  LLMRunData
+  LLMRunData,
+  LLMScreenType,
+  LLM_MARK_BASE_COLOR
 } from './types';
-import { P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
-import { getColorContrast, getSerNodesElPathFromFids } from '../../utils';
+import { P_RespSubscription, P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
+import { getColorContrast, getSerNodesElPathFromFids, isActiveBusinessPlan } from '../../utils';
 import {
   uploadFileToAws,
   uploadImageAsBinary,
@@ -229,11 +227,10 @@ async function addScreenToTour(
   tourRid: string,
   screenId: number,
   screenType: ScreenType,
-  screenRid: string,
-  createdUsingAI: boolean
+  screenRid: string
 ): Promise<RespScreen> {
   let screenResp: ApiResp<RespScreen>;
-  if (screenType === ScreenType.Img && !createdUsingAI) {
+  if (screenType === ScreenType.Img) {
     screenResp = await api<ReqScreenTour, ApiResp<RespScreen>>('/astsrntotour', {
       method: 'POST',
       body: {
@@ -329,11 +326,20 @@ async function addAnnotationConfigs(
     const annotationText = screenAiData && screenAiData.text ? screenAiData.text
       : creationMode === 'manual' ? SAMPLE_ANN_CONFIG_TEXT : SAMPLE_AI_ANN_CONFIG_TEXT;
 
-    const isAiIntroOrOutro = (i === 0 || i === screenInfo.length - 1) && creationMode === 'ai';
-    const isModuleIntro = screenInfo[i].moduleData !== undefined;
     const nextBtnText = screenAiData?.nextButtonText || undefined;
-    const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid, creationMode === 'ai');
-    screensInTourPromises.push(newScreen);
+
+    if (i !== 0
+      && (screenInfo[i - 1].screenType === LLMScreenType.demoIntro
+       || screenInfo[i - 1].screenType === LLMScreenType.moduleIntro
+       || screenInfo[i].screenType === LLMScreenType.demoOutro
+      )) {
+      const lastScreenPromise = screensInTourPromises[screensInTourPromises.length - 1];
+      screensInTourPromises.push(lastScreenPromise);
+    } else {
+      const newScreen = addScreenToTour(tourRid, screen.id, screen.type, screen.rid);
+      screensInTourPromises.push(newScreen);
+    }
+
     const elPath = screen.elPath;
     const screenConfig = getSampleConfig(
       elPath,
@@ -342,7 +348,7 @@ async function addAnnotationConfigs(
       annotationText,
       nextBtnText,
       screenAiData && screenAiData.richText,
-      isAiIntroOrOutro || isModuleIntro
+      screenInfo[i].screenType !== LLMScreenType.default
     );
     screenConfig.showOverlay = annStyle.showOverlay;
     screenConfig.isHotspot = true;
@@ -433,10 +439,14 @@ async function addAnnotationConfigs(
     }
 
     const newScreen = screensInTour[i];
+    const prevEntities = tourDataFile.entities[newScreen.id]
+     && (tourDataFile.entities[newScreen.id] as TourScreenEntity).annotations
+      ? { ...(tourDataFile.entities[newScreen.id] as TourScreenEntity).annotations } : {};
     tourDataFile.entities[newScreen.id] = {
       type: 'screen',
       ref: newScreen.id.toString(),
       annotations: {
+        ...prevEntities,
         [annConfigs[i].id]: annConfigs[i]
       }
     } as TourScreenEntity;
@@ -1410,7 +1420,7 @@ export const getThemeData = async (
     };
     return themeData;
   } catch (err) {
-    if (err instanceof Error) raiseDeferredError(err);
+    raiseDeferredError(err as Error);
     return null;
   }
 };
@@ -1430,7 +1440,8 @@ export const getAllDemoAnnotationText = async (
   baseAiData: create_guides_router,
   updateProgress: (val: number)=>void,
   metaData: string,
-): Promise<AiData | null> => {
+): Promise<AiData> => {
+  const completeDemoData: AiData = { items: [] };
   try {
     // TODO - addd last 3 screen for step-by-step guide
     const BATCH_SIZE = 5;
@@ -1441,7 +1452,6 @@ export const getAllDemoAnnotationText = async (
         ? defaultCategory : baseAiData.categoryOfDemo;
 
     const demoState = [];
-    const completeDemoData: AiData = { items: [] };
     for (let i = 0; i < totalBatch; i++) {
       const start = i * BATCH_SIZE;
       const end = start + BATCH_SIZE;
@@ -1486,9 +1496,8 @@ export const getAllDemoAnnotationText = async (
 
     return completeDemoData;
   } catch (err) {
-    console.log(err);
-    if (err instanceof Error) raiseDeferredError(err);
-    return null;
+    raiseDeferredError(err as Error);
+    return completeDemoData;
   }
 };
 
@@ -1503,7 +1512,7 @@ create_guides_marketing_p | create_guides_step_by_step_p
       items: richAiData.items.map(item => ({
         richText: item.richText || '',
         screenId: item.screenId === undefined ? randomScreenId() : item.screenId,
-        element: item.element || 'black',
+        element: item.element || LLM_MARK_BASE_COLOR,
         nextButtonText: item.nextButtonText || '',
         skip: item.skip
       }))
@@ -1534,8 +1543,7 @@ export const createDemoUsingAI = async (
     const result = processLLMDemoRouterResponse(toolUse);
     return result;
   } catch (err) {
-    if (err instanceof Error) raiseDeferredError(err);
-    console.log(err);
+    raiseDeferredError(err as Error);
     return null;
   }
 };
@@ -1598,10 +1606,15 @@ export const getDemoMetaData = async (
   productDetails: string,
   demoObjective: string,
   refsForMMV: RefForMMV[],
-  demoCategory: create_guides_router['categoryOfDemo']
+  demoCategory: create_guides_router['categoryOfDemo'],
+  subs: P_RespSubscription | null
 ): Promise<{metaData: string, screenCleanup: number[]}> => {
   try {
-    const parsedRefsForMMV = refsForMMV.map(item => ({
+    let newRefsForMMV = [...refsForMMV];
+    if (!isActiveBusinessPlan(subs)) {
+      newRefsForMMV = refsForMMV.slice(0, Math.min(refsForMMV.length, 10));
+    }
+    const parsedRefsForMMV = newRefsForMMV.map(item => ({
       id: item.id,
       url: removeBaseUrl(item.url)
     }));
@@ -1640,8 +1653,7 @@ export const getDemoMetaData = async (
 
     return { metaData: '', screenCleanup };
   } catch (err) {
-    if (err instanceof Error) raiseDeferredError(err);
-    console.log(err);
+    raiseDeferredError(err as Error);
     return { metaData: '', screenCleanup: [] };
   }
 };
@@ -1689,8 +1701,7 @@ export const postProcessAIText = async (
     const annTexts = addTextToPostProcessRichText(normalizedRichAnnData);
     return annTexts;
   } catch (err) {
-    if (err instanceof Error) raiseDeferredError(err);
-    console.log(err);
+    raiseDeferredError(err as Error);
     return null;
   }
 };
@@ -1772,8 +1783,7 @@ export const getDemoRouterFromExistingDemo = async (anonymousDemoId: string): Pr
     const result = processLLMDemoRouterResponse(toolUse);
     return result;
   } catch (err) {
-    if (err instanceof Error) raiseDeferredError(err);
-    console.log(err);
+    raiseDeferredError(err as Error);
     return defaultData;
   }
 };

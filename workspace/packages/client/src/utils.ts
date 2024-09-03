@@ -3,6 +3,8 @@ import {
   Plan as PaymentTermsPlan,
   Interval as PaymentTermsInterval,
   FrameSettings,
+  Status,
+  Plan,
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
@@ -22,7 +24,7 @@ import { useEffect, useRef } from 'react';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { FABLE_LEAD_FORM_FIELD_NAME } from './constants';
-import { P_RespTour } from './entity-processor';
+import { P_RespSubscription, P_RespTour } from './entity-processor';
 import { AnalyticsValue, AnnotationValue, FeatureForPlan, PlanDetail } from './plans';
 import { TState } from './reducer';
 import {
@@ -1728,3 +1730,6 @@ export function getSerNodeFidFromElPath(
   }
   return undefined;
 }
+
+export const isActiveBusinessPlan = (subs: P_RespSubscription | null):
+ boolean => Boolean(subs && subs.status === Status.ACTIVE && subs.paymentPlan === Plan.BUSINESS);

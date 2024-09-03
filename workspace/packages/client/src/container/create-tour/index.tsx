@@ -52,7 +52,9 @@ import {
   LLM_IMAGE_TYPE,
   post_process_demo_p,
   ScreenInfo,
-  ScreenInfoWithAI
+  ScreenInfoWithAI,
+  LLMScreenType,
+  LLM_MARK_BASE_COLOR
 } from './types';
 import {
   createDemoUsingAI,
@@ -760,7 +762,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   processAIDataAndCallSaveTour = (): void => {
     let screensWithAIAnnData: ScreenInfoWithAI[] = this.state.screens.map((screenInfo, index) => ({
       ...screenInfo,
-      aiAnnotationData: null
+      aiAnnotationData: null,
+      screenType: LLMScreenType.default
     }));
 
     let demoTitle = '';
@@ -783,7 +786,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               )
             },
           aiAnnotationData: currAiData!,
-          skipped: screenInfo.skipped || shouldSkipIfMarkIsSameAAsWidth
+          skipped: screenInfo.skipped || shouldSkipIfMarkIsSameAAsWidth,
+          screenType: LLMScreenType.default
         };
       });
 
@@ -845,9 +849,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     nextButtonText: modules[guideIndex].module_intro_guide!.nextButtonText,
                     screenId: randomScreenId(),
                     skip: false,
-                    element: 'black'
+                    element: LLM_MARK_BASE_COLOR
                   },
-                  moduleData: currentScreenData.moduleData
+                  moduleData: currentScreenData.moduleData,
+                  screenType: LLMScreenType.moduleIntro
                 });
 
                 processedAiAnnData.push({
@@ -875,13 +880,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           },
           aiAnnotationData: {
             skip: false,
-            element: 'black',
+            element: LLM_MARK_BASE_COLOR,
             text: this.state.postProcessAiData.demo_intro_guide.text,
             richText: this.state.postProcessAiData.demo_intro_guide.richText,
             nextButtonText: this.state.postProcessAiData.demo_intro_guide.nextButtonText,
             screenId: randomScreenId()
           },
-          moduleData: screensWithAIAnnData[0].moduleData
+          moduleData: screensWithAIAnnData[0].moduleData,
+          screenType: LLMScreenType.demoIntro
         };
 
         screensWithAIAnnData[0].moduleData = undefined;
@@ -896,12 +902,13 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           },
           aiAnnotationData: {
             skip: false,
-            element: 'black',
+            element: LLM_MARK_BASE_COLOR,
             text: this.state.postProcessAiData.demo_outro_guide.text,
             richText: this.state.postProcessAiData.demo_outro_guide.richText,
             nextButtonText: this.state.postProcessAiData.demo_outro_guide.nextButtonText,
             screenId: randomScreenId()
           },
+          screenType: LLMScreenType.demoOutro
         };
         screensWithAIAnnData.push(outroCard);
       }
@@ -935,7 +942,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     saveType: 'new_tour' | 'existing_tour' | null
   ): Promise<void> => {
     const [llmMetadata, themeData] = await Promise.all([
-      getDemoMetaData(anonymousDemoId, productDetails, demoObjective, imageWithMarkUrls, baseAiData.categoryOfDemo),
+      getDemoMetaData(
+        anonymousDemoId,
+        productDetails,
+        demoObjective,
+        imageWithMarkUrls,
+        baseAiData.categoryOfDemo,
+        this.props.subs
+      ),
       saveType === 'existing_tour' ? null
         : getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement)
     ]);
@@ -956,11 +970,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       },
       llmMetadata.metaData
     );
-
-    if (!annTextData) {
-      this.setState({ showRetryAI: true });
-      return;
-    }
 
     const demoState = annTextData.items.map(item => ({
       id: item.screenId,

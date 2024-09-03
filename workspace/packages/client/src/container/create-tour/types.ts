@@ -43,9 +43,17 @@ export interface ScreenInfo {
   vpd: Vpd | null;
 }
 
+export enum LLMScreenType {
+moduleIntro= 'module_intro',
+demoIntro= 'demo_intro',
+demoOutro= 'demo_outro',
+default='default'
+}
+
 export interface ScreenInfoWithAI extends ScreenInfo {
   aiAnnotationData: create_guides_marketing_p['items'][0] | create_guides_step_by_step_p['items'][0] | null,
-  moduleData?: { name: string, description: string }
+  moduleData?: { name: string, description: string },
+  screenType: LLMScreenType
 }
 
 export interface DBData {
@@ -111,7 +119,8 @@ export type AnnotationStyle = {
 
 export const LLM_IMAGE_TYPE = 'image/png';
 
-export const LLM_EXTRA_COLORS = ['red', 'blue', 'cyan'];
+export const LLM_MARK_BASE_COLOR = 'cyan';
+export const LLM_EXTRA_COLORS = ['red', 'blue', 'yellow'];
 
 export interface post_process_demo_p extends post_process_demo {
   demo_intro_guide: post_process_demo['demo_intro_guide'] & {

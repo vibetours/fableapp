@@ -67,7 +67,7 @@ function drawOverlayOnCanvas(ctx: OffscreenCanvasRenderingContext2D, {
   ctx.closePath();
 
   ctx.fillStyle = 'rgba(1, 1, 1, 0.4)';
-  ctx.strokeStyle = 'rgba(1, 1, 1, 1)';
+  ctx.strokeStyle = 'rgba(0,255,255, 1)';
   ctx.lineWidth = 1;
   ctx.fill();
   ctx.stroke();

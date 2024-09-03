@@ -1,7 +1,7 @@
 import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plan, Status } from '@fable/common/dist/api-contract';
+import { Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import { P_RespSubscription, getNumberOfDaysFromNow } from '../../entity-processor';
@@ -9,6 +9,7 @@ import UserGuideProgress from './user-guide-progess';
 import UserGuideDetails from './user-guide-details';
 import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { isActiveBusinessPlan } from '../../utils';
 
 interface Props {
   selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads' | '';
@@ -28,7 +29,7 @@ function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'bil
 export default function SidePanel(props: Props): JSX.Element {
   const [isUserGuideDetailsOpen, setIsUserGuideDetailsOpen] = useState<boolean>(false);
   const navigate = useNavigate();
-  const isBuisnessPlan = props.subs && props.subs.status === Status.ACTIVE && props.subs.paymentPlan === Plan.BUSINESS;
+  const isBuisnessPlan = isActiveBusinessPlan(props.subs);
 
   const isTrialAndEndGreaterThanOneYear = (): boolean => {
     if (!props.subs) return false;
