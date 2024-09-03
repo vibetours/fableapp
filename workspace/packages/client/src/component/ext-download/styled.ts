@@ -57,6 +57,7 @@ export const CheckFilledIcon = styled(CheckCircleFilled)`
   height: 20px;
   margin-top: 5px;
   color: #7567FF;
+  outline: 1px solid black;
 `;
 
 export const EmptyCircle = styled.div`
@@ -117,5 +118,86 @@ export const SetupGuideCon = styled.div`
 
   & .ant-progress-text{
     color: #7567FF !important;
+  }
+`;
+
+export const SetupSteps = styled.div`
+
+  display: flex;
+  gap: 2rem;
+  position: relative;
+  width: 100%;
+  margin: 0.5rem;
+  justify-content: start;
+  align-items: stretch;
+
+  .step-root {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+
+  .step-footer {
+    display: flex;
+    align-items: center;
+  }
+
+  .setup-step {
+    width: 100%;
+    background-color: white;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    padding-left: 0.75rem;
+    font-size: 0.75rem;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    display : flex;
+    align-items: start;
+    gap: 1rem;
+    transition: all 100ms;
+    outline: 1px solid #E6E6E6;
+
+    &.complete {
+      opacity: 0.65;
+    }
+
+    .left-items {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 6px;
+
+      .setup-index {
+        font-size: 0.8rem;
+        border-radius: 50%;
+        height: 18px;
+        width: 18px;
+        outline: 1px solid #9E9E9E;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #9E9E9E;
+      }
+
+      .setup-index-complete {
+        background-color: #7567ff;
+        outline: 1px solid #7567ff;
+        color: white;
+      }
+    }
+    .setup-title {
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+    }
+
+    ul {
+      padding-left: 0.5rem;
+    }
+   
+    .hl {
+      border-bottom: 2px solid #7ceaf3;
+    }
   }
 `;

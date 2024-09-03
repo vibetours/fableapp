@@ -113,8 +113,6 @@ class DemoHubsList extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.SidePanelCon>
             <SidePanel
               selected="demo-hub"
-              tourAvailable={this.props.tours.length > 0}
-              firstTourRid={this.props.tours[0]?.rid}
               subs={this.props.subs}
             />
           </GTags.SidePanelCon>

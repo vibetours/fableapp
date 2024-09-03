@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons';
+import { CaretRightOutlined, PlusOutlined } from '@ant-design/icons';
 import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
@@ -28,7 +28,6 @@ import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { FeatureAvailability, Ops, SiteData } from '../../types';
 import * as Tags from './styled';
-import OnboardingDemos from '../../component/tour/onboarding-demos';
 import Button from '../../component/button';
 import Input from '../../component/input';
 import TourCard from '../../component/tour/tour-card';
@@ -37,12 +36,14 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
 import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable } from '../../utils';
-import ExtDownloadRemainder from '../../component/ext-download';
+import { StepContainer } from '../../component/ext-download';
 import TextArea from '../../component/text-area';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 import { FeatureForPlan } from '../../plans';
 import UpgradeModal from '../../component/upgrade/upgrade-modal';
+import Line from '../insight-dashboard/line';
+import HomeDropDown from '../../component/homepage/home-dropdown';
 
 const userGuides = [TourCardGuide];
 
@@ -167,13 +168,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if (!this.state.isExtInstalled) {
       this.interval = setInterval(() => isExtensionInstalled()
         .then((isExtInstalled) => {
+          isExtInstalled && this.clearExtensionInstallInterval();
           this.setState({ isExtInstalled });
-        }), 5000);
+        }), 3000);
     } else this.clearExtensionInstallInterval();
 
-    if (this.props.featurePlan) {
-      this.handleFeatureAvailable();
-    }
+    if (this.props.featurePlan) this.handleFeatureAvailable();
     this.props.getVanityDomains();
   }
 
@@ -199,7 +199,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    if (prevState.showModal !== this.state.showModal && this.state.showModal) {
+    if (prevState.showModal !== this.state.showModal && this.state.showModal && this.state.ctxAction !== CtxAction.Create) {
       setTimeout(() => {
         this.renameOrDuplicateOrCreateIpRef.current!.focus();
         this.renameOrDuplicateOrCreateIpRef.current!.select();
@@ -349,14 +349,20 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.SidePanelCon>
             <SidePanel
               selected="tours"
-              tourAvailable={this.props.tours.length > 0}
-              firstTourRid={this.props.tours[0]?.rid}
               subs={this.props.subs}
             />
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon
-              style={{ height: '100%', overflowY: 'auto', flexDirection: 'row', gap: '3rem', paddingLeft: '3%' }}
+              style={
+                { height: '100%',
+                  overflowY: 'auto',
+                  flexDirection: 'row',
+                  gap: '3rem',
+                  paddingLeft: '3%',
+                  background: '#f5f5f5'
+                }
+              }
               id="main"
             >
               {toursLoaded ? (
@@ -364,6 +370,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   {
                     this.props.userCreatedTours.length === 0 ? (
                       <EmptyTourState
+                        useCases={this.props.org?.info?.useCases}
                         isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
                         principal={this.props.principal}
                         defaultTours={this.state.onboardingToursForPreview}
@@ -372,51 +379,71 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                       />
                     ) : (
                       <>
-                        <div style={{ width: '45%', minWidth: '43.5rem' }}>
+                        <div style={{ width: '100%', minWidth: '43.5rem' }}>
+                          {!this.getIsAtleastOneAnnPublished() && (
                           <Tags.TopPanel style={{
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
+                            alignItems: 'stretch',
+                            gap: ''
                           }}
                           >
-                            <Tags.ToursHeading style={{ fontWeight: 400 }}>All demos in your org</Tags.ToursHeading>
-                            <Button
-                              icon={<PlusOutlined />}
-                              iconPlacement="left"
-                              onClick={() => this.handleShowModal(null, CtxAction.Create)}
-                              intent={this.state.isExtInstalled ? 'primary' : 'secondary'}
-                            >
-                              Create a demo
-                            </Button>
+                            <StepContainer
+                              isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
+                              extensionInstalled={this.state.isExtInstalled}
+                              isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
+                            />
+
                           </Tags.TopPanel>
-                          <GTags.BottomPanel style={{ overflow: 'auto' }}>
-                            {this.props.tours.map((tour, index) => (
-                              <TourCard
-                                publishTour={this.props.publishTour}
-                                key={tour.rid}
-                                tour={tour}
-                                handleShowModal={this.handleShowModal}
-                                handleDelete={this.handleDelete}
-                                updateTourProp={this.props.updateTourProp}
-                                disable={index >= this.props.tours.length - 1 ? false
-                                  : !this.state.createNewDemoFeatureAvailable.isAvailable}
-                                showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
-                                vanityDomains={this.props.vanityDomains}
-                              />
-                            ))}
+                          )}
+                          <GTags.BottomPanel style={{
+                            width: '100%',
+                            overflow: 'auto',
+                            display: 'flex',
+                            gap: '4rem',
+                            alignItems: 'start'
+                          }}
+                          >
+                            <div style={{ width: '60%', overflow: 'auto', padding: '0 4px' }}>
+                              <div
+                                style={{
+                                  margin: '1rem 0',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between'
+                                }}
+                              >
+                                <Tags.ToursHeading style={{ fontWeight: 400 }}>All demos in your org</Tags.ToursHeading>
+                                <Button
+                                  icon={<PlusOutlined />}
+                                  iconPlacement="left"
+                                  onClick={() => this.handleShowModal(null, CtxAction.Create)}
+                                  intent={this.state.isExtInstalled ? 'primary' : 'secondary'}
+                                >
+                                  Create a demo
+                                </Button>
+                              </div>
+                              {this.props.tours.map((tour, index) => (
+                                <TourCard
+                                  publishTour={this.props.publishTour}
+                                  key={tour.rid}
+                                  tour={tour}
+                                  handleShowModal={this.handleShowModal}
+                                  handleDelete={this.handleDelete}
+                                  updateTourProp={this.props.updateTourProp}
+                                  disable={index >= this.props.tours.length - 1 ? false
+                                    : !this.state.createNewDemoFeatureAvailable.isAvailable}
+                                  showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
+                                  vanityDomains={this.props.vanityDomains}
+                                />
+                              ))}
+                            </div>
+                            <HomeDropDown
+                              isExtInstalled={!this.state.isExtInstalled ? !this.getIsAtleastOneAnnPublished() : true}
+                              firstTourId={this.props.userCreatedTours[0]?.rid}
+                              atLeastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
+                            />
                           </GTags.BottomPanel>
                           <SelectorComponent userGuides={userGuides} />
-                        </div>
-                        <div>
-                          <ExtDownloadRemainder
-                            isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
-                            extensionInstalled={this.state.isExtInstalled}
-                            isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
-                          />
-                          <OnboardingDemos
-                            layout="column"
-                            previewTours={this.state.onboardingToursForPreview}
-                          />
                         </div>
                       </>
                     )
@@ -432,6 +459,8 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         </GTags.RowCon>
         {this.state.ctxAction !== CtxAction.NA && (
           <GTags.BorderedModal
+            donotShowHeaderStip
+            containerBg="#f5f5f5"
             style={{ height: '10px' }}
             open={this.state.showModal}
             onOk={this.handleModalOk}
@@ -446,34 +475,87 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                 >
                   Cancel
                 </Button>
-                <Button
-                  style={{ flex: 1 }}
-                  onClick={this.handleModalOk}
-                >
-                  Save
-                </Button>
+                {this.state.ctxAction !== CtxAction.Create && (
+                  <Button
+                    style={{ flex: 1 }}
+                    onClick={this.handleModalOk}
+                  >
+                    Save
+                  </Button>
+                )}
               </div>
             )}
           >
             <div className="modal-content-cont">
-              <div className="modal-title">{this.getModalTitle()}</div>
-              <form
-                onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
-                style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
-              >
-                <Input
-                  label={this.getModalDesc()}
-                  id="renameOrDuplicateOrCreateTour"
-                  innerRef={this.renameOrDuplicateOrCreateIpRef}
-                  defaultValue={this.getModalInputDefaultVal()}
-                />
-                <TextArea
-                  label="Enter description for this demo"
-                  innerRef={this.renameOrDuplicateOrCreateDescRef}
-                  defaultValue={this.state.ctxAction === CtxAction.Duplicate
-                    ? '' : this.state.selectedTour?.description || ''}
-                />
-              </form>
+              {this.state.ctxAction === CtxAction.Create ? (
+                <div>
+                  <p className="typ-h2">Use Fable's Chrome Extension to create a new demo</p>
+                  <ol className="typ-reg">
+                    {!this.state.isExtInstalled && (
+                      <li>Install Fable's Chrome Extension</li>
+                    )}
+                    <li>Go to the website/ application that you want to create a demo of</li>
+                    <li>Once you are ready, click on the “Start Recording” button in Fable's extension</li>
+                    <li>After the recording is complete, click on the “Stop Recording” button in the extension</li>
+                  </ol>
+                  <GTags.OurCollapse
+                    expandIconPosition="start"
+                    // eslint-disable-next-line react/no-unstable-nested-components
+                    expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
+                    size="small"
+                    bordered={false}
+                    items={[{
+                      key: '1',
+                      label: <div className="typ-h2">Create a new demo by uploading images</div>,
+                      children: (
+                        <form
+                          onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
+                          style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
+                        >
+                          <Input
+                            label={this.getModalDesc()}
+                            id="renameOrDuplicateOrCreateTour"
+                            innerRef={this.renameOrDuplicateOrCreateIpRef}
+                            defaultValue={this.getModalInputDefaultVal()}
+                          />
+                          <TextArea
+                            label="Enter description for this demo"
+                            innerRef={this.renameOrDuplicateOrCreateDescRef}
+                            defaultValue=""
+                          />
+                          <Button
+                            style={{ flex: 1 }}
+                            onClick={this.handleModalOk}
+                          >
+                            Save
+                          </Button>
+                        </form>
+                      )
+                    }]}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="typ-h2">{this.getModalTitle()}</div>
+                  <form
+                    onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
+                    style={{ marginTop: '0.5rem', paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
+                  >
+                    <Input
+                      label={this.getModalDesc()}
+                      id="renameOrDuplicateOrCreateTour"
+                      innerRef={this.renameOrDuplicateOrCreateIpRef}
+                      defaultValue={this.getModalInputDefaultVal()}
+                    />
+                    <TextArea
+                      label="Enter description for this demo"
+                      innerRef={this.renameOrDuplicateOrCreateDescRef}
+                      defaultValue={this.state.ctxAction === CtxAction.Duplicate
+                        ? '' : this.state.selectedTour?.description || ''}
+                    />
+                  </form>
+                </>
+              )}
             </div>
           </GTags.BorderedModal>
         )}

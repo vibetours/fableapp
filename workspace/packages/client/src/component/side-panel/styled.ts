@@ -80,10 +80,10 @@ export const FooterItemProfileIcon = styled.img`
 
 // ~~~~~~~~~~~~~~~~~~~~~ USER GUIDE PROGRESS ~~~~~~~~~~~~~~~~~~~~~
 
-export const UserGuideProgressCon = styled.div<{ selected: boolean }>`
+export const UserGuideProgressCon = styled.span<{ selected: boolean }>`
   margin-top: auto;
   display: flex;
-  padding: 1rem;
+  padding: 0;
   gap: 1rem;
   justify-content: center;
   background-color: ${(props) => (props.selected ? 'white' : '')};
@@ -108,25 +108,26 @@ const slideIn = keyframes`
   }
 `;
 
-export const UserGuideDetailsCon = styled.div` 
-  width: 375px;
-  position: absolute;
-  height: calc(100% - 50px - 2rem);
+export const UserGuideDetailsCon = styled.div<{inDropdown: boolean}>` 
+  width: ${props => (props.inDropdown ? '100%' : '375px')};
+  position: ${props => (props.inDropdown ? 'static' : 'absolute')};
+  height: ${props => (props.inDropdown ? '100%' : 'calc(100% - 50px - 2rem)')};
   left: 260px;
   background-color: #fff;
   z-index: 1;
-  padding: 1rem 2rem;
+  padding: ${props => (props.inDropdown ? '0rem' : '1rem 2rem')};
   overflow-y: auto;
   scrollbar-color: var(--fable-scrollbar-color);
-  border: 1px solid lightgray;
+  border: ${props => (props.inDropdown ? 'none' : '1px solid lightgray')};
   flex-direction: column;
-  box-shadow: rgba(0, 0, 0, 0.06) 1px 0px 2px;
-  border-right: 1px solid rgb(224, 220, 229);
-
+  box-shadow: ${props => (props.inDropdown ? 'none' : 'rgba(0, 0, 0, 0.06) 1px 0px 2px')};
+  border-right: ${props => (props.inDropdown ? 'none' : '1px solid rgb(224, 220, 229)')};
+  padding-left: ${props => (props.inDropdown ? '1rem' : '2rem')};
   animation: ${slideIn} 0.2s ease-out;
+  box-sizing: ${props => (props.inDropdown ? 'border-box' : 'content-box')};
 `;
 
-export const UserGuideCard = styled.div<{ bgColor: string }>`
+export const UserGuideCard = styled.div<{ bgColor: string, inDropdown?: boolean }>`
   border: 1px solid #ddd;
   padding: 1rem;
   display: flex;
@@ -134,7 +135,8 @@ export const UserGuideCard = styled.div<{ bgColor: string }>`
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
-  min-width: 320px;
+  width: ${props => (props.inDropdown ? '80%' : 'auto')};
+  min-width: ${props => (props.inDropdown ? 'auto' : '320px')};
   border-radius: 0.5rem;
   background-color: ${(props) => props.bgColor};
   cursor: pointer;
@@ -145,7 +147,7 @@ export const UserGuideTextcon = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   & > * {
-    margin: 0;
+    margin: 0 !important;
   }
 `;
 

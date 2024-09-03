@@ -54,7 +54,7 @@ export default function Bar(props: Props): ReactElement {
   const bg = props.bg ?? '#7567ff';
   const axisLineColors = props.bg ?? '#160245';
   return (
-    <ResponsiveContainer width="100%" height={140} debounce={3}>
+    <ResponsiveContainer width="100%" height={props.height ?? 140} debounce={3}>
       <BarChart
         height={props.height ?? 160}
         data={data}

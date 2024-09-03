@@ -70,48 +70,54 @@ const bottomToTop = keyframes`
   100% { opacity: 1; }
 `;
 
-export const Screen = styled.div`
+export const Screen = styled.div<{bordered?: boolean, dontSelect?: boolean}>`
     background: #FFFFFF;
-    border: 1px solid #EFEFEF;
     border-radius: 10px;
     padding: 0.5rem;
     width: 214px;
-    height: 198px;
+    height: 180px;
     flex-basis: 17%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    border-radius: 4px;
+    border-radius: 16px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
     transition: box-shadow 0.2s ease-in-out;
+    outline: ${(props) => (props.bordered ? '1px dashed #16023e' : 'none')};
     
     &:hover {
-      border: 1px solid #7567FF;
-      box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.10);
-      cursor: pointer;
+      cursor: ${(props) => (props.dontSelect ? 'inherit' : 'pointer')};
+      outline: ${(props) => (props.dontSelect ? 'none' : '1px solid #16023e')};
     }  
   `;
 
 export const ScreenThumbnail = styled.img`
     height: 7rem;
     object-fit: cover;
-  `;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    border-radius: 0.5rem;
+`;
 
 export const ScreenContent = styled.div`
-    display: flex;
-    flex-direction: column;
-    margin-top: 0.75rem;
-    flex-grow: 1;
-    row-gap: 0.5rem;
-    overflow: auto;
-    justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.75rem;
+  flex-grow: 1;
+  overflow: auto;
+  justify-content: space-between;
 
-    .card-title{
-      font-size: 1rem;
-      font-weight: 500;
-      height: 1.5rem;
-      overflow: hidden;
-    }
-  `;
+  .card-title{
+    font-size: 1rem;
+    font-weight: 500;
+    height: 1.5rem;
+    overflow: hidden;
+  }
+  .shorten {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
 
 export const ScreenLink = styled.div`
     display: flex;
@@ -128,14 +134,14 @@ export const ScreenTitleIconCon = styled.div`
   `;
 
 export const UploadImgCont = styled.div`
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      text-align: center;
-      gap: 1rem;
-  `;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  gap: 1rem;
+`;
 
 export const ErrorMsg = styled.div`
     color: red;
@@ -169,7 +175,7 @@ export const ScreenPickerCon = styled.div`
   /* padding-top: 6.125rem; */
   align-items: center;
   background-color: transparent;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(32px) saturate(0.25);
   z-index: 1020;
   top: 0;
   left: 0;

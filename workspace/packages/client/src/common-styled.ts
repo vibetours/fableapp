@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio } from 'antd';
+import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio, Collapse } from 'antd';
 import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
@@ -227,17 +227,15 @@ export const BorderedModal = styled(Modal)<{
   donotShowHeaderStip?: boolean;
   containerBg?: string;
 }>`
-    border-radius: 15px;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+    border-radius: 16px;
     border-top: double 4px transparent;
     background-image: ${props => (props.donotShowHeaderStip ? undefined : 'linear-gradient(white, white), linear-gradient(to right,  #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%)')};
     background-clip: padding-box, border-box;
 
     .ant-modal-content {
-      -webkit-box-shadow: none;
-      -moz-box-shadow: none;
-      -o-box-shadow: none;
-      box-shadow: none;
-      border-radius: 15px;
+      border-radius: 16px;
+      box-shadow: rgba(50, 50, 93, 0.25) 0px 13px 27px -5px, rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
       background: ${props => props.containerBg}
     }
 
@@ -325,6 +323,21 @@ export const OurRadio = styled(Radio)`
   .ant-radio > .ant-radio-inner {
     border-color: #747474;
     background-color: transparent;
+  }
+`;
+
+export const OurCollapse = styled(Collapse)`
+  margin-top: 10px;
+  background: white;
+  border-radius: 0.5rem !important;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+
+  .ant-collapse-item {
+    border-bottom: solid #d8d8db;
+  }
+
+  .ant-collapse-item:last-child {
+    border-bottom: none;
   }
 `;
 
@@ -429,7 +442,7 @@ export const FableSelect = styled(Select)`
 
 export const BottomPanel = styled.div`
   flex-grow: 1;
-  margin: 1rem;
+  margin: 1rem 0;
   scrollbar-width: thin;
   scrollbar-color: var(--fable-scrollbar-color);
 

@@ -10,16 +10,20 @@ interface Props {
 }
 
 export default function UserGuideProgress(props: Props): JSX.Element {
+  const { completedModules, totalmodules } = getUserGuideCompletionProgressInModules();
   return (
     <Tags.UserGuideProgressCon selected={props.selected} onClick={props.onClick}>
-      <UserGuideProgressCircle />
+      <ProgressCircle
+        totalmodules={totalmodules}
+        completedModules={completedModules}
+        progressCircleSize={14}
+      />
     </Tags.UserGuideProgressCon>
   );
 }
 
+// TODO[now] delete this
 function UserGuideProgressCircle(): JSX.Element {
-  const { completedModules, totalmodules } = getUserGuideCompletionProgressInModules();
-
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: ' 0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
@@ -36,13 +40,7 @@ function UserGuideProgressCircle(): JSX.Element {
           </div>
         </div>
       </div>
-      <div>
-        <ProgressCircle
-          totalmodules={totalmodules}
-          completedModules={completedModules}
-          progressCircleSize={28}
-        />
-      </div>
+      <div />
     </div>
   );
 }

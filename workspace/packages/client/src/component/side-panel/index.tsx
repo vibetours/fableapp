@@ -5,8 +5,6 @@ import { Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import { P_RespSubscription, getNumberOfDaysFromNow } from '../../entity-processor';
-import UserGuideProgress from './user-guide-progess';
-import UserGuideDetails from './user-guide-details';
 import PlanBadge from './plan-badge';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { isActiveBusinessPlan } from '../../utils';
@@ -14,8 +12,6 @@ import { isActiveBusinessPlan } from '../../utils';
 interface Props {
   selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads' | '';
   subs: P_RespSubscription | null;
-  tourAvailable?: boolean;
-  firstTourRid?: string;
 }
 
 function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'billing' | 'user_guides'): void {
@@ -87,7 +83,7 @@ export default function SidePanel(props: Props): JSX.Element {
           <CalendarOutlined />
           <p>Free demo consultation</p>
         </Tags.ConNavBtn>
-        <div style={{ margin: 'auto 8px 0' }}>
+        <div style={{ margin: 'auto 8px 16px' }}>
           {props.subs && !isBuisnessPlan && !isTrialAndEndGreaterThanOneYear() && <PlanBadge
             subs={props.subs}
             onClick={() => {
@@ -95,22 +91,8 @@ export default function SidePanel(props: Props): JSX.Element {
               navigate('/billing');
             }}
           />}
-
-          <UserGuideProgress
-            selected={isUserGuideDetailsOpen}
-            onClick={() => {
-              sendEvntToAmplitude('user_guides');
-              setIsUserGuideDetailsOpen(prevState => !prevState);
-            }}
-          />
         </div>
       </Tags.ConNav>
-      <UserGuideDetails
-        tourAvailable={props.tourAvailable as boolean}
-        show={isUserGuideDetailsOpen}
-        close={() => setIsUserGuideDetailsOpen(false)}
-        firstTourRid={props.firstTourRid as string}
-      />
     </Tags.Con>
   );
 }

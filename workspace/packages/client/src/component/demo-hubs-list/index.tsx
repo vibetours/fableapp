@@ -60,7 +60,6 @@ function DemoHubsList(props: Props): JSX.Element {
   }
   return (
     <Tags.DemoHubContainer>
-
       <Tags.TopPanel style={{
         display: 'flex',
         alignItems: 'center',

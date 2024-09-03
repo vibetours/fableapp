@@ -49,7 +49,21 @@ interface FrameDataToBeProcessed {
 chrome.runtime.onInstalled.addListener(async () => {
   const isOnboardingFlowAlreadyTriggered = (await chrome.storage.local.get("ONBOARDING_STATE")).ONBOARDING_STATE || 0;
   if (!isOnboardingFlowAlreadyTriggered) {
-    chrome.tabs.create({ url: `${APP_CLIENT_ENDPOINT}/onboarding` });
+    chrome.tabs.query({ url: `${APP_CLIENT_ENDPOINT}/welcome*` }, (tabs) => {
+      let openTab: chrome.tabs.Tab | null = null;
+
+      for (const tab of tabs) {
+        if (tab.url?.includes("#install-extension")) {
+          openTab = tab;
+          break;
+        }
+      }
+      if (openTab && openTab.id) {
+        chrome.tabs.update(openTab.id, { url: `${APP_CLIENT_ENDPOINT}/onboarding`, active: true });
+      } else {
+        chrome.tabs.create({ url: `${APP_CLIENT_ENDPOINT}/onboarding` });
+      }
+    });
     await chrome.storage.local.set({ ONBOARDING_STATE: 1 });
   }
 });

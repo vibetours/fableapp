@@ -292,3 +292,7 @@ html, body, div, span, button, p, button, input {
 .nowrap {
   text-wrap: nowrap;
 }
+
+.ant-modal-mask {
+  filter: drop-shadow(2px 4px 6px black);
+}

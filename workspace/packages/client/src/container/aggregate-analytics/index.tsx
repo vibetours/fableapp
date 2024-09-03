@@ -28,7 +28,6 @@ const mapDispatchToProps = (dispatch: any) => ({
 const mapStateToProps = (state: TState) => ({
   org: state.default.org,
   principal: state.default.principal,
-  tours: state.default.tours,
   subs: state.default.subs,
   orgWideRespHouseLeadLoadingStatus: state.default.orgWideRespHouseLeadLoadingStatus,
   orgWideRespHouseLead: state.default.orgWideRespHouseLead,
@@ -100,8 +99,6 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
           <GTags.SidePanelCon>
             <SidePanel
               selected="leads"
-              tourAvailable={this.props.tours.length > 0}
-              firstTourRid={this.props.tours[0]?.rid}
               subs={this.props.subs}
             />
 

@@ -33,11 +33,6 @@ function DemoCard(props : Props) : JSX.Element {
     <Tags.Demo key={props.demoHub.rid}>
       <div className="image-container">
         <img src={props.demoHub.thumbnailUri.href} alt="demo thumbnail" />
-        <img
-          src={props.demoHub.thumbnailUri.href}
-          alt="demo thumbnail"
-          style={{ transform: 'translate(4px, -4px)', }}
-        />
         <div className="option-overlay">
           <Link
             to={`/hub/${props.demoHub.rid}`}

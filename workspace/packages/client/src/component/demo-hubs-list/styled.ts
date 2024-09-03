@@ -5,6 +5,7 @@ export const DemoHubContainer = styled.div`
     height: 100%;
     overflow-y: auto;
     padding-left: 2.5%;
+    background: #fafafa;
 `;
 export const ErrorMsg = styled.p`
   font-size: 14px;
@@ -108,15 +109,13 @@ export const ToursHeading = styled.h1`
 `;
 export const Demo = styled.div`
   background-color: white;
-  border : 1px solid #e6e6e6;
   border-radius : 0.5rem;
-  padding: 1rem;
+  padding: 0.5rem 0.25rem;
   width: 260px;
-  box-shadow: 0px 4px 4px 0px rgba(0,0,0,0.05);
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   transition: all 100ms;
   &:hover {
-    border: 1px solid ${(props) => props.theme.colors.light.selection.background};
-    
+    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
     text-decoration: none;
     color: #16023e;
   }
@@ -126,13 +125,13 @@ export const Demo = styled.div`
     height : 150px;
     margin: auto;
     position: relative;
-    border-radius: 16px;
-    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    border-radius: 0.5rem;
+    box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
 
     img {
       width: 100%;
       height : 100%;
-      border-radius: 16px;
+      border-radius: 0.5rem;
       position: absolute;
       box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
     }
@@ -140,11 +139,11 @@ export const Demo = styled.div`
     .option-overlay {
       opacity: 0;
       position: absolute;
-      border-radius: 16px;
-      top: -4px;
+      border-radius: 0.5rem;
+      top: 0px;
       left: 0;
-      width: calc(100% + 4px);
-      height: calc(100% + 4px);
+      width: 100%;
+      height: 100%;
       background-color: rgba(0,0,0,0.35);
       display: flex;
       flex-direction: column;
@@ -189,15 +188,23 @@ export const Demo = styled.div`
 
   .footer-con {
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    align-items: flex-end;
     flex-wrap: wrap;
-    padding: 1rem 0 0 0.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0 0 0.5rem;
   }
 
   .demo-title {
     font-weight: bold;
     font-size: 1.2rem;
+  }
+
+  .overflow-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
   }
 
   .demohub-options {

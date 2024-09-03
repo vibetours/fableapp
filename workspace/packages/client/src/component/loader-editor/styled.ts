@@ -50,7 +50,7 @@ export const FullScreenCon = styled.div<{bg ?: string, width?: number | null, he
 export const EditorWrapper = styled.div`
   padding: 2rem;
   background-color: transparent;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(32px) saturate(0.2);
 
   .ver-center {
     display: flex;
@@ -77,16 +77,16 @@ export const PreviewCon = styled.div`
     position: relative;
     height: 80vh;
     width: 100%;
-    border: 1px solid #DDD;
+    box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
     background: white;
-    border-radius: 8px;
+    border-radius: 0.5rem;
 `;
 
 export const FieldCon = styled.div`
     padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #DDD;
-    background: #FBFBFB;
+    border-radius: 0.5rem;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    background: white;
     margin: 1rem 0;
     display: flex;
     flex-direction: column;

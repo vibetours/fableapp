@@ -74,6 +74,11 @@ export default function Bubble(props: Props): ReactElement {
       <ScatterChart
         height={props.height ?? 80}
         data={zeroFilledData}
+        margin={{
+          top: 30,
+          left: 30,
+          right: 30
+        }}
       >
         <CartesianGrid stroke="1" />
         <XAxis

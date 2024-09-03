@@ -154,7 +154,7 @@ function ScreenCard({ screen, handleAddScreen, duplicateScreenToTour }: ScreenCo
             }}
             >
               <ArrowUpOutlined style={{ color: '#7567ff', transform: 'rotate(45deg)' }} />
-              <div className="typ-sm">{screen.url}</div>
+              <div className="typ-sm shorten">{screen.url}</div>
             </Tags.ScreenLink>)
         }
         <Tags.ScreenTitleIconCon>
@@ -353,22 +353,29 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
             <>
               <Tags.MsgCon>
                 <Tags.Heading className="typ-h1">Choose screens to add in this demo</Tags.Heading>
-                <Tags.SubHeading className="typ-sm">
+                <Tags.SubHeading className="typ-reg">
                   You can upload images from your system and add those in this demos.
                   You can also use our chrome extension to record your product and add it as part of this demo.
                 </Tags.SubHeading>
               </Tags.MsgCon>
               <Tags.ScreenCardCon id="screen-picker-grid">
                 <Tags.Screen
+                  bordered
                   onClick={() => {
                     this.setState({ showUploadScreenImgModal: true });
                   }}
-                  style={{ border: '1px dashed #7566ff' }}
                   id="IUG-2"
                 >
                   <Tags.UploadImgCont>
                     <UploadOutlined style={{ fontSize: '3rem' }} />
                     <div className="typ-ip">Upload image</div>
+                  </Tags.UploadImgCont>
+                </Tags.Screen>
+                <Tags.Screen dontSelect>
+                  <Tags.UploadImgCont>
+                    <div className="typ-reg">
+                      Use Fable's Chrome extension to record your product screens and add those screens to this to this demo
+                    </div>
                   </Tags.UploadImgCont>
                 </Tags.Screen>
                 {this.state.screensPartOfTour.map(screen => (
@@ -386,7 +393,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
                   && (
                   <Tags.Screen
                     onClick={this.handleLoadMoreScreens}
-                    style={{ border: '1px dashed #E0E0E0' }}
+                    bordered
                   >
                     <Tags.LoadNextCon>
                       <img src={NextIcon} alt="" style={{ marginBottom: '21px' }} />

@@ -1733,3 +1733,60 @@ export function getSerNodeFidFromElPath(
 
 export const isActiveBusinessPlan = (subs: P_RespSubscription | null):
  boolean => Boolean(subs && subs.status === Status.ACTIVE && subs.paymentPlan === Plan.BUSINESS);
+
+export const USE_CASE_DUMMY_DATA = [
+  { x: '01-08-2023', y: 42 },
+  { x: '02-08-2023', y: 27 },
+  { x: '03-08-2023', y: 58 },
+  { x: '04-08-2023', y: 33 },
+  { x: '05-08-2023', y: 76 },
+  { x: '06-08-2023', y: 49 }
+];
+
+export const DEMO_TIPS = [
+  {
+    type: ['marketing'],
+    tip: `Think of interactive demos as teasers of a movie. Keep them short and crisp. 
+    Ensure you add enough elements that wow your prospects!`
+  },
+  {
+    type: ['marketing'],
+    tip: `Do not forget to add relevant CTAs in the demo. 
+    These will help catch the attention of your prospects at the right time. `
+  },
+  {
+    type: ['marketing'],
+    tip: `Ungated demos tend to work better than gated demos. 
+    It is a great idea to add lead forms towards the end of the demo or in the middle of the demo instead.`
+  },
+  {
+    type: ['marketing'],
+    tip: `Have a workflow ready even before you create the demo. 
+    This will help you come up with a tight knit demo that narrates a story about your product.`
+  },
+  {
+    type: ['sales'],
+    tip: `Personalize your demo for each prospect. 
+    Even small things such as adding their logo and including their name can make a huge difference. 
+    For sales/ marketing: Integrate Fable with slack to get real time alerts about your demo viewers.`
+  },
+  {
+    type: ['sales'],
+    tip: `Customize your demo to remove irrelevant information from the screens. 
+    With Fable, you can blur/ hide/ remove/ replace any elements on your screen. Give it a try! `
+  },
+  {
+    type: ['sales', 'marketing'],
+    tip: `Adding a branded demo loader makes a huge difference. 
+    Small steps to showcase the power of your brand matter!  
+    For customer success: Embed these interactive guides in your help center and see your support tickets reduce.`
+  },
+  {
+    type: ['customer-success'],
+    tip: 'Fable’s interactive guides can help you onboard customers 24*7. Async onboarding is easier than ever. '
+  },
+  {
+    type: ['customer-success'],
+    tip: 'You can add audio/video guides to make your interactive demos more compelling. Have you tried them?'
+  }
+];

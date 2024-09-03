@@ -17,6 +17,7 @@ interface Props {
   tourAvailable: boolean;
   bgColor: string;
   firstTourRid: string;
+  inDropdown?: boolean
 }
 
 export default function UserGuideCard(props: Props): JSX.Element {
@@ -55,6 +56,7 @@ export default function UserGuideCard(props: Props): JSX.Element {
 
   return (
     <Tags.UserGuideCard
+      inDropdown={props.inDropdown}
       bgColor={props.tourAvailable ? props.bgColor : '#f5f5f5'}
       onClick={() => {
         if (props.tourAvailable) {

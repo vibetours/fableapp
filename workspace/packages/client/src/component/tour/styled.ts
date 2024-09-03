@@ -8,15 +8,14 @@ export const TourCardCon = styled(Link)`
   padding: 1rem;
   gap: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #E6E6E6;
   background: #FFF;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.05);
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
   text-decoration: none;
   margin-bottom: 1rem;
 
   &:hover {
-    border: 1px solid ${(props) => props.theme.colors.light.selection.background};
+    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
     cursor: pointer;
     text-decoration: none;
     color: #16023e;
@@ -107,13 +106,59 @@ export const EmbedBtn = styled.button`
 // ~~~~~~~~~~~~~~~~~~~~~~ EMPTY STATE ~~~~~~~~~~~~~~~~~~~~~~
 
 export const EmptyToursContainer = styled.div`
-  margin: auto;
-  width: 40rem;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  margin-right: 1rem;
+  gap: 2rem;
   padding: 18px 0;
+  padding-bottom: 5rem;
+
+
+  .hl-cover {
+    background: #ffe998;
+    font-size: 0.85rem;
+    padding: 1px 3px;
+    border-radius: 4px;
+  }
+
+  .typ-h1 {
+    font-weight: 400;
+  }
+
+  .example-demo-container {
+    box-sizing: border-box;
+    width: 90%;
+    aspect-ratio: 4/3;
+    text-align: center;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+
+    .typ-h2 {
+      font-weight: 400;
+      word-spacing: 2px;
+    }
+    
+    .typ-h5 {
+      font-weight: 300;
+      margin-top: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  .quilly-annoucement {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    background: white;
+    border-radius: 16px;
+    width: calc(100% - 4rem);
+    margin: 1rem 0;
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    padding: 1rem 2rem 2.8rem;
+    background: #fbf6ff;
+  }
 `;
 
 export const HeaderMsgCon = styled.div`

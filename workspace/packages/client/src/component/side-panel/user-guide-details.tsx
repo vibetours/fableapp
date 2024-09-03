@@ -7,15 +7,16 @@ import {
   getUserGuidesInArray
 } from '../../user-guides/utils';
 import { getTourGuideCardColor, getUserGuideType } from './utils';
-import openBookIcons from '../../assets/icons/open-book.svg';
 import UserGuideCard from './user-guide-card';
 import * as GTags from '../../common-styled';
+import UserGuideProgress from './user-guide-progess';
 
 interface Props {
   close: () => void;
   show: boolean;
   tourAvailable: boolean;
   firstTourRid: string;
+  inDropdown?: boolean
 }
 
 export type GuideStatus = 'skipped' | 'completed' | 'remaining';
@@ -37,38 +38,11 @@ export default function UserGuideDetails(props: Props): JSX.Element {
   };
 
   return props.show ? (
-    <Tags.UserGuideDetailsCon style={{ display: props.show ? 'flex' : 'none' }}>
-
+    <Tags.UserGuideDetailsCon
+      inDropdown={props.inDropdown as boolean}
+      style={{ display: props.show ? 'flex' : 'none' }}
+    >
       <Tags.StyledCloseOutlined onClick={props.close} />
-
-      <div style={{ margin: '1rem 0' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '1rem'
-          }}
-        >
-          <img
-            src={openBookIcons}
-            alt="Guide icon"
-          />
-          <div>
-            <div style={{
-              color: '#212121', fontSize: '1rem', fontWeight: '500'
-            }}
-            >
-              User guides
-            </div>
-            <div
-              style={{ color: '#6a6a6a', fontSize: '0.875rem', marginTop: '2px' }}
-            >
-              Learn how to use Fable
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           {userGuides.filter(Boolean).map((userGuide, idx) => (
@@ -80,26 +54,29 @@ export default function UserGuideDetails(props: Props): JSX.Element {
               bgColor={getTourGuideCardColor(idx)}
               resetStatus={resetCompletedOrSkippedStatus}
               firstTourRid={props.firstTourRid}
+              inDropdown={props.inDropdown}
             />
           ))}
         </div>
       </div>
-      <GTags.HelpCenterLink
-        className="typ-reg"
-        href="https://help.sharefable.com"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <LinkOutlined /> Get help from our help center
-      </GTags.HelpCenterLink>
-      <GTags.HelpCenterLink
-        className="typ-reg"
-        href="https://www.sharefable.com/contact-support"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <LinkOutlined /> Contact us
-      </GTags.HelpCenterLink>
+      <div>
+        <GTags.HelpCenterLink
+          className="typ-reg"
+          href="https://help.sharefable.com"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <LinkOutlined /> Get help from our help center
+        </GTags.HelpCenterLink>
+        <GTags.HelpCenterLink
+          className="typ-reg"
+          href="https://www.sharefable.com/contact-support"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <LinkOutlined /> Contact us
+        </GTags.HelpCenterLink>
+      </div>
       {/* TODO: add these later */}
       {/* <IntroFableGuides /> */}
 
