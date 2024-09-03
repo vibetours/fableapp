@@ -52,7 +52,6 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
 
 interface IAppStateProps {
   demoHubs: P_RespDemoHub[] | null,
-  tours: P_RespTour[];
   subs: P_RespSubscription | null;
   principal: RespUser | null;
   vanityDomains: P_RespVanityDomain[] | null;
@@ -62,7 +61,6 @@ interface IAppStateProps {
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   demoHubs: state.default.demoHubs,
-  tours: state.default.tours,
   subs: state.default.subs,
   principal: state.default.principal,
   vanityDomains: state.default.vanityDomains,
