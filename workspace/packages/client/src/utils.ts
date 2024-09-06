@@ -9,6 +9,7 @@ import {
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   IAnnotationConfig,
+  IAnnotationOriginConfig,
   IGlobalConfig,
   ITourDataOpts,
   ITourEntityHotspot,
@@ -747,7 +748,7 @@ export function generateVarMap(obj?: Record<string, string>): Record<string, str
 }
 
 export function replaceVarsInAnnotation(
-  annotation: IAnnotationConfig,
+  annotation: IAnnotationOriginConfig,
   varMap: Record<string, string>
 ): void {
   const bodyContentTemplate = Handlebars.compile(annotation.bodyContent);

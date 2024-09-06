@@ -272,7 +272,7 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap?: Record<string, string>): {
+export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap: Record<string, string> = {}): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
