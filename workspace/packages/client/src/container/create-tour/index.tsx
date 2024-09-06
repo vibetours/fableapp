@@ -496,7 +496,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     const unmarkedImages = await Promise.all(frameThumbnailPromise);
     this.setState({ unmarkedImages });
 
-    if (interactionCtx.length === 0) this.setState({ aiGenerationNotPossible: true });
+    // if no click is recorded or only one screen is recorded don't process using AI
+    if (interactionCtx.length === 0 || frameDataToBeProcessed.length === 1) this.setState({ aiGenerationNotPossible: true });
 
     const llmWorker = new Worker(new URL('./llm-opts.ts', import.meta.url));
     const imagesWithMarkPromise: {prm: Promise<string>, idx: number}[] = [];
@@ -773,16 +774,18 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   processAIDataAndCallSaveTour = (): void => {
-    let screensWithAIAnnData: ScreenInfoWithAI[] = this.state.screens.map((screenInfo, index) => ({
+    const screens = this.state.screens.filter((screen) => !screen.skipped);
+
+    let screensWithAIAnnData: ScreenInfoWithAI[] = screens.map((screenInfo, index) => ({
       ...screenInfo,
       aiAnnotationData: null,
       screenType: LLMScreenType.default
     }));
 
-    let demoTitle = '';
+    let demoTitle = 'Untitled';
     let demoDescription = '';
     if (this.state.aiAnnData) {
-      screensWithAIAnnData = this.state.screens.map((screenInfo, index) => {
+      screensWithAIAnnData = screens.map((screenInfo, index) => {
         const currAiData = this.state.aiAnnData && this.state.aiAnnData.get(index)
           ? this.state.aiAnnData.get(index) : null;
         const shouldSkipIfMarkIsSameAAsWidth = this.skipAnnForScreenIds.includes(index);
@@ -804,8 +807,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         };
       });
 
-      screensWithAIAnnData.pop();
-      if (this.state.postProcessAiData) {
+      if (this.state.postProcessAiData && screensWithAIAnnData.length > 1) {
+        // remove last default cover ann we add when recording demo
+        screensWithAIAnnData.pop();
         demoTitle = this.state.postProcessAiData.title;
         demoDescription = this.state.postProcessAiData.description;
 
