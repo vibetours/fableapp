@@ -90,6 +90,7 @@ import {
   uploadMarkedImageToAws
 } from '../../component/screen-editor/utils/upload-img-to-aws';
 import { Vpd } from '../../types';
+import { SURVEY_ID } from '../../constants';
 
 export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
   const queue: SerNode[] = [docTree];
@@ -1723,6 +1724,7 @@ export const getElpathFromCandidate = (
 const addTextToPostProcessRichText = (richAiData: post_process_demo): post_process_demo_p => {
   const aiTextData:post_process_demo_p = {
     ...richAiData,
+    title: richAiData.title.substring(0, 250),
     demo_intro_guide: {
       ...richAiData.demo_intro_guide,
       text: extractTextFromHTMLString(richAiData.demo_intro_guide.richText)
@@ -1812,4 +1814,8 @@ const llmRunsCall = async (anonymousDemoId: string, opsType: LLMOpsType) : Promi
   }
 
   return assistantMessageContent;
+};
+
+export const deleteSurveyStatusFromLocalStore = (): void => {
+  localStorage.removeItem(`seenSurvey_${SURVEY_ID}`);
 };

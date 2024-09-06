@@ -4,6 +4,7 @@ import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-con
 import { Link } from 'react-router-dom';
 import { Button as AntButton } from 'antd';
 import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import { clearCurrentTourSelection, getCustomDomains, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -12,9 +13,12 @@ import {
   DisplaySize,
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
+  getAnnotationsPerScreen,
   getDimensionsBasedOnDisplaySize,
+  initLLMSurvey,
   isEventValid,
-  isMobilePreviewDisplaySize
+  isMobilePreviewDisplaySize,
+  sendPreviewHeaderClick
 } from '../../utils';
 import * as Tags from './styled';
 import BackgroundGradient from '../../component/publish-preview/bg-gradient';
@@ -22,7 +26,8 @@ import Header from '../../component/header';
 import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
 import { IFRAME_BASE_URL } from '../../constants';
-import { SiteData } from '../../types';
+import { AnnotationPerScreen, SiteData } from '../../types';
+import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -56,15 +61,20 @@ interface IAppStateProps {
   principal: RespUser | null;
   isTourLoaded: boolean;
   vanityDomains: P_RespVanityDomain[] | null;
+  allAnnotationsForTour: AnnotationPerScreen[];
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  principal: state.default.principal,
-  isTourLoaded: state.default.tourLoaded,
-  org: state.default.org,
-  vanityDomains: state.default.vanityDomains,
-});
+const mapStateToProps = (state: TState): IAppStateProps => {
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+  return ({
+    tour: state.default.currentTour,
+    principal: state.default.principal,
+    isTourLoaded: state.default.tourLoaded,
+    org: state.default.org,
+    vanityDomains: state.default.vanityDomains,
+    allAnnotationsForTour
+  });
+};
 
 interface IOwnProps {
   title: string;
@@ -81,6 +91,7 @@ interface IOwnStateProps {
   showShareModal: boolean;
   viewScale: number;
   minimalHeader: boolean;
+  persVarsParams: string;
 }
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
@@ -95,12 +106,16 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       previewIframeKey: 0,
       showShareModal: false,
       viewScale: 1,
-      minimalHeader: false
+      minimalHeader: false,
+      persVarsParams: ''
     };
   }
 
   receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation' }>): void => {
-    if (isEventValid(e) && e.data.type === 'lastAnnotation') this.setState({ showReplayOverlay: true });
+    if (isEventValid(e) && e.data.type === 'lastAnnotation') {
+      this.setState({ showReplayOverlay: true });
+      initLLMSurvey();
+    }
   };
 
   componentDidMount(): void {
@@ -167,10 +182,16 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleReplayClick = (): void => {
     this.setState({ showReplayOverlay: false, previewIframeKey: Math.random() });
+    sendPreviewHeaderClick();
   };
 
   private onSiteDataChange = (site: SiteData): void => {
     this.props.updateTourProp(this.props.tour!.rid, 'site', site);
+  };
+
+  handleUpdateDisplaySize = (selectedDisplaySize: DisplaySize) : void => {
+    sendPreviewHeaderClick();
+    this.updateDisplaySize(selectedDisplaySize);
   };
 
   render(): JSX.Element {
@@ -204,6 +225,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                   size="small"
                   className="edit-btn"
                   type="default"
+                  onClick={sendPreviewHeaderClick}
                 >
                   Edit demo
                 </AntButton>
@@ -218,7 +240,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               publishTour={this.props.publishTour}
               tour={this.props.tour}
               selectedDisplaySize={+displaySize}
-              setSelectedDisplaySize={(selectedDisplaySize: DisplaySize) => this.updateDisplaySize(selectedDisplaySize)}
+              setSelectedDisplaySize={this.handleUpdateDisplaySize}
               onSiteDataChange={this.onSiteDataChange}
               minimalHeader={this.state.minimalHeader}
               vanityDomains={this.props.vanityDomains}
@@ -280,8 +302,20 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true${embedParams}`}
+              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true${embedParams}${this.state.persVarsParams}`}
               title="hello"
+            />
+          )}
+          {this.props.isTourLoaded && (
+            <PersonalVarEditor
+              showAsPopup
+              allAnnotationsForTour={this.props.allAnnotationsForTour}
+              annotationsForScreens={{}}
+              rid={this.props.tour!.rid}
+              changePersVarParams={(persVarsParams: string) => {
+                this.setState({ persVarsParams });
+              }}
+              originalPersVarsParams={`?staging=true${embedParams}${this.state.persVarsParams}`}
             />
           )}
         </Tags.PreviewFrameWrapper>

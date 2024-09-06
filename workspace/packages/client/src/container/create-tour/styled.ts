@@ -471,3 +471,20 @@ export const CardHeading = styled.div`
 export const CardSubHeading = styled.div`
   margin: 0;
 `;
+
+export const AllProgressCon = styled.div`
+  grid-template-rows: repeat(4, 1fr);
+  grid-template-columns: 1fr;
+  display: grid;
+  width: 100%;
+  gap: 10px;
+`;
+
+export const TipsAnimationCon = styled.div<{bgColor: string}>`
+  width: 50%;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+  background:  ${props => props.bgColor};
+  transition: background 1s ease-in-out;
+`;

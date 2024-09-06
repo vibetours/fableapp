@@ -25,7 +25,6 @@ import {
   PlusOutlined,
   CheckOutlined,
   MessageFilled,
-  WalletFilled,
 } from '@ant-design/icons';
 import { Modal, Progress, Select, Tooltip } from 'antd';
 import { getSampleConfig } from '@fable/common/dist/utils';
@@ -58,6 +57,7 @@ import {
 } from './types';
 import {
   createDemoUsingAI,
+  deleteSurveyStatusFromLocalStore,
   FrameProcessResult,
   getAllDemoAnnotationText,
   getBorderRadius,
@@ -76,7 +76,7 @@ import {
 } from './utils';
 import { amplitudeAddScreensToTour } from '../../amplitude';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { createIframeSrc, isFeatureAvailable, setEventCommonState } from '../../utils';
+import { createIframeSrc, DEMO_TIPS, isFeatureAvailable, setEventCommonState, initLLMSurveyMinuteAfterTourCreation } from '../../utils';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { PREVIEW_BASE_URL } from '../../constants';
 import { uploadMarkedImageToAws } from '../../component/screen-editor/utils/upload-img-to-aws';
@@ -89,12 +89,12 @@ import { OurCheckbox } from '../../common-styled';
 import TextArea from '../../component/text-area';
 import { getUUID } from '../../analytics/utils';
 import RootLayout from '../../component/ext-onboarding/root-layout';
-import ScreenCard from '../../component/create-tour/screen-card';
-import SkeletonCard from '../../component/create-tour/skeleton-card';
 import { AnnotationContent } from '../../component/annotation';
 import Loader from '../../component/loader';
 import { FeatureForPlan } from '../../plans';
 import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
+import { AI_PARAM } from '../../types';
+import CreateTourProgress from '../../component/create-tour/create-tour-progress';
 
 const reactanimated = require('react-animated-css');
 
@@ -159,7 +159,8 @@ type IOwnStateProps = {
   showAiFlow: boolean;
   notDataFound: boolean;
   tourName: string;
-  percentageProgress: Record<string, number>;
+  screenProgressData: {currentScreen: number, totalScreens: number | null},
+  proxyAssetProgressData: {currentAsset: number, totalAssets: number | null},
   isReadyToSave: boolean,
   isScreenProcessed: boolean,
   allScreensCreated: boolean;
@@ -195,7 +196,10 @@ type IOwnStateProps = {
   buyCreditModalOpen: boolean;
   isBuyMoreCreditInProcess: boolean;
   aiGenerationNotPossible: boolean;
+  tipsBgColor: string;
 }
+
+const BG_COLOR_OPTIONS = ['#fef3c7', '#cffafe', '#dcfce7'];
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   private data: DBData | null;
@@ -228,7 +232,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       saving: false,
       allScreensCreated: false,
       showAiFlow: false,
-      percentageProgress: {},
+      screenProgressData: { currentScreen: 0, totalScreens: null },
+      proxyAssetProgressData: { currentAsset: 0, totalAssets: null },
       notDataFound: false,
       tourName: 'Untitled',
       isReadyToSave: false,
@@ -267,6 +272,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       buyCreditModalOpen: false,
       isBuyMoreCreditInProcess: false,
       aiGenerationNotPossible: false,
+      tipsBgColor: BG_COLOR_OPTIONS[0],
     };
     this.data = null;
     this.db = null;
@@ -389,22 +395,22 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (res.skipped) {
       screenInfo = { info: null, skipped: true, vpd: null };
+    } else {
+      const data = res.data!;
+      screenInfo = {
+        info: {
+          id: data.id,
+          elPath: res.elPath,
+          icon: data.icon,
+          type: data.type,
+          rid: data.rid,
+          replacedWithImgScreen: res.replacedWithImgScreen,
+          thumbnail: data.thumbnail
+        },
+        skipped: res.skipped,
+        vpd: res.vpd,
+      };
     }
-
-    const data = res.data!;
-    screenInfo = {
-      info: {
-        id: data.id,
-        elPath: res.elPath,
-        icon: data.icon,
-        type: data.type,
-        rid: data.rid,
-        replacedWithImgScreen: res.replacedWithImgScreen,
-        thumbnail: data.thumbnail
-      },
-      skipped: res.skipped,
-      vpd: res.vpd,
-    };
     this.setState((prevState: Readonly<IOwnStateProps>) => (
       { ...prevState, screens: [...prevState.screens, screenInfo] }
     ));
@@ -415,35 +421,37 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     proxyCache: Map<string, RespProxyAsset>
   ): Promise<string> => new Promise((resolve, reject) => {
     (async () => {
+      let totalAssets = 0;
+      for (let i = 0; i < framesProssesResult.length; i++) {
+        totalAssets += framesProssesResult[i].assetOperation.length;
+      }
+      this.setState({
+        screenProgressData: { currentScreen: 0, totalScreens: framesProssesResult.length },
+        proxyAssetProgressData: { currentAsset: 0, totalAssets }
+      });
+
       for (let i = 0; i < framesProssesResult.length; i++) {
         const frameProcessResult = framesProssesResult[i];
         await handleAssetOperation(frameProcessResult.assetOperation, proxyCache, frameProcessResult.mainFrame);
+        this.setState(prevState => ({
+          ...prevState,
+          proxyAssetProgressData: {
+            ...prevState.proxyAssetProgressData,
+            currentAsset: prevState.proxyAssetProgressData.currentAsset + frameProcessResult.assetOperation.length
+          }
+        }));
       }
 
       for (let i = 0; i < framesProssesResult.length; i++) {
-        this.setState(prevState => ({
-          percentageProgress: {
-            ...prevState.percentageProgress,
-            [i]: 1
-          }
-        }));
-
-        let progress = 1;
-        const intervalId = setInterval(() => {
-          if (progress < 90) {
-            progress++;
-            this.setState(prevState => ({
-              percentageProgress: {
-                ...prevState.percentageProgress,
-                [i]: progress
-              }
-            }));
-          }
-        }, 10);
         const data = framesProssesResult[i];
         await this.processAndSetScreen(data.frames, data.mainFrame, data.imageData, data.elPath);
-
-        clearInterval(intervalId);
+        this.setState(prevState => ({
+          ...prevState,
+          screenProgressData: {
+            ...prevState.screenProgressData,
+            currentScreen: prevState.screenProgressData.currentScreen + 1
+          }
+        }));
       }
       resolve('');
     })();
@@ -557,7 +565,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   saveTour = async (
     screensWithAIInfo: ScreenInfoWithAI[],
     demoTitle: string,
-    demoDescription: string
+    demoDescription: string,
+    createdUsingAi: boolean,
   ): Promise<void> => {
     if (!this.db) {
       return;
@@ -615,12 +624,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
     }
 
-    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}?i=1`);
+    const params = createdUsingAi ? `i=1&${AI_PARAM}` : 'i=1';
+    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}?${params}`);
   };
 
   saveInExistingTour = async (
     value: string | null,
-    screensWithAIInfo: ScreenInfoWithAI[]
+    screensWithAIInfo: ScreenInfoWithAI[],
+    createdUsingAI: boolean
   ): Promise<void> => {
     if (!this.data || !this.db || !value) {
       return;
@@ -641,7 +652,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     amplitudeAddScreensToTour(this.state.screens.length, 'ext');
     sentryTxReport(this.sentryTransaction!, 'screensCount', this.state.screens.length, 'byte');
     await deleteDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE);
-    this.props.navigate(`/demo/${tour.data.rid}`);
+
+    const params = createdUsingAI ? `?${AI_PARAM}` : '';
+    this.props.navigate(`/demo/${tour.data.rid}${params}`);
   };
 
   componentDidMount(): void {
@@ -915,12 +928,15 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     if (this.state.saveType === 'new_tour') {
-      this.saveTour(screensWithAIAnnData, demoTitle, demoDescription);
+      this.saveTour(screensWithAIAnnData, demoTitle, demoDescription, this.state.creationMode === 'ai');
     }
 
     if (this.state.saveType === 'existing_tour') {
-      this.saveInExistingTour(this.state.existingTourRId, screensWithAIAnnData);
+      this.saveInExistingTour(this.state.existingTourRId, screensWithAIAnnData, this.state.creationMode === 'ai');
     }
+
+    deleteSurveyStatusFromLocalStore();
+    initLLMSurveyMinuteAfterTourCreation();
   };
 
   hideShouldBreakIntoModule = ():void => {
@@ -985,6 +1001,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       baseAiData.moduleRequirement
     );
 
+    this.setState({ batchProgress: 100 });
     const aiDataMap = new Map<number, AiItem>();
     annTextData.items.forEach(item => {
       aiDataMap.set(item.screenId, item);
@@ -1094,6 +1111,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  handleTipsBgChange = (index: number) : void => {
+    this.setState({ tipsBgColor: BG_COLOR_OPTIONS[(index + 1) % BG_COLOR_OPTIONS.length] });
+  };
+
   render(): ReactElement {
     let heading = '';
     let subheading = '';
@@ -1102,6 +1123,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     let fullheight = false;
     const totalSteps = 3;
     let fableColorBorderRight = '21%';
+    const demoTipsAnimation = DEMO_TIPS.flatMap((tip, index) => [tip.tip, 3000, () => this.handleTipsBgChange(index)]);
 
     switch (this.state.currentDisplayState) {
       case DisplayState.ShowTourCreationOptions:
@@ -2053,14 +2075,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     }
                     </Tags.CardContentCon>
                   </Tags.ProductCardCon>
-                  <Tags.ManualDemoContainer>
-                    <Tags.ManualDemo
-                      className="typ-sm"
-                      onClick={this.handleFinishCreatingDemoManually}
-                    >
-                      Finish creating the demo manually
-                    </Tags.ManualDemo>
-                  </Tags.ManualDemoContainer>
                 </Tags.Con>
               </reactanimated.Animated>
               <reactanimated.Animated
@@ -2150,113 +2164,142 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
               </Tags.SubheaderText>
             )}
             <Tags.SkeletonGrid>
-              {this.state.creationMode === 'ai' && this.state.allScreensCreated && (
-                <div style={{
-                  background: '#fbf6ff',
-                  padding: '1rem 2rem',
-                  borderRadius: '8px',
-                  boxShadow: 'rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px'
-                }}
-                >
-                  <TypeAnimation
-                    preRenderFirstString
-                    cursor={false}
-                    sequence={[
-                      500,
-                      'Please wait while Quilly fine tunes your demo',
-                      500,
-                      'Please wait while Quilly fine tunes your demo.',
-                      500,
-                      'Please wait while Quilly fine tunes your demo..',
-                      500,
-                      'Please wait while Quilly fine tunes your demo...',
-                      500,
-                    ]}
-                    speed={75}
-                    style={{ fontSize: '1.8rem' }}
-                    repeat={Infinity}
-                  />
-                  <div style={{
-                    display: 'flex',
-                    gap: '2rem'
-                  }}
-                  >
-                    <Suspense fallback={null}>
-                      <div>
-                        <LottiePlayer
-                          style={{ height: '120px' }}
-                          src="./quilly.json"
-                          autoplay
-                          loop
-                        />
-                        <p className="typ-sm">
-                          Meet <em>Quilly</em>, <br />Your AI Demo Copilot.
-                        </p>
-                      </div>
-                    </Suspense>
-                    <div className="typ-reg" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', width: '100%', minHeight: '100px' }}>
-                        <TypeAnimation
-                          cursor={false}
-                          sequence={[
-                            500,
-                            'Quilly is\n  ● analyzing your product details & demo objective\n  ● linking color palette to your product\'s html capture\n  ● generating content based on your demo objective\n  ● checking if your demo can be modularized',
-                            15000,
-                            '',
-                          ]}
-                          omitDeletionAnimation
-                          speed={68}
-                          style={{
-                            fontSize: '1.25rem',
-                            whiteSpace: 'pre-line',
-                            display: 'block',
-                            minHeight: '48px',
-                            width: '80%'
-                          }}
-                          repeat={Infinity}
-                        />
-                        <Progress
-                          type="circle"
-                          percent={this.state.batchProgress}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            minWidth: '100px',
-                          }}
-                          size="small"
-                          showInfo={false}
-                          strokeColor="#7567ff"
-                        />
-                      </div>
-                      <p className="typ-sm" style={{ margin: '1rem 0' }}>
-                        Please do not navigate away from this page while the demo is being created. You will be automatically redirected once the demo creation finishes.
-                        <br />It might take few minutes if you have recorded a large demo.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div style={{
-                display: 'flex',
-                gap: '1.5rem',
-                flexWrap: 'wrap',
-                width: '100%',
-                opacity: this.state.allScreensCreated ? 0.5 : 1,
-                margin: this.state.allScreensCreated ? '2rem 0' : 0,
-                transition: 'all 0.2s ease-out'
-              }}
-              >
-                {this.frameDataToBeProcessed.map((frameData, idx) => (
-                  this.state.screens.length > idx
-                    ? <ScreenCard
-                        key={idx}
-                        frameData={frameData}
-                        favicon={this.state.screens[idx].info?.icon || null}
-                    />
-                    : <SkeletonCard key={idx} progress={this.state.percentageProgress[idx]} />
-                ))}
-              </div>
+              {this.state.creationMode === 'ai' && this.state.allScreensCreated
+               && (
+               <div style={{
+                 background: '#fbf6ff',
+                 padding: '1rem 2rem',
+                 borderRadius: '8px',
+                 boxShadow: 'rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px'
+               }}
+               >
+                 <TypeAnimation
+                   preRenderFirstString
+                   cursor={false}
+                   sequence={[
+                     500,
+                     'Please wait while Quilly fine tunes your demo',
+                     500,
+                     'Please wait while Quilly fine tunes your demo.',
+                     500,
+                     'Please wait while Quilly fine tunes your demo..',
+                     500,
+                     'Please wait while Quilly fine tunes your demo...',
+                     500,
+                   ]}
+                   speed={75}
+                   style={{ fontSize: '1.8rem' }}
+                   repeat={Infinity}
+                 />
+                 <div style={{
+                   display: 'flex',
+                   gap: '2rem'
+                 }}
+                 >
+                   <Suspense fallback={null}>
+                     <div>
+                       <LottiePlayer
+                         style={{ height: '120px' }}
+                         src="./quilly.json"
+                         autoplay
+                         loop
+                       />
+                       <p className="typ-sm">
+                         Meet <em>Quilly</em>, <br />Your AI Demo Copilot.
+                       </p>
+                     </div>
+                   </Suspense>
+                   <div className="typ-reg" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                     <div style={{ display: 'flex', width: '100%', minHeight: '100px' }}>
+                       <TypeAnimation
+                         cursor={false}
+                         sequence={[
+                           500,
+                           'Quilly is\n  ● analyzing your product details & demo objective\n  ● linking color palette to your product\'s html capture\n  ● generating content based on your demo objective\n  ● checking if your demo can be modularized',
+                           15000,
+                           '',
+                         ]}
+                         omitDeletionAnimation
+                         speed={68}
+                         style={{
+                           fontSize: '1.25rem',
+                           whiteSpace: 'pre-line',
+                           display: 'block',
+                           minHeight: '48px',
+                           width: '80%'
+                         }}
+                         repeat={Infinity}
+                       />
+                       <Progress
+                         type="circle"
+                         percent={this.state.batchProgress}
+                         style={{
+                           display: 'flex',
+                           alignItems: 'center',
+                           minWidth: '100px',
+                         }}
+                         size="small"
+                         showInfo={false}
+                         strokeColor="#7567ff"
+                       />
+                     </div>
+                     <p className="typ-sm" style={{ margin: '1rem 0' }}>
+                       Please do not navigate away from this page while the demo is being created. You will be automatically redirected once the demo creation finishes.
+                       <br />It might take few minutes if you have recorded a large demo.
+                     </p>
+                   </div>
+                 </div>
+               </div>
+               )}
             </Tags.SkeletonGrid>
+            <div style={{ display: 'flex', width: '100%', marginBottom: '4rem' }}>
+              <Tags.AllProgressCon>
+                <CreateTourProgress
+                  progressInfo="Assets cloned"
+                  completedSteps={this.state.proxyAssetProgressData.currentAsset}
+                  totalSteps={this.state.proxyAssetProgressData.totalAssets}
+                  title="Cloning your app assets"
+                />
+                {this.state.creationMode === 'ai'
+                && <CreateTourProgress
+                  progressInfo=""
+                  completedSteps={this.state.batchProgress}
+                  totalSteps={100}
+                  title="Quilly creating demo"
+                />}
+                <CreateTourProgress
+                  progressInfo="Screens created"
+                  completedSteps={this.state.screenProgressData.currentScreen}
+                  totalSteps={this.state.screenProgressData.totalScreens}
+                  title="Creating screens"
+                />
+                {(this.state.screenProgressData.currentScreen === this.state.screenProgressData.totalScreens)
+                && (this.state.proxyAssetProgressData.currentAsset === this.state.proxyAssetProgressData.totalAssets)
+                && (this.state.batchProgress === 100 || this.state.creationMode !== 'ai')
+                && <CreateTourProgress
+                  progressInfo=""
+                  completedSteps={100}
+                  totalSteps={100}
+                  title="Creating demo"
+                  showCircularLoader
+                />}
+              </Tags.AllProgressCon>
+              <Tags.TipsAnimationCon
+                bgColor={this.state.tipsBgColor}
+              >
+                <TypeAnimation
+                  cursor={false}
+                  sequence={[
+                    ...demoTipsAnimation
+                  ]}
+                  omitDeletionAnimation
+                  speed={68}
+                  className="typ-reg"
+                  style={{ whiteSpace: 'pre-line', display: 'block', minHeight: '48px' }}
+                  repeat={Infinity}
+                />
+              </Tags.TipsAnimationCon>
+            </div>
           </Tags.SkeletonCon>
         </RootLayout>
       );

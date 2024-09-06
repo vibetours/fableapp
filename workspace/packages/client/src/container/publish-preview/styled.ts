@@ -15,7 +15,8 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
   width: 90%;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: start;
+  gap: 1rem;
   margin: 1rem;
   position: relative;
   transform-origin: 50% 0;

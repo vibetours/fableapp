@@ -1004,13 +1004,22 @@ export interface TTourWithLoader {
   globalConfig: IGlobalConfig;
 }
 
+export async function getAllAnnotationsForScreens(
+  tour: P_RespTour,
+) : Promise<Record<string, IAnnotationConfig[]>> {
+  const data = await api<null, TourData>(tour!.dataFileUri.href);
+  const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
+  return annotationAndOpts.annotations;
+}
+
 export function loadTourAndData(
   tourRid: string,
   shouldGetScreens = false,
   isFreshLoading = true,
   loadPublishedData = false,
   ts: string | null = null,
-  shouldGetOnlyTour = false
+  shouldGetOnlyTour = false,
+  varMap: Record<string, string> = {}
 ) {
   return async (
     dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize | TTourPublished>,
@@ -1070,7 +1079,7 @@ export function loadTourAndData(
     });
 
     const data = await api<null, TourData>(tour!.dataFileUri.href);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false, varMap);
 
     let editData: GlobalEditFile;
     let globalEdits: EditItem[] = [];

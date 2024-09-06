@@ -64,6 +64,7 @@ interface Props {
   leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
   updatePrimaryKey: (primaryKey: string) => void;
+  warnings?: string[]
 }
 
 interface PluginProps {
@@ -138,6 +139,7 @@ export default function AnnotationRichTextEditor(props: React.PropsWithChildren<
           modalControls={modalControls}
           leadFormFeatureAvailable={props.leadFormFeatureAvailable}
           subs={props.subs}
+          warnings={props.warnings}
         />
         <div className="editor-inner">
           <RichTextPlugin

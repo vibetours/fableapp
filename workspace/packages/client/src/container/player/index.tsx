@@ -51,7 +51,10 @@ import {
   getProcessedJourney,
   isMobileOperatingSystem,
   isFrameSettingsValidValue,
-  combineAllEdits
+  combineAllEdits,
+  replacePersonalizationVarsForAllAnnotationsForTour,
+  replacePersonalizationVarsForAllAnnotations,
+  generateVarMap
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -72,15 +75,15 @@ import DemoFrame from '../../component/demo-frame/demo-frame';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null) => void,
+  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null, queryParams: Record<string, string>) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
   updateElpathKey: (elPathKey: ElPathKey) => void,
   removeScreenDataForRids: (ids: number[]) => Promise<void>
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null) => dispatch(
-    loadTourAndData(rid, true, true, loadPublishedData, ts)
+  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null, varMap: Record<string, string>) => dispatch(
+    loadTourAndData(rid, true, true, loadPublishedData, ts, false, varMap)
   ),
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
@@ -276,10 +279,17 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     const ts = this.props.searchParams.get('_ts');
+
+    const params = new URL(window.location.href).searchParams;
+    const queryParams: Record<string, string> = {};
+    params.forEach((v, k) => queryParams[k] = v);
+
+    const varMap = generateVarMap(queryParams);
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
       !this.props.staging,
-      ts
+      ts,
+      varMap
     );
 
     if (this.props.searchParams.get('skiplf') === '1') {

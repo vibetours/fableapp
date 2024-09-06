@@ -13,3 +13,5 @@ export const HEADER_CTA = 'header_cta';
 export const FABLE_LOCAL_STORAGE_ORG_ID_KEY = 'fable/oid';
 export const FABLE_AUDIO_MEDIA_CONTROLS = 'fable-audio-media-ctrls';
 export const EMPTY_EL_PATH = '-1';
+export const SURVEY_ID = '0191a1a0-4121-0000-2455-8dc3745edbf7';
+export const FABLE_PERS_VARS_FOR_TOUR = 'fable/pers-vars-for-tour';

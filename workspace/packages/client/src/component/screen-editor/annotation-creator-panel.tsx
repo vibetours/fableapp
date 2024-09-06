@@ -47,6 +47,7 @@ import {
   UserOutlined,
   EllipsisOutlined,
   MoreOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { ReqTourPropUpdate, ScreenType } from '@fable/common/dist/api-contract';
 import { traceEvent } from '@fable/common/dist/amplitude';
@@ -107,7 +108,9 @@ import {
   isFeatureAvailable,
   isAudioAnnotation,
   isMediaAnnotation,
-  isGlobalProperty
+  isGlobalProperty,
+  extractHandlebarsFromAnnotations,
+  getAnnTextEditorErrors
 } from '../../utils';
 import { deleteAnnotation } from '../annotation/ops';
 import { AnnUpdateType } from '../annotation/types';
@@ -293,7 +296,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   const [isUrlValid, setIsUrlValid] = useState<boolean>(true);
   const [applyAllProperty, setApplyAllProperty] = useState<ApplyAll | null>(null);
   const [applyToModule, setApplyToModule] = useState<'all' | 'module'>('all');
-
+  const [annTextWarnings, setAnnTextWarnings] = useState<string[]>([]);
   const [linkButtonVisible, setLinkButtonVisible] = useState(true);
   const [popoverPlacement, setPopoverPlacement] = useState<'leftBottom' | 'left' | 'leftTop'>('leftBottom');
   const [connectableAnns, setConnectableAnns] = useState<IAnnotationConfigWithScreen[]>([]);
@@ -618,6 +621,11 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
     }
   }, [props.featurePlan]);
 
+  useEffect(() => {
+    const perVars = extractHandlebarsFromAnnotations(config);
+    setAnnTextWarnings(getAnnTextEditorErrors(perVars));
+  }, [config]);
+
   return (
     <Tags.AnotCrtPanelCon
       className="e-ignr"
@@ -630,7 +638,9 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
           background: 'white', borderRadius: '1rem', border: '1px solid #DDD', padding: '1rem'
         }}
         >
+
           <AnnotationRichTextEditor
+            warnings={annTextWarnings}
             lfPkf={opts.lf_pkf}
             subs={props.subs}
             throttledChangeHandler={(htmlString, displayText) => {

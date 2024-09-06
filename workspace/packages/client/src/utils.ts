@@ -21,9 +21,10 @@ import {
 import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef } from 'react';
+import Handlebars from 'handlebars';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
-import { FABLE_LEAD_FORM_FIELD_NAME } from './constants';
+import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_PERS_VARS_FOR_TOUR } from './constants';
 import { P_RespSubscription, P_RespTour } from './entity-processor';
 import { AnalyticsValue, AnnotationValue, FeatureForPlan, PlanDetail } from './plans';
 import { TState } from './reducer';
@@ -54,7 +55,7 @@ import {
   TourMainValidity,
   queryData,
   EditItem,
-  IdxEditItem
+  IdxEditItem,
 } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -699,6 +700,170 @@ export const fillLeadFormForAllAnnotations = (
 
   return allAnnotations;
 };
+
+export const replacePersonalizationVarsForAllAnnotationsForTour = (
+  allAnnotationForTour: AnnotationPerScreen[],
+  queryParams: Record<string, string>,
+): AnnotationPerScreen[] => {
+  const newAllAnnotationForTour = [...allAnnotationForTour];
+  const varMap = generateVarMap(queryParams);
+  newAllAnnotationForTour.forEach((screen) => {
+    screen.annotations.forEach((annotation) => {
+      replaceVarsInAnnotation(annotation, varMap);
+    });
+  });
+
+  return newAllAnnotationForTour;
+};
+
+export const replacePersonalizationVarsForAllAnnotations = (
+  allAnnotations: Record<string, IAnnotationConfig[]>,
+  queryParams: Record<string, string>,
+): Record<string, IAnnotationConfig[]> => {
+  const varMap = generateVarMap(queryParams);
+  Object.keys(allAnnotations).forEach(screen => {
+    allAnnotations[screen].forEach((annotation) => {
+      replaceVarsInAnnotation(annotation, varMap);
+    });
+  });
+
+  return allAnnotations;
+};
+
+export function generateVarMap(obj?: Record<string, string>): Record<string, string> {
+  if (!obj) return {};
+  const newObj: Record<string, string> = {};
+  const prefix = 'v_';
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      if (key.startsWith(prefix)) {
+        const newKey = key.slice(prefix.length);
+        newObj[newKey] = obj[key];
+      }
+    }
+  }
+
+  return newObj;
+}
+
+export function replaceVarsInAnnotation(
+  annotation: IAnnotationConfig,
+  varMap: Record<string, string>
+): void {
+  const bodyContentTemplate = Handlebars.compile(annotation.bodyContent);
+  const displayTextTemplate = Handlebars.compile(annotation.displayText);
+  annotation.bodyContent = bodyContentTemplate(varMap);
+  annotation.displayText = displayTextTemplate(varMap);
+}
+
+export function extractHandlebarsFromAnnotations(
+  annotation: IAnnotationConfig
+): string[] {
+  const variableRegex = /(?<!\\){{(.*?)}}/g;
+  const variableArray: string[] = [];
+
+  let match;
+  while ((match = variableRegex.exec(annotation.displayText)) !== null) {
+    const variableName = match[1].trim();
+    if (!variableArray.includes(variableName)) {
+      variableArray.push(variableName);
+    }
+  }
+
+  return variableArray;
+}
+
+export function getPersVarsFromAnnsForTour(allAnnotationsForTour: AnnotationPerScreen[]): string[] {
+  const perVarsSet = new Set<string>();
+
+  allAnnotationsForTour.forEach(screen => {
+    screen.annotations.forEach(ann => {
+      const perVars = extractHandlebarsFromAnnotations(ann);
+      perVars.forEach(perVar => perVarsSet.add(perVar));
+    });
+  });
+  return Array.from(perVarsSet);
+}
+
+export function getPersVarsFromAnnotations(annsPerScreen: Record<string, IAnnotationConfig[]>): string[] {
+  const perVarsSet = new Set<string>();
+
+  Object.values(annsPerScreen).forEach(anns => {
+    anns.forEach(ann => {
+      const perVars = extractHandlebarsFromAnnotations(ann);
+      perVars.forEach(perVar => perVarsSet.add(perVar));
+    });
+  });
+  return Array.from(perVarsSet);
+}
+
+export function removeDuplicatesFromStrArr(arr1: string[]): string[] {
+  const mergedSet = new Set([...arr1]);
+  return Array.from(mergedSet);
+}
+
+export function getPrefilledPerVarsFromLS(perVars: string[], rid: string): Record<string, string> {
+  const perVarsRecord: Record<string, string> = {};
+  const allPerVals: {rid: string, perVars: Record<string, string>}[] = JSON.parse(
+    localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string
+  );
+
+  perVars.forEach(key => {
+    perVarsRecord[key] = '';
+  });
+
+  if (!allPerVals) return perVarsRecord;
+
+  const persVarsForRid = allPerVals.find(obj => obj.rid === rid);
+
+  Object.keys(perVarsRecord).forEach(key => {
+    perVarsRecord[key] = persVarsForRid!.perVars[key] || '';
+  });
+
+  return perVarsRecord;
+}
+
+export function setPersValuesInLS(perVars: Record<string, string>, rid: string): void {
+  if (!localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR)) {
+    localStorage.setItem(FABLE_PERS_VARS_FOR_TOUR, JSON.stringify([]));
+  }
+  const allPerVals: {rid: string, perVars: Record<string, string>}[] = JSON.parse(
+    localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string
+  );
+
+  if (allPerVals.length >= 10) {
+    allPerVals.shift();
+  }
+
+  const perVarsForRid = allPerVals.find(obj => obj.rid === rid);
+
+  if (perVarsForRid) {
+    allPerVals.forEach(obj => {
+      if (obj.rid === rid) {
+        obj.perVars = perVars;
+      }
+    });
+  } else {
+    allPerVals.push({ rid, perVars });
+  }
+
+  localStorage.setItem(FABLE_PERS_VARS_FOR_TOUR, JSON.stringify(allPerVals));
+}
+
+export function getAnnTextEditorErrors(perVars: string[]): string[] {
+  const errors: string[] = [];
+  const validPattern = /^[a-zA-Z0-9_]+$/;
+
+  perVars.forEach(key => {
+    if (!validPattern.test(key)) {
+      errors.push(
+        `"${key}" is not valid because it contains characters other than alphabets, numbers, and underscore '_'`
+      );
+    }
+  });
+
+  return errors;
+}
 
 export const getSearchParamData = (param: string | null) : queryData | null => {
   if (!param) {
@@ -1734,6 +1899,26 @@ export function getSerNodeFidFromElPath(
 export const isActiveBusinessPlan = (subs: P_RespSubscription | null):
  boolean => Boolean(subs && subs.status === Status.ACTIVE && subs.paymentPlan === Plan.BUSINESS);
 
+export const isAIParamPresent = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('ai') === '1';
+};
+
+export const initLLMSurvey = (): void => {
+  if (isAIParamPresent()) {
+    const surveyDiv = document.createElement('div');
+    surveyDiv.id = 'survey-fable';
+    document.body.appendChild(surveyDiv);
+  }
+};
+
+export const initLLMSurveyMinuteAfterTourCreation = (): void => {
+  const timer = setTimeout(() => {
+    initLLMSurvey();
+    clearTimeout(timer);
+  }, 60000);
+};
+
 export const USE_CASE_DUMMY_DATA = [
   { x: '01-08-2023', y: 42 },
   { x: '02-08-2023', y: 27 },
@@ -1790,3 +1975,7 @@ export const DEMO_TIPS = [
     tip: 'You can add audio/video guides to make your interactive demos more compelling. Have you tried them?'
   }
 ];
+
+export const sendPreviewHeaderClick = (): void => {
+  initLLMSurvey();
+};

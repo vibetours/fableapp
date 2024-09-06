@@ -16,6 +16,7 @@ import {
   publishTour,
   updateTourProp,
   getCustomDomains,
+  loadTourAndData,
   // createDefaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
@@ -60,6 +61,7 @@ interface IDispatchProps {
     value: ReqTourPropUpdate[T]
   ) => void,
   getVanityDomains: () => void;
+  loadTourWithDataAndCorrespondingScreens: (rid: string) => void;
 }
 
 export enum CtxAction {
@@ -84,6 +86,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     value: ReqTourPropUpdate[T]
   ) => dispatch(updateTourProp(rid, tourProp, value)),
   getVanityDomains: () => dispatch(getCustomDomains()),
+  loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true)),
 });
 
 interface IAppStateProps {
@@ -108,6 +111,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   opsInProgress: state.default.opsInProgress,
   featurePlan: state.default.featureForPlan,
   vanityDomains: state.default.vanityDomains,
+
 });
 
 interface IOwnProps {

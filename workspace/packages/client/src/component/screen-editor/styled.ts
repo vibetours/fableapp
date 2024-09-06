@@ -69,6 +69,12 @@ export const AnotCrtPanelCon = styled.div`
     display: flex;
     align-items: center;
   }
+
+  .ann-text-errors {
+    display: flex;
+    justify-content: end;
+    padding: 0.25rem 0.5rem;
+  }
 `;
 
 export const AnotCrtPanelSec = styled.div`

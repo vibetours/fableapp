@@ -67,7 +67,7 @@ import {
   EncodingTypeMask,
   EncodingTypeInput
 } from './types';
-import { getDefaultSiteData, getFidOfSerNode, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn } from './utils';
+import { generateVarMap, getDefaultSiteData, getFidOfSerNode, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn, replaceVarsInAnnotation } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 import { FeatureForPlan, FeaturePerPlan, PlanDetail } from './plans';
 import { getSerNodeFromPath } from './component/screen-editor/utils/edits';
@@ -272,7 +272,7 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true): {
+export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap?: Record<string, string>): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
@@ -286,6 +286,9 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IG
       const ids: string[] = [];
       for (const [annId, ann] of Object.entries((entity as TourScreenEntity).annotations)) {
         ids.push(annId);
+        if (varMap && Object.keys(varMap).length > 0) {
+          replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
+        }
         anns.push(ann as IAnnotationConfig);
       }
       annotationsPerScreen[screenId] = isLocal ? (anns as IAnnotationConfig[]) : anns.map(remoteToLocalAnnotationConfig);

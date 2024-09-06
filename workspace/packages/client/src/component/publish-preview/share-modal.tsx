@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { CmnEvtProp, ITourDataOpts, Property, PropertyType } from '@fable/common/dist/types';
+import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, Property, PropertyType } from '@fable/common/dist/types';
 import { LoadingOutlined } from '@ant-design/icons';
 import { Collapse, Drawer, Spin } from 'antd';
 import { timeFormat } from 'd3-time-format';
 import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
@@ -17,12 +18,14 @@ import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
+import { AnnotationPerScreen, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
 import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
 import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
+import PersonalVarEditor from '../personal-var-editor/personal-var-editor';
+import { getAllAnnotationsForScreens } from '../../action/creator';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -400,6 +403,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [localSite, setLocalSite] = useState(props.tour.site);
   const [selectedDomain, setSelectedDomain] = useState<string>(baseURLStructured.host);
   const [allDomains, setAllDomains] = useState<string[] | null>(null);
+  const [loadingAnns, setLoadingAnns] = useState(true);
+  const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]>>({});
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -457,6 +462,21 @@ export default function ShareTourModal(props: Props): JSX.Element {
     return `https://${selectedDomain}`;
   };
 
+  useEffect(() => {
+    if (props.isModalVisible) {
+      fetchAnns();
+    }
+  }, [props.tour, props.isModalVisible]);
+  async function fetchAnns(): Promise<void> {
+    try {
+      setLoadingAnns(true);
+      const data = await getAllAnnotationsForScreens(props.tour);
+      setAnnotationsForScreens(data);
+      setLoadingAnns(false);
+    } catch (e) {
+      raiseDeferredError(e as Error);
+    }
+  }
   return (
     <>
       <GTags.BorderedModal
@@ -467,15 +487,21 @@ export default function ShareTourModal(props: Props): JSX.Element {
         open={props.isModalVisible}
         onCancel={props.closeModal}
         centered
-        width="60vw"
+        width="90vw"
         footer={null}
       >
-        <Tags.ModalBodyCon>
-          {props.isPublishing ? (
-            <div className="typ-h1 sec-head">Publishing...</div>
-          ) : (
-            <div className="section-con">
-              {isPublishFailed && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'start',
+          gap: '1rem'
+        }}
+        >
+          <Tags.ModalBodyCon>
+            {props.isPublishing ? (
+              <div className="typ-h1 sec-head">Publishing...</div>
+            ) : (
+              <div className="section-con">
+                {isPublishFailed && (
                 <>
                   <div
                     className="err-line typ-h2"
@@ -485,9 +511,9 @@ export default function ShareTourModal(props: Props): JSX.Element {
                   >Failed to publish the tour. Try again.
                   </div>
                 </>
-              )}
-              {props.tour && getPublicationState(props.tour) === PublicationState.UNPUBLISHED && (
-                <>
+                )}
+                {props.tour && getPublicationState(props.tour) === PublicationState.UNPUBLISHED && (
+                <div>
                   <div className="typ-h1 sec-head" style={{ marginBottom: '0.5rem' }}>
                     You haven't published this demo yet!
                   </div>
@@ -509,10 +535,19 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       setIsPublishing={props.setIsPublishing}
                     />
                   </div>
-                </>
-              )}
 
-              {!isPublishFailed
+                  <PersonalVarEditor
+                    showAsPopup={false}
+                    allAnnotationsForTour={[]}
+                    annotationsForScreens={annotationsForScreens}
+                    rid={props.tour.rid}
+                    originalPersVarsParams={searchParamsStr}
+                    changePersVarParams={(persVarsParamsStr) => setSearchParamsStr(persVarsParamsStr)}
+                  />
+                </div>
+                )}
+
+                {!isPublishFailed
                 && props.tour
                 && getPublicationState(props.tour) === PublicationState.PUBLISHED
                 && (
@@ -525,7 +560,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                   </>
                 )}
 
-              {props.tour && getPublicationState(props.tour) === PublicationState.OUTDATED && (
+                {props.tour && getPublicationState(props.tour) === PublicationState.OUTDATED && (
                 <>
                   <div className="typ-h1 sec-head">You have unpublished changes</div>
                   <div className="pub-btn-txt-con">
@@ -547,11 +582,11 @@ export default function ShareTourModal(props: Props): JSX.Element {
                     />
                   </div>
                 </>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {!isPublishFailed
+            {!isPublishFailed
             && props.tour
             && (getPublicationState(props.tour) !== PublicationState.UNPUBLISHED)
             && (
@@ -644,23 +679,34 @@ export default function ShareTourModal(props: Props): JSX.Element {
               />
             </Tags.EmbedCon>
             )}
-        </Tags.ModalBodyCon>
-        <Drawer
-          title="Site settings"
-          open={showHelpDrawer}
-          size="large"
-          onClose={() => setShowHelpDrawer(false)}
-        >
-          <p className="typ-reg">
-            When you open a Fable's demo in a standalone browser's tab (contrary to, embedding a demo in a landing page),
-            you can configure every aspect of the page that opens in the new tab.
-          </p>
-          <p className="typ-reg">
-            We call this configuration <em>Site settings</em>. Following is an example of all the things that you
-            can configure using the <em>site settings</em> section.
-          </p>
-          <img src="/site.png" height={480} alt="site wireframe" />
-        </Drawer>
+          </Tags.ModalBodyCon>
+          <Drawer
+            title="Site settings"
+            open={showHelpDrawer}
+            size="large"
+            onClose={() => setShowHelpDrawer(false)}
+          >
+            <p className="typ-reg">
+              When you open a Fable's demo in a standalone browser's tab (contrary to, embedding a demo in a landing page),
+              you can configure every aspect of the page that opens in the new tab.
+            </p>
+            <p className="typ-reg">
+              We call this configuration <em>Site settings</em>. Following is an example of all the things that you
+              can configure using the <em>site settings</em> section.
+            </p>
+            <img src="/site.png" height={480} alt="site wireframe" />
+          </Drawer>
+          <PersonalVarEditor
+            showAsPopup={false}
+            allAnnotationsForTour={[]}
+            annotationsForScreens={annotationsForScreens}
+            rid={props.tour.rid}
+            originalPersVarsParams={searchParamsStr}
+            changePersVarParams={(persVarsParamsStr) => setSearchParamsStr(persVarsParamsStr)}
+            isLoading={loadingAnns}
+          />
+        </div>
+
       </GTags.BorderedModal>
     </>
   );

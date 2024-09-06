@@ -27,12 +27,13 @@ import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity
 import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
-import { JourneyOrOptsDataChange, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
+import { AI_PARAM, AnnotationPerScreen, JourneyOrOptsDataChange, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
 import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
 import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
 import { FeatureForPlan } from '../../plans';
+import { isAIParamPresent, sendPreviewHeaderClick } from '../../utils';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
@@ -168,6 +169,12 @@ function Header(props: IOwnProps): JSX.Element {
         return false;
     }
   };
+
+  const handlePublishTour = (tour: P_RespTour): Promise<boolean> => {
+    sendPreviewHeaderClick();
+    return props.publishTour!(tour);
+  };
+
   return (
     <Suspense fallback={<></>}>
       <Tags.Con style={{ color: '#fff' }}>
@@ -300,7 +307,9 @@ function Header(props: IOwnProps): JSX.Element {
                         }).catch((err) => {
                           console.log('error in amplitude event', err);
                         });
-                        window.open(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}`)?.focus();
+
+                        const param = isAIParamPresent() ? `?${AI_PARAM}` : '';
+                        window.open(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}${param}`)?.focus();
                       }}
                       disabled={props.tourMainValidity !== TourMainValidity.Valid}
                     >
@@ -416,7 +425,7 @@ function Header(props: IOwnProps): JSX.Element {
                     disabled={props.tourMainValidity !== TourMainValidity.Valid}
                     setIsPublishFailed={setIsPublishFailed}
                     setIsPublishing={setIsPublishing}
-                    publishTour={props.publishTour}
+                    publishTour={handlePublishTour}
                     tour={props.tour}
                     size="medium"
                     openShareModal={() => {

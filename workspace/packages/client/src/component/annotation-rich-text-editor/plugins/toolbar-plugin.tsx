@@ -48,6 +48,7 @@ import UpgradeModal from '../../upgrade/upgrade-modal';
 import UpgradeIcon from '../../upgrade/icon';
 import { P_RespSubscription } from '../../../entity-processor';
 import { FeatureAvailability } from '../../../types';
+import { WarningIcon } from '../../header/styled';
 
 const LowPriority = 1;
 
@@ -232,6 +233,7 @@ interface ToolbarPluginProps {
   },
   leadFormFeatureAvailable: FeatureAvailability;
   subs: P_RespSubscription | null;
+  warnings?: string[];
 }
 
 export const INSERT_LEAD_FORM_COMMAND: LexicalCommand<string> = createCommand(
@@ -242,7 +244,7 @@ export const CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND: LexicalCommand<string> = crea
   'CHANGE_LEAD_FORM_PRIMARY_KEY_COMMAND',
 );
 
-export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable, subs }: ToolbarPluginProps) : ReactElement {
+export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable, subs, warnings }: ToolbarPluginProps) : ReactElement {
   const [editor] = useLexicalComposerContext();
   const [activeEditor, setActiveEditor] = useState(editor);
   const toolbarRef = useRef(null);
@@ -448,6 +450,18 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
           {!leadFormFeatureAvailable.isAvailable && <UpgradeIcon isInBeta={leadFormFeatureAvailable.isInBeta} />}
         </button>
       </Tooltip>
+      {warnings && warnings.length > 0 && (
+        <Tooltip
+          placement="left"
+          title={
+            <ul>
+              {warnings.map(warning => <li key={warning}>{warning}</li>)}
+            </ul>
+          }
+        >
+          <WarningIcon className="format" />
+        </Tooltip>
+      )}
       <UpgradeModal
         showUpgradePlanModal={upgradeModalDetail.open}
         setShowUpgradePlanModal={(open: boolean) => {
