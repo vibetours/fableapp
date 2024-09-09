@@ -64,6 +64,7 @@ interface Props {
   isPublishing: boolean;
   setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
   vanityDomains: P_RespVanityDomain[] | null | undefined;
+  setCopyUrlParams: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const enum SearchParamBy {
@@ -405,7 +406,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [allDomains, setAllDomains] = useState<string[] | null>(null);
   const [loadingAnns, setLoadingAnns] = useState(true);
   const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]>>({});
-
+  const [showPersVarsEditor, setShowPersVarsEditor] = useState(true);
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
     if (allParams.length) setSearchParamsStr(`?${allParams.map(p => `${p.mapping}=${p.value}`).join('&')}`);
@@ -477,6 +478,12 @@ export default function ShareTourModal(props: Props): JSX.Element {
       raiseDeferredError(e as Error);
     }
   }
+
+  useEffect(() => {
+    if (props.isModalVisible) {
+      setShowPersVarsEditor(true);
+    }
+  }, [props.isModalVisible]);
   return (
     <>
       <GTags.BorderedModal
@@ -487,7 +494,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
         open={props.isModalVisible}
         onCancel={props.closeModal}
         centered
-        width="90vw"
+        width={(props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED) && showPersVarsEditor
+          ? '90vw' : '60vw'}
         footer={null}
       >
         <div style={{
@@ -496,7 +504,15 @@ export default function ShareTourModal(props: Props): JSX.Element {
           gap: '1rem'
         }}
         >
-          <Tags.ModalBodyCon>
+          <Tags.ModalBodyCon
+            style={{
+              width: (
+                props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED)
+                && showPersVarsEditor
+                ? '70%'
+                : '100%'
+            }}
+          >
             {props.isPublishing ? (
               <div className="typ-h1 sec-head">Publishing...</div>
             ) : (
@@ -535,15 +551,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       setIsPublishing={props.setIsPublishing}
                     />
                   </div>
-
-                  <PersonalVarEditor
-                    showAsPopup={false}
-                    allAnnotationsForTour={[]}
-                    annotationsForScreens={annotationsForScreens}
-                    rid={props.tour.rid}
-                    originalPersVarsParams={searchParamsStr}
-                    changePersVarParams={(persVarsParamsStr) => setSearchParamsStr(persVarsParamsStr)}
-                  />
                 </div>
                 )}
 
@@ -696,15 +703,22 @@ export default function ShareTourModal(props: Props): JSX.Element {
             </p>
             <img src="/site.png" height={480} alt="site wireframe" />
           </Drawer>
-          <PersonalVarEditor
-            showAsPopup={false}
-            allAnnotationsForTour={[]}
-            annotationsForScreens={annotationsForScreens}
-            rid={props.tour.rid}
-            originalPersVarsParams={searchParamsStr}
-            changePersVarParams={(persVarsParamsStr) => setSearchParamsStr(persVarsParamsStr)}
-            isLoading={loadingAnns}
-          />
+          {props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && showPersVarsEditor && (
+            <PersonalVarEditor
+              showAsPopup={false}
+              allAnnotationsForTour={[]}
+              annotationsForScreens={annotationsForScreens}
+              rid={props.tour.rid}
+              originalPersVarsParams={searchParamsStr}
+              changePersVarParams={(persVarsParamsStr) => {
+                props.setCopyUrlParams(persVarsParamsStr);
+                setSearchParamsStr(persVarsParamsStr);
+              }}
+              isLoading={loadingAnns}
+              showEditor={showPersVarsEditor}
+              setShowEditor={(showEditor: boolean) => { setShowPersVarsEditor(showEditor); }}
+            />
+          )}
         </div>
 
       </GTags.BorderedModal>

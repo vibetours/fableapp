@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
@@ -8,18 +9,28 @@ html, body {
   @media screen and (max-width: 1290px) {
     font-size: 90%;
   }
+
   @media screen and (max-width: 767px) {
     font-size: 80%;
   }
 }
 
-html, body, div, span, button, p, button, input {
+html,
+body,
+div,
+span,
+button,
+p,
+button,
+input {
   font-family: 'IBM Plex Sans', sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.cm-editor span, .cm-editor div, .cm-editor button {
+.cm-editor span,
+.cm-editor div,
+.cm-editor button {
   font-family: "IBM Plex Mono", monospace !important;
 }
 
@@ -27,25 +38,38 @@ html, body, div, span, button, p, button, input {
   scrollbar-width: thin !important;
 }
 
-#root , .app {
+#root,
+.app {
   height: 100%;
   width: 100%;
 }
 
-.ant-wave, .wave-motion-appear, .wave-motion-appear-active, .wave-motion {
+.ant-wave,
+.wave-motion-appear,
+.wave-motion-appear-active,
+.wave-motion {
   display: none !important;
 }
 
-@keyframes blink{
-  0%{opacity: .35;}
-  50%{opacity: 1;}
-  100%{opacity: .35;}
+@keyframes blink {
+  0% {
+    opacity: .35;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: .35;
+  }
 }
+
 .ant-modal-centered {
   scrollbar-color: var(--fable-scrollbar-color);
 }
 
-.ant-modal .ant-modal-content { 
+.ant-modal .ant-modal-content {
   border-radius: 4px;
 }
 
@@ -98,7 +122,7 @@ html, body, div, span, button, p, button, input {
   top: -4px;
   left: 0;
   height: 40px;
-  background: linear-gradient(to right,#FF7450 0%,#FF7450 33.33%,#FEDF64 33.33%,#FEDF64 66.67%,#7567FF 66.67%,#7567FF 100%);
+  background: linear-gradient(to right, #FF7450 0%, #FF7450 33.33%, #FEDF64 33.33%, #FEDF64 66.67%, #7567FF 66.67%, #7567FF 100%);
   width: 100%;
   z-index: -1;
   border-radius: inherit;
@@ -150,7 +174,7 @@ html, body, div, span, button, p, button, input {
 
 
 .ant-modal-confirm-btns button:hover {
-  transform: translate(2px,-2px) !important;
+  transform: translate(2px, -2px) !important;
 }
 
 .ant-popover .ant-popover-inner {
@@ -178,7 +202,8 @@ html, body, div, span, button, p, button, input {
 }
 
 
-.typ-h1, .ant-modal-confirm .ant-modal-confirm-body .ant-modal-confirm-title  {
+.typ-h1,
+.ant-modal-confirm .ant-modal-confirm-body .ant-modal-confirm-title {
   font-size: 1.65rem;
   font-weight: 400;
   line-height: 1.8rem;
@@ -202,13 +227,15 @@ html, body, div, span, button, p, button, input {
   line-height: 1.6rem;
 }
 
-.typ-reg,.ant-modal-confirm-content {
+.typ-reg,
+.ant-modal-confirm-content {
   font-size: 1.1rem;
   font-weight: 300;
   line-height: 1.4rem;
 }
 
-.typ-ip, .ant-select-selection-item {
+.typ-ip,
+.ant-select-selection-item {
   font-size: 15px !important;
   font-weight: 500 !important;
   font-family: "IBM Plex Mono", monospace !important;
@@ -234,7 +261,7 @@ html, body, div, span, button, p, button, input {
   border-radius: 4px;
 }
 
-.device-dropdown{
+.device-dropdown {
   border-radius: 16px;
   border: 1px solid #EAEAEA;
   background: white;
@@ -244,17 +271,17 @@ html, body, div, span, button, p, button, input {
   width: 240px;
 }
 
-.device-dropdown .ant-dropdown-menu{
+.device-dropdown .ant-dropdown-menu {
   box-shadow: none;
 }
 
-.upgrade-plan{
+.upgrade-plan {
   position: relative;
   max-height: 100vh;
   max-width: 100vw;
 }
 
-.upgrade-plan>*{
+.upgrade-plan>* {
   filter: blur(5px);
   pointer-events: none;
 }
@@ -281,11 +308,12 @@ html, body, div, span, button, p, button, input {
   padding-bottom: 0px;
 }
 
-.ant-select-item-option-selected{
+.ant-select-item-option-selected {
   background-color: #e1e1e1 !important;
 }
 
-.ant-color-picker-input-container .ant-input-number, .ant-input-affix-wrapper{
+.ant-color-picker-input-container .ant-input-number,
+.ant-input-affix-wrapper {
   border: 1px solid #747474 !important;
 }
 
@@ -295,4 +323,28 @@ html, body, div, span, button, p, button, input {
 
 .ant-modal-mask {
   filter: drop-shadow(2px 4px 6px black);
+}
+
+
+.custom-scrollbar {
+  scrollbar-color: var(--fable-scrollbar-color);
+  scrollbar-width: thin;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  padding: 2px 0;
+  background-color: var(--fable-scrollbar-track);
+  border-radius: 10px;
+  border: 1px solid #F3F4F6;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  margin: 4px 0;
+  height: 4px;
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background-color: var(--fable-scrollbar-thumb);
 }

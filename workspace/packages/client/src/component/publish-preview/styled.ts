@@ -78,7 +78,6 @@ export const ModalBodyCon = styled.div`
   flex-direction: column;
   color:  #212121;
   font-family: IBM Plex Sans;
-  width: 70%;
   .sec-head {
     margin: 0.5rem 0;
   }

@@ -57,6 +57,7 @@ import {
   queryData,
   EditItem,
   IdxEditItem,
+  LSSavedPersVarData,
 } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -803,50 +804,46 @@ export function removeDuplicatesFromStrArr(arr1: string[]): string[] {
   return Array.from(mergedSet);
 }
 
-export function getPrefilledPerVarsFromLS(perVars: string[], rid: string): Record<string, string> {
+export function getPrefilledPerVarsFromLS(perVars: string[], demoRid: string): Record<string, string> {
   const perVarsRecord: Record<string, string> = {};
-  const allPerVals: {rid: string, perVars: Record<string, string>}[] = JSON.parse(
-    localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string
-  );
+  perVars.forEach(perVar => perVarsRecord[perVar] = '');
 
-  perVars.forEach(key => {
-    perVarsRecord[key] = '';
-  });
+  const localStoreVal = localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string;
+  if (!localStoreVal) return perVarsRecord;
 
-  if (!allPerVals) return perVarsRecord;
+  const allPerVals: LSSavedPersVarData[] = JSON.parse(localStoreVal);
 
-  const persVarsForRid = allPerVals.find(obj => obj.rid === rid);
+  const persVarsForDemoRid = allPerVals.find(obj => obj.rid === demoRid);
+
+  if (!persVarsForDemoRid) return perVarsRecord;
 
   Object.keys(perVarsRecord).forEach(key => {
-    perVarsRecord[key] = persVarsForRid!.perVars[key] || '';
+    perVarsRecord[key] = persVarsForDemoRid.perVars[key] || '';
   });
 
   return perVarsRecord;
 }
 
-export function setPersValuesInLS(perVars: Record<string, string>, rid: string): void {
-  if (!localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR)) {
-    localStorage.setItem(FABLE_PERS_VARS_FOR_TOUR, JSON.stringify([]));
+export function setPersValuesInLS(perVars: Record<string, string>, demoRid: string): void {
+  const savedLSData = localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR);
+  const allPerVals: LSSavedPersVarData[] = savedLSData ? JSON.parse(savedLSData) : [];
+
+  const persVarsForDemoRid = allPerVals.find(obj => obj.rid === demoRid);
+  if (persVarsForDemoRid) {
+    allPerVals.forEach(obj => {
+      if (obj.rid === demoRid) {
+        obj.perVars = perVars;
+      }
+    });
+    localStorage.setItem(FABLE_PERS_VARS_FOR_TOUR, JSON.stringify(allPerVals));
+    return;
   }
-  const allPerVals: {rid: string, perVars: Record<string, string>}[] = JSON.parse(
-    localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string
-  );
 
   if (allPerVals.length >= 10) {
     allPerVals.shift();
   }
 
-  const perVarsForRid = allPerVals.find(obj => obj.rid === rid);
-
-  if (perVarsForRid) {
-    allPerVals.forEach(obj => {
-      if (obj.rid === rid) {
-        obj.perVars = perVars;
-      }
-    });
-  } else {
-    allPerVals.push({ rid, perVars });
-  }
+  allPerVals.push({ rid: demoRid, perVars });
 
   localStorage.setItem(FABLE_PERS_VARS_FOR_TOUR, JSON.stringify(allPerVals));
 }
@@ -864,6 +861,17 @@ export function getAnnTextEditorErrors(perVars: string[]): string[] {
   });
 
   return errors;
+}
+
+export function recordToQueryParams(searchParams: Record<string, string>): string {
+  const queryString = Object.keys(searchParams)
+    .map((key) => {
+      const value = searchParams[key];
+      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+    })
+    .join('&');
+
+  return queryString.trim();
 }
 
 export const getSearchParamData = (param: string | null) : queryData | null => {

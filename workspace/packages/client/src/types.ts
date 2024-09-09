@@ -705,3 +705,8 @@ export interface P_RespDemoHub extends RespDemoEntity {
 export type RenameDemoHubFn = (demoHub: P_RespDemoHub, newName: string) => Promise<RenameDemoHubResult>;
 
 export const AI_PARAM = 'ai=1';
+
+export interface LSSavedPersVarData {
+  rid: string;
+  perVars: Record<string, string>
+}

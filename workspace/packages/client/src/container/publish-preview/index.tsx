@@ -92,6 +92,7 @@ interface IOwnStateProps {
   viewScale: number;
   minimalHeader: boolean;
   persVarsParams: string;
+  showPersVarsEditor: boolean;
 }
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
@@ -107,7 +108,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       showShareModal: false,
       viewScale: 1,
       minimalHeader: false,
-      persVarsParams: ''
+      persVarsParams: '',
+      showPersVarsEditor: false,
     };
   }
 
@@ -310,6 +312,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             <PersonalVarEditor
               showAsPopup
               allAnnotationsForTour={this.props.allAnnotationsForTour}
+              showEditor={this.state.showPersVarsEditor}
+              setShowEditor={(showPersVarsEditor: boolean) => {
+                this.setState({ showPersVarsEditor });
+              }}
               annotationsForScreens={{}}
               rid={this.props.tour!.rid}
               changePersVarParams={(persVarsParams: string) => {

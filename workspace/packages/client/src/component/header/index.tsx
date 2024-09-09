@@ -97,6 +97,7 @@ function Header(props: IOwnProps): JSX.Element {
   const [showWarningDrawer, setShowWarningDrawer] = useState(false);
   const [isWarningPresent, setIsWarningPresent] = useState(false);
   const [showUserGuidePopover, setShowUserGuidePopover] = useState(false);
+  const [copyUrlParams, setCopyUrlParams] = useState('');
   const params = useParams();
   const location = useLocation();
 
@@ -606,7 +607,8 @@ function Header(props: IOwnProps): JSX.Element {
             setIsModalVisible(true);
             amplitudeShareModalOpen('editor');
           }}
-          copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
+          copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}${copyUrlParams}`)}
+          setCopyUrlParams={setCopyUrlParams}
           tourOpts={props.tourOpts || null}
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}

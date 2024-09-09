@@ -45,6 +45,7 @@ export default function TourCard({
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
+  const [copyUrlParams, setCopyUrlParams] = useState('');
 
   const onSiteDataChange = (site: SiteData): void => {
     updateTourProp(tour.rid, 'site', site);
@@ -228,7 +229,8 @@ export default function TourCard({
           amplitudeShareModalOpen('tours');
         }}
         tour={tour}
-        copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${tour?.rid}`)}
+        copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${tour?.rid}${copyUrlParams}`)}
+        setCopyUrlParams={setCopyUrlParams}
         tourOpts={null}
         onSiteDataChange={onSiteDataChange}
         setIsPublishing={setIsPublishing}

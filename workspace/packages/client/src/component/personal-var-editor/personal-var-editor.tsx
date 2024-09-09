@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { CodeOutlined, FontSizeOutlined, WarningOutlined } from '@ant-design/icons';
+import React, { useEffect, useRef, useState } from 'react';
+import { CloseOutlined, CodeOutlined, FontSizeOutlined, WarningOutlined } from '@ant-design/icons';
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import Button from '../button';
 import { AnnotationPerScreen } from '../../types';
-import { getPersVarsFromAnnotations, getPersVarsFromAnnsForTour, getPrefilledPerVarsFromLS, removeDuplicatesFromStrArr, setPersValuesInLS } from '../../utils';
+import { getPersVarsFromAnnotations, getPersVarsFromAnnsForTour, getPrefilledPerVarsFromLS, recordToQueryParams, removeDuplicatesFromStrArr, setPersValuesInLS } from '../../utils';
 import { InputText } from '../screen-editor/styled';
 
 interface Props {
@@ -14,21 +14,38 @@ interface Props {
   changePersVarParams: (persVarsParams: string) => void;
   annotationsForScreens: Record<string, IAnnotationConfig[]>;
   originalPersVarsParams: string;
-  isLoading?: boolean
+  isLoading?: boolean;
+  showEditor: boolean;
+  setShowEditor: (showPersVarsEditor: boolean) => void;
 }
 
 export default function PersonalVarEditor(props: Props): JSX.Element {
-  const [showEditor, setShowEditor] = useState(!props.showAsPopup);
   const [perVarsInTour, setPerVarsInTour] = useState<Record<string, string>>({});
+
+  function resetLocalStoreObj(): void {
+    const emptyPerVarsInTour: Record<string, string> = {};
+
+    Object.keys(perVarsInTour).forEach(key => {
+      emptyPerVarsInTour[key] = '';
+    });
+
+    setPersValuesInLS(emptyPerVarsInTour, props.rid);
+  }
 
   function saveParamsHandler() : void {
     const searchParams = new URLSearchParams(props.originalPersVarsParams);
 
     Object.keys(perVarsInTour).forEach(key => {
-      searchParams.set(`v_${key}`, perVarsInTour[key]);
+      if (perVarsInTour[key] !== '') {
+        searchParams.set(`v_${key}`, perVarsInTour[key]);
+      }
     });
 
     props.changePersVarParams(`?${searchParams.toString()}`);
+
+    if (props.showAsPopup) {
+      props.setShowEditor(false);
+    }
   }
 
   function handleDiscard() : void {
@@ -37,6 +54,8 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
     Object.keys(perVarsInTour).forEach(key => {
       searchParams.delete(`v_${key}`);
     });
+
+    resetLocalStoreObj();
 
     setPerVarsInTour((prevParams) => {
       const updatedParams = Object.keys(prevParams).reduce((acc, key) => {
@@ -48,6 +67,10 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
     });
 
     props.changePersVarParams(searchParams.toString());
+
+    if (props.showAsPopup) {
+      props.setShowEditor(false);
+    }
   }
 
   useEffect(() => {
@@ -61,16 +84,30 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
   }, [props.allAnnotationsForTour, props.annotationsForScreens]);
 
   return (
-    <Tags.VarEditorCon showAsPopup={props.showAsPopup} showEditor={showEditor}>
-      <Button
-        className="popup-btn"
-        icon={<CodeOutlined />}
-        onClick={() => setShowEditor(prev => !prev)}
-      />
+    <Tags.VarEditorCon showAsPopup={props.showAsPopup} showEditor={props.showEditor}>
+      {props.showAsPopup && (
+        <Button
+          className="popup-btn"
+          icon={<CodeOutlined />}
+          onClick={() => props.setShowEditor(!props.showEditor)}
+        />)}
       {
-        showEditor && (
+        props.showEditor && (
           <div className="pers-var-editor">
-            <div className="typ-h1">Customize Demo</div>
+            <div className="typ-h1 heading">
+              <h4 className="heading-h4">Customize Demo</h4>
+              {!props.showAsPopup && (
+                <button
+                  className="close-btn"
+                  type="button"
+                  onClick={() => {
+                    props.setShowEditor(false);
+                  }}
+                >
+                  <CloseOutlined />
+                </button>
+              )}
+            </div>
             {
               !props.isLoading ? (
                 <>
@@ -81,9 +118,12 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                         Enter value for these variabes to customise the demo.
 
                         <div className="demo-url">
-                          Demo URL:
-                          <code>
-                            ?v_var_name1&v_var_name2
+                          <div className="demo-url-title">
+                            Demo URL:
+                          </div>
+                          <code className="custom-scrollbar">
+                            <span className="url-code">?</span>
+                            <span className="url-code">{recordToQueryParams(perVarsInTour).trim()}</span>
                           </code>
                         </div>
                       </div>
@@ -106,15 +146,16 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                     )}
                   {Object.keys(perVarsInTour).length > 0 && (
                   <>
-                    <div className="per-var-input-con">
+                    <div className="per-var-input-con custom-scrollbar">
                       {
-                    Object.keys(perVarsInTour).map((perVar) => (
+                    Object.keys(perVarsInTour).map((perVar, index) => (
                       <div className="pers-var-input" key={perVar}>
-                        <div className="typ-reg pervar-label">
+                        <label htmlFor={perVar} className="typ-reg pervar-label">
                           <FontSizeOutlined style={{ fontSize: '1.75rem' }} />
                           <code>{perVar}</code>
-                        </div>
+                        </label>
                         <InputText
+                          id={perVar}
                           style={{ padding: '0.5rem 0.75rem' }}
                           value={perVarsInTour[perVar]}
                           onChange={(e) => {
@@ -132,19 +173,19 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                     ))
                   }
                     </div>
-                    <div className="errors">
+                    <div className="errors custom-scrollbar">
                       {
-                    Object.keys(perVarsInTour).map(perVar => (
-                      perVarsInTour[perVar] === ''
-                        ? (
-                          <div key={perVar} className="error typ-sm">
-                            <WarningOutlined style={{ color: 'red' }} />
+                        Object.keys(perVarsInTour).map(perVar => (
+                          perVarsInTour[perVar] === ''
+                            ? (
+                              <div key={perVar} className="error typ-sm">
+                                <WarningOutlined style={{ color: 'red' }} />
                             &nbsp;Variable "{perVar}" is not set
-                          </div>
-                        )
-                        : <React.Fragment key={perVar} />
-                    ))
-                  }
+                              </div>
+                            )
+                            : <React.Fragment key={perVar} />
+                        ))
+                      }
                     </div>
                     <div className="bottom-btns">
                       <Button

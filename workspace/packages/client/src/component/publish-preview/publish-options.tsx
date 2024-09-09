@@ -32,6 +32,7 @@ export default function PublishOptions(props: Props): JSX.Element {
   const [openPopover, setOpenPopover] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublishFailed, setIsPublishFailed] = useState(false);
+  const [copyUrlParams, setCopyUrlParams] = useState('');
   const { height, width } = getDimensionsBasedOnDisplaySize(props.selectedDisplaySize);
 
   return (
@@ -109,7 +110,8 @@ export default function PublishOptions(props: Props): JSX.Element {
             props.setShowShareModal(true);
             amplitudeShareModalOpen('preview');
           }}
-          copyUrl={getIframeShareCode(height, width, `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}`)}
+          copyUrl={getIframeShareCode(height, width, `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}${copyUrlParams}`)}
+          setCopyUrlParams={setCopyUrlParams}
           tourOpts={null}
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
