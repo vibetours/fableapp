@@ -584,7 +584,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       this.state.anonymousDemoId,
       this.state.productDetails,
       this.state.demoObjective,
-      demoTitle || this.state.tourName,
+      demoTitle,
       demoDescription,
       this.state.selectedColor,
       this.state.selectedBorderRadius || DEFAULT_BORDER_RADIUS,
@@ -597,7 +597,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     traceEvent(
       AMPLITUDE_EVENTS.CREATE_NEW_TOUR,
-      { from: 'ext', tour_name: this.state.tourName },
+      { from: 'ext', tour_name: demoTitle },
       [CmnEvtProp.EMAIL]
     );
     if (this.startTime != null) {
@@ -782,7 +782,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       screenType: LLMScreenType.default
     }));
 
-    let demoTitle = 'Untitled';
+    let demoTitle = this.state.tourName;
     let demoDescription = '';
     if (this.state.aiAnnData) {
       screensWithAIAnnData = screens.map((screenInfo, index) => {
