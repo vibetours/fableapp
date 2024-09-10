@@ -272,7 +272,7 @@ export function processRawTourData(
   } as P_RespTour;
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap: Record<string, string> = {}): {
+export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap: Record<string, string> | null = null): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
@@ -286,7 +286,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IG
       const ids: string[] = [];
       for (const [annId, ann] of Object.entries((entity as TourScreenEntity).annotations)) {
         ids.push(annId);
-        replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
+        if (varMap) replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
         anns.push(ann as IAnnotationConfig);
       }
       annotationsPerScreen[screenId] = isLocal ? (anns as IAnnotationConfig[]) : anns.map(remoteToLocalAnnotationConfig);
