@@ -4,7 +4,7 @@ import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import Button from '../button';
 import { AnnotationPerScreen } from '../../types';
-import { getPersVarsFromAnnotations, getPersVarsFromAnnsForTour, getPrefilledPerVarsFromLS, recordToQueryParams, removeDuplicatesFromStrArr, setPersValuesInLS } from '../../utils';
+import { getPersVarsFromAnnotations, getPersVarsFromAnnsForTour, getPrefilledPerVarsFromLS, processPersVarsObj, recordToQueryParams, removeDuplicatesFromStrArr, setPersValuesInLS } from '../../utils';
 import { InputText } from '../screen-editor/styled';
 
 interface Props {
@@ -33,15 +33,8 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
   }
 
   function saveParamsHandler() : void {
-    const searchParams = new URLSearchParams(props.originalPersVarsParams);
-
-    Object.keys(perVarsInTour).forEach(key => {
-      if (perVarsInTour[key] !== '') {
-        searchParams.set(`v_${key}`, perVarsInTour[key]);
-      }
-    });
-
-    props.changePersVarParams(`?${searchParams.toString()}`);
+    const searchParamStr = recordToQueryParams({ ...processPersVarsObj(perVarsInTour) }, props.originalPersVarsParams);
+    props.changePersVarParams(`?${searchParamStr}`);
 
     if (props.showAsPopup) {
       props.setShowEditor(false);
@@ -79,8 +72,8 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
         ...getPersVarsFromAnnotations(props.annotationsForScreens)
       ]
     );
-
-    setPerVarsInTour(getPrefilledPerVarsFromLS(perVars, props.rid));
+    const perVarsObj = getPrefilledPerVarsFromLS(perVars, props.rid);
+    setPerVarsInTour(perVarsObj);
   }, [props.allAnnotationsForTour, props.annotationsForScreens]);
 
   return (
@@ -123,7 +116,9 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                           </div>
                           <code className="custom-scrollbar">
                             <span className="url-code">?</span>
-                            <span className="url-code">{recordToQueryParams(perVarsInTour).trim()}</span>
+                            <span className="url-code">
+                              {recordToQueryParams(processPersVarsObj(perVarsInTour)).trim()}
+                            </span>
                           </code>
                         </div>
                       </div>

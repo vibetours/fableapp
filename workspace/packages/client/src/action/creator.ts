@@ -1019,7 +1019,7 @@ export function loadTourAndData(
   loadPublishedData = false,
   ts: string | null = null,
   shouldGetOnlyTour = false,
-  varMap: Record<string, string> = {}
+  varMap: Record<string, string> | null = null
 ) {
   return async (
     dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize | TTourPublished>,

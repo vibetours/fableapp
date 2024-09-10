@@ -89,7 +89,7 @@ interface IOwnStateProps {
   showShareModal: boolean;
   viewScale: number;
   minimalHeader: boolean;
-  persVarsParams: string;
+  embedQueryParams: string;
   showPersVarsEditor: boolean;
 }
 
@@ -97,6 +97,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   private previewFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
 
   private frameConRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
+  private originalQueryParams = '?staging=true';
 
   constructor(props: IProps) {
     super(props);
@@ -106,7 +108,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       showShareModal: false,
       viewScale: 1,
       minimalHeader: false,
-      persVarsParams: '',
+      embedQueryParams: this.originalQueryParams,
       showPersVarsEditor: false,
     };
   }
@@ -298,7 +300,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               height={height}
               width={width}
               className="preview-frame"
-              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}?staging=true${embedParams}${this.state.persVarsParams}`}
+              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}${this.state.embedQueryParams}${embedParams}`}
               title="hello"
             />
           )}
@@ -312,10 +314,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               }}
               annotationsForScreens={{}}
               rid={this.props.tour!.rid}
-              changePersVarParams={(persVarsParams: string) => {
-                this.setState({ persVarsParams });
+              changePersVarParams={(embedQueryParams: string) => {
+                this.setState({ embedQueryParams });
               }}
-              originalPersVarsParams={`?staging=true${embedParams}${this.state.persVarsParams}`}
+              originalPersVarsParams={this.originalQueryParams}
             />
           )}
         </Tags.PreviewFrameWrapper>

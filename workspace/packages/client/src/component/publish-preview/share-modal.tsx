@@ -709,7 +709,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
               allAnnotationsForTour={[]}
               annotationsForScreens={annotationsForScreens}
               rid={props.tour.rid}
-              originalPersVarsParams={searchParamsStr}
+              originalPersVarsParams=""
               changePersVarParams={(persVarsParamsStr) => {
                 props.setCopyUrlParams(persVarsParamsStr);
                 setSearchParamsStr(persVarsParamsStr);

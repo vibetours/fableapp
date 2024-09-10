@@ -863,15 +863,22 @@ export function getAnnTextEditorErrors(perVars: string[]): string[] {
   return errors;
 }
 
-export function recordToQueryParams(searchParams: Record<string, string>): string {
-  const queryString = Object.keys(searchParams)
-    .map((key) => {
-      const value = searchParams[key];
-      return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-    })
-    .join('&');
+export function recordToQueryParams(searchParams: Record<string, string>, query: string = ''): string {
+  const querySearchParams = new URLSearchParams(query);
 
-  return queryString.trim();
+  Object.keys(searchParams).forEach(key => {
+    querySearchParams.set(key, searchParams[key]);
+  });
+  return querySearchParams.toString();
+}
+
+export function processPersVarsObj(persVars: Record<string, string>): Record<string, string> {
+  const processedPersVar: Record<string, string> = {};
+
+  Object.keys(persVars).forEach(key => {
+    processedPersVar[`v_${key}`] = persVars[key];
+  });
+  return processedPersVar;
 }
 
 export const getSearchParamData = (param: string | null) : queryData | null => {
