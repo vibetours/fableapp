@@ -10,7 +10,7 @@ import {
   ITourDataOpts,
   VideoAnnotationPositions
 } from '@fable/common/dist/types';
-import { DEFAULT_ANN_DIMS, sleep } from '@fable/common/dist/utils';
+import { sleep } from '@fable/common/dist/utils';
 import React, { Suspense, lazy } from 'react';
 import {
   CtaClickedInternal,
@@ -18,7 +18,7 @@ import {
 } from '../../analytics/types';
 import { FableLeadContactProps } from '../../global';
 import { emitEvent } from '../../internal-events';
-import { ExtMsg, InternalEvents, Msg, NavFn, Payload_NavToAnnotation, Payload_Navigation } from '../../types';
+import { InternalEvents, Msg, NavFn, Payload_Navigation } from '../../types';
 import {
   getTransparencyFromHexStr,
   isAudioAnnotation,
@@ -28,7 +28,7 @@ import {
   isVideoAnnotation,
 } from '../../utils';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
-import { AnnotationSerialIdMap, getAnnotationBtn } from './ops';
+import { getAnnotationBtn } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
 import AnnotationWatermark, { WatermarkText } from '../watermark/annotation-watermark';
@@ -75,7 +75,6 @@ interface IProps {
   navigateToAdjacentAnn: NavigateToAdjacentAnn,
   isThemeAnnotation?: boolean;
   maskBox: Rect | null;
-  nav: NavFn;
   isScreenHTML4: boolean;
 }
 
@@ -368,9 +367,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   }
 
   componentDidMount(): void {
-    if (!this.props.annotationDisplayConfig.prerender) {
-      window.addEventListener('message', this.receiveMessage, false);
+    if (this.props.annotationDisplayConfig.isMaximized && !this.props.annotationDisplayConfig.prerender) {
+      this.props.win.addEventListener('message', this.receiveMessage, false);
     }
+
     if (this.conRef.current && !this.props.annotationDisplayConfig.prerender) { this.resetAnnPos(); }
     if (this.props.annotationDisplayConfig.isMaximized) {
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
@@ -390,30 +390,55 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) { this.resetAnnPos(); }
     }
 
-    if (!this.props.annotationDisplayConfig.prerender && prevProps.annotationDisplayConfig.prerender) {
-      window.addEventListener('message', this.receiveMessage, false);
+    if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized) {
+      if (this.props.annotationDisplayConfig.isMaximized) {
+        this.props.win.addEventListener('message', this.receiveMessage, false);
+      } else {
+        this.props.win.removeEventListener('message', this.receiveMessage, false);
+      }
     }
   }
 
   componentWillUnmount(): void {
-    window.removeEventListener('message', this.receiveMessage, false);
-
+    this.props.win.removeEventListener('message', this.receiveMessage, false);
     clearTimeout(this.transitionTimer);
     this.transitionTimer = 0;
   }
 
-  receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+  /**
+   * The way keyboard event works is a little complex although it seems like it could have been done easily.
+   *
+   * Preface knowledge:
+   * Fable records multiple screen with annotation during the recording phase. While the demo is played, we try to apply
+   * diff on top of the same screen; provided if both the screens are from same domain. Which means, same document
+   * object is shared among multiple steps (annotations). In this mix, there might be a screen of completely different
+   * domain (or an image scren) might be present that might have a different document object.
+   *
+   * Solution:
+   * Intuitively, it feels like a keyboard listener towards the top of the page can handle the
+   * navigation just like we handle similar navigation on mouse click. This could have been possible if the navigation
+   * control was as upstream (on the root iframe) as possible in the application (in the hindsight that might have been
+   * a correct design decision). But for our case, navigation control happens on the most downstream component that is
+   * there (AnnotationCard) hence we need to control listeners firing the event. On top of which prerendering needs to
+   * be considered as well.
+   *
+   * At first, in preview ifrmae (preview.tsx) we raise internal event based on the keyboard event. The prerendering
+   * considerations are done at that very phase itself simplifying the downstream code. An internal event is raised return
+   * based on the dom event, we capture the event here and decide what needs to be done on keyboard next or back button press.
+   * An annotation might be in maximized mode / minimized mode. The event listener is attached or remove based on that.
+   */
+  // receiveMessage = (e: NavigateToAnnMessage<Payload_NavToAnnotation>): void => {
+  receiveMessage = (e: any): void => {
     if (!isEventValid(e)) return;
-    if (e.data.sender !== 'sharefable.com') return;
-    if (e.data.type === ExtMsg.NavToAnnotation) {
-      if (e.data.payload.main && this.props.annotationDisplayConfig.isMaximized) {
-        this.props.nav(e.data.payload.main, 'annotation-hotspot');
-      } else if (e.data.payload.action && this.props.annotationDisplayConfig.isMaximized) {
-        const btnConfig = this.props.annotationDisplayConfig.config.buttons.filter(
-          button => button.type === e.data.payload.action
-        )[0];
-        this.props.navigateToAdjacentAnn(e.data.payload.action, btnConfig.id);
-      }
+    // If lead form is present then we don't enable keyboard navigation as it'll create issue with leadform input and
+    // verification process
+    if (this.props.annotationDisplayConfig.config.isLeadFormPresent) return;
+    if (e.data.type === 'f-go-next-ann') {
+      const nextBtn = this.props.annotationDisplayConfig.config.buttons.filter(btn => btn.type === 'next');
+      this.props.navigateToAdjacentAnn('next', nextBtn[0].id);
+    } else if (e.data.type === 'f-go-prev-ann') {
+      const prevBtn = this.props.annotationDisplayConfig.config.buttons.filter(btn => btn.type === 'prev');
+      this.props.navigateToAdjacentAnn('prev', prevBtn[0].id);
     }
   };
 
@@ -1516,6 +1541,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
 
       const navigateToAdjacentAnn: NavigateToAdjacentAnn = (type: 'prev' | 'next' | 'custom', btnId: string): void => {
         const config = p.conf.config;
+        // TODO this logic of sending type and btnId and then running a loop to figure out btnConf either by id or by
+        // type is weird as a btn can be of only one type and has unique id. Only btnId is sufficient in this case
         const btnConf = type === 'custom'
           ? config.buttons.filter(button => button.id === btnId)[0]
           : config.buttons.filter(button => button.type === type)[0];
@@ -1588,7 +1615,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
 
       return (
         <div
-          key={p.conf.config.id}
+          key={p.conf.config.refId}
           style={{
             position: 'absolute',
             zIndex: '2',
@@ -1623,7 +1650,6 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             tourId={this.props.tourId}
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
-            nav={this.props.nav}
             isScreenHTML4={this.props.isScreenHTML4}
           />
         </div>

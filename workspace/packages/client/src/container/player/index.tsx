@@ -6,7 +6,6 @@ import {
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameSettings, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
-import { DownSquareOutlined, ExpandOutlined, LoginOutlined, ReloadOutlined } from '@ant-design/icons';
 import { loadScreenAndData, loadTourAndData, removeScreenDataForRids, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
@@ -263,6 +262,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           screenSizeData: { ...prevS.screenSizeData, [data.screenId]: currScreenData }
         };
       });
+
+      // Propagate the data to the parent iframes
+      window.parent && window.parent.postMessage(e.data, '*');
     }
 
     if (e.data.type === HEADER_CTA) {
@@ -302,7 +304,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     window.addEventListener('beforeunload', removeSessionId);
-
     window.addEventListener('message', this.receiveMessage, false);
   }
 
@@ -894,12 +895,23 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       />;
     }
 
+    // TODO the border color has to match with frame theme. Right now these values are hard coded in two place.
+    // One hard coding is done here, another hard coding is done in demo-frame
+    let frameBorderColor: string | undefined;
+    if (this.state.frameSetting === FrameSettings.LIGHT) frameBorderColor = '#E0E0E0';
+    else if (this.state.frameSetting === FrameSettings.DARK) frameBorderColor = '#171717';
+    else frameBorderColor = '#616161';
+
+    const preRendering = !this.isInitialPrerenderingComplete();
+    // We don't show frame on mobile
+    const frame = isMobileOperatingSystem() ? FrameSettings.NOFRAME : this.state.frameSetting;
+
     return (
       <GTags.BodyCon
         style={{
           height: '100%',
           padding: 0,
-          overflowY: 'hidden',
+          overflow: 'hidden',
           gap: '0',
           position: 'relative',
         }}
@@ -998,7 +1010,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                   }
                 }}
                 shouldSkipLeadForm={this.shouldSkipLeadForm}
-                frameSetting={this.state.frameSetting}
+                frameSetting={frame}
+                borderColor={frameBorderColor}
               />
             ))
         }
@@ -1011,54 +1024,53 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           textColor={this.props.tourOpts.annotationFontColor._val}
           iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
           annotationSerialIdMap={this.state.annotationSerialIdMap}
+          frame={frame}
         />
         )}
-        {
-          !isMobileOperatingSystem()
-          && this.state.frameSetting !== FrameSettings.NOFRAME
-          && this.state.screenSizeData[this.getCurrScreenId()]
-          && (
-            <DemoFrame
-              mode={this.state.frameSetting}
-              iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
-              screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
-              showModule={
-                this.isInitialPrerenderingComplete()
-                && this.isJourneyAdded()
-                && (!this.queryData || !this.queryData.hm)
-                && !this.shouldHideJourney()
-              }
-              isJourneyMenuOpen={this.state.isJourneyMenuOpen}
-              setIsJourneyMenuOpen={() => {
-                this.setState(prevState => ({
-                  isJourneyMenuOpen: !prevState.isJourneyMenuOpen
-                }));
-              }}
-              JourneyMenuComponent={
-                getMenu(
-                  getProcessedJourney(this.props.journey!),
-                  this.navigateTo,
-                  () => this.navigateToAndLogEvent(this.props.journey!, 'abs'),
-                  this.props.tourOpts!,
-                  this.state.currentFlowMain,
-                  this.localJourneyProgress[this.props.tour!.id],
-                  (isMenuOpen: boolean): void => {
-                    this.setState({ isJourneyMenuOpen: isMenuOpen });
-                  },
-                  this.state.screenSizeData[this.getCurrScreenId()].iframePos.width
-                )
-              }
-              tour={this.props.tour!}
-              replayHandler={() => {
-                this.goToMain();
-                this.setState({
-                  previewReplayerKey: Math.random()
-                });
-              }}
-              makeEmbedFrameFullScreen={() => this.playerRef.current!.requestFullscreen()}
-            />
-          )
-        }
+        {frame !== FrameSettings.NOFRAME && this.state.screenSizeData[this.getCurrScreenId()] && (
+          <DemoFrame
+            mode={this.state.frameSetting}
+            iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
+            screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+            modules={this.props.journey}
+            currentModuleMain={this.state.currentFlowMain}
+            showModule={
+              this.isInitialPrerenderingComplete()
+              && this.isJourneyAdded()
+              && (!this.queryData || !this.queryData.hm)
+              && !this.shouldHideJourney()
+            }
+            isJourneyMenuOpen={this.state.isJourneyMenuOpen}
+            setIsJourneyMenuOpen={() => {
+              this.setState(prevState => ({
+                isJourneyMenuOpen: !prevState.isJourneyMenuOpen
+              }));
+            }}
+            JourneyMenuComponent={
+              getMenu(
+                getProcessedJourney(this.props.journey!),
+                this.navigateTo,
+                () => this.navigateToAndLogEvent(this.props.journey!, 'abs'),
+                this.props.tourOpts!,
+                this.state.currentFlowMain,
+                this.localJourneyProgress[this.props.tour!.id],
+                (isMenuOpen: boolean): void => {
+                  this.setState({ isJourneyMenuOpen: isMenuOpen });
+                },
+                this.state.screenSizeData[this.getCurrScreenId()].iframePos.width,
+                frame === FrameSettings.LIGHT ? 'light' : 'dark'
+              )
+            }
+            tour={this.props.tour!}
+            replayHandler={() => {
+              this.goToMain();
+              this.setState({
+                previewReplayerKey: Math.random()
+              });
+            }}
+            makeEmbedFrameFullScreen={() => this.playerRef.current!.requestFullscreen()}
+          />
+        )}
         <Suspense fallback={null}>
           {
              this.isInitialPrerenderingComplete()
@@ -1084,11 +1096,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             )
           }
         </Suspense>
-        {this.props.tourLoaderData && !this.isInitialPrerenderingComplete()
+        {this.props.tourLoaderData && preRendering
           && (
             <FullScreenLoader
               data={this.props.tourLoaderData}
               vpd={this.props.tour!.settings}
+              screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
               isResponsive={this.props.tour!.responsive2 === Responsiveness.Responsive}
             />
           )}

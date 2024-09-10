@@ -88,6 +88,7 @@ export interface IOwnProps {
   shouldSkipLeadForm: boolean;
   frameSetting: FrameSettings;
   globalEdits: EditItem[];
+  borderColor?: string;
 }
 
 interface IOwnStateProps {
@@ -309,7 +310,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         this.props.hidden && this.props.hidden !== prevProps.hidden
         && this.props.areDiffsAppliedSrnMap!.get(this.props.screen.rid)
       ) {
-        this.resetIframe(this.props.screen.rid);
+        await this.resetIframe(this.props.screen.rid);
         this.props.areDiffsAppliedSrnMap!.set(this.props.screen.rid, false);
       }
     } else {
@@ -358,7 +359,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     if (!this.props.hidden) {
       this.reachAnnotation(this.state.currentAnn);
     }
-  }, 100);
+  }, 16);
 
   getScreenById = (id: number): P_RespScreen | undefined => this.props.allScreens!.find(screen => screen.id === id);
 
@@ -736,7 +737,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         await this.assetLoadingPromises.shift();
       }
 
-      this.annotationLCM!.resetCons();
+      await this.annotationLCM!.resetCons();
       this.addFont();
       await this.scrollIframeElsIfRequired(goToAnnConfig, currScreenData);
 
@@ -781,7 +782,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     this.props.navigate(goToAnnIdWithScreenId, 'annotation-hotspot');
   };
 
-  resetIframe = (rid: string): void => {
+  resetIframe = async (rid: string): Promise<void> => {
     const screen = this.props.allScreens!
       .find(s => s.rid === rid)!;
     const currScreenData = this.props.allScreensData![screen.id];
@@ -800,7 +801,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
     htmlEl.replaceWith(replacedNode);
 
-    this.annotationLCM!.resetCons();
+    await this.annotationLCM!.resetCons();
     this.addFont();
     scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
   };
@@ -833,6 +834,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       playMode={this.props.playMode}
       isResponsive={this.props.isResponsive}
       heightOffset={this.props.frameSetting !== FrameSettings.NOFRAME ? MAC_FRAME_HEIGHT : 0}
+      borderColor={this.props.borderColor}
     />;
   }
 }

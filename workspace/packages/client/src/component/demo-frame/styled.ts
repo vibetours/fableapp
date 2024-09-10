@@ -9,7 +9,7 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
   position: absolute;
   top: ${({ iframePos, scaleFactor }) => `${iframePos.top - (MAC_FRAME_HEIGHT * scaleFactor)}px`};
   left: ${({ iframePos }) => `${iframePos.left}px`};
-  background-color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#f8fafc' : '#171717')};
+  background-color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#E0E0E0' : '#171717')};
   border-radius: 0.5rem 0.5rem 0 0;
   box-sizing: border-box;
   padding: 0.5rem 0.75rem;
@@ -19,24 +19,41 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
   transform: scale(${({ scaleFactor }) => `${scaleFactor}`});
   transform-origin: 0 0%;
   z-index: ${({ zIndex }) => zIndex};
+
+  .anim-con {
+    transition: opacity 0.3s ease-in-out;
+
+    &.show {
+      opacity: 1;
+    }
+
+    &.hide {
+      opacity: 0;
+    }
+  }
+
   .ctrl-btns {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.375rem;
+
     .ctrl-btn {
       border-radius: 100%;
       width: 10px;
       height: 10px;
     }
-    }
+  }
+
   .central-options {
     margin: 0;
     padding: 0;
     display: flex;
+    position: relative;
     gap: 0.5rem;
     align-items: center;
     width:  ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '50%' : 'auto')};
+
     .central-btn {
       border: none;
       outline: none;
@@ -44,11 +61,12 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
       cursor: pointer;
       color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#404040' : '#e5e5e5')};
     }
+
     .central-title {
       margin: 0;
       padding: 0.125rem 0.5rem;
       font-size: 0.875rem;
-      background-color:${({ mode }) => (mode === FrameSettings.LIGHT ? '#e5e5e5' : '#404040')};
+      background-color:${({ mode }) => (mode === FrameSettings.LIGHT ? '#f5f5f5' : '#404040')};
       border-radius: 0.5rem;
       display: flex;
       align-items: center;
@@ -56,8 +74,9 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
       gap: 0.5rem;
       width: ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '80%' : '480px')};
       color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#404040' : '#e5e5e5')};
-      p {
-        margin: 0 auto;
+
+      .module-btn {
+        flex: 1 1 auto;
         text-align: center;
         text-overflow: ellipsis;
         overflow: hidden;
@@ -65,47 +84,12 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
         max-width: 480px;
       }
     }
-    .module-btn-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      z-index: ${Number.MAX_SAFE_INTEGER};
-
-      .module-menu {
-        position: absolute;
-        top: 2rem;
-        z-index: ${Number.MAX_SAFE_INTEGER};
-        animation: module-menu 200ms;
-        transform: scale(${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 || iframePos.height < 480 ? ((iframePos.width * (1 / scaleFactor) < 640 ? 0.6 : 0.8)) : 1)});
-        transform-origin: top center;
-        margin-left: ${({ iframePos, scaleFactor }) => (iframePos.width * (1 / scaleFactor) < 960 ? '8rem' : '0rem')};
-      }
+   
+    .module-root-con {
+      position: absolute;
+      top: 32px;
+      width: 100%;
     }
-
-    @media (max-width: 640px) {
-    .module-btn-container {
-      .module-menu {
-        top:2rem;
-        margin-left: 8rem;
-        transform: scale(0.6);
-        transform-origin: top center
-      }
-    }
-    .central-options {
-      max-width : 50%;
-      .central-title {
-        width: 80%;
-        p {
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-          max-width: 80%;
-          background-color: red;
-        }
-      }
-    }
-  }
   }
 
   @keyframes module-menu {
@@ -118,7 +102,6 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
     }
   }
 
-
   .right-btns {
     display: flex;
     gap: 0.5rem;
@@ -128,31 +111,6 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
       outline: none;
       cursor: pointer;
       color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#404040' : '#e5e5e5')};
-    }
-  }
-
-  @media (max-width: 960px) {
-    .module-btn-container {
-      .module-menu {
-        top:2rem;
-        margin-left: 8rem;
-        transform: scale(0.8);
-        transform-origin: top center
-      }
-    }
-
-    .central-options {
-      max-width : 50%;
-      .central-title {
-        width: 80%;
-        p {
-          text-align: center;
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-          max-width: 80%;
-        }
-      }
     }
   }
 `;

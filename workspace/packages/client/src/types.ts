@@ -407,10 +407,11 @@ SiteData,
 export const SiteDateKeysWithProperty: Array<keyof SiteData_WithProperty> = ['logo', 'navLink', 'ctaText', 'ctaLink'];
 
 export interface IframePos {
-  left: number,
-  top: number,
-  height: number,
-  width: number
+  left: number;
+  top: number;
+  height: number;
+  width: number;
+  heightOffset: number;
 }
 
 export interface ScreenSizeData {

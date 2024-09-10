@@ -424,7 +424,6 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
   .preview-frame {
     display: block;
     border: none;
-    border-radius: 1rem;  
     height: 100%;
   }
 `;

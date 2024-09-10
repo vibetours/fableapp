@@ -2,6 +2,7 @@
 import { nanoid } from 'nanoid';
 import {
   BarsOutlined,
+  ContainerFilled,
   DisconnectOutlined,
   FileAddFilled,
   FileImageOutlined,
@@ -2897,7 +2898,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                     >
                       <Button
                         onClick={() => getFirstAnnotations()}
-                        icon={<BarsOutlined style={CANVAS_MENU_ITEM_STYLE} />}
+                        icon={<ContainerFilled style={CANVAS_MENU_ITEM_STYLE} />}
                         size="large"
                         type="text"
                         style={{

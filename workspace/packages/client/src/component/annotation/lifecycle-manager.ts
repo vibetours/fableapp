@@ -241,14 +241,23 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     let umbrellaDiv = getFableRtUmbrlDivWrapper(this.doc) as HTMLDivElement;
     if (!umbrellaDiv) {
       umbrellaDiv = createFableRtUmbrlDivWrapper(this.doc);
-
-      const [con, root] = this.createContainerRoot('');
-      const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
-      this.con = con;
-      this.rRoot = root;
-      this.conProbe = conProbe;
-      this.rRootProbe = rootProbe;
-      this.createMask();
+      // Before resetting the react managed dom objects we have to delete any existing managed objects that might have
+      // been created by react before. This is a critical step to clear out any listener.
+      // Our keyboard events depends on this listener creation
+      new Promise(done => {
+        setTimeout(() => {
+          this.disposeMountPoint();
+          done(1);
+        }, 0);
+      }).then(() => {
+        const [con, root] = this.createContainerRoot('');
+        const [conProbe, rootProbe] = this.createContainerRoot('ann-probe');
+        this.con = con;
+        this.rRoot = root;
+        this.conProbe = conProbe;
+        this.rRootProbe = rootProbe;
+        this.createMask();
+      });
     }
   }
 
@@ -547,7 +556,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     con.style.top = '0';
     con.style.zIndex = `${Number.MAX_SAFE_INTEGER}`;
     this.attachElToUmbrellaDiv(con);
-    const rRoot = ReactDOM.createRoot(con);
+    const rRoot = ReactDOM.createRoot(con, { identifierPrefix: `${this.screen.id}` });
     return [con, rRoot];
   }
 
@@ -1003,14 +1012,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   public dispose(): void {
     this.componentDisposed = true;
     const timer = setTimeout(() => {
-      if (this.rRoot) {
-        this.rRoot.unmount();
-        this.rRootProbe.unmount();
-      }
-      if (this.con) {
-        this.con.remove();
-        this.conProbe.remove();
-      }
+      this.disposeMountPoint();
       if (this.screenType === ScreenType.SerDom) {
         this.resetFramesScrollListeners();
       }
@@ -1018,6 +1020,17 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       super.dispose();
       clearTimeout(timer);
     });
+  }
+
+  private disposeMountPoint() {
+    if (this.rRoot) {
+      this.rRoot.unmount();
+      this.rRootProbe.unmount();
+    }
+    if (this.con) {
+      this.con.remove();
+      this.conProbe.remove();
+    }
   }
 
   public updateElPathKey(newElPath: ElPathKey) : void {

@@ -4,11 +4,11 @@ import styled from 'styled-components';
 import { getColorContrast } from '../../utils';
 
 export interface DropdownConf {
-    positioning: CreateJourneyPositioning;
-    top?: number;
-    left?: number;
-    transformTranslateX?: number;
-  }
+  positioning: CreateJourneyPositioning;
+  top?: number;
+  left?: number;
+  transformTranslateX?: number;
+}
 
 export const DropdownCon = styled.div`
   z-index: 9999;
@@ -20,13 +20,26 @@ export const DropdownCon = styled.div`
   width: 0px;
 `;
 
-export const JourneyCon = styled.div<{maxW: string}>`
-  background-color: #fff;
+export const JourneyCon = styled.div<{maxW: string, moduleTheme: 'light' | 'dark'}>`
+  background-color: ${props => (props.moduleTheme === 'light' ? '#eaeaea' : '#3c3c3c')};
+  color: ${props => (props.moduleTheme === 'dark' ? '#fff' : '#171717')};
   border-radius: 8px;
-  box-shadow: rgba(0, 0, 0, 0) 0px 0px 0px 2px, rgba(0, 0, 0, 0.3) 0px 0px 0px 1000vw;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+  border: 1px solid ${props => (props.moduleTheme === 'light' ? '#424242' : '#fff')};
   padding: 24px 0;
   width: 340px;
   max-width: ${props => `${props.maxW}`};
+
+  .flow-item {
+    &.sel {
+      background-color: ${(props) => (props.moduleTheme === 'light' ? '#dddddd' : '#4b4b4b')};
+    }
+
+    &:hover {
+      background-color: ${(props) => (props.moduleTheme === 'light' ? '#dddddd' : '#4b4b4b')};
+      border-radius: 5px;
+    }
+  }
 
   .superscript {
     font-size: 11px;
@@ -37,7 +50,6 @@ export const JourneyCon = styled.div<{maxW: string}>`
 `;
 
 interface FLowItemConf {
-  isCurrentFlow: boolean;
   disabled: boolean;
 }
 
@@ -50,19 +62,13 @@ export const FLowItemCon = styled.div<FLowItemConf>`
   padding: 15px;
   position: relative;
   opacity: ${props => (props.disabled ? 0.5 : 1)};
-  background-color:${(p: FLowItemConf) => (p.isCurrentFlow ? '#dfdee8' : 'inherit')};
-  
-  &:hover {
-    background-color: #F6F5FF;
-    border-radius: 5px;
-  }
 `;
 
 export const FLowTitle = styled.p`
   margin: 0;
   margin-bottom: 0.5rem;
   padding: 0px 16px;
-  font-size: 1.25rem;
+  font-size: 16px;
   font-weight: bold;
 `;
 
@@ -88,11 +94,11 @@ export const FlowHeader2 = styled.p`
 `;
 
 export const IndexButton = styled(Button)<IndexBtnConf>`
-  height: 46px;
+  height: 40px;
   padding: 5px 10px;
-  width: ${props => (props.applywidth === 'true' ? '46px !important' : 'auto')}; 
+  width: ${props => (props.applywidth === 'true' ? '40px !important' : 'auto')}; 
   background: ${props => `${props.color} !important`};
-  color:  ${props => `${getColorContrast(props.color)} === 'dark' ? '#fff' : '#000'`};
+  color:  ${props => `${getColorContrast(props.color) === 'dark' ? '#fff' : '#000'}`};
   font-family: "IBM Plex Sans", sans-serif;
   border-radius: 4px;
   display: flex;

@@ -286,9 +286,7 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IG
       const ids: string[] = [];
       for (const [annId, ann] of Object.entries((entity as TourScreenEntity).annotations)) {
         ids.push(annId);
-        if (varMap && Object.keys(varMap).length > 0) {
-          replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
-        }
+        replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
         anns.push(ann as IAnnotationConfig);
       }
       annotationsPerScreen[screenId] = isLocal ? (anns as IAnnotationConfig[]) : anns.map(remoteToLocalAnnotationConfig);

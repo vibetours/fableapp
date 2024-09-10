@@ -69,7 +69,7 @@ function LoaderEditor(props: Props): JSX.Element {
 
   const customizeLoaderFeatureAvailable = isFeatureAvailable(props.featureForPlan, 'custom_demo_loader');
   return (
-    <Tags.FullScreenCon>
+    <Tags.FullScreenCon applyTransform>
       <Tags.EditorWrapper>
         <Tags.Header>
           <Tags.FableLogo alt="" src={FableLogo} />

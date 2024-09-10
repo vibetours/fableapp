@@ -34,7 +34,7 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
 
   .preview-frame {
     border: none;
-    border-radius: 1rem;  
+    border-radius: 4px;  
   }
 `;
 

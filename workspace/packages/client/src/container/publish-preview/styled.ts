@@ -8,6 +8,7 @@ export const Con = styled.div`
   height: 100%;
   padding: 0;
   overflow-y: hidden;
+  background: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
 `;
 
 export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
@@ -34,7 +35,6 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
 
   .preview-frame {
     border: none;
-    border-radius: 1rem;  
   }
 `;
 

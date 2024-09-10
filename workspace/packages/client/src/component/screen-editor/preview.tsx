@@ -1,6 +1,7 @@
 import { CreateJourneyPositioning, JourneyData, ScreenData } from '@fable/common/dist/types';
-import React from 'react';
+import React, { ReactEventHandler } from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { P_RespScreen } from '../../entity-processor';
 import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
@@ -8,7 +9,7 @@ import { deserFrame } from './utils/deser';
 import { createFableRtUmbrlDivWrapper, getFableRtUmbrlDivWrapper } from '../annotation/utils';
 import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
-import { IframePos, EditItem } from '../../types';
+import { IframePos, EditItem, ScreenSizeData } from '../../types';
 import { applyEditsToSerDom } from './utils/edits';
 
 export interface IOwnProps {
@@ -26,6 +27,7 @@ export interface IOwnProps {
   playMode: boolean;
   isResponsive: boolean;
   heightOffset: number;
+  borderColor?: string;
 }
 
 export interface DeSerProps {
@@ -134,7 +136,48 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     if (prevProps.resizeSignal !== this.props.resizeSignal) {
       this.handleScreenResponsiveness();
     }
+
+    if (prevProps.hidden !== this.props.hidden) {
+      // Since we prerender some screens, we only capture keyboard event if iframe is visible.
+      if (!this.props.hidden) this.installListeners();
+      else this.removeListeners();
+    }
   }
+
+  componentWillUnmount(): void {
+    this.removeListeners();
+  }
+
+  installListeners() {
+    if (this.embedFrameRef.current && this.embedFrameRef.current.contentWindow) {
+      this.embedFrameRef.current.contentWindow.focus();
+      this.embedFrameRef.current.contentWindow.document.addEventListener('keyup', this.onKeyup);
+    } else {
+      raiseDeferredError(new Error('Count not register keyboard listeners'));
+    }
+  }
+
+  removeListeners() {
+    if (this.embedFrameRef.current && this.embedFrameRef.current.contentWindow) {
+      this.embedFrameRef.current.contentWindow.document.removeEventListener('keyup', this.onKeyup);
+    }
+  }
+
+  // TODO the internal and external events are a little bit messy and does not have proper structure / convention.
+  //      fix it if we ever release external events.
+  onKeyup = (e: KeyboardEvent) => {
+    if (e.keyCode === 39 || e.keyCode === 40 || e.keyCode === 76 || e.keyCode === 68) {
+      // if key pressed is right arrow (39) or down arrow (40) or l (76) or d (68)
+      this.embedFrameRef.current!.contentWindow?.postMessage({
+        type: 'f-go-next-ann',
+      });
+    } else if (e.keyCode === 37 || e.keyCode === 38 || e.keyCode === 74 || e.keyCode === 65) {
+      // if key pressed is left arrow (37) or down up (38) or j (74) or a (65)
+      this.embedFrameRef.current!.contentWindow?.postMessage({
+        type: 'f-go-prev-ann',
+      });
+    }
+  };
 
   componentDidMount(): void {
     const frame = this.embedFrameRef.current;
@@ -171,6 +214,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
                 scrollIframeEls(this.props.screenData.version, doc);
               }
               this.props.onFrameAssetLoad();
+              if (!this.props.hidden) this.installListeners();
             }
           });
         }, 100);
@@ -231,6 +275,16 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
     origFrameViewPort.height -= this.props.heightOffset;
 
+    // When browser frame is present (embed route) we show a border of 2px around the iframe to make it look like a browser frame
+    // When that happens the iframe's dimension needs to be reduced by 4px (2px either side)
+    // When browser window is not present (live route) we show border of 1px arond the iframe
+    const heightWidthAdjustment = this.props.heightOffset ? 4 : 2;
+    frame.style.borderColor = this.props.borderColor || 'transparent';
+    if (this.props.heightOffset) {
+      // when heightOffset is present that means frame is present hence we don't show the top border
+      frame.style.borderTop = 'none';
+    }
+
     if (!this.props.isResponsive) {
       // INFO for now we use a constant image scaling size of 1280 / 720 (with ratio 16:9)
       const vpdW = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.w : 1280;
@@ -242,19 +296,22 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       // eslint-disable-next-line react/no-unused-class-component-methods
       this.scaleFactor = scale;
 
+      // We apply border around the iframe to have a
+
       frame.style.transform = `scale(${scale})`;
       frame.style.transformOrigin = '0 0';
       frame.style.position = 'absolute';
-      frame.style.width = `${vpdW}px`;
-      frame.style.height = `${vpdH}px`;
+      frame.style.width = `${vpdW - heightWidthAdjustment}px`;
+      frame.style.height = `${vpdH - heightWidthAdjustment}px`;
 
       const viewPortAfterScaling = frame.getBoundingClientRect();
 
-      const iframePos = {
+      const iframePos: ScreenSizeData['iframePos'] = {
         left: viewPortAfterScaling.left,
         top: viewPortAfterScaling.top,
         height: viewPortAfterScaling.height,
-        width: viewPortAfterScaling.width
+        width: viewPortAfterScaling.width,
+        heightOffset: this.props.heightOffset
       };
 
       if (origFrameViewPort.width > viewPortAfterScaling.width) {
@@ -279,8 +336,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
       return;
     }
-    frame.style.width = `${origFrameViewPort.width}px`;
-    frame.style.height = `${origFrameViewPort.height}px`;
+    frame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
+    frame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
     frame.style.left = '0';
     frame.style.top = `${this.props.heightOffset}px`;
     // eslint-disable-next-line react/no-unused-class-component-methods
@@ -293,11 +350,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       0,
       origFrameViewPort.width
     );
-    const iframePos = {
+    const iframePos: ScreenSizeData['iframePos'] = {
       left: origFrameViewPort.left,
       top: origFrameViewPort.top + this.props.heightOffset,
       height: origFrameViewPort.height,
-      width: origFrameViewPort.width
+      width: origFrameViewPort.width,
+      heightOffset: this.props.heightOffset,
     };
     this.sendIframeScreenSizeData(1, iframePos);
     frame.style.background = 'white';
@@ -337,7 +395,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             visibility: this.props.hidden ? 'hidden' : 'visible',
             borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
             background: 'transparent',
-            boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em'
+            boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em',
+            borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
+            borderStyle: 'solid',
+            borderColor: 'transparent',
           }}
           ref={ref => {
             this.embedFrameRef.current = ref;

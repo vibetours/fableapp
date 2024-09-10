@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { AppstoreFilled, CompassFilled, DownSquareFilled, DownSquareOutlined, FullscreenOutlined, FundFilled, LoginOutlined, ReloadOutlined } from '@ant-design/icons';
+import { AppstoreFilled, CaretDownFilled, CompassFilled, ContainerFilled, DownSquareFilled, DownSquareOutlined, FullscreenOutlined, FundFilled, LoginOutlined, ReloadOutlined } from '@ant-design/icons';
 import { FrameSettings } from '@fable/common/dist/api-contract';
 import { Tooltip } from 'antd';
+import { JourneyData } from '@fable/common/dist/types';
 import { getMobileOperatingSystem, isLandscapeMode } from '../../utils';
 import { IframePos, ScreenSizeData } from '../../types';
 import { P_RespTour } from '../../entity-processor';
@@ -17,9 +18,24 @@ interface Props {
   tour: P_RespTour;
   replayHandler: () => void;
   makeEmbedFrameFullScreen: () => void;
-  screenSizeData: ScreenSizeData
+  screenSizeData: ScreenSizeData;
+  modules: JourneyData | null;
+  currentModuleMain: string;
 }
 export default function DemoFrame(props : Props) : JSX.Element {
+  const [title, setTitle] = useState(props.tour.displayName);
+
+  useEffect(() => {
+    if (!(props.modules && props.modules.flows.length)) return;
+    if (!props.currentModuleMain) return;
+
+    for (let i = 0; i < props.modules.flows.length; i++) {
+      if (props.modules.flows[i].main === props.currentModuleMain) {
+        setTitle(`${props.modules.title} / ${props.modules.flows[i].header1}`);
+      }
+    }
+  }, [props.modules, props.currentModuleMain]);
+
   return (
     <Tags.Frame
       mode={props.mode}
@@ -33,31 +49,21 @@ export default function DemoFrame(props : Props) : JSX.Element {
         <div className="ctrl-btn" style={{ background: '#22c55e' }} />
       </div>
       <div className="central-options">
-        {
-              props.showModule && (
-                <div className="module-btn-container">
-                  <Tooltip trigger={['hover']} placement="bottom" title={!props.isJourneyMenuOpen ? 'Module' : ''}>
-                    <button
-                      className="module-btn central-btn"
-                      onClick={() => {
-                        props.setIsJourneyMenuOpen();
-                      }}
-                      type="button"
-                    >
-                      <DownSquareFilled />
-                    </button>
-                  </Tooltip>
-
-                  {props.isJourneyMenuOpen && (
-                  <div className="module-menu">
-                    {props.JourneyMenuComponent}
-                  </div>
-                  )}
-                </div>
-              )
-              }
+        <div className={`anim-con ${props.isJourneyMenuOpen ? 'show' : 'hide'}`}>
+          {props.showModule && props.isJourneyMenuOpen && props.JourneyMenuComponent}
+        </div>
         <div className="central-title">
-          <p>{props.tour?.displayName}</p>
+          <button
+            className="module-btn central-btn"
+            onClick={() => {
+              props.setIsJourneyMenuOpen();
+            }}
+            type="button"
+          >
+            {props.showModule && (<><ContainerFilled />&nbsp;&nbsp;</>)}
+            <span>{title}</span>
+            {props.showModule && (<>&nbsp;<CaretDownFilled style={{ opacity: 0.5, fontSize: '10px' }} /></>)}
+          </button>
           <Tooltip trigger={['hover']} placement="bottom" title="Reload">
             <button
               className="central-btn"
@@ -70,7 +76,6 @@ export default function DemoFrame(props : Props) : JSX.Element {
         </div>
       </div>
       <div className="right-btns">
-
         <Tooltip trigger={['hover']} placement="bottom" title="Fullscreen">
           <button
             onClick={props.makeEmbedFrameFullScreen}

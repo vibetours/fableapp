@@ -1,4 +1,4 @@
-import { BarsOutlined, CloseOutlined, LockFilled, RightCircleFilled } from '@ant-design/icons';
+import { BarsOutlined, CaretRightFilled, CloseOutlined, ContainerOutlined, LockFilled, RightCircleFilled } from '@ant-design/icons';
 import { Dropdown, Tooltip } from 'antd';
 import React, { ReactElement, useEffect, useState } from 'react';
 import { JourneyData, ITourDataOpts, JourneyFlow, CreateJourneyPositioning } from '@fable/common/dist/types';
@@ -9,16 +9,17 @@ import { FlowProgress, ScreenSizeData } from '../../types';
 import { ProgressCircle } from '../progress-circle';
 
 interface Props {
-    journey: JourneyData;
-    isJourneyMenuOpen: boolean;
-    navigateToJourney: (main: string)=> void;
-    updateJourneyMenu: (isMenuOpen: boolean)=> void;
-    navigateToCta: ()=> void;
-    tourOpts: ITourDataOpts;
-    currentFlowMain: string;
-    journeyProgress: FlowProgress[];
-    currScreenId: number;
-    screenSizeData: Record<string, ScreenSizeData>;
+  journey: JourneyData;
+  isJourneyMenuOpen: boolean;
+  navigateToJourney: (main: string)=> void;
+  updateJourneyMenu: (isMenuOpen: boolean)=> void;
+  navigateToCta: ()=> void;
+  tourOpts: ITourDataOpts;
+  currentFlowMain: string;
+  journeyProgress: FlowProgress[];
+  currScreenId: number;
+  screenSizeData: Record<string, ScreenSizeData>;
+  theme?: 'light' | 'dark';
 }
 
 interface FlowWithLastMandatory extends JourneyFlow{
@@ -37,7 +38,8 @@ export const getMenu = (
   currentFlowMain: string,
   journeyProgress: FlowProgress[],
   updateJourneyMenu: (isMenuOpen: boolean)=> void,
-  maxWidth: number
+  maxWidth: number,
+  theme?: 'light' | 'dark'
 ) : ReactElement => {
   const getFlowProgress = (main: string) : FlowProgress => {
     const currenFlowProgress = journeyProgress.find(
@@ -64,7 +66,9 @@ export const getMenu = (
 
   return (
     <Tags.JourneyCon
+      className="module-root-con"
       maxW={maxWidth === 0 ? '100vw' : `${maxWidth}px`}
+      moduleTheme={theme || 'light'}
     >
       <Tags.FLowTitle>
         {journey.title}
@@ -101,7 +105,7 @@ export const getMenu = (
                       updateJourneyMenu(false);
                     }
                   }}
-                  isCurrentFlow={flow.main === currentFlowMain}
+                  className={`flow-item ${flow.main === currentFlowMain ? 'sel' : ''}`}
                   disabled={isMenuDisabled}
                 >
                   <div style={{ width: '16px', height: '16px', position: 'absolute', top: '16px' }}>
@@ -125,7 +129,7 @@ export const getMenu = (
                         {isMenuDisabled ? (
                           <LockFilled />
                         ) : (
-                          <RightCircleFilled />
+                          <CaretRightFilled />
                         )}
                       </div>
                     </Tags.FlowHeader1>
@@ -138,7 +142,7 @@ export const getMenu = (
         })}
       </div>
       {journey.cta && journey.cta.navigateTo && (
-      <div style={{ margin: '24px 16px 0 16px' }}>
+      <div style={{ margin: '8px 16px 0 16px' }}>
         <GTags.CTABtn
           size={journey.cta.size._val}
           onClick={navigateToCta}
@@ -163,7 +167,7 @@ function JourneyMenu(props: Props): JSX.Element {
   const primaryColor = props.journey.primaryColor;
   const [dropdownPos, setDropdownPos] = useState<{top: number, left: number, transformTranslateX: number, maxWidth: number} | null>(null);
   const [processedJourney, setProcessedJourney] = useState<null | JourneyWithLastMandatory>(null);
-  const paddingFactor = 20;
+  const paddingFactor = 10;
   const [scaleFactor, setScaleFactor] = useState<number | null>(null);
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -227,7 +231,8 @@ function JourneyMenu(props: Props): JSX.Element {
             props.currentFlowMain,
             props.journeyProgress,
             props.updateJourneyMenu,
-            dropdownPos?.maxWidth || 0
+            dropdownPos?.maxWidth || 0,
+            props.theme
           )}
           overlayStyle={showDropdown ? {
             transform: `scale(${scaleFactor})`,
@@ -257,14 +262,14 @@ function JourneyMenu(props: Props): JSX.Element {
               scalefactor={scaleFactor || 1}
               positioning={props.journey.positioning}
             >
-              <BarsOutlined style={{
-                color: getColorContrast(primaryColor._val) === 'dark' ? 'fff' : '000', fontSize: '18px' }}
+              <ContainerOutlined style={{
+                color: getColorContrast(primaryColor._val) === 'dark' ? 'fff' : '000', fontSize: '20px' }}
               />
               <Tags.IndexButtonContent>
-                <span style={{ fontWeight: '500', fontSize: '15px', lineHeight: '1.2' }}>
+                <span style={{ fontWeight: '500', fontSize: '14px', lineHeight: '1.2' }}>
                   {getCurretFlowTitle(props.journey.flows, props.currentFlowMain)}
                 </span>
-                <span style={{ lineHeight: '1.2' }}>
+                <span style={{ lineHeight: '1.2', fontSize: '12px' }}>
                   {props.journey.title}
                 </span>
               </Tags.IndexButtonContent>

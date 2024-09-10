@@ -4,7 +4,6 @@ import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-con
 import { Link } from 'react-router-dom';
 import { Button as AntButton } from 'antd';
 import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
-import { IAnnotationConfig } from '@fable/common/dist/types';
 import { clearCurrentTourSelection, getCustomDomains, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -21,7 +20,6 @@ import {
   sendPreviewHeaderClick
 } from '../../utils';
 import * as Tags from './styled';
-import BackgroundGradient from '../../component/publish-preview/bg-gradient';
 import Header from '../../component/header';
 import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
@@ -123,12 +121,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
 
-    this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
-
     window.addEventListener('message', this.receiveMessage, false);
 
+    this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     this.showMinimalHeaderIfReq();
-
     this.props.getVanityDomains();
   }
 
@@ -203,8 +199,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     const embedParams = isMobilePreview ? '&fframe=noframe' : '';
     return (
       <Tags.Con ref={this.frameConRef}>
-        <BackgroundGradient />
-
         <Tags.HeaderCon>
           {this.props.tour && <Header
             org={this.props.org}

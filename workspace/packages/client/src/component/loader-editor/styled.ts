@@ -36,15 +36,24 @@ export const CenteredLoaderLogoDiv = styled.div`
   }
 `;
 
-export const FullScreenCon = styled.div<{bg ?: string, width?: number | null, height?: number | null}>`
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: ${props => (props.width ? `${props.width}px` : '100vw')};
-    height:  ${props => (props.height ? `${props.height}px` : '100vh')};
-    z-index: 10;
-    background-color: ${props => `${props.bg || 'transparent'}`};
+export const FullScreenCon = styled.div<{
+  bg?: string,
+  width?: number | null,
+  height?: number | null,
+  top?: string;
+  left?: string;
+  applyTransform?: boolean;
+  borderRadius?: string;
+}>`
+  position: fixed;
+  top: ${props => props.top || '50%'};
+  left: ${props => props.left || '50%'};
+  ${props => (props.applyTransform ? 'transform: translate(-50%, -50%);' : '')}
+  width: ${props => (props.width ? `${props.width}px` : '100vw')};
+  height:  ${props => (props.height ? `${props.height}px` : '100vh')};
+  z-index: 10;
+  background-color: ${props => `${props.bg || 'transparent'}`};
+  border-radius: ${props => props.borderRadius || '6px'};
 `;
 
 export const EditorWrapper = styled.div`

@@ -405,7 +405,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                             alignItems: 'start'
                           }}
                           >
-                            <div style={{ width: '60%', overflow: 'auto', padding: '0 4px' }}>
+                            <div style={{ width: '60%', overflow: 'auto', padding: '0 4px', maxWidth: '680px' }}>
                               <div
                                 style={{
                                   margin: '1rem 0',
