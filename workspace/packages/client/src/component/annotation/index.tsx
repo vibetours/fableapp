@@ -433,6 +433,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     // If lead form is present then we don't enable keyboard navigation as it'll create issue with leadform input and
     // verification process
     if (this.props.annotationDisplayConfig.config.isLeadFormPresent) return;
+    // Ref: https://sharefable.slack.com/archives/C0491PEEPPZ/p1725969199365899?thread_ts=1725955461.355159&cid=C0491PEEPPZ
+    if (!this.props.annotationDisplayConfig.isMaximized) return;
     if (e.data.type === 'f-go-next-ann') {
       const nextBtn = this.props.annotationDisplayConfig.config.buttons.filter(btn => btn.type === 'next');
       this.props.navigateToAdjacentAnn('next', nextBtn[0].id);

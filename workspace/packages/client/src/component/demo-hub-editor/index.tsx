@@ -128,6 +128,7 @@ function DemoHubEditor(props: Props): JSX.Element {
     <EditorCtx.Provider value={ctxValue}>
       <GTags.DemoHeaderCon>
         <Header
+          subs={null/* TODO send subscription here */}
           tour={null}
           org={props.org}
           showCalendar

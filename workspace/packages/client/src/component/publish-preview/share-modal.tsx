@@ -406,7 +406,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [allDomains, setAllDomains] = useState<string[] | null>(null);
   const [loadingAnns, setLoadingAnns] = useState(true);
   const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]>>({});
-  const [showPersVarsEditor, setShowPersVarsEditor] = useState(true);
+
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
     if (allParams.length) setSearchParamsStr(`?${allParams.map(p => `${p.mapping}=${p.value}`).join('&')}`);
@@ -479,11 +479,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
     }
   }
 
-  useEffect(() => {
-    if (props.isModalVisible) {
-      setShowPersVarsEditor(true);
-    }
-  }, [props.isModalVisible]);
   return (
     <>
       <GTags.BorderedModal
@@ -494,8 +489,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
         open={props.isModalVisible}
         onCancel={props.closeModal}
         centered
-        width={(props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED) && showPersVarsEditor
-          ? '90vw' : '60vw'}
+        width={(props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED) ? '90vw' : '60vw'}
         footer={null}
       >
         <div style={{
@@ -508,7 +502,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
             style={{
               width: (
                 props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED)
-                && showPersVarsEditor
                 ? '70%'
                 : '100%'
             }}
@@ -703,21 +696,27 @@ export default function ShareTourModal(props: Props): JSX.Element {
             </p>
             <img src="/site.png" height={480} alt="site wireframe" />
           </Drawer>
-          {props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && showPersVarsEditor && (
-            <PersonalVarEditor
-              showAsPopup={false}
-              allAnnotationsForTour={[]}
-              annotationsForScreens={annotationsForScreens}
-              rid={props.tour.rid}
-              originalPersVarsParams=""
-              changePersVarParams={(persVarsParamsStr) => {
-                props.setCopyUrlParams(persVarsParamsStr);
-                setSearchParamsStr(persVarsParamsStr);
-              }}
-              isLoading={loadingAnns}
-              showEditor={showPersVarsEditor}
-              setShowEditor={(showEditor: boolean) => { setShowPersVarsEditor(showEditor); }}
-            />
+          {props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && (
+            <div style={{
+              background: 'white',
+              marginTop: '2rem',
+              border: '1px solid #e0e0e0',
+              borderRadius: '16px'
+            }}
+            >
+              <PersonalVarEditor
+                allAnnotationsForTour={[]}
+                annotationsForScreens={annotationsForScreens}
+                rid={props.tour.rid}
+                originalPersVarsParams=""
+                changePersVarParams={(persVarsParamsStr) => {
+                  props.setCopyUrlParams(persVarsParamsStr);
+                  setSearchParamsStr(persVarsParamsStr);
+                }}
+                isLoading={loadingAnns}
+                setShowEditor={() => { /* noop */ }}
+              />
+            </div>
           )}
         </div>
 

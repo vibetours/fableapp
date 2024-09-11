@@ -202,5 +202,23 @@ export const PlanBadgeCon = styled.div`
   &:hover {
     background-color: white;
   }
+`;
 
+export const CreditBadge = styled.div`
+  display: flex;
+  background: #fedf64;
+  margin-bottom: 1rem;
+  justify-content: space-around;
+  padding: 1rem;
+  border-radius: 8px;
+  align-items: center;
+  color: black !important;
+  text-decoration: none !important;
+  cursor: pointer;
+
+  .content {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+  }
 `;

@@ -187,6 +187,7 @@ export const AnInnerContainer = styled.div`
   flex-direction:column;
   padding: calc(var(--f-ann-padding-x) * 1px);
   z-index: 9999;
+  word-break: break-word;
 `;
 
 interface AnTextContentProps {

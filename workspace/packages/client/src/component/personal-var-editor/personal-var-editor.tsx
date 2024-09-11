@@ -1,21 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CloseOutlined, CodeOutlined, FontSizeOutlined, WarningOutlined } from '@ant-design/icons';
+import { FontSizeOutlined, LoadingOutlined, WarningOutlined } from '@ant-design/icons';
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import Button from '../button';
-import { AnnotationPerScreen } from '../../types';
+import { AnnotationPerScreen, ScreenSizeData } from '../../types';
 import { getPersVarsFromAnnotations, getPersVarsFromAnnsForTour, getPrefilledPerVarsFromLS, processPersVarsObj, recordToQueryParams, removeDuplicatesFromStrArr, setPersValuesInLS } from '../../utils';
 import { InputText } from '../screen-editor/styled';
 
 interface Props {
-  showAsPopup: boolean;
   allAnnotationsForTour: AnnotationPerScreen[];
   rid: string;
+  isLoading?: boolean;
   changePersVarParams: (persVarsParams: string) => void;
   annotationsForScreens: Record<string, IAnnotationConfig[]>;
   originalPersVarsParams: string;
-  isLoading?: boolean;
-  showEditor: boolean;
   setShowEditor: (showPersVarsEditor: boolean) => void;
 }
 
@@ -35,19 +33,9 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
   function saveParamsHandler() : void {
     const searchParamStr = recordToQueryParams({ ...processPersVarsObj(perVarsInTour) }, props.originalPersVarsParams);
     props.changePersVarParams(`?${searchParamStr}`);
-
-    if (props.showAsPopup) {
-      props.setShowEditor(false);
-    }
   }
 
   function handleDiscard() : void {
-    const searchParams = new URLSearchParams(props.originalPersVarsParams);
-
-    Object.keys(perVarsInTour).forEach(key => {
-      searchParams.delete(`v_${key}`);
-    });
-
     resetLocalStoreObj();
 
     setPerVarsInTour((prevParams) => {
@@ -58,12 +46,8 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
 
       return updatedParams;
     });
-
-    props.changePersVarParams(searchParams.toString());
-
-    if (props.showAsPopup) {
-      props.setShowEditor(false);
-    }
+    props.changePersVarParams(props.originalPersVarsParams);
+    props.setShowEditor(false);
   }
 
   useEffect(() => {
@@ -77,136 +61,112 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
   }, [props.allAnnotationsForTour, props.annotationsForScreens]);
 
   return (
-    <Tags.VarEditorCon showAsPopup={props.showAsPopup} showEditor={props.showEditor}>
-      {props.showAsPopup && (
-        <Button
-          className="popup-btn"
-          icon={<CodeOutlined />}
-          onClick={() => props.setShowEditor(!props.showEditor)}
-        />)}
+    <Tags.VarEditorCon>
+      <p className="typ-h1">Personalize demo</p>
       {
-        props.showEditor && (
-          <div className="pers-var-editor">
-            <div className="typ-h1 heading">
-              <h4 className="heading-h4">Customize Demo</h4>
-              {!props.showAsPopup && (
-                <button
-                  className="close-btn"
-                  type="button"
-                  onClick={() => {
-                    props.setShowEditor(false);
-                  }}
-                >
-                  <CloseOutlined />
-                </button>
-              )}
-            </div>
-            {
-              !props.isLoading ? (
-                <>
-                  {Object.keys(perVarsInTour).length > 0
-                    ? (
-                      <div className="typ-reg">
-                        We have detected the following variables in your demo.
-                        Enter value for these variabes to customise the demo.
+          !props.isLoading ? (
+            <>
+              {Object.keys(perVarsInTour).length > 0
+                ? (
+                  <div className="typ-reg">
+                    We have detected the following variables in your demo.
+                    Enter value for these variabes to personalize the demo.
 
-                        <div className="demo-url">
-                          <div className="demo-url-title">
-                            Demo URL:
+                    <div className="demo-url typ-sm">
+                      <span>
+                        URL Parameter:
+                      </span>
+                      <code>
+                        <span className="url-code">?</span>
+                        <span className="url-code">
+                          {recordToQueryParams(processPersVarsObj(perVarsInTour)).trim()}
+                        </span>
+                      </code>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="no-vars-text">
+                    <div className="typ-reg">
+                      Use variables in annotation message and pass variable values from
+                      URL parameter to personalize your demo
+                    </div>
+                    <ul className="typ-reg">
+                      <li>
+                        You can simply use a variable <code>{'{{ first_name }}'}</code> in annotation text to personalize the demo
+                      </li>
+                      <li>
+                        Pass the variable value via URL parameter <code>?v_first_name=John+Doe</code> to personalize the demo for <em>John Doe</em>
+                      </li>
+                    </ul>
+                    <p className="typ-reg">
+                      Once you add variable(s) in the annotation message, come back here to check how this demo can be personalized.
+                    </p>
+                  </div>
+                )}
+              {Object.keys(perVarsInTour).length > 0 && (
+              <>
+                <div className="per-var-input-con custom-scrollbar">
+                  {
+                Object.keys(perVarsInTour).map((perVar, index) => (
+                  <div className="pers-var-input" key={perVar}>
+                    <label htmlFor={perVar} className="typ-reg pervar-label">
+                      <code>{perVar}</code>
+                    </label>
+                    <InputText
+                      id={perVar}
+                      style={{ padding: '0.5rem 0.75rem' }}
+                      value={perVarsInTour[perVar]}
+                      onChange={(e) => {
+                        const newPerVarsInTour = { ...perVarsInTour, [perVar]: e.target.value };
+                        setPersValuesInLS(newPerVarsInTour, props.rid);
+                        setPerVarsInTour(prev => (
+                          {
+                            ...prev,
+                            [perVar]: e.target.value
+                          }
+                        ));
+                      }}
+                    />
+                  </div>
+                ))
+              }
+                </div>
+                <div className="errors custom-scrollbar">
+                  {
+                    Object.keys(perVarsInTour).map(perVar => (
+                      perVarsInTour[perVar] === ''
+                        ? (
+                          <div key={perVar} className="error typ-sm">
+                            <WarningOutlined style={{ color: 'red' }} />
+                        &nbsp;Variable "{perVar}" is not set
                           </div>
-                          <code className="custom-scrollbar">
-                            <span className="url-code">?</span>
-                            <span className="url-code">
-                              {recordToQueryParams(processPersVarsObj(perVarsInTour)).trim()}
-                            </span>
-                          </code>
-                        </div>
-                      </div>
-                    )
-                    : (
-                      <div className="no-vars-text">
-                        <div className="typ-reg">
-                          Use variables in annotation message and pass variable values from
-                          URL parameter to customize your demo
-                        </div>
-                        <ul className="typ-reg">
-                          <li>
-                            You can use simple text variable
-                            <div>
-                              <code>{'{{ first_name }}'}</code> in annotation text and pass dynamic value from url parameters
-                            </div>
-                          </li>
-                        </ul>
-                      </div>
-                    )}
-                  {Object.keys(perVarsInTour).length > 0 && (
-                  <>
-                    <div className="per-var-input-con custom-scrollbar">
-                      {
-                    Object.keys(perVarsInTour).map((perVar, index) => (
-                      <div className="pers-var-input" key={perVar}>
-                        <label htmlFor={perVar} className="typ-reg pervar-label">
-                          <FontSizeOutlined style={{ fontSize: '1.75rem' }} />
-                          <code>{perVar}</code>
-                        </label>
-                        <InputText
-                          id={perVar}
-                          style={{ padding: '0.5rem 0.75rem' }}
-                          value={perVarsInTour[perVar]}
-                          onChange={(e) => {
-                            const newPerVarsInTour = { ...perVarsInTour, [perVar]: e.target.value };
-                            setPersValuesInLS(newPerVarsInTour, props.rid);
-                            setPerVarsInTour(prev => (
-                              {
-                                ...prev,
-                                [perVar]: e.target.value
-                              }
-                            ));
-                          }}
-                        />
-                      </div>
+                        )
+                        : <React.Fragment key={perVar} />
                     ))
                   }
-                    </div>
-                    <div className="errors custom-scrollbar">
-                      {
-                        Object.keys(perVarsInTour).map(perVar => (
-                          perVarsInTour[perVar] === ''
-                            ? (
-                              <div key={perVar} className="error typ-sm">
-                                <WarningOutlined style={{ color: 'red' }} />
-                            &nbsp;Variable "{perVar}" is not set
-                              </div>
-                            )
-                            : <React.Fragment key={perVar} />
-                        ))
-                      }
-                    </div>
-                    <div className="bottom-btns">
-                      <Button
-                        className="btns"
-                        size="medium"
-                        intent="secondary"
-                        onClick={() => handleDiscard()}
-                      >
-                        Discard
-                      </Button>
-                      <Button
-                        className="btns"
-                        size="medium"
-                        intent="primary"
-                        onClick={() => saveParamsHandler()}
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  </>)}
-                </>
-              ) : <p className="typ-h3 loading-state">Loading...</p>
-            }
-          </div>
-        )
-      }
+                </div>
+                <div className="bottom-btns">
+                  <Button
+                    className="btns"
+                    size="medium"
+                    intent="secondary"
+                    onClick={() => handleDiscard()}
+                  >
+                    Discard
+                  </Button>
+                  <Button
+                    className="btns"
+                    size="medium"
+                    intent="primary"
+                    onClick={() => saveParamsHandler()}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </>)}
+            </>
+          ) : <p className="typ-reg loading-state"><LoadingOutlined /> Loading...</p>
+        }
     </Tags.VarEditorCon>
   );
 }

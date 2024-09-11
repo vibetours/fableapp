@@ -19,7 +19,6 @@ export const SkeletonCon = styled.div`
 export const SkeletonGrid = styled.div`
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
   width: 100%;
 `;
 
@@ -476,12 +475,17 @@ export const AllProgressCon = styled.div`
   grid-template-rows: repeat(4, 1fr);
   grid-template-columns: 1fr;
   display: grid;
-  width: 100%;
+  width: 60%;
   gap: 10px;
 `;
 
 export const TipsAnimationCon = styled.div<{bgColor: string}>`
-  width: 50%;
+  p {
+    margin: 0;
+    margin-bottom: 1rem;
+  }
+
+  width: 25%;
   padding: 1rem 2rem;
   border-radius: 8px;
   box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;

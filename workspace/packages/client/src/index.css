@@ -180,6 +180,7 @@ input {
 .ant-popover .ant-popover-inner {
   border-radius: 16px !important;
   padding: 16px !important;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px !important;
 }
 
 .ant-tour .ant-tour-inner {
@@ -342,6 +343,18 @@ input {
   margin: 4px 0;
   height: 4px;
   width: 6px;
+}
+
+.quick-edit-popover .ant-popover-content {
+  top: 55px;
+}
+
+.quick-edit-popover .ant-popover-arrow {
+  right: 1px !important;
+}
+
+.quick-edit-popover .ant-popover-inner {
+  border: 1px solid #404040;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {

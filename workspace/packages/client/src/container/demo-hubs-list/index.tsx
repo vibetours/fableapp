@@ -99,6 +99,7 @@ class DemoHubsList extends React.PureComponent<IProps, IOwnStateProps> {
         <SkipLink />
         <div style={{ height: '48px' }}>
           <Header
+            subs={null/* TODO send subscription here */}
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}

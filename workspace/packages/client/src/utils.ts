@@ -855,7 +855,7 @@ export function getAnnTextEditorErrors(perVars: string[]): string[] {
   perVars.forEach(key => {
     if (!validPattern.test(key)) {
       errors.push(
-        `"${key}" is not valid because it contains characters other than alphabets, numbers, and underscore '_'`
+        `"${key}" is not a valid variable name because it contains characters other than alphabets, numbers, and underscore '_'`
       );
     }
   });

@@ -208,6 +208,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
         />}
         <div style={{ height: '48px' }}>
           <Header
+            subs={this.props.subs}
             tour={null}
             org={this.props.org}
             shouldShowFullLogo

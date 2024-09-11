@@ -13,12 +13,13 @@ import {
   SwapOutlined,
   WarningFilled,
   ExclamationCircleFilled,
+  WalletFilled,
 } from '@ant-design/icons';
 import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
@@ -27,13 +28,13 @@ import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity
 import Input from '../input';
 import * as Tags from './styled';
 import { getIframeShareCode } from './utils';
-import { AI_PARAM, AnnotationPerScreen, JourneyOrOptsDataChange, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
+import { AI_PARAM, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
 import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
 import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
-import { FeatureForPlan } from '../../plans';
 import { isAIParamPresent, sendPreviewHeaderClick } from '../../utils';
+import Button from '../button';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
@@ -50,6 +51,7 @@ interface IOwnProps {
   principal?: RespUser | null;
   org: RespOrg | null;
   titleText?: string;
+  subs: P_RespSubscription | null;
   showRenameIcon?: boolean;
   renameScreen?: (newVal: string) => void;
   tourMainValidity?: TourMainValidity;
@@ -98,6 +100,7 @@ function Header(props: IOwnProps): JSX.Element {
   const [isWarningPresent, setIsWarningPresent] = useState(false);
   const [showUserGuidePopover, setShowUserGuidePopover] = useState(false);
   const [copyUrlParams, setCopyUrlParams] = useState('');
+  const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
 
@@ -310,7 +313,7 @@ function Header(props: IOwnProps): JSX.Element {
                         });
 
                         const param = isAIParamPresent() ? `?${AI_PARAM}` : '';
-                        window.open(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}${param}`)?.focus();
+                        navigate(`/${PREVIEW_BASE_URL}/demo/${props.tour?.rid}${param}`);
                       }}
                       disabled={props.tourMainValidity !== TourMainValidity.Valid}
                     >
@@ -535,6 +538,56 @@ function Header(props: IOwnProps): JSX.Element {
               </Popover>
               )}
             </>
+          )}
+          {props.subs && (
+            <Tags.MenuItem style={{ display: 'flex' }}>
+              <Tags.StyledPopover
+                trigger="click"
+                placement="bottomRight"
+                content={
+                  <div onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  >
+                    <GTags.PopoverMenuItem nonit>
+                      <WalletFilled style={{
+                        marginRight: '0.25rem',
+                      }}
+                      />
+                      {props.subs.availableCredits}
+                      <div style={{ fontSize: '0.65rem' }}>Credit available</div>
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItemDivider />
+                    <GTags.PopoverMenuItem nonit>
+                      <div style={{ fontSize: '0.65rem', lineHeight: '1rem', marginBottom: '0.75rem' }}>
+                        Buy more credit for <br />Quilly, your AI Demo Copilot
+                      </div>
+                      <Link
+                        to="/billing"
+                      >
+                        <Button
+                          size="medium"
+                          intent="primary"
+                          style={{
+                            background: '#ffdf65',
+                            color: 'black'
+                          }}
+                        >
+                          Buy credit
+                        </Button>
+                      </Link>
+                    </GTags.PopoverMenuItem>
+                  </div>
+                }
+              >
+                <WalletFilled style={{
+                  marginRight: '0.75rem',
+                  color: '#ffdf65',
+                }}
+                />
+              </Tags.StyledPopover>
+            </Tags.MenuItem>
           )}
           {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>

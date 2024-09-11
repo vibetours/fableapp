@@ -173,6 +173,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
             >
               <GTags.DemoHeaderCon>
                 <Header
+                  subs={null/* TODO send subscription here */}
                   tour={null}
                   demoHub={this.props.demoHub}
                   org={this.props.org}

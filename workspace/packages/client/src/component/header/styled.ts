@@ -108,9 +108,9 @@ export const CanvasOptionsCon = styled.div`
 export const StyledPopover = styled(Popover)`
 .ant-popover-inner {
     border-radius: 16px !important;
-    border: 1px solid #EAEAEA !important;
+    border: 1px solid #160245 !important;
     background: var(--White, #FFF) !important;
-    box-shadow: 0px 4px 8px 0px rgba(0, 0, 0, 0.08) !important;
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
   }
 `;
 

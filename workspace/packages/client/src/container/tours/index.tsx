@@ -339,6 +339,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         <SkipLink />
         <div style={{ height: '48px' }}>
           <Header
+            subs={this.props.subs}
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}

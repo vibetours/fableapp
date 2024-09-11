@@ -44,7 +44,7 @@ interface IAppStateProps {
   tour: P_RespTour | null;
   principal: RespUser | null;
   org: RespOrg | null;
-  // subs: P_RespSubscription | null;
+  subs: P_RespSubscription | null;
   // allAnnotationsForTour: AnnotationPerScreen[];
   // journey: JourneyData | null;
   // isTourLoaded: boolean;
@@ -55,7 +55,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   tour: state.default.currentTour,
   org: state.default.org,
   principal: state.default.principal,
-  // subs: state.default.subs
+  subs: state.default.subs
 });
 
 interface IOwnProps {
@@ -334,6 +334,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
       <GTags.ColCon>
         <GTags.HeaderCon>
           {this.props.tour && <Header
+            subs={this.props.subs}
             showOnboardingGuides
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"

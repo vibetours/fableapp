@@ -1,6 +1,6 @@
-import { Progress, Spin } from 'antd';
+import { Progress } from 'antd';
 import React from 'react';
-import { CheckCircleFilled } from '@ant-design/icons';
+import { CheckCircleFilled, LoadingOutlined } from '@ant-design/icons';
 import * as Tags from './styled';
 
 interface Props {
@@ -19,24 +19,24 @@ function CreateTourProgress(props: Props): JSX.Element {
           <div style={{ display: 'flex', flexDirection: 'column', margin: '0 10px' }}>
             <span className="typ-reg">{props.title}</span>
             {props.progressInfo
-              && <span className="typ-sm">[{props.completedSteps}/{props.totalSteps}] {props.progressInfo}</span>}
+              && <span className="typ-sm" style={{ opacity: 0.5 }}>[{props.completedSteps}/{props.totalSteps}] {props.progressInfo}</span>}
           </div>
           {
             props.showCircularLoader
-              ? <div style={{ textAlign: 'start' }}><Spin /></div>
+              ? <div style={{ textAlign: 'start' }}><LoadingOutlined /> </div>
               : (
                 <>
                   <Progress
-                    strokeWidth={14}
+                    strokeWidth={8}
                     strokeColor="#7567FF"
                     trailColor="#D9D9D9"
                     showInfo={false}
-                    strokeLinecap="square"
+                    strokeLinecap="round"
                     percent={(props.completedSteps * 100) / props.totalSteps}
                     style={{ marginBottom: 0 }}
                   />
                   {props.completedSteps === props.totalSteps
-                    && <CheckCircleFilled style={{ color: '#7567FF', fontSize: 15, marginLeft: '5px' }} />}
+                    && <CheckCircleFilled style={{ color: '#7567FF', fontSize: 8, marginLeft: '5px' }} />}
                 </>)
           }
         </>

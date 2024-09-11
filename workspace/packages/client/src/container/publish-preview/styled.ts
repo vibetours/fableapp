@@ -38,6 +38,25 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
   }
 `;
 
+export const QuickEditPanel = styled.div<{
+  x: number;
+  y: number;
+  h:number
+}>`
+  position: relative;
+  top: 0;
+  height: ${props => `${props.h}px`};
+  transform: ${props => `translate(-${props.x}px, ${props.y}px)`};
+  background: transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+  font-size: 1.5rem;
+
+  .panel-item {
+    cursor: pointer;
+  }
+`;
+
 export const HeaderCon = styled.div`
   align-self: stretch;
   position: static;
@@ -48,4 +67,15 @@ export const HeaderCon = styled.div`
   font-style: normal;
   font-weight: 700;
   line-height: normal;
+`;
+
+export const QuickEditPopoverCon = styled.div`
+  display: flex;
+  flex-direction: column;
+
+  .close-btn {
+    font-size: 0.65rem;
+    cursor: pointer;
+    align-self: flex-end;
+  } 
 `;

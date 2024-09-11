@@ -334,6 +334,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
         />}
         <div style={{ height: '48px' }}>
           <Header
+            subs={this.props.subs}
             org={this.props.org}
             tour={null}
             shouldShowFullLogo

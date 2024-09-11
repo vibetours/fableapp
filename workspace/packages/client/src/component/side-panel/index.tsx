@@ -1,6 +1,6 @@
-import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined } from '@ant-design/icons';
+import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled, WalletOutlined } from '@ant-design/icons';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Status } from '@fable/common/dist/api-contract';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import * as Tags from './styled';
@@ -84,6 +84,21 @@ export default function SidePanel(props: Props): JSX.Element {
           <p>Free demo consultation</p>
         </Tags.ConNavBtn>
         <div style={{ margin: 'auto 8px 16px' }}>
+          {/* props.subs && (
+          <Tags.CreditBadge
+            onClick={() => {
+              navigate('/billing');
+            }}
+          >
+            <div>
+              <WalletOutlined style={{ fontSize: '20px' }} />
+            </div>
+            <div className="content">
+              <span style={{ fontWeight: 500 }}>{props.subs.availableCredits}</span>
+              <span style={{ fontSize: '0.8rem' }}>Buy Quilly credit</span>
+            </div>
+          </Tags.CreditBadge>
+          ) */}
           {props.subs && !isBuisnessPlan && !isTrialAndEndGreaterThanOneYear() && <PlanBadge
             subs={props.subs}
             onClick={() => {

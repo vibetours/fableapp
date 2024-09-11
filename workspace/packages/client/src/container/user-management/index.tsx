@@ -95,6 +95,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
         />}
         <div style={{ height: '48px' }}>
           <Header
+            subs={this.props.subs}
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}

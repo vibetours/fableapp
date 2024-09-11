@@ -776,6 +776,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
               updateScreen={this.props.updateScreen}
               onTourJourneyChange={this.onOptsOrJourneyDataChange}
               headerProps={{
+                subs: this.props.subs,
                 navigateToWhenLogoIsClicked: '/demos',
                 titleElOnLeft: this.getHeaderTxtEl(),
                 leftElGroups: this.getHeaderLeftGroup(),

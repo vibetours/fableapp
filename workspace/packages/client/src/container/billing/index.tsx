@@ -5,7 +5,8 @@ import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
   InfoCircleOutlined,
-  LoadingOutlined
+  LoadingOutlined,
+  WalletFilled
 } from '@ant-design/icons';
 import { Modal } from 'antd';
 import api from '@fable/common/dist/api';
@@ -15,7 +16,7 @@ import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import { P_RespSubscription } from '../../entity-processor';
-import { checkout } from '../../action/creator';
+import { checkout, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { IPriceDetails, LifetimePriceDetailsData, PriceDetailsData } from './plans';
@@ -29,20 +30,16 @@ const { confirm } = Modal;
 declare const Chargebee: any;
 
 interface IDispatchProps {
-  checkout: typeof checkout
+  checkout: typeof checkout,
+  getSubscriptionOrCheckoutNew: typeof getSubscriptionOrCheckoutNew
 }
-
-const appsumoPricingMap = {
-  1: 49,
-  2: 119,
-  3: 249
-};
 
 const mapDispatchToProps = (dispatch: any) => ({
   checkout: (
     chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
     chosenInterval: 'annual' | 'monthly' | 'lifetime',
   ) => dispatch(checkout(chosenPlan, chosenInterval)),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew)
 });
 
 interface IAppStateProps {
@@ -140,7 +137,30 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
           okType: 'primary'
         });
       },
-      success() { fn && fn(); },
+      success: () => {
+        this.props.getSubscriptionOrCheckoutNew();
+        fn && fn();
+      },
+      step() { }
+    });
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  openCheckoutForQuillyCredit = () => {
+    const cbInstance = Chargebee.getInstance();
+    cbInstance.openCheckout({
+      hostedPage() {
+        return api<ReqSubscriptionInfo | undefined, null>('/credittopupurl', {
+          method: 'POST',
+          auth: true
+        });
+      },
+      loaded() { },
+      error(e: Error) { raiseDeferredError(e); },
+      close() { },
+      success: () => {
+        this.props.getSubscriptionOrCheckoutNew();
+      },
       step() { }
     });
   };
@@ -171,6 +191,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
         {this.props.loadingState === 'loading' && <TopLoader duration={TOP_LOADER_DURATION} showLogo={false} showOverlay />}
         <div style={{ height: '48px' }}>
           <Header
+            subs={this.props.subs}
             tour={null}
             org={this.props.org}
             shouldShowFullLogo
@@ -270,15 +291,34 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                     <div className="typ-h1">
                       {isLifetimePlan ? 'Subscribe to our SaaS plans' : 'Upgrade / Downgrade Plan'}
                     </div>
-                    <Button
-                      icon={<CreditCardFilled />}
-                      iconPlacement="left"
-                      onClick={() => {
-                        this.openCheckout();
-                      }}
+                    <div style={{
+                      display: 'flex',
+                      gap: '1rem'
+                    }}
                     >
-                      Make Payment
-                    </Button>
+                      <Button
+                        icon={<CreditCardFilled />}
+                        iconPlacement="left"
+                        onClick={() => {
+                          this.openCheckout();
+                        }}
+                      >
+                        Make Payment
+                      </Button>
+                      <Button
+                        icon={<WalletFilled />}
+                        iconPlacement="left"
+                        onClick={() => {
+                          this.openCheckoutForQuillyCredit();
+                        }}
+                        style={{
+                          background: '#fedf64',
+                          color: 'black'
+                        }}
+                      >
+                        Buy Quilly credit
+                      </Button>
+                    </div>
                   </div>
                   <div style={{
                     display: 'flex',

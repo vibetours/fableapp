@@ -2,10 +2,10 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
-import { Button as AntButton } from 'antd';
-import { EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
+import { Button as AntButton, Popover, Tooltip } from 'antd';
+import { CloseOutlined, CodeFilled, EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
 import { clearCurrentTourSelection, getCustomDomains, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
-import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import {
@@ -24,7 +24,7 @@ import Header from '../../component/header';
 import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
 import { IFRAME_BASE_URL } from '../../constants';
-import { AnnotationPerScreen, SiteData } from '../../types';
+import { AnnotationPerScreen, ScreenSizeData, SiteData } from '../../types';
 import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
@@ -60,6 +60,7 @@ interface IAppStateProps {
   isTourLoaded: boolean;
   vanityDomains: P_RespVanityDomain[] | null;
   allAnnotationsForTour: AnnotationPerScreen[];
+  subs: P_RespSubscription | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
@@ -70,7 +71,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     isTourLoaded: state.default.tourLoaded,
     org: state.default.org,
     vanityDomains: state.default.vanityDomains,
-    allAnnotationsForTour
+    allAnnotationsForTour,
+    subs: state.default.subs
   });
 };
 
@@ -91,6 +93,7 @@ interface IOwnStateProps {
   minimalHeader: boolean;
   embedQueryParams: string;
   showPersVarsEditor: boolean;
+  screenSizeData: ScreenSizeData | null;
 }
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
@@ -104,6 +107,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       showReplayOverlay: false,
+      screenSizeData: null,
       previewIframeKey: 0,
       showShareModal: false,
       viewScale: 1,
@@ -114,9 +118,19 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   receiveMessage = (e: MessageEvent<{ type: 'lastAnnotation' }>): void => {
-    if (isEventValid(e) && e.data.type === 'lastAnnotation') {
-      this.setState({ showReplayOverlay: true });
-      initLLMSurvey();
+    if (isEventValid(e)) {
+      if (e.data.type === 'lastAnnotation') {
+        this.setState({ showReplayOverlay: true });
+        initLLMSurvey();
+      } else if (e.data.type === 'screen-size-data') {
+        this.setState({
+          screenSizeData: {
+            // TODO fix the types
+            iframePos: (e.data as any).iframePos,
+            scaleFactor: (e.data as any).scaleFactor
+          }
+        });
+      }
     }
   };
 
@@ -203,6 +217,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       <Tags.Con ref={this.frameConRef}>
         <Tags.HeaderCon>
           {this.props.tour && <Header
+            subs={this.props.subs}
             org={this.props.org}
             userGuidesToShow={['Sharing or embedding your interactive demo']}
             showOnboardingGuides
@@ -304,21 +319,48 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               title="hello"
             />
           )}
-          {this.props.isTourLoaded && (
-            <PersonalVarEditor
-              showAsPopup
-              allAnnotationsForTour={this.props.allAnnotationsForTour}
-              showEditor={this.state.showPersVarsEditor}
-              setShowEditor={(showPersVarsEditor: boolean) => {
-                this.setState({ showPersVarsEditor });
-              }}
-              annotationsForScreens={{}}
-              rid={this.props.tour!.rid}
-              changePersVarParams={(embedQueryParams: string) => {
-                this.setState({ embedQueryParams });
-              }}
-              originalPersVarsParams={this.originalQueryParams}
-            />
+          {this.props.isTourLoaded && this.state.screenSizeData && (
+            <Tags.QuickEditPanel
+              y={this.state.screenSizeData.iframePos.top}
+              x={this.state.screenSizeData.iframePos.left}
+              h={this.state.screenSizeData.iframePos.height}
+            >
+              <Popover
+                overlayClassName="quick-edit-popover"
+                content={
+                  <Tags.QuickEditPopoverCon>
+                    <div className="close-btn" onClick={() => this.setState({ showPersVarsEditor: false })}>
+                      <CloseOutlined />
+                    </div>
+                    <div>
+                      <PersonalVarEditor
+                        allAnnotationsForTour={this.props.allAnnotationsForTour}
+                        setShowEditor={(showPersVarsEditor: boolean) => {
+                          this.setState({ showPersVarsEditor });
+                        }}
+                        annotationsForScreens={{}}
+                        rid={this.props.tour!.rid}
+                        changePersVarParams={(embedQueryParams: string) => {
+                          this.setState({ embedQueryParams });
+                        }}
+                        originalPersVarsParams={this.originalQueryParams}
+                      />
+                    </div>
+                  </Tags.QuickEditPopoverCon>
+                }
+                open={this.state.showPersVarsEditor}
+                placement="left"
+              >
+                <div
+                  className="panel-item"
+                  onClick={() => this.setState(state => ({ showPersVarsEditor: !state.showPersVarsEditor }))}
+                >
+                  <Tooltip title="Customize demo" placement="left">
+                    <CodeFilled />
+                  </Tooltip>
+                </div>
+              </Popover>
+            </Tags.QuickEditPanel>
           )}
         </Tags.PreviewFrameWrapper>
       </Tags.Con>

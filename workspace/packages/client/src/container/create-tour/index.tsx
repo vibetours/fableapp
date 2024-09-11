@@ -25,8 +25,9 @@ import {
   PlusOutlined,
   CheckOutlined,
   MessageFilled,
+  BulbFilled,
 } from '@ant-design/icons';
-import { Modal, Progress, Select, Tooltip } from 'antd';
+import { Modal, Select, Tooltip } from 'antd';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { create_guides_router } from '@fable/common/dist/llm-fn-schema/create_guides_router';
 import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
@@ -768,7 +769,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   updateCreditsAvailability = (): void => {
     if (this.props.subs) {
       const numberOfScreens = this.frameDataToBeProcessed.length;
-      const isAiCreditsAvailable = this.props.subs.availableCredits - numberOfScreens > 0;
+      const isAiCreditsAvailable = this.props.subs.availableCredits - (numberOfScreens * 10) > 0;
       this.setState({ isAiCreditsAvailable, aiCreditsAvailable: this.props.subs.availableCredits });
     }
   };
@@ -2214,38 +2215,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                      </div>
                    </Suspense>
                    <div className="typ-reg" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                     <div style={{ display: 'flex', width: '100%', minHeight: '100px' }}>
-                       <TypeAnimation
-                         cursor={false}
-                         sequence={[
-                           500,
-                           'Quilly is\n  ● analyzing your product details & demo objective\n  ● linking color palette to your product\'s html capture\n  ● generating content based on your demo objective\n  ● checking if your demo can be modularized',
-                           15000,
-                           '',
-                         ]}
-                         omitDeletionAnimation
-                         speed={68}
-                         style={{
-                           fontSize: '1.25rem',
-                           whiteSpace: 'pre-line',
-                           display: 'block',
-                           minHeight: '48px',
-                           width: '80%'
-                         }}
-                         repeat={Infinity}
-                       />
-                       <Progress
-                         type="circle"
-                         percent={this.state.batchProgress}
-                         style={{
-                           display: 'flex',
-                           alignItems: 'center',
-                           minWidth: '100px',
-                         }}
-                         size="small"
-                         showInfo={false}
-                         strokeColor="#7567ff"
-                       />
+                     <div style={{ width: '100%', minHeight: '100px' }}>
+                       <p style={{ margin: 0 }}>Quilly is</p>
+                       <ul style={{ margin: 0, paddingLeft: '2rem' }}>
+                         <li>analyzing your product details & demo objective</li>
+                         <li>linking color palette to your product\'s html capture</li>
+                         <li>generating content based on your demo objective</li>
+                         <li>checking if your demo can be modularized</li>
+                       </ul>
                      </div>
                      <p className="typ-sm" style={{ margin: '1rem 0' }}>
                        Please do not navigate away from this page while the demo is being created. You will be automatically redirected once the demo creation finishes.
@@ -2255,6 +2232,22 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                  </div>
                </div>
                )}
+              <Tags.TipsAnimationCon
+                bgColor={this.state.tipsBgColor}
+              >
+                <p className="typ-h2"><BulbFilled />&nbsp;&nbsp;&nbsp;Demo tips</p>
+                <TypeAnimation
+                  cursor={false}
+                  sequence={[
+                    ...demoTipsAnimation
+                  ]}
+                  omitDeletionAnimation
+                  speed={68}
+                  className="typ-reg"
+                  style={{ whiteSpace: 'pre-line', display: 'block', minHeight: '48px' }}
+                  repeat={Infinity}
+                />
+              </Tags.TipsAnimationCon>
             </Tags.SkeletonGrid>
             <div style={{ display: 'flex', width: '100%', marginBottom: '4rem' }}>
               <Tags.AllProgressCon>
@@ -2288,21 +2281,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   showCircularLoader
                 />}
               </Tags.AllProgressCon>
-              <Tags.TipsAnimationCon
-                bgColor={this.state.tipsBgColor}
-              >
-                <TypeAnimation
-                  cursor={false}
-                  sequence={[
-                    ...demoTipsAnimation
-                  ]}
-                  omitDeletionAnimation
-                  speed={68}
-                  className="typ-reg"
-                  style={{ whiteSpace: 'pre-line', display: 'block', minHeight: '48px' }}
-                  repeat={Infinity}
-                />
-              </Tags.TipsAnimationCon>
             </div>
           </Tags.SkeletonCon>
         </RootLayout>
