@@ -495,7 +495,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
         <div style={{
           display: 'flex',
           alignItems: 'start',
-          gap: '1rem'
+          gap: '1rem',
+          justifyContent: 'space-evenly'
         }}
         >
           <Tags.ModalBodyCon

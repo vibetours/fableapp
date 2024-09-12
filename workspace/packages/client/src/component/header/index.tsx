@@ -482,7 +482,7 @@ function Header(props: IOwnProps): JSX.Element {
                 open={showUserGuidePopover}
                 onOpenChange={visible => setShowUserGuidePopover(visible)}
                 trigger="click"
-                placement="topRight"
+                placement="bottom"
                 content={(
                   <div style={{ width: '25rem' }}>
                     <div className="typ-h2" style={{ marginBottom: '1rem' }}>
@@ -543,7 +543,7 @@ function Header(props: IOwnProps): JSX.Element {
             <Tags.MenuItem style={{ display: 'flex' }}>
               <Tags.StyledPopover
                 trigger="click"
-                placement="bottomRight"
+                placement="bottom"
                 content={
                   <div onClick={e => {
                     e.stopPropagation();

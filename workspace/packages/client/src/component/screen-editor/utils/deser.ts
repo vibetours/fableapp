@@ -161,6 +161,8 @@ export const deser = (
   return node;
 };
 
+// TODO this method has some basic room for performance improvements. This code sits in hotpath of rendering so if
+// performance improvement is necessary at somepoint this function should be a primary candidate.
 export const createHtmlElement = (
   node: SerNode,
   doc: Document,
@@ -223,16 +225,31 @@ export const createHtmlElement = (
     try {
       if (attrsToSkip.includes(attrKey.toLowerCase())) continue;
       if (node.name === 'iframe' && attrKey === 'loading') continue;
+      /*
+       * <iframe> <- a
+       *    <html>
+       *     <head>...</head>
+       *     <body>
+       *       ...
+       *       <iframe name='body'> <- b
+       *     </body
+       * </iframe>
+       * In the above case, if a nested iframe (`b`) has a name property with value body and if we run
+       * a.contentDocument.body from the parent frame of a then instead of getting a frame's body, we get window object
+       * of `b`. Hence if we encounter such case, we change the iframe name to body-normalied.
+       * If we were to keep the name same then we need to get body of frame `a` from reference of `a` by doing
+       * a.contentDocument.getElementsByTagName('body')[0]. If we do this then there are lot of changes we have to do in the codebase.
+       * Hence this change was done from a centralized area.
+       */
+      if (node.name === 'iframe' && attrKey === 'name' && attrValue === 'body') attrValue += '-normalized';
       if (node.name === 'iframe' && attrKey === 'src') {
         const isHTML5 = node.chldrn.find(child => child.type === Node.DOCUMENT_TYPE_NODE);
         if (isHTML5) {
-          // safari is a bitch. I'll write why if everything works
           attrValue = `/aboutblankhtml5.html?ts=${+new Date()}`;
         } else {
           attrValue = `/aboutblankhtml4.html?ts=${+new Date()}`;
         }
         el.setAttribute(attrKey, attrValue);
-        // el.setAttribute('srcdoc', IFRAME_DEFAULT_DOC);
       } else if (node.name === 'iframe'
       && (attrKey === 'sandbox' || attrKey === 'allow'
       || (attrKey === 'srcdoc' && !(attrValue || '').trim()))
