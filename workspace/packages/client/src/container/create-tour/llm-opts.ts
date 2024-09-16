@@ -1,6 +1,5 @@
 import { AiDxDy, InteractionCtx, RectWithFId } from '@fable/common/dist/types';
-import { uploadFileToAws } from '../../component/screen-editor/utils/upload-img-to-aws';
-import { LLM_IMAGE_TYPE, LLM_EXTRA_COLORS } from './types';
+import { LLM_IMAGE_TYPE, LLM_MARK_COLORS } from './types';
 
 // TODO
 // 1. Run this code inside a worker thread
@@ -29,7 +28,9 @@ function drawAdditionalRectsAndMarks(ctx: OffscreenCanvasRenderingContext2D, rec
 
     ctx.beginPath();
     ctx.rect(x, y, w, h);
-    ctx.strokeStyle = LLM_EXTRA_COLORS[i];
+
+    // we do i+1 since we also have base color in LLM_MARK_COLORS, but it is not present in candidates
+    ctx.strokeStyle = LLM_MARK_COLORS[i + 1];
     ctx.lineWidth = lineWidth;
     ctx.stroke();
   });
@@ -67,7 +68,7 @@ function drawOverlayOnCanvas(ctx: OffscreenCanvasRenderingContext2D, {
   ctx.closePath();
 
   ctx.fillStyle = 'rgba(1, 1, 1, 0.4)';
-  ctx.strokeStyle = 'rgba(0,255,255, 1)';
+  ctx.strokeStyle = LLM_MARK_COLORS[0];
   ctx.lineWidth = 1;
   ctx.fill();
   ctx.stroke();
@@ -83,7 +84,7 @@ function renderMarks(ctx: OffscreenCanvasRenderingContext2D, marks: InteractionC
     selectWidth: focusEl.width + OFFSET_BOX_BY_PX * 2,
     selectHeight: focusEl.height + OFFSET_BOX_BY_PX * 2,
   });
-  drawAdditionalRectsAndMarks(ctx, candidates, {
+  drawAdditionalRectsAndMarks(ctx, candidates.slice(1), {
     height: ctx.canvas.height,
     width: ctx.canvas.width
   }, dxdy);

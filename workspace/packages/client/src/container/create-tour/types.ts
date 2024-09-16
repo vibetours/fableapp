@@ -119,8 +119,7 @@ export type AnnotationStyle = {
 
 export const LLM_IMAGE_TYPE = 'image/png';
 
-export const LLM_MARK_BASE_COLOR = 'cyan';
-export const LLM_EXTRA_COLORS = ['red', 'blue', 'yellow'];
+export const LLM_MARK_COLORS: create_guides_marketing['items'][0]['element'][] = ['cyan', 'red', 'blue', 'yellow'];
 
 export interface post_process_demo_p extends post_process_demo {
   demo_intro_guide: post_process_demo['demo_intro_guide'] & {

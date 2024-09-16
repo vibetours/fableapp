@@ -73,13 +73,13 @@ import {
   FrameDataToBeProcessed,
   InteractionCtxDetail,
   InteractionCtxWithCandidateElpath,
-  LLM_EXTRA_COLORS,
+  LLM_MARK_COLORS,
   LLMOpsType,
   post_process_demo_p,
   ScreenInfoWithAI,
   LLMRunData,
   LLMScreenType,
-  LLM_MARK_BASE_COLOR
+  RectWithFIdAndElpath
 } from './types';
 import { P_RespSubscription, P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
 import { getColorContrast, getSerNodesElPathFromFids, isActiveBusinessPlan } from '../../utils';
@@ -898,9 +898,16 @@ export function processScreen(
       if (interactionData.interactionCtx) {
         const allFids = interactionData.interactionCtx!.candidates.map((candidate) => candidate.fid);
         const fidElPathMap = getSerNodesElPathFromFids(mainFrameData.docTree!, allFids);
-        interactionData.interactionCtx?.candidates.forEach((candidate) => {
+        interactionData.interactionCtx.candidates.forEach((candidate) => {
           candidate.elPath = fidElPathMap[candidate.fid].elPath;
         });
+
+        // candidadte does not contain baseEl, so we are adding baseEl
+        const baseEl: RectWithFIdAndElpath = {
+          ...interactionData.interactionCtx.focusEl,
+          elPath
+        };
+        interactionData.interactionCtx.candidates.unshift(baseEl);
       }
 
       interactionCtx.push(interactionData);
@@ -1421,7 +1428,7 @@ export const getThemeData = async (
     };
     return themeData;
   } catch (err) {
-    raiseDeferredError(err as Error);
+    handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to generate theme data', anonymousDemoId);
     return null;
   }
 };
@@ -1497,7 +1504,7 @@ export const getAllDemoAnnotationText = async (
 
     return completeDemoData;
   } catch (err) {
-    raiseDeferredError(err as Error);
+    handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to generate annotation text data', anonymousDemoId);
     return completeDemoData;
   }
 };
@@ -1513,7 +1520,7 @@ create_guides_marketing_p | create_guides_step_by_step_p
       items: richAiData.items.map(item => ({
         richText: item.richText || '',
         screenId: item.screenId === undefined ? randomScreenId() : item.screenId,
-        element: item.element || LLM_MARK_BASE_COLOR,
+        element: item.element || LLM_MARK_COLORS[0],
         nextButtonText: item.nextButtonText || '',
         skip: item.skip
       }))
@@ -1544,7 +1551,8 @@ export const createDemoUsingAI = async (
     const result = processLLMDemoRouterResponse(toolUse);
     return result;
   } catch (err) {
-    raiseDeferredError(err as Error);
+    const msg = 'Failed to generate AI router data';
+    handleRaiseDeferredErrorWithAnnonymousId(err, msg, anonymousDemoId);
     return null;
   }
 };
@@ -1654,7 +1662,7 @@ export const getDemoMetaData = async (
 
     return { metaData: '', screenCleanup };
   } catch (err) {
-    raiseDeferredError(err as Error);
+    handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to generate metadata', anonymousDemoId);
     return { metaData: '', screenCleanup: [] };
   }
 };
@@ -1702,7 +1710,7 @@ export const postProcessAIText = async (
     const annTexts = addTextToPostProcessRichText(normalizedRichAnnData);
     return annTexts;
   } catch (err) {
-    raiseDeferredError(err as Error);
+    handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to postprocess AI data', anonymousDemoId);
     return null;
   }
 };
@@ -1711,14 +1719,32 @@ export const getElpathFromCandidate = (
   replaceWithImgScreen: boolean,
   currElpath: string,
   currAiData: AiItem | null,
-  ctx?: InteractionCtxWithCandidateElpath
+  anonymousDemoId: string,
+  ctx?: InteractionCtxWithCandidateElpath,
 ): string => {
-  if (!currAiData || !ctx || ctx.candidates.length === 0) return currElpath;
-  if (replaceWithImgScreen) return currElpath;
-  const color = currAiData.element;
-  const index = LLM_EXTRA_COLORS.indexOf(color);
-  if (index === -1 || ctx.candidates.length < index) return currElpath;
-  return ctx.candidates[index].elPath;
+  let index = 0;
+  try {
+    if (!currAiData || !ctx || ctx.candidates.length === 0) return currElpath;
+    if (replaceWithImgScreen) return currElpath;
+    const color = currAiData.element;
+    index = LLM_MARK_COLORS.indexOf(color);
+    if (index < 0 || index > ctx.candidates.length - 1) return currElpath;
+    return ctx.candidates[index].elPath;
+  } catch (err) {
+    const sentryData = {
+      candidateArr: ctx?.candidates,
+      aiData: currAiData,
+      anonymousDemoId,
+      index
+    };
+
+    sentryCaptureException(
+      new Error('Failed to get elPath from candidate for anonymousDemoId '),
+      JSON.stringify(sentryData),
+      'elPathFromCandidate.txt'
+    );
+    return currElpath;
+  }
 };
 
 const addTextToPostProcessRichText = (richAiData: post_process_demo): post_process_demo_p => {
@@ -1785,7 +1811,7 @@ export const getDemoRouterFromExistingDemo = async (anonymousDemoId: string): Pr
     const result = processLLMDemoRouterResponse(toolUse);
     return result;
   } catch (err) {
-    raiseDeferredError(err as Error);
+    handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to get demo router data', anonymousDemoId);
     return defaultData;
   }
 };
@@ -1818,4 +1844,11 @@ const llmRunsCall = async (anonymousDemoId: string, opsType: LLMOpsType) : Promi
 
 export const deleteSurveyStatusFromLocalStore = (): void => {
   localStorage.removeItem(`seenSurvey_${SURVEY_ID}`);
+};
+
+const handleRaiseDeferredErrorWithAnnonymousId = (err: any, msg: string, anonymousDemoId: string): void => {
+  const errorMessage = (err instanceof Error) ? err.message : JSON.stringify(err);
+  raiseDeferredError(
+    new Error(`${msg} for anonymousDemoId: ${anonymousDemoId} error: ${errorMessage}`)
+  );
 };

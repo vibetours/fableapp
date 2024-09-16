@@ -54,7 +54,7 @@ import {
   ScreenInfo,
   ScreenInfoWithAI,
   LLMScreenType,
-  LLM_MARK_BASE_COLOR
+  LLM_MARK_COLORS
 } from './types';
 import {
   createDemoUsingAI,
@@ -799,6 +799,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 screenInfo.info.replacedWithImgScreen,
                 screenInfo.info.elPath,
                 currAiData!,
+                this.state.anonymousDemoId,
                 this.interactionCtxFromId.get(index)
               )
             },
@@ -867,7 +868,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     nextButtonText: modules[guideIndex].module_intro_guide!.nextButtonText,
                     screenId: randomScreenId(),
                     skip: false,
-                    element: LLM_MARK_BASE_COLOR
+                    element: LLM_MARK_COLORS[0]
                   },
                   moduleData: currentScreenData.moduleData,
                   screenType: LLMScreenType.moduleIntro
@@ -898,7 +899,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           },
           aiAnnotationData: {
             skip: false,
-            element: LLM_MARK_BASE_COLOR,
+            element: LLM_MARK_COLORS[0],
             text: this.state.postProcessAiData.demo_intro_guide.text,
             richText: this.state.postProcessAiData.demo_intro_guide.richText,
             nextButtonText: this.state.postProcessAiData.demo_intro_guide.nextButtonText,
@@ -920,7 +921,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           },
           aiAnnotationData: {
             skip: false,
-            element: LLM_MARK_BASE_COLOR,
+            element: LLM_MARK_COLORS[0],
             text: this.state.postProcessAiData.demo_outro_guide.text,
             richText: this.state.postProcessAiData.demo_outro_guide.richText,
             nextButtonText: this.state.postProcessAiData.demo_outro_guide.nextButtonText,
