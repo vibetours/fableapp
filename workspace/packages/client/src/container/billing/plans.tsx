@@ -94,7 +94,7 @@ export const LifetimePriceDetailsData: Array<IPriceDetails> = [
     planName: 'Tier 1',
     planId: 'lifetime',
     featTitle: '',
-    priceLifetime: 49,
+    priceLifetime: 59,
     featList: [
       { id: 1.0, feat: '1 creator(s)', isHightlighted: false },
       { id: 1.1, feat: '1 custom domain(s)', isHightlighted: false },
@@ -122,7 +122,7 @@ export const LifetimePriceDetailsData: Array<IPriceDetails> = [
     id: 2,
     planName: 'Tier 2',
     planId: 'lifetime',
-    priceLifetime: 119,
+    priceLifetime: 129,
     featTitle: '',
     featList: [
       { id: 2, feat: '3 creator(s)', isHightlighted: false },
@@ -154,7 +154,7 @@ export const LifetimePriceDetailsData: Array<IPriceDetails> = [
     id: 3,
     planName: 'Tier 3',
     planId: 'lifetime',
-    priceLifetime: 249,
+    priceLifetime: 269,
     featTitle: '',
     featList: [
       { id: 3, feat: 'Unlimited creator(s)', isHightlighted: false },
@@ -189,7 +189,7 @@ export const LifetimePriceDetailsData: Array<IPriceDetails> = [
     id: 4,
     planName: 'Tier 4',
     planId: 'lifetime',
-    priceLifetime: 449,
+    priceLifetime: 499,
     featTitle: '',
     featList: [
       { id: 3, feat: 'Unlimited creator(s)', isHightlighted: false },
@@ -224,7 +224,7 @@ export const LifetimePriceDetailsData: Array<IPriceDetails> = [
     id: 5,
     planName: 'Tier 5',
     planId: 'lifetime',
-    priceLifetime: 649,
+    priceLifetime: 699,
     featTitle: '',
     featList: [
       { id: 3, feat: 'Unlimited creator(s)', isHightlighted: false },
