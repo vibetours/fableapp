@@ -19,10 +19,11 @@ import {
   PropertyType,
   SerNode,
 } from '@fable/common/dist/types';
-import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime } from '@fable/common/dist/utils';
+import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef } from 'react';
 import Handlebars from 'handlebars';
+import { ColumnsType } from 'antd/es/table';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_PERS_VARS_FOR_TOUR } from './constants';
@@ -58,6 +59,11 @@ import {
   EditItem,
   IdxEditItem,
   LSSavedPersVarData,
+  TableRow,
+  DatasetConfig,
+  TableColumn,
+  PerVarType,
+  PerVarData,
 } from './types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
@@ -703,44 +709,30 @@ export const fillLeadFormForAllAnnotations = (
   return allAnnotations;
 };
 
-export const replacePersonalizationVarsForAllAnnotationsForTour = (
-  allAnnotationForTour: AnnotationPerScreen[],
-  queryParams: Record<string, string>,
-): AnnotationPerScreen[] => {
-  const newAllAnnotationForTour = [...allAnnotationForTour];
-  const varMap = generateVarMap(queryParams);
-  newAllAnnotationForTour.forEach((screen) => {
-    screen.annotations.forEach((annotation) => {
-      replaceVarsInAnnotation(annotation, varMap);
-    });
-  });
+export function getPersVarsDataFromQueryParams(params: URLSearchParams): {
+  text: Record<string, string>,
+  dataset: ParsedQueryResult,
+} {
+  const queryParams: Record<string, string> = {};
+  params.forEach((v, k) => queryParams[k] = v);
 
-  return newAllAnnotationForTour;
-};
+  const textPersVarsMap = generatePersTextVarMap(queryParams);
+  const datasetParams = extractDatasetParams(params);
 
-export const replacePersonalizationVarsForAllAnnotations = (
-  allAnnotations: Record<string, IAnnotationConfig[]>,
-  queryParams: Record<string, string>,
-): Record<string, IAnnotationConfig[]> => {
-  const varMap = generateVarMap(queryParams);
-  Object.keys(allAnnotations).forEach(screen => {
-    allAnnotations[screen].forEach((annotation) => {
-      replaceVarsInAnnotation(annotation, varMap);
-    });
-  });
+  return {
+    text: textPersVarsMap,
+    dataset: datasetParams,
+  };
+}
 
-  return allAnnotations;
-};
-
-export function generateVarMap(obj?: Record<string, string>): Record<string, string> {
-  if (!obj) return {};
+export function generatePersTextVarMap(params: Record<string, string>): Record<string, string> {
   const newObj: Record<string, string> = {};
   const prefix = 'v_';
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+  for (const key in params) {
+    if (Object.prototype.hasOwnProperty.call(params, key)) {
       if (key.startsWith(prefix)) {
         const newKey = key.slice(prefix.length);
-        newObj[newKey] = obj[key];
+        newObj[newKey] = params[key];
       }
     }
   }
@@ -750,7 +742,7 @@ export function generateVarMap(obj?: Record<string, string>): Record<string, str
 
 export function replaceVarsInAnnotation(
   annotation: IAnnotationOriginConfig,
-  varMap: Record<string, string>
+  varMap: Record<string, any>
 ): void {
   const bodyContentTemplate = Handlebars.compile(annotation.bodyContent);
   const displayTextTemplate = Handlebars.compile(annotation.displayText);
@@ -759,13 +751,13 @@ export function replaceVarsInAnnotation(
 }
 
 export function extractHandlebarsFromAnnotations(
-  annotation: IAnnotationConfig
+  text: string,
 ): string[] {
   const variableRegex = /(?<!\\){{(.*?)}}/g;
   const variableArray: string[] = [];
 
   let match;
-  while ((match = variableRegex.exec(annotation.displayText)) !== null) {
+  while ((match = variableRegex.exec(text)) !== null) {
     const variableName = match[1].trim();
     if (!variableArray.includes(variableName)) {
       variableArray.push(variableName);
@@ -775,28 +767,50 @@ export function extractHandlebarsFromAnnotations(
   return variableArray;
 }
 
-export function getPersVarsFromAnnsForTour(allAnnotationsForTour: AnnotationPerScreen[]): string[] {
-  const perVarsSet = new Set<string>();
+export function extractDSAndNormalHandlebarsFromText(
+  text: string
+): PerVarData {
+  const handleBars = extractHandlebarsFromAnnotations(text);
+  const variables: PerVarData = {};
 
-  allAnnotationsForTour.forEach(screen => {
-    screen.annotations.forEach(ann => {
-      const perVars = extractHandlebarsFromAnnotations(ann);
-      perVars.forEach(perVar => perVarsSet.add(perVar));
-    });
+  handleBars.forEach(handlebar => {
+    if (handlebar.includes('.')) {
+      const rootVariable = handlebar.split('.')[0];
+      variables[rootVariable] = { type: PerVarType.DATASET, val: '' };
+    } else {
+      variables[handlebar] = { type: PerVarType.TEXT, val: '' };
+    }
   });
-  return Array.from(perVarsSet);
+
+  return variables;
 }
 
-export function getPersVarsFromAnnotations(annsPerScreen: Record<string, IAnnotationConfig[]>): string[] {
-  const perVarsSet = new Set<string>();
+export function removeDuplicatesByKey<T, K extends keyof T>(
+  arr: T[],
+  key: K
+): T[] {
+  const seen = new Set<T[K]>();
+  return arr.filter((item) => {
+    const keyValue = item[key];
+    if (!seen.has(keyValue)) {
+      seen.add(keyValue);
+      return true;
+    }
+    return false;
+  });
+}
+
+export function getPersVarsFromAnnotations(annsPerScreen: Record<string, IAnnotationConfig[]>): PerVarData {
+  const perVarData: PerVarData = {};
 
   Object.values(annsPerScreen).forEach(anns => {
     anns.forEach(ann => {
-      const perVars = extractHandlebarsFromAnnotations(ann);
-      perVars.forEach(perVar => perVarsSet.add(perVar));
+      const perVars = extractDSAndNormalHandlebarsFromText(ann.displayText);
+      Object.keys(perVars).forEach(key => perVarData[key] = perVars[key]);
     });
   });
-  return Array.from(perVarsSet);
+
+  return perVarData;
 }
 
 export function removeDuplicatesFromStrArr(arr1: string[]): string[] {
@@ -804,29 +818,50 @@ export function removeDuplicatesFromStrArr(arr1: string[]): string[] {
   return Array.from(mergedSet);
 }
 
-export function getPrefilledPerVarsFromLS(perVars: string[], demoRid: string): Record<string, string> {
-  const perVarsRecord: Record<string, string> = {};
-  perVars.forEach(perVar => perVarsRecord[perVar] = '');
-
+export function getPersVarsDataFromLS(): LSSavedPersVarData[] | null {
   const localStoreVal = localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR) as string;
-  if (!localStoreVal) return perVarsRecord;
+  if (!localStoreVal) return null;
 
   const allPerVals: LSSavedPersVarData[] = JSON.parse(localStoreVal);
+
+  allPerVals.forEach(perVal => {
+    Object.keys(perVal.perVars).forEach(key => {
+      const val = (perVal.perVars as any)[key];
+      if (typeof val === 'string') {
+        perVal.perVars[key] = {
+          type: PerVarType.TEXT,
+          val,
+        };
+      }
+    });
+  });
+
+  return allPerVals;
+}
+
+export function getPrefilledPerVarsFromLS(perVars: PerVarData, demoRid: string): PerVarData {
+  const perVarsRecord: PerVarData = {};
+  Object.keys(perVars)
+    .forEach(key => perVarsRecord[key] = { type: perVars[key].type, val: perVars[key].val || '' });
+
+  const allPerVals = getPersVarsDataFromLS();
+  if (!allPerVals) return perVarsRecord;
 
   const persVarsForDemoRid = allPerVals.find(obj => obj.rid === demoRid);
 
   if (!persVarsForDemoRid) return perVarsRecord;
 
   Object.keys(perVarsRecord).forEach(key => {
-    perVarsRecord[key] = persVarsForDemoRid.perVars[key] || '';
+    const savedData = persVarsForDemoRid.perVars[key];
+    if (savedData) perVarsRecord[key] = savedData;
   });
 
   return perVarsRecord;
 }
 
-export function setPersValuesInLS(perVars: Record<string, string>, demoRid: string): void {
-  const savedLSData = localStorage.getItem(FABLE_PERS_VARS_FOR_TOUR);
-  const allPerVals: LSSavedPersVarData[] = savedLSData ? JSON.parse(savedLSData) : [];
+export function setPersValuesInLS(perVars: PerVarData, demoRid: string): void {
+  const savedLSData = getPersVarsDataFromLS();
+  const allPerVals: LSSavedPersVarData[] = savedLSData || [];
 
   const persVarsForDemoRid = allPerVals.find(obj => obj.rid === demoRid);
   if (persVarsForDemoRid) {
@@ -850,7 +885,7 @@ export function setPersValuesInLS(perVars: Record<string, string>, demoRid: stri
 
 export function getAnnTextEditorErrors(perVars: string[]): string[] {
   const errors: string[] = [];
-  const validPattern = /^[a-zA-Z0-9_]+$/;
+  const validPattern = /^[a-zA-Z0-9_.]+$/;
 
   perVars.forEach(key => {
     if (!validPattern.test(key)) {
@@ -872,15 +907,19 @@ export function recordToQueryParams(searchParams: Record<string, string>, query:
   return querySearchParams.toString();
 }
 
-export function processPersVarsObj(persVars: Record<string, string>): Record<string, string> {
-  const processedPersVar: Record<string, string> = {};
+export function processPersVarsObj(
+  persVars: PerVarData
+): PerVarData {
+  const processedPersVar: PerVarData = {};
 
-  Object.keys(persVars).forEach(key => {
-    processedPersVar[`v_${key}`] = persVars[key];
+  Object.keys(persVars).forEach(name => {
+    const item = persVars[name];
+    let key = `v_${name}`;
+    if (item.type === PerVarType.DATASET) key = `fv_${name}`;
+    processedPersVar[key] = { type: item.type, val: item.val };
   });
   return processedPersVar;
 }
-
 export const getSearchParamData = (param: string | null) : queryData | null => {
   if (!param) {
     return null;
@@ -1995,3 +2034,133 @@ export const DEMO_TIPS = [
 export const sendPreviewHeaderClick = (): void => {
   initLLMSurvey();
 };
+
+export const DATASET_COL_ID_ID = 0;
+
+export const getDefaultDatasetConfig = (): DatasetConfig => ({
+  v: 1,
+  lastUpdatedAt: -1,
+  data: {
+    table: {
+      rows: [],
+      columns: [{
+        id: DATASET_COL_ID_ID,
+        name: 'id',
+        desc: ''
+      }],
+      colSeq: 0,
+    }
+  }
+});
+
+export function isValidStrWithAlphaNumericValues(str: string): boolean {
+  const pattern = /^[a-zA-Z0-9_]+$/;
+  return pattern.test(str);
+}
+
+interface TableData {
+  columns: ColumnsType<TableRow>;
+  rows: TableRow[]
+}
+
+export function getTableColumnsAndRowsFromDataset(dataset: DatasetConfig): TableData {
+  const datasetColumns = dataset.data.table.columns;
+  const columns: ColumnsType<TableRow> = datasetColumns.map(col => ({
+    key: col.id,
+    title: col.name,
+    dataIndex: col.id
+  }));
+
+  const datasetRows = dataset.data.table.rows.map(row => ({ ...row, key: row['1'] }));
+  return { columns, rows: datasetRows };
+}
+
+export type Query = { columnName: string; operator: string; value: string };
+export type TableQueries = { tableName: string; queries: Query[] };
+export type ParsedQueryResult = { queries: Record<string, TableQueries>; tables: string[] };
+
+export const DATASET_PARAM_PREFIX = 'fv_';
+
+export function parseQueries(queryStr: string): Query[] {
+  const queryMatches = queryStr.match(/\(([^)]+)\)/g) || [];
+  return queryMatches.map((query) => {
+    const [columnName, operator, value] = query.slice(1, -1).split('.');
+    return { columnName, operator, value };
+  });
+}
+
+export function extractDatasetParams(params: URLSearchParams): ParsedQueryResult {
+  const tableQueries: Record<string, TableQueries> = {};
+  const tablesSet = new Set<string>();
+
+  params.forEach((value, key) => {
+    if (key.startsWith(DATASET_PARAM_PREFIX)) {
+      const varname = key.replace(DATASET_PARAM_PREFIX, '');
+      const tableName = value.match(/(\w+)\(/)?.[1];
+      if (tableName) {
+        tableQueries[varname] = { tableName, queries: parseQueries(value) };
+        tablesSet.add(tableName);
+      }
+    }
+  });
+
+  return { queries: tableQueries, tables: Array.from(tablesSet) };
+}
+
+export function datasetQueryParser(
+  tableParams: Record<string, TableQueries>,
+  database: Record<string, DatasetConfig>
+): Record<string, Record<string, string>> {
+  const result: Record<string, Record<string, string>> = {};
+
+  for (const [varname, { tableName, queries }] of Object.entries(tableParams)) {
+    const table = database[tableName];
+    if (!table) continue;
+
+    let filteredRows = table.data.table.rows;
+
+    queries.forEach(({ columnName, operator, value }) => {
+      const column = table.data.table.columns.find((col) => col.name.toLowerCase() === columnName.toLowerCase());
+      if (!column) { filteredRows = []; return; }
+      if (operator === 'is') {
+        filteredRows = filteredRows.filter((row) => row[column.id].toLowerCase() === value.toLowerCase());
+      }
+    });
+
+    if (filteredRows.length > 0) {
+      const row = filteredRows[0];
+      result[varname] = processTableRow(table.data.table.columns, row);
+    }
+  }
+
+  return result;
+}
+
+export function processVarMap(
+  dsVarMap: Record<string, Record<string, string>>,
+  textVarMap: Record<string, string>
+): Record<string, string | Record<string, string>> {
+  const newDsVarMap = { ...dsVarMap };
+
+  Object.keys(dsVarMap).forEach(key => {
+    newDsVarMap[key] = {
+      ...newDsVarMap[key],
+      ...textVarMap,
+    };
+  });
+
+  return {
+    ...newDsVarMap,
+    ...textVarMap,
+  };
+}
+
+function processTableRow(cols: TableColumn[], row: TableRow): Record<string, string> {
+  const processedRow: Record<string, string> = {};
+
+  cols.forEach(({ id, name }) => {
+    processedRow[name] = row[id];
+  });
+
+  return processedRow;
+}

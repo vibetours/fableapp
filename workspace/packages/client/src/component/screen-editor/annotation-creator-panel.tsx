@@ -622,7 +622,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
   }, [props.featurePlan]);
 
   useEffect(() => {
-    const perVars = extractHandlebarsFromAnnotations(config);
+    const perVars = extractHandlebarsFromAnnotations(config.displayText);
     setAnnTextWarnings(getAnnTextEditorErrors(perVars));
   }, [config]);
 

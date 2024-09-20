@@ -1,4 +1,4 @@
-import { ApiOutlined, CalendarOutlined, CreditCardOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled, WalletOutlined } from '@ant-design/icons';
+import { ApiOutlined, CalendarOutlined, CreditCardOutlined, DatabaseOutlined, HeatMapOutlined, NodeIndexOutlined, RiseOutlined, SettingOutlined, UsergroupAddOutlined, WalletFilled, WalletOutlined } from '@ant-design/icons';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Status } from '@fable/common/dist/api-contract';
@@ -10,7 +10,8 @@ import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { isActiveBusinessPlan } from '../../utils';
 
 interface Props {
-  selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads' | '';
+  selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads'
+  | 'datasets' | '';
   subs: P_RespSubscription | null;
 }
 
@@ -55,6 +56,10 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
           <ApiOutlined />
           <p>Integrations</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
+          <DatabaseOutlined />
+          <p>Datasets</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users">
           <UsergroupAddOutlined />

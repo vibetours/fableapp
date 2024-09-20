@@ -9,7 +9,7 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
-import { baseURL, createIframeSrc, debounce, getValidUrl, isGlobalProperty } from '../../utils';
+import { createIframeSrc, debounce, getValidUrl, isGlobalProperty } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import PublishButton from './publish-button';
@@ -18,9 +18,8 @@ import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { AnnotationPerScreen, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
+import { SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
-import { FeatureForPlan } from '../../plans';
 import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
 import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
@@ -405,7 +404,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [selectedDomain, setSelectedDomain] = useState<string>(baseURLStructured.host);
   const [allDomains, setAllDomains] = useState<string[] | null>(null);
   const [loadingAnns, setLoadingAnns] = useState(true);
-  const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]>>({});
+  const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]> | null>(null);
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -468,10 +467,11 @@ export default function ShareTourModal(props: Props): JSX.Element {
       fetchAnns();
     }
   }, [props.tour, props.isModalVisible]);
+
   async function fetchAnns(): Promise<void> {
     try {
       setLoadingAnns(true);
-      const data = await getAllAnnotationsForScreens(props.tour);
+      const data = await getAllAnnotationsForScreens(props.tour, true);
       setAnnotationsForScreens(data);
       setLoadingAnns(false);
     } catch (e) {
@@ -697,7 +697,9 @@ export default function ShareTourModal(props: Props): JSX.Element {
             </p>
             <img src="/site.png" height={480} alt="site wireframe" />
           </Drawer>
-          {props.tour && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && (
+          {props.tour
+          && annotationsForScreens
+          && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && (
             <div style={{
               background: 'white',
               marginTop: '2rem',
@@ -706,9 +708,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
             }}
             >
               <PersonalVarEditor
-                allAnnotationsForTour={[]}
                 annotationsForScreens={annotationsForScreens}
-                rid={props.tour.rid}
+                tour={props.tour}
                 originalPersVarsParams=""
                 changePersVarParams={(persVarsParamsStr) => {
                   props.setCopyUrlParams(persVarsParamsStr);

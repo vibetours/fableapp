@@ -58,8 +58,20 @@ export const VarEditorCon = styled.div<{
     overflow-y: auto;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid rgba(0,0,0,0.1);
-    .pers-var-input {
+
+    .per-var-input-wrapper {
       width: 90%;
+    }
+
+    .pers-vars-info {
+      color: gray;
+      font-size: 0.8rem;
+      font-style: italic;
+      margin: 0.25rem 0;
+    }
+
+    .pers-var-input {
+      width: 100%;
       display: flex;
       justify-content: space-between;
       align-items: center;

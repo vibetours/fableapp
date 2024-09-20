@@ -8,6 +8,9 @@ import {
   RespVanityDomain,
   EntityInfo,
   FrameSettings,
+  Dataset,
+  RespDataset,
+  RespUploadUrl,
 } from '@fable/common/dist/api-contract';
 import {
   AnnBtnKeysWithProperty,
@@ -65,9 +68,10 @@ import {
   EncodingTypeBlur,
   EncodingTypeDisplay,
   EncodingTypeMask,
-  EncodingTypeInput
+  EncodingTypeInput,
+  DatasetConfig
 } from './types';
-import { generateVarMap, getDefaultSiteData, getFidOfSerNode, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn, replaceVarsInAnnotation } from './utils';
+import { getDefaultDatasetConfig, getDefaultSiteData, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn, replaceVarsInAnnotation } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
 import { FeatureForPlan, FeaturePerPlan, PlanDetail } from './plans';
 import { getSerNodeFromPath } from './component/screen-editor/utils/edits';
@@ -198,7 +202,10 @@ export interface P_RespTour extends RespDemoEntity {
   isPlaceholder: boolean;
   screens?: P_RespScreen[];
   loaderFileUri: URL;
-  site: SiteData
+  site: SiteData;
+  pubDataFileUri: URL;
+  stagingDataFileUri: URL;
+  datasets?: P_Dataset[];
 }
 
 function getDataFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
@@ -256,6 +263,8 @@ export function processRawTourData(
   const thumbnailHash = tour.info ? tour.info.thumbnail : getDefaultThumbnailHash();
   const info = normalizeBackwardCompatibilityForEntityInfo(tour.info);
 
+  const processedDatasets = tour.datasets?.map(ds => processRawDataset(ds, config, tour.owner, false));
+
   return {
     ...tour,
     info,
@@ -269,10 +278,23 @@ export function processRawTourData(
     isPlaceholder,
     site,
     editFileUri,
+    pubDataFileUri: getDataFileUri(tour, config, tour),
+    stagingDataFileUri: getDataFileUri(tour, config, undefined),
+    datasets: processedDatasets,
   } as P_RespTour;
 }
 
-export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true, varMap: Record<string, string> | null = null): {
+export function preprocessAnnTextsToReplacePersVars(
+  annotations: Record<string, IAnnotationConfig[]>,
+  varMap: Record<string, string | Record<string, string>>,
+): Record<string, IAnnotationConfig[]> {
+  Object.keys(annotations).forEach(key => {
+    annotations[key].map(ann => replaceVarsInAnnotation(ann, varMap));
+  });
+  return annotations;
+}
+
+export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true): {
   annotations: Record<string, IAnnotationConfig[]>,
   annotationsIdMap: Record<string, string[]>,
   opts: ITourDataOpts,
@@ -286,7 +308,6 @@ export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IG
       const ids: string[] = [];
       for (const [annId, ann] of Object.entries((entity as TourScreenEntity).annotations)) {
         ids.push(annId);
-        if (varMap) replaceVarsInAnnotation(ann as IAnnotationConfig, varMap);
         anns.push(ann as IAnnotationConfig);
       }
       annotationsPerScreen[screenId] = isLocal ? (anns as IAnnotationConfig[]) : anns.map(remoteToLocalAnnotationConfig);
@@ -1495,4 +1516,77 @@ export function normalizeBackwardCompatibilityForEntityInfo(info: EntityInfo): E
     ...defaultInfo,
     ...info,
   };
+}
+
+// Dataset
+export interface P_Dataset extends Dataset {
+  dataFileUri: URL;
+  displayablePublishedAt: string | null;
+  presignedEditUri: URL | null;
+}
+
+export function processRawDataset(
+  dataset: Dataset,
+  config: RespCommonConfig,
+  orgId: number,
+  loadEditable: boolean,
+  presignedUrl: RespUploadUrl | null = null,
+): P_Dataset {
+  const lastPublishedDate = dataset.lastPublishedDate;
+
+  const dataFileUri = getDatasetDataFileUri(
+    dataset.name,
+    config,
+    orgId,
+    loadEditable ? 0 : dataset.lastPublishedVersion,
+  );
+  const displayablePublishedAt = lastPublishedDate
+    ? getDisplayableTime(
+      (new Date(dataset.lastPublishedDate))
+    )
+    : null;
+
+  const respPresignedUrl = presignedUrl;
+  const presignedEditUri = respPresignedUrl ? new URL(respPresignedUrl.url) : null;
+
+  const processedDataset: P_Dataset = {
+    ...dataset,
+    dataFileUri,
+    displayablePublishedAt,
+    presignedEditUri,
+  };
+
+  return processedDataset;
+}
+
+export function processDatasetConfig(
+  config: DatasetConfig
+): DatasetConfig {
+  const defaultConfig = getDefaultDatasetConfig();
+
+  return {
+    ...defaultConfig,
+    ...config,
+    data: {
+      ...defaultConfig.data,
+      ...config.data,
+    }
+  };
+}
+
+export function getDatasetDataFileUri(
+  datasetName: string,
+  config: RespCommonConfig,
+  orgId: number,
+  datasetVersion: number = 0,
+): URL {
+  const datasetPartInPath = '/ds';
+  const datasetAssetPath = config.datasetAssetPath.split(datasetPartInPath)[0];
+  const datasetFileName = config.datasetFileName
+    .replace('%d', datasetVersion.toString())
+    .replace('%s', datasetName);
+
+  const dataFileUri = new URL(`${datasetAssetPath}${orgId}${datasetPartInPath}/${datasetFileName}?ts=${+new Date()}`);
+
+  return dataFileUri;
 }

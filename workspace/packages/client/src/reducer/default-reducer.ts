@@ -64,9 +64,13 @@ import {
   TOrgWideAnalytics,
   P_RespAggregateLeadAnalytics,
   TSaveGlobalEditChunks,
+  TAllDatasets,
+  TLoadDataset,
+  TUpdateDataset,
+  TDeleteDataset,
 } from '../action/creator';
-import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain } from '../entity-processor';
-import { AllEdits, EditItem, ElEditType, ElPathKey, GlobalEditFile, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
+import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain, P_Dataset } from '../entity-processor';
+import { AllEdits, DatasetConfig, EditItem, ElEditType, ElPathKey, GlobalEditFile, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
 import { FeatureForPlan } from '../plans';
 
 export const initialState: {
@@ -130,6 +134,12 @@ export const initialState: {
   localGlobalEdits: EditItem[];
   remoteGlobalEdits: EditItem[];
   globalEditFile: GlobalEditFile | null;
+  currentDataset: {
+    data: P_Dataset,
+    config: DatasetConfig,
+  } | null;
+  datasets: Record<string, P_Dataset> | null;
+  datasetConfigs: Record<string, DatasetConfig> | null;
 } = {
   allUserOrgs: null,
   inited: false,
@@ -192,6 +202,9 @@ export const initialState: {
   localGlobalEdits: [],
   remoteGlobalEdits: [],
   globalEditFile: null,
+  currentDataset: null,
+  datasets: null,
+  datasetConfigs: null,
 };
 
 function replaceScreens(oldScreens: P_RespScreen[], replaceScreen: string, replaceScreenWith: P_RespScreen) {
@@ -744,6 +757,53 @@ export default function projectReducer(state = initialState, action: Action) {
       const newState = { ...state };
       newState.orgWideRespHouseLead = tAction.data;
       newState.orgWideRespHouseLeadLoadingStatus = LoadingStatus.Done;
+      return newState;
+    }
+
+    case ActionType.ALL_DATASETS_LOADED: {
+      const tAction = action as TAllDatasets;
+      const newState = { ...state };
+      newState.datasets = tAction.datasets.reduce((acc, dataItem) => {
+        acc[dataItem.name] = dataItem;
+        return acc;
+      }, {} as Record<string, P_Dataset>);
+      return newState;
+    }
+
+    case ActionType.LOAD_DATASET: {
+      const tAction = action as TLoadDataset;
+      const newState = { ...state };
+      newState.datasetConfigs = {
+        ...(newState.datasetConfigs || {}),
+        ...tAction.configs,
+      };
+      newState.datasets = {
+        ...(newState.datasets || {}),
+        ...tAction.datasetsData,
+      };
+      return newState;
+    }
+
+    case ActionType.UPDATE_DATASET: {
+      const tAction = action as TUpdateDataset;
+      const newState = { ...state };
+      if (!newState.datasets) newState.datasets = {};
+      newState.datasets = { ...newState.datasets };
+      newState.datasets[tAction.dataset.name] = tAction.dataset;
+      return newState;
+    }
+
+    case ActionType.DELETE_DATASET: {
+      const tAction = action as TDeleteDataset;
+      const newState = { ...state };
+      if (newState.datasets) {
+        newState.datasets = { ...newState.datasets };
+        delete newState.datasets[tAction.datasetName];
+      }
+      if (newState.datasetConfigs) {
+        newState.datasetConfigs = { ...newState.datasetConfigs };
+        delete newState.datasetConfigs[tAction.datasetName];
+      }
       return newState;
     }
 

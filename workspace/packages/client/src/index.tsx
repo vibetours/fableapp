@@ -323,6 +323,20 @@ const router = createBrowserRouter([
             },
           },
           {
+            path: 'datasets',
+            async lazy() {
+              const Datasets = await import('./container/datasets').then(module => module.default);
+              return { Component: () => <Datasets title="Datasets  | Fable" /> };
+            },
+          },
+          {
+            path: 'dataset/:datasetName',
+            async lazy() {
+              const DatasetEditor = (await import('./container/dataset-editor')).default;
+              return { Component: () => <DatasetEditor title="Dataset editor | Fable" /> };
+            },
+          },
+          {
             path: 'demo-hubs',
             async lazy() {
               const DemoHubsList = await import('./container/demo-hubs-list').then(module => module.default);

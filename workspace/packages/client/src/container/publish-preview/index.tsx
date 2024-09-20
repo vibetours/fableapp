@@ -4,6 +4,7 @@ import { ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-con
 import { Link } from 'react-router-dom';
 import { Button as AntButton, Popover, Tooltip } from 'antd';
 import { CloseOutlined, CodeFilled, EditOutlined, ShareAltOutlined, UndoOutlined } from '@ant-design/icons';
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import { clearCurrentTourSelection, getCustomDomains, loadTourAndData, publishTour, updateTourProp } from '../../action/creator';
 import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { TState } from '../../reducer';
@@ -59,22 +60,19 @@ interface IAppStateProps {
   principal: RespUser | null;
   isTourLoaded: boolean;
   vanityDomains: P_RespVanityDomain[] | null;
-  allAnnotationsForTour: AnnotationPerScreen[];
   subs: P_RespSubscription | null;
+  annotationsForScreens: Record<string, IAnnotationConfig[]>;
 }
 
-const mapStateToProps = (state: TState): IAppStateProps => {
-  const allAnnotationsForTour = getAnnotationsPerScreen(state);
-  return ({
-    tour: state.default.currentTour,
-    principal: state.default.principal,
-    isTourLoaded: state.default.tourLoaded,
-    org: state.default.org,
-    vanityDomains: state.default.vanityDomains,
-    allAnnotationsForTour,
-    subs: state.default.subs
-  });
-};
+const mapStateToProps = (state: TState): IAppStateProps => ({
+  tour: state.default.currentTour,
+  principal: state.default.principal,
+  isTourLoaded: state.default.tourLoaded,
+  org: state.default.org,
+  vanityDomains: state.default.vanityDomains,
+  subs: state.default.subs,
+  annotationsForScreens: state.default.remoteAnnotations,
+});
 
 interface IOwnProps {
   title: string;
@@ -334,12 +332,11 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                     </div>
                     <div>
                       <PersonalVarEditor
-                        allAnnotationsForTour={this.props.allAnnotationsForTour}
                         setShowEditor={(showPersVarsEditor: boolean) => {
                           this.setState({ showPersVarsEditor });
                         }}
-                        annotationsForScreens={{}}
-                        rid={this.props.tour!.rid}
+                        annotationsForScreens={this.props.annotationsForScreens}
+                        tour={this.props.tour!}
                         changePersVarParams={(embedQueryParams: string) => {
                           this.setState({ embedQueryParams });
                         }}

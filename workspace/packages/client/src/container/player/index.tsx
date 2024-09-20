@@ -6,6 +6,8 @@ import {
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameSettings, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
+import { ConsoleSqlOutlined } from '@ant-design/icons';
+import { Query } from '@testing-library/react';
 import { loadScreenAndData, loadTourAndData, removeScreenDataForRids, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
@@ -51,9 +53,9 @@ import {
   isMobileOperatingSystem,
   isFrameSettingsValidValue,
   combineAllEdits,
-  replacePersonalizationVarsForAllAnnotationsForTour,
-  replacePersonalizationVarsForAllAnnotations,
-  generateVarMap
+  extractDatasetParams,
+  ParsedQueryResult,
+  getPersVarsDataFromQueryParams
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -74,15 +76,18 @@ import DemoFrame from '../../component/demo-frame/demo-frame';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null, queryParams: Record<string, string>) => void,
+  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null, persVarData: {
+    text: Record<string, string>,
+    dataset: ParsedQueryResult,
+  } | null) => void,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
   updateElpathKey: (elPathKey: ElPathKey) => void,
   removeScreenDataForRids: (ids: number[]) => Promise<void>
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null, varMap: Record<string, string>) => dispatch(
-    loadTourAndData(rid, true, true, loadPublishedData, ts, false, varMap)
+  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null, persVarsData) => dispatch(
+    loadTourAndData(rid, true, true, loadPublishedData, ts, false, true, persVarsData)
   ),
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
@@ -283,15 +288,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const ts = this.props.searchParams.get('_ts');
 
     const params = new URL(window.location.href).searchParams;
-    const queryParams: Record<string, string> = {};
-    params.forEach((v, k) => queryParams[k] = v);
+    const persVarsData = getPersVarsDataFromQueryParams(params);
 
-    const varMap = generateVarMap(queryParams);
     this.props.loadTourWithDataAndCorrespondingScreens(
       this.props.match.params.tourId,
       !this.props.staging,
       ts,
-      varMap
+      persVarsData,
     );
 
     if (this.props.searchParams.get('skiplf') === '1') {

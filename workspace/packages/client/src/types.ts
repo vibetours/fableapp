@@ -707,7 +707,49 @@ export type RenameDemoHubFn = (demoHub: P_RespDemoHub, newName: string) => Promi
 
 export const AI_PARAM = 'ai=1';
 
+export enum PerVarType {
+  TEXT,
+  DATASET
+}
+
+export type PerVarData = Record<string, {type: PerVarType, val: string}>
+
 export interface LSSavedPersVarData {
   rid: string;
-  perVars: Record<string, string>
+  perVars: PerVarData;
+}
+
+export interface TableComponents {
+  body?: {
+    row?: (props: any) => JSX.Element,
+    cell?: (props: any) => JSX.Element,
+  },
+  header?: {
+    cell?: (props: any) => JSX.Element
+    row?: (props: any) => JSX.Element,
+  },
+}
+
+export type TableColumn = {
+  id: number;
+  name: string;
+  desc: string;
+};
+
+export type TableRow = {
+  [key: string]: string;
+};
+
+export type Table = {
+  columns: TableColumn[];
+  rows: TableRow[];
+  colSeq: number;
+};
+
+export interface DatasetConfig {
+  v: number,
+  lastUpdatedAt: number | -1,
+  data: {
+    table: Table
+  }
 }

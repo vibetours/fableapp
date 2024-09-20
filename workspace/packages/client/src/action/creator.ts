@@ -50,6 +50,9 @@ import {
   LeadOwnerEntity,
   FrameSettings,
   SchemaVersion,
+  RespDataset,
+  ReqNewDataset,
+  Dataset,
 } from '@fable/common/dist/api-contract';
 import {
   JourneyData,
@@ -65,7 +68,7 @@ import {
   IGlobalConfig,
   SerNode,
 } from '@fable/common/dist/types';
-import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, sleep } from '@fable/common/dist/utils';
+import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, getRandomId, sleep } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -92,11 +95,17 @@ import {
   getDefaultThumbnailHash,
   convertGlobalEditsToLineItems,
   mergeGlobalEdits,
+  processRawDataset,
+  P_Dataset,
+  getDatasetDataFileUri,
+  preprocessAnnTextsToReplacePersVars,
+  processDatasetConfig,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
   AllEdits,
   AllGlobalElEdits,
+  DatasetConfig,
   DestinationAnnotationPosition,
   EditItem,
   ElEditType,
@@ -112,7 +121,7 @@ import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 import { FeatureForPlan, FeaturePerPlan } from '../plans';
-import { mapPlanIdAndIntervals } from '../utils';
+import { datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, ParsedQueryResult, processVarMap, Query } from '../utils';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -1006,8 +1015,10 @@ export interface TTourWithLoader {
 
 export async function getAllAnnotationsForScreens(
   tour: P_RespTour,
+  loadPublished: boolean,
 ) : Promise<Record<string, IAnnotationConfig[]>> {
-  const data = await api<null, TourData>(tour!.dataFileUri.href);
+  const dataFileUriHref = loadPublished ? tour.pubDataFileUri.href : tour.stagingDataFileUri.href;
+  const data = await api<null, TourData>(dataFileUriHref);
   const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
   return annotationAndOpts.annotations;
 }
@@ -1019,7 +1030,11 @@ export function loadTourAndData(
   loadPublishedData = false,
   ts: string | null = null,
   shouldGetOnlyTour = false,
-  varMap: Record<string, string> | null = null
+  isLoadingTourToEmbed = false,
+  persVarData: {
+    text: Record<string, string>,
+    dataset: ParsedQueryResult,
+  } | null = null
 ) {
   return async (
     dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize | TTourPublished>,
@@ -1079,7 +1094,30 @@ export function loadTourAndData(
     });
 
     const data = await api<null, TourData>(tour!.dataFileUri.href);
-    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false, varMap);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false,);
+
+    let annotations = annotationAndOpts.annotations;
+
+    if (isLoadingTourToEmbed && persVarData) {
+      let dsVarMap: Record<string, Record<string, string>> = {};
+      const datasetConfigs: Record<string, DatasetConfig> = {};
+
+      for (const dsName of persVarData.dataset.tables) {
+        const ds = tour.datasets?.find(curr => curr.name === dsName);
+        if (!ds) continue;
+        try {
+          const processedDs = processRawDataset(ds, getState().default.commonConfig!, tour.owner, false);
+          const config = await api<null, DatasetConfig>(processedDs.dataFileUri.href);
+          datasetConfigs[processedDs.name] = config;
+        } catch (e) {
+          raiseDeferredError(e as Error);
+        }
+      }
+
+      dsVarMap = datasetQueryParser(persVarData.dataset.queries, datasetConfigs);
+      const varMap = processVarMap(dsVarMap, persVarData.text);
+      annotations = preprocessAnnTextsToReplacePersVars(annotationAndOpts.annotations, varMap);
+    }
 
     let editData: GlobalEditFile;
     let globalEdits: EditItem[] = [];
@@ -1100,7 +1138,7 @@ export function loadTourAndData(
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
       tour: processRawTourData(tour!, getState().default.commonConfig!, tour.globalOpts!, false, loadPublishedData ? tour : undefined),
-      annotations: annotationAndOpts.annotations,
+      annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,
       journey: annotationAndOpts.journey,
@@ -2313,4 +2351,276 @@ export function fetchOrgWideAnalytics() {
 
     return Promise.resolve(state.default.orgWideRespHouseLead);
   };
+}
+
+/**
+ *
+ * Datasets
+ *
+ */
+export interface TAllDatasets{
+  type: ActionType.ALL_DATASETS_LOADED;
+  datasets: P_Dataset[]
+}
+
+export function getAllDatasets() {
+  return async (
+    dispatch: Dispatch<TAllDatasets>,
+    getState: () => TState
+  ) => {
+    const state = getState();
+    if (!state.default.org) return;
+    const orgId = state.default.org.id;
+
+    const data = await api<null, ApiResp<RespDataset[]>>(`/ds?orgId=${orgId}`, { auth: true });
+    const processedDataSets = data.data.map(item => processRawDataset(
+      item.dataset,
+      state.default.commonConfig!,
+      orgId,
+      true,
+      item.presignedUrl
+    ));
+
+    dispatch({
+      type: ActionType.ALL_DATASETS_LOADED,
+      datasets: processedDataSets,
+    });
+  };
+}
+
+interface CreateDataset_Success {
+  type: 'success',
+  data: P_Dataset,
+}
+
+interface CreateDataset_Failure {
+  type: 'failure',
+  data: {
+    type: 'already_used_name' | 'invalid_name',
+  }
+}
+
+export function createNewDataset(name: string, description: string) {
+  return async (
+    dispatch: Dispatch<TUpdateDataset>,
+    getState: () => TState
+  ): Promise<CreateDataset_Success | CreateDataset_Failure> => {
+    const state = getState();
+    const orgId = state.default.org!.id;
+
+    const allDatasets = Object.values(state.default.datasets || {});
+
+    const isAlreadyNameUsed = allDatasets.find(ds => ds.name.toLowerCase() === name.toLowerCase());
+    if (isAlreadyNameUsed) {
+      return Promise.resolve({
+        type: 'failure',
+        data: { type: 'already_used_name' },
+      });
+    }
+
+    const isNameValid = isValidStrWithAlphaNumericValues(name);
+    if (!isNameValid) {
+      return Promise.resolve({
+        type: 'failure',
+        data: { type: 'invalid_name' },
+      });
+    }
+
+    const data = await createOrGetDatasetApi(name, description);
+    const processedDataSet = processRawDataset(
+      data.data.dataset,
+      state.default.commonConfig!,
+      orgId,
+      true,
+      data.data.presignedUrl
+    );
+
+    dispatch({
+      type: ActionType.UPDATE_DATASET,
+      dataset: processedDataSet,
+    });
+
+    return Promise.resolve({
+      type: 'success',
+      data: processedDataSet,
+    });
+  };
+}
+
+export function publishDataset(name: string) {
+  return async (
+    dispatch: Dispatch<TUpdateDataset>,
+    getState: () => TState
+  ): Promise<P_Dataset> => {
+    const state = getState();
+    const orgId = state.default.org!.id;
+
+    const data = await api<ReqNewDataset, ApiResp<RespDataset>>(
+      '/pubds',
+      {
+        auth: true,
+        method: 'POST',
+        body: {
+          name,
+        },
+      }
+    );
+    const processedDataSet = processRawDataset(
+      data.data.dataset,
+      state.default.commonConfig!,
+      orgId,
+      true,
+      data.data.presignedUrl
+    );
+
+    dispatch({
+      type: ActionType.UPDATE_DATASET,
+      dataset: processedDataSet,
+    });
+
+    return Promise.resolve(processedDataSet);
+  };
+}
+
+export interface TDeleteDataset {
+  type: ActionType.DELETE_DATASET,
+  datasetName: string,
+}
+
+export function deleteDataset(name: string) {
+  return async (
+    dispatch: Dispatch<TDeleteDataset>,
+    getState: () => TState
+  ): Promise<boolean> => {
+    const state = getState();
+
+    const data = await api<ReqNewDataset, ApiResp<RespDataset[]>>(
+      `/ds/del/${name}`,
+      {
+        auth: true,
+        method: 'POST',
+      }
+    );
+
+    dispatch({
+      type: ActionType.DELETE_DATASET,
+      datasetName: name,
+    });
+
+    return Promise.resolve(true);
+  };
+}
+
+export interface TLoadDataset {
+  type: ActionType.LOAD_DATASET,
+  datasetsData: Record<string, P_Dataset>,
+  configs: Record<string, DatasetConfig>
+}
+
+export function getDataset(name: string) {
+  return async (
+    dispatch: Dispatch<TLoadDataset>,
+    getState: () => TState
+  ) => {
+    const state = getState();
+    if (!state.default.org) return;
+    const orgId = state.default.org.id;
+
+    const data = await api<null, ApiResp<RespDataset>>(`/ds/${name}`, { auth: true });
+    const processedDataSet = processRawDataset(
+      data.data.dataset,
+      state.default.commonConfig!,
+      orgId,
+      true,
+      data.data.presignedUrl
+    );
+
+    const config = await api<null, DatasetConfig>(processedDataSet.dataFileUri.href);
+    const processedConfig = processDatasetConfig(config);
+
+    const datasetName = processedDataSet.name;
+
+    dispatch({
+      type: ActionType.LOAD_DATASET,
+      datasetsData: { [datasetName]: processedDataSet },
+      configs: { [datasetName]: processedConfig },
+    });
+  };
+}
+
+export interface TUpdateDataset {
+  type: ActionType.UPDATE_DATASET,
+  dataset: P_Dataset,
+}
+
+export function editDataset(name: string, config: DatasetConfig) {
+  return async (
+    dispatch: Dispatch<TUpdateDataset>,
+    getState: () => TState
+  ): Promise<void> => {
+    const state = getState();
+    const orgId = state.default.org!.id;
+
+    const currentDataset = state.default.datasets ? state.default.datasets[name] : null;
+    const presignedUrl = currentDataset?.presignedEditUri?.href;
+
+    if (presignedUrl) {
+      try {
+        await uploadDatasetToPresignedUrl(presignedUrl, config);
+        return;
+      } catch { /* empty */ }
+    }
+
+    const data = await createOrGetDatasetApi(name);
+    const processedDataSet = processRawDataset(
+      data.data.dataset,
+      state.default.commonConfig!,
+      orgId,
+      true,
+      data.data.presignedUrl
+    );
+    await uploadDatasetToPresignedUrl(data.data.presignedUrl!.url, config);
+
+    dispatch({
+      type: ActionType.UPDATE_DATASET,
+      dataset: processedDataSet,
+    });
+  };
+}
+
+export async function loadDatasetConfigs(
+  datasets: P_Dataset[]
+): Promise<{name: string, config: DatasetConfig}[]> {
+  const configs = await Promise.all(datasets.map(async (ds) => {
+    const config = await api<null, DatasetConfig>(ds.dataFileUri.href);
+    return { name: ds.name, config };
+  }));
+  return configs;
+}
+
+async function uploadDatasetToPresignedUrl(presignedUrl: string, config: DatasetConfig): Promise<void> {
+  const res = await fetch(presignedUrl, {
+    method: 'PUT',
+    body: JSON.stringify(config),
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'max-age=0'
+    }
+  });
+  if (res.status !== 200) throw new Error('Error in uploading dataset to presigned url');
+}
+
+async function createOrGetDatasetApi(name: string, description?: string): Promise<ApiResp<RespDataset>> {
+  const data = await api<ReqNewDataset, ApiResp<RespDataset>>(
+    '/newds',
+    {
+      auth: true,
+      method: 'POST',
+      body: {
+        name,
+        description,
+      },
+    }
+  );
+  return data;
 }
