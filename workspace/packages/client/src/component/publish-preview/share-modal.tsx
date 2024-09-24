@@ -6,12 +6,15 @@ import { Collapse, Drawer, Spin } from 'antd';
 import { timeFormat } from 'd3-time-format';
 import { GlobalPropsPath, createGlobalProperty, createLiteralProperty } from '@fable/common/dist/utils';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { AnyAction } from 'redux';
+import { ThunkDispatch } from 'redux-thunk';
+import { useDispatch } from 'react-redux';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
 import { createIframeSrc, debounce, getValidUrl, isGlobalProperty } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
+import { P_Dataset, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import PublishButton from './publish-button';
 import { ParamType } from './utm-params-helper';
 import UrlCodeShare from './url-code-share';
@@ -24,7 +27,8 @@ import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
 import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
 import PersonalVarEditor from '../personal-var-editor/personal-var-editor';
-import { getAllAnnotationsForScreens } from '../../action/creator';
+import { loadTourAnnotationsAndDatasets } from '../../action/creator';
+import { TState } from '../../reducer';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -405,6 +409,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [allDomains, setAllDomains] = useState<string[] | null>(null);
   const [loadingAnns, setLoadingAnns] = useState(true);
   const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]> | null>(null);
+  const [datasets, setDatasets] = useState<P_Dataset[] | null>(null);
+  const dispatch: ThunkDispatch<TState, void, AnyAction> = useDispatch();
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -469,10 +475,12 @@ export default function ShareTourModal(props: Props): JSX.Element {
   }, [props.tour, props.isModalVisible]);
 
   async function fetchAnns(): Promise<void> {
+    if (getPublicationState(props.tour) === PublicationState.UNPUBLISHED) return;
     try {
       setLoadingAnns(true);
-      const data = await getAllAnnotationsForScreens(props.tour, true);
-      setAnnotationsForScreens(data);
+      const data = await dispatch(loadTourAnnotationsAndDatasets(props.tour.rid, true));
+      setAnnotationsForScreens(data.annotations);
+      setDatasets(data.datasets);
       setLoadingAnns(false);
     } catch (e) {
       raiseDeferredError(e as Error);
@@ -699,6 +707,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
           </Drawer>
           {props.tour
           && annotationsForScreens
+          && datasets
           && getPublicationState(props.tour) !== PublicationState.UNPUBLISHED && (
             <div style={{
               background: 'white',
@@ -708,6 +717,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
             }}
             >
               <PersonalVarEditor
+                datasets={datasets}
                 annotationsForScreens={annotationsForScreens}
                 tour={props.tour}
                 originalPersVarsParams=""

@@ -1,6 +1,6 @@
 import { getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
-import { DatasetConfig, TableColumn, TableRow } from '../../../types';
-import { DATASET_COL_ID_ID } from '../../../utils';
+import { DatasetConfig, Table, TableColumn, TableRow } from '../../types';
+import { DATASET_COL_ID_ID } from '../../utils';
 
 export const newConfigFrom = (config: DatasetConfig): DatasetConfig => {
   const newConfig: DatasetConfig = {
@@ -67,6 +67,8 @@ export const renameColumnInDataset = (
   newColumnName: string,
   newColumnDesc: string,
 ): DatasetConfig => {
+  if (!(isColUpdated(config.data.table, columnName, newColumnName, newColumnDesc))) return config;
+
   const newConfig = newConfigFrom(config);
   const table = newConfig.data.table;
   const cols = table.columns;
@@ -123,6 +125,8 @@ export const updateRowInDataset = (
   config: DatasetConfig,
   updatedRow: TableRow,
 ): DatasetConfig => {
+  if (!isRowUpdated(config.data.table, updatedRow)) return config;
+
   const newConfig = newConfigFrom(config);
   const rows = newConfig.data.table.rows;
 
@@ -135,3 +139,31 @@ export const updateRowInDataset = (
 
   return newConfig;
 };
+
+function isRowUpdated(table: Table, updatedRow: TableRow): boolean {
+  const prevRow = table.rows.find(row => row[DATASET_COL_ID_ID] === updatedRow[DATASET_COL_ID_ID]);
+  if (!prevRow) return false;
+
+  for (const col of table.columns) {
+    if (prevRow[col.id] !== updatedRow[col.id]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isColUpdated(
+  table: Table,
+  oldName: string,
+  newName: string,
+  newDesc: string
+): boolean {
+  const prevCol = table.columns.find(col => col.name === oldName);
+  if (!prevCol) return false;
+
+  if (prevCol.name !== newName) return true;
+  if (prevCol.desc !== newDesc) return true;
+
+  return false;
+}

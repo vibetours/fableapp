@@ -341,6 +341,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                           this.setState({ embedQueryParams });
                         }}
                         originalPersVarsParams={this.originalQueryParams}
+                        datasets={this.props.tour!.datasets!}
                       />
                     </div>
                   </Tags.QuickEditPopoverCon>

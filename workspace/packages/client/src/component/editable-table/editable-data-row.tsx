@@ -3,9 +3,9 @@ import type { FormInstance, InputRef, TableProps } from 'antd';
 import { Form } from 'antd';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { DeleteOutlined } from '@ant-design/icons';
-import { DatasetConfig, TableColumn, TableRow } from '../../../types';
-import { DATASET_COL_ID_ID } from '../../../utils';
-import Input from '../../input';
+import { DatasetConfig, TableColumn, TableRow } from '../../types';
+import { DATASET_COL_ID_ID } from '../../utils';
+import Input from '../input';
 
 const EditableContext = React.createContext<FormInstance | null>(null);
 interface Item {
@@ -47,6 +47,7 @@ export function EditableCell({
   dataset,
   onUpdateRow,
   onDeleteRow,
+  record,
   ...props
 }: EditableCellProps): JSX.Element {
   const [editing, setEditing] = useState(false);
@@ -65,7 +66,7 @@ export function EditableCell({
     if (dataset && props.title) {
       const column = dataset.data.table.columns.find(colm => colm.name === props.title);
       if (column) {
-        setValue(props.record[column.id]);
+        setValue(record[column.id]);
         setCol(column);
       }
     }
@@ -78,7 +79,7 @@ export function EditableCell({
   async function save() : Promise<void> {
     try {
       const data = form.getFieldsValue(true);
-      onUpdateRow({ ...props.record, ...data });
+      onUpdateRow({ ...record, ...data });
       toggleEdit();
     } catch (errInfo) {
       raiseDeferredError(new Error(`Save failed:${errInfo}`));
@@ -102,12 +103,17 @@ export function EditableCell({
           onKeyDown={(e) => {
             if (e.key === 'Enter') save();
           }}
-          style={{ minHeight: '1.5rem' }}
+          style={{
+            height: 'fit-content',
+            padding: '1px 3px',
+            lineHeight: 'unset',
+            borderRadius: '2px'
+          }}
         />
       </Form.Item>
     ) : (
       <div
-        className="editable-cell-value-wrap typ-reg"
+        className="editable-cell-value-wrap"
         style={{ paddingInlineEnd: 24, minHeight: '1.5rem' }}
         onClick={toggleEdit}
       >
@@ -121,7 +127,7 @@ export function EditableCell({
       <div>
         <DeleteOutlined
           style={{ display: 'block', cursor: 'pointer' }}
-          onClick={() => { onDeleteRow(props.record[DATASET_COL_ID_ID]); }}
+          onClick={() => { onDeleteRow(record[DATASET_COL_ID_ID]); }}
         />
       </div>
     );

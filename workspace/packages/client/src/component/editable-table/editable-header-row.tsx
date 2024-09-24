@@ -2,8 +2,8 @@ import React from 'react';
 import { DeleteOutlined, EditOutlined, MoreOutlined } from '@ant-design/icons';
 import { getRandomId } from '@fable/common/dist/utils';
 import { Button, Popover } from 'antd';
-import { DatasetConfig } from '../../../types';
-import * as GTags from '../../../common-styled';
+import { DatasetConfig } from '../../types';
+import * as GTags from '../../common-styled';
 
 interface EditableHeaderRowProps {
   dataset: DatasetConfig;
@@ -40,7 +40,7 @@ export function EditableHeaderCell(
         }}
       >
         <div
-          className="overflow-ellipsis typ-reg"
+          className="overflow-ellipsis"
           style={{ textAlign: 'center', flexGrow: '1', maxWidth: '150px', fontWeight: '500' }}
         >
           {props.children}

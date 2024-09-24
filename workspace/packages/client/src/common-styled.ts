@@ -116,13 +116,15 @@ export const BodyCon = styled.div`
     pointer-events: none !important;
     opacity: 0.5 !important;
   }
+
+  .left-gutter {
+    padding-left: 3%;
+  }
 `;
 
 export const SidePanelCon = styled.aside`
   height: 100%;
-  min-width: 280px;
-  max-width: 280px;
-  width: 280px;
+  width: fit-content;
   box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   z-index: 2;
 `;
@@ -132,6 +134,7 @@ export const MainCon = styled.div`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  background: #f5f5f5;
 
   scrollbar-color: var(--fable-scrollbar-color);
   scrollbar-width: thin;

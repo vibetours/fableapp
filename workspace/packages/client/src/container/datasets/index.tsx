@@ -1,8 +1,4 @@
-import { DatabaseOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
-import {
-  RespOrg,
-  RespUser,
-} from '@fable/common/dist/api-contract';
+import { DatabaseOutlined, LoadingOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { Modal } from 'antd';
@@ -11,16 +7,14 @@ import {
   createNewDataset,
   publishDataset,
   deleteDataset,
+  getDataset,
+  editDataset,
+  updateDatasetDesc,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import SkipLink from '../../component/skip-link';
-import {
-  P_Dataset,
-  P_RespSubscription,
-  P_RespVanityDomain,
-} from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import * as Tags from './styled';
@@ -31,13 +25,11 @@ import { TOP_LOADER_DURATION } from '../../constants';
 import DatasetCard from './card';
 import { showDeleteConfirm } from '../../component/demo-hub-editor/delete-confirm';
 import TextArea from '../../component/text-area';
-
-interface IDispatchProps {
-  getAllDatasets: () => void;
-  createNewDataset: (name: string, description: string) => ReturnType<ReturnType<typeof createNewDataset>>;
-  publishDataset: (name: string) => Promise<P_Dataset>;
-  deleteDataset: (name: string) => Promise<P_Dataset>;
-}
+import { DatasetConfig } from '../../types';
+import { debounce } from '../../utils';
+import EditableTable from '../../component/editable-table';
+import { P_Dataset } from '../../entity-processor';
+import DatasetInfoEditor from './dataset-info-editor';
 
 export enum CtxAction {
   NA = 'na',
@@ -46,36 +38,35 @@ export enum CtxAction {
   Create = 'create',
 }
 
-const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
+const mapDispatchToProps = (dispatch: any) => ({
   getAllDatasets: () => dispatch(getAllDatasets()),
   createNewDataset: (name: string, description: string) => dispatch(createNewDataset(name, description)),
+  updateDatasetDesc: (name: string, description: string) => dispatch(updateDatasetDesc(name, description)),
   publishDataset: (name: string) => dispatch(publishDataset(name)),
   deleteDataset: (name: string) => dispatch(deleteDataset(name)),
+  loadDataset: (name: string) => dispatch(getDataset(name)),
+  editDataset: (name: string, config: DatasetConfig) => dispatch(editDataset(name, config)),
 });
 
-interface IAppStateProps {
-  subs: P_RespSubscription | null;
-  principal: RespUser | null;
-  org: RespOrg | null;
-  vanityDomains: P_RespVanityDomain[] | null;
-  datasets: Record<string, P_Dataset> | null;
-}
-
-const mapStateToProps = (state: TState): IAppStateProps => ({
+const mapStateToProps = (state: TState) => ({
   subs: state.default.subs,
   principal: state.default.principal,
   org: state.default.org,
-  vanityDomains: state.default.vanityDomains,
   datasets: state.default.datasets,
+  datasetConfigs: state.default.datasetConfigs,
 });
 
 interface IOwnProps {
   title: string;
 }
-type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
+type IProps = IOwnProps
+  & ReturnType<typeof mapStateToProps>
+  & ReturnType<typeof mapDispatchToProps>
+  & WithRouterProps<{ datasetName?: string; }>;
+
 interface IOwnStateProps {
   showCreateModal: boolean;
-  createErrorStatus: null | 'already_used_name' | 'invalid_name'
+  createErrorStatus: null | 'already_used_name' | 'invalid_name';
 }
 const { confirm } = Modal;
 
@@ -95,6 +86,8 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     this.props.getAllDatasets();
     document.title = this.props.title;
+
+    if (this.props.match.params.datasetName) { this.props.loadDataset(this.props.match.params.datasetName); }
   }
 
   componentDidUpdate(
@@ -105,7 +98,19 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.org !== this.props.org && this.props.org) {
       this.props.getAllDatasets();
     }
+    if (prevProps.match.params.datasetName !== this.props.match.params.datasetName) {
+      if (this.props.match.params.datasetName) { this.props.loadDataset(this.props.match.params.datasetName); }
+    }
   }
+
+  getSelectedDataset = (): [P_Dataset, DatasetConfig] | null => {
+    const datasetName = this.props.match.params.datasetName;
+    if (!datasetName) return null;
+    if (!(this.props.datasets && this.props.datasetConfigs)) return null;
+    const dataset = this.props.datasets[datasetName];
+    const datasetConfig = this.props.datasetConfigs[datasetName];
+    return [dataset, datasetConfig];
+  };
 
   componentWillUnmount(): void {}
 
@@ -125,7 +130,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   navigateToDataset = (datasetName: string): void => {
-    this.props.navigate(`/dataset/${datasetName}`);
+    this.props.navigate(`/datasets/${datasetName}`);
   };
 
   publishDataset = (datasetName: string): void => {
@@ -144,9 +149,23 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     }, `Are you sure you want to delete this dataset ${datasetName}?`);
   };
 
+  debouncedOnDatasetConfigChangeHandler = debounce(
+    (datasetName: string, updatedDatasetConfig: DatasetConfig) => {
+      datasetName && this.props.editDataset(
+        datasetName,
+        updatedDatasetConfig,
+      );
+    },
+    2000
+  );
+
+  onDatasetConfigChange = (datasetName: string, updatedDatsetConfig: DatasetConfig): void => {
+    this.debouncedOnDatasetConfigChangeHandler(datasetName, updatedDatsetConfig);
+  };
+
   render(): ReactElement {
     const datasetsLoaded = this.props.datasets !== null;
-
+    const selectedDataset = this.getSelectedDataset();
     return (
       <>
         <GTags.ColCon className="tour-con">
@@ -165,7 +184,6 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
               principal={this.props.principal}
               org={this.props.org}
               leftElGroups={[]}
-              vanityDomains={this.props.vanityDomains}
               subs={this.props.subs}
             />
           </div>
@@ -186,27 +204,23 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
               <GTags.BodyCon
                 style={{
                   flexDirection: 'column',
-                  paddingLeft: '3%',
                   width: '100%',
+                  height: '100%',
                   display: 'flex',
                   alignItems: 'start',
-                  maxWidth: '680px',
                 }}
                 id="main"
               >
                 {datasetsLoaded && (
-                  <>
-                    <Tags.TopPanel
+                <div style={{ width: '100%', height: '100%' }}>
+                  {Object.values(this.props.datasets!).length === 0 ? (
+                    <Tags.EmptyDatasetsCon
+                      className="left-gutter"
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
+                        maxWidth: '680px',
                       }}
                     >
-                      <Tags.DatasetsHeading style={{ fontWeight: 400 }}>
-                        All datasets in your org
-                      </Tags.DatasetsHeading>
+                      <p className="typ-h2"><DatabaseOutlined /> No datasets created. Start by creating one!</p>
                       <Button
                         icon={<PlusOutlined />}
                         iconPlacement="left"
@@ -215,30 +229,101 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
                       >
                         Create a dataset
                       </Button>
-                    </Tags.TopPanel>
-                    <div style={{ width: '100%' }}>
-                      <GTags.BottomPanel style={{ overflow: 'auto', margin: '0' }}>
-                        {Object.values(this.props.datasets!).length === 0 ? (
-                          <Tags.EmptyDatasetsCon>
-                            <DatabaseOutlined style={{ fontSize: '2rem' }} />
-                            <div className="typ-h2">No datasets created. Start by creating one!</div>
-                          </Tags.EmptyDatasetsCon>
-                        ) : (
-                          <>
-                            {Object.values(this.props.datasets!).map((dataset, index) => (
-                              <DatasetCard
-                                key={dataset.name}
-                                dataset={dataset}
-                                navigateToDataset={this.navigateToDataset}
-                                publish={this.publishDataset}
-                                delete={this.deleteDataset}
+
+                      <p className="typ-reg">
+                        You can create a dataset to personalize your demo content.
+                        A dataset is a simple table that holds dynamic data that you want to use to personalize your demo.
+                      </p>
+                      <p className="typ-reg">
+                        Once you create a dataset and add data to the dataset,
+                        you can select row(s) of a dataset as a source of your demo personalization data.
+                      </p>
+                      <p className="typ-reg">
+                        Let's say, you want to personalize a demo across accounts.
+                        You start by defining a dataset that holds personalization content. Following is an example dataset
+                      </p>
+                      <table className="sample-table">
+                        <caption style={{ textAlign: 'left' }}>usecase_per_account</caption>
+                        <thead>
+                          <tr>
+                            <td>account</td>
+                            <td>display_name</td>
+                            <td>goal</td>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>acme</td>
+                            <td>Acme Inc.</td>
+                            <td>An interactive demo help increase number of rockets Acme sends to Venus</td>
+                          </tr>
+                          <tr>
+                            <td>kimchi</td>
+                            <td>Kimchi Kong.</td>
+                            <td>An interactive demo help increase mortality rate among owls</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      <p className="typ-reg">
+                        Once the dataset is defined, you can personalize a demo by using data from above table via query parameter
+                        <code style={{ fontSize: '0.9rem' }}>/embed/demo/my-demo-id?dataset=usecase_per_account(account.is.acme)</code>
+                      </p>
+                      <p className="typ-reg">
+                        Dataset helps you to create a demo once and use it as template
+                        by sourcing the personalized data from dataset itself.
+                      </p>
+                    </Tags.EmptyDatasetsCon>
+                  ) : (
+                    <Tags.DatasetViewCon>
+                      <div className="ds-editor">
+                        {selectedDataset ? (
+                          selectedDataset[1] ? (
+                            <div>
+                              <DatasetInfoEditor
+                                dataset={selectedDataset[0]}
+                                onPublish={this.publishDataset}
+                                updateDatasetDesc={this.props.updateDatasetDesc}
                               />
-                            ))}
-                          </>
+                              <EditableTable
+                                dataset={selectedDataset[1]}
+                                data={selectedDataset[0]}
+                                onDatasetConfigChange={this.onDatasetConfigChange}
+                              />
+                            </div>
+                          ) : (
+                            <LoadingOutlined />
+                          )
+                        ) : (
+                          <div className="typ-sm no-ds-sel-con">
+                            Select a dataset from the panel below.
+                          </div>
                         )}
-                      </GTags.BottomPanel>
-                    </div>
-                  </>
+                      </div>
+                      <div className="ds-cards">
+                        <Tags.InlineCardBtn
+                          onClick={() => this.setState({ showCreateModal: true })}
+                        >
+                          <PlusOutlined />
+                          <span>
+                            New dataset
+                          </span>
+                        </Tags.InlineCardBtn>
+                        <div className="cards-con">
+                          {Object.values(this.props.datasets!).map((dataset, index) => (
+                            <DatasetCard
+                              key={dataset.name}
+                              dataset={dataset}
+                              navigateToDataset={this.navigateToDataset}
+                              publish={this.publishDataset}
+                              delete={this.deleteDataset}
+                              isSelected={this.props.match.params.datasetName === dataset.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </Tags.DatasetViewCon>
+                  )}
+                </div>
                 )}
               </GTags.BodyCon>
             </GTags.MainCon>
@@ -271,8 +356,8 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
             )}
         >
           <div className="modal-content-cont">
-
             <div className="typ-h2">Create dataset</div>
+            <div className="typ-sm">Dataset name can't be changed once it's created.</div>
             <div>
               <form
                 onSubmit={(e) => {
@@ -314,7 +399,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
   }
 }
 
-export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
+export default connect<ReturnType<typeof mapStateToProps>, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(Datasets));

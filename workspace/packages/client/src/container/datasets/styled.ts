@@ -1,5 +1,4 @@
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
 
 export const TopPanel = styled.div`
   margin: 1rem 0;
@@ -17,35 +16,59 @@ export const Text = styled.h4`
   font-style: italic;
 `;
 
-export const CardCon = styled(Link)`
-  display: flex;
-  padding: 1rem;
-  gap: 1rem;
+export const InlineCardBtn = styled.div`
+  height: 80%;
+  align-items: center;
+  padding: 0 1rem;
+  justify-content: center;
+  flex-direction: column;
   border-radius: 0.5rem;
-  border: 1px solid #E6E6E6;
-  background: #FFF;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.05);
+  outline: 1px dashed #160245;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  text-decoration: none;
-  margin-bottom: 1rem;
+  margin: 0 0 0 1rem;
+  display: flex;
+  gap: 0.5rem;
+  width: 120px;
+  cursor: pointer;
 
   &:hover {
-    border: 1px solid ${(props) => props.theme.colors.light.selection.background};
-    cursor: pointer;
-    text-decoration: none;
-    color: #16023e;
+    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
   }
 `;
 
-export const DisplayName = styled.h3`
+export const CardCon = styled.div<{isSelected: boolean}>`
+  display: flex;
+  padding: 1rem 0.5rem 1rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  height: calc(80% - 2rem);
+  background: #FFF;
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  text-decoration: none;
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  justify-content: space-between;
+  cursor: pointer;
+  outline: ${p => (p.isSelected ? `1px solid ${p.theme.colors.light.selection.background}` : 'none')};
+
+  &:hover {
+    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
+  }
+`;
+
+export const DisplayName = styled.div`
   margin: 0;
   padding: 0;
+  width: 100%;
   color: #16023E;
-  font-family: IBM Plex Sans;
   font-size: 1rem;
-  font-style: normal;
   font-weight: 600;
-  line-height: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
 export const Divider = styled.div`
@@ -61,22 +84,12 @@ export const AvatarCon = styled.div`
   gap: 0.3125rem;
 `;
 
-export const Thumbnail = styled.div`
-  display: none;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex-shrink: 0;
-  border-radius: 0.25rem;
-  border: 0.5px solid #DDD;
-  background: #D0D0FF;
-`;
-
 export const CardDataCon = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.25rem;
-  flex: 1 0 0;
+  overflow: hidden;
 `;
 
 export const MetaDataCon = styled.div`
@@ -96,6 +109,8 @@ export const ActionBtnCon = styled.div`
   align-items: center;
   align-self: flex-start;
   gap: 0.5rem;
+  justify-content: flex-end;
+  flex: 1 0 auto;
 `;
 
 export const CardCTA = styled.button`
@@ -123,13 +138,92 @@ export const ErrorMsg = styled.p`
 `;
 
 export const EmptyDatasetsCon = styled.div`
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  margin-top: 2rem;
+
+  table, th, td {
+    border: none;
+  }
+
+  p, table {
+    width: 100%;
+    margin: 1rem 0;
+  }
+
+  .sample-table {
+    font-size: 0.9rem;
+
+    thead {
+      font-weight: 500;
+      tr {
+        background: lightgray;
+      }
+    }
+
+    tr {
+      outline: 1px solid lightgray;
+    }
+    td {
+      padding: 0 2px;
+    }
+  }
+`;
+
+export const DatasetViewCon = styled.div`
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1.25rem;
   flex-direction: column;
+
+  &, & > div {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ds-editor {
+    border-bottom: 1px solid #E0E0E0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ds-cards {
+    height: 200px;
+    width: 100%;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+
+    .cards-con {
+      padding: 0 0.5rem;
+      overflow-x: auto;
+      display: flex;
+      height: 100%;
+      align-items: center;
+      gap: 1rem;
+    }
+  }
+`;
+
+export const DatasetInfoEditorCon = styled.div`
+  margin-bottom: 1rem;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  .overflow-ellipsis {
+    max-width: 100%;
+  }
+
+  button {
+    width: fit-content;
+  }
+`;
+
+export const DatasetDescInputCon = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 `;

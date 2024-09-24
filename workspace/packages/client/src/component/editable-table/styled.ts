@@ -24,7 +24,7 @@ export const EditableTable = styled.div`
   .add-col-btn {
     outline: none;
     border: none;
-    background-color: rgba(0,0,0,0.1);
+    background-color: #eeeeee;
     border-radius: 4px;
     color: gray;
     cursor: pointer;

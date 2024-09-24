@@ -37,6 +37,8 @@ export const ConNavBtn = styled(Link)`
   text-decoration: none;
   border-radius: 8px;
   margin: 0 8px;
+  font-size: 0.9rem;
+  white-space: nowrap;
 
   &:hover,
   &.selected {

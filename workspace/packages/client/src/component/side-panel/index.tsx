@@ -49,6 +49,10 @@ export default function SidePanel(props: Props): JSX.Element {
           <HeatMapOutlined />
           <p>Demo hub</p>
         </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
+          <DatabaseOutlined />
+          <p>Datasets</p>
+        </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'leads' ? 'selected' : ''} to="/leads">
           <RiseOutlined />
           <p>Leads</p>
@@ -56,10 +60,6 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
           <ApiOutlined />
           <p>Integrations</p>
-        </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
-          <DatabaseOutlined />
-          <p>Datasets</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users">
           <UsergroupAddOutlined />

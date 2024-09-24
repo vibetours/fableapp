@@ -12,7 +12,7 @@ import {
   setPersValuesInLS
 } from '../../utils';
 import { InputText } from '../screen-editor/styled';
-import { P_RespTour } from '../../entity-processor';
+import { P_Dataset, P_RespTour } from '../../entity-processor';
 import { loadDatasetConfigs } from '../../action/creator';
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
   annotationsForScreens: Record<string, IAnnotationConfig[]>;
   originalPersVarsParams: string;
   setShowEditor: (showPersVarsEditor: boolean) => void;
+  datasets: P_Dataset[];
 }
 
 export default function PersonalVarEditor(props: Props): JSX.Element {
@@ -88,11 +89,11 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
 
   useEffect(() => {
     async function getDatasetConfigs(): Promise<void> {
-      const configs = await loadDatasetConfigs(props.tour.datasets || []);
+      const configs = await loadDatasetConfigs(props.datasets || []);
       setDatasetConfigs(configs);
     }
     getDatasetConfigs();
-  }, [props.tour.datasets]);
+  }, [props.datasets]);
 
   useEffect(() => {
     validatePersVars();
@@ -122,9 +123,9 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
             return `Variable ${perVarName}: query is not valid`;
           }
 
-          if (!props.tour.datasets) return '';
+          if (!props.datasets) return '';
 
-          if (!props.tour.datasets.find(ds => ds.name.toLowerCase() === table.toLowerCase())) {
+          if (!props.datasets.find(ds => ds.name.toLowerCase() === table.toLowerCase())) {
             return `Variable ${perVarName}: ${table} dataset is not present`;
           }
 
@@ -170,7 +171,7 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                     </div>
                   </div>
                 ) : (
-                  <div className="no-vars-text">
+                  <div className="no-vars-text" style={{ maxHeight: '360px', overflowY: 'scroll' }}>
                     <div className="typ-reg">
                       Use variables in annotation message and pass variable values from
                       URL parameter to personalize your demo
@@ -184,6 +185,15 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
                         {/* eslint-disable-next-line max-len */}
                         Pass the variable value via URL parameter <code>?v_first_name=John+Doe</code> to personalize the demo for <em>John Doe</em>
                       </li>
+                      <li>
+                        {/* eslint-disable-next-line max-len */}
+                        You can alternatively create a <em>Dataset</em> and use a column from the dataset <code>{'{{ person.first_name }}'}</code> to personalize the demo
+                      </li>
+                      <li>
+                        {/* eslint-disable-next-line max-len */}
+                        Pass the dataset and selected row via URL parameter <code>?fv_person=people(account.is.acme)</code> to personalize demo for a buyer who is from acme.
+                      </li>
+
                     </ul>
                     <p className="typ-reg">
                       {/* eslint-disable-next-line max-len */}

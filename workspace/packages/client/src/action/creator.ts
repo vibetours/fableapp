@@ -1013,14 +1013,46 @@ export interface TTourWithLoader {
   globalConfig: IGlobalConfig;
 }
 
-export async function getAllAnnotationsForScreens(
-  tour: P_RespTour,
+export function loadTourAnnotationsAndDatasets(
+  rid: string,
   loadPublished: boolean,
-) : Promise<Record<string, IAnnotationConfig[]>> {
-  const dataFileUriHref = loadPublished ? tour.pubDataFileUri.href : tour.stagingDataFileUri.href;
-  const data = await api<null, TourData>(dataFileUriHref);
-  const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false);
-  return annotationAndOpts.annotations;
+) {
+  return async (
+    dispatch: Dispatch<TDeleteDataset>,
+    getState: () => TState
+  ): Promise<{
+    annotations: Record<string, IAnnotationConfig[]>,
+    datasets: P_Dataset[]
+  }> => {
+    const state = getState();
+    const ts = +new Date();
+
+    const data = loadPublished
+      // eslint-disable-next-line max-len
+      ? await api<null, ApiResp<RespDemoEntityWithSubEntities>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${rid}/0_d_data.json?ts=${ts}`)
+      : await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${rid}`);
+
+    const config: RespCommonConfig = loadPublished
+      ? (data.data as RespDemoEntityWithSubEntities).cc!
+      : state.default.commonConfig!;
+
+    const processedTour = processRawTourData(
+      data.data,
+      config,
+      data.data.globalOpts!,
+      false,
+      loadPublished ? data.data : undefined
+    );
+
+    const tourData = await api<null, TourData>(processedTour.dataFileUri.href);
+    const annotationAndOpts = getThemeAndAnnotationFromDataFile(tourData, processedTour.globalOpts, false);
+    const annotations = annotationAndOpts.annotations;
+
+    return Promise.resolve({
+      annotations,
+      datasets: processedTour.datasets || []
+    });
+  };
 }
 
 export function loadTourAndData(
@@ -2406,7 +2438,6 @@ export function createNewDataset(name: string, description: string) {
     getState: () => TState
   ): Promise<CreateDataset_Success | CreateDataset_Failure> => {
     const state = getState();
-    const orgId = state.default.org!.id;
 
     const allDatasets = Object.values(state.default.datasets || {});
 
@@ -2430,7 +2461,7 @@ export function createNewDataset(name: string, description: string) {
     const processedDataSet = processRawDataset(
       data.data.dataset,
       state.default.commonConfig!,
-      orgId,
+      data.data.owner,
       true,
       data.data.presignedUrl
     );
@@ -2453,7 +2484,6 @@ export function publishDataset(name: string) {
     getState: () => TState
   ): Promise<P_Dataset> => {
     const state = getState();
-    const orgId = state.default.org!.id;
 
     const data = await api<ReqNewDataset, ApiResp<RespDataset>>(
       '/pubds',
@@ -2468,7 +2498,7 @@ export function publishDataset(name: string) {
     const processedDataSet = processRawDataset(
       data.data.dataset,
       state.default.commonConfig!,
-      orgId,
+      data.data.owner,
       true,
       data.data.presignedUrl
     );
@@ -2523,14 +2553,13 @@ export function getDataset(name: string) {
     getState: () => TState
   ) => {
     const state = getState();
-    if (!state.default.org) return;
-    const orgId = state.default.org.id;
 
+    // TODO[now] if dataset is already loaded, don't load it again
     const data = await api<null, ApiResp<RespDataset>>(`/ds/${name}`, { auth: true });
     const processedDataSet = processRawDataset(
       data.data.dataset,
       state.default.commonConfig!,
-      orgId,
+      data.data.owner,
       true,
       data.data.presignedUrl
     );
@@ -2559,7 +2588,6 @@ export function editDataset(name: string, config: DatasetConfig) {
     getState: () => TState
   ): Promise<void> => {
     const state = getState();
-    const orgId = state.default.org!.id;
 
     const currentDataset = state.default.datasets ? state.default.datasets[name] : null;
     const presignedUrl = currentDataset?.presignedEditUri?.href;
@@ -2575,7 +2603,7 @@ export function editDataset(name: string, config: DatasetConfig) {
     const processedDataSet = processRawDataset(
       data.data.dataset,
       state.default.commonConfig!,
-      orgId,
+      data.data.owner,
       true,
       data.data.presignedUrl
     );
@@ -2608,6 +2636,41 @@ async function uploadDatasetToPresignedUrl(presignedUrl: string, config: Dataset
     }
   });
   if (res.status !== 200) throw new Error('Error in uploading dataset to presigned url');
+}
+
+export function updateDatasetDesc(name: string, description: string) {
+  return async (
+    dispatch: Dispatch<TUpdateDataset>,
+    getState: () => TState
+  ): Promise<P_Dataset> => {
+    const state = getState();
+
+    const data = await api<ReqNewDataset, ApiResp<RespDataset>>(
+      '/ds/updtprop',
+      {
+        auth: true,
+        method: 'POST',
+        body: {
+          name,
+          description,
+        },
+      }
+    );
+    const processedDataSet = processRawDataset(
+      data.data.dataset,
+      state.default.commonConfig!,
+      data.data.owner,
+      true,
+      data.data.presignedUrl
+    );
+
+    dispatch({
+      type: ActionType.UPDATE_DATASET,
+      dataset: processedDataSet,
+    });
+
+    return Promise.resolve(processedDataSet);
+  };
 }
 
 async function createOrGetDatasetApi(name: string, description?: string): Promise<ApiResp<RespDataset>> {

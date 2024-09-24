@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import * as GTags from '../../../common-styled';
+import * as GTags from '../../common-styled';
 import * as Tags from './styled';
-import Button from '../../button';
-import Input from '../../input';
-import { TableColumn } from '../../../types';
-import { isValidStrWithAlphaNumericValues } from '../../../utils';
-import TextArea from '../../text-area';
+import Button from '../button';
+import Input from '../input';
+import { TableColumn } from '../../types';
+import { isValidStrWithAlphaNumericValues } from '../../utils';
+import TextArea from '../text-area';
 
 interface Props {
   type: 'Rename' | 'Create';

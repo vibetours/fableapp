@@ -258,27 +258,6 @@ export const CardImg = styled.img`
   align-self: center;
 `;
 
-export const SmallTourCardCon = styled(Link)`
-  display: flex;
-  padding: 1rem;
-  gap: 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid #E6E6E6;
-  background: #FFF;
-  box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  text-decoration: none;
-  margin-bottom: 1rem;
-  flex-direction: column;
-
-  &:hover {
-    border: 1px solid ${(props) => props.theme.colors.light.selection.background};
-    cursor: pointer;
-    text-decoration: none;
-    color: #16023e;
-  }
-`;
-
 export const DefaultTourContainer = styled.div`
   display: grid;
   gap: 1rem;
