@@ -94,12 +94,10 @@ import { AnnotationContent } from '../../component/annotation';
 import Loader from '../../component/loader';
 import { FeatureForPlan } from '../../plans';
 import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
-import { AI_PARAM } from '../../types';
+import { AI_PARAM, DemoState } from '../../types';
 import CreateTourProgress from '../../component/create-tour/create-tour-progress';
 
 const reactanimated = require('react-animated-css');
-
-declare const Chargebee: any;
 
 const LottiePlayer = lazy(() => import('@lottiefiles/react-lottie-player').then(({ Player }) => ({
   default: Player
@@ -666,41 +664,22 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.getAllTours();
     this.props.getGlobalConfig();
     this.updateCreditsAvailability();
-    Chargebee.init({
-      site: process.env.REACT_APP_CHARGEBEE_SITE,
-    });
   }
+
+  checkCredit = (): void => {
+    this.setState({ isBuyMoreCreditInProcess: true });
+    const interval = setInterval(() => {
+      this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
+        if (data.availableCredits > this.state.aiCreditsAvailable) {
+          this.setState({ isBuyMoreCreditInProcess: false, buyCreditModalOpen: false });
+          clearInterval(interval);
+        }
+      });
+    }, 2000);
+  };
 
   buyMoreCredit = async (): Promise<void> => {
     this.setState({ buyCreditModalOpen: true });
-
-    const checkCredit = (): void => {
-      this.setState({ isBuyMoreCreditInProcess: true });
-      const interval = setInterval(() => {
-        this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
-          if (data.availableCredits > this.state.aiCreditsAvailable) {
-            this.setState({ isBuyMoreCreditInProcess: false, buyCreditModalOpen: false });
-            clearInterval(interval);
-          }
-        });
-      }, 2000);
-    };
-    const cbInstance = Chargebee.getInstance();
-    cbInstance.openCheckout({
-      hostedPage() {
-        return api<ReqSubscriptionInfo | undefined, null>('/credittopupurl', {
-          method: 'POST',
-          auth: true
-        });
-      },
-      loaded() { },
-      error(e: Error) { raiseDeferredError(e); },
-      close() { },
-      success() {
-        checkCredit();
-      },
-      step() { }
-    });
   };
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -973,7 +952,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         this.props.subs
       ),
       saveType === 'existing_tour' ? null
-        : getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement)
+        : getThemeData(anonymousDemoId, unmarkedImages, baseAiData.lookAndFeelRequirement, 'create')
     ]);
 
     // handle skip
@@ -993,7 +972,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       llmMetadata.metaData
     );
 
-    const demoState = annTextData.items.map(item => ({
+    const demoState: DemoState[] = annTextData.items.map(item => ({
       id: item.screenId,
       text: item.text,
       nextButtonText: item.nextButtonText
@@ -1920,7 +1899,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         <BuyMoreCredit
                           currentCredit={this.props.subs.availableCredits}
                           isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                          buyMoreCredit={this.buyMoreCredit}
+                          checkCredit={this.checkCredit}
+                          showCreditInfo
+                          onBuyMoreCreditClick={this.buyMoreCredit}
                         />
                       )}
                     </Tags.CardContentCon>
@@ -2100,7 +2081,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       <BuyMoreCredit
                         currentCredit={this.props.subs.availableCredits}
                         isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                        buyMoreCredit={this.buyMoreCredit}
+                        checkCredit={this.checkCredit}
+                        showCreditInfo
+                        onBuyMoreCreditClick={this.buyMoreCredit}
                       />
                     </Tags.CardContentCon>
                   </Tags.ProductCardCon>

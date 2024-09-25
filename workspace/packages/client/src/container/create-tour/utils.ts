@@ -51,7 +51,7 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   CreateNewDemoV1,
   DemoMetadata,
-  LLMResp,
+  guide_theme,
   PostProcessDemoV1,
   RefForMMV,
   RouterForTypeOfDemoCreation,
@@ -82,15 +82,15 @@ import {
   RectWithFIdAndElpath
 } from './types';
 import { P_RespSubscription, P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
-import { getColorContrast, getSerNodesElPathFromFids, isActiveBusinessPlan } from '../../utils';
+import { extractTextFromHTMLString, getColorContrast, getSerNodesElPathFromFids, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, isActiveBusinessPlan } from '../../utils';
 import {
   uploadFileToAws,
   uploadImageAsBinary,
   uploadImageDataToAws,
   uploadMarkedImageToAws
 } from '../../component/screen-editor/utils/upload-img-to-aws';
-import { Vpd } from '../../types';
-import { SURVEY_ID } from '../../constants';
+import { DemoState, Vpd } from '../../types';
+import { SURVEY_ID, THEME_BASE_IMAGE_URL } from '../../constants';
 
 export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
   const queue: SerNode[] = [docTree];
@@ -1384,17 +1384,19 @@ export const getBorderRadius = (nodeBorderRadius: ThemeBorderRadiusCandidatePerN
   return [option1, option2];
 };
 
-const THEME_BASE_IMAGE_URL = 'https://pvt-mics.s3.ap-south-1.amazonaws.com/staging/root/global/sample_ann.png';
 export const getThemeData = async (
   anonymousDemoId: string,
   imagesUrl: string[],
-  lookAndFeelRequirement: string
+  lookAndFeelRequirement: string,
+  taskType: 'create' | 'update',
+  exisitingPalette?: guide_theme
 ): Promise<suggest_guide_theme | null> => {
   try {
     if (imagesUrl.length <= 0) throw new Error('Images not found');
     const imageUrl = imagesUrl[Math.floor(imagesUrl.length / 2)];
     // imageUrl needs to be from private bucket pvt so upload it and use that url.
-    const response = await fetch(imageUrl);
+    // ref on query parameters: https://stackoverflow.com/a/55265139
+    const response = await fetch(`${imageUrl}?x-request=xhr`);
     const blob = await response.blob();
     const imageName = `unmarked_image_${anonymousDemoId}.jpeg`;
     const file = new File([blob], `temp${Math.random()}`, { type: 'image/jpeg' });
@@ -1412,15 +1414,17 @@ export const getThemeData = async (
       model: 'default',
       user_payload: {
         theme_objective: lookAndFeelRequirement,
-        refsForMMV: refs
+        refsForMMV: refs,
+        exisiting_palette: exisitingPalette
       }
     };
 
     const toolUse = await handleLlmApi(payload);
     const inp = toolUse.input as suggest_guide_theme;
-    const relevantColor = getRelevantColors('#ffffff');
+    const fallbackBgColor = '#ffffff';
+    const relevantColor = getRelevantColors(fallbackBgColor);
     const themeData : suggest_guide_theme = {
-      backgroundColor: inp.backgroundColor || '#ffffff',
+      backgroundColor: inp.backgroundColor || fallbackBgColor,
       borderRadius: inp.borderRadius || 4,
       borderColor: inp.borderColor || relevantColor.selection,
       primaryColor: inp.primaryColor || relevantColor.primary,
@@ -1459,7 +1463,7 @@ export const getAllDemoAnnotationText = async (
       : baseAiData.categoryOfDemo === 'na'
         ? defaultCategory : baseAiData.categoryOfDemo;
 
-    const demoState = [];
+    const demoState: DemoState[] = [];
     for (let i = 0; i < totalBatch; i++) {
       const start = i * BATCH_SIZE;
       const end = start + BATCH_SIZE;
@@ -1489,7 +1493,7 @@ export const getAllDemoAnnotationText = async (
       };
 
       const batchResp = await getDemoAnnotationText(payload);
-      const batchDemoState = batchResp.items.map(item => ({
+      const batchDemoState : DemoState[] = batchResp.items.map(item => ({
         id: item.screenId,
         text: item.text,
         nextButtonText: item.nextButtonText
@@ -1557,22 +1561,6 @@ export const createDemoUsingAI = async (
   }
 };
 
-const processToolUseLLMResp = (response: LLMResp): ToolUseBlockParam => {
-  if (response.err || !response.data) {
-    throw new Error((response.err as any)?.name || 'API call error');
-  }
-  const data = response.data;
-  if (!Array.isArray(data?.content)) {
-    throw new Error('Invalid response format: content is not an array');
-  }
-  const toolUse = data.content.find((item: { type: string; }) => item.type === 'tool_use');
-
-  if (!toolUse || !(toolUse as ToolUseBlockParam).name) {
-    throw new Error('Invalid response format: type not valid');
-  }
-  return toolUse as ToolUseBlockParam;
-};
-
 const processLLMDemoRouterResponse = (toolUse: ToolUseBlockParam): create_guides_router => {
   const inp = toolUse.input as create_guides_router;
   const result: create_guides_router = {
@@ -1586,28 +1574,6 @@ const processLLMDemoRouterResponse = (toolUse: ToolUseBlockParam): create_guides
   }
 
   return result;
-};
-
-type LLM_PAYLOAD = PostProcessDemoV1 | ThemeForGuideV1 | CreateNewDemoV1 | RouterForTypeOfDemoCreation | DemoMetadata;
-
-const handleLlmApi = async (payload: LLM_PAYLOAD) : Promise<ToolUseBlockParam> => {
-  const resp = await api<LLM_PAYLOAD, ApiResp<LLMResp>>('/llmops', {
-    method: 'POST',
-    body: payload,
-    isJobEndpoint: true,
-    auth: true
-  });
-
-  if (!resp) {
-    throw new Error('Failed to complete request');
-  }
-  const toolUse = processToolUseLLMResp(resp.data as LLMResp);
-
-  if (!toolUse.input) {
-    throw new Error('response data not found');
-  }
-
-  return toolUse;
 };
 
 export const getDemoMetaData = async (
@@ -1784,15 +1750,6 @@ const addTextToDemoAnnRichText = (richAiData: create_guides_marketing | create_g
   }))
 });
 
-const extractTextFromHTMLString = (richText: string | undefined): string => {
-  if (!richText) return '';
-  const textEl = document.createElement('div');
-  textEl.innerHTML = richText;
-  const annText = textEl.innerText || richText;
-  textEl.remove();
-  return annText;
-};
-
 export const randomScreenId = (): number => Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) + Number.MAX_SAFE_INTEGER;
 
 export const getDemoRouterFromExistingDemo = async (anonymousDemoId: string): Promise<create_guides_router> => {
@@ -1844,11 +1801,4 @@ const llmRunsCall = async (anonymousDemoId: string, opsType: LLMOpsType) : Promi
 
 export const deleteSurveyStatusFromLocalStore = (): void => {
   localStorage.removeItem(`seenSurvey_${SURVEY_ID}`);
-};
-
-const handleRaiseDeferredErrorWithAnnonymousId = (err: any, msg: string, anonymousDemoId: string): void => {
-  const errorMessage = (err instanceof Error) ? err.message : JSON.stringify(err);
-  raiseDeferredError(
-    new Error(`${msg} for anonymousDemoId: ${anonymousDemoId} error: ${errorMessage}`)
-  );
 };

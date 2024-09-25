@@ -5,6 +5,7 @@ import {
   FrameSettings,
   Status,
   Plan,
+  ApiResp,
 } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
@@ -18,11 +19,18 @@ import {
   Property,
   PropertyType,
   SerNode,
+  TourData,
+  TourScreenEntity,
 } from '@fable/common/dist/types';
-import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
+import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { useEffect, useRef } from 'react';
 import Handlebars from 'handlebars';
+import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources';
+import api from '@fable/common/dist/api';
+import { PostProcessDemoV1, ThemeForGuideV1, CreateNewDemoV1, RouterForTypeOfDemoCreation, DemoMetadata, LLMResp, UpdateDemoContentV1, RootRouterReq } from '@fable/common/dist/llm-contract';
+import { update_demo_content } from '@fable/common/dist/llm-fn-schema/update_demo_content';
+import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
 import { ColumnsType } from 'antd/es/table';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
@@ -59,12 +67,15 @@ import {
   EditItem,
   IdxEditItem,
   LSSavedPersVarData,
+  DemoState,
+  DemoStateWithAnnRefId,
   TableRow,
   DatasetConfig,
   TableColumn,
   PerVarType,
   PerVarData,
 } from './types';
+import { LLMOpsType } from './container/create-tour/types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -1002,11 +1013,11 @@ export function mergeL1JsonIgnoreUndefined(obj1: Record<string, any>, obj2: Reco
   return obj3;
 }
 
-export function preloadImagesInTour(
+function getAllOrderedAnnotationsInTour(
   allAnnotationsForTour: AnnotationPerScreen[],
   journey: JourneyData | null,
   main: string
-) :void {
+): IAnnotationConfigWithScreenId[] {
   let annotationsInTour: IAnnotationConfigWithScreenId[] = [];
   if (journey && journey.flows.length !== 0) {
     journey.flows.forEach((flow) => {
@@ -1016,6 +1027,19 @@ export function preloadImagesInTour(
   } else {
     annotationsInTour = getOrderedAnnotaionFromMain(allAnnotationsForTour, main);
   }
+  return annotationsInTour;
+}
+
+export function preloadImagesInTour(
+  allAnnotationsForTour: AnnotationPerScreen[],
+  journey: JourneyData | null,
+  main: string
+) :void {
+  const annotationsInTour: IAnnotationConfigWithScreenId[] = getAllOrderedAnnotationsInTour(
+    allAnnotationsForTour,
+    journey,
+    main
+  );
 
   annotationsInTour.forEach((ann) => {
     const domParser = new DOMParser();
@@ -2033,6 +2057,134 @@ export const DEMO_TIPS = [
 
 export const sendPreviewHeaderClick = (): void => {
   initLLMSurvey();
+};
+
+export const getDemoStateFromTourData = (
+  tourData: TourData,
+  allAnns: AnnotationPerScreen[],
+): DemoStateWithAnnRefId[] => {
+  const allAnnsInOrder = getAllOrderedAnnotationsInTour(allAnns, tourData.journey, tourData.opts.main);
+  const demoState: DemoStateWithAnnRefId[] = [];
+  let index = 0;
+
+  for (const annotation of allAnnsInOrder) {
+    const nextButton = getAnnotationBtn(annotation as IAnnotationConfig, 'next');
+    const nextButtonText = nextButton ? nextButton.text._val : undefined;
+    demoState.push({
+      id: index,
+      text: annotation.displayText,
+      nextButtonText,
+      annRefId: annotation.refId
+    });
+    index++;
+  }
+
+  return demoState;
+};
+
+export const updateTourDataFromLLMRespItems = (
+  tourData: TourData,
+  demoState: DemoStateWithAnnRefId[],
+  items: update_demo_content
+): TourData => {
+  const newTourData = deepcopy(tourData);
+  const demoStateMap = new Map(demoState.map(item => [item.annRefId, item]));
+  const itemsMap = new Map(items.items.map(item => [item.id, item]));
+
+  for (const entity of Object.values(newTourData.entities)) {
+    if (entity.type === 'screen') {
+      const screenEntity = entity as TourScreenEntity;
+
+      for (const annotation of Object.values(screenEntity.annotations)) {
+        const updatedAnnContent = demoStateMap.get(annotation.refId);
+        if (updatedAnnContent) {
+          const annContent = itemsMap.get(updatedAnnContent.id);
+          if (annContent) {
+            (annotation as IAnnotationConfig).displayText = extractTextFromHTMLString(annContent.richText);
+            (annotation as IAnnotationConfig).bodyContent = annContent.richText;
+            const nextButton = getAnnotationBtn(annotation as IAnnotationConfig, 'next');
+            if (nextButton && annContent.nextButtonText) {
+              nextButton.text = createLiteralProperty(annContent.nextButtonText);
+            }
+          }
+        }
+      }
+    }
+  }
+  return newTourData;
+};
+
+export const extractTextFromHTMLString = (richText: string | undefined): string => {
+  if (!richText) return '';
+  const textEl = document.createElement('div');
+  textEl.innerHTML = richText;
+  const annText = textEl.innerText || richText;
+  textEl.remove();
+  return annText;
+};
+
+type LLM_PAYLOAD = PostProcessDemoV1 | ThemeForGuideV1 | CreateNewDemoV1 | RouterForTypeOfDemoCreation | DemoMetadata | UpdateDemoContentV1 | RootRouterReq;
+
+export const handleLlmApi = async (payload: LLM_PAYLOAD) : Promise<ToolUseBlockParam> => {
+  const resp = await api<LLM_PAYLOAD, ApiResp<LLMResp>>('/llmops', {
+    method: 'POST',
+    body: payload,
+    isJobEndpoint: true,
+    auth: true
+  });
+
+  if (!resp) {
+    throw new Error('Failed to complete request');
+  }
+  const toolUse = processToolUseLLMResp(resp.data as LLMResp);
+
+  if (!toolUse.input) {
+    throw new Error('response data not found');
+  }
+
+  return toolUse;
+};
+
+const processToolUseLLMResp = (response: LLMResp): ToolUseBlockParam => {
+  if (response.err || !response.data) {
+    throw new Error((response.err as any)?.name || 'API call error');
+  }
+  const data = response.data;
+  if (!Array.isArray(data?.content)) {
+    throw new Error('Invalid response format: content is not an array');
+  }
+  const toolUse = data.content.find((item: { type: string; }) => item.type === 'tool_use');
+
+  if (!toolUse || !(toolUse as ToolUseBlockParam).name) {
+    throw new Error('Invalid response format: type not valid');
+  }
+  return toolUse as ToolUseBlockParam;
+};
+
+export const updateTourDataWithThemeContent = (tourData: TourData, theme: suggest_guide_theme): TourData => {
+  const newTourData = deepcopy(tourData);
+  newTourData.opts.annotationBodyBackgroundColor = createLiteralProperty(theme.backgroundColor);
+  newTourData.opts.annotationBodyBorderColor = createLiteralProperty(theme.borderColor);
+  newTourData.opts.annotationFontColor = createLiteralProperty(theme.fontColor);
+  newTourData.opts.borderRadius = createLiteralProperty(theme.borderRadius);
+  newTourData.opts.primaryColor = createLiteralProperty(theme.primaryColor);
+
+  return newTourData;
+};
+
+export const createBatches = (demoState: DemoState[], batchSize: number): DemoState[][] => {
+  const batches = [];
+  for (let i = 0; i < demoState.length; i += batchSize) {
+    batches.push(demoState.slice(i, i + batchSize));
+  }
+  return batches;
+};
+
+export const handleRaiseDeferredErrorWithAnnonymousId = (err: any, msg: string, anonymousDemoId: string): void => {
+  const errorMessage = (err instanceof Error) ? err.message : JSON.stringify(err);
+  raiseDeferredError(
+    new Error(`${msg} for anonymousDemoId: ${anonymousDemoId} error: ${errorMessage}`)
+  );
 };
 
 export const DATASET_COL_ID_ID = 0;

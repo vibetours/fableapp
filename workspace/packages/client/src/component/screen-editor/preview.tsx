@@ -52,6 +52,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
   nestedFrames: Array<HTMLIFrameElement> = [];
 
+  // eslint-disable-next-line class-methods-use-this
+  sendIframeScreenSizeData: () => void = () => {};
+
   private assetLoadingPromises: Promise<unknown>[] = [];
 
   private frameLoadingPromises: Promise<unknown>[] = [];
@@ -139,8 +142,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
     if (prevProps.hidden !== this.props.hidden) {
       // Since we prerender some screens, we only capture keyboard event if iframe is visible.
-      if (!this.props.hidden) this.installListeners();
-      else this.removeListeners();
+      if (!this.props.hidden) {
+        this.installListeners();
+        this.sendIframeScreenSizeData();
+      } else this.removeListeners();
     }
   }
 
@@ -248,13 +253,14 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     watermarkEl.style.scale = this.scaleFactor.toString();
   };
 
-  sendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
-    window.postMessage({
+  prepareSendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
+    this.sendIframeScreenSizeData = () => window.postMessage({
       scaleFactor,
       screenId: this.props.screen.id,
       type: SCREEN_SIZE_MSG,
       iframePos
     }, '*');
+    !this.props.hidden && this.sendIframeScreenSizeData();
   };
 
   handleScreenResponsiveness = (): void => {
@@ -331,7 +337,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         vpdW
       );
 
-      this.sendIframeScreenSizeData(scale, iframePos);
+      this.prepareSendIframeScreenSizeData(scale, iframePos);
       frame.style.background = 'white';
 
       return;
@@ -357,7 +363,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       width: origFrameViewPort.width,
       heightOffset: this.props.heightOffset,
     };
-    this.sendIframeScreenSizeData(1, iframePos);
+    this.prepareSendIframeScreenSizeData(1, iframePos);
     frame.style.background = 'white';
   };
 

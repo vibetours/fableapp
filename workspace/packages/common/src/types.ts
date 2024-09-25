@@ -185,6 +185,7 @@ export enum LoadingStatus {
   NotStarted,
   InProgress,
   Done,
+  Error
 }
 
 // ---- types for Annotation ----

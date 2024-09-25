@@ -1,17 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { LoadingOutlined, WalletFilled } from '@ant-design/icons';
+import { ReqSubscriptionInfo } from '@fable/common/dist/api-contract';
+import api from '@fable/common/dist/api';
+import raiseDeferredError from '@fable/common/dist/deferred-error';
 import Button from '../button';
+
+declare const Chargebee: any;
 
 function BuyMoreCredit({
   currentCredit,
   isBuyMoreCreditInProcess,
-  buyMoreCredit
+  checkCredit,
+  showCreditInfo,
+  onBuyMoreCreditClick
 }:
 {
   currentCredit: number;
   isBuyMoreCreditInProcess: boolean,
-  buyMoreCredit: ()=> void
+  checkCredit: ()=> void,
+  showCreditInfo: boolean,
+  onBuyMoreCreditClick: ()=> void,
 }): JSX.Element {
+  useEffect(() => {
+    Chargebee.init({
+      site: process.env.REACT_APP_CHARGEBEE_SITE,
+    });
+  }, []);
+
+  const buyMoreCredit = (): void => {
+    onBuyMoreCreditClick();
+    const cbInstance = Chargebee.getInstance();
+    cbInstance.openCheckout({
+      hostedPage() {
+        return api<ReqSubscriptionInfo | undefined, null>('/credittopupurl', {
+          method: 'POST',
+          auth: true
+        });
+      },
+      loaded() { },
+      error(e: Error) { raiseDeferredError(e); },
+      close() { },
+      success() {
+        checkCredit();
+      },
+      step() { }
+    });
+  };
+
   return (
     <div
       style={{
@@ -20,6 +55,8 @@ function BuyMoreCredit({
         alignItems: 'center',
       }}
     >
+      {showCreditInfo
+      && (
       <div>
         <div>Your AI credit is not enough</div>
         <div style={{
@@ -38,6 +75,7 @@ function BuyMoreCredit({
           </span>
         </div>
       </div>
+      )}
       <Button
         type="submit"
         style={{

@@ -11,7 +11,7 @@ export interface post_process_demo {
     */
   description: string;
   /**
-    * Introductory guide for the whole demo. This is a key guide that improves engagement.
+    * Introductory guide for the whole demo. This is a key guide that improves engagement. 
     */
   demo_intro_guide: {
     /**
@@ -41,7 +41,7 @@ export interface post_process_demo {
     */
   modules: Array<{
     /**
-      * A short name of the module preferrably less than 36 chars.
+      * A short name of the module preferrably less than 36 chars.  
       */
     name:string;
     /**

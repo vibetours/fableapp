@@ -3,7 +3,7 @@ import { IAnnotationButtonType, IAnnotationConfig, ITourDataOpts } from '@fable/
 import React from 'react';
 import { StyleSheetManager } from 'styled-components';
 import { ScreenType } from '@fable/common/dist/api-contract';
-import { getDefaultTourOpts, sleep } from '@fable/common/dist/utils';
+import { sleep } from '@fable/common/dist/utils';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
@@ -12,12 +12,10 @@ import { isBodyEl, isMediaAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
   createFableRtUmbrlDivWrapper,
-  createFablrRtUmbrlDiv,
   getFableRtUmbrlDiv,
   getFableRtUmbrlDivWrapper,
   scrollToAnn
 } from './utils';
-import { AnnotationSerialIdMap } from './ops';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from '../screen-editor/types';
 import { AnnElsVisibilityObserver } from './ann-els-visibility-observer';
 import { AllDimsForAnnotation } from './types';
@@ -66,8 +64,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   private screenType: ScreenType;
 
   private allAnnotationsForTour: AnnotationPerScreen[];
-
-  private tourDataOpts: ITourDataOpts;
 
   private tourId: number;
 
@@ -180,7 +176,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.isPlayMode = opts.isPlayMode;
     this.screenType = screenType;
     this.allAnnotationsForTour = allAnnotationsForTour;
-    this.tourDataOpts = tourDataOpts;
     this.tourId = tourId;
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
@@ -410,7 +405,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 `.trim();
 
   private exportTourThemeAsCssVar(cssVarsLoc: 'root' | 'host'): string {
-    const padding = this.tourDataOpts.annotationPadding._val;
+    const padding = this.opts.annotationPadding._val;
     const match = padding.match(/\s*(\d+)\s+(\d+)\s*/);
     let padX = 0;
     let padY = 0;
@@ -423,12 +418,12 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
     return `
 :${cssVarsLoc} {
-  --fable-primary-color: ${this.tourDataOpts.primaryColor._val};
+  --fable-primary-color: ${this.opts.primaryColor._val};
   --fable-selection-color: ${this.config.selectionColor};
-  --fable-ann-bg-color: ${this.tourDataOpts.annotationBodyBackgroundColor._val};
-  --fable-ann-border-color: ${this.tourDataOpts.annotationBodyBorderColor._val};
-  --fable-ann-font-color: ${this.tourDataOpts.annotationFontColor._val};
-  --fable-ann-border-radius: ${this.tourDataOpts.borderRadius._val};
+  --fable-ann-bg-color: ${this.opts.annotationBodyBackgroundColor._val};
+  --fable-ann-border-color: ${this.opts.annotationBodyBorderColor._val};
+  --fable-ann-font-color: ${this.opts.annotationFontColor._val};
+  --fable-ann-border-radius: ${this.opts.borderRadius._val};
   --fable-ann-con-pad-x: ${padX};
   --fable-ann-con-pad-y: ${padY};
 }
@@ -819,7 +814,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     const mediaAnnotations = annotationsOfSameScreen.filter((config) => isMediaAnnotation(config));
 
     const mediaAnnsProps: IAnnProps[] = mediaAnnotations.map(config => {
-      const displayConf = this.setAnnElMapVal(config, DEFAULT_DIMS_FOR_ANN, this.tourDataOpts, true);
+      const displayConf = this.setAnnElMapVal(config, DEFAULT_DIMS_FOR_ANN, this.opts, true);
 
       return {
         box: {

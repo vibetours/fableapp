@@ -1937,6 +1937,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 shouldSkipLeadForm={false}
                 frameSetting={FrameSettings.NOFRAME}
                 globalEdits={this.props.allGlobalEdits}
+                isStaging={false}
               />
             </div>
             )}

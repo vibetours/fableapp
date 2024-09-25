@@ -2,12 +2,10 @@ import React, { MutableRefObject, Suspense, lazy } from 'react';
 import { connect } from 'react-redux';
 import {
   JourneyData, IAnnotationButtonType, IAnnotationConfig, ITourDataOpts, ITourLoaderData,
-  LoadingStatus, ScreenData
+  LoadingStatus, ScreenData,
 } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { FrameSettings, Responsiveness, ScreenType } from '@fable/common/dist/api-contract';
-import { ConsoleSqlOutlined } from '@ant-design/icons';
-import { Query } from '@testing-library/react';
 import { loadScreenAndData, loadTourAndData, removeScreenDataForRids, updateElPathKey } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import PreviewWithEditsAndAnRO from '../../component/screen-editor/preview-with-edits-and-annotations-readonly';
@@ -29,6 +27,8 @@ import {
   ScreenSizeData,
   IframePos,
   ElPathKey,
+  ExtMsg,
+  Payload_UpdateDemo,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -53,7 +53,6 @@ import {
   isMobileOperatingSystem,
   isFrameSettingsValidValue,
   combineAllEdits,
-  extractDatasetParams,
   ParsedQueryResult,
   getPersVarsDataFromQueryParams
 } from '../../utils';
@@ -63,11 +62,11 @@ import {
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import { HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
+import { DEMO_LOADED_AFTER_AI_UPDATE, HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
-import { AnnotationBtnClickedPayload, CtaClickedInternal, CtaFrom } from '../../analytics/types';
-import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addToGlobalAppData, initGlobalClock } from '../../global';
+import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
+import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addToGlobalAppData } from '../../global';
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 import DemoProgressBar from '../../component/demo-progress-bar';
@@ -76,24 +75,36 @@ import DemoFrame from '../../component/demo-frame/demo-frame';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string, loadPublishedData: boolean, ts: string | null, persVarData: {
+  loadTourWithDataAndCorrespondingScreens: (
+    rid: string,
+    loadPublishedData: boolean,
+    ts: string | null,
+    freshLoading: boolean,
+    persVarData: {
     text: Record<string, string>,
     dataset: ParsedQueryResult,
-  } | null) => void,
+  } | null,
+) => Promise<void>,
   loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
   updateElpathKey: (elPathKey: ElPathKey) => void,
-  removeScreenDataForRids: (ids: number[]) => Promise<void>
+  removeScreenDataForRids: (ids: number[]) => Promise<void>,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  loadTourWithDataAndCorrespondingScreens: (rid, loadPublishedData, ts: string | null, persVarsData) => dispatch(
-    loadTourAndData(rid, true, true, loadPublishedData, ts, false, true, persVarsData)
+  loadTourWithDataAndCorrespondingScreens: (
+    rid,
+    loadPublishedData,
+    ts: string | null,
+    freshLoading: boolean,
+    persVarsData
+  ) => dispatch(
+    loadTourAndData(rid, true, freshLoading, loadPublishedData, ts, false, true, persVarsData)
   ),
   loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
     loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
   ),
   updateElpathKey: (elPathKey: ElPathKey) => dispatch(updateElPathKey(elPathKey)),
-  removeScreenDataForRids: (ids: number[]) => dispatch(removeScreenDataForRids(ids))
+  removeScreenDataForRids: (ids: number[]) => dispatch(removeScreenDataForRids(ids)),
 });
 
 interface IAppStateProps {
@@ -145,14 +156,14 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     screenDataAcrossScreens: state.default.screenData,
     isTourLoaded: state.default.tourLoaded,
     allScreens: state.default.currentTour?.screens || [],
-    allAnnotations: state.default.remoteAnnotations,
+    allAnnotations,
     tourOpts,
     isScreenLoaded: state.default.screenLoadingStatus === LoadingStatus.Done,
     editsAcrossScreens: state.default.remoteEdits,
     allAnnotationsForTour,
     journey: state.default.journey,
     elpathKey: state.default.elpathKey,
-    globalEdits: state.default.remoteGlobalEdits,
+    globalEdits: state.default.remoteGlobalEdits
   };
 };
 
@@ -184,6 +195,7 @@ interface IOwnStateProps {
   screenPrerenderCount: number;
   previewReplayerKey: number;
   frameSetting: FrameSettings;
+  allScreensLocal: P_RespScreen[];
 }
 
 interface ScreenInfo {
@@ -248,13 +260,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isIOSPhone: getMobileOperatingSystem() === 'iOS',
       screenPrerenderCount: 2,
       previewReplayerKey: Math.random(),
-      frameSetting: (this.props.tour?.info.frameSettings || FrameSettings.NOFRAME)
+      frameSetting: (this.props.tour?.info.frameSettings || FrameSettings.NOFRAME),
+      allScreensLocal: this.props.allScreens
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
 
-  receiveMessage = (e: MessageEvent<ScreenInfo | HeaderCta>): void => {
+  receiveMessage = async (e: MessageEvent<ScreenInfo | HeaderCta | Payload_UpdateDemo>): Promise<void> => {
     if (!isEventValid(e)) return;
     if (e.data.type === SCREEN_SIZE_MSG) {
       const data = e.data as ScreenInfo;
@@ -281,6 +294,27 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         btnTxt: data.btnTxt
       });
     }
+
+    if (e.data.type === ExtMsg.UpdateDemo) {
+      const demoUpdated = e.data.demoUpdated;
+      if (!demoUpdated) return;
+
+      const ts = this.props.searchParams.get('_ts');
+      const params = new URL(window.location.href).searchParams;
+      const persVarsData = getPersVarsDataFromQueryParams(params);
+
+      await this.props.loadTourWithDataAndCorrespondingScreens(
+        this.props.match.params.tourId,
+        !this.props.staging,
+        ts,
+        false,
+        persVarsData
+      );
+
+      window.parent && window.parent.postMessage({
+        type: DEMO_LOADED_AFTER_AI_UPDATE
+      }, '*');
+    }
   };
 
   componentDidMount(): void {
@@ -294,7 +328,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       this.props.match.params.tourId,
       !this.props.staging,
       ts,
-      persVarsData,
+      true,
+      persVarsData
     );
 
     if (this.props.searchParams.get('skiplf') === '1') {
@@ -673,6 +708,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         clearTimeout(timer);
       }, 300);
     }
+
+    if (this.props.allScreens !== prevProps.allScreens) {
+      // we are sorting this as the order between the iframes was shuffling when integrating quilly in preview route
+      // due to this annotation is not displayed as frameAsset load is called on shuffling
+      this.setState({ allScreensLocal:
+        this.props.allScreens
+          .sort((m, n) => m.id - n.id)
+      });
+    }
   }
 
   getScreenAtId(id: string, key: keyof P_RespScreen): P_RespScreen {
@@ -761,48 +805,49 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     screenData: ScreenData;
     screenEdits: EditItem[];
   }[] {
-    const v = this.props.allScreens.map(screen => {
-      const slotIdx = this.renderSlots[screen.id];
-      const screenData = this.props.screenDataAcrossScreens[screen.id];
-      const screenEdits = this.props.editsAcrossScreens[screen.id];
-      const isRenderReady = !!(screenData && screenEdits);
-      return {
-        slotIdx, // this is not yet used anywhere
-        screen,
-        isRenderReady,
-        screenData,
-        screenEdits
-      };
-    }).filter(slot => {
-      const isNavigatedToCurrScreen = slot.screen.id === this.getCurrScreenId();
-      if (isNavigatedToCurrScreen) return true;
-
-      // In ios few demos were crashing, so we are rendering only one iframe at a time.
-      // this is done to reduce the number of nodes in the DOM
-      if (this.state.isIOSPhone) {
-        return false;
-      }
-
-      const shouldPrerenderIframe = this.iframesToPrerenderIds.has(slot.screen.id);
-      if (shouldPrerenderIframe) return true;
-
-      if (!slot.isRenderReady || !this.adjList) return false;
-
-      const adjListEntries = this.adjList[slot.screen.id];
-
-      const willDiffsApply = this.shouldDiffApply(
-        {
-          screen: slot.screen,
-          data: slot.screenData,
-        },
-        [...adjListEntries[1], ...adjListEntries[2]].map(screen => ({
+    const v = this.state.allScreensLocal
+      .map(screen => {
+        const slotIdx = this.renderSlots[screen.id];
+        const screenData = this.props.screenDataAcrossScreens[screen.id];
+        const screenEdits = this.props.editsAcrossScreens[screen.id];
+        const isRenderReady = !!(screenData && screenEdits);
+        return {
+          slotIdx, // this is not yet used anywhere
           screen,
-          data: this.props.screenDataAcrossScreens[screen.id]
-        }))
-      );
+          isRenderReady,
+          screenData,
+          screenEdits
+        };
+      }).filter(slot => {
+        const isNavigatedToCurrScreen = slot.screen.id === this.getCurrScreenId();
+        if (isNavigatedToCurrScreen) return true;
 
-      return !willDiffsApply;
-    });
+        // In ios few demos were crashing, so we are rendering only one iframe at a time.
+        // this is done to reduce the number of nodes in the DOM
+        if (this.state.isIOSPhone) {
+          return false;
+        }
+
+        const shouldPrerenderIframe = this.iframesToPrerenderIds.has(slot.screen.id);
+        if (shouldPrerenderIframe) return true;
+
+        if (!slot.isRenderReady || !this.adjList) return false;
+
+        const adjListEntries = this.adjList[slot.screen.id];
+
+        const willDiffsApply = this.shouldDiffApply(
+          {
+            screen: slot.screen,
+            data: slot.screenData,
+          },
+          [...adjListEntries[1], ...adjListEntries[2]].map(screen => ({
+            screen,
+            data: this.props.screenDataAcrossScreens[screen.id]
+          }))
+        );
+
+        return !willDiffsApply;
+      });
     return v;
   }
 
@@ -1015,6 +1060,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 shouldSkipLeadForm={this.shouldSkipLeadForm}
                 frameSetting={frame}
                 borderColor={frameBorderColor}
+                isStaging={this.props.staging}
               />
             ))
         }

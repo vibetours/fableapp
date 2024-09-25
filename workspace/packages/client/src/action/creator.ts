@@ -68,11 +68,15 @@ import {
   IGlobalConfig,
   SerNode,
 } from '@fable/common/dist/types';
-import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData, getRandomId, sleep } from '@fable/common/dist/utils';
+import { createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getImgScreenData } from '@fable/common/dist/utils';
 import { Dispatch } from 'react';
 import { setUser } from '@sentry/react';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { update_demo_content } from '@fable/common/dist/llm-fn-schema/update_demo_content';
+import { root_router } from '@fable/common/dist/llm-fn-schema/root_router';
+import { RootRouterReq, guide_theme, UpdateDemoContentV1 } from '@fable/common/dist/llm-contract';
+import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources';
 import {
   convertEditsToLineItems,
   getThemeAndAnnotationFromDataFile,
@@ -97,7 +101,6 @@ import {
   mergeGlobalEdits,
   processRawDataset,
   P_Dataset,
-  getDatasetDataFileUri,
   preprocessAnnTextsToReplacePersVars,
   processDatasetConfig,
 } from '../entity-processor';
@@ -105,6 +108,7 @@ import { TState } from '../reducer';
 import {
   AllEdits,
   AllGlobalElEdits,
+  DemoState,
   DatasetConfig,
   DestinationAnnotationPosition,
   EditItem,
@@ -112,16 +116,20 @@ import {
   ElPathKey,
   GlobalEditFile,
   IDemoHubConfig,
-  LeadActivityData,
   Ops,
   P_RespDemoHub,
   STORAGE_PREFIX_KEY_QUERY_PARAMS,
+  QuillyInPreviewProgress,
+  UpdateDemoUsingQuillyError,
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 import { FeatureForPlan, FeaturePerPlan } from '../plans';
-import { datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, ParsedQueryResult, processVarMap, Query } from '../utils';
+import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, Query } from '../utils';
+import { getUUID } from '../analytics/utils';
+import { LLMOpsType } from '../container/create-tour/types';
+import { getThemeData } from '../container/create-tour/utils';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -1073,6 +1081,7 @@ export function loadTourAndData(
     getState: () => TState
   ) => {
     const state = getState();
+
     if (isFreshLoading) {
       dispatch({
         type: ActionType.TOUR_LOADING,
@@ -1150,7 +1159,6 @@ export function loadTourAndData(
       const varMap = processVarMap(dsVarMap, persVarData.text);
       annotations = preprocessAnnTextsToReplacePersVars(annotationAndOpts.annotations, varMap);
     }
-
     let editData: GlobalEditFile;
     let globalEdits: EditItem[] = [];
     try {
@@ -1176,7 +1184,7 @@ export function loadTourAndData(
       journey: annotationAndOpts.journey,
       globalConfig: tour.globalOpts,
       editData,
-      globalEdits,
+      globalEdits
     });
     return [newTs, data];
   };
@@ -2384,6 +2392,301 @@ export function fetchOrgWideAnalytics() {
     return Promise.resolve(state.default.orgWideRespHouseLead);
   };
 }
+
+export interface TUpdateDemoError {
+  type: ActionType.UPDATE_DEMO_USING_LLM_ERROR;
+  err: UpdateDemoUsingQuillyError
+}
+
+export function upateTourDataUsingLLM(
+  newDemoObjective: string,
+  currentAnnRefId: string | null,
+  updateCurrentStep:(currStep: QuillyInPreviewProgress)=>void,
+) {
+  return async (
+    dispatch:
+    Dispatch<TGenericLoading | TSaveTourEntities | TAutosaving | TTour |
+    TUpdateDemoError | ReturnType<typeof updateTourProp> >,
+    getState: () => TState
+  ) => {
+    const state = getState();
+    let annId = getUUID();
+    let isNaSupportMsgPresent = false;
+    let isSkillNa = false;
+    dispatch({
+      type: ActionType.UPDATE_DEMO_USING_LLM_ERROR,
+      err: {
+        errMsg: '',
+        hasErr: false,
+        isSkillNa: false
+      }
+    });
+    try {
+      const tour = state.default.currentTour;
+      const tourData = state.default.tourData;
+      updateCurrentStep(QuillyInPreviewProgress.NOT_STARTED);
+
+      if (tour && tourData && state.default.commonConfig) {
+        annId = tour.info.annDemoId || annId;
+
+        // if annDemoId not present add it for future reference
+        if (!tour.info.annDemoId) {
+          const currentInfo = { ...tour.info };
+          currentInfo.annDemoId = annId;
+          await updateTourProp(tour.rid, 'info', {
+            ...currentInfo
+          })(dispatch, getState);
+        }
+
+        const allAnnotationsForTour = getAnnotationsPerScreen(state);
+        const demoStateWithRefId = getDemoStateFromTourData(tourData, allAnnotationsForTour);
+        const demoState: DemoState[] = demoStateWithRefId.map(item => ({
+          id: item.id,
+          text: item.text,
+          nextButtonText: item.nextButtonText
+        }));
+
+        const rootRouterResp = await rootRouter(
+          tour.info.productDetails || '',
+          newDemoObjective,
+          tour.info.annDemoId || getUUID()
+        );
+
+        updateCurrentStep(QuillyInPreviewProgress.ROOT_ROUTER);
+
+        if (!rootRouterResp) {
+          throw new Error('Failed to get base response');
+        }
+
+        let updatedTourData;
+        switch (rootRouterResp.skill) {
+          case 'update_demo_content':
+          {
+            const newDemoContent = await updateDemoContent(
+              tour.info.productDetails || '',
+              newDemoObjective,
+              demoState,
+              annId
+            );
+            if (!newDemoContent) {
+              throw new Error('Failed to get updated demo content');
+            }
+            updatedTourData = updateTourDataFromLLMRespItems(
+              tourData,
+              demoStateWithRefId,
+              newDemoContent
+            );
+
+            break;
+          }
+          case 'update_theme':
+          {
+            if (!tour.screens || !tour.screens[0].thumbnail) {
+              throw new Error('Could not get theme data');
+            }
+            const imageUrl = new URL(`${state.default.commonConfig.commonAssetPath}${tour.screens[0].thumbnail}`);
+            const exisitingPalette: guide_theme = {
+              backgroundColor: tourData.opts.annotationBodyBackgroundColor._val,
+              borderColor: tourData.opts.annotationBodyBackgroundColor._val,
+              borderRadius: tourData.opts.borderRadius._val,
+              primaryColor: tourData.opts.primaryColor._val,
+              fontColor: tourData.opts.primaryColor._val
+            };
+
+            const resp = await getThemeData(annId, [imageUrl.href], newDemoObjective, 'update', exisitingPalette);
+            if (!resp) {
+              throw new Error('Failed to get updated theme');
+            }
+
+            updatedTourData = updateTourDataWithThemeContent(
+              tourData,
+              resp
+            );
+            break;
+          }
+          case 'update_annotation_content':
+          {
+            const currentAnnId = demoStateWithRefId.find(item => item.annRefId === currentAnnRefId);
+            const newDemoContent = await updateSingleAnnotation(
+              tour.info.productDetails || '',
+              newDemoObjective,
+              demoState,
+              annId,
+              currentAnnId?.id
+            );
+            if (!newDemoContent) {
+              throw new Error('Failed to get updated annotation content');
+            }
+
+            updatedTourData = updateTourDataFromLLMRespItems(
+              tourData,
+              demoStateWithRefId,
+              newDemoContent
+            );
+
+            break;
+          }
+          case 'na':
+          {
+            isSkillNa = true;
+            if (rootRouterResp.notSupportedMsg) {
+              isNaSupportMsgPresent = true;
+              throw new Error(rootRouterResp.notSupportedMsg);
+            } else {
+              throw new Error('Input not supported');
+            }
+          }
+          default:
+            throw new Error('Invalid base response');
+        }
+
+        updateCurrentStep(QuillyInPreviewProgress.LLM_CALL_FOR_TOUR_UPDATE);
+        if (updatedTourData) {
+          await flushTourDataToMasterFile(tour, updatedTourData)(dispatch, getState);
+        }
+        updateCurrentStep(QuillyInPreviewProgress.UPDATE_TOUR);
+      }
+    } catch (err) {
+      let errMsg = '';
+      if (isNaSupportMsgPresent) {
+        errMsg = (err as Error).message;
+      }
+      dispatch({
+        type: ActionType.UPDATE_DEMO_USING_LLM_ERROR,
+        err: {
+          errMsg,
+          hasErr: true,
+          isSkillNa
+        }
+      });
+      handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to update demo data', annId);
+    }
+  };
+}
+
+const isInvalidItemsArray = (toolUse: ToolUseBlockParam): boolean => (!toolUse || !toolUse.input
+  || !(toolUse.input as update_demo_content).items || !Array.isArray((toolUse.input as update_demo_content).items));
+
+const updateSingleAnnotation = async (
+  productDetails: string,
+  demoObjective: string,
+  demoState: DemoState[],
+  anonymousDemoId: string,
+  currentAnnId?: number
+): Promise<update_demo_content | null> => {
+  if (Number.isNaN(currentAnnId)) {
+    throw new Error('Current Annotation Id not found');
+  }
+
+  const targetIndex = demoState.findIndex(item => item.id === currentAnnId);
+  if (targetIndex === -1) {
+    throw new Error(`Annotation with id ${currentAnnId} not found`);
+  }
+
+  const startIndex = Math.max(0, targetIndex - 2);
+
+  const batchDemoState = demoState.slice(startIndex, batchSize);
+  const payload: UpdateDemoContentV1 = {
+    v: 1,
+    type: LLMOpsType.UpdateDemoContent,
+    model: 'default',
+    user_payload: {
+      change_requested: demoObjective,
+      product_details: productDetails,
+      demo_state: JSON.stringify(batchDemoState),
+      change_type: 'single-annotation'
+    },
+    thread: `${anonymousDemoId}|${LLMOpsType.UpdateDemoContent}`
+  };
+
+  const toolUse = await handleLlmApi(payload);
+  if (isInvalidItemsArray(toolUse)) {
+    throw new Error('Failed to process LLM response');
+  }
+
+  const filteredItems = (toolUse.input as update_demo_content).items.filter(
+    item => item.id === currentAnnId
+  );
+  if (filteredItems.length === 0) {
+    throw new Error(`No item with annotationId ${currentAnnId} found in LLM response`);
+  }
+
+  const filteredToolUseInput = {
+    ...toolUse.input!,
+    items: filteredItems
+  };
+
+  return filteredToolUseInput as update_demo_content;
+};
+
+const batchSize = 12;
+const updateDemoContent = async (
+  productDetails: string,
+  demoObjective: string,
+  demoState: DemoState[],
+  anonymousDemoId: string
+): Promise<update_demo_content | null> => {
+  const prevStateCount = 2;
+  const batches = createBatches(demoState, batchSize);
+
+  let cominedDemoContent: update_demo_content | null = null;
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    const payload: UpdateDemoContentV1 = {
+      v: 1,
+      type: LLMOpsType.UpdateDemoContent,
+      model: 'default',
+      user_payload: {
+        change_requested: demoObjective,
+        product_details: productDetails,
+        demo_state: JSON.stringify(batch),
+        change_type: 'demo'
+      },
+      thread: `${anonymousDemoId}|${LLMOpsType.UpdateDemoContent}`
+    };
+
+    const toolUse = await handleLlmApi(payload);
+    if (isInvalidItemsArray(toolUse)) {
+      throw new Error('Failed to process LLM response');
+    }
+
+    if (!cominedDemoContent) {
+      cominedDemoContent = toolUse.input as update_demo_content;
+    } else {
+      cominedDemoContent.items = [
+        ...cominedDemoContent.items,
+        ...(toolUse.input as update_demo_content).items
+      ];
+    }
+  }
+
+  return cominedDemoContent;
+};
+
+const rootRouter = async (
+  productDetails: string,
+  demoObjective: string,
+  anonymousDemoId: string
+): Promise<root_router | null> => {
+  const payload: RootRouterReq = {
+    v: 1,
+    type: LLMOpsType.RootRouter,
+    model: 'default',
+    user_payload: {
+      change_requested: demoObjective,
+      product_details: productDetails,
+    },
+    thread: `${anonymousDemoId}|${LLMOpsType.RootRouter}`
+  };
+
+  const toolUse = await handleLlmApi(payload);
+  if (!toolUse || !toolUse.input) {
+    throw new Error('Failed to process LLM response');
+  }
+
+  return toolUse.input as root_router;
+};
 
 /**
  *

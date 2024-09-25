@@ -89,6 +89,7 @@ export interface IOwnProps {
   frameSetting: FrameSettings;
   globalEdits: EditItem[];
   borderColor?: string;
+  isStaging: boolean;
 }
 
 interface IOwnStateProps {
@@ -291,8 +292,16 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     window.addEventListener('resize', this.handleScreenResize);
   }
 
+  hasContentChanged(prevProps: IOwnProps): boolean {
+    if (!this.props.isStaging) return false;
+    return prevProps.allAnnotationsForScreen !== this.props.allAnnotationsForScreen
+    || prevProps.tourDataOpts !== this.props.tourDataOpts;
+  }
+
   async componentDidUpdate(prevProps: IOwnProps): Promise<void> {
-    if (this.annotationLCM && this.props.elpathKey !== prevProps.elpathKey && !this.props.hidden) {
+    if (this.annotationLCM && !this.props.hidden && (this.props.elpathKey !== prevProps.elpathKey
+      || this.hasContentChanged(prevProps)
+    )) {
       this.annotationLCM.updateElPathKey(this.props.elpathKey);
       if (this.props.playMode) this.reachAnnotation(this.state.currentAnn);
     }
@@ -605,7 +614,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   ) => {
     const [goToScreenId, goToAnnId] = goToAnnIdWithScreenId.split('/');
     this.setState({ currentAnn: goToAnnId });
-
     const { screenId: currScreenId } = getAnnotationByRefId(currAnnId, this.props.allAnnotationsForTour)!;
 
     const currScreenData = this.props.allScreensData![currScreenId];

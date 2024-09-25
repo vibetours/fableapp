@@ -68,9 +68,10 @@ import {
   TLoadDataset,
   TUpdateDataset,
   TDeleteDataset,
+  TUpdateDemoError,
 } from '../action/creator';
 import { P_RespScreen, P_RespTour, P_RespSubscription, P_RespVanityDomain, P_Dataset } from '../entity-processor';
-import { AllEdits, DatasetConfig, EditItem, ElEditType, ElPathKey, GlobalEditFile, IDemoHubConfig, Ops, P_RespDemoHub } from '../types';
+import { AllEdits, DatasetConfig, EditItem, ElEditType, ElPathKey, GlobalEditFile, IDemoHubConfig, Ops, P_RespDemoHub, UpdateDemoUsingQuillyError } from '../types';
 import { FeatureForPlan } from '../plans';
 
 export const initialState: {
@@ -134,6 +135,7 @@ export const initialState: {
   localGlobalEdits: EditItem[];
   remoteGlobalEdits: EditItem[];
   globalEditFile: GlobalEditFile | null;
+  updateDemoUsingAIError: UpdateDemoUsingQuillyError;
   currentDataset: {
     data: P_Dataset,
     config: DatasetConfig,
@@ -202,6 +204,7 @@ export const initialState: {
   localGlobalEdits: [],
   remoteGlobalEdits: [],
   globalEditFile: null,
+  updateDemoUsingAIError: { hasErr: false, errMsg: '', isSkillNa: false },
   currentDataset: null,
   datasets: null,
   datasetConfigs: null,
@@ -804,6 +807,18 @@ export default function projectReducer(state = initialState, action: Action) {
         newState.datasetConfigs = { ...newState.datasetConfigs };
         delete newState.datasetConfigs[tAction.datasetName];
       }
+      return newState;
+    }
+
+    case ActionType.UPDATE_DEMO_USING_LLM_ERROR: {
+      const tAction = action as TUpdateDemoError;
+      const newState = { ...state };
+      newState.updateDemoUsingAIError = {
+        hasErr: tAction.err.hasErr,
+        errMsg: tAction.err.errMsg,
+        isSkillNa: tAction.err.isSkillNa
+      };
+
       return newState;
     }
 

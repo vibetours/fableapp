@@ -1,5 +1,5 @@
 import { RespDemoEntity } from '@fable/common/dist/api-contract';
-import { EditFile, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property } from '@fable/common/dist/types';
+import { EditFile, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property, TourData } from '@fable/common/dist/types';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { RenameDemoHubResult } from './action/creator';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
@@ -282,7 +282,8 @@ export enum ExtMsg {
   DemoLoadingFinished = 'demo-loading-finished',
   OnNavigation = 'on-navigation',
   JourneySwitch = 'journey-switch',
-  NavToAnnotation = 'navigate-to-annotation'
+  NavToAnnotation = 'navigate-to-annotation',
+  UpdateDemo = 'update-demo',
 }
 
 interface MsgBase {
@@ -318,6 +319,11 @@ export interface Payload_Navigation {
 export interface Payload_NavToAnnotation {
   main?: string
   action?: 'prev' | 'next'
+}
+
+export interface Payload_UpdateDemo {
+  type: ExtMsg.UpdateDemo,
+  demoUpdated: boolean,
 }
 
 export type MultiNodeModalData = {
@@ -752,4 +758,28 @@ export interface DatasetConfig {
   data: {
     table: Table
   }
+}
+
+export interface DemoState {
+  id: number;
+  text: string;
+  nextButtonText?: string;
+}
+
+export interface DemoStateWithAnnRefId extends DemoState{
+  annRefId: string;
+}
+
+export enum QuillyInPreviewProgress {
+  NOT_STARTED='NOT_STARTED',
+  ROOT_ROUTER = 'ROOT_ROUTER',
+  LLM_CALL_FOR_TOUR_UPDATE = 'LLM_CALL_FOR_TOUR_UPDATE',
+  UPDATE_TOUR = 'UPDATE_TOUR',
+  LOAD_TOUR = 'LOAD_TOUR'
+}
+
+export interface UpdateDemoUsingQuillyError {
+  hasErr: boolean;
+  errMsg: string;
+  isSkillNa: boolean;
 }

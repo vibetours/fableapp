@@ -3,7 +3,7 @@
   */
 export interface fallback {
   /**
-    * In case fallback tool is called, pass a reason why fallback has been called and not any other tools that are attached.
+    * In case fallback tool is called, pass a reason why fallback has been called and not any other tools that are attached. 
     */
   reason: string;
   /**

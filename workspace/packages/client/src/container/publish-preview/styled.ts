@@ -1,3 +1,4 @@
+import { RightSquareFilled } from '@ant-design/icons';
 import styled from 'styled-components';
 
 export const Con = styled.div`
@@ -39,9 +40,9 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
 `;
 
 export const QuickEditPanel = styled.div<{
+  h: number;
   x: number;
   y: number;
-  h:number
 }>`
   position: relative;
   top: 0;
@@ -51,6 +52,9 @@ export const QuickEditPanel = styled.div<{
   border-radius: 6px;
   transition: all 0.2s ease-in-out;
   font-size: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 
   .panel-item {
     cursor: pointer;
@@ -78,4 +82,60 @@ export const QuickEditPopoverCon = styled.div`
     cursor: pointer;
     align-self: flex-end;
   } 
+`;
+
+export const QuillyCon = styled.div`
+  width: 80%;
+  display: flex;
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+  align-items: end;
+`;
+
+export const QuillySubmit = styled(RightSquareFilled)<{disabled: boolean}>`
+  cursor: ${props => (props.disabled ? 'not-allowed !important' : 'pointer')};
+  color: ${props => (props.disabled ? '#777' : '#000')};
+  font-size: 1.5rem;
+`;
+
+export const QuillyInputCon = styled.div`
+  flex-grow:1;
+  display: flex;
+  flex-direction: column;
+
+  textarea {
+    background: #ffffff91;
+    border: none;
+    border-radius: 6px;
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;
+    height: 48px;
+    padding: 4px 6px;
+
+    &:focus, &:active, &:focus-visible {
+      outline: 1px solid #170545;
+    }
+  }
+`;
+
+export const QuillyEditPanel = styled.div<{
+  x: number;
+  y: number;
+}>`
+  position: relative;
+  top: 0;
+  transform: ${props => `translate(-${props.x}px, ${props.y}px)`};
+  background: transparent;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+  font-size: 1.5rem;
+
+  .panel-item {
+    cursor: pointer;
+  }
+`;
+
+export const EditCon = styled.div`
+  height: 90%;  
+  flex-direction: column;
+  justify-content: space-between;
 `;
