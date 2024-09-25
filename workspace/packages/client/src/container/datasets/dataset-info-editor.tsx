@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { EditOutlined } from '@ant-design/icons';
 import { P_Dataset } from '../../entity-processor';
 import Button from '../../component/button';
@@ -26,6 +26,12 @@ function DatasetInfoEditor(props: Props): JSX.Element {
     closeShowUpdateDescModal();
     setIsUpdatingDesc(false);
   };
+
+  useEffect(() => {
+    if (descInputRef.current) {
+      descInputRef.current.value = props.dataset.description || '';
+    }
+  }, [props.dataset.description]);
 
   return (
     <>
