@@ -119,6 +119,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     const newDescription = this.datasetDescIpRef.current!.value.trim().replace(/\s+/, ' ');
     const res = await this.props.createNewDataset(newName, newDescription);
     if (res.type === 'success') {
+      this.closeCreateModal();
       this.navigateToDataset(res.data.name);
       return;
     }
@@ -126,6 +127,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   closeCreateModal = (): void => {
+    this.resetCreateDatasetInfo();
     this.setState({ showCreateModal: false });
   };
 
@@ -145,8 +147,20 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
 
   deleteDataset = (datasetName: string): void => {
     showDeleteConfirm(() => {
+      const selectedDataset = this.getSelectedDataset();
       this.props.deleteDataset(datasetName);
+      if (selectedDataset) {
+        const dataset = selectedDataset[0];
+        if (datasetName === dataset.name) {
+          this.navigateToDataset('');
+        }
+      }
     }, `Are you sure you want to delete this dataset ${datasetName}?`);
+  };
+
+  resetCreateDatasetInfo = (): void => {
+    this.datasetNameIpRef.current!.value = '';
+    this.datasetDescIpRef.current!.value = '';
   };
 
   debouncedOnDatasetConfigChangeHandler = debounce(
@@ -363,9 +377,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
                 onSubmit={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const newName = this.datasetNameIpRef.current!.value.trim().replace(/\s+/, ' ');
-                  const newDescription = this.datasetDescIpRef.current!.value.trim().replace(/\s+/, ' ');
-                  this.props.createNewDataset(newName, newDescription);
+                  this.createNewDataset();
                 }}
                 style={{
                   marginTop: '0.5rem',
