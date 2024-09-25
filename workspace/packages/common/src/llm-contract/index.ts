@@ -99,7 +99,7 @@ export interface UpdateDemoContentV1 extends LLMOpsBase {
     product_details: string,
     change_requested: string;
     demo_state: string;
-    change_type: 'single-annotation' | 'demo' 
+    change_type: 'single-annotation' | 'demo'
   }
 }
 

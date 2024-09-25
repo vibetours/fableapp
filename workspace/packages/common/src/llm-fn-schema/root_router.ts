@@ -5,7 +5,7 @@ export interface root_router {
   /**
     * `skill` key contains list of capabilities that are supported at this point in time. Here is a description of each and every skill in details
     *
-    * update_annotation_content: Select this skill if user wants to change properties of single annotation / guide in the demo. For example, user might indicate changing a single annotation by mentioning they want to change the current guide / first guide / last guide of the demo. 
+    * update_annotation_content: Select this skill if user wants to change properties of single annotation / guide in the demo. For example, user might indicate changing a single annotation by mentioning they want to change the current guide / first guide / last guide of the demo.
     *
     * update_demo_content: Select this skill if user wants to change all or some guides in the demo. Ideally you would choose this skill if the user's request might span more than one guide in the demo. For example, if user wants to change the language of the demo / tone of the demo / ask you to personalize demo then you'd know that the whole demo might be changed.
     *
