@@ -49,10 +49,6 @@ export default function SidePanel(props: Props): JSX.Element {
           <HeatMapOutlined />
           <p>Demo hub</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
-          <DatabaseOutlined />
-          <p>Datasets</p>
-        </Tags.ConNavBtn>
         <Tags.ConNavBtn className={props.selected === 'leads' ? 'selected' : ''} to="/leads">
           <RiseOutlined />
           <p>Leads</p>
@@ -80,6 +76,10 @@ export default function SidePanel(props: Props): JSX.Element {
         >
           <SettingOutlined />
           <p>Settings</p>
+        </Tags.ConNavBtn>
+        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
+          <DatabaseOutlined />
+          <p>Datasets</p>
         </Tags.ConNavBtn>
         <Tags.ConNavBtn
           to="https://www.sharefable.com/get-a-demo?ref=app_dashboard"

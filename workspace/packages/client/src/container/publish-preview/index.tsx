@@ -157,11 +157,11 @@ interface IOwnStateProps {
 const MAX_EDIT_STACK = 5;
 const CREDIT_USED_FOR_LLM_CALL = 2;
 const placeholderOptions = [
-  'Tell Quilly what kind of modification you\'d want to do in the demo [Beta]',
-  'Translate the demo content to german',
+  'Tell Quilly what modification you\'d want to do in the demo [Beta]',
+  'Translate the demo content to Spanish',
   'Personalize demo by addressing by {{ first_name }}',
-  'Switch to dark theme',
-  'Make the demo sound like a lawyer has written the content'
+  'Switch the demo to dark theme',
+  'Make the demo content humorous and engaging'
 ];
 
 class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
@@ -454,6 +454,9 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     }, 2000);
   };
 
+  // TODO use react-type-animation package
+  // This also has some experiencial issue -- once the sentence is finished, the next sentence is started immediately
+  // without waiting for the user to wait
   typewritePlaceholderTextInQuillyTextbox = (): void => {
     const wordIndex = this.state.placeholderWordIndex;
     const placeholder = this.state.placeholderText;
