@@ -43,6 +43,7 @@ import {
 } from '@fable/common/dist/types';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import { nanoid } from 'nanoid';
+import Handlebars from 'handlebars';
 import {
   AllEdits,
   EditItem,
@@ -69,7 +70,8 @@ import {
   EncodingTypeDisplay,
   EncodingTypeMask,
   EncodingTypeInput,
-  DatasetConfig
+  DatasetConfig,
+  GlobalElEditText
 } from './types';
 import { getDefaultDatasetConfig, getDefaultSiteData, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn, replaceVarsInAnnotation } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
@@ -292,6 +294,32 @@ export function preprocessAnnTextsToReplacePersVars(
     annotations[key].map(ann => replaceVarsInAnnotation(ann, varMap));
   });
   return annotations;
+}
+
+export function preprocessEditTextsToReplacePersVars(
+  edits: AllGlobalElEdits<ElEditType>,
+  varMap: Record<string, string | Record<string, string>>
+) : AllGlobalElEdits<ElEditType> {
+  Object.keys(edits).forEach((key) => {
+    replaceVarsInEdit(edits[key], varMap);
+  });
+
+  return edits;
+}
+
+function replaceVarsInEdit(
+  editObj: Partial<Record<ElEditType, GlobalElEditValueEncoding[ElEditType]>>,
+  varMap: Record<string, string | Record<string, string>>
+): Partial<Record<ElEditType, GlobalElEditValueEncoding[ElEditType]>> {
+  if (editObj[ElEditType.Text]) {
+    const textEditObj: GlobalElEditText = editObj[ElEditType.Text] as GlobalElEditText;
+    const editObjtextNewValueTemplate = Handlebars.compile(textEditObj.newValue);
+    textEditObj.newValue = editObjtextNewValueTemplate(varMap);
+
+    editObj[ElEditType.Text] = textEditObj;
+  }
+
+  return editObj;
 }
 
 export function getThemeAndAnnotationFromDataFile(data: TourData, globalOpts: IGlobalConfig, isLocal = true): {

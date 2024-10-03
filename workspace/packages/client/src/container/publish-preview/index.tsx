@@ -41,7 +41,7 @@ import Header from '../../component/header';
 import PublishOptions from '../../component/publish-preview/publish-options';
 import Button from '../../component/button';
 import { DEMO_LOADED_AFTER_AI_UPDATE, IFRAME_BASE_URL } from '../../constants';
-import { ExtMsg, QuillyInPreviewProgress, ScreenSizeData, SiteData, UpdateDemoUsingQuillyError } from '../../types';
+import { EditItem, ExtMsg, QuillyInPreviewProgress, ScreenSizeData, SiteData, UpdateDemoUsingQuillyError } from '../../types';
 import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
 import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -106,6 +106,7 @@ interface IAppStateProps {
   tourData: TourData | null;
   annotationsForScreens: Record<string, IAnnotationConfig[]>;
   updateDemoUsingAIError: UpdateDemoUsingQuillyError;
+  globalEdits: EditItem[];
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -117,7 +118,8 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   subs: state.default.subs,
   annotationsForScreens: state.default.remoteAnnotations,
   tourData: state.default.tourData,
-  updateDemoUsingAIError: state.default.updateDemoUsingAIError
+  updateDemoUsingAIError: state.default.updateDemoUsingAIError,
+  globalEdits: state.default.remoteGlobalEdits,
 });
 
 interface IOwnProps {
@@ -501,7 +503,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     const embedParams = isMobilePreview ? '&fframe=noframe' : '';
     const quillySubmitDisabled = this.state.updateDemoLoadingStatus === LoadingStatus.InProgress
       || this.state.newDemoObjective.trim().length === 0;
-
     const items: MenuProps['items'] = this.state.tourDataEditStack.length === 0
       ? [{
         label: <p>No history available, please make <br />some edit using quilly first</p>,
@@ -663,6 +664,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                           }}
                           originalPersVarsParams={this.originalQueryParams}
                           datasets={this.props.tour!.datasets!}
+                          edits={this.props.globalEdits}
                         />
                       </div>
                     </Tags.QuickEditPopoverCon>

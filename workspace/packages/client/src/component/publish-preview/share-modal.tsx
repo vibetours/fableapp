@@ -21,7 +21,7 @@ import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
+import { EditItem, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
@@ -410,6 +410,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [loadingAnns, setLoadingAnns] = useState(true);
   const [annotationsForScreens, setAnnotationsForScreens] = useState<Record<string, IAnnotationConfig[]> | null>(null);
   const [datasets, setDatasets] = useState<P_Dataset[] | null>(null);
+  const [edits, setEdits] = useState<EditItem[]>([]);
   const dispatch: ThunkDispatch<TState, void, AnyAction> = useDispatch();
 
   useEffect(() => {
@@ -481,6 +482,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
       const data = await dispatch(loadTourAnnotationsAndDatasets(props.tour.rid, true));
       setAnnotationsForScreens(data.annotations);
       setDatasets(data.datasets);
+      setEdits(data.globalEdits);
       setLoadingAnns(false);
     } catch (e) {
       raiseDeferredError(e as Error);
@@ -727,6 +729,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 }}
                 isLoading={loadingAnns}
                 setShowEditor={() => { /* noop */ }}
+                edits={edits}
               />
             </div>
           )}

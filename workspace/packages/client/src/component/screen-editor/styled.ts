@@ -14,7 +14,15 @@ export const EditCtrlCon = styled.div`
   margin-top: 1.5rem;
 `;
 
-export const EditCtrlLabel = styled.div``;
+export const EditCtrlLabel = styled.div`
+  
+  &.with-warning {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 75%;
+  }
+`;
 
 export const EditCtrlLI = styled.div`
   display: flex;

@@ -103,6 +103,7 @@ import {
   P_Dataset,
   preprocessAnnTextsToReplacePersVars,
   processDatasetConfig,
+  preprocessEditTextsToReplacePersVars,
 } from '../entity-processor';
 import { TState } from '../reducer';
 import {
@@ -1030,7 +1031,8 @@ export function loadTourAnnotationsAndDatasets(
     getState: () => TState
   ): Promise<{
     annotations: Record<string, IAnnotationConfig[]>,
-    datasets: P_Dataset[]
+    datasets: P_Dataset[],
+    globalEdits: EditItem[]
   }> => {
     const state = getState();
     const ts = +new Date();
@@ -1056,9 +1058,25 @@ export function loadTourAnnotationsAndDatasets(
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(tourData, processedTour.globalOpts, false);
     const annotations = annotationAndOpts.annotations;
 
+    let editData: GlobalEditFile;
+    let globalEdits: EditItem[] = [];
+    try {
+      editData = await api<null, GlobalEditFile>(processedTour.editFileUri.href);
+      globalEdits = convertGlobalEditsToLineItems(editData.edits, false);
+    } catch (err) {
+      editData = {
+        v: SchemaVersion.V1,
+        lastUpdatedAtUtc: -1,
+        edits: {}
+      };
+      globalEdits = [];
+      raiseDeferredError(err as Error);
+    }
+
     return Promise.resolve({
       annotations,
-      datasets: processedTour.datasets || []
+      datasets: processedTour.datasets || [],
+      globalEdits
     });
   };
 }
@@ -1138,7 +1156,7 @@ export function loadTourAndData(
     const annotationAndOpts = getThemeAndAnnotationFromDataFile(data, tour.globalOpts, false,);
 
     let annotations = annotationAndOpts.annotations;
-
+    let varMap: Record<string, string | Record<string, string>> = {};
     if (isLoadingTourToEmbed && persVarData) {
       let dsVarMap: Record<string, Record<string, string>> = {};
       const datasetConfigs: Record<string, DatasetConfig> = {};
@@ -1156,13 +1174,16 @@ export function loadTourAndData(
       }
 
       dsVarMap = datasetQueryParser(persVarData.dataset.queries, datasetConfigs);
-      const varMap = processVarMap(dsVarMap, persVarData.text);
+      varMap = processVarMap(dsVarMap, persVarData.text);
       annotations = preprocessAnnTextsToReplacePersVars(annotationAndOpts.annotations, varMap);
     }
     let editData: GlobalEditFile;
     let globalEdits: EditItem[] = [];
     try {
       editData = await api<null, GlobalEditFile>(tour!.editFileUri.href);
+      if (isLoadingTourToEmbed && persVarData) {
+        editData.edits = preprocessEditTextsToReplacePersVars(editData.edits, varMap);
+      }
       globalEdits = convertGlobalEditsToLineItems(editData.edits, false);
     } catch (err) {
       editData = {

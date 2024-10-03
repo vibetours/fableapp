@@ -74,6 +74,9 @@ import {
   TableColumn,
   PerVarType,
   PerVarData,
+  ElEditType,
+  IdxEncodingTypeText,
+  EncodingTypeText,
 } from './types';
 import { LLMOpsType } from './container/create-tour/types';
 
@@ -821,6 +824,20 @@ export function getPersVarsFromAnnotations(annsPerScreen: Record<string, IAnnota
     });
   });
 
+  return perVarData;
+}
+
+export function getPersVarsFromEdits(edits: EditItem[]): PerVarData {
+  const perVarData: PerVarData = {};
+
+  edits.forEach(edit => {
+    if (edit[IdxEditItem.TYPE] === ElEditType.Text) {
+      const textEdit = edit[IdxEditItem.ENCODING] as EncodingTypeText;
+      const newValueOfTextEdit = textEdit[IdxEncodingTypeText.NEW_VALUE];
+      const perVars = extractDSAndNormalHandlebarsFromText(newValueOfTextEdit || '');
+      Object.keys(perVars).forEach(key => perVarData[key] = perVars[key]);
+    }
+  });
   return perVarData;
 }
 

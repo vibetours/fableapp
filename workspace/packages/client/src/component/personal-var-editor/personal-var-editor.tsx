@@ -3,10 +3,11 @@ import { DatabaseOutlined, FontSizeOutlined, LoadingOutlined, WarningOutlined } 
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import Button from '../button';
-import { DatasetConfig, PerVarData, PerVarType, ScreenSizeData } from '../../types';
+import { DatasetConfig, EditItem, PerVarData, PerVarType, ScreenSizeData } from '../../types';
 import {
   extractDatasetParams,
   getPersVarsFromAnnotations,
+  getPersVarsFromEdits,
   getPrefilledPerVarsFromLS,
   recordToQueryParams,
   setPersValuesInLS
@@ -23,6 +24,7 @@ interface Props {
   originalPersVarsParams: string;
   setShowEditor: (showPersVarsEditor: boolean) => void;
   datasets: P_Dataset[];
+  edits: EditItem[]
 }
 
 export default function PersonalVarEditor(props: Props): JSX.Element {
@@ -77,11 +79,13 @@ export default function PersonalVarEditor(props: Props): JSX.Element {
 
   useEffect(() => {
     const perVars = {
-      ...getPersVarsFromAnnotations(props.annotationsForScreens)
+      ...getPersVarsFromAnnotations(props.annotationsForScreens),
+      ...getPersVarsFromEdits(props.edits)
     };
+
     const perVarsObj = getPrefilledPerVarsFromLS(perVars, props.tour.rid);
     setPerVarsInTour(perVarsObj);
-  }, [props.annotationsForScreens]);
+  }, [props.annotationsForScreens, props.edits]);
 
   useEffect(() => {
     setPersValuesInLS(perVarsInTour, props.tour.rid);

@@ -82,6 +82,8 @@ import {
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
   doesBtnOpenALink,
+  extractHandlebarsFromAnnotations,
+  getAnnTextEditorErrors,
   getAnnotationWithScreenAndIdx,
   getFidOfNode,
   isEventValid,
@@ -120,6 +122,7 @@ import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste 
 import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
 import { ImgResolution } from './utils/resize-img';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
+import { WarningIcon } from '../header/styled';
 
 const BLUR_VALUE = 8;
 
@@ -257,7 +260,8 @@ interface IOwnStateProps {
   reselectedEl: HTMLElement | null;
   formatPasteStyle: StoredStyleForFormatPaste | null;
   showFormatPastePopup: boolean;
-  editFeaturesAvailable: EditFeaturesAvailable[]
+  editFeaturesAvailable: EditFeaturesAvailable[];
+  persVarsTextWarnings: string[];
 }
 
 enum EditFeaturesAvailable {
@@ -315,7 +319,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       reselectedEl: null,
       formatPasteStyle: getStoredStyleForFormatPasting(),
       showFormatPastePopup: false,
-      editFeaturesAvailable: []
+      editFeaturesAvailable: [],
+      persVarsTextWarnings: []
     };
   }
 
@@ -1316,7 +1321,21 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return (
           <Tags.EditCtrlCon>
             <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
-              <Tags.EditCtrlLabel className="typ-reg">Update Text</Tags.EditCtrlLabel>
+              <Tags.EditCtrlLabel className="typ-reg with-warning">
+                Update Text
+                {this.state.persVarsTextWarnings.length > 0 && (
+                <Tooltip
+                  placement="left"
+                  title={
+                    <ul>
+                      {this.state.persVarsTextWarnings.map(warning => <li key={warning}>{warning}</li>)}
+                    </ul>
+                  }
+                >
+                  <WarningIcon className="format" />
+                </Tooltip>
+                )}
+              </Tags.EditCtrlLabel>
               <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
                 <Tags.CtrlTxtEditBox
                   className="typ-ip"
@@ -1337,6 +1356,10 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     const fid = this.getFidOfNodeWrapper(refEl, path);
                     this.addToMicroEdit(path, fid, ElEditType.Text, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
 
+                    const perVars = extractHandlebarsFromAnnotations(e.target.value);
+                    this.setState({
+                      persVarsTextWarnings: (getAnnTextEditorErrors(perVars))
+                    });
                     t.textContent = e.target.value;
                   })(targetEl!)}
                   disabled={!isTextUpdateAvailable}
