@@ -6,12 +6,12 @@ on:
   workflow_dispatch:
 
 env:
-  DEPLOY_ENV: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
+  DEPLOY_ENV: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'staging' }}
 
 jobs:
   build-and-deploy-ext-and-client:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'na' }}
+    environment: ${{ github.ref_name == 'master' && 'prod' ||  github.ref_name == 'develop' && 'staging' || 'staging' }}
 
     permissions:
       id-token: write
