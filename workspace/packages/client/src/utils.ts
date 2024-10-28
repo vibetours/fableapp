@@ -33,7 +33,7 @@ import { PostProcessDemoV1, ThemeForGuideV1, CreateNewDemoV1, RouterForTypeOfDem
 import { update_demo_content } from '@fable/common/dist/llm-fn-schema/update_demo_content';
 import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
 import { ColumnsType } from 'antd/es/table';
-import { IAnnotationConfigWithScreenId, updateAnnotationAudio, updateAnnotationBoxSize, updateAnnotationPositioning } from './component/annotation/annotation-config-utils';
+import { IAnnotationConfigWithScreenId, updateAnnotationAudio, updateAnnotationBoxSize, updateAnnotationPositioning, updateOverlay } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_PERS_VARS_FOR_TOUR } from './constants';
 import { P_RespSubscription, P_RespTour } from './entity-processor';
@@ -2151,7 +2151,8 @@ export const updateTourDataToAddVoiceOver = (
             annVoiceOverDetail.hls,
             annVoiceOverDetail.webm,
             annVoiceOverDetail.fb.url,
-            annVoiceOverDetail.fb.type
+            annVoiceOverDetail.fb.type,
+            true
           );
           newAnnConfig.voiceover = {
             voiceUsed,
@@ -2378,12 +2379,14 @@ export const handleAddAnnotationAudio = (
   hlsAudio: string,
   webmAudio: string,
   url: string,
-  type: 'audio/webm' | 'audio/mpeg'
+  type: 'audio/webm' | 'audio/mpeg',
+  isVoiceover: boolean = false
 ): IAnnotationConfig => {
   let newAnnConfig = updateAnnotationAudio(annConfig, { hls: hlsAudio, webm: webmAudio, fb: { url, type } });
 
   if (newAnnConfig.type === 'cover') {
     newAnnConfig = updateAnnotationPositioning(newAnnConfig, VideoAnnotationPositions.Center);
+    newAnnConfig = isVoiceover ? updateOverlay(newAnnConfig, false) : newAnnConfig;
   } else {
     newAnnConfig = updateAnnotationPositioning(newAnnConfig, VideoAnnotationPositions.BottomRight);
   }

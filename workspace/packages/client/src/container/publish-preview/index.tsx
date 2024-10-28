@@ -1,4 +1,5 @@
 import {
+  CheckCircleFilled,
   ClockCircleFilled,
   CloseOutlined,
   CodeFilled,
@@ -273,10 +274,17 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   resetQuillyProgress = () : void => {
+    if (this.state.voiceoverProgress !== 0) {
+      const temp = setTimeout(() => {
+        this.updateVoiceoverProgress(0);
+        clearTimeout(temp);
+      }, 5000);
+    }
+
     this.setState({
       newDemoObjective: '',
       completedStep: null,
-      updateDemoLoadingStatus: LoadingStatus.NotStarted
+      updateDemoLoadingStatus: LoadingStatus.NotStarted,
     });
     this.placeholderTimer && clearTimeout(this.placeholderTimer);
     this.placeholderTimer = null;
@@ -576,6 +584,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   handleVoiceover = async (): Promise<void> => {
     this.closeVoiceoverPopup();
     if (!this.props.allAnnsInOrder) return;
+    this.updateVoiceoverProgress(5);
 
     const isVoiceoverAdded = await this.props.addVoiceOver(
       this.props.tour as P_RespTour,
@@ -591,11 +600,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       '*'
     );
     this.updateVoiceoverProgress(100);
-
-    const voiceoverTimeout = setTimeout(() => {
-      this.updateVoiceoverProgress(0);
-      clearTimeout(voiceoverTimeout);
-    }, 3000);
   };
 
   playPauseSampleVoice = (e: typeof VoiceOptions[0]): void => {
@@ -922,18 +926,28 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                       <Tooltip title="Customize demo" placement="left">
                         <SoundFilled />
                       </Tooltip>
-                      <Progress
-                        showInfo={false}
-                        size="small"
-                        style={{
-                          margin: 0,
-                          lineHeight: 0,
-                          visibility: this.state.voiceoverProgress === 0 ? 'hidden' : 'visible'
-                        }}
-                        strokeLinecap="round"
-                        percent={this.state.voiceoverProgress}
-                        strokeColor="#9ba7ae"
-                      />
+                      <div>
+                        <Progress
+                          showInfo={false}
+                          size="small"
+                          style={{
+                            margin: 0,
+                            lineHeight: 0,
+                            display: this.state.voiceoverProgress === 0 || this.state.voiceoverProgress === 100
+                              ? 'none' : 'block'
+                          }}
+                          strokeLinecap="round"
+                          percent={this.state.voiceoverProgress}
+                          strokeColor="#9ba7ae"
+                        />
+                        {this.state.voiceoverProgress === 100 && <CheckCircleFilled
+                          style={{
+                            fontSize: 13,
+                            color: 'green',
+                            position: 'absolute',
+                          }}
+                        />}
+                      </div>
                     </div>
                   </Popover>
                 </div>
