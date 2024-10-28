@@ -329,13 +329,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       };
 
       if (origFrameViewPort.width > viewPortAfterScaling.width) {
-        frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
         iframePos.left = (origFrameViewPort.width - viewPortAfterScaling.width) / 2;
+        frame.style.left = `${iframePos.left}px`;
       }
       if (origFrameViewPort.height > viewPortAfterScaling.height) {
-        const scaledOffset = this.props.heightOffset * scale;
-        frame.style.top = `${((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset)}px`;
-        iframePos.top = ((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset);
+        const scaledOffset = this.props.heightOffset;
+        iframePos.top = ((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + scaledOffset;
+        frame.style.top = `${iframePos.top}px`;
       }
 
       this.handleWatermarkPositioning(

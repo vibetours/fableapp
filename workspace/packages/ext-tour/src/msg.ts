@@ -1,5 +1,7 @@
 export enum Msg {
   INIT = "fable/INIT",
+  WIN_RESIZE = "fable/WIN_RESIZE",
+  WIN_ON_RESIZE = "fable/WIN_ON_RESIZE",
   INITED = "fable/INITED",
   SCRIPT_INIT = "fable/SCRIPT_INIT",
   SCRIPT_INIT_DATA = "fable/SCRIPT_INIT_DATA",

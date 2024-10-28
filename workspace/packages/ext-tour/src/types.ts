@@ -23,6 +23,11 @@ export interface ReqScreenshotData {
   id: number;
 }
 
+export interface ReqScreenResize {
+  w: number;
+  h: number;
+}
+
 export interface StopRecordingData {
   id: number;
 }

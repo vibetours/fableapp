@@ -9,7 +9,7 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
   position: absolute;
   top: ${({ iframePos, scaleFactor }) => `${iframePos.top - (MAC_FRAME_HEIGHT * scaleFactor)}px`};
   left: ${({ iframePos }) => `${iframePos.left}px`};
-  background-color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#E0E0E0' : '#171717')};
+  background-color: ${({ mode }) => (mode === FrameSettings.LIGHT ? '#dedad6' : '#171717')};
   border-radius: 0.5rem 0.5rem 0 0;
   box-sizing: border-box;
   padding: 0.5rem 0.75rem;
@@ -66,7 +66,7 @@ export const Frame = styled.div<{iframePos : IframePos, mode : FrameSettings, sc
       margin: 0;
       padding: 0.125rem 0.5rem;
       font-size: 0.875rem;
-      background-color:${({ mode }) => (mode === FrameSettings.LIGHT ? '#f5f5f5' : '#404040')};
+      background-color:${({ mode }) => (mode === FrameSettings.LIGHT ? '#f4f4f0' : '#404040')};
       border-radius: 0.5rem;
       display: flex;
       align-items: center;

@@ -13,6 +13,7 @@ import {
   IExtStoredState,
   IUser,
   RecordingStatus,
+  ReqScreenResize,
   ReqScreenshotData,
   ScreenSerDataFromCS,
   ScreenSerStartData,
@@ -313,6 +314,77 @@ async function processStyleInfo(newScreenStyle: ThemeStats) {
   );
 }
 
+async function getDeviceAndTabDim() {
+  const dim = {
+    // dimension of document window (tab)
+    tabWidth: -1,
+    tabHeight: -1,
+    // dimension of browser. window size + browser's ui elements
+    browserWidth: -1,
+    browserHeight: -1,
+    // dimension of device screen
+    screenWidth: -1,
+    screenHeight: -1,
+    // dimension of jsut the browser's ui elements
+    browserUiElsOffsetWidth: -1,
+    browserUiElsOffsetHeight: -1,
+    fallbackTabWidth: 1200,
+    fallbackTabHeight: 800,
+    ar: 1.5,
+    suggestResize: false,
+    winId: -1,
+    inited: false
+  };
+
+  const activeTab = await chrome.tabs.query({ currentWindow: true, active: true });
+  if (activeTab[0] && activeTab[0].id && activeTab[0].width && activeTab[0].height) {
+    dim.tabWidth = activeTab[0].width;
+    dim.tabHeight = activeTab[0].height;
+
+    const screenDim = await getFavourableScreenDimension(activeTab[0]);
+    dim.screenWidth = screenDim.screenWidth || -1;
+    dim.screenHeight = screenDim.screenHeight || -1;
+
+    const browser = await chrome.windows.get(activeTab[0].windowId);
+    dim.browserWidth = browser.width || -1;
+    dim.browserHeight = browser.height || -1;
+
+    if (dim.screenWidth > 0 && dim.screenHeight > 0 && dim.browserWidth > 0 && dim.browserHeight > 0) {
+      dim.browserUiElsOffsetWidth = Math.max(0, dim.browserWidth - dim.tabWidth);
+      dim.browserUiElsOffsetHeight = Math.max(0, dim.browserHeight - dim.tabHeight);
+      dim.inited = true;
+
+      // If the current aspect ratio is almost reaching target aspect ratio then we don't show option to resize
+      const currentAr = (dim.tabWidth / dim.tabHeight) * 10;
+      dim.suggestResize = Math.round(currentAr) !== (dim.ar * 10);
+      dim.winId = activeTab[0].windowId;
+    }
+  }
+  return dim;
+}
+
+function getScreenDim() {
+  return {
+    screenWidth: window.screen.availWidth,
+    screenHeight: window.screen.availHeight
+  };
+}
+
+function getFavourableScreenDimension(tab: chrome.tabs.Tab) {
+  return chrome.scripting.executeScript({
+    target: {
+      tabId: tab.id!,
+    },
+    func: getScreenDim
+  }).then(results => {
+    const result = results.filter(r => r.frameId === 0).map(r => r.result);
+    return (result[0] && result[0].screenWidth && result[0].screenHeight) ? result[0] : {
+      screenWidth: -1,
+      screenHeight: -1
+    };
+  });
+}
+
 /**
  * This is how auto stitching of screens works based on user interaction
  *
@@ -348,9 +420,57 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
   switch (msg.type) {
     case Msg.INIT: {
       const state = await getPersistentExtState();
+      const dims = await getDeviceAndTabDim();
+
+      // First try to take the full height, then width = height * 1.5 (aspect ratio)
+      // if width > available screenWidth then take full width, calculate height = width / 1.5
+      const ar = 1.5; // aspect ratio
+      // Getting appropriate height for the borwser window (displayheight - browser ui element) is what the
+      // document can accept
+      let suggestedHeight = dims.screenHeight - dims.browserUiElsOffsetHeight;
+      let suggestedWidth = suggestedHeight * ar;
+      // If browser is wider than the screen. Browser width is page width + browser's ui
+      if ((suggestedWidth + dims.browserUiElsOffsetWidth) > dims.screenWidth) {
+        suggestedWidth = dims.screenWidth - dims.browserUiElsOffsetWidth;
+        suggestedHeight = suggestedWidth / ar;
+
+        if (suggestedHeight + dims.browserUiElsOffsetHeight > dims.screenHeight) {
+          suggestedHeight = dims.fallbackTabHeight;
+          suggestedWidth = dims.fallbackTabWidth;
+        }
+      }
       await chrome.runtime.sendMessage({
         type: Msg.INITED,
-        data: state
+        data: {
+          state,
+          dim: {
+            suggestResize: dims.suggestResize,
+            suggestedHeight,
+            suggestedWidth
+          }
+        }
+      });
+      break;
+    }
+
+    case Msg.WIN_RESIZE: {
+      const tMsg = msg as MsgPayload<ReqScreenResize>;
+      const w = tMsg.data.w;
+      const h = tMsg.data.h;
+
+      const dims = await getDeviceAndTabDim();
+      if (!dims.inited) return;
+
+      await chrome.windows.update(dims.winId, {
+        width: (w + dims.browserUiElsOffsetWidth),
+        height: h + dims.browserUiElsOffsetHeight
+      });
+
+      await chrome.runtime.sendMessage({
+        type: Msg.WIN_ON_RESIZE,
+        data: {
+          dim: { w, h, suggestResize: false }
+        }
       });
       break;
     }

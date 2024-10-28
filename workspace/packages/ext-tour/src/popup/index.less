@@ -10,42 +10,10 @@ body {
   background: #F5F5F5;
 }
 
-.header-pills {
-  height: 8px;
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin-top: -5px;
-  z-index: -1;
-
-  div {
-    width: 40%;
-    border-radius: 12px;
-
-    &:nth-child(1) {
-      background-color: #ff7450;
-    }
-
-    &:nth-child(2) {
-      background-color: #fedf64;
-    }
-
-    &:nth-child(3) {
-      background-color: #7567ff;
-    }
-
-    &:not(:first-child) {
-      margin-left: -18px;
-    }
-  }
-}
-
 .p-con {
-  padding: 1rem 1rem 2rem 1rem;
-  width: 30rem;
+  padding: 0;
+  width: 460px;
+  outline: 1px solid #E0E0E0;
 
 
   .login-con {
@@ -66,24 +34,75 @@ body {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    padding-bottom: 2rem;
   }
 }
 
+.header-con {
+  width: 100%;
+  display: flex;
+  padding: 0 0rem;
+  border-bottom: 1px solid #E0E0E0;
+  background-image: linear-gradient(90deg, hsl(260deg 94% 13%) 1%, hsl(260deg 93% 13%) 34%, hsl(260deg 93% 13%) 45%, hsl(260deg 93% 14%) 53%, hsl(260deg 93% 14%) 59%, hsl(260deg 93% 15%) 65%, hsl(260deg 93% 15%) 71%, hsl(260deg 94% 15%) 79%, hsl(261deg 95% 16%) 100%);
+  padding-left: 1rem;
+}
+
 .title {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #16023E;
 }
 
+.resize-con {
+  margin: 8px 0 24px;
+  display: flex;
+  background: white;
+  padding: 12px 28px;
+  border-radius: 8px;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #BDBDBD;
+
+  .resize-msg {
+    display: block;
+    font-weight: 300;
+  }
+
+  input[type="number"] {
+    margin: 0 4px;
+    width: 48px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
+    border: 1px solid #E0E0E0;
+    background: white;
+  }
+
+  button {
+    padding: 4px 8px;
+    border-radius: 4px;
+    outline: none;
+    border: 1px solid #160240;
+    border-radius: 12px;
+    transition: all 0.3s ease-in-out;
+    background: #fbf6ff;
+
+    &:hover {
+      background: #7567ff;
+      color: white;
+    }
+  }
+}
+
 .description {
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
   border-radius: 8px;
   padding: 0.5rem;
-  background: white;
   line-height: 1.375rem;
   font-size: 0.875rem;
   text-align: left;
-  margin-top: 1rem;
+  color: #424242;
 
   ol {
     padding-inline-start: 25px;
@@ -107,7 +126,7 @@ body {
 }
 
 .btn-primary {
-  width: 95%;
+  width: 90%;
   height: 44px;
   margin-top: 0.5rem;
   border: none;
@@ -124,7 +143,7 @@ body {
 }
 
 .btn-secondary {
-  width: 95%;
+  width: 90%;
   height: 44px;
   margin-top: 0.5rem;
   border: 2px solid #16023E;

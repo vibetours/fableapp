@@ -11,6 +11,8 @@ import { AGGRESSIVE_BUFFER_PRESERVATION, PURIFY_DOM_SERIALIZATION, SettingState 
 
 const APP_CLIENT_ENDPOINT = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
+// INFO Open popup.html for development run this on service worker console `chrome.tabs.create({url: chrome.runtime.getURL("index.html")})`
+
 sentryInit("extension", version);
 
 type Props = {};
@@ -25,6 +27,9 @@ interface State {
   // This state is true when all the data is retrieved for the extension to work.
   // In this case logged in user, org etc
   inited: boolean;
+  shouldShowResizeOption: boolean;
+  resizeToWidth: number;
+  resizeToHeight: number;
   recordingStatus: RecordingStatus,
   showSettings: boolean;
   purifyDom: SettingState;
@@ -36,7 +41,10 @@ class Root extends Component<Props, State> {
     super(props);
     this.state = {
       inited: false,
+      resizeToWidth: 1200,
+      resizeToHeight: 800,
       recordingStatus: RecordingStatus.Idle,
+      shouldShowResizeOption: false,
       showSettings: false,
       purifyDom: SettingState.OFF,
       aggressiveBuffer: SettingState.ON
@@ -61,13 +69,29 @@ class Root extends Component<Props, State> {
 
   onMessageReceiveFromWorkerScript = (msg: MsgPayload<any>, sender: chrome.runtime.MessageSender) => {
     switch (msg.type) {
-      case Msg.INITED:
-        const tMsg = msg as MsgPayload<IExtStoredState>;
+      case Msg.INITED: {
+        const tMsg = msg as MsgPayload<{
+        state: IExtStoredState,
+        dim: { suggestedHeight: number; suggestedWidth: number; suggestResize: boolean }
+        }>;
+
         this.setState({
           inited: true,
-          recordingStatus: tMsg.data.recordingStatus
+          recordingStatus: tMsg.data.state.recordingStatus,
+          shouldShowResizeOption: tMsg.data.dim.suggestResize,
+          resizeToHeight: Math.round(tMsg.data.dim.suggestedHeight),
+          resizeToWidth: Math.round(tMsg.data.dim.suggestedWidth),
         });
         break;
+      }
+
+      case Msg.WIN_ON_RESIZE: {
+        const tMsg = msg as MsgPayload<{ dim: { h: number; w: number; suggestResize: boolean } }>;
+        this.setState({
+          shouldShowResizeOption: tMsg.data.dim.suggestResize
+        });
+        break;
+      }
 
       case Msg.RECORDING_CREATE_OR_DELETE_COMPLETED:
         this.setState({ recordingStatus: RecordingStatus.Idle });
@@ -127,7 +151,7 @@ class Root extends Component<Props, State> {
   render() {
     return (
       <div className="p-con">
-        <div style={{ position: "absolute", top: "5px", right: "5px", color: "gray", fontSize: "0.75rem" }}>
+        <div style={{ position: "absolute", top: "5px", right: "5px", color: "white", fontSize: "0.75rem", opacity: 0.3 }}>
           <span>
             v{version}
           </span>
@@ -161,28 +185,30 @@ class Root extends Component<Props, State> {
         )}
         {this.state.inited && (
           <div className="action-con">
-            <button
-              type="button"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer"
-              }}
-              onClick={this.openLinkInNewTab("demos")}
-            >
-              <img
-                alt="illustration"
-                style={{ margin: "0.5rem 0" }}
-                width={100}
-                src="./illustration-extension.png"
-              />
-            </button>
+            <div className="header-con">
+              <button
+                type="button"
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onClick={this.openLinkInNewTab("demos")}
+              >
+                <img
+                  alt="illustration"
+                  style={{ margin: "0.5rem 0" }}
+                  width={100}
+                  src="./fableLogo.svg"
+                />
+              </button>
+            </div>
             {
               this.state.showSettings
                 ? (
                   <div
                     className="description"
-                    style={{ margin: "0.5rem 0rem 1rem 0rem", width: "100%" }}
+                    style={{ margin: "0rem 0 0 2rem", width: "100%" }}
                   >
                     <div>
                       <p>Purify DOM serialization:&nbsp;&nbsp;
@@ -216,19 +242,66 @@ class Root extends Component<Props, State> {
                 )
                 : (
                   <>
-                    <div style={{ margin: "0.5rem 0rem 1rem 0rem" }}>
+                    <div style={{ margin: "1.5rem 0rem 0rem 0rem" }}>
                       <div className="as-p title">Create stunning interactive demos in 5 minutes</div>
                       <div className="as-p description">
                         <ul style={{
                           listStyleType: "none"
                         }}
                         >
-                          <li>✅ For marketing teams to create interactive tours</li>
-                          <li>✅ For sales teams to create personalized demos</li>
-                          <li>✅ For support to create interactive guides</li>
+                          <li>✔️ For marketing teams to create interactive tours</li>
+                          <li>✔️ For sales teams to create personalized demos</li>
+                          <li>✔️ For support to create interactive guides</li>
                         </ul>
                       </div>
                     </div>
+                    {this.state.shouldShowResizeOption && (
+                    <div className="resize-con">
+                      <div className="resize-msg">
+                        ⚡️ Set ideal window size for demo recording
+                      </div>
+                      <div className="resize-win-ctrl">
+                        <input
+                          type="number"
+                          value={this.state.resizeToWidth}
+                          id="win-w"
+                          onChange={(e) => {
+                            this.setState({ resizeToWidth: +e.target.value });
+                          }}
+                        />
+                        x
+                        <input
+                          type="number"
+                          value={this.state.resizeToHeight}
+                          id="win-h"
+                          onChange={(e) => {
+                            this.setState({ resizeToHeight: +e.target.value });
+                          }}
+                        />
+                        &nbsp;
+                        <button
+                          type="button"
+                          className="resize"
+                          onClick={() => {
+                            let w = parseInt((document.getElementById("win-w") as HTMLInputElement).value, 10);
+                            let h = parseInt((document.getElementById("win-h") as HTMLInputElement).value, 10);
+                            w = (Number.isNaN(w) || w < 128) ? 1200 : w;
+                            h = (Number.isNaN(h) || h < 128) ? 800 : h;
+
+                            chrome.runtime.sendMessage({
+                              type: Msg.WIN_RESIZE,
+                              data: {
+                                h,
+                                w,
+                              }
+                            });
+                          }}
+                        >Resize
+                        </button>
+                      </div>
+                    </div>
+                    )}
+
                     {
                       this.state.recordingStatus === RecordingStatus.Idle && (
                         <button type="button" className="btn-primary" onClick={this.startRecording}>
@@ -269,11 +342,6 @@ class Root extends Component<Props, State> {
             }
           </div>
         )}
-        <div className="header-pills">
-          <div />
-          <div />
-          <div />
-        </div>
       </div>
     );
   }

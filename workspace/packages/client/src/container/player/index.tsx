@@ -1056,7 +1056,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     // TODO the border color has to match with frame theme. Right now these values are hard coded in two place.
     // One hard coding is done here, another hard coding is done in demo-frame
     let frameBorderColor: string | undefined;
-    if (this.state.frameSetting === FrameSettings.LIGHT) frameBorderColor = '#E0E0E0';
+    if (this.state.frameSetting === FrameSettings.LIGHT) frameBorderColor = '#dedad6';
     else if (this.state.frameSetting === FrameSettings.DARK) frameBorderColor = '#171717';
     else frameBorderColor = '#616161';
 
