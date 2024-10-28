@@ -53,7 +53,12 @@ import {
   RespDataset,
   ReqNewDataset,
   Dataset,
+  MediaType,
 } from '@fable/common/dist/api-contract';
+import {
+  ReqGenerateAudio,
+  RespGenerateAudio
+} from '@fable/common/dist/jobs-contract';
 import {
   JourneyData,
   EditFile,
@@ -122,15 +127,18 @@ import {
   STORAGE_PREFIX_KEY_QUERY_PARAMS,
   QuillyInPreviewProgress,
   UpdateDemoUsingQuillyError,
+  AnnVoiceOverDetail,
+  OpenAIVoices
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 import { FeatureForPlan, FeaturePerPlan } from '../plans';
-import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, Query } from '../utils';
+import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, updateTourDataToAddVoiceOver, isMediaAnnotation, replaceVarsInAnnotation } from '../utils';
 import { getUUID } from '../analytics/utils';
 import { LLMOpsType } from '../container/create-tour/types';
 import { getThemeData } from '../container/create-tour/utils';
+import { IAnnotationConfigWithScreenId } from '../component/annotation/annotation-config-utils';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -3011,3 +3019,134 @@ async function createOrGetDatasetApi(name: string, description?: string): Promis
   );
   return data;
 }
+
+export function addVoiceOver(
+  tour: P_RespTour,
+  allAnnsInOrder: IAnnotationConfigWithScreenId[],
+  voiceUsed: string,
+  voiceoverProgress: (currentVoiceoverProgress: number)=>void
+) {
+  return async (dispatch: Dispatch<TSaveTourLoader | TTour | TSaveTourEntities | TAutosaving>, getState: () => TState) => {
+    const state = getState();
+    // INFO we take the tour from the live version for voiceover, not from published version for now
+    const tourIndexUri = tour.dataFileUri.pathname.substring(1); // remove the leading /
+
+    try {
+      const annVoiceOverDetailMap = new Map<string, AnnVoiceOverDetail>();
+      let processedCount = 0;
+      const VOICEOVER_BATCH_SIZE = 3;
+      const noOfAnnsInFirstBatch = 1;
+
+      // We only have 1 ann in first batch so no loop is added
+      const firstAnnResult = await getVoiceoverForAnnotation(
+        allAnnsInOrder[0],
+        voiceUsed as OpenAIVoices,
+        tourIndexUri
+      );
+      if (firstAnnResult.isSuccessful) {
+        annVoiceOverDetailMap.set(allAnnsInOrder[0].refId, firstAnnResult);
+      }
+
+      for (let i = noOfAnnsInFirstBatch; i < allAnnsInOrder.length; i += VOICEOVER_BATCH_SIZE) {
+        const batch = allAnnsInOrder.slice(i, i + VOICEOVER_BATCH_SIZE);
+        const batchResult = await Promise.all(
+          batch.map((ann) => getVoiceoverForAnnotation(
+            ann,
+            voiceUsed as OpenAIVoices,
+            tourIndexUri
+          ))
+        );
+
+        batchResult.forEach((result, index) => {
+          if (result.isSuccessful) {
+            const annIndex = i + index;
+            annVoiceOverDetailMap.set(allAnnsInOrder[annIndex].refId, result);
+          }
+        });
+        processedCount += batch.length;
+        const progressPercentage = Math.min(
+          80,
+          Math.floor((processedCount / allAnnsInOrder.length) * 80)
+        );
+        voiceoverProgress(progressPercentage);
+      }
+
+      voiceoverProgress(80);
+      if (annVoiceOverDetailMap.size === 0) return false;
+
+      const updatedTourData = updateTourDataToAddVoiceOver(
+      state.default.tourData!,
+      annVoiceOverDetailMap,
+      voiceUsed
+      );
+
+      await flushTourDataToMasterFile(state.default.currentTour!, updatedTourData)(dispatch, getState);
+
+      voiceoverProgress(98);
+      return true;
+    } catch (err) {
+      const annonymousId = state.default.currentTour && state.default.currentTour.info
+      && state.default.currentTour.info.annDemoId ? state.default.currentTour.info.annDemoId : '';
+      handleRaiseDeferredErrorWithAnnonymousId(err, 'Failed to add voiceover', annonymousId);
+      return false;
+    }
+  };
+}
+
+const getVoiceoverForAnnotation = async (
+  ann: IAnnotationConfigWithScreenId,
+  voice: OpenAIVoices,
+  tourIndexUri: string
+) : Promise<AnnVoiceOverDetail> => {
+  const defaultAnnVoiceoverDetail: AnnVoiceOverDetail = {
+    hls: '',
+    webm: '',
+    fb: {
+      url: '',
+      type: 'audio/webm'
+    },
+    isSuccessful: false,
+  };
+
+  try {
+    // don't call voiceover if it is media ann
+    if (isMediaAnnotation(ann) && !ann.voiceover) {
+      return defaultAnnVoiceoverDetail;
+    }
+
+    // don't call voiceover if leadform is present
+    if (ann.isLeadFormPresent) return defaultAnnVoiceoverDetail;
+
+    // if it is voiceover and voice is same as selected voice & ann isn't updated, don't update
+    if (ann.voiceover && ann.voiceover.voiceUsed === voice && ann.updatedAt < ann.voiceover.updatedAt) {
+      return defaultAnnVoiceoverDetail;
+    }
+
+    const urls = await api<ReqGenerateAudio, ApiResp<RespGenerateAudio>>('/aud/gen', {
+      body: {
+        reason: 'vo',
+        indexUri: tourIndexUri,
+        voice,
+        entityUri: `${ann.screenId}/${ann.refId}`,
+        entityType: 'q_ann',
+        // TODO[now]: handle variable, currently we only remove variable but don't replace it with any data.
+        vars: {},
+        invalid_key: ann.monoIncKey.toString()
+      },
+      isJobEndpoint: true
+    });
+    const annVoiceOverDetail : AnnVoiceOverDetail = {
+      hls: '',
+      webm: urls.data.url,
+      fb: {
+        url: urls.data.url,
+        type: urls.data.mediaType
+      },
+      isSuccessful: true,
+    };
+    return annVoiceOverDetail;
+  } catch (err) {
+    raiseDeferredError(err as Error);
+    return defaultAnnVoiceoverDetail;
+  }
+};

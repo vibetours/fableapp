@@ -658,6 +658,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                     </Tags.JourneyInnerCon>
                   )
                 }
+                {/*
                 <Divider style={{ margin: '24px 0' }} />
                 <Tags.JourneyInnerCon>
                   <div className="typ-reg">Module Box Positioning</div>
@@ -695,6 +696,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                     </label>
                   </Tags.CTAInputCon>
                 </Tags.JourneyInnerCon>
+                */}
                 <Divider style={{ margin: '24px 0' }} />
                 <Tags.JourneyInnerCon style={{ marginBottom: '20px' }}>
                   <Tags.CTAInputCon>

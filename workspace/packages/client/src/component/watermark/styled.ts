@@ -22,10 +22,11 @@ export const LogoWatermark = styled.a`
   transform-origin: 0 0;
   
   img {
-    transition: scale 0.15s ease-in-out;    
+    transition: scale 0.15s ease-in-out;
+    height: 36px;
   }
 
   img:hover {
-    scale: 1.2;
+    scale: 1.15;
   }
 `;

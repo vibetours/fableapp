@@ -1,5 +1,5 @@
 import { RespDemoEntity } from '@fable/common/dist/api-contract';
-import { EditFile, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property, TourData } from '@fable/common/dist/types';
+import { EditFile, IAnnotationAudio, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property, TourData } from '@fable/common/dist/types';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { RenameDemoHubResult } from './action/creator';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
@@ -275,6 +275,13 @@ export enum InternalEvents {
   JourneySwitch = 'journey_switch',
   OnCtaClicked = 'on_cta_clicked',
   LeadAssign = 'lead_assign',
+  VoiceoverMediaStateChange = 'voiceover_media_state_change',
+  OnSelectedElChange = 'on_sel_el_change',
+}
+
+export interface VoiceoverMediaStateChangePayload {
+  mediaState: 'none' | 'paused' | 'playing' | 'ended' | 'overlay';
+  annRefId: string;
 }
 
 export enum ExtMsg {
@@ -312,7 +319,7 @@ export interface Payload_JourneySwitch {
 }
 export interface Payload_Navigation {
   currentAnnotationRefId: string;
-  annotationType: 'video' | 'text' | 'leadform' | 'audio';
+  annotationType: 'video' | 'text' | 'leadform' | 'audio' | 'voiceover';
   journeyIndex: number;
 }
 
@@ -324,6 +331,13 @@ export interface Payload_NavToAnnotation {
 export interface Payload_UpdateDemo {
   type: ExtMsg.UpdateDemo,
   demoUpdated: boolean,
+}
+
+export interface Payload_TrackerPos {
+  x: number;
+  y: number;
+  currentAnnotationRefId: string;
+  annotationType: 'cover' | 'default';
 }
 
 export type MultiNodeModalData = {
@@ -783,3 +797,9 @@ export interface UpdateDemoUsingQuillyError {
   errMsg: string;
   isSkillNa: boolean;
 }
+
+export interface AnnVoiceOverDetail extends IAnnotationAudio{
+  isSuccessful: boolean,
+}
+
+export type OpenAIVoices = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';

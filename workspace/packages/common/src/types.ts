@@ -286,6 +286,12 @@ export declare type ScrollAdjustmentType = typeof ScrollAdjustment[number];
 export type CustomAnnDims = {
   width: number,
 }
+
+export interface IAnnotationVoiceover {
+  updatedAt: number;
+  voiceUsed: string;
+}
+
 export interface IAnnotationOriginConfig extends IChronoUpdatable {
   id: string;
   refId: string;
@@ -316,6 +322,7 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   m_id: string;
   scrollAdjustment: ScrollAdjustmentType;
   audio: null | IAnnotationAudio;
+  voiceover: null | IAnnotationVoiceover
 }
 
 export type IAnnotationConfig_WithProperty = Pick<

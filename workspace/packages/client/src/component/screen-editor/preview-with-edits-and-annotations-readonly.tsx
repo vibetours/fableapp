@@ -44,7 +44,7 @@ import {
   RESP_MOBILE_SRN_WIDTH_LIMIT,
   shouldReduceMotionForMobile,
   MAC_FRAME_HEIGHT,
-  combineAllEdits
+  combineAllEdits,
 } from '../../utils';
 import { applyFadeInTransitionToNode, applyUpdateDiff } from './utils/diffs/apply-diffs-anims';
 import { ApplyDiffAndGoToAnn, NavToAnnByRefIdFn } from './types';
@@ -90,6 +90,9 @@ export interface IOwnProps {
   globalEdits: EditItem[];
   borderColor?: string;
   isStaging: boolean;
+  onIframeClick?: ()=> void;
+  shouldReload?: number;
+  doNotAutoplayMedia?: string[];
 }
 
 interface IOwnStateProps {
@@ -218,7 +221,8 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.screenData.isHTML4,
           this.props.screen,
           this.props.shouldSkipLeadForm,
-          this.getNextAnnotation
+          this.getNextAnnotation,
+          this.props.doNotAutoplayMedia || []
         );
 
         if (this.props.isFromScreenEditor) {
@@ -298,7 +302,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     || prevProps.tourDataOpts !== this.props.tourDataOpts;
   }
 
-  async componentDidUpdate(prevProps: IOwnProps): Promise<void> {
+  async componentDidUpdate(prevProps: IOwnProps, prevState: IOwnStateProps): Promise<void> {
     if (this.annotationLCM && !this.props.hidden && (this.props.elpathKey !== prevProps.elpathKey
       || this.hasContentChanged(prevProps)
     )) {
@@ -315,12 +319,18 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
         this.annotationLCM?.hide(true);
       }
 
-      if (
-        this.props.hidden && this.props.hidden !== prevProps.hidden
-        && this.props.areDiffsAppliedSrnMap!.get(this.props.screen.rid)
-      ) {
+      if (this.props.hidden && this.props.hidden !== prevProps.hidden) {
         await this.resetIframe(this.props.screen.rid);
-        this.props.areDiffsAppliedSrnMap!.set(this.props.screen.rid, false);
+      }
+
+      if (this.props.shouldReload && this.props.shouldReload !== prevProps.shouldReload) {
+        await this.resetIframe(this.props.screen.rid);
+
+        this.reachAnnotation('');
+        setTimeout(() => {
+          this.reachAnnotation(this.props.toAnnotationId);
+        }, 300);
+        this.setState({ currentAnn: this.props.toAnnotationId });
       }
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel
@@ -791,6 +801,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
   };
 
   resetIframe = async (rid: string): Promise<void> => {
+    if (!this.props.areDiffsAppliedSrnMap!.get(this.props.screen.rid)) return;
     const screen = this.props.allScreens!
       .find(s => s.rid === rid)!;
     const currScreenData = this.props.allScreensData![screen.id];
@@ -812,6 +823,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
     await this.annotationLCM!.resetCons();
     this.addFont();
     scrollIframeEls(currScreenData.version, this.annotationLCM!.getDoc());
+    this.props.areDiffsAppliedSrnMap!.set(this.props.screen.rid, false);
   };
 
   navigateToAnnByRefIdOnSameScreen: NavToAnnByRefIdFn = (annRefId) => {
@@ -843,6 +855,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       isResponsive={this.props.isResponsive}
       heightOffset={this.props.frameSetting !== FrameSettings.NOFRAME ? MAC_FRAME_HEIGHT : 0}
       borderColor={this.props.borderColor}
+      onIframeClick={this.props.onIframeClick}
     />;
   }
 }

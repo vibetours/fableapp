@@ -29,6 +29,9 @@ import {
   ElPathKey,
   ExtMsg,
   Payload_UpdateDemo,
+  Payload_Navigation,
+  VoiceoverMediaStateChangePayload,
+  Payload_TrackerPos,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -54,7 +57,8 @@ import {
   isFrameSettingsValidValue,
   combineAllEdits,
   ParsedQueryResult,
-  getPersVarsDataFromQueryParams
+  getPersVarsDataFromQueryParams,
+  getAllOrderedAnnotationsInTour
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -70,8 +74,13 @@ import { FableLeadContactProps, JourneyNameIndexData, UserFromQueryParams, addTo
 import { isSerNodeDifferent } from '../../component/screen-editor/utils/diffs/get-diffs';
 import RotateScreenModal from './rotate-srn-modal';
 import DemoProgressBar from '../../component/demo-progress-bar';
+// TODO handle this as this will always import journey menu increasing bundle size
 import { getMenu } from '../../component/journey-menu';
 import DemoFrame from '../../component/demo-frame/demo-frame';
+import ViewDemoOverlay from './view-demo-overlay';
+import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
+import VoiceoverControl from '../../component/voiceover-control';
+import Tracker from './tracker';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
@@ -121,13 +130,18 @@ interface IAppStateProps {
   journey: JourneyData | null;
   elpathKey: ElPathKey;
   globalEdits: EditItem[];
+  annotationsInOrder: IAnnotationConfigWithScreenId[] | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => {
   const tourOpts = state.default.remoteTourOpts;
   let allAnnotationsForTour = getAnnotationsPerScreen(state);
   let allAnnotations = state.default.remoteAnnotations;
-
+  const annotationsInOrder = state.default.tourLoaded ? getAllOrderedAnnotationsInTour(
+    allAnnotationsForTour,
+    state.default.journey,
+    tourOpts ? tourOpts.main : ''
+  ) : null;
   // TODO: this calculation is done every time any state changes in the redux. For performance
   // improvement, this should be moved to component state and these calculations should be made
   // only when the relevant redux state changes
@@ -163,7 +177,8 @@ const mapStateToProps = (state: TState): IAppStateProps => {
     allAnnotationsForTour,
     journey: state.default.journey,
     elpathKey: state.default.elpathKey,
-    globalEdits: state.default.remoteGlobalEdits
+    globalEdits: state.default.remoteGlobalEdits,
+    annotationsInOrder
   };
 };
 
@@ -196,6 +211,11 @@ interface IOwnStateProps {
   previewReplayerKey: number;
   frameSetting: FrameSettings;
   allScreensLocal: P_RespScreen[];
+  showViewDemo: boolean;
+  isVoiceoverPlaying: boolean;
+  firstAnnRefId: string;
+  showVoiceoverControl: boolean;
+  trackerPos: Payload_TrackerPos | null;
 }
 
 interface ScreenInfo {
@@ -213,6 +233,18 @@ interface HeaderCta {
   btnTxt: string,
   tourId: number,
   annId: string
+}
+
+interface OnNavigationEvent extends Partial<Event> {
+  detail?: Payload_Navigation
+}
+
+interface MediaStaeChageEvent extends Partial<Event> {
+  detail?: VoiceoverMediaStateChangePayload
+}
+
+interface OnTrackerPosUpdate extends Partial<Event> {
+  detail?: Payload_TrackerPos;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -261,7 +293,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       screenPrerenderCount: 2,
       previewReplayerKey: Math.random(),
       frameSetting: (this.props.tour?.info.frameSettings || FrameSettings.NOFRAME),
-      allScreensLocal: this.props.allScreens
+      allScreensLocal: this.props.allScreens,
+      showViewDemo: false,
+      isVoiceoverPlaying: true,
+      firstAnnRefId: '',
+      showVoiceoverControl: false,
+      trackerPos: null,
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -343,7 +380,14 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
     window.addEventListener('beforeunload', removeSessionId);
     window.addEventListener('message', this.receiveMessage, false);
+    document.addEventListener(InternalEvents.OnNavigation, this.handleCurrentAnn);
+    document.addEventListener(InternalEvents.VoiceoverMediaStateChange, this.handleMediaStateChange);
+    document.addEventListener(InternalEvents.OnSelectedElChange, this.onTrackerPositionChange);
   }
+
+  onTrackerPositionChange = (event: OnTrackerPosUpdate) => {
+    this.setState({ trackerPos: event.detail! });
+  };
 
   createRenderSlotsBasedOnDomain(): Record<string, number> {
     let slotIdx = 0;
@@ -491,6 +535,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       main = this.props.journey!.flows[0].main;
     } else {
       main = opts!.main;
+    }
+    if (main.length !== 0) {
+      const annId = main.split('/')[1];
+      this.setState({ firstAnnRefId: annId });
     }
     this.navigateTo(main);
   };
@@ -670,8 +718,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       const main = this.props.tourOpts ? this.props.tourOpts.main : '';
       preloadImagesInTour(this.props.allAnnotationsForTour, this.props.journey, main);
 
+      // When the first ann has a voiceover that is played as an audio element,
+      // browser's might block the autoplay, a dedicated overlay with view demo forces
+      // user interact with the page before autoplay happens.
+      const isVoiceoverAppliedToFirstAnn = Boolean(this.props.annotationsInOrder
+         && this.props.annotationsInOrder.length > 0 && this.props.annotationsInOrder[0].voiceover);
+
       this.setState({
-        frameSetting: this.paramsFrameSettingValue || this.props.tour!.info.frameSettings
+        frameSetting: this.paramsFrameSettingValue || this.props.tour!.info.frameSettings,
+        showViewDemo: isVoiceoverAppliedToFirstAnn,
       });
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
@@ -717,6 +772,18 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           .sort((m, n) => m.id - n.id)
       });
     }
+
+    // We need this condition to display the voiceover control when user adds voiceover to demo for first time
+    // TODO - voiceover control is shown even if current annotation
+    // has a lead form. This shouldn't happen and handle it later.
+    // https://sharefable.slack.com/archives/C0491PEEPPZ/p1729781747337659?thread_ts=1729684770.568339&cid=C0491PEEPPZ
+    if (this.props.annotationsInOrder !== prevProps.annotationsInOrder && this.props.annotationsInOrder) {
+      const isVoiceoverAppliedToDemo = this.props.annotationsInOrder.findIndex(ann => ann.voiceover !== null) !== -1;
+      this.setState((prevS) => ({
+        showVoiceoverControl: isVoiceoverAppliedToDemo,
+        showViewDemo: prevS.showViewDemo && !isVoiceoverAppliedToDemo ? false : prevS.showViewDemo
+      }));
+    }
   }
 
   getScreenAtId(id: string, key: keyof P_RespScreen): P_RespScreen {
@@ -759,7 +826,27 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   componentWillUnmount(): void {
     window.removeEventListener('beforeunload', removeSessionId);
     window.removeEventListener('message', this.receiveMessage, false);
+    document.removeEventListener(InternalEvents.OnNavigation, this.handleCurrentAnn);
+    document.removeEventListener(InternalEvents.VoiceoverMediaStateChange, this.handleMediaStateChange);
+    document.addEventListener(InternalEvents.OnSelectedElChange, this.onTrackerPositionChange);
   }
+
+  handleCurrentAnn = (e: OnNavigationEvent): void => {
+    if (e.type === InternalEvents.OnNavigation && e.detail) {
+      this.setState({ showVoiceoverControl: e.detail.annotationType === 'voiceover' });
+    }
+  };
+
+  handleMediaStateChange = (e: MediaStaeChageEvent): void => {
+    if (e.type === InternalEvents.VoiceoverMediaStateChange && e.detail) {
+      const mediaState = (e.detail as VoiceoverMediaStateChangePayload).mediaState;
+      const isMediaPlaying = mediaState === 'playing';
+      this.setState((prevS) => ({
+        isVoiceoverPlaying: isMediaPlaying,
+        showVoiceoverControl: mediaState === 'overlay' ? false : prevS.showVoiceoverControl
+      }));
+    }
+  };
 
   isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;
 
@@ -798,7 +885,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     });
   };
 
-  getScreenWithRenderSlot(): {
+  getScreenWithRenderSlot(currentScreenId: number): {
     slotIdx: number;
     screen: P_RespScreen;
     isRenderReady: boolean;
@@ -819,7 +906,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           screenEdits
         };
       }).filter(slot => {
-        const isNavigatedToCurrScreen = slot.screen.id === this.getCurrScreenId();
+        const isNavigatedToCurrScreen = slot.screen.id === currentScreenId;
         if (isNavigatedToCurrScreen) return true;
 
         // In ios few demos were crashing, so we are rendering only one iframe at a time.
@@ -935,6 +1022,29 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     addToGlobalAppData('journeyData', journeyData);
   };
 
+  playMediaAnnn = (currScreenId: number): void => {
+    if (this.frameRefs[currScreenId].current) {
+      this.frameRefs[currScreenId].current!.contentWindow?.postMessage({
+        type: 'f-play-media',
+      });
+    }
+  };
+
+  handleDemoPlayAndPause = (currScreenId: number): void => {
+    if (this.frameRefs[currScreenId].current) {
+      this.frameRefs[currScreenId].current!.contentWindow?.postMessage({
+        type: 'f-play-pause-demo',
+      });
+    }
+  };
+
+  replayDemo = (): void => {
+    this.goToMain();
+    this.setState({
+      previewReplayerKey: Math.random(),
+    });
+  };
+
   render(): JSX.Element {
     if (this.state.tourMainValidity !== TourMainValidity.Valid) {
       return <MainValidityInfo
@@ -953,6 +1063,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const preRendering = !this.isInitialPrerenderingComplete();
     // We don't show frame on mobile
     const frame = isMobileOperatingSystem() ? FrameSettings.NOFRAME : this.state.frameSetting;
+    const currScreenId = this.getCurrScreenId();
 
     return (
       <GTags.BodyCon
@@ -966,7 +1077,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         ref={this.playerRef}
       >
         {
-          this.isLoadingComplete() && this.getScreenWithRenderSlot()
+          this.isLoadingComplete() && this.getScreenWithRenderSlot(currScreenId)
             .filter(c => c.isRenderReady)
             .map(config => (
               <PreviewWithEditsAndAnRO
@@ -974,10 +1085,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 resizeSignal={1}
                 journey={this.props.journey!}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
-                key={config.screen.id + this.state.previewReplayerKey}
+                key={config.screen.id}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
-                hidden={config.screen.id !== this.getCurrScreenId()}
+                hidden={config.screen.id !== currScreenId}
                 screenData={config.screenData}
                 navigate={this.navFn}
                 playMode
@@ -988,7 +1099,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 allEdits={combineAllEdits([...config.screenEdits, ...this.props.globalEdits])}
                 globalEdits={this.props.globalEdits}
                 toAnnotationId={
-                  config.screen.id === this.getCurrScreenId() ? this.props.match.params.annotationId || '' : ''
+                  config.screen.id === currScreenId ? this.props.match.params.annotationId || '' : ''
                 }
                 onFrameAssetLoad={() => {
                   if (this.state.initiallyPrerenderedScreens[config.screen.rid] === false) {
@@ -1061,30 +1172,39 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 frameSetting={frame}
                 borderColor={frameBorderColor}
                 isStaging={this.props.staging}
+                onIframeClick={() => {
+                  this.handleDemoPlayAndPause(currScreenId);
+                }}
+                shouldReload={this.state.previewReplayerKey}
+                doNotAutoplayMedia={[this.state.firstAnnRefId]}
               />
             ))
         }
-        {this.state.screenSizeData[this.getCurrScreenId()]
+        { /* Show tracker only if voiceover is present */}
+        {this.state.showVoiceoverControl && this.state.trackerPos && this.state.screenSizeData[this.getCurrScreenId()] && <Tracker
+          trackerPos={this.state.trackerPos}
+          screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+        />}
+        {this.state.screenSizeData[currScreenId]
         && this.props.tourOpts && this.props.tourOpts.showStepNum._val
         && (
         <DemoProgressBar
           bg={this.props.tourOpts.annotationBodyBackgroundColor._val}
           fg={this.props.tourOpts.primaryColor._val}
           textColor={this.props.tourOpts.annotationFontColor._val}
-          iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
+          iframePos={this.state.screenSizeData[currScreenId].iframePos}
           annotationSerialIdMap={this.state.annotationSerialIdMap}
           frame={frame}
         />
         )}
-        {frame !== FrameSettings.NOFRAME && this.state.screenSizeData[this.getCurrScreenId()] && (
+        {frame !== FrameSettings.NOFRAME && this.state.screenSizeData[currScreenId] && (
           <DemoFrame
             mode={this.state.frameSetting}
-            iframePos={this.state.screenSizeData[this.getCurrScreenId()].iframePos}
-            screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+            screenSizeData={this.state.screenSizeData[currScreenId]}
             modules={this.props.journey}
             currentModuleMain={this.state.currentFlowMain}
             showModule={
-              this.isInitialPrerenderingComplete()
+              !preRendering
               && this.isJourneyAdded()
               && (!this.queryData || !this.queryData.hm)
               && !this.shouldHideJourney()
@@ -1106,30 +1226,25 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 (isMenuOpen: boolean): void => {
                   this.setState({ isJourneyMenuOpen: isMenuOpen });
                 },
-                this.state.screenSizeData[this.getCurrScreenId()].iframePos.width,
+                this.state.screenSizeData[currScreenId].iframePos.width,
                 frame === FrameSettings.LIGHT ? 'light' : 'dark'
               )
             }
             tour={this.props.tour!}
-            replayHandler={() => {
-              this.goToMain();
-              this.setState({
-                previewReplayerKey: Math.random()
-              });
-            }}
+            replayHandler={this.replayDemo}
             makeEmbedFrameFullScreen={() => this.playerRef.current!.requestFullscreen()}
           />
         )}
         <Suspense fallback={null}>
           {
-             this.isInitialPrerenderingComplete()
+            !preRendering
             && this.isJourneyAdded()
             && (!this.queryData || !this.queryData.hm)
             && !this.shouldHideJourney()
-            && (this.state.frameSetting === FrameSettings.NOFRAME || isMobileOperatingSystem())
+            && (frame === FrameSettings.NOFRAME)
             && (
               <JourneyMenu
-                currScreenId={this.getCurrScreenId()}
+                currScreenId={currScreenId}
                 journey={this.props.journey!}
                 isJourneyMenuOpen={this.state.isJourneyMenuOpen}
                 navigateToJourney={this.navigateTo}
@@ -1150,7 +1265,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             <FullScreenLoader
               data={this.props.tourLoaderData}
               vpd={this.props.tour!.settings}
-              screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+              screenSizeData={this.state.screenSizeData[currScreenId]}
               isResponsive={this.props.tour!.responsive2 === Responsiveness.Responsive}
             />
           )}
@@ -1166,6 +1281,26 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             }}
           />
         }
+        {this.state.screenSizeData[currScreenId] && !preRendering && this.state.showViewDemo
+        && <ViewDemoOverlay
+          screenSizeData={this.state.screenSizeData[currScreenId]}
+          onViewDemoClick={() => {
+            this.playMediaAnnn(currScreenId);
+            this.setState({ showViewDemo: false });
+          }}
+          showWatermark={this.props.tourOpts?.showFableWatermark._val || false}
+        />}
+        {this.state.screenSizeData[currScreenId]
+         && !this.state.showViewDemo && this.state.showVoiceoverControl
+         && (
+         <VoiceoverControl
+           isWatermarkPresent={this.props.tourOpts?.showFableWatermark._val || false}
+           screenSizeData={this.state.screenSizeData[currScreenId]}
+           playScreen={() => this.playMediaAnnn(currScreenId)}
+           playPauseVideo={() => this.handleDemoPlayAndPause(currScreenId)}
+           isVoiceoverPlaying={this.state.isVoiceoverPlaying}
+         />
+         )}
       </GTags.BodyCon>
     );
   }

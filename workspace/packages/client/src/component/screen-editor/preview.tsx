@@ -28,6 +28,7 @@ export interface IOwnProps {
   isResponsive: boolean;
   heightOffset: number;
   borderColor?: string;
+  onIframeClick?: ()=>void;
 }
 
 export interface DeSerProps {
@@ -222,6 +223,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               if (!this.props.hidden) this.installListeners();
             }
           });
+
+          if (frameBody && this.props.onIframeClick) {
+            frameBody.onclick = () => this.props.onIframeClick!();
+          }
         }, 100);
         // If the screen is prerendered (hence hidden) we wait for 2seconds before we start rendering as
         // the rendered screen might do scrolling to the element and this is a arbritary time to wait so that
@@ -232,25 +237,28 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     };
   }
 
-  handleWatermarkPositioning = (top: number, height: number, left: number, width: number): void => {
+  handleWatermarkPositioning = (
+    top: number,
+    height: number,
+    left: number,
+    width: number,
+    heightOffset: number
+  ): void => {
     const watermarkEl = this.watermarkRef.current;
-    const HORIZONTAL_PADDING_FACTOR = 20;
-    const VERTICAL_PADDING_FACTOR = 16;
+    const GUTTER = 16;
     if (!watermarkEl) return;
 
-    if (
+    // INFO this code is not executed as we have stopped supporting module on the right
+    /* if (
       this.props.journey
       && this.props.journey.flows.length
       && this.props.journey.positioning === CreateJourneyPositioning.Right_Bottom
     ) {
       watermarkEl.style.left = `${Math.round((left) + (HORIZONTAL_PADDING_FACTOR * this.scaleFactor))}px`;
       watermarkEl.style.transform = 'translate(0%, -100%)';
-    } else {
-      watermarkEl.style.left = `${Math.round((left) + (width * this.scaleFactor) - (HORIZONTAL_PADDING_FACTOR * this.scaleFactor))}px`;
-    }
-
-    watermarkEl.style.top = `${Math.round((top) + (height * this.scaleFactor) - (VERTICAL_PADDING_FACTOR * this.scaleFactor))}px`;
-    watermarkEl.style.scale = this.scaleFactor.toString();
+    } */
+    watermarkEl.style.left = `${Math.round((left) + (width * this.scaleFactor) - GUTTER)}px`;
+    watermarkEl.style.top = `${Math.round((top) + ((height + heightOffset) * this.scaleFactor) - GUTTER)}px`;
   };
 
   prepareSendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
@@ -334,7 +342,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         (origFrameViewPort.height - viewPortAfterScaling.height) / 2,
         vpdH,
         (origFrameViewPort.width - viewPortAfterScaling.width) / 2,
-        vpdW
+        vpdW,
+        this.props.heightOffset
       );
 
       this.prepareSendIframeScreenSizeData(scale, iframePos);
@@ -354,7 +363,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       0,
       origFrameViewPort.height,
       0,
-      origFrameViewPort.width
+      origFrameViewPort.width,
+      this.props.heightOffset
     );
     const iframePos: ScreenSizeData['iframePos'] = {
       left: origFrameViewPort.left,

@@ -768,3 +768,32 @@ export const AnnotationCardCon = styled.div`
     display: none;
   }
 `;
+
+export const VoiceoverBtnOverlay = styled.div<{ height: number, width: number,
+  bgColor: string, top: number, left: number}>`
+  --f-pad-multi: 1px;
+  --f-font-normal: 18px;
+  --f-font-large: 24px;
+  --f-font-huge: 30px;
+
+    @media screen and (max-width: 480px) {
+    --f-pad-multi: 0.75px;
+    --f-font-normal: 14px;
+    --f-font-large: 18px;
+    --f-font-huge: 22px;
+  }
+    
+  width: ${(p) => `${p.width}px`}; 
+  height: ${(p) => `${p.height}px`}; 
+  top: ${(p) => `${p.top}px`};
+  left: ${(p) => `${p.left}px`};
+  position: absolute;
+  background-color: ${(p) => `${p.bgColor}cc`};
+  background-color-opacity: 0.8; 
+  justify-content: center;
+  align-items: center;
+  display: flex; 
+  flex-direction: column;
+  gap: 20px;
+  backdrop-filter: blur(4px);
+`;

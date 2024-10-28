@@ -16,7 +16,7 @@ export default function LogoWatermark(props: Props): JSX.Element {
       rel="noopener noreferrer"
       href="https://sharefable.com"
     >
-      <img src={FableQuillLogo} alt="" height={50} />
+      <img src={FableQuillLogo} alt="Fable logo" />
     </Tags.LogoWatermark>
   );
 }

@@ -20,6 +20,7 @@ import * as GTags from '../../common-styled';
 import { uploadFileToAws } from './utils/upload-img-to-aws';
 import AudioVisualizer from '../audio-visualizer';
 import Upgrade from '../upgrade';
+import { handleAddAnnotationAudio } from '../../utils';
 
 type Props = {
   tour: P_RespTour,
@@ -347,16 +348,7 @@ function MediaRecorderModal(props: Props): ReactElement {
       }
     });
 
-    props.setConfig(c => updateAnnotationAudio(c, { hls: hlsAudio, webm: webmAudio, fb: { url, type } }));
-
-    props.setConfig(c => {
-      if (c.type === 'cover') {
-        return updateAnnotationPositioning(c, VideoAnnotationPositions.Center);
-      }
-      return updateAnnotationPositioning(c, VideoAnnotationPositions.BottomRight);
-    });
-
-    props.setConfig(c => updateAnnotationBoxSize(c, 'medium'));
+    props.setConfig(c => handleAddAnnotationAudio(c, hlsAudio, webmAudio, url, type));
 
     dispatch({
       type: 'FINISH_SAVING'

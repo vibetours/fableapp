@@ -21,6 +21,7 @@ import {
   SerNode,
   TourData,
   TourScreenEntity,
+  VideoAnnotationPositions,
 } from '@fable/common/dist/types';
 import { GlobalPropsPath, compileValue, createGlobalProperty, createLiteralProperty, deepcopy, getCurrentUtcUnixTime, getRandomId } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
@@ -32,7 +33,7 @@ import { PostProcessDemoV1, ThemeForGuideV1, CreateNewDemoV1, RouterForTypeOfDem
 import { update_demo_content } from '@fable/common/dist/llm-fn-schema/update_demo_content';
 import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
 import { ColumnsType } from 'antd/es/table';
-import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
+import { IAnnotationConfigWithScreenId, updateAnnotationAudio, updateAnnotationBoxSize, updateAnnotationPositioning } from './component/annotation/annotation-config-utils';
 import { getAnnotationBtn, getAnnotationByRefId } from './component/annotation/ops';
 import { FABLE_LEAD_FORM_FIELD_NAME, FABLE_PERS_VARS_FOR_TOUR } from './constants';
 import { P_RespSubscription, P_RespTour } from './entity-processor';
@@ -77,8 +78,8 @@ import {
   ElEditType,
   IdxEncodingTypeText,
   EncodingTypeText,
+  AnnVoiceOverDetail,
 } from './types';
-import { LLMOpsType } from './container/create-tour/types';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -1030,7 +1031,7 @@ export function mergeL1JsonIgnoreUndefined(obj1: Record<string, any>, obj2: Reco
   return obj3;
 }
 
-function getAllOrderedAnnotationsInTour(
+export function getAllOrderedAnnotationsInTour(
   allAnnotationsForTour: AnnotationPerScreen[],
   journey: JourneyData | null,
   main: string
@@ -2131,11 +2132,49 @@ export const updateTourDataFromLLMRespItems = (
   return newTourData;
 };
 
+export const updateTourDataToAddVoiceOver = (
+  tourData: TourData,
+  detail: Map<string, AnnVoiceOverDetail>,
+  voiceUsed: string
+): TourData => {
+  const newTourData = deepcopy(tourData);
+
+  for (const entity of Object.values(newTourData.entities)) {
+    if (entity.type === 'screen') {
+      const screenEntity = entity as TourScreenEntity;
+
+      for (const ind in (screenEntity.annotations)) {
+        if (detail.get(screenEntity.annotations[ind].refId)) {
+          const annVoiceOverDetail = detail.get(screenEntity.annotations[ind].refId)!;
+          const newAnnConfig = handleAddAnnotationAudio(
+            screenEntity.annotations[ind] as IAnnotationConfig,
+            annVoiceOverDetail.hls,
+            annVoiceOverDetail.webm,
+            annVoiceOverDetail.fb.url,
+            annVoiceOverDetail.fb.type
+          );
+          newAnnConfig.voiceover = {
+            voiceUsed,
+            updatedAt: getCurrentUtcUnixTime(),
+          };
+
+          screenEntity.annotations[ind] = { ...newAnnConfig };
+        }
+      }
+    }
+  }
+  return newTourData;
+};
+
 export const extractTextFromHTMLString = (richText: string | undefined): string => {
   if (!richText) return '';
   const textEl = document.createElement('div');
+  textEl.style.position = 'absolute';
+  textEl.style.left = '-200vw';
   textEl.innerHTML = richText;
+  document.body.appendChild(textEl);
   const annText = textEl.innerText || richText;
+  document.body.removeChild(textEl);
   textEl.remove();
   return annText;
 };
@@ -2333,3 +2372,22 @@ function processTableRow(cols: TableColumn[], row: TableRow): Record<string, str
 
   return processedRow;
 }
+
+export const handleAddAnnotationAudio = (
+  annConfig: IAnnotationConfig,
+  hlsAudio: string,
+  webmAudio: string,
+  url: string,
+  type: 'audio/webm' | 'audio/mpeg'
+): IAnnotationConfig => {
+  let newAnnConfig = updateAnnotationAudio(annConfig, { hls: hlsAudio, webm: webmAudio, fb: { url, type } });
+
+  if (newAnnConfig.type === 'cover') {
+    newAnnConfig = updateAnnotationPositioning(newAnnConfig, VideoAnnotationPositions.Center);
+  } else {
+    newAnnConfig = updateAnnotationPositioning(newAnnConfig, VideoAnnotationPositions.BottomRight);
+  }
+
+  newAnnConfig = updateAnnotationBoxSize(newAnnConfig, 'medium');
+  return newAnnConfig;
+};

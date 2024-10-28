@@ -1,19 +1,22 @@
-import React from 'react';
-import { connect } from 'react-redux';
-import { ReqTourPropUpdate, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
-import { Link } from 'react-router-dom';
-import { Button as AntButton, Dropdown, MenuProps, Popover, Progress, Tooltip } from 'antd';
 import {
   ClockCircleFilled,
   CloseOutlined,
   CodeFilled,
   EditOutlined,
   ShareAltOutlined,
+  SoundFilled,
   UndoOutlined
 } from '@ant-design/icons';
-import { CmnEvtProp, IAnnotationConfig, LoadingStatus, TourData, TourDataWoScheme } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
+import { ReqTourPropUpdate, RespSubscription } from '@fable/common/dist/api-contract';
+import { CmnEvtProp, IAnnotationConfig, LoadingStatus, TourData, TourDataWoScheme, TourScreenEntity } from '@fable/common/dist/types';
+import { deepcopy } from '@fable/common/dist/utils';
+import { Button as AntButton, Dropdown, MenuProps, Popover, Progress, Tooltip } from 'antd';
+import React from 'react';
+import { connect } from 'react-redux';
+import { Link } from 'react-router-dom';
 import {
+  addVoiceOver,
   clearCurrentTourSelection,
   flushTourDataToMasterFile,
   getCustomDomains,
@@ -23,13 +26,29 @@ import {
   upateTourDataUsingLLM,
   updateTourProp
 } from '../../action/creator';
-import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { IAnnotationConfigWithScreenId, clearAnnotationAudio } from '../../component/annotation/annotation-config-utils';
+import Button from '../../component/button';
+import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
+import Header from '../../component/header';
+import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
+import PublishOptions from '../../component/publish-preview/publish-options';
+import { DEMO_LOADED_AFTER_AI_UPDATE, IFRAME_BASE_URL } from '../../constants';
+import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
-import { withRouter, WithRouterProps } from '../../router-hoc';
+import { WithRouterProps, withRouter } from '../../router-hoc';
+import {
+  ExtMsg,
+  QuillyInPreviewProgress,
+  ScreenSizeData,
+  SiteData
+} from '../../types';
 import {
   DisplaySize,
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
+  getAllOrderedAnnotationsInTour,
+  getAnnotationsPerScreen,
   getDimensionsBasedOnDisplaySize,
   initLLMSurvey,
   isEventValid,
@@ -37,14 +56,6 @@ import {
   sendPreviewHeaderClick,
 } from '../../utils';
 import * as Tags from './styled';
-import Header from '../../component/header';
-import PublishOptions from '../../component/publish-preview/publish-options';
-import Button from '../../component/button';
-import { DEMO_LOADED_AFTER_AI_UPDATE, IFRAME_BASE_URL } from '../../constants';
-import { EditItem, ExtMsg, QuillyInPreviewProgress, ScreenSizeData, SiteData, UpdateDemoUsingQuillyError } from '../../types';
-import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
-import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
-import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -57,28 +68,47 @@ const progressMap = {
 };
 const progressStepOrder: QuillyInPreviewProgress[] = Object.keys(progressMap) as QuillyInPreviewProgress[];
 
-interface IDispatchProps {
-  loadTourWithDataAndCorrespondingScreens: (rid: string) => void,
-  publishTour: (tour: P_RespTour) => Promise<boolean>,
-  clearCurrentTour: () => void;
-  updateTourProp: <T extends keyof ReqTourPropUpdate>(
-    rid: string,
-    tourProp: T,
-    value: ReqTourPropUpdate[T]
-  ) => void;
-  getVanityDomains: () => void;
-  upateTourDataUsingLLM: (
-    newDemoObjective: string,
-    currentAnnotationRefId: string | null,
-    updateCompletedStep: (currStep: QuillyInPreviewProgress) => void,
-  ) => void;
-  flushTourDataToMasterFile: (tour: P_RespTour, edits: TourDataWoScheme) => Promise<void>;
-  getSubscriptionOrCheckoutNew: () => Promise<RespSubscription>;
-}
+const VoiceOptions = [
+  { label: 'Amber',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Amber.mp3',
+    name: 'alloy',
+    description: 'Rich & balanced tone that feels like a warm conversation with a trusted friend'
+  },
+  {
+    label: 'Azure',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Azure.mp3',
+    name: 'echo',
+    description: 'Bright and dynamic voice, perfect for grabbing attention and keeping listeners engaged'
+  },
+  {
+    label: 'Cerise',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Cerise.mp3',
+    name: 'fable',
+    description: 'Brings stories to life with a smooth, captivating charm that makes every word memorable'
+  },
+  {
+    label: 'Cobalt',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Cobalt.mp3',
+    name: 'onyx',
+    description: 'Deep, authoritative presence, ideal for serious and impactful messaging'
+  },
+  {
+    label: 'Crimson',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Crimson.mp3',
+    name: 'nova',
+    description: 'Fresh and energizing, adding a burst of enthusiasm to every message'
+  },
+  {
+    label: 'Pearl',
+    audioUrl: 'https://scdna.sharefable.com/audio_samples/Pearl.mp3',
+    name: 'shimmer',
+    description: 'Gentle and melodic tone creates a soothing listening experience, making it ideal for calm and comforting content'
+  }
+];
 
-const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
+const mapDispatchToProps = (dispatch: any) => ({
   loadTourWithDataAndCorrespondingScreens: (rid: string) => dispatch(loadTourAndData(rid, true, true)),
-  publishTour: (tour) => dispatch(publishTour(tour)),
+  publishTour: (tour: P_RespTour) => dispatch(publishTour(tour)),
   clearCurrentTour: () => dispatch(clearCurrentTourSelection()),
   updateTourProp: <T extends keyof ReqTourPropUpdate>(
     rid: string,
@@ -94,41 +124,44 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   flushTourDataToMasterFile:
     (tour: P_RespTour, updatedTour: TourDataWoScheme) => dispatch(flushTourDataToMasterFile(tour, updatedTour)),
   getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
+  addVoiceOver: (
+    tour: P_RespTour,
+    allAnnsInOrder: IAnnotationConfigWithScreenId[],
+    voice: string,
+    updateVoiceoverProgress: (progress: number)=> void
+  ) => dispatch(addVoiceOver(tour, allAnnsInOrder, voice, updateVoiceoverProgress)),
 });
 
-interface IAppStateProps {
-  tour: P_RespTour | null;
-  org: RespOrg | null;
-  principal: RespUser | null;
-  isTourLoaded: boolean;
-  vanityDomains: P_RespVanityDomain[] | null;
-  subs: P_RespSubscription | null;
-  tourData: TourData | null;
-  annotationsForScreens: Record<string, IAnnotationConfig[]>;
-  updateDemoUsingAIError: UpdateDemoUsingQuillyError;
-  globalEdits: EditItem[];
-}
+const mapStateToProps = (state: TState) => {
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+  const allAnnsInOrder = state.default.tourData ? getAllOrderedAnnotationsInTour(
+    allAnnotationsForTour,
+    state.default.tourData.journey,
+    state.default.tourData.opts.main
+  ) : null;
 
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  principal: state.default.principal,
-  isTourLoaded: state.default.tourLoaded,
-  org: state.default.org,
-  vanityDomains: state.default.vanityDomains,
-  subs: state.default.subs,
-  annotationsForScreens: state.default.remoteAnnotations,
-  tourData: state.default.tourData,
-  updateDemoUsingAIError: state.default.updateDemoUsingAIError,
-  globalEdits: state.default.remoteGlobalEdits,
-});
+  return {
+    tour: state.default.currentTour,
+    principal: state.default.principal,
+    isTourLoaded: state.default.tourLoaded,
+    org: state.default.org,
+    vanityDomains: state.default.vanityDomains,
+    subs: state.default.subs,
+    annotationsForScreens: state.default.remoteAnnotations,
+    tourData: state.default.tourData,
+    updateDemoUsingAIError: state.default.updateDemoUsingAIError,
+    globalEdits: state.default.remoteGlobalEdits,
+    allAnnsInOrder
+  };
+};
 
 interface IOwnProps {
   title: string;
 }
 
 type IProps = IOwnProps &
-  IAppStateProps &
-  IDispatchProps &
+  ReturnType<typeof mapStateToProps> &
+  ReturnType<typeof mapDispatchToProps> &
   WithRouterProps<{ tourId: string }>;
 
 interface IOwnStateProps {
@@ -154,6 +187,12 @@ interface IOwnStateProps {
   prevDescription: string;
   completedStep: QuillyInPreviewProgress | null;
   updateDemoLoadingStatus: LoadingStatus;
+  showVoiceoverPopover: boolean;
+  sampleVoicePlaying: null | { audio: HTMLAudioElement, name: string };
+  selectedVoice: string;
+  voiceoverProgress: number;
+  showRemoveVoiceover: boolean;
+  creditRequiredForVoiceover: number;
 }
 
 const MAX_EDIT_STACK = 5;
@@ -201,7 +240,13 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       placeholderWordIndex: 0,
       prevDescription: '',
       completedStep: null,
-      updateDemoLoadingStatus: LoadingStatus.NotStarted
+      updateDemoLoadingStatus: LoadingStatus.NotStarted,
+      showVoiceoverPopover: false,
+      sampleVoicePlaying: null,
+      selectedVoice: VoiceOptions[0].name,
+      voiceoverProgress: 0,
+      showRemoveVoiceover: false,
+      creditRequiredForVoiceover: 0
     };
   }
 
@@ -346,6 +391,31 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         });
       }, 600);
     }
+
+    if (this.state.showVoiceoverPopover !== prevState.showVoiceoverPopover
+       && this.state.showVoiceoverPopover && this.props.allAnnsInOrder) {
+      // this block handles -> selecting existing voice for a demo, calculating credits required,
+      // and showing remove voiceover btn if, voiceover is already applied to demo.
+
+      // selecting existing voice for a demo:
+      // Whenever user opens voiceover popup, if voiceover is applied to demo we show voice used instead of
+      // voiceOptions[0].name
+      let annVoice = VoiceOptions[0].name;
+      let isVoiceoverAppliedToTour = false;
+      this.props.allAnnsInOrder.forEach((ann) => {
+        if (isVoiceoverAppliedToTour) return;
+        if (ann.voiceover) {
+          isVoiceoverAppliedToTour = true;
+          annVoice = ann.voiceover.voiceUsed;
+        }
+      });
+
+      if (this.state.creditRequiredForVoiceover === 0) {
+        this.setState({ creditRequiredForVoiceover: this.props.allAnnsInOrder.length });
+      }
+
+      this.setState({ showRemoveVoiceover: isVoiceoverAppliedToTour, selectedVoice: annVoice });
+    }
   }
 
   componentWillUnmount(): void {
@@ -419,12 +489,15 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.upateTourDataUsingLLM(this.state.newDemoObjective, this.state.currentAnnRefId, this.updateCompletedStep);
   };
 
-  handleHistoryUpdate = async (item: {
+  handleHistoryUpdate = async (
+    item: {
     id: number;
     tourData: TourData;
     description: string;
-  }): Promise<void> => {
-    if (this.state.updateDemoLoadingStatus === LoadingStatus.InProgress) return;
+  },
+    quillyUpdateLoading: boolean
+  ): Promise<void> => {
+    if (quillyUpdateLoading) return;
     if (this.state.tourUpdateMode === 'ai') this.addPrevTourToEditStack();
     this.setState({
       tourUpdateMode: 'history',
@@ -496,13 +569,96 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
+  updateVoiceoverProgress = (progress:number): void => {
+    this.setState({ voiceoverProgress: progress });
+  };
+
+  handleVoiceover = async (): Promise<void> => {
+    this.closeVoiceoverPopup();
+    if (!this.props.allAnnsInOrder) return;
+
+    const isVoiceoverAdded = await this.props.addVoiceOver(
+      this.props.tour as P_RespTour,
+      this.props.allAnnsInOrder!,
+      this.state.selectedVoice.toLowerCase(),
+      this.updateVoiceoverProgress
+    );
+    isVoiceoverAdded && this.previewFrameRef.current && this.previewFrameRef.current.contentWindow!.postMessage(
+      {
+        type: ExtMsg.UpdateDemo,
+        demoUpdated: true,
+      },
+      '*'
+    );
+    this.updateVoiceoverProgress(100);
+
+    const voiceoverTimeout = setTimeout(() => {
+      this.updateVoiceoverProgress(0);
+      clearTimeout(voiceoverTimeout);
+    }, 3000);
+  };
+
+  playPauseSampleVoice = (e: typeof VoiceOptions[0]): void => {
+    if (this.state.sampleVoicePlaying) {
+      this.state.sampleVoicePlaying.audio.pause();
+      this.setState({ sampleVoicePlaying: null });
+    }
+    if (!this.state.sampleVoicePlaying || this.state.sampleVoicePlaying.name !== e.name) {
+      // Only play audio if a differnet voice is  played or if no voice is being played
+      const audio = new Audio(e.audioUrl);
+      audio.play();
+      audio.addEventListener('ended', () => {
+        this.setState({ sampleVoicePlaying: null });
+      });
+      this.setState({ sampleVoicePlaying: { audio, name: e.name } });
+    }
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  updateTourDataToRemoveVoiceOver = (
+    tourData: TourData,
+  ): TourData => {
+    const newTourData = deepcopy(tourData);
+
+    for (const entity of Object.values(newTourData.entities)) {
+      if (entity.type === 'screen') {
+        const screenEntity = entity as TourScreenEntity;
+        for (const ind in (screenEntity.annotations)) {
+          if (screenEntity.annotations[ind].voiceover) {
+            const newAnnConfig = clearAnnotationAudio(screenEntity.annotations[ind] as IAnnotationConfig);
+            screenEntity.annotations[ind] = { ...newAnnConfig };
+          }
+        }
+      }
+    }
+    return newTourData;
+  };
+
+  handleRemoveVoiceover = async (): Promise<void> => {
+    this.closeVoiceoverPopup();
+    const updatedTourData = this.updateTourDataToRemoveVoiceOver(this.props.tourData!);
+    await this.props.flushTourDataToMasterFile(this.props.tour!, updatedTourData);
+    this.previewFrameRef.current && this.previewFrameRef.current.contentWindow!.postMessage(
+      {
+        type: ExtMsg.UpdateDemo,
+        demoUpdated: true,
+      },
+      '*'
+    );
+  };
+
+  closeVoiceoverPopup = (): void => {
+    this.setState({ showVoiceoverPopover: false });
+  };
+
   render(): JSX.Element {
     const displaySize = this.props.searchParams.get('s') || '0';
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
     const isMobilePreview = isMobilePreviewDisplaySize(+displaySize);
     const embedParams = isMobilePreview ? '&fframe=noframe' : '';
-    const quillySubmitDisabled = this.state.updateDemoLoadingStatus === LoadingStatus.InProgress
-      || this.state.newDemoObjective.trim().length === 0;
+    const quillyUpdateLoading = this.state.updateDemoLoadingStatus === LoadingStatus.InProgress
+     || this.state.voiceoverProgress !== 0;
+    const quillySubmitDisabled = quillyUpdateLoading || this.state.newDemoObjective.trim().length === 0;
     const items: MenuProps['items'] = this.state.tourDataEditStack.length === 0
       ? [{
         label: <p>No history available, please make <br />some edit using quilly first</p>,
@@ -512,7 +668,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         const t = {
           label: (
             <div
-              onClick={() => this.handleHistoryUpdate(item)}
+              onClick={() => this.handleHistoryUpdate(item, quillyUpdateLoading)}
               style={{
                 backgroundColor: item.id === this.state.activeEditId ? 'whitesmoke' : 'white',
                 padding: '0.3rem 1rem'
@@ -642,42 +798,145 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               y={this.state.screenSizeData.iframePos.top}
               x={this.state.screenSizeData.iframePos.left}
             >
-              <div
-                className="panel-item"
-              >
-                <Popover
-                  overlayClassName="quick-edit-popover"
-                  content={
-                    <Tags.QuickEditPopoverCon>
-                      <div className="close-btn" onClick={() => this.setState({ showPersVarsEditor: false })}>
-                        <CloseOutlined />
-                      </div>
-                      <div>
-                        <PersonalVarEditor
-                          setShowEditor={(showPersVarsEditor: boolean) => {
-                            this.setState({ showPersVarsEditor });
-                          }}
-                          annotationsForScreens={this.props.annotationsForScreens}
-                          tour={this.props.tour!}
-                          changePersVarParams={(embedQueryParams: string) => {
-                            this.setState({ embedQueryParams });
-                          }}
-                          originalPersVarsParams={this.originalQueryParams}
-                          datasets={this.props.tour!.datasets!}
-                          edits={this.props.globalEdits}
-                        />
-                      </div>
-                    </Tags.QuickEditPopoverCon>
-                  }
-                  open={this.state.showPersVarsEditor}
-                  placement="left"
+              <div>
+                <div
+                  className="panel-item"
                 >
-                  <div onClick={() => this.setState(state => ({ showPersVarsEditor: !state.showPersVarsEditor }))}>
-                    <Tooltip title="Customize demo" placement="left">
-                      <CodeFilled />
-                    </Tooltip>
-                  </div>
-                </Popover>
+                  <Popover
+                    overlayClassName="quick-edit-popover"
+                    content={
+                      <Tags.QuickEditPopoverCon>
+                        <div className="close-btn" onClick={() => this.setState({ showPersVarsEditor: false })}>
+                          <CloseOutlined />
+                        </div>
+                        <div>
+                          <PersonalVarEditor
+                            setShowEditor={(showPersVarsEditor: boolean) => {
+                              this.setState({ showPersVarsEditor });
+                            }}
+                            annotationsForScreens={this.props.annotationsForScreens}
+                            tour={this.props.tour!}
+                            changePersVarParams={(embedQueryParams: string) => {
+                              this.setState({ embedQueryParams });
+                            }}
+                            originalPersVarsParams={this.originalQueryParams}
+                            datasets={this.props.tour!.datasets!}
+                            edits={this.props.globalEdits}
+                          />
+                        </div>
+                      </Tags.QuickEditPopoverCon>
+                  }
+                    open={this.state.showPersVarsEditor}
+                    placement="left"
+                  >
+                    <div onClick={() => this.setState(state => ({ showPersVarsEditor: !state.showPersVarsEditor }))}>
+                      <Tooltip title="Customize demo" placement="left">
+                        <CodeFilled />
+                      </Tooltip>
+                    </div>
+                  </Popover>
+                </div>
+                <div
+                  className="panel-item"
+                  style={{ marginTop: '10px' }}
+                >
+                  <Popover
+                    overlayClassName="quick-edit-popover"
+                    content={
+                      <Tags.QuickEditPopoverCon>
+                        <div className="close-btn" onClick={this.closeVoiceoverPopup}>
+                          <CloseOutlined />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          <div>
+                            <div className="typ-h1">Voiceover</div>
+                            <div className="typ-reg">
+                              Generate voiceover based on annotation content
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                            {VoiceOptions.map((option) => (
+                              <div
+                                key={option.name}
+                                onMouseDown={() => this.playPauseSampleVoice(option)}
+                              >
+                                <label
+                                  htmlFor={option.name}
+                                  style={{ cursor: 'pointer' }}
+                                  title="Click to play / pause the sample"
+                                >
+                                  <input
+                                    type="radio"
+                                    value={option.name}
+                                    id={option.name}
+                                    onChange={() => this.setState({ selectedVoice: option.name })}
+                                    checked={this.state.selectedVoice === option.name}
+                                    name="audio"
+                                  />
+                                  <span>
+                                    {option.label}
+                                  </span>
+                                  <span className="typ-sm" style={{ marginLeft: '1.5rem', display: 'block' }}>
+                                    {option.description}
+                                  </span>
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {
+                          this.props.subs && this.state.aiCreditsAvailable < this.state.creditRequiredForVoiceover
+                            ? <BuyMoreCredit
+                                currentCredit={this.props.subs.availableCredits}
+                                isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
+                                checkCredit={this.checkCredit}
+                                showCreditInfo={false}
+                                onBuyMoreCreditClick={() => {}}
+                            />
+                            : (
+                              <Button
+                                type="submit"
+                                onClick={this.handleVoiceover}
+                                disabled={quillyUpdateLoading}
+                              >Add voiceover
+                              </Button>
+                            )
+                          }
+                        {this.state.showRemoveVoiceover && (
+                          <Button
+                            type="submit"
+                            onClick={this.handleRemoveVoiceover}
+                            intent="secondary"
+                            disabled={quillyUpdateLoading}
+                          >Remove voiceover
+                          </Button>)}
+                      </Tags.QuickEditPopoverCon>
+                  }
+                    open={this.state.showVoiceoverPopover}
+                    placement="left"
+                  >
+                    <div
+                      style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+                      onClick={() => this.setState(state => ({ showVoiceoverPopover: !state.showVoiceoverPopover }))}
+                    >
+                      <Tooltip title="Customize demo" placement="left">
+                        <SoundFilled />
+                      </Tooltip>
+                      <Progress
+                        showInfo={false}
+                        size="small"
+                        style={{
+                          margin: 0,
+                          lineHeight: 0,
+                          visibility: this.state.voiceoverProgress === 0 ? 'hidden' : 'visible'
+                        }}
+                        strokeLinecap="round"
+                        percent={this.state.voiceoverProgress}
+                        strokeColor="#9ba7ae"
+                      />
+                    </div>
+                  </Popover>
+                </div>
               </div>
               {displaySize === '0' && (
                 <div className="panel-item">
@@ -768,7 +1027,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
   }
 }
 
-export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
+export default connect<ReturnType<typeof mapStateToProps>, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(PublishPreview));

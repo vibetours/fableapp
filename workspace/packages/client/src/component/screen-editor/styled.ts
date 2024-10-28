@@ -635,6 +635,8 @@ export const ABtnConf = styled.div`
   display: flex;
   align-items: flex-start;
   flex-direction: column;
+
+  --f-pad-multi: 1px;
 `;
 
 export const ScreenModeItems = styled.div`

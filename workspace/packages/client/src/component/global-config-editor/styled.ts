@@ -49,3 +49,14 @@ export const AnnotationPreviewCon = styled.div<{fontFamily: string}>`
     font-family: ${(props) => props.fontFamily || 'inherit'} !important;
   }
 `;
+
+export const BtnCon = styled.div`
+  flex: 1;
+  padding: 0rem 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+
+  --f-pad-multi: 1px;
+`;

@@ -52,7 +52,7 @@ export interface FableLeadContactProps extends Record<string, string | number | 
 
 export interface EventDataOnNav {
   annRefId: string;
-  annotationType: 'video' | 'text' | 'leadform' | 'audio';
+  annotationType: 'video' | 'text' | 'leadform' | 'audio' | 'voiceover';
 }
 
 export interface GlobalAppData {

@@ -4,14 +4,12 @@ import { VideoAnnotationPositions } from '@fable/common/dist/types';
 import {
   ArrowLeftOutlined,
   PauseCircleFilled,
-  PauseCircleOutlined,
   PlayCircleFilled,
-  PlayCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import * as Tags from './styled';
-import { AnimEntryDir, IAnnoationDisplayConfig, NavigateToAdjacentAnn } from '.';
+import { AnimEntryDir, IAnnoationDisplayConfig, NavigateToAdjacentAnn, VoiceoverMediaState } from '.';
 import { isCoverAnnotation } from './annotation-config-utils';
 import {
   TimeSpentInAnnotationPayload,
@@ -24,6 +22,9 @@ import SoundWavePlaceholder from './sound-wave-placeholder';
 import { FABLE_AUDIO_MEDIA_CONTROLS } from '../../constants';
 import { getAnnotationBtn } from './ops';
 import * as GTags from '../../common-styled';
+import { generateCSSSelectorFromText } from '../screen-editor/utils/css-styles';
+import { emitEvent } from '../../internal-events';
+import { InternalEvents, VoiceoverMediaStateChangePayload } from '../../types';
 
 interface IProps {
   borderRadius: string;
@@ -35,6 +36,10 @@ interface IProps {
   tourId: number;
   navigateToAdjacentAnn: NavigateToAdjacentAnn;
   type: 'audio' | 'video';
+  voiceoverMediaState: VoiceoverMediaState;
+  updatePlayMedia: () => void;
+  win: Window;
+  doNotAutoplayMedia: string[];
 }
 
 interface IOwnStateProps {
@@ -44,6 +49,7 @@ interface IOwnStateProps {
   blobUrls: null | { webm: string, mp4: string, type: 'video' } | { webm: string, type: 'audio' },
   mediaLoaded: boolean;
   mediaProgress: number;
+  showBtnOverlay: boolean;
 }
 
 export default class AnnotationMedia extends React.PureComponent<IProps, IOwnStateProps> {
@@ -60,6 +66,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
       mediaLoaded: false,
       mediaProgress: 0,
       mediaState: 'none',
+      showBtnOverlay: false,
     };
     if (Hls.isSupported() && this.props.playMode) {
       const config = this.props.conf.config;
@@ -153,12 +160,37 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     return displayConf.isMaximized && !displayConf.prerender && this.props.playMode && !!this.state.blobUrls;
   };
 
+  handleAutoplayMedia = (): boolean => {
+    if (this.shouldAutoplayVideo()) {
+      this.setState({ showBtnOverlay: false });
+      this.playMediaFromStart();
+      this.props.updatePlayMedia();
+      return true;
+    }
+    return false;
+  };
+
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     let isMediaPlayed = false;
-    if (prevProps.conf.isMaximized !== this.props.conf.isMaximized && this.props.conf.isMaximized) {
-      if (this.shouldAutoplayVideo()) {
-        this.playMediaFromStart();
-        isMediaPlayed = true;
+    if (this.props.conf.isMaximized && prevProps.conf.isMaximized !== this.props.conf.isMaximized
+      && (!this.props.conf.config.voiceover
+        || (this.props.conf.config.voiceover && !this.props.doNotAutoplayMedia.includes(this.props.conf.config.refId)))) {
+      isMediaPlayed = this.handleAutoplayMedia();
+    }
+
+    // In case of voiceover we control the annotation play/pause with message passing
+    if (this.props.conf.isMaximized && this.props.voiceoverMediaState !== prevProps.voiceoverMediaState
+      && this.props.voiceoverMediaState !== 'none' && this.props.conf.config.voiceover
+    ) {
+      if (this.props.voiceoverMediaState === 'replay-ann') {
+        isMediaPlayed = this.handleAutoplayMedia();
+      } else if (this.props.voiceoverMediaState === 'play-pause') {
+        if (prevState.mediaState === 'playing') {
+          this.mediaRef.current!.pause();
+        } else if (prevState.mediaState === 'paused') {
+          this.playMedia();
+        }
+        this.props.updatePlayMedia();
       }
     }
 
@@ -176,6 +208,15 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     ) {
       this.setState({ showAudioVisualizer: true });
     }
+
+    if (this.state.mediaState !== prevState.mediaState && this.props.conf.config.voiceover) {
+      const mediaState = this.state.showBtnOverlay
+        ? 'overlay' : this.state.mediaState;
+      emitEvent<Partial<VoiceoverMediaStateChangePayload>>(InternalEvents.VoiceoverMediaStateChange, {
+        mediaState,
+        annRefId: this.props.conf.config.refId
+      });
+    }
   }
 
   playMediaFromStart = (): void => {
@@ -188,9 +229,9 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     this.mediaRef.current!
       .play()
       .then(() => {
-        this.setState({ mediaState: 'playing', showControls: false });
+        this.onMediaPlay();
       }).catch((e) => {
-        this.setState({ mediaState: 'paused', showControls: true });
+        this.onMediaPause();
       });
   };
 
@@ -298,6 +339,10 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     }, 1500);
 
     if (this.props.playMode) {
+      if (this.props.conf.config.voiceover && this.props.conf.config.buttons.length > 2) {
+        this.setState({ showBtnOverlay: true });
+        return;
+      }
       const btnConf = getAnnotationBtn(this.props.conf.config, 'next');
       this.navigateAnns('next', btnConf.id);
     }
@@ -328,22 +373,24 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     if (padding.length === 0) padding.push(14, 14);
 
     return (
-      <Tags.AnMediaContainer
-        style={{
-          ...this.getPositioningAndSizingStyles(),
-          visibility: this.props.conf.isMaximized ? 'visible' : 'hidden',
-          position: this.props.conf.isMaximized ? 'absolute' : 'fixed',
-        }}
-        onMouseOver={() => this.setState({ showControls: true })}
-        onMouseOut={() => {
-          if (this.state.mediaState === 'playing') {
-            this.setState({ showControls: false });
-          }
-        }}
-      >
-
-        <Tags.MediaCon style={{ position: 'relative', display: 'flex' }}>
-          {
+      <>
+        <Tags.AnMediaContainer
+          style={{
+            ...this.getPositioningAndSizingStyles(),
+            visibility: this.props.conf.isMaximized && !(
+              this.props.conf.config.voiceover && this.props.playMode)
+              ? 'visible' : 'hidden',
+            position: this.props.conf.isMaximized ? 'absolute' : 'fixed',
+          }}
+          onMouseOver={() => this.setState({ showControls: true })}
+          onMouseOut={() => {
+            if (this.state.mediaState === 'playing') {
+              this.setState({ showControls: false });
+            }
+          }}
+        >
+          <Tags.MediaCon style={{ position: 'relative', display: 'flex' }}>
+            {
             this.props.type === 'video' && (
               <Tags.AnVideo
                 style={{ borderRadius: this.props.borderRadius }}
@@ -370,7 +417,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             )
           }
 
-          {
+            {
             this.props.type === 'audio' && (
               <Tags.AnAudioCon
                 style={{ borderRadius: this.props.borderRadius }}
@@ -418,11 +465,11 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             )
           }
 
-          <Tags.AnMediaControls
-            style={{ borderRadius: this.props.borderRadius }}
-            showOverlay={this.state.showControls || !this.state.mediaLoaded}
-          >
-            {!this.props.conf.prerender && this.state.mediaLoaded && (
+            <Tags.AnMediaControls
+              style={{ borderRadius: this.props.borderRadius }}
+              showOverlay={this.state.showControls || !this.state.mediaLoaded}
+            >
+              {!this.props.conf.prerender && this.state.mediaLoaded && (
               <>
                 <Tags.AnMediaCtrlBtnsCon>
                   {/* Replay button */}
@@ -508,31 +555,63 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
               </Tags.NavButtonCon>
               )}
               </>
-            )}
-            {!this.state.mediaLoaded && (
-            <Tags.AnMediaCtrlBtnsCon>
-              <Tags.Loader />
-            </Tags.AnMediaCtrlBtnsCon>
-            )}
-          </Tags.AnMediaControls>
-          <Tags.LoaderCon>
-            <GTags.LoaderBar
-              style={{
-                width: 'calc(100% - 2rem)',
-                transform: 'translate(1rem, 0.5rem)'
-              }}
-            >
-              <GTags.LoaderProgress
-                bwidth={this.state.mediaProgress}
-                bcolor={this.props.conf.opts.annotationBodyBorderColor._val}
-                bradius={4}
-                bopacity={0.50}
-              />
-            </GTags.LoaderBar>
-          </Tags.LoaderCon>
-        </Tags.MediaCon>
-
-      </Tags.AnMediaContainer>
+              )}
+              {!this.state.mediaLoaded && (
+              <Tags.AnMediaCtrlBtnsCon>
+                <Tags.Loader />
+              </Tags.AnMediaCtrlBtnsCon>
+              )}
+            </Tags.AnMediaControls>
+            <Tags.LoaderCon>
+              <GTags.LoaderBar
+                style={{
+                  width: 'calc(100% - 2rem)',
+                  transform: 'translate(1rem, 0.5rem)'
+                }}
+              >
+                <GTags.LoaderProgress
+                  bwidth={this.state.mediaProgress}
+                  bcolor={this.props.conf.opts.annotationBodyBorderColor._val}
+                  bradius={4}
+                  bopacity={0.50}
+                />
+              </GTags.LoaderBar>
+            </Tags.LoaderCon>
+          </Tags.MediaCon>
+        </Tags.AnMediaContainer>
+        {this.state.showBtnOverlay
+        && (
+        <Tags.VoiceoverBtnOverlay
+          height={this.props.win.innerHeight}
+          width={this.props.win.innerWidth}
+          bgColor={this.props.conf.opts.annotationBodyBackgroundColor._val}
+          top={this.props.win.scrollY}
+          left={this.props.win.scrollX}
+        >
+          {this.props.conf.config.buttons.filter((btn => btn.type !== 'prev'))
+            .sort((m, n) => m.order - n.order).map((btnConf, idx) => (
+              <Tags.ABtn
+                bg={this.props.conf.opts.annotationBodyBackgroundColor._val}
+                className={`f-${generateCSSSelectorFromText(btnConf.text._val)}-btn f-ann-btn`}
+                idx={idx}
+                key={btnConf.id}
+                btnStyle={btnConf.style._val}
+                color={this.props.conf.opts.primaryColor._val}
+                size={btnConf.size._val}
+                fontFamily={this.props.conf.opts.annotationFontFamily._val}
+                btnLayout="default"
+                borderRadius={this.props.conf.opts.borderRadius._val}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  this.props.navigateToAdjacentAnn(btnConf.type, btnConf.id);
+                }}
+              >
+                {btnConf.text._val}
+              </Tags.ABtn>
+            ))}
+        </Tags.VoiceoverBtnOverlay>
+        )}
+      </>
     );
   }
 }

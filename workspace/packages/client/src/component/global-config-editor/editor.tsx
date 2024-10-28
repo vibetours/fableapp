@@ -384,17 +384,7 @@ export default function Editor(props: Props): JSX.Element {
                   />
                 </div>
               </div>
-
-              <div
-                style={{
-                  flex: '1',
-                  padding: '0rem 1rem',
-                  display: 'flex',
-                  gap: '1rem',
-                  alignItems: 'center',
-                  marginTop: '1rem',
-                }}
-              >
+              <Tags.BtnCon>
                 <ABtn
                   bg={gConfig.annBodyBgColor}
                   className={`f-${generateCSSSelectorFromText('Next')}-btn f-ann-btn`}
@@ -408,7 +398,6 @@ export default function Editor(props: Props): JSX.Element {
                 >
                   Primary
                 </ABtn>
-
                 <div style={{
                   backgroundColor: `${getColorContrast(gConfig.annBodyBgColor) === 'light' ? '#fff' : '#424242'}`,
                   padding: '1rem',
@@ -443,7 +432,7 @@ export default function Editor(props: Props): JSX.Element {
                     Link
                   </ABtn>
                 </div>
-              </div>
+              </Tags.BtnCon>
             </div>
           </div>
         </Tags.SectionOptionsCon>

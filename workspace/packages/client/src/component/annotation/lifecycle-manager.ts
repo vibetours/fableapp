@@ -87,6 +87,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private getNextAnnotation: (annId: string) => IAnnotationConfigWithScreenId;
 
+  private doNotAutoplayMedia: string[];
+
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
   }
@@ -156,7 +158,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     isScreenHTML4: boolean,
     screen: P_RespScreen,
     shouldSkipLeadForm: boolean,
-    getNextAnnotation: (annId: string)=>IAnnotationConfigWithScreenId
+    getNextAnnotation: (annId: string)=>IAnnotationConfigWithScreenId,
+    doNotAutoplayMedia: string[],
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
     this.screen = screen;
@@ -184,6 +187,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.iframeElsScrollTimeoutId = 0;
     this.shouldSkipLeadForm = shouldSkipLeadForm;
     this.getNextAnnotation = getNextAnnotation;
+    this.doNotAutoplayMedia = doNotAutoplayMedia;
     if (this.screenType === ScreenType.SerDom) {
       this.setFramesScrollListeners();
     }
@@ -701,7 +705,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           onCompMount: () => { this.con.style.display = ''; },
           isScreenHTML4: this.isScreenHTML4,
           shouldSkipLeadForm: this.shouldSkipLeadForm,
-          getNextAnnotation: this.getNextAnnotation
+          getNextAnnotation: this.getNextAnnotation,
+          doNotAutoplayMedia: this.doNotAutoplayMedia,
         })
       )
     );
@@ -851,7 +856,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           onCompMount: () => { },
           isScreenHTML4: this.isScreenHTML4,
           shouldSkipLeadForm: this.shouldSkipLeadForm,
-          getNextAnnotation: this.getNextAnnotation
+          getNextAnnotation: this.getNextAnnotation,
+          doNotAutoplayMedia: this.doNotAutoplayMedia
         })
       )
     );

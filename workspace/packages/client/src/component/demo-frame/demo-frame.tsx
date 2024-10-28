@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { AppstoreFilled, CaretDownFilled, CompassFilled, ContainerFilled, DownSquareFilled, DownSquareOutlined, FullscreenOutlined, FundFilled, LoginOutlined, ReloadOutlined } from '@ant-design/icons';
+import { AppstoreFilled, CaretDownFilled, CompassFilled, ContainerFilled, ReloadOutlined } from '@ant-design/icons';
 import { FrameSettings } from '@fable/common/dist/api-contract';
 import { Tooltip } from 'antd';
 import { JourneyData } from '@fable/common/dist/types';
-import { getMobileOperatingSystem, isLandscapeMode } from '../../utils';
-import { IframePos, ScreenSizeData } from '../../types';
+import { ScreenSizeData } from '../../types';
 import { P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 
 interface Props {
   mode: FrameSettings;
-  iframePos: IframePos;
   showModule: boolean;
   isJourneyMenuOpen: boolean;
   setIsJourneyMenuOpen: () => void;
@@ -39,7 +37,7 @@ export default function DemoFrame(props : Props) : JSX.Element {
   return (
     <Tags.Frame
       mode={props.mode}
-      iframePos={props.iframePos}
+      iframePos={props.screenSizeData.iframePos}
       scaleFactor={Math.min(props.screenSizeData.scaleFactor * 1.25, 1)}
       zIndex={props.isJourneyMenuOpen ? 10 : 8}
     >

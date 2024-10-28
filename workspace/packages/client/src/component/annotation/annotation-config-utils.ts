@@ -130,6 +130,7 @@ export function updateAnnotationAudio(config: IAnnotationConfig, audio: IAnnotat
 export function clearAnnotationAudio(config: IAnnotationConfig): IAnnotationConfig {
   const newConfig = newConfigFrom(config);
   newConfig.audio = null;
+  newConfig.voiceover = null;
   return newConfig;
 }
 

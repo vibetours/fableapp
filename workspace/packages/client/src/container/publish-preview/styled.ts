@@ -76,7 +76,9 @@ export const HeaderCon = styled.div`
 export const QuickEditPopoverCon = styled.div`
   display: flex;
   flex-direction: column;
-
+  gap: 10px;
+  max-width: 360px;
+  
   .close-btn {
     font-size: 0.65rem;
     cursor: pointer;

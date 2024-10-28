@@ -40,6 +40,7 @@ import {
   AnnotationButtonSize,
   JourneyCTA,
   SerNode,
+  CreateJourneyPositioning,
 } from '@fable/common/dist/types';
 import { DEFAULT_BLUE_BORDER_COLOR } from '@fable/common/dist/constants';
 import { nanoid } from 'nanoid';
@@ -581,6 +582,7 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     m_id: lc.m_id,
     scrollAdjustment: lc.scrollAdjustment,
     audio: lc.audio,
+    voiceover: lc.voiceover
   };
 }
 
@@ -789,6 +791,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.m_id === undefined || an.m_id === null) {
     an.m_id = an.id;
+  }
+
+  if (an.voiceover === undefined) {
+    an.voiceover = null;
   }
 
   return an;
@@ -1246,6 +1252,11 @@ export function normalizeBackwardCompatibilityForJourney(
 
   if (journey.cta && typeof journey.cta.size === 'string') {
     journey.cta.size = createLiteralProperty(journey.cta.size as AnnotationButtonSize);
+  }
+
+  // We only have left positioning due to voiceover
+  if (journey.positioning && journey.positioning === CreateJourneyPositioning.Right_Bottom) {
+    journey.positioning = CreateJourneyPositioning.Left_Bottom;
   }
 
   return journey;

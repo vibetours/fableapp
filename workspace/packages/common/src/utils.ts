@@ -273,6 +273,7 @@ export const getSampleConfig = (
     m_id: elPath,
     scrollAdjustment: 'auto',
     audio: null,
+    voiceover: null,
   };
 };
 

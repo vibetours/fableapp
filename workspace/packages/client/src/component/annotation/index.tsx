@@ -16,9 +16,9 @@ import {
   CtaClickedInternal,
   CtaFrom
 } from '../../analytics/types';
-import { FableLeadContactProps } from '../../global';
+import { EventDataOnNav, FableLeadContactProps } from '../../global';
 import { emitEvent } from '../../internal-events';
-import { InternalEvents, Msg, NavFn, Payload_Navigation } from '../../types';
+import { InternalEvents, Msg, NavFn, Payload_Navigation, Payload_TrackerPos } from '../../types';
 import {
   getTransparencyFromHexStr,
   isAudioAnnotation,
@@ -76,6 +76,7 @@ interface IProps {
   isThemeAnnotation?: boolean;
   maskBox: Rect | null;
   isScreenHTML4: boolean;
+  doNotAutoplayMedia: string[];
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
@@ -340,9 +341,14 @@ export class AnnotationContent extends React.PureComponent<{
   }
 }
 
+interface IOwnStateProps {
+  voiceoverMediaState: VoiceoverMediaState;
+}
+export type VoiceoverMediaState = 'play-pause' | 'replay-ann' | 'none';
+
 export type AnimEntryDir = 'l' | 't' | 'r' | 'b';
 
-export class AnnotationCard extends React.PureComponent<IProps> {
+export class AnnotationCard extends React.PureComponent<IProps, IOwnStateProps> {
   static readonly BREATHING_SPACE_RATIO = 30;
 
   static readonly ANNOTAITON_EL_MARGIN = 20;
@@ -359,7 +365,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
 
   private isInitialTransitionDone = false;
 
-  getAnnotationType(): 'video' | 'text' | 'leadform' | 'audio' {
+  constructor(props: IProps) {
+    super(props);
+    this.state = {
+      voiceoverMediaState: 'none'
+    };
+  }
+
+  getAnnotationType(): EventDataOnNav['annotationType'] {
+    if (this.props.annotationDisplayConfig.config.voiceover) return 'voiceover';
     if (isVideoAnnotation(this.props.annotationDisplayConfig.config)) return 'video';
     if (isAudioAnnotation(this.props.annotationDisplayConfig.config)) return 'audio';
     if (this.props.annotationDisplayConfig.config.isLeadFormPresent) return 'leadform';
@@ -441,6 +455,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     } else if (e.data.type === 'f-go-prev-ann') {
       const prevBtn = this.props.annotationDisplayConfig.config.buttons.filter(btn => btn.type === 'prev');
       this.props.navigateToAdjacentAnn('prev', prevBtn[0].id);
+    } else if (e.data.type === 'f-play-media') {
+      this.setState({ voiceoverMediaState: 'replay-ann' });
+    } else if (e.data.type === 'f-play-pause-demo') {
+      this.setState({ voiceoverMediaState: 'play-pause' });
     }
   };
 
@@ -847,6 +865,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const isCoverAnnotation = isCoverAnn(config);
 
     if (isCoverAnnotation) return false;
+    if (config.voiceover) return false;
 
     if (isMediaAnnotation) {
       return (pos === 'follow' || isAnnCustomPosition(pos)) && !this.props.annotationDisplayConfig.prerender;
@@ -1003,6 +1022,15 @@ export class AnnotationCard extends React.PureComponent<IProps> {
       ty = 0;
     }
 
+    if (!this.props.annotationDisplayConfig.prerender) {
+      emitEvent<Partial<Payload_TrackerPos>>(InternalEvents.OnSelectedElChange, {
+        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
+        annotationType: this.props.annotationDisplayConfig.config.type,
+        x: this.props.box.x + (this.props.box.width / 2),
+        y: this.props.box.y + (this.props.box.height / 2),
+      });
+    }
+
     return (
       <>
         { !this.props.annotationDisplayConfig.config.hideAnnotation && (
@@ -1061,6 +1089,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                   tourId={this.props.tourId}
                   navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
                   type={isVideoAnnotation(config) ? 'video' : 'audio'}
+                  voiceoverMediaState={this.state.voiceoverMediaState}
+                  updatePlayMedia={() => { this.setState({ voiceoverMediaState: 'none' }); }}
+                  win={this.props.win}
+                  doNotAutoplayMedia={this.props.doNotAutoplayMedia}
                 />
                 )
               }
@@ -1085,6 +1117,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             {!displayConfig.prerender
             && this.props.annotationDisplayConfig.opts.showFableWatermark._val
             && isMediaAnnotation
+            && !(config.voiceover && this.props.playMode)
             && (
               <AnnotationWatermark
                 borderRadius={this.props.annotationDisplayConfig.opts.borderRadius._val}
@@ -1401,6 +1434,7 @@ interface IConProps {
   isScreenHTML4: boolean,
   shouldSkipLeadForm: boolean,
   getNextAnnotation: (annId: string)=> IAnnotationConfigWithScreenId,
+  doNotAutoplayMedia: string[],
 }
 
 interface HotspotProps {
@@ -1653,6 +1687,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             navigateToAdjacentAnn={navigateToAdjacentAnn}
             maskBox={p.maskBox}
             isScreenHTML4={this.props.isScreenHTML4}
+            doNotAutoplayMedia={this.props.doNotAutoplayMedia}
           />
         </div>
       );
