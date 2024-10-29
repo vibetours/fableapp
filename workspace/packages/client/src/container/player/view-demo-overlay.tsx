@@ -67,7 +67,7 @@ function ViewDemoOverlay(props: Props): JSX.Element {
       {props.showWatermark && (
         <div className="wm">
           <a href="https://www.sharefable.com?ref=exdm" target="_blank">
-            Create interactive demo in 5 minutes with
+            Create interactive demos in 5 minutes with
             <img src={FableQuillLogo} alt="Fable logo" />
             Fable
           </a>

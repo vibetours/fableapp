@@ -42,16 +42,6 @@ function HomeDropDown(props: Props) : JSX.Element {
           marginTop: '10px'
         }}
         items={[{
-          key: '1',
-          label: <div className="typ-h3 collapse-header">How to create a demo</div>,
-          children: (
-            <ol className="typ-reg step-list">
-              <li>Go to the website/ application that you want to create a demo of.</li>
-              <li>Once you are ready, click on the “Start Recording” button in Fable's extension.</li>
-              <li>After the recording is complete, click on the “Stop Recording” button in the extension.</li>
-            </ol>
-          )
-        }, {
           key: '2',
           label: (
             <div style={{

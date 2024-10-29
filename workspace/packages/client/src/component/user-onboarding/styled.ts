@@ -44,3 +44,21 @@ export const OrgItem = styled.div`
     color: white;
   }
 `;
+
+export const UsecaseCon = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 480px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+
+  .optn-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+    background: #7ceaf3;
+    padding: 1px 4px;
+    border-radius: 6px;
+  }
+`;

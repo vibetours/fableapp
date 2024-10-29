@@ -245,7 +245,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     heightOffset: number
   ): void => {
     const watermarkEl = this.watermarkRef.current;
-    const GUTTER = 16;
+    const GUTTER = 16 - (heightOffset ? 4 : 2);
     if (!watermarkEl) return;
 
     // INFO this code is not executed as we have stopped supporting module on the right
@@ -258,7 +258,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       watermarkEl.style.transform = 'translate(0%, -100%)';
     } */
     watermarkEl.style.left = `${Math.round((left) + (width * this.scaleFactor) - GUTTER)}px`;
-    watermarkEl.style.top = `${Math.round((top) + ((height + heightOffset) * this.scaleFactor) - GUTTER)}px`;
+    watermarkEl.style.top = `${Math.round((top) + (height * this.scaleFactor) + heightOffset - GUTTER)}px`;
   };
 
   prepareSendIframeScreenSizeData = (scaleFactor: number, iframePos: IframePos): void => {
@@ -312,11 +312,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
       // We apply border around the iframe to have a
 
+      const adjustedVpdW = vpdW - heightWidthAdjustment;
+      const adjustedVpdH = vpdH - heightWidthAdjustment;
       frame.style.transform = `scale(${scale})`;
       frame.style.transformOrigin = '0 0';
       frame.style.position = 'absolute';
-      frame.style.width = `${vpdW - heightWidthAdjustment}px`;
-      frame.style.height = `${vpdH - heightWidthAdjustment}px`;
+      frame.style.width = `${adjustedVpdW}px`;
+      frame.style.height = `${adjustedVpdH}px`;
 
       const viewPortAfterScaling = frame.getBoundingClientRect();
 
@@ -340,9 +342,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
       this.handleWatermarkPositioning(
         (origFrameViewPort.height - viewPortAfterScaling.height) / 2,
-        vpdH,
+        adjustedVpdH,
         (origFrameViewPort.width - viewPortAfterScaling.width) / 2,
-        vpdW,
+        adjustedVpdW,
         this.props.heightOffset
       );
 

@@ -122,10 +122,11 @@ export const BodyCon = styled.div`
   }
 `;
 
-export const SidePanelCon = styled.aside`
+export const SidePanelCon = styled.aside<{ flat?: boolean }>`
   height: 100%;
   width: fit-content;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  box-shadow: ${props => (props.flat ? 'none' : 'rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px')};
+  border-right: ${props => (props.flat ? '1px solid #1602456e' : 'none')};
   z-index: 2;
 `;
 

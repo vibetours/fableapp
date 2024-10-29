@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const Con = styled.div`
-  background-image: linear-gradient(315deg, #f6f6f6 0%, #e9e9e9 74%);
+  background: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
   inset: 0;
   position: absolute;
   padding: 2rem;
@@ -31,7 +31,7 @@ export const CompanyCarouselWrapper = styled.div`
 `;
 
 export const OnboardingCardCon = styled.div`
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+  box-shadow: 1px 1px 1px 2px #212121;
   border-radius: 26px;
   height: 480px;
   width: 360px;

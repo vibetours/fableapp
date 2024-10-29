@@ -122,11 +122,11 @@ export const SetupGuideCon = styled.div`
 `;
 
 export const SetupSteps = styled.div`
-
   display: flex;
   gap: 2rem;
   position: relative;
   width: 100%;
+  max-width: 1100px;
   margin: 0.5rem;
   justify-content: start;
   align-items: stretch;
@@ -150,7 +150,7 @@ export const SetupSteps = styled.div`
     padding: 1rem 1.5rem;
     padding-left: 0.75rem;
     font-size: 0.75rem;
-    box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+    box-shadow: var(--card-box-shadow);
     display : flex;
     align-items: start;
     gap: 1rem;

@@ -199,6 +199,7 @@ input {
   --fable-scrollbar-thumb: rgb(198 201 207);
   --fable-scrollbar-track: rgb(238 238 238);
   --fable-scrollbar-color: rgb(198 201 207) rgb(238 238 238);
+  --card-box-shadow: 1px 1px 0px 3px #212121;
 }
 
 .ant-tooltip-inner {

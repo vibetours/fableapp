@@ -83,7 +83,7 @@ export default function OrgCreate(props: Props): JSX.Element {
       <div
         className="typ-h1"
         style={{
-          textAlign: 'center',
+          textAlign: 'left',
           fontWeight: 600
         }}
       >
@@ -161,9 +161,7 @@ export default function OrgCreate(props: Props): JSX.Element {
             color: 'gray'
           }}
         >
-          You can create multiple organizations or join existing organizations
-          via invitation. List of organizations would be shown here once you
-          create at least one organization.
+          Please create an org account to add all your demos & invite team members.
         </div>
       )}
 

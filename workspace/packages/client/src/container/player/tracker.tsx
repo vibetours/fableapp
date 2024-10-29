@@ -59,7 +59,7 @@ export default function TrackerBubble(props: Props) {
     setDisplay('inline-block');
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      ref.current!.style.transition = 'all 0.3s cubic-bezier(0.42, 0, 0.34, 0.99)';
+      ref.current!.style.transition = 'all 0.3s ease-in-out';
       setToPos({ x: pos.x, y: pos.y });
     }, 32);
     lastPosData.current = {

@@ -344,9 +344,13 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           <GTags.SidePanelCon>
-            <SidePanel selected="integrations" subs={this.props.subs} />
+            <SidePanel
+              selected="integrations"
+              subs={this.props.subs}
+              compact={this.props.searchParams.get('c') === '1'}
+            />
           </GTags.SidePanelCon>
-          <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%', marginTop: '2rem' }}>
+          <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%', paddingTop: '2rem' }}>
             <Tabs defaultActiveKey="1">
               <Tabs.TabPane tab="Integration" key="1">
                 <Tags.IntegrationCardCon style={{ paddingLeft: '0%' }}>

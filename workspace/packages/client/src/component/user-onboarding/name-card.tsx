@@ -69,16 +69,16 @@ export default function NameCard(props: Props): JSX.Element {
       <div
         className="typ-h1"
         style={{
-          textAlign: 'center',
+          textAlign: 'left',
           fontWeight: 600
         }}
       >
-        Create stunning interactive demos in 5 mins
+        Create stunning demos with Fable's AI copilot!
       </div>
       <div
         className="type-reg"
         style={{
-          textAlign: 'center',
+          textAlign: 'left',
         }}
       >
         Before we get started, please tell us a little bit about yourself.

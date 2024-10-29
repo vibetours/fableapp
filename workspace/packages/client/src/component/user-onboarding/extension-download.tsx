@@ -29,7 +29,6 @@ export default function ExtensionDownload(props: Props): JSX.Element {
       <div
         className="typ-h1"
         style={{
-          textAlign: 'center',
           fontWeight: 600
         }}
       >Create stunning interactive demos in 5 mins
@@ -43,12 +42,7 @@ export default function ExtensionDownload(props: Props): JSX.Element {
           gap: '2rem'
         }}
       >
-        <div
-          className="type-reg"
-          style={{
-            textAlign: 'center',
-          }}
-        >
+        <div className="type-reg">
           Download Fable's chrome extension to
           create stunning interactive demo in 5 mins.
         </div>

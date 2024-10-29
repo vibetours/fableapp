@@ -1,8 +1,9 @@
 import { ArrowRightOutlined } from '@ant-design/icons';
-import { Button as AntdBtn, message } from 'antd';
+import { Button as AntdBtn, Tag, message } from 'antd';
 import { CheckboxValueType } from 'antd/es/checkbox/Group';
 import React, { useState } from 'react';
 import { OurCheckbox } from '../../common-styled';
+import * as Tags from './styled';
 import Button from '../button';
 import Input from '../input';
 
@@ -14,12 +15,22 @@ interface Props {
 interface CheckboxOptionProps {
   title: string;
   description: string;
+  badge?: string;
 }
 
 function CheckboxOption(props: CheckboxOptionProps): JSX.Element {
   return (
     <>
-      <div className="typ-reg" style={{ fontWeight: 600 }}>{props.title}</div>
+      <div className="typ-reg" style={{ fontWeight: 600 }}>
+        <span>
+          {props.title}
+        </span>
+        {props.badge && (
+          <span className="optn-badge">
+            {props.badge}
+          </span>
+        )}
+      </div>
       <div className="typ-sm">{props.description}</div>
     </>
   );
@@ -29,6 +40,7 @@ const options = [
   {
     label: <CheckboxOption
       title="Marketing"
+      badge="3x lead conversion"
       description="Embed interactive tools in your website to generate more leads"
     />,
     value: 'marketing',
@@ -36,6 +48,7 @@ const options = [
   {
     label: <CheckboxOption
       title="Sales"
+      badge="2x sales velocity"
       description="Share interactive demos with prospects to close more deals"
     />,
     value: 'sales',
@@ -43,20 +56,15 @@ const options = [
   {
     label: <CheckboxOption
       title="Customer Success"
+      badge="50% faster onboarding"
       description="Embed interactive how-to guides in knowledge base"
     />,
     value: 'customer-success',
   },
   {
     label: <CheckboxOption
-      title="Partnerships"
-      description="Enable partners with co-branded demos to sell more"
-    />,
-    value: 'partnerships',
-  },
-  {
-    label: <CheckboxOption
       title="Product"
+      badge="25% increased adoption"
       description="Share product updates and feature releases with ease"
     />,
     value: 'product',
@@ -97,21 +105,11 @@ export default function Usecase(props: Props): JSX.Element {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '480px',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-      }}
-    >
+    <Tags.UsecaseCon>
       {contextHolder}
       <div
         className="typ-h1"
         style={{
-          textAlign: 'center',
           fontWeight: 600
         }}
       >How & where would you like to use Fable?
@@ -132,7 +130,7 @@ export default function Usecase(props: Props): JSX.Element {
         <OurCheckbox
           checked={showOthersOption}
           onChange={e => setShowOthersOption(e.target.checked)}
-          style={{ transform: `translate(0px, ${showOthersOption ? 0 : -16}px` }}
+          style={{ transform: `translate(0px, ${showOthersOption ? 0 : -28}px` }}
         >
           <CheckboxOption title="Others" description="" />
         </OurCheckbox>
@@ -179,6 +177,6 @@ export default function Usecase(props: Props): JSX.Element {
           </Button>
         </div>
       </form>
-    </div>
+    </Tags.UsecaseCon>
   );
 }

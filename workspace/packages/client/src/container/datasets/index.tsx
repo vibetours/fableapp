@@ -202,10 +202,11 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
             />
           </div>
           <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
-            <GTags.SidePanelCon>
+            <GTags.SidePanelCon flat={this.props.searchParams.get('c') === '1'}>
               <SidePanel
                 selected="datasets"
                 subs={this.props.subs}
+                compact={this.props.searchParams.get('c') === '1'}
               />
             </GTags.SidePanelCon>
             <GTags.MainCon

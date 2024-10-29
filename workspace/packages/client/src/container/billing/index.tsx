@@ -200,8 +200,12 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
-          <GTags.SidePanelCon>
-            <SidePanel selected="billing" subs={this.props.subs} />
+          <GTags.SidePanelCon flat={this.props.searchParams.get('c') === '1'}>
+            <SidePanel
+              selected="billing"
+              subs={this.props.subs}
+              compact={this.props.searchParams.get('c') === '1'}
+            />
           </GTags.SidePanelCon>
           <GTags.MainCon>
             <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }}>

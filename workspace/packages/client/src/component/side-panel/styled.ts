@@ -2,9 +2,9 @@ import styled, { keyframes } from 'styled-components';
 import { Link } from 'react-router-dom';
 import { CloseOutlined } from '@ant-design/icons';
 
-export const Con = styled.div`
+export const Con = styled.div<{ bg? : string }>`
   height: 100%;
-  background-color: white;
+  background-color: #fff;
   color: #000;
   display: flex;
   flex-direction: column;
@@ -19,6 +19,7 @@ export const ConNav = styled.div`
   flex: 1;
   margin-top: 2rem;
   display: flex;
+  gap: 0.5rem;
   flex-direction: column;
 
   & > *:not(:last-child) {
@@ -48,7 +49,7 @@ export const ConNavBtn = styled(Link)`
   }
 
   p {
-    margin: 0 0.8rem;
+    margin: 0 0.3rem;
   }
 
   svg {

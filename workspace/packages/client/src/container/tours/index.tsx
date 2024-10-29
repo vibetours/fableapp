@@ -121,9 +121,9 @@ interface IOwnStateProps {
   selectedTour: P_RespTour | null;
   ctxAction: CtxAction;
   isExtInstalled: boolean;
-  onboardingToursForPreview: OnboardingTourForPrev[]
   showUpgradeModal: boolean;
   createNewDemoFeatureAvailable: FeatureAvailability;
+  shouldShowOnboardingVideoModal: boolean;
 }
 const { confirm } = Modal;
 
@@ -141,25 +141,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
       selectedTour: null,
       ctxAction: CtxAction.NA,
       isExtInstalled: false,
-      onboardingToursForPreview: [],
       showUpgradeModal: false,
-      createNewDemoFeatureAvailable: fallbackFeatureAvailability
+      createNewDemoFeatureAvailable: fallbackFeatureAvailability,
+      shouldShowOnboardingVideoModal: false,
     };
   }
 
-  getPreviewTours = async () => {
-    try {
-      const resp = await api<null, ApiResp<OnboardingTourForPrev[]>>('/onbtrspreview', { auth: true });
-      this.setState({
-        onboardingToursForPreview: resp.data,
-      });
-    } catch (e) {
-      raiseDeferredError(e as Error);
-    }
-  };
-
   componentDidMount(): void {
-    this.getPreviewTours();
     this.props.getAllTours();
     document.title = this.props.title;
     isExtensionInstalled()
@@ -211,6 +199,12 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
     if ((this.props.featurePlan !== prevProps.featurePlan || this.props.tours !== prevProps.tours)
        && this.props.tours && this.props.featurePlan) {
       this.handleFeatureAvailable();
+    }
+
+    if (this.props.allToursLoadingStatus !== prevProps.allToursLoadingStatus && this.props.allToursLoadingStatus === LoadingStatus.Done) {
+      this.setState({
+        shouldShowOnboardingVideoModal: this.props.userCreatedTours.length === 0 && localStorage.getItem('fable/ovs') !== '1',
+      });
     }
   }
 
@@ -326,6 +320,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
   getIsAtleastOneDemoCreated = (): boolean => Boolean(this.props.tours.find(tour => tour.onboarding === false));
 
+  skipOnboadingVideo = () => {
+    this.setState({
+      shouldShowOnboardingVideoModal: false
+    }),
+    localStorage.setItem('fable/ovs', '1');
+  };
+
   render(): ReactElement {
     const toursLoaded = this.props.allToursLoadingStatus === LoadingStatus.Done;
 
@@ -349,23 +350,26 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
-          <GTags.SidePanelCon>
-            <SidePanel
-              selected="tours"
-              subs={this.props.subs}
-            />
-          </GTags.SidePanelCon>
+          { toursLoaded && (
+            <GTags.SidePanelCon flat>
+              <SidePanel
+                selected="tours"
+                subs={this.props.subs}
+                compact={this.props.userCreatedTours.length === 0}
+              />
+            </GTags.SidePanelCon>
+          )}
           <GTags.MainCon>
             <GTags.BodyCon
-              style={
-                { height: '100%',
-                  overflowY: 'auto',
-                  flexDirection: 'row',
-                  gap: '3rem',
-                  paddingLeft: '3%',
-                  background: '#f5f5f5'
-                }
-              }
+              style={{
+                height: '100%',
+                overflowY: 'auto',
+                flexDirection: 'row',
+                gap: '3rem',
+                paddingLeft: '3%',
+                background: '#f5f5f5',
+                transition: 'background 0.1s ease-in',
+              }}
               id="main"
             >
               {toursLoaded ? (
@@ -373,12 +377,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                   {
                     this.props.userCreatedTours.length === 0 ? (
                       <EmptyTourState
-                        useCases={this.props.org?.info?.useCases}
                         isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
-                        principal={this.props.principal}
-                        defaultTours={this.state.onboardingToursForPreview}
                         extensionInstalled={this.state.isExtInstalled}
                         isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
+                        openOnboardingVideo={() => this.setState({ shouldShowOnboardingVideoModal: true })}
                       />
                     ) : (
                       <>
@@ -562,6 +564,47 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           </GTags.BorderedModal>
         )}
+        <GTags.BorderedModal
+          donotShowHeaderStip
+          containerBg="#000"
+          destroyOnClose
+          style={{ height: '10px' }}
+          open={this.state.shouldShowOnboardingVideoModal}
+          onOk={this.skipOnboadingVideo}
+          onCancel={this.skipOnboadingVideo}
+          width={800}
+          footer={(
+            <div className="button-two-col-cont">
+              <Button
+                type="button"
+                intent="link"
+                onClick={this.skipOnboadingVideo}
+                style={{ flex: 1, color: '#f5f5f5' }}
+              >
+                Close
+              </Button>
+            </div>
+            )}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          >
+            <iframe
+              width="600"
+              height="480"
+              src="https://www.youtube.com/embed/6hmh9TXnKaE?si=3UpaXZbigrmjkOLn"
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
+        </GTags.BorderedModal>
         <UpgradeModal
           showUpgradePlanModal={this.state.showUpgradeModal}
           setShowUpgradePlanModal={(upgrade: boolean) => { this.setState({ showUpgradeModal: upgrade }); }}

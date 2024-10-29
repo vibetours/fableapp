@@ -19,8 +19,8 @@ export default function VoiceoverControl(props: Props): JSX.Element {
 
   useEffect(() => {
     const xAdjustmentForWatermark = props.isWatermarkPresent ? 48 : 0;
-    setLeft((props.screenSizeData.iframePos.left + props.screenSizeData.iframePos.width) - 75 - xAdjustmentForWatermark - Gutter);
-    setTop((props.screenSizeData.iframePos.top + props.screenSizeData.iframePos.height) - 35 - Gutter);
+    setLeft((props.screenSizeData.iframePos.left + props.screenSizeData.iframePos.width) - 72 - xAdjustmentForWatermark - Gutter);
+    setTop((props.screenSizeData.iframePos.top + props.screenSizeData.iframePos.height) - 36 - Gutter);
   }, [props.screenSizeData]);
 
   return (

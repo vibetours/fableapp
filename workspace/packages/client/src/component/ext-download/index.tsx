@@ -83,8 +83,7 @@ export function StepContainer({
                 }}
               />
             )}
-            <li style={{ margin: '0.5rem 0' }}><span className="hl">Click on “Start Recording”</span> in Fable’s extension to start</li>
-            <li><span className="hl">Click on “Stop Recording”</span> once you are done</li>
+            <li style={{ margin: '0.5rem 0' }}><span className="hl">Click on Fable's chrome extension icon</span> to record a demo</li>
           </ul>
         )}
       />

@@ -217,8 +217,12 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
-          <GTags.SidePanelCon>
-            <SidePanel selected="settings" subs={this.props.subs} />
+          <GTags.SidePanelCon flat={this.props.searchParams.get('c') === '1'}>
+            <SidePanel
+              selected="settings"
+              subs={this.props.subs}
+              compact={this.props.searchParams.get('c') === '1'}
+            />
           </GTags.SidePanelCon>
           <GTags.MainCon style={{ overflow: 'auto', paddingLeft: '3%' }}>
             <Tags.Con>
