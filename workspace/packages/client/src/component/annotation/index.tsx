@@ -868,7 +868,7 @@ export class AnnotationCard extends React.PureComponent<IProps, IOwnStateProps> 
     if (config.voiceover) return false;
 
     if (isMediaAnnotation) {
-      return (pos === 'follow' || isAnnCustomPosition(pos)) && !this.props.annotationDisplayConfig.prerender;
+      return false;
     }
 
     return true;

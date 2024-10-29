@@ -59,7 +59,7 @@ export default function UploadImageScreen(props: Props): JSX.Element {
           <Tags.FlexColCon>
             <FileInput
               id="screen-image"
-              accept="image/png, image/jpeg, image/webp"
+              accept="image/png, image/jpeg, image/webp, image/gif"
               name="screen-img"
               required
             />

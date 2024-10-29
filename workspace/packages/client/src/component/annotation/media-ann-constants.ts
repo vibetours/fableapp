@@ -1,11 +1,11 @@
-export const ASPECT_RATIO = 1.3;
+export const ASPECT_RATIO = 1 / 1.5;
 
-export const DEFAULT_MED_WIDTH = 240;
-export const DEFAULT_LARGE_WIDTH = 360;
-export const COVER_MED_WIDTH = 240;
-export const COVER_LARGE_WIDTH = 480;
-export const COVER_MED_WIDTH_CENTER = 480;
-export const COVER_LARGE_WIDTH_CENTER = 600;
+export const DEFAULT_MED_WIDTH = 200;
+export const DEFAULT_LARGE_WIDTH = 280;
+export const COVER_MED_WIDTH = 200;
+export const COVER_LARGE_WIDTH = 280;
+export const COVER_MED_WIDTH_CENTER = 260;
+export const COVER_LARGE_WIDTH_CENTER = 320;
 
 export const DEFAULT_MED_HEIGHT = DEFAULT_MED_WIDTH / ASPECT_RATIO;
 export const DEFAULT_LARGE_HEIGHT = DEFAULT_LARGE_WIDTH / ASPECT_RATIO;

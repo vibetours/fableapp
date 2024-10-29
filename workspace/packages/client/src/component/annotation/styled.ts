@@ -382,18 +382,18 @@ export const MediaCon = styled.div`
   height: 100%;
 `;
 
-export const AnVideo = styled.video<{ border: string }>`
+export const AnVideo = styled.video`
   width: 100%;
-  border-radius: 8px;
-  box-shadow: ${p => `${p.border}`};
+  border-radius: 24px;
+  box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px, rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px, rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
   object-fit: cover;
 `;
 
-export const AnAudioCon = styled.div<{ border: string, bgColor: string }>`
+export const AnAudioCon = styled.div<{ bgColor: string }>`
   width: 100%;
   height: 100%;
   border-radius: 8px;
-  box-shadow: ${p => `${p.border}`};
+  box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 2px, rgba(0, 0, 0, 0.07) 0px 2px 4px, rgba(0, 0, 0, 0.07) 0px 4px 8px, rgba(0, 0, 0, 0.07) 0px 8px 16px, rgba(0, 0, 0, 0.07) 0px 16px 32px, rgba(0, 0, 0, 0.07) 0px 32px 64px;
   background: ${p => `${p.bgColor}`};
   display: flex;
   align-items: center;
@@ -407,7 +407,7 @@ export const AnMediaControls = styled.div<{showOverlay: boolean}>`
   transition: all 0.2s ease-in-out;
   background-color: ${(p) => (p.showOverlay ? 'rgba(0, 0, 0, 0.4)' : 'transparent')};
   height: 100%;
-  border-radius: 8px;
+  border-radius: 24px;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -433,7 +433,7 @@ export const AnMediaCtrlBtnsCon = styled.div`
 export const AnMediaCtrlBtn = styled.button<{ showButton: boolean }>`
   color: white;
   background-color: transparent;
-  font-size: 3rem;
+  font-size: 2rem !important;
   border: none;
   display: ${p => (p.showButton ? 'flex' : 'none')};
   cursor: pointer;

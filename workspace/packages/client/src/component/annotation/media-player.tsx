@@ -235,16 +235,6 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
       });
   };
 
-  getAnnotationBorder(): string {
-    const borderColor = this.props.conf.opts.annotationBodyBorderColor._val;
-    const defaultBorderColor = '#BDBDBD';
-
-    const blur = borderColor.toUpperCase() === defaultBorderColor ? '5px' : '0px';
-    const spread = borderColor.toUpperCase() === defaultBorderColor ? '0px' : '2px';
-
-    return `0 0 ${blur} ${spread} ${borderColor}`;
-  }
-
   logStepEvent = (direction: 'next' | 'prev'): void => {
     const ann_id = this.props.conf.config.refId;
     const tour_id = this.props.tourId;
@@ -266,7 +256,6 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   getPositioningAndSizingStyles(): Record<string, string> {
     const position = this.props.conf.config.positioning;
     const isCover = isCoverAnnotation(this.props.conf.config.id);
-    const offsetPosition = '20px';
 
     let styles: Record<string, string> = {};
     switch (position) {
@@ -393,9 +382,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             {
             this.props.type === 'video' && (
               <Tags.AnVideo
-                style={{ borderRadius: this.props.borderRadius }}
                 ref={this.mediaRef}
-                border={this.getAnnotationBorder()}
                 id={`fable-ann-video-${config.refId}`}
                 className="fable-video"
                 playsInline
@@ -421,7 +408,6 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
             this.props.type === 'audio' && (
               <Tags.AnAudioCon
                 style={{ borderRadius: this.props.borderRadius }}
-                border={this.getAnnotationBorder()}
                 id={`fable-ann-audio-${config.refId}`}
                 className="fable-audio"
                 bgColor={this.props.conf.opts.annotationBodyBackgroundColor._val}

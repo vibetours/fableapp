@@ -129,8 +129,8 @@ const getUserMediaContraints = (mediaType: AnnMediaType): MediaStreamConstraints
     return {
       ...baseMediaConstraints,
       video: {
-        width: { exact: 640 },
-        height: { exact: 480 },
+        width: { exact: 200 },
+        height: { exact: 300 },
         frameRate: { ideal: 12 },
       }
     };
@@ -443,18 +443,26 @@ function MediaRecorderModal(props: Props): ReactElement {
 
   return (
     <GTags.BorderedModal
+      donotShowHeaderStip
+      containerBg="#f5f5f5"
       style={{ height: '10px', top: '20px' }}
-      title="Create video / audio guide"
       open={state.isMediaModalOpen}
       onOk={closeRecorder}
       onCancel={closeRecorder}
       footer={null}
     >
+      <p
+        className="typ-h1"
+        style={{
+          margin: '0 0 1rem'
+        }}
+      >Create video/audio guide
+      </p>
       <Tabs
         onTabClick={(activeKey) => setActiveTabKey(activeKey as AnnMediaType)}
         activeKey={activeTabKey}
         destroyInactiveTabPane
-        type="card"
+        type="line"
         size="small"
         items={tabs}
       />
@@ -485,9 +493,9 @@ function MediaRecorderTab(props: MediaRecorderTabProps): JSX.Element {
       {props.state.permissionGiven ? (
         <>
           {props.annMediaType === 'audio' ? (
-            <p>Record an audio explaining the feature you selected on the screen.</p>
+            <p className="typ-reg">Record an audio explaining the feature you selected on the screen.</p>
           ) : (
-            <p>Record a video explaining the feature you selected on the screen.</p>
+            <p className="typ-reg">Record a video explaining the feature you selected on the screen.</p>
           )}
 
           {
@@ -498,7 +506,7 @@ function MediaRecorderTab(props: MediaRecorderTabProps): JSX.Element {
                     autoPlay
                     muted
                     ref={props.recorderRef}
-                    style={{ height: '225px', margin: 'auto', display: 'block', borderRadius: '12px' }}
+                    style={{ height: '300px', width: '200px', margin: 'auto', display: 'block', borderRadius: '24px' }}
                   />
                 ) : (
                   <audio
@@ -562,7 +570,7 @@ function MediaRecorderTab(props: MediaRecorderTabProps): JSX.Element {
                     autoPlay
                     controls
                     src={props.state.recordedMediaURL}
-                    style={{ height: '225px', margin: 'auto', display: 'block' }}
+                    style={{ height: '300px', width: '200px', margin: 'auto', display: 'block', borderRadius: '24px' }}
                   />
                 ) : (
                   <audio
@@ -614,7 +622,7 @@ function MediaRecorderTab(props: MediaRecorderTabProps): JSX.Element {
             position: 'absolute',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            backgroundColor: '#fff',
+            backgroundColor: '#f5f5f5',
             padding: '0 0.5rem'
           }}
         >

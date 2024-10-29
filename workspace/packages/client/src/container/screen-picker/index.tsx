@@ -354,7 +354,7 @@ class ScreenPicker extends React.PureComponent<IProps, IOwnStateProps> {
               <Tags.MsgCon>
                 <Tags.Heading className="typ-h1">Choose screens to add in this demo</Tags.Heading>
                 <Tags.SubHeading className="typ-reg">
-                  You can upload images from your system and add those in this demos.
+                  You can upload images/gifs from your system and add those in this demos.
                   You can also use our chrome extension to record your product and add it as part of this demo.
                 </Tags.SubHeading>
               </Tags.MsgCon>
