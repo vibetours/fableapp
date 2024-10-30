@@ -4,12 +4,11 @@ import Button from '../../../button';
 import * as GTags from '../../../../common-styled';
 import FileInput from '../../../file-input';
 import SelectInput from '../../../select-input';
-import { ImgResolution } from '../../utils/resize-img';
 
 interface Props {
   open: boolean;
   onCancel: () => void;
-  uploadImgMask: (maskImgFile: File, resolution: ImgResolution) => Promise<void>;
+  uploadImgMask: (maskImgFile: File) => Promise<void>;
   isUploading: boolean;
   error: string;
 }
@@ -21,8 +20,6 @@ export default function ImageMaskUploadModal({
   isUploading,
   error
 }: Props): JSX.Element {
-  const selectResolutionIpValRef = useRef<ImgResolution>('480');
-
   return (
     <GTags.BorderedModal
       open={open}
@@ -39,7 +36,7 @@ export default function ImageMaskUploadModal({
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
             const maskImgFile = formData.get('maskImg') as File;
-            uploadImgMask(maskImgFile, selectResolutionIpValRef.current);
+            uploadImgMask(maskImgFile);
           }}
           style={{ display: 'flex', flexDirection: 'column' }}
         >
@@ -51,13 +48,13 @@ export default function ImageMaskUploadModal({
             required
           />
 
-          <SelectInput
+          {/* <SelectInput
             id="resolution"
             defaultValue="480"
             options={[{ label: '480p', value: '480' }, { label: '720p', value: '720' }]}
             onChange={e => selectResolutionIpValRef.current = e}
             label="Select resolution"
-          />
+          /> */}
 
           <div className="button-two-col-cont">
             <Button

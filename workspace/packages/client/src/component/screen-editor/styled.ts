@@ -655,7 +655,7 @@ export const ResponsiveIpCon = styled.div`
   align-items: center;
   margin: 0 2px;
   flex-grow: 1;
-  background: #616161;
+  background: #424242;
   color: white;
   border-top-right-radius: 4px;
   border-top-left-radius: 4px;

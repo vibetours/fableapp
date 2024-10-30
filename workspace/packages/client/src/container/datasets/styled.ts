@@ -44,7 +44,7 @@ export const CardCon = styled.div<{isSelected: boolean}>`
   border: none;
   height: calc(80% - 2rem);
   background: #FFF;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  box-shadow: ${p => (p.isSelected ? 'var(--card-box-shadow-active)' : 'var(--card-box-shadow)')} ;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
   text-decoration: none;
   width: 180px;
@@ -52,10 +52,9 @@ export const CardCon = styled.div<{isSelected: boolean}>`
   max-width: 180px;
   justify-content: space-between;
   cursor: pointer;
-  outline: ${p => (p.isSelected ? `1px solid ${p.theme.colors.light.selection.background}` : 'none')};
 
   &:hover {
-    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
+    box-shadow: var(--card-box-shadow-active);
   }
 `;
 

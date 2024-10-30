@@ -109,12 +109,15 @@ export const QuillyInputCon = styled.div`
     background: #ffffff91;
     border: none;
     border-radius: 6px;
-    box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px;
+    box-shadow: var(--card-box-shadow-active);
+    opacity: 0.8;
     height: 48px;
     padding: 4px 6px;
+    transition: all 0.2s ease-out;
 
     &:focus, &:active, &:focus-visible {
-      outline: 1px solid #170545;
+      outline: none;
+      opacity: 1;
     }
   }
 `;

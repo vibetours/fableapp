@@ -351,7 +351,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
           { toursLoaded && (
-            <GTags.SidePanelCon flat>
+            <GTags.SidePanelCon>
               <SidePanel
                 selected="tours"
                 subs={this.props.subs}
@@ -504,6 +504,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <li>After the recording is complete, click on the “Stop Recording” button in the extension</li>
                   </ol>
                   <GTags.OurCollapse
+                    shadow="none"
                     expandIconPosition="start"
                     // eslint-disable-next-line react/no-unstable-nested-components
                     expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
@@ -566,13 +567,13 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
         )}
         <GTags.BorderedModal
           donotShowHeaderStip
-          containerBg="#000"
+          containerBg="#212121"
           destroyOnClose
           style={{ height: '10px' }}
           open={this.state.shouldShowOnboardingVideoModal}
           onOk={this.skipOnboadingVideo}
           onCancel={this.skipOnboadingVideo}
-          width={800}
+          width={880}
           footer={(
             <div className="button-two-col-cont">
               <Button
@@ -594,13 +595,14 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             }}
           >
             <iframe
-              width="600"
-              height="480"
-              src="https://www.youtube.com/embed/6hmh9TXnKaE?si=3UpaXZbigrmjkOLn"
-              title="YouTube video player"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
+              src={`https://app.sharefable.com/embed/demo/fable-onboarding-demo-baehgzwhn5gfz1ly?email=${this.props.principal?.email}`}
+              title="How to use Fable"
+              style={{
+                border: 'none',
+                width: '850px',
+                height: '600px'
+              }}
+              allow="fullscreen"
               allowFullScreen
             />
           </div>

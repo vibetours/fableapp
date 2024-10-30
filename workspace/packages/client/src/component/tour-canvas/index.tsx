@@ -1649,7 +1649,9 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
         // background rect which covers the entire annotation node
         p.append('rect')
           .attr('class', 'bg')
-          .style('filter', 'drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4))')
+          .style('filter', 'drop-shadow(1px 1px 0px #616161)')
+          .style('stroke', '#616161')
+          .style('stroke-width', '1')
           .attr('rx', ANN_NODE_BORDER_RADIUS)
           .attr('ry', ANN_NODE_BORDER_RADIUS)
           .attr('x', '0')
@@ -3244,7 +3246,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
                 style={{ verticalAlign: 'bottom' }}
               >
                 <path
-                  fill="#cdcdcd"
+                  fill="#424242"
                   d="M-50 80 L-14 14 C-14 14, 0 1, 14 14 L14 14 L50 80 Z"
                 />
               </Tags.AnnEditorModalArrow>

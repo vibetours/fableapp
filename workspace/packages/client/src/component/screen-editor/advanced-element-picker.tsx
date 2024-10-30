@@ -136,7 +136,7 @@ const AEPCon = styled.div`
   width: 100%;
   display: flex;
   height: 100%;
-  background: #616161;
+  background: #424242;
   display: flex;
   flex-direction: row;
   align-items: center;

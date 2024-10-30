@@ -9,13 +9,13 @@ export const TourCardCon = styled(Link)`
   gap: 1rem;
   border-radius: 0.5rem;
   background: #FFF;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  box-shadow: var(--card-box-shadow);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
   text-decoration: none;
   margin-bottom: 1rem;
 
   &:hover {
-    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
+    box-shadow: var(--card-box-shadow-active);
     cursor: pointer;
     text-decoration: none;
     color: #16023e;
@@ -90,14 +90,14 @@ export const EmbedBtn = styled.button`
   text-decoration: none;
   padding: 4px 11px;
   border-radius: 6px;
-  box-shadow: rgb(22 2 69 / 25%) 0px 1px 1px, rgb(22 2 69 / 13%) 0px 0px 1px 1px;
+  box-shadow: var(--card-box-shadow);
   cursor: pointer;
-  transition: box-shadow 0.3s ease-out;
+  transition: box-shadow 0.2s ease-out;
   display: flex;
   align-items: center;
 
   &:hover {
-    box-shadow: rgb(22 2 69 / 100%) 0px 1px 1px, rgb(22 2 69 / 100%) 0px 0px 1px 1px;
+    box-shadow: var(--card-box-shadow-active);
   }
 `;
 

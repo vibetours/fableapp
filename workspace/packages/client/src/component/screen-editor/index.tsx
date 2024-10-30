@@ -120,8 +120,7 @@ import ScreenImageBrusher from './screen-image-brushing';
 import * as Tags from './styled';
 import { StoredStyleForFormatPaste, StyleKeysToBeStored, StyleObjForFormatPaste } from './types';
 import { addImgMask, hideChildren, restrictCrtlType, unhideChildren } from './utils/creator-actions';
-import { ImgResolution } from './utils/resize-img';
-import { uploadFileToAws } from './utils/upload-img-to-aws';
+import { uploadImgFileObjectToAws } from '../../upload-media-to-aws';
 import { WarningIcon } from '../header/styled';
 
 const BLUR_VALUE = 8;
@@ -691,8 +690,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     if (!selectedImage) {
       return;
     }
-    const newImageUrl = await uploadFileToAws(selectedImage);
-    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl);
+    const newImageUrl = await uploadImgFileObjectToAws(selectedImage);
+    const [dimH, dimW] = ScreenEditor.changeSelectedImage(imgEl, newImageUrl?.cdnUrl || '');
 
     const path = this.iframeElManager!.elPath(imgEl);
     const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Image}`;
@@ -702,28 +701,24 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       imgEl.setAttribute(attrName, origVal);
     }
     const fid = this.getFidOfNodeWrapper(imgEl, path);
-    this.addToMicroEdit(path, fid, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl, dimH, dimW, fid], true, false);
+    this.addToMicroEdit(path, fid, ElEditType.Image, [getCurrentUtcUnixTime(), origVal, newImageUrl?.cdnUrl || '', dimH, dimW, fid], true, false);
     amplitudeScreenEdited('replace_image', '');
     this.flushMicroEdits();
   };
 
-  uploadImgMask = async (maskImgFile: File, resolution: ImgResolution): Promise<void> => {
+  uploadImgMask = async (maskImgFile: File): Promise<void> => {
     const el = this.state.selectedEl!;
 
     this.setState({ imageMaskUploadModalIsUploading: true, imageMaskUploadModalError: '' });
 
     try {
-      const newImageUrl = await uploadFileToAws(maskImgFile);
-      // const resizedImgUrl = maskImgFile.type === 'image/gif'
-      //   ? ''
-      //   : await resizeImg(newImageUrl, this.props.screen.rid, resolution);
-
+      const newImageUrl = await uploadImgFileObjectToAws(maskImgFile);
+      // TODO resize is not supported anymore
       const resizedImgUrl = '';
-
       hideChildren(el);
 
       const oldElInlineStyles = el.getAttribute('style') || '';
-      const newElInlineStyles = addImgMask(el, resizedImgUrl, newImageUrl);
+      const newElInlineStyles = addImgMask(el, resizedImgUrl, newImageUrl?.cdnUrl || '');
 
       const path = this.iframeElManager!.elPath(el);
 

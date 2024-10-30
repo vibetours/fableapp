@@ -5,10 +5,8 @@ import { captureException } from '@sentry/react';
 import { MediaType } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import Button from '../button';
-import { uploadMediaToAws, transcodeVideo, transcodeAudio } from './utils/upload-media-to-aws';
+import { uploadMediaToAws, transcodeVideo, transcodeAudio, uploadImgFileObjectToAws } from '../../upload-media-to-aws';
 import {
-  clearAnnotationAudio,
-  updateAnnotationAudio,
   updateAnnotationBoxSize,
   updateAnnotationPositioning,
   updateAnnotationVideo,
@@ -17,7 +15,7 @@ import { blobToUint8Array } from './utils/blob-to-uint8array';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import * as Tags from './styled';
 import * as GTags from '../../common-styled';
-import { uploadFileToAws } from './utils/upload-img-to-aws';
+// import { uploadFileToAws } from './utils/upload-img-to-aws';
 import AudioVisualizer from '../audio-visualizer';
 import Upgrade from '../upgrade';
 import { handleAddAnnotationAudio } from '../../utils';
@@ -293,8 +291,8 @@ function MediaRecorderModal(props: Props): ReactElement {
     });
   };
 
-  const transcodeVideoHandler = async (url: string): Promise<void> => {
-    const [err, stream1, stream2] = await transcodeVideo(url, props.tour.rid);
+  const transcodeVideoHandler = async (url: string, cdnUrl: string): Promise<void> => {
+    const [err, stream1, stream2] = await transcodeVideo(url, cdnUrl, props.tour.rid);
     if (err || stream1.failureReason || stream2.failureReason) {
       throw new Error('Transcoding failed');
     }
@@ -304,10 +302,10 @@ function MediaRecorderModal(props: Props): ReactElement {
 
     [stream1, stream2].forEach(stream => {
       if (stream.mediaType === MediaType.VIDEO_HLS) {
-        videoHls = stream.processedFilePath;
+        videoHls = stream.processedCdnPath;
       }
       if (stream.mediaType === MediaType.VIDEO_MP4) {
-        videoMp4 = stream.processedFilePath;
+        videoMp4 = stream.processedCdnPath;
       }
     });
 
@@ -329,8 +327,8 @@ function MediaRecorderModal(props: Props): ReactElement {
     closeRecorder();
   };
 
-  const transcodeAudioHandler = async (url: string, type: 'audio/webm' | 'audio/mpeg'): Promise<void> => {
-    const [err, stream1, stream2] = await transcodeAudio(url, props.tour.rid);
+  const transcodeAudioHandler = async (url: string, cdnUrl: string, type: 'audio/webm' | 'audio/mpeg'): Promise<void> => {
+    const [err, stream1, stream2] = await transcodeAudio(url, cdnUrl, props.tour.rid);
 
     if (err || stream1.failureReason || stream2.failureReason) {
       throw new Error('Transcoding failed');
@@ -366,13 +364,14 @@ function MediaRecorderModal(props: Props): ReactElement {
       type: activeTabKey === 'audio' ? AUDIO_CODEC_OPTIONS.mimeType : VIDEO_CODEC_OPTIONS.mimeType
     });
     const webm = await blobToUint8Array(webmBlob);
-
     const webmUrl = await uploadMediaToAws(webm, activeTabKey === 'audio' ? 'audio/webm' : 'video/webm');
+    if (!webmUrl) return;
 
+    const baseUrl = webmUrl.baseUrl.split('?')[0];
     if (activeTabKey === 'audio') {
-      await transcodeAudioHandler(webmUrl, 'audio/webm');
+      await transcodeAudioHandler(baseUrl, webmUrl.cdnUrl, 'audio/webm');
     } else {
-      await transcodeVideoHandler(webmUrl);
+      await transcodeVideoHandler(baseUrl, webmUrl.cdnUrl);
     }
   };
 
@@ -381,12 +380,14 @@ function MediaRecorderModal(props: Props): ReactElement {
       type: 'START_SAVING'
     });
 
-    const mediaUrl = await uploadFileToAws(mediaFile);
+    const mediaUrl = await uploadImgFileObjectToAws(mediaFile);
+    if (!mediaUrl) return;
 
+    const baseUrl = mediaUrl.baseUrl.split('?')[0];
     if (mediaType === 'audio') {
-      await transcodeAudioHandler(mediaUrl, 'audio/mpeg');
+      await transcodeAudioHandler(baseUrl, mediaUrl.cdnUrl, 'audio/mpeg');
     } else {
-      await transcodeVideoHandler(mediaUrl);
+      await transcodeVideoHandler(baseUrl, mediaUrl.cdnUrl);
     }
   };
 

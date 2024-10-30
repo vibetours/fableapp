@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-09-23 15:57:34.
+// Generated using typescript-generator version 2.35.1025 on 2024-10-30 06:16:55.
 
 export interface Activity extends ActivityBase {
 }
@@ -122,6 +122,14 @@ export interface EntityInfo {
     demoRouter?: any;
 }
 
+export interface EntityConfigKV extends EntityBase {
+    entityId: number;
+    entityType: ConfigEntityType;
+    configType: EntityConfigConfigType;
+    configKey: string;
+    configVal: any;
+}
+
 export interface LLMOps extends EntityBase {
     orgId: number;
     entityId: number;
@@ -146,6 +154,10 @@ export interface ButtonClicks {
 export interface CreateGifJobInfo extends JobProcessingInfo {
     manifestFilePath: string;
     gifFilePath: string;
+}
+
+export interface Credit {
+    value: number;
 }
 
 export interface EntityHoldingInfoBase extends Serializable {
@@ -189,6 +201,11 @@ export interface OrgInfo {
 }
 
 export interface PaymentTerms {
+}
+
+export interface ReqExperimentConfig {
+    key: string;
+    value: any;
 }
 
 export interface ReqNewLog {
@@ -378,6 +395,7 @@ export interface ReqLeadActivityDataPost {
 
 export interface ReqMediaProcessing {
     path: string;
+    cdnPath: string;
     assn: ReqEntityAssetAssn;
 }
 
@@ -598,6 +616,7 @@ export interface RespMediaProcessingInfo extends ResponseBase {
     originalFilePath: string;
     mediaType: MediaType;
     processedFilePath: string;
+    processedCdnPath: string;
     processingState: JobProcessingStatus;
     failureReason: string;
 }
@@ -672,6 +691,7 @@ export interface RespUploadUrl {
     url: string;
     expiry: string;
     filename: string;
+    cdnPath: string;
 }
 
 export interface RespUser extends ResponseBase {
@@ -930,6 +950,15 @@ export const enum FrameSettings {
     NOFRAME = "NOFRAME",
     LIGHT = "LIGHT",
     DARK = "DARK",
+}
+
+export const enum EntityConfigConfigType {
+    VANITY_DOMAIN = "VANITY_DOMAIN",
+    CUSTOM_FORM_FIELDS = "CUSTOM_FORM_FIELDS",
+    GLOBAL_OPTS = "GLOBAL_OPTS",
+    AI_CREDIT = "AI_CREDIT",
+    DATASET = "DATASET",
+    _EXP_ = "_EXP_",
 }
 
 export const enum LLMOpsStatus {

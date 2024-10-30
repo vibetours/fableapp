@@ -9,17 +9,16 @@ export const Container = styled.div`
   padding-top: 0;
 `;
 
+export const LayoutContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
 export const SkeletonCon = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  width: 100%;
-`;
-
-export const SkeletonGrid = styled.div`
-  display: flex;
-  gap: 1rem;
-  width: 100%;
+  gap: 1.5rem;
+  width: 60%;
 `;
 
 export const Heading = styled.h1`
@@ -63,12 +62,12 @@ export const DangerButton = styled.button`
   background: transparent;
   border: none;
   display: block;
-  width: 90%;
+  width: 100%;
   padding: 0rem 0;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease-out;
-  text-align: left;
+  text-align: center;
 
   .target {
     color: #ff7350;
@@ -99,9 +98,9 @@ export const NameTourInputContainer = styled.div`
 `;
 
 export const ModalButtonsContainer = styled.div`
-    display: flex;
-    margin: 1.5rem 0 0;
-    gap: 1rem;
+  display: flex;
+  margin: 1.5rem 0 0;
+  gap: 1rem;
 `;
 
 export const FableColorSplit = styled.div`
@@ -307,14 +306,14 @@ export const ManualDemo = styled.span`
 `;
 
 export const ProductCardCon = styled.div<{large?: boolean}>`
-  box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+  box-shadow: var(--card-box-shadow-active);
   max-height: ${props => (props.large ? '680px' : '600px')};
   min-height: ${props => (props.large ? '400px' : '300px')};
   min-width: 400px;
   background-color: white;
   border-radius: 5px;
   padding: 2rem;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   align-items: center;
   border-radius: 26px;
@@ -475,20 +474,20 @@ export const AllProgressCon = styled.div`
   grid-template-rows: repeat(4, 1fr);
   grid-template-columns: 1fr;
   display: grid;
-  width: 60%;
   gap: 10px;
 `;
 
-export const TipsAnimationCon = styled.div<{bgColor: string}>`
+export const TipsAnimationCon = styled.div`
   p {
     margin: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
   }
 
-  width: 25%;
-  padding: 1rem 2rem;
+  margin-top: 1rem;
+  color: #424242ad;
+  width: 100%;
   border-radius: 8px;
-  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
-  background:  ${props => props.bgColor};
+  display: flex;
+  align-items: flex-start;
   transition: background 1s ease-in-out;
 `;

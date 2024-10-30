@@ -14,7 +14,7 @@ interface Props {
 function CreateTourProgress(props: Props): JSX.Element {
   return (
     <Tags.ProgressCon>
-      {props.totalSteps && (
+      {!!props.totalSteps && (
         <>
           <div style={{ display: 'flex', flexDirection: 'column', margin: '0 10px' }}>
             <span className="typ-reg">{props.title}</span>
@@ -28,15 +28,15 @@ function CreateTourProgress(props: Props): JSX.Element {
                 <>
                   <Progress
                     strokeWidth={8}
-                    strokeColor="#7567FF"
-                    trailColor="#D9D9D9"
+                    strokeColor="#8da1af"
+                    trailColor="#c9d4db"
                     showInfo={false}
                     strokeLinecap="round"
                     percent={(props.completedSteps * 100) / props.totalSteps}
                     style={{ marginBottom: 0 }}
                   />
                   {props.completedSteps === props.totalSteps
-                    && <CheckCircleFilled style={{ color: '#7567FF', fontSize: 8, marginLeft: '5px' }} />}
+                    && <CheckCircleFilled style={{ color: '#8da1af', fontSize: 10, marginLeft: '5px' }} />}
                 </>)
           }
         </>

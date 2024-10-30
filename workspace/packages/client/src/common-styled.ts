@@ -125,8 +125,7 @@ export const BodyCon = styled.div`
 export const SidePanelCon = styled.aside<{ flat?: boolean }>`
   height: 100%;
   width: fit-content;
-  box-shadow: ${props => (props.flat ? 'none' : 'rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px')};
-  border-right: ${props => (props.flat ? '1px solid #1602456e' : 'none')};
+  border-right: 1px solid #bdbdbd;
   z-index: 2;
 `;
 
@@ -330,11 +329,11 @@ export const OurRadio = styled(Radio)`
   }
 `;
 
-export const OurCollapse = styled(Collapse)`
+export const OurCollapse = styled(Collapse)<{ shadow?: string }>`
   margin-top: 10px;
   background: white;
   border-radius: 0.5rem !important;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  box-shadow: ${props => props.shadow || 'var(--card-box-shadow-secondary)'};
 
   .ant-collapse-item {
     border-bottom: solid #d8d8db;

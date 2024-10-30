@@ -131,7 +131,7 @@ import {
   OpenAIVoices
 } from '../types';
 import ActionType from './type';
-import { uploadImageAsBinary } from '../component/screen-editor/utils/upload-img-to-aws';
+import { uploadImageAsBinary } from '../upload-media-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 import { FeatureForPlan, FeaturePerPlan } from '../plans';
 import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, updateTourDataToAddVoiceOver, isMediaAnnotation, replaceVarsInAnnotation } from '../utils';
@@ -767,8 +767,10 @@ export function uploadImgScreenAndAddToTour(
     });
 
     const pScreen = processRawScreenData(screen, getState().default.commonConfig!);
-
-    await uploadImageAsBinary(screenImgFile, pScreen.uploadUrl!);
+    await uploadImageAsBinary(screenImgFile, {
+      baseUrl: pScreen.uploadUrl!,
+      cdnUrl: pScreen.uploadUrl!.split('?')[0]
+    });
     await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
       method: 'POST',
       body: {

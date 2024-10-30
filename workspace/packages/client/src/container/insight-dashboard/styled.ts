@@ -35,7 +35,7 @@ export const Card = styled.div<{ $loading?: boolean }>`
     background: white;
     padding: 1.5rem 2.5rem;
     border-radius: 16px;
-    box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+    box-shadow: var(--card-box-shadow-active);
     gap: 1rem;
     filter: ${props => (props.$loading ? 'blur(5px)' : 'blur(0px)')};
   }

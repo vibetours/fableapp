@@ -62,7 +62,7 @@ export function StepContainer({
         description={(
           <ul>
             <li>
-              <span className="hl">Go to your website/application</span> that you want to create a demo of
+              Go to your website/application that you want to create a demo of
             </li>
             {extensionInstalled && !isAtleastOneDemoCreated && (
               <Input
@@ -83,7 +83,7 @@ export function StepContainer({
                 }}
               />
             )}
-            <li style={{ margin: '0.5rem 0' }}><span className="hl">Click on Fable's chrome extension icon</span> to record a demo</li>
+            <li style={{ margin: '0.5rem 0' }}>Click on Fable's chrome extension icon to record a demo</li>
           </ul>
         )}
       />

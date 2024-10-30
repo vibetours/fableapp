@@ -7,7 +7,7 @@ import * as Tags from './styled';
 import Loader from './loader';
 import FileInput from '../file-input';
 import Input from '../input';
-import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
+import { uploadImgFileObjectToAws } from '../../upload-media-to-aws';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import FableLogo from '../../assets/fable_logo_light_bg.png';
 import CloseIcon from '../../assets/tour/close.svg';
@@ -57,8 +57,9 @@ function LoaderEditor(props: Props): JSX.Element {
       const file = e.target.files[0];
       if (file) {
         props.startAutosavingLoader();
-        const fileUrl = await uploadFileToAws(e.target.files[0]);
-        setLoaderData(prev => ({ ...prev, loader: { url: fileUrl, type } }));
+        const fileUrl = await uploadImgFileObjectToAws(e.target.files[0]);
+        if (!fileUrl) return;
+        setLoaderData(prev => ({ ...prev, loader: { url: fileUrl.cdnUrl, type } }));
       }
     }
   };
@@ -124,9 +125,10 @@ function LoaderEditor(props: Props): JSX.Element {
                                   const file = e.target.files[0];
                                   if (file) {
                                     props.startAutosavingLoader();
-                                    const fileUrl = await uploadFileToAws(e.target.files[0]);
-                                    setLoaderData(prev => ({ ...prev, logo: { url: createLiteralProperty(fileUrl) } }));
-                                    if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl;
+                                    const fileUrl = await uploadImgFileObjectToAws(e.target.files[0]);
+                                    if (!fileUrl) return;
+                                    setLoaderData(prev => ({ ...prev, logo: { url: createLiteralProperty(fileUrl.cdnUrl) } }));
+                                    if (logoLinkIpRef.current) logoLinkIpRef.current.value = fileUrl.cdnUrl;
                                     setIsLogoUrlEmpty(false);
                                   }
                                 }

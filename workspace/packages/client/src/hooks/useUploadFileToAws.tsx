@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { uploadFileToAws } from '../component/screen-editor/utils/upload-img-to-aws';
+import { uploadImgFileObjectToAws } from '../upload-media-to-aws';
 
 const useUploadFileToAws = (): { uploadFile: (file: File) => Promise<string>, loading: boolean } => {
   const [isLoading, setIsLoading] = useState(false);
@@ -8,13 +8,12 @@ const useUploadFileToAws = (): { uploadFile: (file: File) => Promise<string>, lo
     setIsLoading(true);
 
     try {
-      const uploadUrl = await uploadFileToAws(file);
+      const uploadUrl = await uploadImgFileObjectToAws(file);
       setIsLoading(false);
-      return uploadUrl;
+      return uploadUrl?.cdnUrl || '';
     } catch (e) {
       setIsLoading(false);
     }
-
     return '';
   };
 

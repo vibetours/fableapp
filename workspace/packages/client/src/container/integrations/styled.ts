@@ -111,7 +111,7 @@ export const CustomFieldCon = styled.div`
 
   .docs {
     border-left: 1px solid lightgray;
-    padding 0.5rem 0.75rem;
+    padding: 0.5rem 0.75rem;
   }
 
   .fields-con {

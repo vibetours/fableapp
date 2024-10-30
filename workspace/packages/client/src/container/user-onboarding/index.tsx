@@ -13,6 +13,7 @@ import { WithRouterProps, withRouter } from '../../router-hoc';
 import { isExtensionInstalled } from '../../utils';
 import * as Tags from './styled';
 import { assignOrgToUser, createOrg, getAllUserOrgs, updateUseCasesForOrg, updateUser } from '../../action/creator';
+import Layout from './layout';
 
 const reactanimated = require('react-animated-css');
 
@@ -170,103 +171,89 @@ class NewOnboarding extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): JSX.Element {
     return (
-      <Tags.Con>
-        <Tags.FableLogoImg
-          src={FableLogo}
-          alt=""
-          height={30}
-        />
-        <div style={{
-          display: 'flex',
-          width: '100%',
-          position: 'absolute',
-          height: '100%',
-          justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'hidden'
-        }}
+      <Layout
+        footer={(
+          <Tags.CompanyCarouselWrapper>
+            <CompanyCarousel />
+          </Tags.CompanyCarouselWrapper>
+        )}
+      >
+        <reactanimated.Animated
+          animationIn="fadeInRight"
+          animationOut="fadeOutLeft"
+          animationInDuration={300}
+          animationOutDuration={300}
+          animateOnMount={false}
+          style={{
+            zIndex: this.state.currentSlideIdx === SLIDE_IDX_USER_DETAILS ? 5 : 1
+          }}
+          isVisible={this.state.currentSlideIdx === SLIDE_IDX_USER_DETAILS}
         >
-          <reactanimated.Animated
-            animationIn="fadeInRight"
-            animationOut="fadeOutLeft"
-            animationInDuration={300}
-            animationOutDuration={300}
-            animateOnMount={false}
-            style={{
-              zIndex: this.state.currentSlideIdx === SLIDE_IDX_USER_DETAILS ? 5 : 1
-            }}
-            isVisible={this.state.currentSlideIdx === SLIDE_IDX_USER_DETAILS}
-          >
-            <Tags.OnboardingCardCon className="typ-reg">
-              <NameCard
-                updateUser={this.props.updateUser}
-                principal={this.props.principal}
-              />
-            </Tags.OnboardingCardCon>
-          </reactanimated.Animated>
+          <Tags.OnboardingCardCon className="typ-reg">
+            <NameCard
+              updateUser={this.props.updateUser}
+              principal={this.props.principal}
+            />
+          </Tags.OnboardingCardCon>
+        </reactanimated.Animated>
 
-          <reactanimated.Animated
-            animationIn="fadeInRight"
-            animationOut="fadeOutLeft"
-            animationInDuration={300}
-            animationOutDuration={300}
-            animateOnMount={false}
-            style={{
-              zIndex: this.state.currentSlideIdx === SLIDE_IDX_ONBOARDING ? 5 : 1
-            }}
-            isVisible={this.state.currentSlideIdx === SLIDE_IDX_ONBOARDING}
-          >
-            <Tags.OnboardingCardCon className="typ-reg">
-              <OrgCreate
-                userOrgs={this.props.allUserOrgs}
-                assignOrgToUser={this.props.assignOrgToUser}
-                orgCreateInputRef={this.orgCreateInputRef}
-                createNewOrg={this.props.createNewOrg}
-                onSelect={org => this.navOrgNext(org)}
-              />
-            </Tags.OnboardingCardCon>
-          </reactanimated.Animated>
+        <reactanimated.Animated
+          animationIn="fadeInRight"
+          animationOut="fadeOutLeft"
+          animationInDuration={300}
+          animationOutDuration={300}
+          animateOnMount={false}
+          style={{
+            zIndex: this.state.currentSlideIdx === SLIDE_IDX_ONBOARDING ? 5 : 1
+          }}
+          isVisible={this.state.currentSlideIdx === SLIDE_IDX_ONBOARDING}
+        >
+          <Tags.OnboardingCardCon className="typ-reg">
+            <OrgCreate
+              userOrgs={this.props.allUserOrgs}
+              assignOrgToUser={this.props.assignOrgToUser}
+              orgCreateInputRef={this.orgCreateInputRef}
+              createNewOrg={this.props.createNewOrg}
+              onSelect={org => this.navOrgNext(org)}
+            />
+          </Tags.OnboardingCardCon>
+        </reactanimated.Animated>
 
-          <reactanimated.Animated
-            animationIn="fadeInRight"
-            animationOut="fadeOutLeft"
-            animationInDuration={300}
-            animationOutDuration={300}
-            animateOnMount={false}
-            style={{
-              zIndex: this.state.currentSlideIdx === SLIDE_IDX_USECASE ? 5 : 1
-            }}
-            isVisible={this.state.currentSlideIdx === SLIDE_IDX_USECASE}
-          >
-            <Tags.OnboardingCardCon className="typ-reg">
-              <Usecase
-                updateUseCasesForOrg={this.props.updateUseCasesForOrg}
-                onSubmit={this.navUsecaseNext}
-              />
-            </Tags.OnboardingCardCon>
-          </reactanimated.Animated>
+        <reactanimated.Animated
+          animationIn="fadeInRight"
+          animationOut="fadeOutLeft"
+          animationInDuration={300}
+          animationOutDuration={300}
+          animateOnMount={false}
+          style={{
+            zIndex: this.state.currentSlideIdx === SLIDE_IDX_USECASE ? 5 : 1
+          }}
+          isVisible={this.state.currentSlideIdx === SLIDE_IDX_USECASE}
+        >
+          <Tags.OnboardingCardCon className="typ-reg">
+            <Usecase
+              updateUseCasesForOrg={this.props.updateUseCasesForOrg}
+              onSubmit={this.navUsecaseNext}
+            />
+          </Tags.OnboardingCardCon>
+        </reactanimated.Animated>
 
-          <reactanimated.Animated
-            animationIn="fadeInRight"
-            animationOut="fadeOutLeft"
-            animationInDuration={300}
-            animationOutDuration={300}
-            animateOnMount={false}
-            style={{
-              zIndex: this.state.currentSlideIdx === SLIDE_IDX_EXT_INSTALL ? 5 : 1
-            }}
-            isVisible={this.state.currentSlideIdx === SLIDE_IDX_EXT_INSTALL}
-          >
-            <Tags.OnboardingCardCon className="typ-reg">
-              <ExtensionDownload />
-            </Tags.OnboardingCardCon>
-          </reactanimated.Animated>
-        </div>
-        <Tags.CompanyCarouselWrapper>
-          <CompanyCarousel />
-        </Tags.CompanyCarouselWrapper>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css" />
-      </Tags.Con>
+        <reactanimated.Animated
+          animationIn="fadeInRight"
+          animationOut="fadeOutLeft"
+          animationInDuration={300}
+          animationOutDuration={300}
+          animateOnMount={false}
+          style={{
+            zIndex: this.state.currentSlideIdx === SLIDE_IDX_EXT_INSTALL ? 5 : 1
+          }}
+          isVisible={this.state.currentSlideIdx === SLIDE_IDX_EXT_INSTALL}
+        >
+          <Tags.OnboardingCardCon className="typ-reg">
+            <ExtensionDownload />
+          </Tags.OnboardingCardCon>
+        </reactanimated.Animated>
+      </Layout>
     );
   }
 }

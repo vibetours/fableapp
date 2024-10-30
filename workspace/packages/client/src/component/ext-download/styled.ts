@@ -150,12 +150,11 @@ export const SetupSteps = styled.div`
     padding: 1rem 1.5rem;
     padding-left: 0.75rem;
     font-size: 0.75rem;
-    box-shadow: var(--card-box-shadow);
+    box-shadow: var(--card-box-shadow-active);
     display : flex;
     align-items: start;
     gap: 1rem;
     transition: all 100ms;
-    outline: 1px solid #E6E6E6;
 
     &.complete {
       opacity: 0.65;

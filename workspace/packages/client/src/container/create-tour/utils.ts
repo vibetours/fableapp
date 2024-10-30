@@ -84,11 +84,11 @@ import {
 import { P_RespSubscription, P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
 import { extractTextFromHTMLString, getColorContrast, getSerNodesElPathFromFids, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, isActiveBusinessPlan } from '../../utils';
 import {
-  uploadFileToAws,
+  uploadImgFileObjectToAws,
   uploadImageAsBinary,
   uploadImageDataToAws,
   uploadMarkedImageToAws
-} from '../../component/screen-editor/utils/upload-img-to-aws';
+} from '../../upload-media-to-aws';
 import { DemoState, Vpd } from '../../types';
 import { SURVEY_ID, THEME_BASE_IMAGE_URL } from '../../constants';
 
@@ -539,9 +539,9 @@ export const handleAssetOperation = async (
 
           const blob = new Blob([uint8Array]);
           const file = new File([blob], 'image.png', { type: 'image/png' });
-          const urlString = await uploadFileToAws(file);
+          const url = await uploadImgFileObjectToAws(file);
 
-          operation.node.attrs[operation.attr!] = urlString;
+          operation.node.attrs[operation.attr!] = url?.cdnUrl || '';
           operation.node.props.base64Img = '';
         } catch (e) {
           raiseDeferredError(e as Error);
@@ -687,7 +687,7 @@ export function processScreen(
     if (frame.type === 'thumbnail') {
       imageData = frame.data as string;
       try {
-        frameThumbnailPromise.push(uploadImageDataToAws(imageData, 'image/png'));
+        frameThumbnailPromise.push(uploadImageDataToAws(imageData, 'image/png').then(t => t?.cdnUrl || ''));
 
         // const imageName = `un_marked_image_${id}.jpeg`;
         // const file = new File([imageData], `temp${Math.random()}`, { type: 'image/jpeg' });
@@ -1000,7 +1000,10 @@ export async function processNewScreenApiCalls(
       });
 
       data = resp.data;
-      await uploadImageAsBinary(screenImgFile, data.uploadUrl!);
+      await uploadImageAsBinary(screenImgFile, {
+        baseUrl: data.uploadUrl!,
+        cdnUrl: data.uploadUrl!.split('?')[0],
+      });
       await api<ReqThumbnailCreation, ApiResp<RespScreen>>('/genthumb', {
         method: 'POST',
         body: {

@@ -19,7 +19,7 @@ import PublishButton from './publish-button';
 import { ParamType } from './utm-params-helper';
 import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
-import { uploadFileToAws } from '../screen-editor/utils/upload-img-to-aws';
+import { uploadImgFileObjectToAws } from '../../upload-media-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
 import { EditItem, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
@@ -178,9 +178,10 @@ function CTAInfo({ iframeUrl,
                               const file = e.target.files[0];
                               if (file) {
                                 setLogoUploading(true);
-                                const fileUrl = await uploadFileToAws(e.target.files[0]);
-                                updateBrandData([['logo', createLiteralProperty(fileUrl)]]);
-                                amplitudeCtaConfigChanged('logo', fileUrl);
+                                const fileUrl = await uploadImgFileObjectToAws(e.target.files[0]);
+                                if (!fileUrl) return;
+                                updateBrandData([['logo', createLiteralProperty(fileUrl.cdnUrl)]]);
+                                amplitudeCtaConfigChanged('logo', fileUrl.cdnUrl);
                                 setLogoUploading(false);
                               }
                             }

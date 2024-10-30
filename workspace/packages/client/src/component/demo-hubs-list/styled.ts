@@ -48,14 +48,14 @@ export const EmbedBtn = styled.button`
   text-decoration: none;
   padding: 4px 11px;
   border-radius: 6px;
-  box-shadow: rgb(22 2 69 / 25%) 0px 1px 1px, rgb(22 2 69 / 13%) 0px 0px 1px 1px;
+  box-shadow: var(--card-box-shadow);
   cursor: pointer;
   transition: box-shadow 0.3s ease-out;
   display: flex;
   align-items: center;
 
   &:hover {
-    box-shadow: rgb(22 2 69 / 100%) 0px 1px 1px, rgb(22 2 69 / 100%) 0px 0px 1px 1px;
+    box-shadow: var(--card-box-shadow-active);
   }
 `;
 
@@ -112,10 +112,10 @@ export const Demo = styled.div`
   border-radius : 0.5rem;
   padding: 0.5rem 0.25rem;
   width: 260px;
-  box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+  box-shadow: var(--card-box-shadow);
   transition: all 100ms;
   &:hover {
-    outline: 1px solid ${(props) => props.theme.colors.light.selection.background};
+    box-shadow: var(--card-box-shadow-active);
     text-decoration: none;
     color: #16023e;
   }
@@ -126,14 +126,13 @@ export const Demo = styled.div`
     margin: auto;
     position: relative;
     border-radius: 0.5rem;
-    box-shadow: rgba(0, 0, 0, 0.02) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px;
 
     img {
       width: 100%;
       height : 100%;
       border-radius: 0.5rem;
       position: absolute;
-      box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+      box-shadow: var(--card-box-shadow-secondary);
     }
 
     .option-overlay {
@@ -192,6 +191,7 @@ export const Demo = styled.div`
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 0.5rem;
+    margin-bottom: 0.25rem;
     padding: 0.5rem 0 0 0.5rem;
   }
 

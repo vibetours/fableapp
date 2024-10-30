@@ -23,7 +23,7 @@ function prepareIframeEmbedCode(opts: {
   src="${opts.src}"
   width="${opts.width}"
   height="${opts.height}"
-  style="border: 1px solid rgba(0, 0, 0, 0.1)"
+  style="border: none"
   allowfullscreen
 />
   `.trim();
