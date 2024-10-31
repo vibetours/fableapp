@@ -621,8 +621,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
     }
 
-    const params = createdUsingAi ? `i=1&${AI_PARAM}` : 'i=1';
-    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}?${params}`);
+    const params = createdUsingAi ? `?${AI_PARAM}` : '';
+    this.props.navigate(`/${PREVIEW_BASE_URL}/demo/${tour.data.rid}${params}`);
   };
 
   saveInExistingTour = async (
