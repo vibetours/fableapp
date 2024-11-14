@@ -1,34 +1,68 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { LoadingOutlined, WalletFilled } from '@ant-design/icons';
-import { ReqSubscriptionInfo } from '@fable/common/dist/api-contract';
+import { ReqSubscriptionInfo, RespSubscription } from '@fable/common/dist/api-contract';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import Button from '../button';
+import { amplitudeBuyMoreQuillyCredit } from '../../amplitude';
 
 declare const Chargebee: any;
 
 function BuyMoreCredit({
   currentCredit,
-  isBuyMoreCreditInProcess,
   checkCredit,
   showCreditInfo,
-  onBuyMoreCreditClick
+  clickedFrom,
+  title,
+  showIcon
 }:
 {
   currentCredit: number;
-  isBuyMoreCreditInProcess: boolean,
-  checkCredit: ()=> void,
+  checkCredit: ()=> Promise<RespSubscription>,
   showCreditInfo: boolean,
-  onBuyMoreCreditClick: ()=> void,
+  clickedFrom: 'header' | 'create-demo' | 'preview' | 'billing',
+  title?: string,
+  showIcon?: boolean
 }): JSX.Element {
+  const [availableCredits, setAvailableCredits] = useState(0);
+  const [isBuyMoreCreditInProcess, setIsBuyMoreCreditInProgress] = useState(false);
+  const creditIntervalRef = useRef<null | NodeJS.Timeout>(null);
+
+  const handleCreditUpdate = (): void => {
+    if (!checkCredit) return;
+    setIsBuyMoreCreditInProgress(true);
+    creditIntervalRef.current = setInterval(() => {
+      checkCredit();
+    }, 2000);
+  };
+
   useEffect(() => {
+    if (availableCredits < currentCredit) {
+      if (creditIntervalRef.current !== null) {
+        clearInterval(creditIntervalRef.current);
+        creditIntervalRef.current = null;
+      }
+      setAvailableCredits(currentCredit);
+      setIsBuyMoreCreditInProgress(false);
+      amplitudeBuyMoreQuillyCredit(clickedFrom, currentCredit - availableCredits);
+    }
+  }, [currentCredit]);
+
+  useEffect(() => {
+    setAvailableCredits(currentCredit);
     Chargebee.init({
       site: process.env.REACT_APP_CHARGEBEE_SITE,
     });
+
+    return () => {
+      if (creditIntervalRef.current !== null) {
+        clearInterval(creditIntervalRef.current);
+        creditIntervalRef.current = null;
+      }
+    };
   }, []);
 
   const buyMoreCredit = (): void => {
-    onBuyMoreCreditClick();
     const cbInstance = Chargebee.getInstance();
     cbInstance.openCheckout({
       hostedPage() {
@@ -41,7 +75,7 @@ function BuyMoreCredit({
       error(e: Error) { raiseDeferredError(e); },
       close() { },
       success() {
-        checkCredit();
+        handleCreditUpdate();
       },
       step() { }
     });
@@ -84,9 +118,10 @@ function BuyMoreCredit({
         }}
         onClick={buyMoreCredit}
         disabled={isBuyMoreCreditInProcess}
-        icon={isBuyMoreCreditInProcess ? <LoadingOutlined /> : null}
+        icon={isBuyMoreCreditInProcess ? <LoadingOutlined /> : showIcon ? <WalletFilled /> : null}
+        iconPlacement={isBuyMoreCreditInProcess ? 'right' : 'left'}
       >
-        Buy more credit
+        {title || 'Buy more credit'}
       </Button>
     </div>
   );

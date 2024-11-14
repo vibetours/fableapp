@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubsValidation, RespUser, Status } from '@fable/common/dist/api-contract';
+import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubscription, RespSubsValidation, RespUser, Status } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
@@ -24,6 +24,7 @@ import TopLoader from '../../component/loader/top-loader';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TOP_LOADER_DURATION } from '../../constants';
 import { mapPlanIdAndIntervals } from '../../utils';
+import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
 
 const { confirm } = Modal;
 
@@ -31,7 +32,7 @@ declare const Chargebee: any;
 
 interface IDispatchProps {
   checkout: typeof checkout,
-  getSubscriptionOrCheckoutNew: typeof getSubscriptionOrCheckoutNew
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
@@ -39,7 +40,7 @@ const mapDispatchToProps = (dispatch: any) => ({
     chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
     chosenInterval: 'annual' | 'monthly' | 'lifetime',
   ) => dispatch(checkout(chosenPlan, chosenInterval)),
-  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew)
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 interface IAppStateProps {
@@ -145,26 +146,6 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     });
   };
 
-  // eslint-disable-next-line class-methods-use-this
-  openCheckoutForQuillyCredit = () => {
-    const cbInstance = Chargebee.getInstance();
-    cbInstance.openCheckout({
-      hostedPage() {
-        return api<ReqSubscriptionInfo | undefined, null>('/credittopupurl', {
-          method: 'POST',
-          auth: true
-        });
-      },
-      loaded() { },
-      error(e: Error) { raiseDeferredError(e); },
-      close() { },
-      success: () => {
-        this.props.getSubscriptionOrCheckoutNew();
-      },
-      step() { }
-    });
-  };
-
   render(): JSX.Element {
     const priceFor: 'priceAnnual' | 'priceMonthly' | undefined = this.state.tabSelected === 'Yearly'
       ? 'priceAnnual'
@@ -197,6 +178,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>
@@ -309,19 +291,14 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                       >
                         Make Payment
                       </Button>
-                      <Button
-                        icon={<WalletFilled />}
-                        iconPlacement="left"
-                        onClick={() => {
-                          this.openCheckoutForQuillyCredit();
-                        }}
-                        style={{
-                          background: '#fedf64',
-                          color: 'black'
-                        }}
-                      >
-                        Buy Quilly credit
-                      </Button>
+                      <BuyMoreCredit
+                        showCreditInfo={false}
+                        currentCredit={this.props.subs.availableCredits}
+                        clickedFrom="billing"
+                        checkCredit={this.props.getSubscriptionOrCheckoutNew}
+                        title="Buy Quilly Credit"
+                        showIcon
+                      />
                     </div>
                   </div>
                   <div style={{

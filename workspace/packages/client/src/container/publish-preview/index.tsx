@@ -181,8 +181,6 @@ interface IOwnStateProps {
   nextEditId: number;
   activeEditId: number;
   tourUpdateMode: 'ai' | 'history' | 'na';
-  isBuyMoreCreditInProcess: boolean;
-  aiCreditsAvailable: number;
   placeholderText: string;
   placeholderWordIndex: number;
   prevDescription: string;
@@ -235,8 +233,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       tourUpdateMode: 'na',
       nextEditId: 1,
       activeEditId: -1,
-      isBuyMoreCreditInProcess: false,
-      aiCreditsAvailable: 0,
       placeholderText: '',
       placeholderWordIndex: 0,
       prevDescription: '',
@@ -300,7 +296,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
     this.showMinimalHeaderIfReq();
     this.props.getVanityDomains();
-    if (this.props.subs) this.setState({ aiCreditsAvailable: this.props.subs.availableCredits });
     this.typewritePlaceholderTextInQuillyTextbox();
   }
 
@@ -362,10 +357,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         );
       }
       this.setState({ updateDemoLoadingStatus: LoadingStatus.Error, completedStep: null });
-    }
-
-    if (this.props.subs !== prevProps.subs && !this.state.isBuyMoreCreditInProcess && this.props.subs) {
-      this.setState({ aiCreditsAvailable: this.props.subs.availableCredits });
     }
 
     if (this.state.completedStep !== prevState.completedStep) {
@@ -521,22 +512,6 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
   };
 
-  checkCredit = (): void => {
-    this.setState({ isBuyMoreCreditInProcess: true });
-    const interval = setInterval(() => {
-      this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
-        if (data.availableCredits > this.state.aiCreditsAvailable) {
-          this.setState({
-            isBuyMoreCreditInProcess: false,
-            aiCreditsAvailable: data.availableCredits
-            //  buyCreditModalOpen: false
-          });
-          clearInterval(interval);
-        }
-      });
-    }, 2000);
-  };
-
   // TODO use react-type-animation package
   // This also has some experiencial issue -- once the sentence is finished, the next sentence is started immediately
   // without waiting for the user to wait
@@ -600,6 +575,14 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       '*'
     );
     this.updateVoiceoverProgress(100);
+
+    traceEvent(
+      AMPLITUDE_EVENTS.VOICEOVER_APPLIED,
+      {
+        voice_used: this.state.selectedVoice
+      },
+      [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+    );
   };
 
   playPauseSampleVoice = (e: typeof VoiceOptions[0]): void => {
@@ -739,6 +722,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             showCalendar
             minimalHeader={this.state.minimalHeader}
             vanityDomains={this.props.vanityDomains}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />}
         </Tags.HeaderCon>
 
@@ -889,13 +873,12 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                           </div>
                         </div>
                         {
-                          this.props.subs && this.state.aiCreditsAvailable < this.state.creditRequiredForVoiceover
+                          this.props.subs && this.props.subs.availableCredits < this.state.creditRequiredForVoiceover
                             ? <BuyMoreCredit
                                 currentCredit={this.props.subs.availableCredits}
-                                isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                                checkCredit={this.checkCredit}
+                                checkCredit={this.props.getSubscriptionOrCheckoutNew}
                                 showCreditInfo={false}
-                                onBuyMoreCreditClick={() => {}}
+                                clickedFrom="preview"
                             />
                             : (
                               <Button
@@ -1011,13 +994,12 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                 disabled={this.state.updateDemoLoadingStatus === LoadingStatus.InProgress}
               />
             </Tags.QuillyInputCon>
-            { this.state.aiCreditsAvailable < CREDIT_USED_FOR_LLM_CALL
+            { this.props.subs && this.props.subs.availableCredits < CREDIT_USED_FOR_LLM_CALL
               ? <BuyMoreCredit
                   currentCredit={this.props.subs.availableCredits}
-                  isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                  checkCredit={this.checkCredit}
+                  checkCredit={this.props.getSubscriptionOrCheckoutNew}
                   showCreditInfo={false}
-                  onBuyMoreCreditClick={() => {}}
+                  clickedFrom="preview"
               />
               : (
                 <Tooltip

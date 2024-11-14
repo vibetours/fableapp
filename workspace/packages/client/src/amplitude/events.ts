@@ -60,5 +60,7 @@ export enum AMPLITUDE_EVENTS {
     EDIT_DEMO_HUB='edit_demo_hub',
     PREVIEW_DEMO_HISTORY_SELECTED='preview_demo_history_selected',
     PREVIEW_DEMO_QUILLY_USED='preview_demo_quilly_used',
-    QUILLY_RETURNED_SKILL_AS_NA='quilly_returned_skill_as_na'
+    QUILLY_RETURNED_SKILL_AS_NA='quilly_returned_skill_as_na',
+    QUILLY_CREDIT_PURCHASED='quilly_credit_purchased',
+    VOICEOVER_APPLIED='voiceover_applied',
 }

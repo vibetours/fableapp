@@ -175,7 +175,6 @@ type IOwnStateProps = {
   openSelect: boolean;
   showBreakIntoModule: boolean;
   isAiCreditsAvailable: boolean;
-  aiCreditsAvailable: number;
   shouldBreakIntoModule: boolean;
   anonymousDemoId: string;
   productDetails: string;
@@ -191,8 +190,6 @@ type IOwnStateProps = {
   creationMode: 'ai' | 'manual';
   batchProgress: number;
   aiDemoCreationSupported: boolean;
-  buyCreditModalOpen: boolean;
-  isBuyMoreCreditInProcess: boolean;
   aiGenerationNotPossible: boolean;
 }
 
@@ -251,7 +248,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       showBreakIntoModule: true,
       shouldBreakIntoModule: false,
       isAiCreditsAvailable: true,
-      aiCreditsAvailable: 0,
       anonymousDemoId: getUUID(),
       demoObjective: '',
       productDetails: '',
@@ -266,8 +262,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       creationMode: 'ai',
       batchProgress: 0,
       aiDemoCreationSupported: false,
-      buyCreditModalOpen: false,
-      isBuyMoreCreditInProcess: false,
       aiGenerationNotPossible: false,
     };
     this.data = null;
@@ -663,22 +657,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.updateCreditsAvailability();
   }
 
-  checkCredit = (): void => {
-    this.setState({ isBuyMoreCreditInProcess: true });
-    const interval = setInterval(() => {
-      this.props.getSubscriptionOrCheckoutNew().then((data: RespSubscription) => {
-        if (data.availableCredits > this.state.aiCreditsAvailable) {
-          this.setState({ isBuyMoreCreditInProcess: false, buyCreditModalOpen: false });
-          clearInterval(interval);
-        }
-      });
-    }, 2000);
-  };
-
-  buyMoreCredit = async (): Promise<void> => {
-    this.setState({ buyCreditModalOpen: true });
-  };
-
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
     if (prevState.isReadyToSave !== this.state.isReadyToSave
       || prevState.isScreenProcessed !== this.state.isScreenProcessed
@@ -721,9 +699,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    if ((this.props.subs !== prevProps.subs
-      || this.state.buyCreditModalOpen !== prevState.buyCreditModalOpen)
-       && !this.state.buyCreditModalOpen) {
+    if (this.props.subs !== prevProps.subs) {
       this.updateCreditsAvailability();
     }
 
@@ -746,7 +722,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.subs) {
       const numberOfScreens = this.frameDataToBeProcessed.length;
       const isAiCreditsAvailable = this.props.subs.availableCredits - (numberOfScreens * 10) > 0;
-      this.setState({ isAiCreditsAvailable, aiCreditsAvailable: this.props.subs.availableCredits });
+      this.setState({ isAiCreditsAvailable });
     }
   };
 
@@ -1867,10 +1843,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                     ) : (
                       <BuyMoreCredit
                         currentCredit={this.props.subs.availableCredits}
-                        isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                        checkCredit={this.checkCredit}
+                        checkCredit={this.props.getSubscriptionOrCheckoutNew}
                         showCreditInfo
-                        onBuyMoreCreditClick={this.buyMoreCredit}
+                        clickedFrom="create-demo"
                       />
                     )}
                   </Tags.CardContentCon>
@@ -2049,10 +2024,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   <Tags.CardContentCon>
                     <BuyMoreCredit
                       currentCredit={this.props.subs.availableCredits}
-                      isBuyMoreCreditInProcess={this.state.isBuyMoreCreditInProcess}
-                      checkCredit={this.checkCredit}
+                      checkCredit={this.props.getSubscriptionOrCheckoutNew}
                       showCreditInfo
-                      onBuyMoreCreditClick={this.buyMoreCredit}
+                      clickedFrom="create-demo"
                     />
                   </Tags.CardContentCon>
                 </Tags.ProductCardCon>

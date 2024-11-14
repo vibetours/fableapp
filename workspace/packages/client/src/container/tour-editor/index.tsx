@@ -15,7 +15,7 @@ import {
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
 import { Tooltip, Button, Alert } from 'antd';
-import { ReqTourPropUpdate, RespOrg, RespUser, ScreenType } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespOrg, RespSubscription, RespUser, ScreenType } from '@fable/common/dist/api-contract';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { createLiteralProperty, getDefaultLiteralTourOpts, getDefaultTourOpts } from '@fable/common/dist/utils';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -29,6 +29,7 @@ import {
   flushGlobalEditChunksToMasterFile,
   flushTourDataToMasterFile,
   getCustomDomains,
+  getSubscriptionOrCheckoutNew,
   loadScreenAndData,
   loadTourAndData,
   publishTour,
@@ -120,6 +121,7 @@ interface IDispatchProps {
     value: ReqTourPropUpdate[T]
   ) => void;
   getVanityDomains: () => void;
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>;
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -152,6 +154,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     value: ReqTourPropUpdate[T]
   ) => dispatch(updateTourProp(rid, tourProp, value)),
   getVanityDomains: () => dispatch(getCustomDomains()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 const getTimeline = (allAnns: AnnotationPerScreen[], tour: P_RespTour): Timeline => {
@@ -795,6 +798,7 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
                 showCalendar: true,
                 isEntryPointMediaAnn: this.state.isEntryPointMediaAnn,
                 vanityDomains: this.props.vanityDomains,
+                checkCredit: this.props.getSubscriptionOrCheckoutNew
               }}
               journey={this.props.journey!}
               manifestPath={`${this.props.pubTourAssetPath}${this.props.tour?.rid}/${this.props.manifestFileName}`}

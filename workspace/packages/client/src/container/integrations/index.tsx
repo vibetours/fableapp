@@ -10,6 +10,7 @@ import {
   RespLinkedApps,
   RespOrg,
   RespPlatformIntegration,
+  RespSubscription,
   RespTenantIntegration,
   RespUser
 } from '@fable/common/dist/api-contract';
@@ -33,20 +34,22 @@ import Webhook from './webhook';
 import Button from '../../component/button';
 import { amplitudeIntegrationModalOpened } from '../../amplitude';
 import { FeatureForPlan } from '../../plans';
-import { createMappedField, deleteMappedField, loadMappedFields } from '../../action/creator';
+import { createMappedField, deleteMappedField, getSubscriptionOrCheckoutNew, loadMappedFields } from '../../action/creator';
 import { ButtonCon } from '../../component/button/styled';
 import Input from '../../component/input';
 
 interface IDispatchProps {
   createMappedField: (newFields: string[]) => Promise<RespCustomField[]>,
   deleteMappedField: (fieldIds: string[]) => Promise<RespCustomField[]>,
-  fetchMappedFields: () => Promise<RespCustomField[]>
+  fetchMappedFields: () => Promise<RespCustomField[]>,
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>,
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   createMappedField: (newFields: string[]) => dispatch(createMappedField(newFields)),
   deleteMappedField: (fieldIds: string[]) => dispatch(deleteMappedField(fieldIds)),
   fetchMappedFields: () => dispatch(loadMappedFields()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 interface IAppStateProps {
@@ -340,6 +343,7 @@ class Integrations extends React.PureComponent<IProps, IOwnStateProps> {
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

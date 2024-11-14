@@ -1,7 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import getUnicodeFlagIcon from 'country-flag-icons/unicode';
-import { RespAggregateLeadAnalytics, RespHouseLead, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { BarChartOutlined, LoadingOutlined } from '@ant-design/icons';
 import { LoadingStatus } from '@fable/common/dist/types';
 import { Tooltip } from 'antd';
@@ -15,7 +14,7 @@ import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import * as Tags from './styled';
 import * as AnalyticsTags from '../insight-dashboard/styled';
-import { fetchOrgWideAnalytics } from '../../action/creator';
+import { fetchOrgWideAnalytics, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import Card from '../insight-dashboard/card';
 import Bubble from '../insight-dashboard/bubble';
 import { getFormattedDate, readableFormKey, readableTimeUnit } from '../insight-dashboard/leads-tab';
@@ -23,6 +22,7 @@ import FableLogo from '../../assets/fable-rounded-icon.svg';
 
 const mapDispatchToProps = (dispatch: any) => ({
   fetchOrgWideAnalytics: () => dispatch(fetchOrgWideAnalytics()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 const mapStateToProps = (state: TState) => ({
@@ -94,6 +94,7 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
             org={this.props.org}
             leftElGroups={[]}
             vanityDomains={[]}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

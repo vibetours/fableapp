@@ -15,7 +15,7 @@ import {
   ExclamationCircleFilled,
   WalletFilled,
 } from '@ant-design/icons';
-import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
 import { isAIParamPresent, sendPreviewHeaderClick } from '../../utils';
 import Button from '../button';
+import BuyMoreCredit from '../create-tour/buy-more-credit';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
@@ -76,6 +77,7 @@ interface IOwnProps {
   minimalHeader?: boolean;
   vanityDomains?: P_RespVanityDomain[] | null;
   demoHub?: P_RespDemoHub | null;
+  checkCredit?: ()=>Promise<RespSubscription>
 }
 
 export type HeaderProps = IOwnProps;
@@ -563,20 +565,12 @@ function Header(props: IOwnProps): JSX.Element {
                       <div style={{ fontSize: '0.65rem', lineHeight: '1rem', marginBottom: '0.75rem' }}>
                         Buy more credit for <br />Quilly, your AI Demo Copilot
                       </div>
-                      <Link
-                        to="/billing"
-                      >
-                        <Button
-                          size="medium"
-                          intent="primary"
-                          style={{
-                            background: '#ffdf65',
-                            color: 'black'
-                          }}
-                        >
-                          Buy credit
-                        </Button>
-                      </Link>
+                      <BuyMoreCredit
+                        currentCredit={props.subs.availableCredits}
+                        showCreditInfo={false}
+                        checkCredit={props.checkCredit!}
+                        clickedFrom="header"
+                      />
                     </GTags.PopoverMenuItem>
                   </div>
                 }

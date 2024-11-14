@@ -1,12 +1,13 @@
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import { Link } from 'react-router-dom';
 import { Button as AntButton, } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import {
   clearCurrentDemoHubSelection,
   getAllDemoHubs,
+  getSubscriptionOrCheckoutNew,
   loadDemoHubAndData,
   loadDemoHubConfig,
   publishDemoHub,
@@ -29,6 +30,7 @@ import { TOP_LOADER_DURATION } from '../../constants';
 import TopLoader from '../../component/loader/top-loader';
 import DemoHubShareModal from '../../component/demo-hubs-list/share-modal';
 import { amplitudeDemoHubEditorOpened, amplitudeDemoHubPublished } from '../../amplitude';
+import { P_RespSubscription } from '../../entity-processor';
 
 interface IDispatchProps {
   getAllDemoHubs: () => void;
@@ -36,6 +38,7 @@ interface IDispatchProps {
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>,
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>,
   clearCurrentDemoHubSelection: ()=> void,
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
@@ -43,7 +46,8 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadDemoHubAndData: (demoHubRid) => dispatch(loadDemoHubAndData(demoHubRid)),
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),
   loadDemoHubConfig: (demoHub) => dispatch(loadDemoHubConfig(demoHub)),
-  clearCurrentDemoHubSelection: () => dispatch(clearCurrentDemoHubSelection())
+  clearCurrentDemoHubSelection: () => dispatch(clearCurrentDemoHubSelection()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 interface IAppStateProps {
@@ -51,13 +55,15 @@ interface IAppStateProps {
   principal: RespUser | null;
   demoHub: P_RespDemoHub | null;
   demoHubConfig: IDemoHubConfig | null;
+  subs: P_RespSubscription | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
   org: state.default.org,
   principal: state.default.principal,
   demoHub: state.default.currentDemoHub,
-  demoHubConfig: state.default.currentDemoHubConfig
+  demoHubConfig: state.default.currentDemoHubConfig,
+  subs: state.default.subs
 });
 
 interface IOwnProps {
@@ -173,7 +179,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
             >
               <GTags.DemoHeaderCon>
                 <Header
-                  subs={null/* TODO send subscription here */}
+                  subs={this.props.subs}
                   tour={null}
                   demoHub={this.props.demoHub}
                   org={this.props.org}
@@ -216,6 +222,7 @@ class DemoHubsPreviewCon extends React.PureComponent<IProps, IOwnStateProps> {
                     setIsPublishing={(val) => this.setState({ isPublishing: val })}
                     renderedIn="preview"
                   />}
+                  checkCredit={this.props.getSubscriptionOrCheckoutNew}
                 />
               </GTags.DemoHeaderCon>
               <DemoHubPreview

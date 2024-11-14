@@ -1,5 +1,5 @@
 import { CaretRightOutlined, PlusOutlined } from '@ant-design/icons';
-import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
@@ -17,6 +17,7 @@ import {
   updateTourProp,
   getCustomDomains,
   loadTourAndData,
+  getSubscriptionOrCheckoutNew,
   // createDefaultTour,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
@@ -61,6 +62,7 @@ interface IDispatchProps {
     value: ReqTourPropUpdate[T]
   ) => void,
   getVanityDomains: () => void;
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>;
 }
 
 export enum CtxAction {
@@ -85,6 +87,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     value: ReqTourPropUpdate[T]
   ) => dispatch(updateTourProp(rid, tourProp, value)),
   getVanityDomains: () => dispatch(getCustomDomains()),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 interface IAppStateProps {
@@ -347,6 +350,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             org={this.props.org}
             leftElGroups={[]}
             vanityDomains={this.props.vanityDomains}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

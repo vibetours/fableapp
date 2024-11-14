@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import { LoadingStatus } from '@fable/common/dist/types';
 import { PlusOutlined, UserAddOutlined, UserDeleteOutlined } from '@ant-design/icons';
 import { Button as AntBtn, Tooltip } from 'antd';
@@ -10,11 +10,9 @@ import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import { P_RespSubscription } from '../../entity-processor';
-import { getAllUsersForOrg, activateOrDeactivateUser } from '../../action/creator';
-import Loader from '../../component/loader';
+import { getAllUsersForOrg, activateOrDeactivateUser, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import * as Tags from './styled';
 import Button from '../../component/button';
-import UrlCodeShare from '../../component/publish-preview/url-code-share';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
@@ -36,11 +34,13 @@ function getReadableDate(d: Date): string {
 interface IDispatchProps {
   getAllUsersForOrg: () => void;
   activateOrDeactivateUser: (id: number, shouldActivate: boolean) => void;
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>
 }
 
 const mapDispatchToProps = (dispatch: any) => ({
   getAllUsersForOrg: () => dispatch(getAllUsersForOrg()),
   activateOrDeactivateUser: (id: number, shouldActivate: boolean) => dispatch(activateOrDeactivateUser(id, shouldActivate)),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 interface IAppStateProps {
@@ -101,6 +101,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             principal={this.props.principal}
             org={this.props.org}
             leftElGroups={[]}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

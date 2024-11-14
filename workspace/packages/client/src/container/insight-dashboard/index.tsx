@@ -2,8 +2,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Button, Tag, Segmented } from 'antd';
-import { MEntityMetricsDaily, RespEntityMetrics, RespHouseLead, RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { Button, Segmented } from 'antd';
+import { RespEntityMetrics, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { IAnnotationOriginConfig, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { WithRouterProps, withRouter } from '../../router-hoc';
@@ -23,7 +23,8 @@ import {
   P_EntitySubEntityDistMetrics,
   HistogramData,
   P_RespHouseLead,
-  getActivityData
+  getActivityData,
+  getSubscriptionOrCheckoutNew
 } from '../../action/creator';
 import Bar from './bar';
 import Line from './line';
@@ -38,6 +39,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   getLeads: (tourId: string) => dispatch(getLeads(tourId)),
   getEntitySubEntityDistMetrics: (tourId: string) => dispatch(getEntitySubEntityDistribution(tourId)),
   getActivityData: (rid: string, aid: string) => dispatch(getActivityData(rid, aid)),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 interface IAppStateProps {
@@ -364,6 +366,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
             leftElGroups={[]}
             principal={this.props.principal}
             showCalendar
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />}
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

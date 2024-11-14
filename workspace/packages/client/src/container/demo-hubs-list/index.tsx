@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import {
   getAllDemoHubs,
   createDemoHub,
@@ -8,6 +8,7 @@ import {
   publishDemoHub,
   deleteDemoHub,
   loadDemoHubConfig,
+  getSubscriptionOrCheckoutNew,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import { TState } from '../../reducer';
@@ -29,6 +30,7 @@ interface IDispatchProps {
   deleteDemoHub: (demoHubRid: string) => void;
   publishDemoHub: (demoHub: P_RespDemoHub) => Promise<boolean>;
   loadDemoHubConfig: (demoHub: P_RespDemoHub) => Promise<IDemoHubConfig>;
+  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>;
 }
 
 export enum CtxAction {
@@ -47,7 +49,7 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   deleteDemoHub: (demoHubRid: string) => dispatch(deleteDemoHub(demoHubRid)),
   publishDemoHub: (demoHub) => dispatch(publishDemoHub(demoHub)),
   loadDemoHubConfig: (demoHub) => dispatch(loadDemoHubConfig(demoHub)),
-
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 interface IAppStateProps {
@@ -99,13 +101,14 @@ class DemoHubsList extends React.PureComponent<IProps, IOwnStateProps> {
         <SkipLink />
         <div style={{ height: '48px' }}>
           <Header
-            subs={null/* TODO send subscription here */}
+            subs={this.props.subs}
             tour={null}
             shouldShowFullLogo
             principal={this.props.principal}
             org={this.props.org}
             leftElGroups={[]}
             vanityDomains={this.props.vanityDomains}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

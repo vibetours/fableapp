@@ -10,6 +10,7 @@ import {
   getDataset,
   editDataset,
   updateDatasetDesc,
+  getSubscriptionOrCheckoutNew,
 } from '../../action/creator';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -46,6 +47,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   deleteDataset: (name: string) => dispatch(deleteDataset(name)),
   loadDataset: (name: string) => dispatch(getDataset(name)),
   editDataset: (name: string, config: DatasetConfig) => dispatch(editDataset(name, config)),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
 });
 
 const mapStateToProps = (state: TState) => ({
@@ -199,6 +201,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
               org={this.props.org}
               leftElGroups={[]}
               subs={this.props.subs}
+              checkCredit={this.props.getSubscriptionOrCheckoutNew}
             />
           </div>
           <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

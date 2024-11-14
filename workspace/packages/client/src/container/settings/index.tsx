@@ -6,10 +6,9 @@ import { ApiResp, RespApiKey, RespVanityDomain, VanityDomainDeploymentStatus } f
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { CheckCircleFilled, CodeOutlined, CopyOutlined, FormatPainterOutlined, GlobalOutlined, LoadingOutlined, PlusOutlined } from '@ant-design/icons';
 import { timeFormat } from 'd3-time-format';
-import { Collapse, Modal, Tabs, Tag } from 'antd';
+import { Modal, Tabs, Tag } from 'antd';
 import { CmnEvtProp } from '@fable/common/dist/types';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { sleep } from '@fable/common/dist/utils';
 import GlobalConfigEditor from '../global-config-editor';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { TState } from '../../reducer';
@@ -21,7 +20,7 @@ import Header from '../../component/header';
 import TopLoader from '../../component/loader/top-loader';
 import Button from '../../component/button';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { addNewCustomDomain, getCustomDomains, removeCustomDomain, pollForDomainUpdate } from '../../action/creator';
+import { addNewCustomDomain, getCustomDomains, removeCustomDomain, pollForDomainUpdate, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import Input from '../../component/input';
 
 const { confirm } = Modal;
@@ -33,6 +32,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   addNewCustomDomain: (domainName: string, subdomainName: string, apexDomainName: string) => dispatch(addNewCustomDomain(domainName, subdomainName, apexDomainName)),
   removeCustomDomain: (domainName: string, subdomainName: string, apexDomainName: string) => dispatch(removeCustomDomain(domainName, subdomainName, apexDomainName)),
   pollForDomainUpdate: (domain: RespVanityDomain) => dispatch(pollForDomainUpdate(domain)),
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
 });
 
 const mapStateToProps = (state: TState) => ({
@@ -214,6 +214,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
             shouldShowFullLogo
             principal={this.props.principal}
             leftElGroups={[]}
+            checkCredit={this.props.getSubscriptionOrCheckoutNew}
           />
         </div>
         <GTags.RowCon style={{ height: 'calc(100% - 48px)' }}>

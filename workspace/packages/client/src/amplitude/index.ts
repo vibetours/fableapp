@@ -423,3 +423,17 @@ export const amplitudeDemoHubShareModalOpened = (payload: Amp_Share_DH_Evt['payl
     payload
   });
 };
+
+export const amplitudeBuyMoreQuillyCredit = (
+  clickedFrom: 'header' | 'create-demo' | 'preview' | 'billing',
+  creditsPurchased: number
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.QUILLY_CREDIT_PURCHASED,
+    {
+      clicked_from: clickedFrom,
+      credits_purchased: creditsPurchased
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
