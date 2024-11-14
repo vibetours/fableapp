@@ -267,6 +267,7 @@ export interface ITourEntityHotspot {
   target: string;
   actionType: 'navigate' | 'open';
   actionValue: Property<string>;
+  openInSameTab?: boolean;
 }
 
 export type EAnnotationBoxSize = 'small' | 'medium' | 'large' | 'custom';

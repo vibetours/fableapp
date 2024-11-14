@@ -110,7 +110,7 @@ export const usePrevious = <T extends unknown>(value: T): T | undefined => {
   return ref.current;
 };
 
-export function openTourExternalLink(uri: string): void {
+export function openTourExternalLink(uri: string, openInSameTab?: boolean): void {
   const qParamsStr = window.location.search;
   const qParams = new URLSearchParams(qParamsStr);
   qParams.forEach((val, key) => {
@@ -122,6 +122,8 @@ export function openTourExternalLink(uri: string): void {
   const sharefableUrl = new URL(process.env.REACT_APP_CLIENT_ENDPOINT as string);
   if (url.host === sharefableUrl.host) {
     window.open(uri, '_self');
+  } else if (openInSameTab) {
+    window.open(uri, '_top');
   } else {
     window.open(uri, '_blank')?.focus();
   }

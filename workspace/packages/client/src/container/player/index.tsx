@@ -864,11 +864,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   };
 
-  navFn: NavFn = (uri, type) => {
+  navFn: NavFn = (uri, type, openInSameTab) => {
     if (type === 'annotation-hotspot') {
       this.navigateTo(uri);
     } else {
-      openTourExternalLink(uri);
+      openTourExternalLink(uri, openInSameTab);
     }
   };
 

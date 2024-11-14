@@ -74,7 +74,7 @@ export default function CustomBtnConnectableAnns(props: Props): JSX.Element {
       on: 'click',
       target: '$this',
       actionType: 'navigate',
-      actionValue: createLiteralProperty(`${ann.screen.id}/${ann.refId}`),
+      actionValue: createLiteralProperty(`${ann.screen.id}/${ann.refId}`)
     };
 
     const thisAntn = updateButtonProp(

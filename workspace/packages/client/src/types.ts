@@ -194,7 +194,7 @@ export enum ElIdentifierType {
   FID,
 }
 
-export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs') => void;
+export type NavFn = (uri: string, type: 'annotation-hotspot' | 'abs', openInSameTab?: boolean) => void;
 export type AnnotationPerScreen = { screen: P_RespScreen, annotations: IAnnotationConfig[] };
 
 export type TourDataChangeFn = (

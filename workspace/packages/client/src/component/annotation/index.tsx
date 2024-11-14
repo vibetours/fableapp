@@ -1629,7 +1629,8 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         if ((type === 'custom' && newBtnConf.hotspot.actionType === 'open') || !this.props.playMode) {
           this.props.nav(
             newBtnConf.hotspot.actionValue._val,
-            newBtnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs'
+            newBtnConf.hotspot.actionType === 'navigate' ? 'annotation-hotspot' : 'abs',
+            newBtnConf.hotspot.openInSameTab
           );
           return;
         }
@@ -1639,7 +1640,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
         ) {
           this.props.applyDiffAndGoToAnn(config.refId, newBtnConf.hotspot.actionValue._val);
         } else {
-          this.props.nav(newBtnConf.hotspot.actionValue._val, 'abs');
+          this.props.nav(newBtnConf.hotspot.actionValue._val, 'abs', newBtnConf.hotspot.openInSameTab);
         }
       };
 

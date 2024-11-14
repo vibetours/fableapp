@@ -588,11 +588,11 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.clearCurrentTourSelection();
   }
 
-  navFn: NavFn = (uri, type) => {
+  navFn: NavFn = (uri, type, openInSameTab) => {
     if (type === 'annotation-hotspot') {
       this.navigateTo(uri);
     } else {
-      openTourExternalLink(uri);
+      openTourExternalLink(uri, openInSameTab);
     }
   };
 

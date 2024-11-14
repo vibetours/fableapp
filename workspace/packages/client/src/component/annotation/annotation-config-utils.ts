@@ -356,6 +356,7 @@ export function addCustomBtn<T extends IAnnotationConfig>(config: T, globalOpts:
       globalOpts.customBtn1URL,
       GlobalPropsPath.customBtn1URL
     ),
+    openInSameTab: false
   };
   btn.hotspot = hostspotConfig;
 

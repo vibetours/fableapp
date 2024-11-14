@@ -1245,7 +1245,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                           <div style={{
                             fontSize: '1rem',
                             width: '500px',
-                            height: activePopover === 'open' ? '20vh' : '55vh',
+                            height: activePopover === 'open' ? '25vh' : '55vh',
                             transition: 'height 0.3s ease-in-out'
                           }}
                           >
@@ -1306,6 +1306,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                                   target: '$this',
                                                   actionType: 'open',
                                                   actionValue: createLiteralProperty(validUrl),
+                                                  openInSameTab: btnConf.hotspot?.openInSameTab
                                                 };
                                               }
                                             }
@@ -1340,7 +1341,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                             actionValue: createGlobalProperty(
                                               btnConf.hotspot?.actionValue._val || '',
                                               GlobalPropsPath.customBtn1URL
-                                            ),
+                                            )
                                           };
 
                                           const thisAntn = updateButtonProp(
@@ -1368,6 +1369,28 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
                                       >Submit
                                       </Button>
                                     </Tags.CTALinkInputCont>
+                                    {btnConf.hotspot && btnConf.hotspot!.actionType === 'open' && (
+                                      <div style={{ marginBottom: '10px' }}>
+                                        <GTags.OurCheckbox
+                                          defaultChecked={btnConf.hotspot?.openInSameTab || false}
+                                          onChange={(e) => {
+                                            const hostspotConfig: ITourEntityHotspot = { ...btnConf.hotspot! };
+                                            if (e.target.checked) hostspotConfig.openInSameTab = e.target.checked;
+                                            else delete hostspotConfig.openInSameTab;
+
+                                            const newConf = updateButtonProp(
+                                              config,
+                                              btnConf.id,
+                                              'hotspot',
+                                              hostspotConfig
+                                            );
+                                            setConfig(newConf);
+                                          }}
+                                        >
+                                          Open URL in same tab
+                                        </GTags.OurCheckbox>
+                                      </div>
+                                    )}
                                     {!isUrlValid && (
                                     <p style={{ margin: 0, fontSize: '0.75rem', color: 'red' }}>
                                       The url you have entered appears to be malformed. A correctly formed url would look like
