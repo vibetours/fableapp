@@ -80,6 +80,7 @@ import {
   EncodingTypeText,
   AnnVoiceOverDetail,
 } from './types';
+import { Rect } from './component/base/hightligher-base';
 
 export const LOCAL_STORE_TIMELINE_ORDER_KEY = 'fable/timeline_order_2';
 const EXTENSION_ID = process.env.REACT_APP_EXTENSION_ID as string;
@@ -2396,3 +2397,132 @@ export const handleAddAnnotationAudio = (
   newAnnConfig = updateAnnotationBoxSize(newAnnConfig, 'medium');
   return newAnnConfig;
 };
+export function getScaleOfElement(element: HTMLElement): {
+  scaleX: number,
+  scaleY: number
+} {
+  const style = window.getComputedStyle(element);
+
+  const transform = style.transform;
+
+  if (!transform || transform === 'none') {
+    return { scaleX: 1, scaleY: 1 };
+  }
+  const transformMatch = transform.match(/matrix\((.+)\)/);
+
+  if (!transformMatch) return { scaleX: 1, scaleY: 1 };
+
+  const matrixValues = transformMatch[1].split(', ');
+
+  const scaleX = parseFloat(matrixValues[0]);
+  const scaleY = parseFloat(matrixValues[3]);
+  return { scaleX, scaleY };
+}
+
+export function adjustAspectRatioRectangle(
+  parentWidth: number,
+  parentHeight: number,
+  childRect: Rect,
+): {
+  rectangleW: number,
+  rectangleH: number,
+  topLeftX: number,
+  topLeftY: number
+} {
+  const parentAspectRatio = parentWidth / parentHeight;
+  const childAspectRatio = childRect.width / childRect.height;
+
+  let rectangleW;
+  let rectangleH;
+  if (childAspectRatio > parentAspectRatio) {
+    rectangleW = childRect.width;
+    rectangleH = rectangleW / parentAspectRatio;
+  } else {
+    rectangleH = childRect.height;
+    rectangleW = rectangleH * parentAspectRatio;
+  }
+
+  rectangleW = Math.min(Math.max(rectangleW + 32, parentWidth / MAX_ZOOM_SCALE), parentWidth);
+  rectangleH = Math.min(Math.max(rectangleH + 32, parentHeight / MAX_ZOOM_SCALE), parentHeight);
+
+  let midX = childRect.left + childRect.width / 2;
+  let midY = childRect.top + childRect.height / 2;
+  let topLeftX = midX - rectangleW / 2;
+  let topLeftY = midY - rectangleH / 2;
+
+  if (topLeftX < 0) {
+    topLeftX = 0;
+    midX = rectangleW / 2;
+  } else if (topLeftX + rectangleW > parentWidth) {
+    topLeftX = parentWidth - rectangleW;
+    midX = parentWidth - rectangleW / 2;
+  }
+
+  if (topLeftY < 0) {
+    topLeftY = 0;
+    midY = rectangleH / 2;
+  } else if (topLeftY + rectangleH > parentHeight) {
+    topLeftY = parentHeight - rectangleH;
+    midY = parentHeight - rectangleH / 2;
+  }
+
+  return {
+    rectangleW,
+    rectangleH,
+    topLeftX,
+    topLeftY,
+  };
+}
+
+export function getCustomTopLeftAndScale(
+  parentWidth: number,
+  parentHeight: number,
+  childRect: Rect,
+): {
+  scale: number,
+  top: number,
+  left: number,
+} {
+  const { rectangleW, rectangleH, topLeftX, topLeftY } = adjustAspectRatioRectangle(
+    parentWidth,
+    parentHeight,
+    childRect
+  );
+
+  const scaleX = parentWidth / rectangleW;
+  const scaleY = parentHeight / rectangleH;
+  const scale = Math.max(scaleX, scaleY);
+
+  return {
+    scale,
+    top: topLeftY,
+    left: topLeftX,
+  };
+}
+
+export const MAX_ZOOM_SCALE = 1.5;
+
+export function calculateTranslateForTransformOriginAtTopLeft(
+  top: number,
+  left: number,
+  scale: number,
+  childWidth: number,
+  childHeight: number
+): { translateX: string; translateY: string } {
+  const translateX = -((left) / childWidth) * 100;
+  const translateY = -((top) / childHeight) * 100;
+
+  return {
+    translateX: `${translateX}%`,
+    translateY: `${translateY}%`
+  };
+}
+
+export function scaleRect(rect: Rect, scale: number): Omit<Rect, 'right' | 'bottom' | 'x' | 'y'> {
+  return {
+    left: rect.left * scale,
+    top: rect.top * scale,
+    width: rect.width * scale,
+    height: rect.height * scale,
+  };
+}

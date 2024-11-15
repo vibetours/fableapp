@@ -18,7 +18,7 @@ import {
 } from '../../analytics/types';
 import { EventDataOnNav, FableLeadContactProps } from '../../global';
 import { emitEvent } from '../../internal-events';
-import { InternalEvents, Msg, NavFn, Payload_Navigation, Payload_TrackerPos } from '../../types';
+import { InternalEvents, Msg, NavFn, Payload_Navigation, Payload_TrackerAnnInfo } from '../../types';
 import {
   getTransparencyFromHexStr,
   isAudioAnnotation,
@@ -38,6 +38,7 @@ import FocusBubble from './focus-bubble';
 import * as VIDEO_ANN from './media-ann-constants';
 import * as Tags from './styled';
 import { EMPTY_IFRAME_ID, generateShadeColor, isLeadFormPresent, validateInput } from './utils';
+import { AnnRenderedEvent } from './types';
 
 export type Positions = AnnotationPositions
   | VideoAnnotationPositions
@@ -77,6 +78,7 @@ interface IProps {
   maskBox: Rect | null;
   isScreenHTML4: boolean;
   doNotAutoplayMedia: string[];
+  screenId: number
 }
 
 export type NavigateToAdjacentAnn = (direction: 'prev' | 'next' | 'custom', btnId: string) => void;
@@ -390,6 +392,8 @@ export class AnnotationCard extends React.PureComponent<IProps, IOwnStateProps> 
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
         currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
         annotationType: this.getAnnotationType(),
+        box: this.props.box,
+        screenId: this.props.screenId
       });
     }
   }
@@ -400,8 +404,13 @@ export class AnnotationCard extends React.PureComponent<IProps, IOwnStateProps> 
       emitEvent<Partial<Payload_Navigation>>(InternalEvents.OnNavigation, {
         currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
         annotationType: this.getAnnotationType(),
+        box: this.props.box,
+        screenId: this.props.screenId,
+        annConfigType: this.props.annotationDisplayConfig.config.type
       });
-      if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) { this.resetAnnPos(); }
+      if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) {
+        this.resetAnnPos();
+      }
     }
 
     if (prevProps.annotationDisplayConfig.isMaximized !== this.props.annotationDisplayConfig.isMaximized) {
@@ -1022,15 +1031,6 @@ export class AnnotationCard extends React.PureComponent<IProps, IOwnStateProps> 
       ty = 0;
     }
 
-    if (!this.props.annotationDisplayConfig.prerender) {
-      emitEvent<Partial<Payload_TrackerPos>>(InternalEvents.OnSelectedElChange, {
-        currentAnnotationRefId: this.props.annotationDisplayConfig.config.refId,
-        annotationType: this.props.annotationDisplayConfig.config.type,
-        x: this.props.box.x + (this.props.box.width / 2),
-        y: this.props.box.y + (this.props.box.height / 2),
-      });
-    }
-
     return (
       <>
         { !this.props.annotationDisplayConfig.config.hideAnnotation && (
@@ -1435,6 +1435,7 @@ interface IConProps {
   shouldSkipLeadForm: boolean,
   getNextAnnotation: (annId: string)=> IAnnotationConfigWithScreenId,
   doNotAutoplayMedia: string[],
+  screenId: number;
 }
 
 interface HotspotProps {
@@ -1689,6 +1690,7 @@ export class AnnotationCon extends React.PureComponent<IConProps> {
             maskBox={p.maskBox}
             isScreenHTML4={this.props.isScreenHTML4}
             doNotAutoplayMedia={this.props.doNotAutoplayMedia}
+            screenId={this.props.screenId}
           />
         </div>
       );

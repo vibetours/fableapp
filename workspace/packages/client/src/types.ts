@@ -4,6 +4,7 @@ import { IAnnotationConfigWithScreenId } from './component/annotation/annotation
 import { RenameDemoHubResult } from './action/creator';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
 import { P_RespScreen } from './entity-processor';
+import { Rect } from './component/base/hightligher-base';
 
 export interface IAnnotationConfigWithLocation extends IAnnotationConfigWithScreenId {
   location: string;
@@ -321,6 +322,9 @@ export interface Payload_Navigation {
   currentAnnotationRefId: string;
   annotationType: 'video' | 'text' | 'leadform' | 'audio' | 'voiceover';
   journeyIndex: number;
+  box: Rect;
+  screenId: number;
+  annConfigType: 'cover' | 'default'
 }
 
 export interface Payload_NavToAnnotation {
@@ -333,9 +337,7 @@ export interface Payload_UpdateDemo {
   demoUpdated: boolean,
 }
 
-export interface Payload_TrackerPos {
-  x: number;
-  y: number;
+export interface Payload_TrackerAnnInfo {
   currentAnnotationRefId: string;
   annotationType: 'cover' | 'default';
 }
@@ -803,3 +805,29 @@ export interface AnnVoiceOverDetail extends IAnnotationAudio{
 }
 
 export type OpenAIVoices = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+export enum QuadrantType {
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight,
+  Reset,
+  Custom
+}
+
+export interface BaseQuadrant {
+  to: QuadrantType
+}
+
+export interface CustomQuadrant extends BaseQuadrant{
+  to: QuadrantType.Custom;
+  scale: number;
+  top: number;
+  left: number;
+}
+
+export interface DefaultQuadrant extends BaseQuadrant{
+  to: QuadrantType.TopLeft | QuadrantType.TopRight | QuadrantType.BottomLeft
+  | QuadrantType.BottomRight | QuadrantType.Reset
+}
+
+export type Quadrant = CustomQuadrant | DefaultQuadrant;

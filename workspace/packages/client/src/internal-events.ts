@@ -110,7 +110,10 @@ export function initInternalEvents() : Array<[InternalEvents, (ev: Event) => voi
     const postMsgPayload: Payload_Navigation = {
       journeyIndex: tPayload.journeyIndex,
       currentAnnotationRefId: tPayload.currentAnnotationRefId,
-      annotationType: tPayload.annotationType
+      annotationType: tPayload.annotationType,
+      box: tPayload.box,
+      screenId: tPayload.screenId,
+      annConfigType: tPayload.annConfigType
     };
     postMessageForEvent<Payload_Navigation>(ExtMsg.OnNavigation, postMsgPayload);
 

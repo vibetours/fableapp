@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Payload_TrackerPos, ScreenSizeData } from '../../types';
+import { Payload_TrackerAnnInfo, ScreenSizeData } from '../../types';
 
 interface Props {
-  trackerPos: Payload_TrackerPos;
-  screenSizeData: ScreenSizeData
+  trackerAnnInfo: Payload_TrackerAnnInfo;
+  screenSizeData: ScreenSizeData;
+  trackerPos: {
+    centerX: number;
+    centerY: number;
+  }
 }
 
 interface Pos {
@@ -17,7 +21,7 @@ export default function TrackerBubble(props: Props) {
   const [display, setDisplay] = useState<'none' | 'inline-block'>('none');
   const ref = useRef<HTMLDivElement | null>(null);
   const timer = useRef<null | ReturnType<typeof setTimeout>>(null);
-  const lastPosData = useRef<Payload_TrackerPos>({
+  const lastPosData = useRef<Payload_TrackerAnnInfo & Pos>({
     currentAnnotationRefId: '',
     annotationType: 'cover',
     x: -36,
@@ -25,7 +29,9 @@ export default function TrackerBubble(props: Props) {
   });
 
   useEffect(() => {
-    const pos = props.trackerPos;
+    const pos = props.trackerAnnInfo;
+
+    const trackerPos = props.trackerPos;
     if (!pos) {
       // If tracker position is not recorded, don't show tracker
       setDisplay('none');
@@ -36,7 +42,7 @@ export default function TrackerBubble(props: Props) {
       ref.current!.style.transition = 'none';
       setDisplay('none');
       lastPosData.current = {
-        currentAnnotationRefId: props.trackerPos.currentAnnotationRefId,
+        currentAnnotationRefId: props.trackerAnnInfo.currentAnnotationRefId,
         annotationType: 'cover',
         x: 0,
         y: 0,
@@ -44,12 +50,13 @@ export default function TrackerBubble(props: Props) {
       return;
     }
     if (lastPosData.current.currentAnnotationRefId === 'cover') {
-      console.log('here');
       ref.current!.style.transition = 'none';
-      setToPos({ x: pos.x, y: pos.y });
+      setToPos({ x: trackerPos.centerX, y: trackerPos.centerY });
       setDisplay('inline-block');
       lastPosData.current = {
-        ...props.trackerPos
+        ...props.trackerAnnInfo,
+        x: trackerPos.centerX,
+        y: trackerPos.centerY,
       };
       return;
     }
@@ -60,24 +67,27 @@ export default function TrackerBubble(props: Props) {
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       ref.current!.style.transition = 'all 0.3s ease-in-out';
-      setToPos({ x: pos.x, y: pos.y });
+      setToPos({ x: trackerPos.centerX, y: trackerPos.centerY });
     }, 32);
     lastPosData.current = {
-      ...props.trackerPos
+      ...props.trackerAnnInfo,
+      x: trackerPos.centerX,
+      y: trackerPos.centerY,
     };
 
     // eslint-disable-next-line consistent-return
     return () => {
       timer.current && clearTimeout(timer.current);
     };
-  }, [props.screenSizeData, props.trackerPos]);
+  }, [props.screenSizeData, props.trackerAnnInfo]);
 
   return (
     <Bubble
       style={{
         display,
-        left: `${(toPos.x * props.screenSizeData.scaleFactor) + props.screenSizeData.iframePos.left}px`,
-        top: `${(toPos.y * props.screenSizeData.scaleFactor) + props.screenSizeData.iframePos.top}px`,
+        left: `${(toPos.x) + props.screenSizeData.iframePos.left}px`,
+        top: `${(toPos.y) + props.screenSizeData.iframePos.top}px`,
+        transition: 'top 2s, left 2s'
       }}
       ref={ref}
     />

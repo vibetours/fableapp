@@ -35,3 +35,7 @@ export type AllDimsForAnnotation = {
 };
 
 export type DimForAnnotation = { w: number, h: number };
+
+export enum AnnRenderedEvent {
+  ANN_RENDERED = 'ann-rendered'
+}

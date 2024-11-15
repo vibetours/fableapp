@@ -17,3 +17,4 @@ export const SURVEY_ID = '01919cc8-4580-0000-20a6-c2f5d14e9ff7';
 export const FABLE_PERS_VARS_FOR_TOUR = 'fable/pers-vars-for-tour';
 export const THEME_BASE_IMAGE_URL = 'https://pvt-mics.s3.ap-south-1.amazonaws.com/staging/root/global/sample_ann.png';
 export const DEMO_LOADED_AFTER_AI_UPDATE = 'DEMO_LOADED_AFTER_AI_UPDATE';
+export const ANN_ZOOMED = 'ann-zoomed';

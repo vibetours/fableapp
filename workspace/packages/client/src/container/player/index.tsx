@@ -31,7 +31,7 @@ import {
   Payload_UpdateDemo,
   Payload_Navigation,
   VoiceoverMediaStateChangePayload,
-  Payload_TrackerPos,
+  Payload_TrackerAnnInfo,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -66,7 +66,7 @@ import {
   getAnnotationSerialIdMap
 } from '../../component/annotation/ops';
 import FullScreenLoader from '../../component/loader-editor/full-screen-loader';
-import { DEMO_LOADED_AFTER_AI_UPDATE, HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
+import { ANN_ZOOMED, DEMO_LOADED_AFTER_AI_UPDATE, HEADER_CTA, IFRAME_BASE_URL, SCREEN_DIFFS_SUPPORTED_VERSION, SCREEN_SIZE_MSG } from '../../constants';
 import { emitEvent } from '../../internal-events';
 import MainValidityInfo from './main-validity-info';
 import { CtaClickedInternal, CtaFrom } from '../../analytics/types';
@@ -215,7 +215,11 @@ interface IOwnStateProps {
   isVoiceoverPlaying: boolean;
   firstAnnRefId: string;
   showVoiceoverControl: boolean;
-  trackerPos: Payload_TrackerPos | null;
+  trackerAnnInfo: Payload_TrackerAnnInfo | null;
+  trackerPos: {
+    centerX: number,
+    centerY: number,
+  } | null
 }
 
 interface ScreenInfo {
@@ -235,7 +239,13 @@ interface HeaderCta {
   annId: string
 }
 
-interface OnNavigationEvent extends Partial<Event> {
+interface AnnZoomed extends Payload_Navigation {
+  type: typeof ANN_ZOOMED,
+  centerX: number,
+  centerY: number,
+}
+
+export interface OnNavigationEvent extends Partial<Event> {
   detail?: Payload_Navigation
 }
 
@@ -244,7 +254,7 @@ interface MediaStaeChageEvent extends Partial<Event> {
 }
 
 interface OnTrackerPosUpdate extends Partial<Event> {
-  detail?: Payload_TrackerPos;
+  detail?: Payload_TrackerAnnInfo;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -298,14 +308,29 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       isVoiceoverPlaying: true,
       firstAnnRefId: '',
       showVoiceoverControl: false,
+      trackerAnnInfo: null,
       trackerPos: null,
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
   }
 
-  receiveMessage = async (e: MessageEvent<ScreenInfo | HeaderCta | Payload_UpdateDemo>): Promise<void> => {
+  receiveMessage = async (e: MessageEvent<ScreenInfo | HeaderCta | Payload_UpdateDemo | AnnZoomed>): Promise<void> => {
     if (!isEventValid(e)) return;
+
+    if (e.data.type === ANN_ZOOMED) {
+      const data = e.data as AnnZoomed;
+      this.setState({
+        trackerPos: {
+          centerX: data.centerX,
+          centerY: data.centerY
+        },
+        trackerAnnInfo: {
+          currentAnnotationRefId: data.currentAnnotationRefId,
+          annotationType: data.annConfigType
+        }
+      });
+    }
     if (e.data.type === SCREEN_SIZE_MSG) {
       const data = e.data as ScreenInfo;
       this.setState(prevS => {
@@ -386,7 +411,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   }
 
   onTrackerPositionChange = (event: OnTrackerPosUpdate) => {
-    this.setState({ trackerPos: event.detail! });
+    this.setState({ trackerAnnInfo: event.detail! });
   };
 
   createRenderSlotsBasedOnDomain(): Record<string, number> {
@@ -1181,9 +1206,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
             ))
         }
         { /* Show tracker only if voiceover is present */}
-        {this.state.showVoiceoverControl && this.state.trackerPos && this.state.screenSizeData[this.getCurrScreenId()] && <Tracker
-          trackerPos={this.state.trackerPos}
+        {this.state.showVoiceoverControl && this.state.trackerAnnInfo && this.state.trackerPos && this.state.screenSizeData[this.getCurrScreenId()] && <Tracker
+          trackerAnnInfo={this.state.trackerAnnInfo}
           screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
+          trackerPos={this.state.trackerPos}
         />}
         {this.state.screenSizeData[currScreenId]
         && this.props.tourOpts && this.props.tourOpts.showStepNum._val

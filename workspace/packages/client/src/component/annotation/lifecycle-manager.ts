@@ -707,6 +707,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           shouldSkipLeadForm: this.shouldSkipLeadForm,
           getNextAnnotation: this.getNextAnnotation,
           doNotAutoplayMedia: this.doNotAutoplayMedia,
+          screenId: this.screen.id
         })
       )
     );
@@ -857,7 +858,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           isScreenHTML4: this.isScreenHTML4,
           shouldSkipLeadForm: this.shouldSkipLeadForm,
           getNextAnnotation: this.getNextAnnotation,
-          doNotAutoplayMedia: this.doNotAutoplayMedia
+          doNotAutoplayMedia: this.doNotAutoplayMedia,
+          screenId: this.screen.id
         })
       )
     );

@@ -7,10 +7,14 @@ import { scrollIframeEls } from './scroll-util';
 import * as Tags from './preview-styled';
 import { deserFrame } from './utils/deser';
 import { createFableRtUmbrlDivWrapper, getFableRtUmbrlDivWrapper } from '../annotation/utils';
-import { FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
+import { ANN_ZOOMED, FABLE_IFRAME_GENERIC_CLASSNAME, SCREEN_SIZE_MSG } from '../../constants';
 import LogoWatermark from '../watermark/logo-watermark';
-import { IframePos, EditItem, ScreenSizeData } from '../../types';
+import { IframePos, EditItem, ScreenSizeData, Quadrant, QuadrantType, InternalEvents, Payload_Navigation } from '../../types';
 import { applyEditsToSerDom } from './utils/edits';
+import { getCustomTopLeftAndScale, getScaleOfElement, MAX_ZOOM_SCALE, scaleRect } from '../../utils';
+import { AnnRenderedEvent } from '../annotation/types';
+import { OnNavigationEvent } from '../../container/player';
+import { Rect } from '../base/hightligher-base';
 
 export interface IOwnProps {
   resizeSignal: number;
@@ -29,6 +33,7 @@ export interface IOwnProps {
   heightOffset: number;
   borderColor?: string;
   onIframeClick?: ()=>void;
+  enableZoomPan: boolean
 }
 
 export interface DeSerProps {
@@ -48,6 +53,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   scaleFactor: number = 1;
 
   embedFrameRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
+
+  frameOfReferenceElRef: React.MutableRefObject<HTMLDivElement | null> = React.createRef();
+
+  frameWrapperRef: React.MutableRefObject<HTMLDivElement | null> = React.createRef();
 
   watermarkRef: React.MutableRefObject<HTMLAnchorElement | null> = React.createRef();
 
@@ -167,6 +176,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     if (this.embedFrameRef.current && this.embedFrameRef.current.contentWindow) {
       this.embedFrameRef.current.contentWindow.document.removeEventListener('keyup', this.onKeyup);
     }
+    document.removeEventListener(InternalEvents.OnNavigation, this.onMessage);
   }
 
   // TODO the internal and external events are a little bit messy and does not have proper structure / convention.
@@ -185,10 +195,29 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
   };
 
+  onMessage = (e: OnNavigationEvent) : void => {
+    if (!e.detail) return;
+    const { box, screenId, annotationType } = e.detail;
+    if (screenId === this.props.screen.id) {
+      if (annotationType === 'voiceover') {
+        const quadrant = this.determineQuadrant(box);
+        this.zoomToQuadrant(quadrant, box, e.detail);
+      } else {
+        this.zoomToQuadrant({ to: QuadrantType.Reset }, box, e.detail);
+      }
+    }
+  };
+
   componentDidMount(): void {
     const frame = this.embedFrameRef.current;
     if (!frame) {
       throw new Error("Can't find embed iframe");
+    }
+
+    if (this.props.screen.type === ScreenType.SerDom
+      && !this.props.enableZoomPan) {
+      // TODO: handle responsive screens
+      document.addEventListener(InternalEvents.OnNavigation, this.onMessage);
     }
 
     frame.onload = () => {
@@ -271,17 +300,27 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     !this.props.hidden && this.sendIframeScreenSizeData();
   };
 
+  initialiseFrameComponentPosition(el: HTMLElement): void {
+    el.style.position = 'absolute';
+    el.style.transformOrigin = '0 0';
+    el.style.top = `${this.props.heightOffset}px`;
+    el.style.left = '0px';
+  }
+
   handleScreenResponsiveness = (): void => {
     const frame = this.embedFrameRef.current;
-    if (!frame) {
+    const referenceFrame = this.frameOfReferenceElRef.current;
+    const frameWrapper = this.frameWrapperRef.current;
+
+    if (!frame || !referenceFrame || !frameWrapper) {
       throw new Error("Can't find embed iframe");
     }
 
-    const origFrameViewPort = frame.parentElement!.getBoundingClientRect();
-    frame.style.position = 'absolute';
-    frame.style.transformOrigin = '0 0';
-    frame.style.top = `${this.props.heightOffset}px`;
-    frame.style.left = '0px';
+    const origFrameViewPort = referenceFrame.parentElement!.parentElement!.getBoundingClientRect();
+
+    this.initialiseFrameComponentPosition(referenceFrame);
+    this.initialiseFrameComponentPosition(frame);
+    this.initialiseFrameComponentPosition(frameWrapper);
 
     if (this.props.screen.type === ScreenType.Img) {
       this.handleImgScreenResponsiveness();
@@ -293,10 +332,10 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     // When that happens the iframe's dimension needs to be reduced by 4px (2px either side)
     // When browser window is not present (live route) we show border of 1px arond the iframe
     const heightWidthAdjustment = this.props.heightOffset ? 4 : 2;
-    frame.style.borderColor = this.props.borderColor || 'transparent';
+    frameWrapper.style.borderColor = this.props.borderColor || 'transparent';
     if (this.props.heightOffset) {
       // when heightOffset is present that means frame is present hence we don't show the top border
-      frame.style.borderTop = 'none';
+      frameWrapper.style.borderTop = 'none';
     }
 
     if (!this.props.isResponsive) {
@@ -311,34 +350,56 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       this.scaleFactor = scale;
 
       // We apply border around the iframe to have a
-
       const adjustedVpdW = vpdW - heightWidthAdjustment;
       const adjustedVpdH = vpdH - heightWidthAdjustment;
+
+      referenceFrame.style.transform = `scale(${scale})`;
+      referenceFrame.style.transformOrigin = '0 0';
+      referenceFrame.style.position = 'absolute';
+      referenceFrame.style.width = `${vpdW - heightWidthAdjustment}px`;
+      referenceFrame.style.height = `${vpdH - heightWidthAdjustment}px`;
+
+      frameWrapper.style.position = 'absolute';
+
+      frame.style.width = `${vpdW - heightWidthAdjustment}px`;
+      frame.style.height = `${vpdH - heightWidthAdjustment}px`;
       frame.style.transform = `scale(${scale})`;
       frame.style.transformOrigin = '0 0';
-      frame.style.position = 'absolute';
-      frame.style.width = `${adjustedVpdW}px`;
-      frame.style.height = `${adjustedVpdH}px`;
 
-      const viewPortAfterScaling = frame.getBoundingClientRect();
+      const viewPortAfterScaling = referenceFrame.getBoundingClientRect();
 
       const iframePos: ScreenSizeData['iframePos'] = {
         left: viewPortAfterScaling.left,
-        top: viewPortAfterScaling.top,
+        top: viewPortAfterScaling.top - this.props.heightOffset,
         height: viewPortAfterScaling.height,
         width: viewPortAfterScaling.width,
         heightOffset: this.props.heightOffset
       };
 
       if (origFrameViewPort.width > viewPortAfterScaling.width) {
+        frame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
+        referenceFrame.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
+        frameWrapper.style.left = `${(origFrameViewPort.width - viewPortAfterScaling.width) / 2}px`;
         iframePos.left = (origFrameViewPort.width - viewPortAfterScaling.width) / 2;
-        frame.style.left = `${iframePos.left}px`;
       }
       if (origFrameViewPort.height > viewPortAfterScaling.height) {
         const scaledOffset = this.props.heightOffset;
-        iframePos.top = ((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + scaledOffset;
-        frame.style.top = `${iframePos.top}px`;
+        frame.style.top = `${((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset)}px`;
+        referenceFrame.style.top = `${((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset)}px`;
+        frameWrapper.style.top = frame.style.top;
+        iframePos.top = ((origFrameViewPort.height - viewPortAfterScaling.height) / 2) + (scaledOffset);
       }
+
+      frameWrapper.style.width = `${viewPortAfterScaling.width}px`;
+      frameWrapper.style.height = `${viewPortAfterScaling.height}px`;
+
+      frame.style.transform = `scale(${scale})`;
+
+      frame.style.top = '0px';
+      frame.style.left = '0px';
+
+      referenceFrame.style.top = '0px';
+      referenceFrame.style.left = '0px';
 
       this.handleWatermarkPositioning(
         (origFrameViewPort.height - viewPortAfterScaling.height) / 2,
@@ -356,7 +417,17 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     frame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
     frame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
     frame.style.left = '0';
-    frame.style.top = `${this.props.heightOffset}px`;
+    frame.style.top = '0';
+
+    referenceFrame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
+    referenceFrame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
+    referenceFrame.style.left = '0';
+    referenceFrame.style.top = `${this.props.heightOffset}px`;
+
+    frameWrapper.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
+    frameWrapper.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
+    frameWrapper.style.left = '0';
+    frameWrapper.style.top = '0';
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = 1;
     frame.style.transform = 'scale(1)';
@@ -398,10 +469,173 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     }
   };
 
+  zoomToQuadrant = (quadrant: Quadrant, box: Rect, relayObj: Payload_Navigation): void => {
+    const frame = this.embedFrameRef.current;
+    const referenceFrame = this.frameOfReferenceElRef.current;
+    if (!frame || !referenceFrame) return;
+    const referenceFrameScale = getScaleOfElement(referenceFrame);
+
+    const referenceElRect = referenceFrame.getBoundingClientRect();
+    frame.style.transition = 'transform 2s cubic-bezier(0.42, 0, 0.01, 0.95)';
+
+    let scaleValue : number | null = null;
+    let translatedX: number = 0;
+    let translatedY: number = 0;
+
+    switch (quadrant.to) {
+      case QuadrantType.TopLeft: {
+        translatedX = 0;
+        translatedY = 0;
+        scaleValue = MAX_ZOOM_SCALE;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(0%, 0%)`;
+        break;
+      }
+
+      case QuadrantType.TopRight: {
+        const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
+        translatedX = percentZoom * referenceElRect.width;
+        translatedY = 0;
+        scaleValue = MAX_ZOOM_SCALE;
+        const translateX = percentZoom * 100;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(${translateX}% , 0%)`;
+        break;
+      }
+
+      case QuadrantType.BottomLeft: {
+        const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
+        translatedX = 0;
+        translatedY = percentZoom * referenceElRect.height;
+        scaleValue = MAX_ZOOM_SCALE;
+        const translateY = (percentZoom) * 100;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(0% , ${translateY}%)`;
+        break;
+      }
+
+      case QuadrantType.BottomRight: {
+        const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
+        translatedX = percentZoom * referenceElRect.width;
+        translatedY = percentZoom * referenceElRect.height;
+        scaleValue = MAX_ZOOM_SCALE;
+        const translate = (percentZoom) * 100;
+        frame.style.transform = `
+        scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(${translate}% , ${translate}%)
+        `;
+        break;
+      }
+
+      case QuadrantType.Custom: {
+        const finalScaleToBeApplied = quadrant.scale * referenceFrameScale.scaleX;
+        scaleValue = quadrant.scale;
+        const translateX = `${-quadrant.left}px`;
+        const translateY = `${-quadrant.top}px`;
+
+        translatedX = -quadrant.left * finalScaleToBeApplied;
+        translatedY = -quadrant.top * finalScaleToBeApplied;
+
+        frame.style.transform = `scale(${finalScaleToBeApplied}) translate(${translateX} , ${translateY})`;
+        break;
+      }
+
+      default: {
+        scaleValue = 1;
+        frame.style.transform = `scale(${referenceFrameScale.scaleX}) translate(0%, 0%)`;
+        break;
+      }
+    }
+    const scaledRect = scaleRect(box, (scaleValue * referenceFrameScale.scaleX));
+
+    const boxNewCenterX = (scaledRect.left + translatedX) + scaledRect.width / 2;
+    const boxNewCenterY = (scaledRect.top + translatedY) + scaledRect.height / 2;
+
+    // INFO: right now preview component is aware of the el & annotation (bbox is required for quadrant calculation)
+    //      that is currently in viewport.
+    //
+    //      This is a deperture in thought process that we had while building the preview component; We initially
+    //      thought preview component would only render the screen and not acknowledge anything else.
+    //
+    //      In order to support zoom and pan we needed info of annotation box hence, this component now somewhat aware
+    //      about the selected element; altought this ops is done via message passing, hence it's not a buring design
+    //      change.
+    //
+    //      We also subscribe to events from annotation module (check receiveMessage method) and change the annotation
+    //      box coordinate based on current transformation that is applied (zoom + pan). In future we might need to
+    //      review this.
+    //
+    //      CURRENT EVENTS PASSING:
+    //      [annotation] on navigation raise OnNavigation
+    //      [preview] subscribe to event perform, zoom pan and raise ANN_ZOOMED with updated coordinate
+    //      [player] subscribe to event and pass updated cooridnate to tracker
+
+    window.postMessage({
+      type: ANN_ZOOMED,
+      centerX: boxNewCenterX,
+      centerY: boxNewCenterY,
+      ...relayObj
+    });
+  };
+
+  determineQuadrant = (
+    childRect: Rect
+  ): Quadrant => {
+    const referenceFrame = this.frameOfReferenceElRef.current;
+    if (!referenceFrame) {
+      return { to: QuadrantType.Reset };
+    }
+
+    const referenceFrameRect = referenceFrame.getBoundingClientRect();
+    const referenceFrameScales = getScaleOfElement(referenceFrame);
+    const dummyScale = Math.min(referenceFrameScales.scaleX, referenceFrameScales.scaleY);
+    const parentWidth = referenceFrameRect.width / dummyScale;
+    const parentHeight = referenceFrameRect.height / dummyScale;
+    const parentCenterX = parentWidth / 2;
+    const parentCenterY = parentHeight / 2;
+
+    const spansVertical = childRect.top < parentCenterY && childRect.bottom > parentCenterY;
+    const spansHorizontal = childRect.left < parentCenterX && childRect.right > parentCenterX;
+
+    const isTop = childRect.bottom <= parentCenterY;
+    const isBottom = childRect.top >= parentCenterY;
+    const isLeft = childRect.right <= parentCenterX;
+    const isRight = childRect.left >= parentCenterX;
+
+    const quadrants: QuadrantType[] = [];
+
+    if (isTop) {
+      if (isLeft) quadrants.push(QuadrantType.TopLeft);
+      if (isRight) quadrants.push(QuadrantType.TopRight);
+    }
+    if (isBottom) {
+      if (isLeft) quadrants.push(QuadrantType.BottomLeft);
+      if (isRight) quadrants.push(QuadrantType.BottomRight);
+    }
+
+    if (spansVertical || spansHorizontal || quadrants.length > 1) {
+      const { top, left, scale } = getCustomTopLeftAndScale(parentWidth, parentHeight, childRect);
+      return { to: QuadrantType.Custom, top, left, scale };
+    }
+
+    if (quadrants[0] === QuadrantType.Custom) {
+      return { to: QuadrantType.Reset };
+    }
+    return { to: quadrants[0] };
+  };
+
   render(): JSX.Element {
     const props = this.props.screenData.isHTML4 ? {} : { srcDoc: IFRAME_DEFAULT_DOC };
     return (
-      <>
+      <div
+        ref={this.frameWrapperRef}
+        style={{
+          visibility: this.props.hidden ? 'hidden' : 'visible',
+          overflow: 'hidden',
+          position: 'absolute',
+          height: '100%',
+          borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
+          borderStyle: 'solid',
+          borderColor: 'transparent',
+          boxSizing: 'border-box'
+        }}
+      >
         <Tags.EmbedFrame
           key={this.props.screen.rid}
           // we added this because some html4 doc would not render properly across different machines
@@ -414,9 +648,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
             background: 'transparent',
             boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em',
-            borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
-            borderStyle: 'solid',
-            borderColor: 'transparent',
+            position: 'absolute',
+            transition: 'none'
           }}
           ref={ref => {
             this.embedFrameRef.current = ref;
@@ -428,8 +661,20 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           {...props}
         />
 
+        {/*
+          this is a frame of reference div. Since the above iframe will be resized
+          based on the zoom and pan, to get the reference of the original sizing, we will use the below
+          frame of reference div whenever we will calculate the zoom and pan values
+        */}
+        <div
+          style={{
+            visibility: 'hidden',
+          }}
+          ref={this.frameOfReferenceElRef}
+        />
+
         {this.props.showWatermark && <LogoWatermark isHidden={this.props.hidden} watermarkRef={this.watermarkRef} />}
-      </>
+      </div>
     );
   }
 }

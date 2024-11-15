@@ -856,6 +856,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       heightOffset={this.props.frameSetting !== FrameSettings.NOFRAME ? MAC_FRAME_HEIGHT : 0}
       borderColor={this.props.borderColor}
       onIframeClick={this.props.onIframeClick}
+      enableZoomPan={this.props.isFromScreenEditor}
     />;
   }
 }
