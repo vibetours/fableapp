@@ -42,9 +42,9 @@ function BuyMoreCredit({
         clearInterval(creditIntervalRef.current);
         creditIntervalRef.current = null;
       }
+      isBuyMoreCreditInProcess && amplitudeBuyMoreQuillyCredit(clickedFrom, currentCredit - availableCredits);
       setAvailableCredits(currentCredit);
       setIsBuyMoreCreditInProgress(false);
-      amplitudeBuyMoreQuillyCredit(clickedFrom, currentCredit - availableCredits);
     }
   }, [currentCredit]);
 
