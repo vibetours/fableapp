@@ -421,12 +421,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     referenceFrame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
     referenceFrame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
     referenceFrame.style.left = '0';
-    referenceFrame.style.top = `${this.props.heightOffset}px`;
+    referenceFrame.style.top = '0';
 
     frameWrapper.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
     frameWrapper.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
     frameWrapper.style.left = '0';
-    frameWrapper.style.top = '0';
+    frameWrapper.style.top = `${this.props.heightOffset}px`;
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.scaleFactor = 1;
     frame.style.transform = 'scale(1)';
@@ -632,7 +632,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
           borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
           borderStyle: 'solid',
           borderColor: 'transparent',
-          boxSizing: 'border-box'
+          boxSizing: this.props.isResponsive ? 'content-box' : 'border-box'
         }}
       >
         <Tags.EmbedFrame
