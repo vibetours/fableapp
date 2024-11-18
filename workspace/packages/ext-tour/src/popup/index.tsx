@@ -121,6 +121,11 @@ class Root extends Component<Props, State> {
     chrome.runtime.sendMessage({ type: Msg.DELETE_RECORDING });
   };
 
+  // eslint-disable-next-line class-methods-use-this
+  __test = () => {
+    chrome.runtime.sendMessage({ type: Msg.__TEST__ });
+  };
+
   resetState = () => {
     this.setState({ recordingStatus: RecordingStatus.Idle });
     chrome.runtime.sendMessage({ type: Msg.RESET_STATE });
@@ -174,6 +179,11 @@ class Root extends Component<Props, State> {
               )
           }
         </div>
+
+        {/* WARN For testing */}
+        {false && (
+          <button type="button" onClick={this.__test}>...</button>
+        )}
         {!this.state.inited && (
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "center" }}>
