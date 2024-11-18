@@ -91,8 +91,6 @@ export interface IOwnProps {
   borderColor?: string;
   isStaging: boolean;
   onIframeClick?: ()=> void;
-  shouldReload?: number;
-  doNotAutoplayMedia?: string[];
 }
 
 interface IOwnStateProps {
@@ -222,7 +220,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.screen,
           this.props.shouldSkipLeadForm,
           this.getNextAnnotation,
-          this.props.doNotAutoplayMedia || []
         );
 
         if (this.props.isFromScreenEditor) {
@@ -321,16 +318,6 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
 
       if (this.props.hidden && this.props.hidden !== prevProps.hidden) {
         await this.resetIframe(this.props.screen.rid);
-      }
-
-      if (this.props.shouldReload && this.props.shouldReload !== prevProps.shouldReload) {
-        await this.resetIframe(this.props.screen.rid);
-
-        this.reachAnnotation('');
-        setTimeout(() => {
-          this.reachAnnotation(this.props.toAnnotationId);
-        }, 300);
-        this.setState({ currentAnn: this.props.toAnnotationId });
       }
     } else {
       // In creator mode we need this so that the annotation is updated with config change from creator panel

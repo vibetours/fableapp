@@ -1,5 +1,5 @@
 import { RespDemoEntity } from '@fable/common/dist/api-contract';
-import { EditFile, IAnnotationAudio, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property, TourData } from '@fable/common/dist/types';
+import { AnnotationPositions, CoverAnnotationPositions, CustomAnnotationPosition, EditFile, IAnnotationAudio, IAnnotationConfig, ITourDataOpts, JourneyData, JourneyFlow, Property, TourData, VideoAnnotationPositions } from '@fable/common/dist/types';
 import { IAnnotationConfigWithScreenId } from './component/annotation/annotation-config-utils';
 import { RenameDemoHubResult } from './action/creator';
 import { Tx } from './container/tour-editor/chunk-sync-manager';
@@ -280,10 +280,7 @@ export enum InternalEvents {
   OnSelectedElChange = 'on_sel_el_change',
 }
 
-export interface VoiceoverMediaStateChangePayload {
-  mediaState: 'none' | 'paused' | 'playing' | 'ended' | 'overlay';
-  annRefId: string;
-}
+export type VoiceoverMediaState = 'none' | 'paused' | 'playing' | 'ended' | 'overlay';
 
 export enum ExtMsg {
   DemoLoadingStarted = 'demo-loading-started',
@@ -335,6 +332,16 @@ export interface Payload_NavToAnnotation {
 export interface Payload_UpdateDemo {
   type: ExtMsg.UpdateDemo,
   demoUpdated: boolean,
+}
+
+export interface Payload_AnnotationPos {
+  top: number,
+  left: number;
+  width: number;
+  height: number;
+  dir: AnimEntryDir;
+  currentAnnotationRefId: string;
+  annotationType: 'cover' | 'default';
 }
 
 export interface Payload_TrackerAnnInfo {
@@ -805,6 +812,13 @@ export interface AnnVoiceOverDetail extends IAnnotationAudio{
 }
 
 export type OpenAIVoices = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+
+export type Positions = AnnotationPositions
+  | VideoAnnotationPositions
+  | CustomAnnotationPosition
+  | CoverAnnotationPositions;
+
+export type AnimEntryDir = 'l' | 't' | 'r' | 'b';
 export enum QuadrantType {
   TopLeft,
   TopRight,

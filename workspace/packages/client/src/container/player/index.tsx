@@ -30,8 +30,9 @@ import {
   ExtMsg,
   Payload_UpdateDemo,
   Payload_Navigation,
-  VoiceoverMediaStateChangePayload,
+  VoiceoverMediaState,
   Payload_TrackerAnnInfo,
+  Payload_AnnotationPos,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -58,7 +59,10 @@ import {
   combineAllEdits,
   ParsedQueryResult,
   getPersVarsDataFromQueryParams,
-  getAllOrderedAnnotationsInTour
+  getAllOrderedAnnotationsInTour,
+  isMediaAnnotation,
+  isVideoAnnotation,
+  getBorderRadiusForAnnotation
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -81,6 +85,7 @@ import ViewDemoOverlay from './view-demo-overlay';
 import { IAnnotationConfigWithScreenId } from '../../component/annotation/annotation-config-utils';
 import VoiceoverControl from '../../component/voiceover-control';
 import Tracker from './tracker';
+import AnnotationMedia from '../../component/annotation/media-player';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
@@ -212,14 +217,16 @@ interface IOwnStateProps {
   frameSetting: FrameSettings;
   allScreensLocal: P_RespScreen[];
   showViewDemo: boolean;
-  isVoiceoverPlaying: boolean;
+  isMediaPlaying: boolean;
   firstAnnRefId: string;
   showVoiceoverControl: boolean;
   trackerAnnInfo: Payload_TrackerAnnInfo | null;
   trackerPos: {
     centerX: number,
     centerY: number,
-  } | null
+  } | null,
+  currAnnRefId: string,
+  annPos: Payload_AnnotationPos | null;
 }
 
 interface ScreenInfo {
@@ -249,12 +256,8 @@ export interface OnNavigationEvent extends Partial<Event> {
   detail?: Payload_Navigation
 }
 
-interface MediaStaeChageEvent extends Partial<Event> {
-  detail?: VoiceoverMediaStateChangePayload
-}
-
-interface OnTrackerPosUpdate extends Partial<Event> {
-  detail?: Payload_TrackerAnnInfo;
+interface OnAnnPosUpdate extends Partial<Event> {
+  detail?: Payload_AnnotationPos;
 }
 
 class Player extends React.PureComponent<IProps, IOwnStateProps> {
@@ -286,6 +289,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   private playerRef: React.MutableRefObject<HTMLIFrameElement | null> = React.createRef();
 
+  private mediaRef: React.MutableRefObject<AnnotationMedia | null> = React.createRef();
+
   constructor(props: IProps) {
     super(props);
 
@@ -305,11 +310,13 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       frameSetting: (this.props.tour?.info.frameSettings || FrameSettings.NOFRAME),
       allScreensLocal: this.props.allScreens,
       showViewDemo: false,
-      isVoiceoverPlaying: true,
+      isMediaPlaying: true,
       firstAnnRefId: '',
       showVoiceoverControl: false,
       trackerAnnInfo: null,
       trackerPos: null,
+      currAnnRefId: '',
+      annPos: null,
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -332,6 +339,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       });
     }
     if (e.data.type === SCREEN_SIZE_MSG) {
+      if ((e.data as any).propogated) return;
       const data = e.data as ScreenInfo;
       this.setState(prevS => {
         const currScreenData: ScreenSizeData = {
@@ -344,7 +352,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       });
 
       // Propagate the data to the parent iframes
-      window.parent && window.parent.postMessage(e.data, '*');
+      window.parent && window.parent.postMessage({ ...e.data, propogated: true }, '*');
     }
 
     if (e.data.type === HEADER_CTA) {
@@ -406,12 +414,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     window.addEventListener('beforeunload', removeSessionId);
     window.addEventListener('message', this.receiveMessage, false);
     document.addEventListener(InternalEvents.OnNavigation, this.handleCurrentAnn);
-    document.addEventListener(InternalEvents.VoiceoverMediaStateChange, this.handleMediaStateChange);
-    document.addEventListener(InternalEvents.OnSelectedElChange, this.onTrackerPositionChange);
+    document.addEventListener(InternalEvents.OnSelectedElChange, this.onAnnPositionChange);
   }
 
-  onTrackerPositionChange = (event: OnTrackerPosUpdate) => {
-    this.setState({ trackerAnnInfo: event.detail! });
+  onAnnPositionChange = (event: OnAnnPosUpdate): void => {
+    this.setState({ annPos: event.detail! });
   };
 
   createRenderSlotsBasedOnDomain(): Record<string, number> {
@@ -708,7 +715,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const currTourLoaded = this.props.isTourLoaded;
     const prevScreenRId = prevProps.match.params.screenRid;
     const currScreenRId = this.props.match.params.screenRid;
-
     if (!currScreenRId && currScreenRId !== prevScreenRId) {
       this.navigateToMain();
     }
@@ -852,25 +858,24 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     window.removeEventListener('beforeunload', removeSessionId);
     window.removeEventListener('message', this.receiveMessage, false);
     document.removeEventListener(InternalEvents.OnNavigation, this.handleCurrentAnn);
-    document.removeEventListener(InternalEvents.VoiceoverMediaStateChange, this.handleMediaStateChange);
-    document.addEventListener(InternalEvents.OnSelectedElChange, this.onTrackerPositionChange);
+    document.addEventListener(InternalEvents.OnSelectedElChange, this.onAnnPositionChange);
   }
 
   handleCurrentAnn = (e: OnNavigationEvent): void => {
     if (e.type === InternalEvents.OnNavigation && e.detail) {
-      this.setState({ showVoiceoverControl: e.detail.annotationType === 'voiceover' });
+      this.setState({
+        showVoiceoverControl: e.detail.annotationType === 'voiceover',
+        currAnnRefId: e.detail.currentAnnotationRefId
+      });
     }
   };
 
-  handleMediaStateChange = (e: MediaStaeChageEvent): void => {
-    if (e.type === InternalEvents.VoiceoverMediaStateChange && e.detail) {
-      const mediaState = (e.detail as VoiceoverMediaStateChangePayload).mediaState;
-      const isMediaPlaying = mediaState === 'playing';
-      this.setState((prevS) => ({
-        isVoiceoverPlaying: isMediaPlaying,
-        showVoiceoverControl: mediaState === 'overlay' ? false : prevS.showVoiceoverControl
-      }));
-    }
+  handleMediaStateChange = (mediaState: VoiceoverMediaState): void => {
+    const isMediaPlaying = mediaState === 'playing';
+    this.setState((prevS) => ({
+      isMediaPlaying,
+      showVoiceoverControl: mediaState === 'overlay' ? false : prevS.showVoiceoverControl
+    }));
   };
 
   isLoadingComplete = (): boolean => this.props.isTourLoaded && this.props.isScreenLoaded;
@@ -1047,26 +1052,19 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     addToGlobalAppData('journeyData', journeyData);
   };
 
-  playMediaAnnn = (currScreenId: number): void => {
-    if (this.frameRefs[currScreenId].current) {
-      this.frameRefs[currScreenId].current!.contentWindow?.postMessage({
-        type: 'f-play-media',
-      });
-    }
+  playMediaAnnn = (): void => {
+    this.mediaRef.current?.playMediaFromStart();
   };
 
-  handleDemoPlayAndPause = (currScreenId: number): void => {
-    if (this.frameRefs[currScreenId].current) {
-      this.frameRefs[currScreenId].current!.contentWindow?.postMessage({
-        type: 'f-play-pause-demo',
-      });
-    }
+  handleDemoPlayAndPause = (): void => {
+    this.mediaRef.current?.handlePlayPauseMedia();
   };
 
   replayDemo = (): void => {
     this.goToMain();
     this.setState({
       previewReplayerKey: Math.random(),
+      firstAnnRefId: ''
     });
   };
 
@@ -1089,6 +1087,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     // We don't show frame on mobile
     const frame = isMobileOperatingSystem() ? FrameSettings.NOFRAME : this.state.frameSetting;
     const currScreenId = this.getCurrScreenId();
+    const annScaleFactor = this.state.screenSizeData[currScreenId]
+      ? this.state.screenSizeData[currScreenId].scaleFactor : 1;
 
     return (
       <GTags.BodyCon
@@ -1110,7 +1110,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 resizeSignal={1}
                 journey={this.props.journey!}
                 screenRidOnWhichDiffsAreApplied={this.props.match.params.screenRid!}
-                key={config.screen.id}
+                key={config.screen.id + this.state.previewReplayerKey}
                 innerRef={this.frameRefs[config.screen.id]}
                 screen={config.screen}
                 hidden={config.screen.id !== currScreenId}
@@ -1198,10 +1198,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 borderColor={frameBorderColor}
                 isStaging={this.props.staging}
                 onIframeClick={() => {
-                  this.handleDemoPlayAndPause(currScreenId);
+                  this.handleDemoPlayAndPause();
                 }}
-                shouldReload={this.state.previewReplayerKey}
-                doNotAutoplayMedia={[this.state.firstAnnRefId]}
               />
             ))
         }
@@ -1211,6 +1209,58 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
           screenSizeData={this.state.screenSizeData[this.getCurrScreenId()]}
           trackerPos={this.state.trackerPos}
         />}
+        {
+          (this.props.tourOpts && this.props.annotationsInOrder
+            && this.props.annotationsInOrder.filter(ann => isMediaAnnotation(ann)).map(ann => (
+              <AnnotationMedia
+                ref={this.state.annPos && this.state.currAnnRefId === ann.refId
+                  ? this.mediaRef : null}
+                key={ann.refId}
+                borderRadius={getBorderRadiusForAnnotation(
+                  ann.positioning,
+                  Boolean(this.state.annPos && this.state.annPos.annotationType === 'cover'),
+                  this.props.tourOpts!.showFableWatermark._val,
+                  this.state.annPos && this.state.currAnnRefId === ann.refId
+                    ? this.state.annPos.dir : 'l',
+                  this.props.tourOpts!.borderRadius._val
+                )}
+                playMode
+                annFollowPositions={{
+                  top: this.state.annPos && this.state.currAnnRefId === ann.refId
+                    ? this.state.annPos.top * annScaleFactor
+                    + (this.state.screenSizeData[currScreenId]?.iframePos?.top || 0) : -9999999,
+                  left: this.state.annPos && this.state.currAnnRefId === ann.refId
+                    ? this.state.annPos.left * annScaleFactor
+                    + (this.state.screenSizeData[currScreenId]?.iframePos?.left || 0) : -999999,
+                  dir: this.state.annPos && this.state.currAnnRefId === ann.refId
+                    ? this.state.annPos.dir : 'l'
+                }}
+                confRefId={this.state.currAnnRefId}
+                tourId={parseInt(this.props.match.params.tourId, 10)}
+                type={isVideoAnnotation(ann) ? 'video' : 'audio'}
+                width={this.state.annPos?.width || -999999}
+                height={this.state.annPos?.height || -999999}
+                opts={this.props.tourOpts!}
+                nav={(dir: 'prev' | 'next' | 'custom', btnId?: string) => {
+                  if (dir !== 'custom') {
+                  this.frameRefs[currScreenId].current!.contentWindow!.postMessage({
+                    type: dir === 'next' ? 'f-go-next-ann' : 'f-go-prev-ann',
+                  });
+                  } else {
+                    this.frameRefs[currScreenId].current!.contentWindow!.postMessage({
+                      type: 'f-custom-btn',
+                      btnId
+                    });
+                  }
+                }}
+                conf={ann}
+                annScale={annScaleFactor}
+                doNotAutoplayMedia={this.state.showViewDemo ? [this.state.firstAnnRefId] : []}
+                handleMediaStateChange={this.handleMediaStateChange}
+                screenSizeData={this.state.screenSizeData[currScreenId]}
+              />
+            )))
+        }
         {this.state.screenSizeData[currScreenId]
         && this.props.tourOpts && this.props.tourOpts.showStepNum._val
         && (
@@ -1311,7 +1361,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         && <ViewDemoOverlay
           screenSizeData={this.state.screenSizeData[currScreenId]}
           onViewDemoClick={() => {
-            this.playMediaAnnn(currScreenId);
+            this.playMediaAnnn();
             this.setState({ showViewDemo: false });
           }}
           showWatermark={this.props.tourOpts?.showFableWatermark._val || false}
@@ -1322,11 +1372,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
          <VoiceoverControl
            isWatermarkPresent={this.props.tourOpts?.showFableWatermark._val || false}
            screenSizeData={this.state.screenSizeData[currScreenId]}
-           playScreen={() => this.playMediaAnnn(currScreenId)}
-           playPauseVideo={() => this.handleDemoPlayAndPause(currScreenId)}
-           isVoiceoverPlaying={this.state.isVoiceoverPlaying}
+           replayScreen={() => this.playMediaAnnn()}
+           playPauseVideo={() => this.handleDemoPlayAndPause()}
+           isVoiceoverPlaying={this.state.isMediaPlaying}
          />
          )}
+        {}
       </GTags.BodyCon>
     );
   }

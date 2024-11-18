@@ -34,7 +34,7 @@ import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
 import Header from '../../component/header';
 import PersonalVarEditor from '../../component/personal-var-editor/personal-var-editor';
 import PublishOptions from '../../component/publish-preview/publish-options';
-import { DEMO_LOADED_AFTER_AI_UPDATE, IFRAME_BASE_URL } from '../../constants';
+import { DEMO_LOADED_AFTER_AI_UPDATE, IFRAME_BASE_URL, SCREEN_SIZE_MSG } from '../../constants';
 import { P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
@@ -255,7 +255,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     } else if (e.data.sender === 'sharefable.com' && e.data.type === ExtMsg.OnNavigation) {
       const annRefId = e.data.payload.currentAnnotationRefId;
       this.setState({ currentAnnRefId: annRefId });
-    } else if (e.data.type === 'screen-size-data') {
+    } else if (e.data.type === SCREEN_SIZE_MSG) {
       this.setState({
         screenSizeData: {
           // TODO fix the types

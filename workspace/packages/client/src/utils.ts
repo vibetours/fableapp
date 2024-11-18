@@ -79,6 +79,8 @@ import {
   IdxEncodingTypeText,
   EncodingTypeText,
   AnnVoiceOverDetail,
+  Positions,
+  AnimEntryDir,
 } from './types';
 import { Rect } from './component/base/hightligher-base';
 
@@ -2396,6 +2398,23 @@ export const handleAddAnnotationAudio = (
 
   newAnnConfig = updateAnnotationBoxSize(newAnnConfig, 'medium');
   return newAnnConfig;
+};
+
+export const getBorderRadiusForAnnotation = (
+  positioning: Positions,
+  isCoverAnn: boolean,
+  showWatermark: boolean,
+  arrowDir: AnimEntryDir,
+  borderRadius: number
+): string => {
+  if (!showWatermark) return `${borderRadius}px`;
+
+  if (arrowDir === 't') {
+    if (isCoverAnn || positioning === 'center') return `${borderRadius}px ${borderRadius}px 0px 0px`;
+    return `0px 0px ${borderRadius}px ${borderRadius}px`;
+  }
+
+  return `${borderRadius}px ${borderRadius}px 0px 0px`;
 };
 export function getScaleOfElement(element: HTMLElement): {
   scaleX: number,

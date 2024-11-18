@@ -369,6 +369,7 @@ export const AnBubble = styled.div<{bubbleWidth: number}>`
 `;
 
 export const AnMediaContainer = styled.div`
+  transform-origin: 0px 0px;
   border-radius: 8px;
   * {
     height: auto;

@@ -1,5 +1,5 @@
-import { CreateJourneyPositioning, JourneyData, ScreenData } from '@fable/common/dist/types';
-import React, { ReactEventHandler } from 'react';
+import { JourneyData, ScreenData } from '@fable/common/dist/types';
+import React from 'react';
 import { ScreenType } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { P_RespScreen } from '../../entity-processor';
@@ -12,7 +12,6 @@ import LogoWatermark from '../watermark/logo-watermark';
 import { IframePos, EditItem, ScreenSizeData, Quadrant, QuadrantType, InternalEvents, Payload_Navigation } from '../../types';
 import { applyEditsToSerDom } from './utils/edits';
 import { getCustomTopLeftAndScale, getScaleOfElement, MAX_ZOOM_SCALE, scaleRect } from '../../utils';
-import { AnnRenderedEvent } from '../annotation/types';
 import { OnNavigationEvent } from '../../container/player';
 import { Rect } from '../base/hightligher-base';
 

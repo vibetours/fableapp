@@ -87,8 +87,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private getNextAnnotation: (annId: string) => IAnnotationConfigWithScreenId;
 
-  private doNotAutoplayMedia: string[];
-
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
   }
@@ -159,7 +157,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     screen: P_RespScreen,
     shouldSkipLeadForm: boolean,
     getNextAnnotation: (annId: string)=>IAnnotationConfigWithScreenId,
-    doNotAutoplayMedia: string[],
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
     this.screen = screen;
@@ -183,11 +180,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.applyDiffAndGoToAnn = applyDiffAndGoToAnnFn;
     this.updateCurrentFlowMain = updateCurrentFlowMain;
     this.updateJourneyProgress = updateJourneyProgress;
-    this.prerenderMediaAnnotations();
     this.iframeElsScrollTimeoutId = 0;
     this.shouldSkipLeadForm = shouldSkipLeadForm;
     this.getNextAnnotation = getNextAnnotation;
-    this.doNotAutoplayMedia = doNotAutoplayMedia;
     if (this.screenType === ScreenType.SerDom) {
       this.setFramesScrollListeners();
     }
@@ -569,11 +564,9 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       if (id === currId) {
         annotationDisplayConfig.isMaximized = true;
         annotationDisplayConfig.isInViewPort = true;
-        annotationDisplayConfig.prerender = false;
       } else {
         annotationDisplayConfig.isMaximized = false;
         annotationDisplayConfig.isInViewPort = false;
-        annotationDisplayConfig.prerender = annotationDisplayConfig.isMediaAnnotation;
       }
     }
 
@@ -706,7 +699,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
           isScreenHTML4: this.isScreenHTML4,
           shouldSkipLeadForm: this.shouldSkipLeadForm,
           getNextAnnotation: this.getNextAnnotation,
-          doNotAutoplayMedia: this.doNotAutoplayMedia,
           screenId: this.screen.id
         })
       )
@@ -794,11 +786,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
   }
 
   private clearAnnElMap(): void {
-    // don't clear prerendered video entries from the annotationElMap
-    const entriesToClear = Object.entries(this.annotationElMap).filter(([key, [el, displayConf]]) => {
-      const isPrerender = displayConf.prerender;
-      return !isPrerender;
-    }).map(el => el);
+    const entriesToClear = Object.entries(this.annotationElMap).map(el => el);
 
     entriesToClear.forEach(entry => {
       const el = entry[1][0];
@@ -808,61 +796,6 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       }
       delete this.annotationElMap[entry[0]];
     });
-  }
-
-  private prerenderMediaAnnotations(): void {
-    const annotationsOfSameScreen: IAnnotationConfig[] = [];
-
-    this.allAnnotationsForTour
-      .filter(item => item.screen.urlStructured.host === this.screen.urlStructured.host)
-      .forEach(item => annotationsOfSameScreen.push(...item.annotations));
-
-    const mediaAnnotations = annotationsOfSameScreen.filter((config) => isMediaAnnotation(config));
-
-    const mediaAnnsProps: IAnnProps[] = mediaAnnotations.map(config => {
-      const displayConf = this.setAnnElMapVal(config, DEFAULT_DIMS_FOR_ANN, this.opts, true);
-
-      return {
-        box: {
-          x: 10,
-          y: 10,
-          height: 10,
-          width: 10,
-          top: 10,
-          bottom: 10,
-          left: 10,
-          right: 10,
-        },
-        conf: displayConf,
-        maskBox: null,
-        el: document.createElement('div'),
-        hotspotEl: null
-      };
-    });
-
-    this.rRoot.render(
-      React.createElement(
-        StyleSheetManager,
-        { target: getFableRtUmbrlDiv(this.doc) as HTMLElement },
-        React.createElement(AnnotationCon, {
-          data: mediaAnnsProps,
-          nav: this.nav,
-          win: this.win,
-          navigateToAnnByRefIdOnSameScreen: this.navigateToAnnByRefIdOnSameScreen,
-          playMode: this.isPlayMode,
-          tourId: this.tourId,
-          applyDiffAndGoToAnn: this.applyDiffAndGoToAnn,
-          updateCurrentFlowMain: this.updateCurrentFlowMain,
-          updateJourneyProgress: this.updateJourneyProgress,
-          onCompMount: () => { },
-          isScreenHTML4: this.isScreenHTML4,
-          shouldSkipLeadForm: this.shouldSkipLeadForm,
-          getNextAnnotation: this.getNextAnnotation,
-          doNotAutoplayMedia: this.doNotAutoplayMedia,
-          screenId: this.screen.id
-        })
-      )
-    );
   }
 
   private getAnnWidths(annType: 'default' | 'cover')

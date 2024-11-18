@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as Tags from './styled';
 import FableLogoWithQuill from '../../assets/fableLogo.svg';
-import { AnimEntryDir, Positions } from '../annotation';
+import { AnimEntryDir, Positions } from '../../types';
 
 interface Props {
   borderRadius: number;

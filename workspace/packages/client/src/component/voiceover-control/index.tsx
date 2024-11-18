@@ -6,7 +6,7 @@ import { ScreenSizeData } from '../../types';
 
 interface Props {
   screenSizeData: ScreenSizeData;
-  playScreen: ()=> void;
+  replayScreen: ()=> void;
   isWatermarkPresent: boolean;
   playPauseVideo: ()=> void;
   isVoiceoverPlaying: boolean;
@@ -32,7 +32,7 @@ export default function VoiceoverControl(props: Props): JSX.Element {
     >
       <Tooltip title="Replay this step" placement="topRight">
         <CaretLeftOutlined
-          onClick={props.playScreen}
+          onClick={props.replayScreen}
           className="voice-control-icon"
           style={{
             opacity: 0.65
