@@ -472,11 +472,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const frame = this.embedFrameRef.current;
     const referenceFrame = this.frameOfReferenceElRef.current;
     if (!frame || !referenceFrame) return;
-    const referenceFrameScale = getScaleOfElement(referenceFrame);
-
+    const referenceFrameScaleValues = getScaleOfElement(referenceFrame);
+    const referenceFrameScale = Math.min(referenceFrameScaleValues.scaleX, referenceFrameScaleValues.scaleY);
     const referenceElRect = referenceFrame.getBoundingClientRect();
     frame.style.transition = 'transform 2s cubic-bezier(0.42, 0, 0.01, 0.95)';
 
+    const parentWidth = referenceElRect.width;
+    const parentHeight = referenceElRect.height;
     let scaleValue : number | null = null;
     let translatedX: number = 0;
     let translatedY: number = 0;
@@ -486,44 +488,44 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
         translatedX = 0;
         translatedY = 0;
         scaleValue = MAX_ZOOM_SCALE;
-        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(0%, 0%)`;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale}) translate(0%, 0%)`;
         break;
       }
 
       case QuadrantType.TopRight: {
         const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
-        translatedX = percentZoom * referenceElRect.width;
+        translatedX = percentZoom * (parentWidth) * MAX_ZOOM_SCALE;
         translatedY = 0;
         scaleValue = MAX_ZOOM_SCALE;
         const translateX = percentZoom * 100;
-        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(${translateX}% , 0%)`;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale}) translate(${translateX}% , 0%)`;
         break;
       }
 
       case QuadrantType.BottomLeft: {
         const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
         translatedX = 0;
-        translatedY = percentZoom * referenceElRect.height;
+        translatedY = percentZoom * (parentHeight * MAX_ZOOM_SCALE);
         scaleValue = MAX_ZOOM_SCALE;
         const translateY = (percentZoom) * 100;
-        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(0% , ${translateY}%)`;
+        frame.style.transform = `scale(${MAX_ZOOM_SCALE * referenceFrameScale}) translate(0% , ${translateY}%)`;
         break;
       }
 
       case QuadrantType.BottomRight: {
         const percentZoom = -(MAX_ZOOM_SCALE - 1) / MAX_ZOOM_SCALE;
-        translatedX = percentZoom * referenceElRect.width;
-        translatedY = percentZoom * referenceElRect.height;
+        translatedX = percentZoom * (parentWidth) * MAX_ZOOM_SCALE;
+        translatedY = percentZoom * (parentHeight) * MAX_ZOOM_SCALE;
         scaleValue = MAX_ZOOM_SCALE;
         const translate = (percentZoom) * 100;
         frame.style.transform = `
-        scale(${MAX_ZOOM_SCALE * referenceFrameScale.scaleX}) translate(${translate}% , ${translate}%)
+        scale(${MAX_ZOOM_SCALE * referenceFrameScale}) translate(${translate}% , ${translate}%)
         `;
         break;
       }
 
       case QuadrantType.Custom: {
-        const finalScaleToBeApplied = quadrant.scale * referenceFrameScale.scaleX;
+        const finalScaleToBeApplied = quadrant.scale * referenceFrameScale;
         scaleValue = quadrant.scale;
         const translateX = `${-quadrant.left}px`;
         const translateY = `${-quadrant.top}px`;
@@ -537,11 +539,11 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
       default: {
         scaleValue = 1;
-        frame.style.transform = `scale(${referenceFrameScale.scaleX}) translate(0%, 0%)`;
+        frame.style.transform = `scale(${referenceFrameScale}) translate(0%, 0%)`;
         break;
       }
     }
-    const scaledRect = scaleRect(box, (scaleValue * referenceFrameScale.scaleX));
+    const scaledRect = scaleRect(box, scaleValue * referenceFrameScale);
 
     const boxNewCenterX = (scaledRect.left + translatedX) + scaledRect.width / 2;
     const boxNewCenterY = (scaledRect.top + translatedY) + scaledRect.height / 2;
