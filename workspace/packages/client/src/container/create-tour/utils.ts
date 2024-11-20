@@ -519,6 +519,7 @@ export const handleAssetOperation = async (
   assetOperatons: AssetOperationProps[],
   proxyCache: Map<string, RespProxyAsset>,
   mainFrame: FrameDataToBeProcessed | undefined,
+  updateAssetProgress: (progress: number)=>void,
 ): Promise<void> => {
   const svgSpriteUrls: Record<string, number> = {};
 
@@ -552,6 +553,7 @@ export const handleAssetOperation = async (
           );
         } finally {
           operation.node.props.origHref = operation.originalBlobUrl;
+          updateAssetProgress(1);
         }
       } else {
         const clientInfo = operation.clientInfo;
@@ -641,6 +643,7 @@ export const handleAssetOperation = async (
             }
           }
         }
+        updateAssetProgress(Object.entries(node.props.proxyUrlMap).length);
       }
 
       if (operation.frameId === 0 && operation.postProcessPath === operation.frameIconPath && mainFrame) {

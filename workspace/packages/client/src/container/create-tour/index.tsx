@@ -413,7 +413,14 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     (async () => {
       let totalAssets = 0;
       for (let i = 0; i < framesProssesResult.length; i++) {
-        totalAssets += framesProssesResult[i].assetOperation.length;
+        for (let j = 0; j < framesProssesResult[i].assetOperation.length; j++) {
+          const asset = framesProssesResult[i].assetOperation[j];
+          if (asset.type === 'proxyAsset') {
+            totalAssets += Object.entries(asset.node.props.proxyUrlMap).length;
+          } else if (asset.type === 'base64') {
+            totalAssets += 1;
+          }
+        }
       }
       this.setState({
         screenProgressData: { currentScreen: 0, totalScreens: framesProssesResult.length },
@@ -422,14 +429,20 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
       for (let i = 0; i < framesProssesResult.length; i++) {
         const frameProcessResult = framesProssesResult[i];
-        await handleAssetOperation(frameProcessResult.assetOperation, proxyCache, frameProcessResult.mainFrame);
-        this.setState(prevState => ({
-          ...prevState,
-          proxyAssetProgressData: {
-            ...prevState.proxyAssetProgressData,
-            currentAsset: prevState.proxyAssetProgressData.currentAsset + frameProcessResult.assetOperation.length
+        await handleAssetOperation(
+          frameProcessResult.assetOperation,
+          proxyCache,
+          frameProcessResult.mainFrame,
+          (progress) => {
+            this.setState(prevState => ({
+              ...prevState,
+              proxyAssetProgressData: {
+                ...prevState.proxyAssetProgressData,
+                currentAsset: prevState.proxyAssetProgressData.currentAsset + progress
+              }
+            }));
           }
-        }));
+        );
       }
 
       for (let i = 0; i < framesProssesResult.length; i++) {
