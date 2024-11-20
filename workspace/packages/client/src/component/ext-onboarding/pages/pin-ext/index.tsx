@@ -60,7 +60,7 @@ export default function PinExt(props: Props): JSX.Element {
               Pinning your Fable extension will keep it handy when you want to create your interactive demos.😄
             </CTags.Subtitle>
           </CTags.FlexColContainer>
-          <Link to="/login?redirect=onboarding/go-to-app" style={{ textDecoration: 'none' }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
             <Button icon={<img src={ArrowRight} alt="" />} iconPlacement="right">Next</Button>
           </Link>
         </CTags.MotionDivWrapper>
