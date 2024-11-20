@@ -624,58 +624,59 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   render(): JSX.Element {
     const props = this.props.screenData.isHTML4 ? {} : { srcDoc: IFRAME_DEFAULT_DOC };
     return (
-      <div
-        ref={this.frameWrapperRef}
-        style={{
-          visibility: this.props.hidden ? 'hidden' : 'visible',
-          overflow: 'hidden',
-          position: 'absolute',
-          height: '100%',
-          borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
-          borderStyle: 'solid',
-          borderColor: 'transparent',
-          boxSizing: this.props.isResponsive ? 'content-box' : 'border-box'
-        }}
-      >
-        <Tags.EmbedFrame
-          key={this.props.screen.rid}
-          // we added this because some html4 doc would not render properly across different machines
-          src={this.props.screenData.isHTML4 ? '/aboutblankhtml4.html' : '/aboutblankhtml5.html'}
-          title={this.props.screen.displayName}
-          id={ROOT_EMBED_IFRAME_ID}
-          className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
+      <>
+        <div
+          ref={this.frameWrapperRef}
           style={{
             visibility: this.props.hidden ? 'hidden' : 'visible',
-            borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
-            background: 'transparent',
-            boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em',
+            overflow: 'hidden',
             position: 'absolute',
-            transition: 'none'
+            height: '100%',
+            borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
+            borderStyle: 'solid',
+            borderColor: 'transparent',
+            boxSizing: this.props.isResponsive ? 'content-box' : 'border-box'
           }}
-          ref={ref => {
-            this.embedFrameRef.current = ref;
-            if (this.props.innerRefs) {
-              this.props.innerRefs.forEach(r => r.current = ref);
-            }
-          }}
-          heightOffset={this.props.heightOffset}
-          {...props}
-        />
+        >
+          <Tags.EmbedFrame
+            key={this.props.screen.rid}
+          // we added this because some html4 doc would not render properly across different machines
+            src={this.props.screenData.isHTML4 ? '/aboutblankhtml4.html' : '/aboutblankhtml5.html'}
+            title={this.props.screen.displayName}
+            id={ROOT_EMBED_IFRAME_ID}
+            className={`fable-iframe-${this.props.screen.id} ${FABLE_IFRAME_GENERIC_CLASSNAME}`}
+            style={{
+              visibility: this.props.hidden ? 'hidden' : 'visible',
+              borderRadius: `${this.props.playMode ? 'none' : '20px'}`,
+              background: 'transparent',
+              boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em',
+              position: 'absolute',
+              transition: 'none'
+            }}
+            ref={ref => {
+              this.embedFrameRef.current = ref;
+              if (this.props.innerRefs) {
+                this.props.innerRefs.forEach(r => r.current = ref);
+              }
+            }}
+            heightOffset={this.props.heightOffset}
+            {...props}
+          />
 
-        {/*
+          {/*
           this is a frame of reference div. Since the above iframe will be resized
           based on the zoom and pan, to get the reference of the original sizing, we will use the below
           frame of reference div whenever we will calculate the zoom and pan values
         */}
-        <div
-          style={{
-            visibility: 'hidden',
-          }}
-          ref={this.frameOfReferenceElRef}
-        />
-
+          <div
+            style={{
+              visibility: 'hidden',
+            }}
+            ref={this.frameOfReferenceElRef}
+          />
+        </div>
         {this.props.showWatermark && <LogoWatermark isHidden={this.props.hidden} watermarkRef={this.watermarkRef} />}
-      </div>
+      </>
     );
   }
 }
