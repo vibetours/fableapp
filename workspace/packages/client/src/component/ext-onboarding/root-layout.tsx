@@ -1,4 +1,5 @@
 import React, { CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
 import FableLogo from '../../assets/onboarding/fable-logo.svg';
 import Browser from '../../assets/onboarding/pin-ext-browser.png';
 import * as Tags from './styled';
@@ -57,15 +58,17 @@ export default function RootLayout(props: Props): JSX.Element {
       {!props.dontShowStackedBars && (
         <VerticalStackedBars style={props.stackedbarStyle || {}} />
       )}
-      <img
-        style={{
-          height: '2rem',
-          position: 'absolute',
-          top: '4.375rem'
-        }}
-        src={FableLogo}
-        alt="fable logo"
-      />
+      <Link to="/demos">
+        <img
+          style={{
+            height: '2rem',
+            position: 'absolute',
+            top: '4.375rem'
+          }}
+          src={FableLogo}
+          alt="fable logo"
+        />
+      </Link>
       {!props.dontShowIllustration && (
         <img
           src={Browser}

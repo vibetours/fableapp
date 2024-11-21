@@ -1694,7 +1694,7 @@ export function addNewTourToAllTours(newTour: RespDemoEntity) {
   ) => {
     const state = getState();
     const processedNewTours = [processRawTourData(newTour, state.default.commonConfig!, state.default.globalConfig!)];
-    const tours = [...state.default.tours, ...processedNewTours];
+    const tours = [...processedNewTours, ...state.default.tours];
     dispatch({
       type: ActionType.ALL_TOURS_LOADED,
       tours,

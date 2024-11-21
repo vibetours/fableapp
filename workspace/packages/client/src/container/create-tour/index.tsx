@@ -15,7 +15,7 @@ import { connect } from 'react-redux';
 import { TypeAnimation } from 'react-type-animation';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
-import { RespProxyAsset, RespDemoEntity, ReqSubscriptionInfo, RespSubscription } from '@fable/common/dist/api-contract';
+import { RespProxyAsset, RespDemoEntity, RespSubscription } from '@fable/common/dist/api-contract';
 import {
   EditFilled,
   ArrowLeftOutlined,
@@ -81,13 +81,11 @@ import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { PREVIEW_BASE_URL } from '../../constants';
 import { uploadMarkedImageToAws } from '../../upload-media-to-aws';
 import * as Tags from './styled';
-import FableLogo from '../../assets/fable_logo_light_bg.png';
 import Button from '../../component/button';
 import Input from '../../component/input';
 import { OurCheckbox } from '../../common-styled';
 import TextArea from '../../component/text-area';
 import { getUUID } from '../../analytics/utils';
-import RootLayout from '../../component/ext-onboarding/root-layout';
 import { AnnotationContent } from '../../component/annotation';
 import Loader from '../../component/loader';
 import { FeatureForPlan } from '../../plans';
@@ -95,6 +93,7 @@ import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
 import { AI_PARAM, DemoState } from '../../types';
 import CreateTourProgress from '../../component/create-tour/create-tour-progress';
 import OnboardingLayout from '../user-onboarding/layout';
+import { addToGlobalAppData } from '../../global';
 
 const reactanimated = require('react-animated-css');
 
@@ -668,6 +667,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     this.props.getAllTours();
     this.props.getGlobalConfig();
     this.updateCreditsAvailability();
+    addToGlobalAppData('anonymousDemoId', this.state.anonymousDemoId);
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {

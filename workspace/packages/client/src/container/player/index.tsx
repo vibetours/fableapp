@@ -727,6 +727,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       this.setState({ screenPrerenderCount: prerenderCount });
       this.handleResponsiveness();
 
+      addToGlobalAppData('anonymousDemoId', this.props.tour?.info.annDemoId);
       let annotationSerialIdMap: AnnotationSerialIdMap = {};
       let isJourneyMenuOpen = false;
       if (this.isJourneyAdded()) {

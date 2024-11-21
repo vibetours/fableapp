@@ -66,6 +66,7 @@ export interface GlobalAppData {
   evtDataOnNav?: EventDataOnNav;
   annotationSerialIdMap?: AnnotationSerialIdMap;
   completionPercentage?: number;
+  anonymousDemoId?: string;
 }
 
 export interface JourneyNameIndexData {

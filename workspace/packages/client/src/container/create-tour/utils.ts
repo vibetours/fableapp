@@ -262,7 +262,7 @@ function createAnnotationHotspot(screenId: number, annotationRefId: string): ITo
   };
 }
 
-const SAMPLE_AI_ANN_CONFIG_TEXT = '‼️‼️‼️ Quill, Fable’s AI Demo Copilot, was unable to confidently generate this step. We’ve included it for your review. You can either manually edit the content or choose to delete this step entirely.';
+const SAMPLE_AI_ANN_CONFIG_TEXT = '‼️‼️‼️ Quilly, Fable’s AI Demo Copilot, was unable to confidently generate this step. We’ve included it for your review. You can either manually edit the content or choose to delete this step entirely.';
 
 async function addAnnotationConfigs(
   screenInfo: Array<ScreenInfoWithAI>,
@@ -901,9 +901,12 @@ export function processScreen(
       if (interactionData.interactionCtx) {
         const allFids = interactionData.interactionCtx!.candidates.map((candidate) => candidate.fid);
         const fidElPathMap = getSerNodesElPathFromFids(mainFrameData.docTree!, allFids);
-        interactionData.interactionCtx.candidates.forEach((candidate) => {
-          candidate.elPath = fidElPathMap[candidate.fid].elPath;
-        });
+        interactionData.interactionCtx.candidates = interactionData.interactionCtx.candidates.filter(
+          (candidate) => fidElPathMap[candidate.fid]
+        ).map((candidate) => ({
+          ...candidate,
+          elPath: fidElPathMap[candidate.fid].elPath
+        }));
 
         // candidadte does not contain baseEl, so we are adding baseEl
         const baseEl: RectWithFIdAndElpath = {
