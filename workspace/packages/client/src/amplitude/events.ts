@@ -63,4 +63,6 @@ export enum AMPLITUDE_EVENTS {
     QUILLY_RETURNED_SKILL_AS_NA='quilly_returned_skill_as_na',
     QUILLY_CREDIT_PURCHASED='quilly_credit_purchased',
     VOICEOVER_APPLIED='voiceover_applied',
+    ONBOARDING_DEMO_URL_CLICKED='onboarding_demo_url_clicked',
+    ONBOARDING_DEMO_MODAL_CLOSED='onboarding_demo_modal_close'
 }

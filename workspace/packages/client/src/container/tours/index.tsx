@@ -324,6 +324,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
   getIsAtleastOneDemoCreated = (): boolean => Boolean(this.props.tours.find(tour => tour.onboarding === false));
 
   skipOnboadingVideo = () => {
+    traceEvent(AMPLITUDE_EVENTS.ONBOARDING_DEMO_MODAL_CLOSED, {}, [CmnEvtProp.EMAIL]);
     this.setState({
       shouldShowOnboardingVideoModal: false
     }),
@@ -384,7 +385,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                         isAtleastOneDemoCreated={this.getIsAtleastOneDemoCreated()}
                         extensionInstalled={this.state.isExtInstalled}
                         isAtleastOneTourPublished={this.getIsAtleastOneAnnPublished()}
-                        openOnboardingVideo={() => this.setState({ shouldShowOnboardingVideoModal: true })}
+                        openOnboardingVideo={() => {
+                          traceEvent(AMPLITUDE_EVENTS.ONBOARDING_DEMO_URL_CLICKED, {}, [CmnEvtProp.EMAIL]);
+                          this.setState({ shouldShowOnboardingVideoModal: true });
+                        }}
                       />
                     ) : (
                       <>

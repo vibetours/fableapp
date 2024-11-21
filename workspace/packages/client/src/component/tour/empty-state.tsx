@@ -37,7 +37,7 @@ function EmptyTourState({
         }}
         onClick={openOnboardingVideo}
       >
-        Checkout how to use Fable
+        🚀 Create your first demo in 60 seconds!
       </Button>
     </Tags.EmptyToursContainer>
   );
