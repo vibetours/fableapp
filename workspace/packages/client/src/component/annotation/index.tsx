@@ -563,6 +563,10 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     if (isMediaAnnotation && displayConfig.config.positioning === VideoAnnotationPositions.BottomRight) {
       t = winH - h - 20;
       l = winW - w - 20;
+
+      if (displayConfig.opts.showFableWatermark._val) {
+        l -= 72;
+      }
       return { l, t, dir, isUltrawideBox };
     }
 
@@ -1097,8 +1101,8 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 isMediaAnn={isMediaAnn(config)}
                 bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val}
                 fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor._val}
-                top={t}
-                left={l}
+                top={t + (this.props.playMode ? this.props.win.scrollY + bodyScrollTopAdjustment : 0)}
+                left={l + (this.props.playMode ? this.props.win.scrollX + bodyScrollLeftAdjustment : 0)}
                 height={h}
                 width={w}
                 arrowDir={dir}

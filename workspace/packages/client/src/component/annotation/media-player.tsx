@@ -395,14 +395,15 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
         ty -= d;
       }
     }
+    const showMediaAnn = (!this.props.playMode || !this.props.conf.voiceover) && this.state.isMaximized;
 
     return (
       <>
         <Tags.AnMediaContainer
           style={{
             ...this.getPositioningAndSizingStyles(),
-            visibility: !this.props.conf.voiceover && this.state.isMaximized ? 'visible' : 'hidden',
-            opacity: !this.props.conf.voiceover && this.state.isMaximized ? '1' : '0',
+            visibility: showMediaAnn ? 'visible' : 'hidden',
+            opacity: showMediaAnn ? '1' : '0',
             position: 'absolute',
             transform: `scale(${this.props.annScale})`,
             transition: 'transform 0.3s ease-out, opacity 0.3s cubic-bezier(0.51, 0.05, 0, 0.93)'
