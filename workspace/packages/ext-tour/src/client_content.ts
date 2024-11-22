@@ -1,6 +1,6 @@
 import { startTransaction } from "@sentry/browser";
 import { init as sentryInit, sentryTxReport } from "@fable/common/dist/sentry";
-import { ThemeStats } from "@fable/common/dist/types";
+import { openDb, putDataInDb, DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from "@fable/common/dist/db-utils";
 import { Msg } from "./msg";
 import { FrameDataToBeProcessed } from "./types";
 import { BATCH_SIZE } from "./utils";
@@ -15,15 +15,6 @@ function createDataDiv(id: string, content: string): HTMLDivElement {
   div.style.display = "none";
   return div;
 }
-
-function createExchangeDataDiv(data: FrameDataToBeProcessed[][]) {
-  return createDataDiv("exchange-data", JSON.stringify(data));
-}
-
-function createCookiesDiv(data: FrameDataToBeProcessed[][]) {
-  return createDataDiv("cookies-data", JSON.stringify(data));
-}
-
 function createTotalScreensCountDiv(count: number) {
   return createDataDiv("total-screen-count", String(count));
 }
@@ -32,15 +23,29 @@ function createOrUpdateNumberOfScreensReceivedCountDiv(count: number) {
   return createDataDiv("number-of-screens-received-count", String(count));
 }
 
-function createScreenStyleDiv(data: ThemeStats) {
-  return createDataDiv("screen-style-data", JSON.stringify(data));
+function createOrUpdateRedirectReadyDiv(shouldRedirect: number) {
+  return createDataDiv("redirect-ready", String(shouldRedirect));
+}
+
+export interface DBData {
+  id: string;
+  screensData: string;
+  cookies: string;
+  screenStyleData: string;
+  version: string;
 }
 
 function init() {
-  const screensData: FrameDataToBeProcessed[][] = [];
-  const transaction = startTransaction({ name: "dataTransferToClientContent" });
   let numberOfScreensReceived: number = 0;
   let totalScreenCount: number = 0;
+  const screensData: FrameDataToBeProcessed[][] = [];
+  let cookiesData: any;
+  let cookiesDataReceived = false;
+  let styleData: any;
+  let styleDataReceived = false;
+  let commitReceived = false;
+  let dataVersion: string;
+  let versionReceived = false;
 
   chrome.runtime.sendMessage({ type: Msg.CLIENT_CONTENT_INIT });
 
@@ -48,14 +53,15 @@ function init() {
     switch (message.type) {
       case Msg.SAVE_TOTAL_SCREEN_COUNT_IN_EXCHANGE_DIV: {
         totalScreenCount = message.data.totalScreenCount;
+        console.log("[totalCount]", totalScreenCount);
         const totalScreenCountDiv = createTotalScreensCountDiv(message.data.totalScreenCount);
         document.body.appendChild(totalScreenCountDiv);
         break;
       }
 
       case Msg.SAVE_TOUR_DATA: {
-        const dataDiv = createExchangeDataDiv(screensData);
-        document.body.appendChild(dataDiv);
+        console.log("[commit]", 1);
+        commitReceived = true;
         break;
       }
 
@@ -70,20 +76,26 @@ function init() {
       }
 
       case Msg.SAVE_COOKIES_DATA_IN_EXCHANGE_DIV: {
-        const cookiesDiv = createCookiesDiv(message.data.cookiesData);
-        document.body.appendChild(cookiesDiv);
-        sentryTxReport(transaction, "screensCount", totalScreenCount, "byte");
+        console.log("[ck_rec]", 1);
+        cookiesData = message.data.cookiesData;
+        cookiesDataReceived = true;
         break;
       }
 
       case Msg.SAVE_STYLE_DATA: {
-        const dataDiv = createScreenStyleDiv(message.data.screenStyleData);
-        document.body.appendChild(dataDiv);
+        console.log("[sd_rec]", 1);
+        styleData = message.data.cookiesData;
+        styleDataReceived = true;
         break;
       }
 
       case Msg.SAVE_VERSION_DATA: {
-        const versionDiv = createDataDiv("version-data", message.data.version);
+        dataVersion = message.data.version;
+        versionReceived = true;
+        console.log("[v]", dataVersion);
+        // Version will alaways be written in main dom as the existing handshake code in prep-tour works on
+        // version being available on dom
+        const versionDiv = createDataDiv("version-data", dataVersion);
         document.body.appendChild(versionDiv);
         break;
       }
@@ -91,6 +103,27 @@ function init() {
       default: {
         break;
       }
+    }
+
+    if (styleDataReceived && cookiesDataReceived && commitReceived && versionReceived) {
+      setTimeout(async () => {
+        const transaction = startTransaction({ name: "dataTransferToClientContent" });
+        const db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
+        const dbData: DBData = {
+          id: OBJECT_KEY_VALUE,
+          screensData: JSON.stringify(screensData),
+          cookies: JSON.stringify(cookiesData),
+          screenStyleData: JSON.stringify(styleData),
+          version: dataVersion
+        };
+        sentryTxReport(transaction, "screenscount", screensData.length, "byte");
+        if (screensData.length) {
+          await putDataInDb(db, "screensDataStore", dbData);
+        }
+        db.close();
+        const versionDiv = createOrUpdateRedirectReadyDiv(1);
+        document.body.appendChild(versionDiv);
+      }, 500);
     }
   });
 }

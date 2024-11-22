@@ -56,14 +56,6 @@ export interface ScreenInfoWithAI extends ScreenInfo {
   screenType: LLMScreenType
 }
 
-export interface DBData {
-  id: string;
-  screensData: string;
-  cookies: string;
-  screenStyleData: string;
-  version: string;
-}
-
 export enum ModalTab {
   INIT,
   CREATE_TOUR,

@@ -1,10 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { openDb, DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE, DBData } from '@fable/common/dist/db-utils';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from '../create-tour/constants';
-import { getDataFromDb, openDb } from '../create-tour/db-utils';
-import { DBData } from '../create-tour/types';
+import { getDataFromDb } from '../create-tour/db-utils';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 

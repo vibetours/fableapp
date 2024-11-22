@@ -3,11 +3,10 @@ import { connect } from 'react-redux';
 import { startTransaction, captureException } from '@sentry/react';
 import { sentryTxReport } from '@fable/common/dist/sentry';
 import { Progress } from 'antd';
+import { openDb, putDataInDb, DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE, DBData } from '@fable/common/dist/db-utils';
+import { getDataFromDb } from './db-utils';
 import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TState } from '../../reducer';
-import { DBData } from './types';
-import { getDataFromDb, openDb, putDataInDb } from './db-utils';
-import { DB_NAME, OBJECT_STORE, OBJECT_KEY, OBJECT_KEY_VALUE } from './constants';
 import * as Tags from './styled';
 import FableLogo from '../../assets/fable-logo-2.svg';
 
@@ -40,23 +39,53 @@ type IOwnStateProps = {
 }
 
 class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
-  private data: DBData | null;
-
-  private db: IDBDatabase | null;
+  private timer: ReturnType<typeof setInterval> | null = null;
 
   constructor(props: IProps) {
     super(props);
     this.state = { loading: true, progressPercent: 0 };
-    this.data = null;
-    this.db = null;
   }
 
-  async initDbOperations() {
-    this.db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
+  initWaitingLoop() {
+    this.timer = setInterval(() => {
+      const totalScreenCountEl = document.querySelector('#total-screen-count') as HTMLElement;
+      const numberOfScreensReceivedCountEl = document.querySelector('#number-of-screens-received-count') as HTMLElement;
+
+      if (totalScreenCountEl && numberOfScreensReceivedCountEl && this.state.progressPercent < 95) {
+        const totalScreenCount = (+totalScreenCountEl.textContent! || 0) + 1;
+        const numberOfScreensReceivedCount = +numberOfScreensReceivedCountEl.textContent! || 0;
+        const progressPercent = Math.min(Math.round((numberOfScreensReceivedCount / totalScreenCount) * 100), 95);
+        this.setState({ progressPercent });
+      }
+
+      const redirectReady = document.querySelector('#redirect-ready') as HTMLElement;
+      if (redirectReady) {
+        this.setState({ progressPercent: 100 });
+        window.location.replace('/create-interactive-demo');
+      }
+    }, 500);
+  }
+
+  componentDidMount() {
+    document.title = this.props.title;
+    this.setState({ loading: true });
+
+    // TODO[compat]: Compatibility code, delete old Compatibility code after a month
+    // Before Compatibility: dataversion 2:
+    //    Extension inject content script in insolated scope which adds data to dom. If the serialized dom size is too
+    //    big then chrome chrashes for not low power devices. This happens since the data is stringified and kept in
+    //    dom. This route then load the data in indexeddb.
     this.waitForScreensData();
+
+    // After Compatibility: dataversion 3:
+    //    Extension content script directly loads the daata to indexeddb.
+
+    this.initWaitingLoop();
   }
 
-  waitForScreensData() {
+  async waitForScreensData() {
+    const db = await openDb(DB_NAME, OBJECT_STORE, 1, OBJECT_KEY);
+
     const intervalId = setInterval(async () => {
       const el = document.querySelector('#exchange-data') as HTMLElement;
       const cookiesEl = document.querySelector('#cookies-data') as HTMLElement;
@@ -86,7 +115,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
           return;
         }
 
-        this.data = {
+        const data = {
           id: OBJECT_KEY_VALUE,
           screensData,
           cookies,
@@ -94,15 +123,15 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
           version
         };
 
-        if (this.db) {
+        if (db) {
           const transaction = startTransaction({ name: 'saveTourDataToIndexedDB' });
-          await putDataInDb(this.db, OBJECT_STORE, this.data);
+          await putDataInDb(db, OBJECT_STORE, data);
           sentryTxReport(transaction, 'screenscount', JSON.parse(screensData).length, 'byte');
-          const dbData = await getDataFromDb(this.db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
+          const dbData = await getDataFromDb(db, OBJECT_STORE, OBJECT_KEY_VALUE) as DBData;
           if (!dbData) {
             captureException('Data not stored in indexedDB');
           }
-          this.db.close();
+          db.close();
           setTimeout(() => {
             window.location.replace('/create-interactive-demo');
           }, 500);
@@ -111,10 +140,8 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
     }, 300);
   }
 
-  componentDidMount() {
-    document.title = this.props.title;
-    this.setState({ loading: true });
-    this.initDbOperations();
+  componentWillUnmount() {
+    this.timer && clearInterval(this.timer);
   }
 
   render() {
@@ -129,7 +156,7 @@ class PrepTour extends React.PureComponent<IProps, IOwnStateProps> {
 
     return (
       <div>
-        <h1>Tour prepped!</h1>
+        <h1>Done!</h1>
       </div>
 
     );

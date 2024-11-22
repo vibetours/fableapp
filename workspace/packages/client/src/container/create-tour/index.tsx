@@ -31,19 +31,18 @@ import { Modal, Select, Tooltip } from 'antd';
 import { getSampleConfig } from '@fable/common/dist/utils';
 import { create_guides_router } from '@fable/common/dist/llm-fn-schema/create_guides_router';
 import { suggest_guide_theme } from '@fable/common/dist/llm-fn-schema/suggest_guide_theme';
+import { openDb, DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE, DBData } from '@fable/common/dist/db-utils';
 import { addNewTourToAllTours, getAllTours, getGlobalConfig, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { DB_NAME, OBJECT_KEY, OBJECT_KEY_VALUE, OBJECT_STORE } from './constants';
-import { deleteDataFromDb, getDataFromDb, openDb, saveDbDataToAws } from './db-utils';
+import { deleteDataFromDb, saveDbDataToAws, getDataFromDb } from './db-utils';
 import {
   AiDataMap,
   AiItem,
   AnnotationThemeType,
   BorderRadiusThemeItem,
   ColorThemeItem,
-  DBData,
   DisplayState,
   FrameDataToBeProcessed,
   InteractionCtxDetail,
@@ -188,7 +187,6 @@ type IOwnStateProps = {
   postProcessAiData: post_process_demo_p | null;
   creationMode: 'ai' | 'manual';
   batchProgress: number;
-  aiDemoCreationSupported: boolean;
   aiGenerationNotPossible: boolean;
 }
 
@@ -260,7 +258,6 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       imageWithMarkUrls: [],
       creationMode: 'ai',
       batchProgress: 0,
-      aiDemoCreationSupported: false,
       aiGenerationNotPossible: false,
     };
     this.data = null;
@@ -276,7 +273,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     if (dbData) {
       this.data = dbData;
 
-      this.setState({ loading: false, showSaveWizard: true, aiDemoCreationSupported: dbData.version === '2' });
+      this.setState({ loading: false, showSaveWizard: true, });
       this.processScreens();
       this.createSuggestionsForTheme();
       saveDbDataToAws(dbData, this.state.anonymousDemoId);
@@ -1221,42 +1218,16 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                   justifyContent: 'center'
                 }}
                 >
-                  {!this.state.aiDemoCreationSupported && (
-                    <div
-                      className="err-line"
-                      style={{
-                        color: 'white',
-                        fontWeight: 600,
-                        lineHeight: '1.25rem'
-                      }}
-                    >
-                      ⚠️ Looks like you are using an older version of Fable's chrome extension.
-                      Update Fable's chrome extension to enable Quilly (Fable's AI Demo copilot).
-                    </div>
-                  )}
                   <Button
                     iconPlacement="left"
                     onClick={() => {
-                      this.setState(prevState => {
-                        if (prevState.aiDemoCreationSupported) {
-                          return {
-                            currentDisplayState: DisplayState.ShowAddProductDescriptionOptions,
-                            prevDisplayState: DisplayState.ShowTourCreationOptions,
-                            showAiFlow: true,
-                            showSaveWizard: false,
-                            saveType: 'new_tour',
-                            creationMode: 'ai'
-                          };
-                        }
-
-                        return {
-                          currentDisplayState: DisplayState.ShowNewTourOptions,
-                          prevDisplayState: DisplayState.ShowTourCreationOptions,
-                          showAiFlow: false,
-                          showSaveWizard: true,
-                          saveType: 'new_tour',
-                          creationMode: 'manual'
-                        };
+                      this.setState({
+                        currentDisplayState: DisplayState.ShowAddProductDescriptionOptions,
+                        prevDisplayState: DisplayState.ShowTourCreationOptions,
+                        showAiFlow: true,
+                        showSaveWizard: false,
+                        saveType: 'new_tour',
+                        creationMode: 'ai'
                       });
                       this.startTime = Date.now();
                     }}
@@ -1271,10 +1242,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                         intent="secondary"
                         onClick={() => {
                           this.setState(prevState => {
-                            let creationMode: 'ai' | 'manual' = 'manual';
-                            if (prevState.aiDemoCreationSupported) {
-                              creationMode = 'ai';
-                            }
+                            const creationMode: 'ai' | 'manual' = 'ai';
                             return {
                               currentDisplayState: DisplayState.ShowAddExistingTourOptions,
                               prevDisplayState: DisplayState.ShowTourCreationOptions,

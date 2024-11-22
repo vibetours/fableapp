@@ -652,7 +652,7 @@ chrome.runtime.onMessage.addListener(async (msg: MsgPayload<any>, sender) => {
 
       await chrome.tabs.sendMessage(sender.tab.id!, {
         type: Msg.SAVE_VERSION_DATA,
-        data: { version: "2" }
+        data: { version: "3" }
       });
 
       await chrome.tabs.sendMessage(sender.tab.id!, { type: Msg.SAVE_TOUR_DATA });
