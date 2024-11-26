@@ -62,7 +62,8 @@ import {
   getAllOrderedAnnotationsInTour,
   isMediaAnnotation,
   isVideoAnnotation,
-  getBorderRadiusForAnnotation
+  getBorderRadiusForAnnotation,
+  isAudioAnnotation
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -754,7 +755,8 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       // browser's might block the autoplay, a dedicated overlay with view demo forces
       // user interact with the page before autoplay happens.
       const isVoiceoverAppliedToFirstAnn = Boolean(this.props.annotationsInOrder
-         && this.props.annotationsInOrder.length > 0 && this.props.annotationsInOrder[0].voiceover);
+         && this.props.annotationsInOrder.length > 0
+         && (isMediaAnnotation(this.props.annotationsInOrder[0])));
 
       this.setState({
         frameSetting: this.paramsFrameSettingValue || this.props.tour!.info.frameSettings,
@@ -810,10 +812,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     // has a lead form. This shouldn't happen and handle it later.
     // https://sharefable.slack.com/archives/C0491PEEPPZ/p1729781747337659?thread_ts=1729684770.568339&cid=C0491PEEPPZ
     if (this.props.annotationsInOrder !== prevProps.annotationsInOrder && this.props.annotationsInOrder) {
-      const isVoiceoverAppliedToDemo = this.props.annotationsInOrder.findIndex(ann => ann.voiceover !== null) !== -1;
+      const isVoiceoverAppliedToAtleastOnAnnInDemo = this.props.annotationsInOrder.findIndex(
+        ann => ann.voiceover !== null
+      ) !== -1;
       this.setState((prevS) => ({
-        showVoiceoverControl: isVoiceoverAppliedToDemo,
-        showViewDemo: prevS.showViewDemo && !isVoiceoverAppliedToDemo ? false : prevS.showViewDemo
+        showVoiceoverControl: isVoiceoverAppliedToAtleastOnAnnInDemo,
+        showViewDemo: (prevS.showViewDemo || isVoiceoverAppliedToAtleastOnAnnInDemo)
       }));
     }
   }
