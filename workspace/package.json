@@ -1,6 +1,6 @@
 {
   "name": "fable",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "Fable app packages",
   "private": true,
   "workspaces": [
