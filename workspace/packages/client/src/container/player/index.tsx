@@ -385,6 +385,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       window.parent && window.parent.postMessage({
         type: DEMO_LOADED_AFTER_AI_UPDATE
       }, '*');
+
+      if (this.props.annotationsInOrder) {
+        const isVoiceoverAppliedToAtleastOnAnnInDemo = this.props.annotationsInOrder.findIndex(
+          ann => ann.voiceover !== null
+        ) !== -1;
+        this.setState({
+          showVoiceoverControl: isVoiceoverAppliedToAtleastOnAnnInDemo,
+        });
+      }
     }
   };
 
@@ -805,20 +814,6 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         this.props.allScreens
           .sort((m, n) => m.id - n.id)
       });
-    }
-
-    // We need this condition to display the voiceover control when user adds voiceover to demo for first time
-    // TODO - voiceover control is shown even if current annotation
-    // has a lead form. This shouldn't happen and handle it later.
-    // https://sharefable.slack.com/archives/C0491PEEPPZ/p1729781747337659?thread_ts=1729684770.568339&cid=C0491PEEPPZ
-    if (this.props.annotationsInOrder !== prevProps.annotationsInOrder && this.props.annotationsInOrder) {
-      const isVoiceoverAppliedToAtleastOnAnnInDemo = this.props.annotationsInOrder.findIndex(
-        ann => ann.voiceover !== null
-      ) !== -1;
-      this.setState((prevS) => ({
-        showVoiceoverControl: isVoiceoverAppliedToAtleastOnAnnInDemo,
-        showViewDemo: (prevS.showViewDemo || isVoiceoverAppliedToAtleastOnAnnInDemo)
-      }));
     }
   }
 
