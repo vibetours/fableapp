@@ -102,7 +102,11 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   };
 
   // eslint-disable-next-line react/no-unused-class-component-methods
-  handlePlayPauseMedia(): void {
+  handlePlayPauseVoiceoverFromScreen(): void {
+    if (this.props.conf.voiceover) this.handlePlayPauseMedia();
+  }
+
+  private handlePlayPauseMedia(): void {
     if (this.state.mediaState === 'playing') {
       this.mediaRef.current!.pause();
     } else if (this.state.mediaState === 'paused') {
@@ -177,7 +181,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
     this.hls = null;
   }
 
-  shouldAutoplayVideo = (): boolean => this.state.isMaximized && this.props.playMode && !!this.state.blobUrls
+  shouldAutoplayVideo = (): boolean => this.state.isMaximized && this.props.playMode
    && !this.props.doNotAutoplayMedia.includes(this.props.confRefId);
 
   handleAutoplayMedia = (): boolean => {
@@ -207,7 +211,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
       }
     }
 
-    if (!isMediaPlayed && this.state.isMaximized && prevState.blobUrls !== this.state.blobUrls) {
+    if (this.state.mediaState === 'none' && this.state.isMaximized && prevState.blobUrls !== this.state.blobUrls) {
       isMediaPlayed = this.handleAutoplayMedia();
     }
 

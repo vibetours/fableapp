@@ -63,7 +63,6 @@ import {
   isMediaAnnotation,
   isVideoAnnotation,
   getBorderRadiusForAnnotation,
-  isAudioAnnotation
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -1057,7 +1056,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   handleDemoPlayAndPause = (): void => {
-    this.mediaRef.current?.handlePlayPauseMedia();
+    this.mediaRef.current?.handlePlayPauseVoiceoverFromScreen();
   };
 
   replayDemo = (): void => {
