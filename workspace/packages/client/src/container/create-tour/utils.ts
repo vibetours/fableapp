@@ -43,7 +43,8 @@ import {
   rgbToHex,
   getImgScreenData,
   createLiteralProperty,
-  SAMPLE_ANN_CONFIG_TEXT
+  SAMPLE_ANN_CONFIG_TEXT,
+  getSampleJourneyData
 } from '@fable/common/dist/utils';
 import { nanoid } from 'nanoid';
 import { sentryCaptureException } from '@fable/common/dist/sentry';
@@ -393,6 +394,13 @@ async function addAnnotationConfigs(
   if (tourDataFile.opts.main === '') {
     tourDataFile.opts.main = `${screensInTour[0].id}/${annConfigs[0].refId}`;
   }
+
+  // journey is empty when User had an existing demo which was empty.
+  // User add new screens recorded using extension to this demo.
+  if (tourDataFile.journey === undefined || Object.keys(tourDataFile.journey).length === 0) {
+    tourDataFile.journey = getSampleJourneyData(globalOpts);
+  }
+
   tourDataFile.lastUpdatedAtUtc = getCurrentUtcUnixTime();
   const journey = tourDataFile.journey;
 

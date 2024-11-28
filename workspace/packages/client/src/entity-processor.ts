@@ -1220,7 +1220,7 @@ export function normalizeBackwardCompatibilityForJourney(
   opts: ITourDataOpts,
   globalOpts: IGlobalConfig,
 ): JourneyData {
-  if (journey === null || journey === undefined) {
+  if (journey === null || journey === undefined || Object.keys(journey).length === 0) {
     return getSampleJourneyData(globalOpts);
   }
 

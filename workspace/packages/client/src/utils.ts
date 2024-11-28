@@ -1042,7 +1042,7 @@ export function getAllOrderedAnnotationsInTour(
   main: string
 ): IAnnotationConfigWithScreenId[] {
   let annotationsInTour: IAnnotationConfigWithScreenId[] = [];
-  if (journey && journey.flows.length !== 0) {
+  if (journey && journey.flows && journey.flows.length !== 0) {
     journey.flows.forEach((flow) => {
       const annsForFlow = getOrderedAnnotaionFromMain(allAnnotationsForTour, flow.main);
       annotationsInTour = [...annotationsInTour, ...annsForFlow];
