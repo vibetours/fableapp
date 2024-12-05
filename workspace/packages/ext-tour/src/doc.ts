@@ -5,20 +5,17 @@ import {
   ThemeColorCandidatPerNode
 } from "@fable/common/dist/types";
 import { nanoid } from "nanoid";
-import { rgbToHex } from "@fable/common/dist/utils";
-import raiseDeferredError from "@fable/common/dist/deferred-error";
+import { rgbToHex, getUrlsFromSrcset } from "@fable/common/dist/utils";
 import {
   FABLE_DONT_SER_CLASSNAME,
   isCrossOrigin,
   isContentEmpty,
-  isCaseInsensitiveEqual,
   isVisible,
   standardizeHex,
   hslToHex,
   isShadeOfWhiteOrBlack,
   getNormalizedBorderRadius,
   sanitizeUrlsInCssStr,
-  getUrlsFromSrcset,
   blobToDataUrl
 } from "./utils";
 
@@ -274,7 +271,7 @@ export function getSearializedDom(
 
     if (sNode.name === "img") {
       const tNode = node as HTMLImageElement;
-      const src = tNode.src || "";
+      const src = tNode.currentSrc || tNode.src || "";
 
       let base64: string = "";
       if (src.startsWith("blob:")) {

@@ -1,6 +1,7 @@
 import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { getUrlsFromSrcset } from '@fable/common/dist/utils';
 import { DeSerProps } from '../preview';
 import { addPointerEventsAutoToEl, isHTTPS } from '../../../utils';
 
@@ -161,6 +162,23 @@ export const deser = (
   return node;
 };
 
+function shouldReplaceSrcset(urlStrs: string): boolean {
+  try {
+    const urls = getUrlsFromSrcset(urlStrs);
+    for (const urlStr of urls) {
+      const url = new URL(urlStr);
+      // We are checking if an url has been successfully proxied by fable
+      if (url.host !== process.env.REACT_APP_DATA_CDN!) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    raiseDeferredError(e as Error);
+    return true;
+  }
+}
+
 // TODO this method has some basic room for performance improvements. This code sits in hotpath of rendering so if
 // performance improvement is necessary at somepoint this function should be a primary candidate.
 export const createHtmlElement = (
@@ -300,6 +318,12 @@ export const createHtmlElement = (
 
   if (node.name.toLowerCase() === 'img' && shouldAddImgToAssetLoadingPromises) {
     addToAssetLoadingPromises(el as HTMLImageElement);
+  }
+
+  if (node.name.toLowerCase() === 'img' && node.attrs.srcset && node.attrs.src && !node.attrs.src.startsWith('blob:')) {
+    // WARN: If we find urls in srcset that are not proxied by fable, we replace srcset with src
+    const replace = shouldReplaceSrcset(node.attrs.srcset);
+    if (replace) el.setAttribute('srcset', `${node.attrs.src}`);
   }
 
   if (node.props.isShadowHost) {

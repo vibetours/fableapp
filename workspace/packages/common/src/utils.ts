@@ -636,3 +636,23 @@ export const TourOptsKeysWithProperty: Array<keyof TourDataOpts_WithProperty> = 
   'annotationFontFamily', 'annotationFontColor', 'borderRadius', 'showFableWatermark',
   'annotationPadding', 'showStepNum',
 ];
+
+function removeTrailingCommaIfPresent(str: string) {
+  if (str.endsWith(',')) {
+    return str.slice(0, -1);
+  }
+  return str;
+}
+
+export function getUrlsFromSrcset(srcset: string): string[] {
+  const matches = (srcset || '').trim().match(/(?:\S+\s+\d+[wx](?:,\s*|$))|(?:\S+)(?:,\s*|$)/g);
+  return matches ? matches.map(match => {
+    const parts = match.trim().split(/\s+/);
+    if (parts.length > 1) {
+      return parts[0];
+    } if (parts.length === 1) {
+      return removeTrailingCommaIfPresent(parts[0]);
+    }
+    return match.trim();
+  }) : [];
+}
