@@ -437,3 +437,16 @@ export const amplitudeBuyMoreQuillyCredit = (
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );
 };
+
+export const amplitudeRecreateDemoUsingQuilly = (
+  recreateState: 'demo-recreate-clicked' | 'demo-recreate-error' |
+   'demo-recreated' | 'demo-recreate-insufficient-credit'
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.RECREATE_DEMO_USING_QUILLY,
+    {
+      recreate_state: recreateState
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};

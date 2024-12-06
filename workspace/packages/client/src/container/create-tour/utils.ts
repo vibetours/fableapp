@@ -83,7 +83,7 @@ import {
   RectWithFIdAndElpath
 } from './types';
 import { P_RespSubscription, P_RespTour, getDefaultThumbnailHash } from '../../entity-processor';
-import { extractTextFromHTMLString, getColorContrast, getSerNodesElPathFromFids, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, isActiveBusinessPlan } from '../../utils';
+import { createAnnotationHotspot, extractTextFromHTMLString, getColorContrast, getSerNodesElPathFromFids, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, isActiveBusinessPlan } from '../../utils';
 import {
   uploadImgFileObjectToAws,
   uploadImageAsBinary,
@@ -91,7 +91,7 @@ import {
   uploadMarkedImageToAws
 } from '../../upload-media-to-aws';
 import { DemoState, Vpd } from '../../types';
-import { SURVEY_ID, THEME_BASE_IMAGE_URL } from '../../constants';
+import { SAMPLE_AI_ANN_CONFIG_TEXT, SURVEY_ID, THEME_BASE_IMAGE_URL } from '../../constants';
 
 export function getNodeFromDocTree(docTree: SerNode, nodeName: string): SerNode | null {
   const queue: SerNode[] = [docTree];
@@ -253,18 +253,6 @@ async function addScreenToTour(
   return screenResp.data;
 }
 
-function createAnnotationHotspot(screenId: number, annotationRefId: string): ITourEntityHotspot {
-  return {
-    type: 'an-btn',
-    on: 'click',
-    target: '$this',
-    actionType: 'navigate',
-    actionValue: createLiteralProperty(`${screenId}/${annotationRefId}`)
-  };
-}
-
-const SAMPLE_AI_ANN_CONFIG_TEXT = '‼️‼️‼️ Quilly, Fable’s AI Demo Copilot, was unable to confidently generate this step. We’ve included it for your review. You can either manually edit the content or choose to delete this step entirely.';
-
 async function addAnnotationConfigs(
   screenInfo: Array<ScreenInfoWithAI>,
   existingTour: P_RespTour | null,
@@ -354,6 +342,7 @@ async function addAnnotationConfigs(
     );
     screenConfig.showOverlay = annStyle.showOverlay;
     screenConfig.isHotspot = true;
+    screenConfig.markedImage = screenInfo[i].info ? screenInfo[i].info!.markedImage : null;
 
     if (screen.replacedWithImgScreen) {
       const error = {

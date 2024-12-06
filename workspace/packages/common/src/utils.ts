@@ -274,6 +274,7 @@ export const getSampleConfig = (
     scrollAdjustment: 'auto',
     audio: null,
     voiceover: null,
+    markedImage: null,
   };
 };
 

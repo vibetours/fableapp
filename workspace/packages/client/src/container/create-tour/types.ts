@@ -38,6 +38,7 @@ export interface ScreenInfo {
     rid: string;
     replacedWithImgScreen: boolean;
     thumbnail: string | null;
+    markedImage: null | string;
   } | null
   skipped: boolean;
   vpd: Vpd | null;

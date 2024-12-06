@@ -582,7 +582,8 @@ export function localToRemoteAnnotationConfig(lc: IAnnotationConfig): IAnnotatio
     m_id: lc.m_id,
     scrollAdjustment: lc.scrollAdjustment,
     audio: lc.audio,
-    voiceover: lc.voiceover
+    voiceover: lc.voiceover,
+    markedImage: lc.markedImage,
   };
 }
 
@@ -795,6 +796,10 @@ export function normalizeBackwardCompatibility(
 
   if (an.voiceover === undefined) {
     an.voiceover = null;
+  }
+
+  if (an.markedImage === undefined) {
+    an.markedImage = null;
   }
 
   return an;

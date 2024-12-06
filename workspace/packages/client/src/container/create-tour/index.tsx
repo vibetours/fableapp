@@ -93,6 +93,7 @@ import { AI_PARAM, DemoState } from '../../types';
 import CreateTourProgress from '../../component/create-tour/create-tour-progress';
 import OnboardingLayout from '../user-onboarding/layout';
 import { addToGlobalAppData } from '../../global';
+import QuillyJson from '../../assets/quilly.json';
 
 const reactanimated = require('react-animated-css');
 
@@ -391,7 +392,8 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           type: data.type,
           rid: data.rid,
           replacedWithImgScreen: res.replacedWithImgScreen,
-          thumbnail: data.thumbnail
+          thumbnail: data.thumbnail,
+          markedImage: null
         },
         skipped: res.skipped,
         vpd: res.vpd,
@@ -671,8 +673,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevState.isReadyToSave !== this.state.isReadyToSave
       || prevState.isScreenProcessed !== this.state.isScreenProcessed
       || prevState.isAIProcessed !== this.state.isAIProcessed
+      || prevState.imageWithMarkUrls !== this.state.imageWithMarkUrls
     ) {
       if (this.state.isReadyToSave && this.state.isScreenProcessed
+        && (this.state.imageWithMarkUrls.length !== 0 || this.state.aiGenerationNotPossible)
         && (this.state.creationMode !== 'ai' || this.state.isAIProcessed)) {
         this.processAIDataAndCallSaveTour();
       }
@@ -737,7 +741,28 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   };
 
   processAIDataAndCallSaveTour = (): void => {
-    const screens = this.state.screens.filter((screen) => !screen.skipped);
+    // add marked image here
+
+    const screensWithMarkedImage = this.state.screens.map((screen, index) => {
+      if (screen.info) {
+        const matchingImage = this.state.imageWithMarkUrls.find(
+          img => img.id === index
+        );
+
+        if (matchingImage) {
+          return {
+            ...screen,
+            info: {
+              ...screen.info,
+              markedImage: matchingImage.url
+            }
+          };
+        }
+      }
+      return screen;
+    });
+
+    const screens = screensWithMarkedImage.filter((screen) => !screen.skipped);
 
     let screensWithAIAnnData: ScreenInfoWithAI[] = screens.map((screenInfo, index) => ({
       ...screenInfo,
@@ -1693,7 +1718,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           <div>
                             <LottiePlayer
                               style={{ height: '80px' }}
-                              src="./quilly.json"
+                              src={QuillyJson}
                               autoplay
                               loop
                             />
@@ -1885,7 +1910,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                               <div>
                                 <LottiePlayer
                                   style={{ height: '120px' }}
-                                  src="./quilly.json"
+                                  src={QuillyJson}
                                   autoplay
                                   loop
                                 />

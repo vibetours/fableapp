@@ -360,31 +360,31 @@ function Header(props: IOwnProps): JSX.Element {
             {
               props.canvasOptions && (
                 <Tags.MenuItem>
-                  <Tags.StyledPopover
+                  <GTags.StyledPopover
                     trigger="click"
                     content={
                       <Tags.CanvasOptionsCon>
-                        <Tags.CanvasOption
+                        <GTags.PopoverOption
                           type="button"
                           onClick={() => props.canvasOptions!.setShowAnnText((prev) => !prev)}
                         >
                           {props.canvasOptions.showAnnText ? 'Hide ' : 'Show '}
                           annotation text
-                        </Tags.CanvasOption>
-                        <Tags.CanvasOption
+                        </GTags.PopoverOption>
+                        <GTags.PopoverOption
                           type="button"
                           onClick={props.canvasOptions.resetZoom}
                           style={{ borderBottom: 'none' }}
                         >
                           Reset canvas position
-                        </Tags.CanvasOption>
-                        <Tags.CanvasOption
+                        </GTags.PopoverOption>
+                        <GTags.PopoverOption
                           type="button"
                           onClick={props.canvasOptions.downloadTourData}
                           style={{ borderBottom: 'none' }}
                         >
                           Download datafile
-                        </Tags.CanvasOption>
+                        </GTags.PopoverOption>
                       </Tags.CanvasOptionsCon>
                     }
                   >
@@ -410,7 +410,7 @@ function Header(props: IOwnProps): JSX.Element {
                         }}
                       />
                     </div>
-                  </Tags.StyledPopover>
+                  </GTags.StyledPopover>
                 </Tags.MenuItem>
               )
             }
@@ -543,7 +543,7 @@ function Header(props: IOwnProps): JSX.Element {
           )}
           {props.subs && (
             <Tags.MenuItem style={{ display: 'flex' }}>
-              <Tags.StyledPopover
+              <GTags.StyledPopover
                 trigger="click"
                 placement="bottom"
                 content={
@@ -580,12 +580,12 @@ function Header(props: IOwnProps): JSX.Element {
                   color: '#ffdf65',
                 }}
                 />
-              </Tags.StyledPopover>
+              </GTags.StyledPopover>
             </Tags.MenuItem>
           )}
           {props.principal && (
           <Tags.MenuItem style={{ display: 'flex' }}>
-            <Tags.StyledPopover
+            <GTags.StyledPopover
               trigger="click"
               placement="bottomRight"
               content={
@@ -637,7 +637,7 @@ function Header(props: IOwnProps): JSX.Element {
                 <GTags.Avatar glow sl src={props.principal?.avatar} alt="pic" referrerPolicy="no-referrer" />
                 <CaretDownOutlined />
               </div>
-            </Tags.StyledPopover>
+            </GTags.StyledPopover>
           </Tags.MenuItem>
           )}
         </Tags.RMenuCon>

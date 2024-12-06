@@ -2545,3 +2545,13 @@ export function scaleRect(rect: Rect, scale: number): Omit<Rect, 'right' | 'bott
     height: rect.height * scale,
   };
 }
+
+export function createAnnotationHotspot(screenId: number, annotationRefId: string): ITourEntityHotspot {
+  return {
+    type: 'an-btn',
+    on: 'click',
+    target: '$this',
+    actionType: 'navigate',
+    actionValue: createLiteralProperty(`${screenId}/${annotationRefId}`)
+  };
+}

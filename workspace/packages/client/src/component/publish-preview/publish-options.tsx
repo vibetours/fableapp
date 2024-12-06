@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { Popover, Tooltip, Button as AntButton } from 'antd';
-import { BarChartOutlined, UndoOutlined } from '@ant-design/icons';
+import { BarChartOutlined, MoreOutlined, UndoOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
+import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
 import ShareIcon from '../../assets/icons/share.svg';
 import PublishButton from './publish-button';
-import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
 import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from './share-modal';
 import { IFRAME_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
 import { amplitudeShareModalOpen } from '../../amplitude';
-import { FeatureForPlan } from '../../plans';
+import RecreateUsingAI from './recreate-option';
+import * as GTags from '../../common-styled';
 
 interface Props {
   selectedDisplaySize: DisplaySize;
@@ -26,6 +28,9 @@ interface Props {
   onSiteDataChange: (site: SiteData)=> void;
   minimalHeader: boolean;
   vanityDomains: P_RespVanityDomain[] | null;
+  recreateUsingAI: (updateLoading:(step: string)=>void)=>void;
+  annotationsForScreens: Record<string, IAnnotationConfig[]>;
+  subs: P_RespSubscription | null;
 }
 
 export default function PublishOptions(props: Props): JSX.Element {
@@ -80,6 +85,39 @@ export default function PublishOptions(props: Props): JSX.Element {
                   />
                 </Link>
               </Tooltip>
+              <GTags.StyledPopover
+                trigger="click"
+                content={
+                  <GTags.PopoverOption>
+                    <RecreateUsingAI
+                      recreateUsingAI={props.recreateUsingAI}
+                      annotationsForScreens={props.annotationsForScreens}
+                      subs={props.subs}
+                    />
+                  </GTags.PopoverOption>
+                  }
+              >
+                <div
+                  style={{
+                    color: 'white',
+                    fontSize: '0.7rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    cursor: 'pointer',
+                  }}
+                  id="step-3"
+                >
+                  <AntButton
+                    size="small"
+                    shape="circle"
+                    type="text"
+                    icon={<MoreOutlined
+                      style={{ color: 'white' }}
+                    />}
+                  />
+                </div>
+              </GTags.StyledPopover>
               <div className="publish-btn">
                 <PublishButton
                   setIsPublishFailed={setIsPublishFailed}

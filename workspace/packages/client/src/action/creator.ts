@@ -52,8 +52,6 @@ import {
   SchemaVersion,
   RespDataset,
   ReqNewDataset,
-  Dataset,
-  MediaType,
 } from '@fable/common/dist/api-contract';
 import {
   ReqGenerateAudio,
@@ -128,17 +126,18 @@ import {
   QuillyInPreviewProgress,
   UpdateDemoUsingQuillyError,
   AnnVoiceOverDetail,
-  OpenAIVoices
+  OpenAIVoices,
 } from '../types';
 import ActionType from './type';
 import { uploadImageAsBinary } from '../upload-media-to-aws';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../constants';
 import { FeatureForPlan, FeaturePerPlan } from '../plans';
-import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, updateTourDataToAddVoiceOver, isMediaAnnotation, replaceVarsInAnnotation } from '../utils';
+import { createBatches, getAnnotationsPerScreen, getDemoStateFromTourData, handleLlmApi, handleRaiseDeferredErrorWithAnnonymousId, datasetQueryParser, isValidStrWithAlphaNumericValues, mapPlanIdAndIntervals, updateTourDataFromLLMRespItems, updateTourDataWithThemeContent, ParsedQueryResult, processVarMap, updateTourDataToAddVoiceOver, isMediaAnnotation, getAllOrderedAnnotationsInTour } from '../utils';
 import { getUUID } from '../analytics/utils';
 import { LLMOpsType } from '../container/create-tour/types';
 import { getThemeData } from '../container/create-tour/utils';
 import { IAnnotationConfigWithScreenId } from '../component/annotation/annotation-config-utils';
+import { extractMarkedImageArray, getUpdatedDemoDataUsingAI } from './utils';
 
 export interface TGenericLoading {
   type: ActionType.ALL_SCREENS_LOADING
@@ -3152,3 +3151,40 @@ const getVoiceoverForAnnotation = async (
     return defaultAnnVoiceoverDetail;
   }
 };
+
+export function recreateUsingAI(
+  updateLoading:(step: 'Loading' | 'Loaded' | 'Error')=>void
+) {
+  return async (dispatch: Dispatch<TAutosaving | TSaveTourEntities | TTour | TAutosaving>, getState: () => TState) => {
+    const state = getState();
+    try {
+      const currentDemoInfo = state.default.currentTour!.info!;
+      updateLoading('Loading');
+
+      const allAnnotationsForTour = getAnnotationsPerScreen(state);
+      const annInOrder = getAllOrderedAnnotationsInTour(
+        allAnnotationsForTour,
+        state.default.tourData!.journey,
+        state.default.tourData!.opts.main
+      );
+      const markedImageArr = extractMarkedImageArray(annInOrder);
+      const updatedTourData = await getUpdatedDemoDataUsingAI(
+        currentDemoInfo.annDemoId!,
+        currentDemoInfo.productDetails || '',
+        currentDemoInfo.demoObjective || '',
+        state.default.subs,
+        markedImageArr,
+        state.default.tourData!,
+        allAnnotationsForTour,
+        state.default.globalConfig!
+      );
+      await flushTourDataToMasterFile(state.default.currentTour!, updatedTourData)(dispatch, getState);
+      updateLoading('Loaded');
+      return Promise.resolve();
+    } catch (err) {
+      raiseDeferredError(err as Error);
+      updateLoading('Error');
+      return Promise.resolve();
+    }
+  };
+}

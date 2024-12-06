@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio, Collapse } from 'antd';
+import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio, Collapse, Popover } from 'antd';
 import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
@@ -646,5 +646,30 @@ export const LeadFormEntryCon = styled.div<LeadFormProps>`
     -webkit-box-shadow: 0 0 0px 1000px transparent inset;
     transition: background-color 5000s ease-in-out 0s;
     background-color: transparent;
+  }
+`;
+
+export const StyledPopover = styled(Popover)`
+.ant-popover-inner {
+    border-radius: 16px !important;
+    border: 1px solid #160245 !important;
+    background: var(--White, #FFF) !important;
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+  }
+`;
+
+export const PopoverOption = styled.button`
+  display: block;
+  background-color: white;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #16023E;
+
+  &:hover {
+    background-color: #F8F8F8;
   }
 `;

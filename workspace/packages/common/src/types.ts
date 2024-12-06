@@ -323,7 +323,8 @@ export interface IAnnotationOriginConfig extends IChronoUpdatable {
   m_id: string;
   scrollAdjustment: ScrollAdjustmentType;
   audio: null | IAnnotationAudio;
-  voiceover: null | IAnnotationVoiceover
+  voiceover: null | IAnnotationVoiceover;
+  markedImage: string | null;
 }
 
 export type IAnnotationConfig_WithProperty = Pick<

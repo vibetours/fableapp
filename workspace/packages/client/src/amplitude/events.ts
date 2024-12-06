@@ -64,5 +64,6 @@ export enum AMPLITUDE_EVENTS {
     QUILLY_CREDIT_PURCHASED='quilly_credit_purchased',
     VOICEOVER_APPLIED='voiceover_applied',
     ONBOARDING_DEMO_URL_CLICKED='onboarding_demo_url_clicked',
-    ONBOARDING_DEMO_MODAL_CLOSED='onboarding_demo_modal_close'
+    ONBOARDING_DEMO_MODAL_CLOSED='onboarding_demo_modal_close',
+    RECREATE_DEMO_USING_QUILLY='recreate_demo_using_quilly',
 }

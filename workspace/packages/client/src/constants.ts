@@ -18,3 +18,5 @@ export const FABLE_PERS_VARS_FOR_TOUR = 'fable/pers-vars-for-tour';
 export const THEME_BASE_IMAGE_URL = 'https://pvt-mics.s3.ap-south-1.amazonaws.com/staging/root/global/sample_ann.png';
 export const DEMO_LOADED_AFTER_AI_UPDATE = 'DEMO_LOADED_AFTER_AI_UPDATE';
 export const ANN_ZOOMED = 'ann-zoomed';
+export const DEFAULT_DEMO_CATEGORY = 'marketing';
+export const SAMPLE_AI_ANN_CONFIG_TEXT = '‼️‼️‼️ Quilly, Fable’s AI Demo Copilot, was unable to confidently generate this step. We’ve included it for your review. You can either manually edit the content or choose to delete this step entirely.';

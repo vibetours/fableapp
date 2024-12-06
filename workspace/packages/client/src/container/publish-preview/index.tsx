@@ -9,7 +9,7 @@ import {
   UndoOutlined
 } from '@ant-design/icons';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { ReqTourPropUpdate, RespSubscription } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, IAnnotationConfig, LoadingStatus, TourData, TourDataWoScheme, TourScreenEntity } from '@fable/common/dist/types';
 import { deepcopy } from '@fable/common/dist/utils';
 import { Button as AntButton, Dropdown, MenuProps, Popover, Progress, Tooltip } from 'antd';
@@ -24,6 +24,7 @@ import {
   getSubscriptionOrCheckoutNew,
   loadTourAndData,
   publishTour,
+  recreateUsingAI,
   upateTourDataUsingLLM,
   updateTourProp
 } from '../../action/creator';
@@ -131,6 +132,7 @@ const mapDispatchToProps = (dispatch: any) => ({
     voice: string,
     updateVoiceoverProgress: (progress: number)=> void
   ) => dispatch(addVoiceOver(tour, allAnnsInOrder, voice, updateVoiceoverProgress)),
+  recreateUsingAI: (updateLoading:(step: string)=>void) => dispatch(recreateUsingAI(updateLoading)),
 });
 
 const mapStateToProps = (state: TState) => {
@@ -313,6 +315,11 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       update_requested: this.state.newDemoObjective,
       is_update_successfull: isUpdateSuccessfull
     }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+  };
+
+  handleRecreateUsingAI = async (updateLoading: (step:string)=>void): Promise<void> => {
+    await this.props.recreateUsingAI(updateLoading);
+    this.props.loadTourWithDataAndCorrespondingScreens(this.props.match.params.tourId);
   };
 
   componentDidUpdate(prevProps: IProps, prevState: IOwnStateProps): void {
@@ -716,6 +723,9 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               onSiteDataChange={this.onSiteDataChange}
               minimalHeader={this.state.minimalHeader}
               vanityDomains={this.props.vanityDomains}
+              recreateUsingAI={this.handleRecreateUsingAI}
+              annotationsForScreens={this.props.annotationsForScreens}
+              subs={this.props.subs}
             />}
             tourOpts={null}
             onSiteDataChange={this.onSiteDataChange}

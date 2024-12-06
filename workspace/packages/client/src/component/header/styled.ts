@@ -105,31 +105,6 @@ export const CanvasOptionsCon = styled.div`
   width: 180px;
 `;
 
-export const StyledPopover = styled(Popover)`
-.ant-popover-inner {
-    border-radius: 16px !important;
-    border: 1px solid #160245 !important;
-    background: var(--White, #FFF) !important;
-    box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
-  }
-`;
-
-export const CanvasOption = styled.button`
-  display: block;
-  background-color: white;
-  border: none;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #16023E;
-
-  &:hover {
-    background-color: #F8F8F8;
-  }
-`;
-
 export const MainNotSetCon = styled.div`
   margin: 2rem 0;
 `;
