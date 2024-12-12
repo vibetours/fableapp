@@ -57,6 +57,7 @@ export const FeatList = styled.ul<{isScrollable: boolean}>`
   padding: 0;
   max-height: ${props => (props.isScrollable ? '280px' : 'max-content')};
   overflow: ${props => (props.isScrollable ? 'scroll' : 'auto')};
+  font-size: 15px;
 
   & > li:not(:last-child) {
     margin-bottom: 0.4rem;

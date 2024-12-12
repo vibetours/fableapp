@@ -191,8 +191,6 @@ type IOwnStateProps = {
   aiGenerationNotPossible: boolean;
 }
 
-const BG_COLOR_OPTIONS = ['#fef3c7', '#cffafe', '#dcfce7'];
-
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
   private data: DBData | null;
 
@@ -1164,7 +1162,10 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
         break;
     }
 
-    if (this.state.loading || this.props.globalConfig === null || this.props.subs === null) {
+    if (this.state.loading
+      || this.props.globalConfig === null
+      || this.props.subs === null
+      || !this.props.allToursLoaded) {
       return (
         <FullPageTopLoader showLogo />
       );
@@ -1194,6 +1195,37 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           </Tags.LayoutContainer>
         </OnboardingLayout>
       );
+    }
+
+    try {
+      const canCreateNewDemos = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.length + 1).isAvailable;
+      if (!canCreateNewDemos) {
+        return (
+          <OnboardingLayout>
+            <Tags.LayoutContainer>
+              <Tags.HeaderText>Demo creation limit exhaused</Tags.HeaderText>
+              <Tags.SubheaderText>
+                You have exhaused your demo creation limit in your {this.props.subs.paymentPlan} plan. Upgrade to create more demos.
+                <div style={{ fontStyle: 'italic' }}>
+                  You don't have to re-record your demo again, you can reopen the current URL after upgrade and demo creation will resume.
+                </div>
+              </Tags.SubheaderText>
+              <Button
+                style={{
+                  width: '240px'
+                }}
+                onClick={() => {
+                  this.props.navigate('/billing');
+                }}
+              >
+                Upgrade now!
+              </Button>
+            </Tags.LayoutContainer>
+          </OnboardingLayout>
+        );
+      }
+    } catch (e) {
+      raiseDeferredError(e as Error);
     }
 
     const animIn = this.state.currentDisplayState > this.state.prevDisplayState ? 'fadeInRight' : 'fadeInLeft';

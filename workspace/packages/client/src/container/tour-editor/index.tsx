@@ -97,6 +97,7 @@ import ScreenPicker from '../screen-picker';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { FeatureForPlan } from '../../plans';
 import { SCREEN_DIFFS_SUPPORTED_VERSION } from '../../constants';
+import InfoCon from '../../component/info-con';
 
 interface IDispatchProps {
   publishTour: (tour: P_RespTour) => Promise<boolean>,
@@ -723,6 +724,34 @@ class TourEditor extends React.PureComponent<IProps, IOwnStateProps> {
         <div>
           <FullPageTopLoader showLogo text="Loading demo" />
         </div>
+      );
+    }
+
+    if (this.props.tour && this.props.tour.info.locked) {
+      return (
+        <InfoCon
+          heading="This demo is locked!"
+          body={(
+            <>
+              <p className="typ-reg">
+                You cannot access this demo as you're on a free plan. Please upgrade to access this demo!
+              </p>
+              <p className="typ-reg">
+                If you have any questions, you can message our team using the in-app chat option.
+              </p>
+            </>
+
+          )}
+          btns={[{
+            linkTo: '/billing',
+            text: 'Upgrade',
+            type: 'primary'
+          }, {
+            linkTo: '/demos',
+            text: 'See all demos',
+            type: 'secondary'
+          }]}
+        />
       );
     }
 

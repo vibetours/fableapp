@@ -91,6 +91,7 @@ export interface IOwnProps {
   borderColor?: string;
   isStaging: boolean;
   onIframeClick?: ()=> void;
+  showShadowAroundFrame?: boolean;
 }
 
 interface IOwnStateProps {
@@ -844,6 +845,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
       borderColor={this.props.borderColor}
       onIframeClick={this.props.onIframeClick}
       enableZoomPan={this.props.isFromScreenEditor}
+      showShadowAroundFrame={this.props.showShadowAroundFrame}
     />;
   }
 }

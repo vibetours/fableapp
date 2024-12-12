@@ -1,6 +1,6 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { ApiResp, Interval, Plan, ReqSubscriptionInfo, RespOrg, RespSubscription, RespSubsValidation, RespUser, Status } from '@fable/common/dist/api-contract';
+import { ApiResp, Interval, Plan, ReqSubscriptionInfo, ReqUpdateSubInfo, RespOrg, RespSubscription, RespSubsValidation, RespUser, Status } from '@fable/common/dist/api-contract';
 import { ArrowRightOutlined,
   CreditCardFilled,
   HeartFilled,
@@ -11,12 +11,13 @@ import { ArrowRightOutlined,
 import { Modal } from 'antd';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { sleep } from '@anthropic-ai/sdk/core';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
 import SidePanel from '../../component/side-panel';
 import { P_RespSubscription } from '../../entity-processor';
-import { checkout, getSubscriptionOrCheckoutNew } from '../../action/creator';
+import { checkout, getSubscriptionOrCheckoutNew, updateSubscriptionInfo } from '../../action/creator';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { IPriceDetails, LifetimePriceDetailsData, PriceDetailsData } from './plans';
@@ -30,17 +31,13 @@ const { confirm } = Modal;
 
 declare const Chargebee: any;
 
-interface IDispatchProps {
-  checkout: typeof checkout,
-  getSubscriptionOrCheckoutNew: ()=> Promise<RespSubscription>
-}
-
 const mapDispatchToProps = (dispatch: any) => ({
   checkout: (
     chosenPlan: 'solo' | 'startup' | 'business' | 'lifetime',
     chosenInterval: 'annual' | 'monthly' | 'lifetime',
   ) => dispatch(checkout(chosenPlan, chosenInterval)),
-  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
+  updateSubscriptionInfo: (req: ReqUpdateSubInfo) => dispatch(updateSubscriptionInfo(req))
 });
 
 interface IAppStateProps {
@@ -59,12 +56,14 @@ interface IOwnProps {
   title: string;
 }
 
-type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
+type IProps = IOwnProps & IAppStateProps & ReturnType<typeof mapDispatchToProps> & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   tabSelected: 'Monthly' | 'Yearly';
   shouldBlock: boolean;
   reqPlanId: IPriceDetails['planId'] | null,
+  tempHideSoloConfirmation: boolean;
+  opsInProgress: boolean;
 }
 
 class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStateProps> {
@@ -74,7 +73,9 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     this.state = {
       tabSelected: 'Yearly',
       shouldBlock: false,
-      reqPlanId: null
+      reqPlanId: null,
+      tempHideSoloConfirmation: false,
+      opsInProgress: false,
     };
   }
 
@@ -164,6 +165,13 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
       }
     }
 
+    // When the user downgrades to solo, we always show a modal with confirmation of what they are gonna miss, unless
+    // user explicitly states they want to be on the solo plan
+    let shouldShowSoloConfirmation = false;
+    if (this.props.subs && !this.state.tempHideSoloConfirmation) {
+      shouldShowSoloConfirmation = Boolean(this.props.subs.paymentPlan === Plan.SOLO && !this.props.subs.info?.soloPlanDowngradeIntentReceived);
+    }
+
     return (
       <GTags.ColCon style={{
         background: isLifetimePlan ? '#fbf6ff' : undefined
@@ -190,7 +198,12 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
             />
           </GTags.SidePanelCon>
           <GTags.MainCon>
-            <GTags.BodyCon style={{ height: '100%', position: 'relative', overflowY: 'scroll' }}>
+            <GTags.BodyCon style={{ height: '100%',
+              position: 'relative',
+              overflowY: 'scroll',
+              filter: shouldShowSoloConfirmation ? 'blur(6px) contrast(0.5) grayscale(1)' : 'none'
+            }}
+            >
               {this.props.subs ? (
                 <div style={{
                   display: 'flex',
@@ -305,7 +318,9 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '1rem',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    width: '96%',
+                    alignSelf: 'center',
                   }}
                   >
                     <Tags.TabCon>
@@ -359,7 +374,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                 { plan[priceFor] ? <div style={{ marginBottom: '1rem', opacity: '0.6' }}>per month </div> : <></> }
                               </span>
                             </>
-                          ) : "Let's talk"}
+                          ) : <span style={{ fontSize: '3rem' }}>Let's talk</span>}
                           </Tags.PlanPrice>
                           <div>
                             <Button
@@ -421,6 +436,46 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                 </div>
               )}
             </GTags.BodyCon>
+            <GTags.BorderedModal
+              donotShowHeaderStip
+              containerBg="#f5f5f5"
+              focusTriggerAfterClose={false}
+              className="share-modal"
+              open={shouldShowSoloConfirmation}
+              closable={false}
+              centered
+              width="600px"
+              footer={null}
+            >
+              <p className="typ-h1" style={{ fontWeight: 600 }}>Your trial has expired! </p>
+              <p className="typ-h2">Upgrade your account by choosing our paid plans.</p>
+              <Button onClick={() => {
+                this.setState({ tempHideSoloConfirmation: true });
+              }}
+              >Upgrade now!
+              </Button>
+              <p className="typ-h2">If not, your account will be downgraded to our solo plan.</p>
+              <ul className="typ-reg">
+                <li>All existing demos will be locked & cannot be shared/ embedded.</li>
+                <li>Any shared/ embedded demo will be locked and cannot be viewed.</li>
+                <li>You can create only 1 demo with limited features.</li>
+                <li>All team members except the creator of the workspace will lose access.</li>
+                <li>You will lose access to advanced analytics & lead forms.</li>
+                <li>Webhooks and integrations cannot be used.</li>
+                <li>You cannot use our AI demo copilot & HTML editor.</li>
+              </ul>
+              <Button
+                intent="secondary"
+                onClick={async () => {
+                  this.setState({ opsInProgress: true });
+                  await this.props.updateSubscriptionInfo({ soloPlanDowngradeIntentReceived: true });
+                  this.setState({ opsInProgress: false });
+                }}
+                icon={this.state.opsInProgress ? <LoadingOutlined /> : undefined}
+              >Downgrade my account
+              </Button>
+              <p className="typ-reg">For any questions, ping us via our in-app chat or email us at support@sharefable.com</p>
+            </GTags.BorderedModal>
           </GTags.MainCon>
         </GTags.RowCon>
       </GTags.ColCon>
@@ -428,7 +483,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
   }
 }
 
-export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
+export default connect<IAppStateProps, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(UserManagementAndSubscription));

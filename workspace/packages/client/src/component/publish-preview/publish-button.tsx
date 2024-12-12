@@ -18,6 +18,7 @@ interface Props {
   minWidth?: string;
   isPublishing?: boolean;
   disabled?: boolean;
+  showWhiteBg?: boolean;
 }
 
 export default function PublishButton(props: Props): JSX.Element {
@@ -64,6 +65,8 @@ export default function PublishButton(props: Props): JSX.Element {
       disabled={props.disabled || !(props.tour || props.demoHub)}
       style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem', minWidth: props.minWidth }}
       onMouseUp={handleClick}
+      bgColor={props.showWhiteBg ? 'white' : undefined}
+      color={props.showWhiteBg ? 'black' : undefined}
     >
       {buttonTitle}
     </Button>

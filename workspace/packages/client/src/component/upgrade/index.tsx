@@ -8,17 +8,21 @@ interface Props {
   scaleDown?: boolean;
   subs: P_RespSubscription | null;
   isInBeta?: boolean;
+  hideIcon?: boolean;
+  inline?: boolean;
 }
 
-function Upgrade({ scaleDown, subs, isInBeta }: Props): JSX.Element {
+function Upgrade({ inline, scaleDown, subs, isInBeta, hideIcon }: Props): JSX.Element {
   const [showUpgradePlanModal, setShowUpgradePlanModal] = useState(false);
   return (
     <>
       <div
         className="upgrade-con"
         style={{
-          transform: scaleDown ? 'scale(0.9) translate(-50%, -50%)' : '',
-          left: scaleDown ? '30%' : '49%',
+          transform: !inline ? (scaleDown ? 'scale(0.9) translate(-50%, -50%)' : '') : 'none',
+          left: !inline ? (scaleDown ? '30%' : '49%') : 'auto',
+          top: !inline ? 'inherit' : 'auto',
+          position: !inline ? 'inherit' : 'unset'
         }}
       >
         <Button
@@ -27,11 +31,12 @@ function Upgrade({ scaleDown, subs, isInBeta }: Props): JSX.Element {
             background: '#fedf64',
             color: 'black',
           }}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setShowUpgradePlanModal(true);
           }}
           iconPlacement="left"
-          icon={<StarFilled style={{
+          icon={!hideIcon && <StarFilled style={{
             color: '#7567ff'
           }}
           />}

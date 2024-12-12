@@ -3,16 +3,17 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Button, Segmented } from 'antd';
-import { RespEntityMetrics, RespOrg, RespUser } from '@fable/common/dist/api-contract';
+import { ReqTourPropUpdate, RespEntityMetrics, RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import { IAnnotationOriginConfig, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
+import { getDefaultLiteralTourOpts, getDefaultTourOpts } from '@fable/common/dist/utils';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import Card from './card';
 import Header from '../../component/header';
-import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import {
   P_MEntityMetricsDaily,
   getDailySessionsAndConversion,
@@ -24,22 +25,34 @@ import {
   HistogramData,
   P_RespHouseLead,
   getActivityData,
-  getSubscriptionOrCheckoutNew
+  getSubscriptionOrCheckoutNew,
+  publishTour,
+  getCustomDomains,
+  updateTourProp
 } from '../../action/creator';
 import Bar from './bar';
 import Line from './line';
 import Funnel from './funnel';
 import Leads, { IAnnotationOriginConfigWithModule } from './leads-tab';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
+import { getAnnotationsPerScreen, getTourMainValidity } from '../../utils';
+import { SiteData, TourMainValidity } from '../../types';
 
 const mapDispatchToProps = (dispatch: any) => ({
-  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, false)),
+  publishTour: (tour: P_RespTour) => dispatch(publishTour(tour)),
+  loadTourWithData: (rid: string) => dispatch(loadTourAndData(rid, true)),
   getEntityMetrics: (tourId: string) => dispatch(getEntityMetrics(tourId)),
   getDailySessionsAndConversion: (tourId: string) => dispatch(getDailySessionsAndConversion(tourId)),
   getLeads: (tourId: string) => dispatch(getLeads(tourId)),
   getEntitySubEntityDistMetrics: (tourId: string) => dispatch(getEntitySubEntityDistribution(tourId)),
   getActivityData: (rid: string, aid: string) => dispatch(getActivityData(rid, aid)),
-  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew())
+  getSubscriptionOrCheckoutNew: () => dispatch(getSubscriptionOrCheckoutNew()),
+  getVanityDomains: () => dispatch(getCustomDomains()),
+  updateTourProp: <T extends keyof ReqTourPropUpdate>(
+    rid: string,
+    tourProp: T,
+    value: ReqTourPropUpdate[T]
+  ) => dispatch(updateTourProp(rid, tourProp, value)),
 });
 
 interface IAppStateProps {
@@ -51,14 +64,31 @@ interface IAppStateProps {
   // journey: JourneyData | null;
   // isTourLoaded: boolean;
   // opts: ITourDataOpts | null;
+  tourMainVailidity: TourMainValidity;
   // featureForPlan: FeatureForPlan | null;
+  vanityDomains: P_RespVanityDomain[] | null;
 }
-const mapStateToProps = (state: TState): IAppStateProps => ({
-  tour: state.default.currentTour,
-  org: state.default.org,
-  principal: state.default.principal,
-  subs: state.default.subs
-});
+const mapStateToProps = (state: TState): IAppStateProps => {
+  const allAnnotationsForTour = getAnnotationsPerScreen(state);
+
+  const tourOpts = state.default.localTourOpts
+  || state.default.remoteTourOpts
+  || (state.default.globalConfig ? getDefaultTourOpts(state.default.globalConfig!) : getDefaultLiteralTourOpts());
+
+  let tourMainVailidity: TourMainValidity = TourMainValidity.Valid;
+  if (state.default.tourLoaded) {
+    tourMainVailidity = getTourMainValidity(tourOpts, state.default.journey, allAnnotationsForTour);
+  }
+
+  return ({
+    tour: state.default.currentTour,
+    org: state.default.org,
+    principal: state.default.principal,
+    subs: state.default.subs,
+    tourMainVailidity,
+    vanityDomains: state.default.vanityDomains,
+  });
+};
 
 interface IOwnProps {
 }
@@ -260,6 +290,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
 
   async componentDidMount(): Promise<void> {
     this.checkTabNavigation();
+    this.props.getVanityDomains();
 
     const tourId = this.props.match.params.tourId;
     this.props.getEntityMetrics(tourId)
@@ -323,6 +354,10 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
 
   loadActivityData = (rid: string) => (aid: string) => this.props.getActivityData(rid, aid);
 
+  private onSiteDataChange = (site: SiteData): void => {
+    this.props.updateTourProp(this.props.tour!.rid, 'site', site);
+  };
+
   render() {
     if (!this.props.tour) {
       return (
@@ -341,6 +376,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
             tour={this.props.tour}
             navigateToWhenLogoIsClicked="/demos"
             org={this.props.org}
+            tourMainValidity={this.props.tourMainVailidity}
             minimalHeader
             rightElGroups={[(
               <Link to={`/demo/${this.props.tour.rid}`} style={{ color: 'white' }}>
@@ -363,10 +399,12 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
                 </GTags.Txt>
               </div>
             }
-            leftElGroups={[]}
             principal={this.props.principal}
             showCalendar
             checkCredit={this.props.getSubscriptionOrCheckoutNew}
+            publishTour={this.props.publishTour}
+            vanityDomains={this.props.vanityDomains}
+            onSiteDataChange={this.onSiteDataChange}
           />}
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

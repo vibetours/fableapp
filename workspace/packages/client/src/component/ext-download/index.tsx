@@ -45,7 +45,8 @@ export function StepContainer({
               );
             }}
             style={{
-              width: '100%'
+              width: '100%',
+              marginTop: '1rem'
             }}
             size="medium"
             icon={<ChromeOutlined />}
@@ -60,15 +61,14 @@ export function StepContainer({
         isStepComplete={isAtleastOneDemoCreated}
         title="Create your first demo"
         description={(
-          <ul>
-            <li>
-              Go to your website/application that you want to create a demo of
-            </li>
-            {extensionInstalled && !isAtleastOneDemoCreated && (
+          <>
+            <p>
+              Go to the product you want to create a demo of & click on Fable's chrome extension to record a demo.
+            </p>
+            {extensionInstalled && (
               <Input
                 label="Enter product url & press ↵ "
                 containerStyle={{
-                  margin: '1rem 0 1.5rem'
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -83,8 +83,7 @@ export function StepContainer({
                 }}
               />
             )}
-            <li style={{ margin: '0.5rem 0' }}>Click on Fable's chrome extension icon to record a demo</li>
-          </ul>
+          </>
         )}
       />
       <SetupStep

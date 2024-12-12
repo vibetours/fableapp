@@ -1,33 +1,29 @@
 import {
+  AlignCenterOutlined,
   BarChartOutlined,
-  CaretRightOutlined,
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   MoreOutlined,
   ShareAltOutlined
 } from '@ant-design/icons';
-import { traceEvent } from '@fable/common/dist/amplitude';
-import { CmnEvtProp } from '@fable/common/dist/types';
 import { Button, Popover, Tooltip } from 'antd';
 import React, { useState } from 'react';
 import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
-import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import * as GTags from '../../common-styled';
 import { CtxAction } from '../../container/tours';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
-import { createIframeSrc } from '../../utils';
-import { getIframeShareCode } from '../header/utils';
 import ShareTourModal from '../publish-preview/share-modal';
 import * as Tags from './styled';
 import FableLogo from '../../assets/fable-rounded-icon.svg';
-import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
+import { PREVIEW_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
 import { amplitudeShareModalOpen } from '../../amplitude';
 
 interface Props {
   tour: P_RespTour;
   handleShowModal: (tour: P_RespTour | null, ctxAction: CtxAction) => void;
+  i: number;
   handleDelete: (tour: P_RespTour | null) => void;
   publishTour: (tour: P_RespTour) => Promise<boolean>;
   updateTourProp: <T extends keyof ReqTourPropUpdate>(
@@ -35,31 +31,28 @@ interface Props {
     tourProp: T,
     value: ReqTourPropUpdate[T]
   ) => void;
-  disable: boolean;
-  showUpgradeModal: ()=>void;
   vanityDomains: P_RespVanityDomain[] | null;
 }
 
 export default function TourCard({
-  tour, handleShowModal, handleDelete, publishTour, updateTourProp, disable, showUpgradeModal, vanityDomains,
+  tour, handleShowModal, handleDelete, publishTour, updateTourProp, vanityDomains, i
 }: Props): JSX.Element {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState<boolean>(false);
-  const [copyUrlParams, setCopyUrlParams] = useState('');
 
   const onSiteDataChange = (site: SiteData): void => {
     updateTourProp(tour.rid, 'site', site);
   };
 
+  const disable = tour.info.locked;
   return (
     <>
       <Tags.TourCardCon
-        to={disable ? '' : `/demo/${tour.rid}`}
+        to={disable ? '' : `/${PREVIEW_BASE_URL}/demo/${tour.rid}`}
         onClick={() => {
-          if (disable) {
-            showUpgradeModal();
-          }
+          if (disable) window.open('/billing', '_top');
         }}
+        id={i ? undefined : 'TG-1'}
       >
         <Tags.TourThumbnail />
         <Tags.CardDataCon>
@@ -89,20 +82,22 @@ export default function TourCard({
           ? (
             <Tags.EmbedBtn
               type="submit"
-              style={{ height: '26px' }}
+              style={{
+                background: '#fedf64',
+                height: '26px'
+              }}
             >
               <span style={{
                 fontSize: '11px',
                 fontWeight: 500
               }}
               >
-                Upgrade
+                Upgrade to unlock
               </span>
             </Tags.EmbedBtn>
           )
           : (
             <Tags.TourActionBtnCon>
-              {tour.lastPublishedDate && (
               <Tooltip title="Copy Embed Link" overlayStyle={{ fontSize: '0.75rem' }}>
                 <Tags.EmbedBtn
                   type="submit"
@@ -122,26 +117,6 @@ export default function TourCard({
                     Share
                   </span>
                 </Tags.EmbedBtn>
-              </Tooltip>
-              )}
-              <Tooltip title="Preview" overlayStyle={{ fontSize: '0.75rem' }}>
-                <Button
-                  id="TG-1"
-                  style={{ padding: 0, margin: 0 }}
-                  size="small"
-                  shape="circle"
-                  type="text"
-                  icon={<CaretRightOutlined />}
-                  onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                      preview_clicked_from: 'tours',
-                      tour_url: createIframeSrc(`/demo/${tour.rid}`)
-                    }, [CmnEvtProp.EMAIL]);
-                    window.open(`/${PREVIEW_BASE_URL}/demo/${tour.rid}`)?.focus();
-                  }}
-                />
               </Tooltip>
               {!tour.onboarding && (
               <Tooltip title="Analytics" overlayStyle={{ fontSize: '0.75rem' }}>
@@ -170,16 +145,15 @@ export default function TourCard({
                   >
                     <GTags.PopoverMenuItem
                       onMouseDown={e => {
-                        setIsShareModalVisible(true);
-                        amplitudeShareModalOpen('tours');
+                        window.open(`/demo/${tour.rid}`, '_top');
                       }}
                     >
-                      <ShareAltOutlined />&nbsp;&nbsp;&nbsp;Share / Embed Demo
+                      <EditOutlined />&nbsp;&nbsp;&nbsp;Edit Demo
                     </GTags.PopoverMenuItem>
                     <GTags.PopoverMenuItem
                       onMouseDown={e => handleShowModal(tour, CtxAction.Rename)}
                     >
-                      <EditOutlined />&nbsp;&nbsp;&nbsp;Rename Demo
+                      <AlignCenterOutlined />&nbsp;&nbsp;&nbsp;Rename Demo
                     </GTags.PopoverMenuItem>
                     <GTags.PopoverMenuItem
                       onMouseDown={e => handleShowModal(tour, CtxAction.Duplicate)}
@@ -218,8 +192,6 @@ export default function TourCard({
           )}
       </Tags.TourCardCon>
       <ShareTourModal
-        height="100%"
-        width="100%"
         isModalVisible={isShareModalVisible}
         relativeUrl={`/demo/${tour?.rid}`}
         closeModal={() => setIsShareModalVisible(false)}
@@ -229,9 +201,6 @@ export default function TourCard({
           amplitudeShareModalOpen('tours');
         }}
         tour={tour}
-        copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${tour?.rid}${copyUrlParams}`)}
-        setCopyUrlParams={setCopyUrlParams}
-        tourOpts={null}
         onSiteDataChange={onSiteDataChange}
         setIsPublishing={setIsPublishing}
         isPublishing={isPublishing}

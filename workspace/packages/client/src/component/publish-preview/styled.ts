@@ -91,6 +91,12 @@ export const ModalBodyCon = styled.div`
   .pub-btn-txt-con {
     display: flex;
     justify-content: space-between;
+    background-color: #fedf64;
+    border-radius: 10px;
+    color: black;
+    padding: 10px;
+    align-items: center;
+    border: 1px solid gray;
   }
 
   p {

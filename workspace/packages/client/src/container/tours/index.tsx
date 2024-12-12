@@ -1,53 +1,50 @@
 import { CaretRightOutlined, PlusOutlined } from '@ant-design/icons';
-import { ApiResp, OnboardingTourForPrev, ReqTourPropUpdate, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { ReqTourPropUpdate, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
 import { CmnEvtProp, LoadingStatus } from '@fable/common/dist/types';
+import { Modal, message } from 'antd';
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-import { message, Modal } from 'antd';
-import { traceEvent } from '@fable/common/dist/amplitude';
-import api from '@fable/common/dist/api';
-import raiseDeferredError from '@fable/common/dist/deferred-error';
 import {
   createNewTour,
-  getAllTours,
-  renameTour,
-  duplicateTour,
   deleteTour,
-  publishTour,
-  updateTourProp,
+  duplicateTour,
+  getAllTours,
   getCustomDomains,
-  loadTourAndData,
   getSubscriptionOrCheckoutNew,
-  // createDefaultTour,
+  publishTour,
+  renameTour,
+  updateTourProp
 } from '../../action/creator';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import * as GTags from '../../common-styled';
+import Button from '../../component/button';
+import { StepContainer } from '../../component/ext-download';
 import Header from '../../component/header';
-import Loader from '../../component/loader';
+import HomeDropDown from '../../component/homepage/home-dropdown';
+import Input from '../../component/input';
+import TopLoader from '../../component/loader/top-loader';
 import SidePanel from '../../component/side-panel';
 import SkipLink from '../../component/skip-link';
-import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
-import { TState } from '../../reducer';
-import { withRouter, WithRouterProps } from '../../router-hoc';
-import { FeatureAvailability, Ops, SiteData } from '../../types';
-import * as Tags from './styled';
-import Button from '../../component/button';
-import Input from '../../component/input';
-import TourCard from '../../component/tour/tour-card';
+import TextArea from '../../component/text-area';
 import EmptyTourState from '../../component/tour/empty-state';
-import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import TourCard from '../../component/tour/tour-card';
+import UpgradeModal from '../../component/upgrade/upgrade-modal';
+import { TOP_LOADER_DURATION } from '../../constants';
+import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
+import { FeatureForPlan } from '../../plans';
+import { TState } from '../../reducer';
+import { WithRouterProps, withRouter } from '../../router-hoc';
+import { FeatureAvailability, Ops } from '../../types';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
 import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable } from '../../utils';
-import { StepContainer } from '../../component/ext-download';
-import TextArea from '../../component/text-area';
-import TopLoader from '../../component/loader/top-loader';
-import { TOP_LOADER_DURATION } from '../../constants';
-import { FeatureForPlan } from '../../plans';
-import UpgradeModal from '../../component/upgrade/upgrade-modal';
-import Line from '../insight-dashboard/line';
-import HomeDropDown from '../../component/homepage/home-dropdown';
+import * as Tags from './styled';
+import Upgrade from '../../component/upgrade';
 
 const userGuides = [TourCardGuide];
+
+// TODO[now] delete code and states for upgrade modal if not required
 
 interface IDispatchProps {
   getAllTours: () => void;
@@ -206,13 +203,20 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
 
     if (this.props.allToursLoadingStatus !== prevProps.allToursLoadingStatus && this.props.allToursLoadingStatus === LoadingStatus.Done) {
       this.setState({
-        shouldShowOnboardingVideoModal: this.props.userCreatedTours.length === 0 && localStorage.getItem('fable/ovs') !== '1',
+        // shouldShowOnboardingVideoModal: this.props.userCreatedTours.length === 0 && localStorage.getItem('fable/ovs') !== '1',
+        // INFO only show this when user has clicked on the button explicitly
+        shouldShowOnboardingVideoModal: false,
       });
     }
   }
 
   handleFeatureAvailable(): void {
-    const isAvailable = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.length);
+    // the reason length + 1 is done: for solo plan allowed number of demo is 1 and the feature plan conditon is <= 1
+    // so when there are length = 0 demos length + 1 <= 1 is true, hence the demo would be created
+    // so when there are length = 1 demo length + 1 <= 1 is false, hence the demo would be created
+    // Sicne the feature plan test condition is <= 1, and we are detecting if more demos can be created or not we have
+    // to do lenght + 1
+    const isAvailable = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.length + 1);
     this.setState({ createNewDemoFeatureAvailable: isAvailable });
   }
 
@@ -440,12 +444,10 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                                   publishTour={this.props.publishTour}
                                   key={tour.rid}
                                   tour={tour}
+                                  i={index}
                                   handleShowModal={this.handleShowModal}
                                   handleDelete={this.handleDelete}
                                   updateTourProp={this.props.updateTourProp}
-                                  disable={index >= this.props.tours.length - 1 ? false
-                                    : !this.state.createNewDemoFeatureAvailable.isAvailable}
-                                  showUpgradeModal={() => { this.setState({ showUpgradeModal: true }); }}
                                   vanityDomains={this.props.vanityDomains}
                                 />
                               ))}
@@ -522,28 +524,30 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                       key: '1',
                       label: <div className="typ-h2">Create a new demo by uploading images</div>,
                       children: (
-                        <form
-                          onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
-                          style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
-                        >
-                          <Input
-                            label={this.getModalDesc()}
-                            id="renameOrDuplicateOrCreateTour"
-                            innerRef={this.renameOrDuplicateOrCreateIpRef}
-                            defaultValue={this.getModalInputDefaultVal()}
-                          />
-                          <TextArea
-                            label="Enter description for this demo"
-                            innerRef={this.renameOrDuplicateOrCreateDescRef}
-                            defaultValue=""
-                          />
-                          <Button
-                            style={{ flex: 1 }}
-                            onClick={this.handleModalOk}
+                        this.state.createNewDemoFeatureAvailable.isAvailable ? (
+                          <form
+                            onSubmit={this.handleRenameOrDuplicateOrCreateTourFormSubmit}
+                            style={{ paddingTop: '1rem', gap: '1rem', flexDirection: 'column', display: 'flex' }}
                           >
-                            Save
-                          </Button>
-                        </form>
+                            <Input
+                              label={this.getModalDesc()}
+                              id="renameOrDuplicateOrCreateTour"
+                              innerRef={this.renameOrDuplicateOrCreateIpRef}
+                              defaultValue={this.getModalInputDefaultVal()}
+                            />
+                            <TextArea
+                              label="Enter description for this demo"
+                              innerRef={this.renameOrDuplicateOrCreateDescRef}
+                              defaultValue=""
+                            />
+                            <Button
+                              style={{ flex: 1 }}
+                              onClick={this.handleModalOk}
+                            >
+                              Save
+                            </Button>
+                          </form>
+                        ) : (<Upgrade subs={this.props.subs} inline />)
                       )
                     }]}
                   />

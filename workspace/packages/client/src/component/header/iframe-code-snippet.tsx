@@ -8,23 +8,19 @@ import * as Tags from './styled';
 interface Props {
   src: string;
   copyHandler: () => void;
-  copyUrl: string;
-  height: string;
-  width: string;
 }
 
 function prepareIframeEmbedCode(opts: {
   src: string;
-  width: string;
-  height: string;
 }): string {
   return `
 <iframe
   src="${opts.src}"
-  width="${opts.width}"
-  height="${opts.height}"
+  width="800px"
+  height="540px"
   style="border: none"
   allowfullscreen
+  allow="fullscreen"
 />
   `.trim();
 }
@@ -32,12 +28,10 @@ function prepareIframeEmbedCode(opts: {
 export default function IframeCodeSnippet(props: Props): JSX.Element {
   const embedCode = prepareIframeEmbedCode({
     src: props.src,
-    height: props.height,
-    width: props.width
   });
   return (
     <Tags.CodeCon>
-      <CopyHandler onCopyHandler={props.copyHandler} copyUrl={props.copyUrl} />
+      <CopyHandler onCopyHandler={props.copyHandler} copyUrl={embedCode} />
       <CodeMirror
         lang="html"
         value={embedCode}

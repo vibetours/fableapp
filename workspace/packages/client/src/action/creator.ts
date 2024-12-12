@@ -52,6 +52,7 @@ import {
   SchemaVersion,
   RespDataset,
   ReqNewDataset,
+  ReqUpdateSubInfo,
 } from '@fable/common/dist/api-contract';
 import {
   ReqGenerateAudio,
@@ -275,7 +276,7 @@ export function createOrg(displayName: string) {
     });
 
     localStorage.setItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY, data.data.id.toString());
-    await dispatch(getSubscriptionOrCheckoutNew());
+    await dispatch(getSubscriptionOrCheckoutNew(true));
 
     dispatch({
       type: ActionType.ORG,
@@ -493,27 +494,51 @@ export function checkout(
   };
 }
 
-export function getSubscriptionOrCheckoutNew() {
+export function getSubscriptionOrCheckoutNew(shouldCreateNewSubsIfNotPresent = false) {
   return async (dispatch: Dispatch<TSubs | ReturnType<typeof checkout> | ReturnType<typeof getFeaturePlan>>) => {
     const data = await api<null, ApiResp<RespSubscription>>('/subs', { auth: true });
     let subs = data.data;
-    const appsumoLicense = localStorage.getItem('fable/asll') || '';
-    if (!appsumoLicense && subs) {
+    if (shouldCreateNewSubsIfNotPresent) {
+      const appsumoLicense = localStorage.getItem('fable/asll') || '';
+      if (!appsumoLicense && subs) {
+        await dispatch({
+          type: ActionType.SUBS,
+          subs: processRawSubscriptionData(subs),
+        });
+      } else if (appsumoLicense) {
+        subs = (await dispatch(checkout('lifetime', 'lifetime', appsumoLicense))) as unknown as RespSubscription;
+      } else {
+        const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
+        const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';
+        subs = (await dispatch(checkout(chosenPlan as any, chosenInterval as any))) as unknown as RespSubscription;
+      }
+      localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
+      localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
+    } else {
       await dispatch({
         type: ActionType.SUBS,
         subs: processRawSubscriptionData(subs),
       });
-    } else if (appsumoLicense) {
-      subs = (await dispatch(checkout('lifetime', 'lifetime', appsumoLicense))) as unknown as RespSubscription;
-    } else {
-      const chosenPlan = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`) || '';
-      const chosenInterval = localStorage.getItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`) || '';
-      subs = (await dispatch(checkout(chosenPlan as any, chosenInterval as any))) as unknown as RespSubscription;
     }
 
+    if (!subs) throw new Error("Can't fetch subscription for account");
+
     dispatch(getFeaturePlan(subs));
-    localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpp`);
-    localStorage.removeItem(`${STORAGE_PREFIX_KEY_QUERY_PARAMS}/wpd`);
+    return Promise.resolve(subs);
+  };
+}
+
+export function updateSubscriptionInfo(req: ReqUpdateSubInfo) {
+  return async (dispatch: Dispatch<TSubs>) => {
+    const data = await api<ReqUpdateSubInfo, ApiResp<RespSubscription>>('/updtsubprops', {
+      method: 'POST',
+      body: req
+    });
+    const subs = data.data;
+    await dispatch({
+      type: ActionType.SUBS,
+      subs: processRawSubscriptionData(subs),
+    });
 
     return Promise.resolve(subs);
   };
@@ -1890,10 +1915,12 @@ export function loadDemoHubConfig(
     dispatch: Dispatch<TDemoHubLoaded | TGenericLoading>,
     getState: () => TState
   ) => {
+    const state = getState().default;
     // TODO api call goes here
     const config = await api<null, IDemoHubConfig>(demoHub!.configFileUri.href);
 
-    return Promise.resolve(config);
+    const processedConfig = processDemoHubConfig(demoHub, config, state.globalConfig!);
+    return Promise.resolve(processedConfig);
   };
 }
 

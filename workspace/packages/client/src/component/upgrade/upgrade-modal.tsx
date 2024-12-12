@@ -38,15 +38,23 @@ function UpgradeModal(props: Props) : JSX.Element {
                 </Button>
               )
               : (
-                <Button
-                  type="submit"
-                  style={{ flex: 1 }}
-                  onClick={() => {
-                    navigate('/billing');
-                  }}
-                >
-                  Upgrade
-                </Button>
+                <div style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: '20px' }}>
+                  <Button
+                    type="submit"
+                    onClick={() => {
+                      navigate('/billing');
+                    }}
+                  >
+                    Upgrade
+                  </Button>
+                  <Button
+                    intent="secondary"
+                    type="submit"
+                    className="support-bot-open"
+                  >
+                    Talk to us
+                  </Button>
+                </div>
               )}
           </div>
       )}

@@ -227,6 +227,7 @@ interface IOwnStateProps {
   } | null,
   currAnnRefId: string,
   annPos: Payload_AnnotationPos | null;
+  showShadowAroundFrame: boolean;
 }
 
 interface ScreenInfo {
@@ -317,6 +318,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       trackerPos: null,
       currAnnRefId: '',
       annPos: null,
+      showShadowAroundFrame: false
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -418,6 +420,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const queryFrameSetting = this.props.searchParams.get('fframe');
     if (queryFrameSetting) {
       this.paramsFrameSettingValue = isFrameSettingsValidValue(queryFrameSetting);
+    }
+
+    const shadow = this.props.searchParams.get('shadow');
+    if (shadow && !Number.isNaN(+shadow)) {
+      this.setState({ showShadowAroundFrame: Boolean(+shadow) });
     }
 
     window.addEventListener('beforeunload', removeSessionId);
@@ -1089,6 +1096,26 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const annScaleFactor = this.state.screenSizeData[currScreenId]
       ? this.state.screenSizeData[currScreenId].scaleFactor : 1;
 
+    if (this.props.tour && this.props.tour.info.locked) {
+      return (
+        <div style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexDirection: 'column',
+          gap: '1rem'
+        }}
+        >
+          <img src="/not-found.png" alt="not-found" />
+          <div>
+            This <GTags.OurLink href="https://sharefable.com" inline>Fable demo</GTags.OurLink> is not available any more
+          </div>
+        </div>
+      );
+    }
+
     return (
       <GTags.BodyCon
         style={{
@@ -1199,6 +1226,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                 onIframeClick={() => {
                   this.handleDemoPlayAndPause();
                 }}
+                showShadowAroundFrame={this.state.showShadowAroundFrame}
               />
             ))
         }

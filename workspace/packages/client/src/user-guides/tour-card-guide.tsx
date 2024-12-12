@@ -23,7 +23,7 @@ export const guide: Guide = {
   steps: [
     {
       title: 'Preview of an interactive demo',
-      description: 'You can check out the preview of the interactive demo that you have created by clicking on the preview button. This essentially shows you the final output that your buyers will experience.',
+      description: 'You can check out the preview of the interactive demo that you have created by clicking on the card. This essentially shows you the final output that your buyers will experience.',
       target: () => getDOMElement(guide, () => document.getElementById('TG-1'))!,
       nextButtonProps: {
         children: <NextBtnPropChildren />,

@@ -43,7 +43,8 @@ import {
   ExtMsg,
   QuillyInPreviewProgress,
   ScreenSizeData,
-  SiteData
+  SiteData,
+  TourMainValidity
 } from '../../types';
 import {
   DisplaySize,
@@ -52,12 +53,15 @@ import {
   getAllOrderedAnnotationsInTour,
   getAnnotationsPerScreen,
   getDimensionsBasedOnDisplaySize,
+  getTourMainValidity,
   initLLMSurvey,
   isEventValid,
   isMobilePreviewDisplaySize,
   sendPreviewHeaderClick,
 } from '../../utils';
 import * as Tags from './styled';
+import ShareTourModal from '../../component/publish-preview/share-modal';
+import InfoCon from '../../component/info-con';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -142,6 +146,11 @@ const mapStateToProps = (state: TState) => {
     state.default.tourData.journey,
     state.default.tourData.opts.main
   ) : null;
+  const tourMainValidity = state.default.tourLoaded && state.default.tourData ? getTourMainValidity(
+    state.default.tourData.opts,
+    state.default.tourData.journey,
+    allAnnotationsForTour
+  ) : TourMainValidity.Valid;
 
   return {
     tour: state.default.currentTour,
@@ -154,7 +163,8 @@ const mapStateToProps = (state: TState) => {
     tourData: state.default.tourData,
     updateDemoUsingAIError: state.default.updateDemoUsingAIError,
     globalEdits: state.default.remoteGlobalEdits,
-    allAnnsInOrder
+    allAnnsInOrder,
+    tourMainValidity,
   };
 };
 
@@ -194,6 +204,8 @@ interface IOwnStateProps {
   voiceoverProgress: number;
   showRemoveVoiceover: boolean;
   creditRequiredForVoiceover: number;
+  copyUrlParam: string;
+  isPublishing: boolean;
 }
 
 const MAX_EDIT_STACK = 5;
@@ -245,7 +257,9 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       selectedVoice: VoiceOptions[0].name,
       voiceoverProgress: 0,
       showRemoveVoiceover: false,
-      creditRequiredForVoiceover: 0
+      creditRequiredForVoiceover: 0,
+      copyUrlParam: '',
+      isPublishing: false
     };
   }
 
@@ -679,10 +693,39 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         return t;
       });
 
+    if (this.props.tour && this.props.tour.info.locked) {
+      return (
+        <InfoCon
+          heading="This demo is locked!"
+          body={(
+            <>
+              <p className="typ-reg">
+                You cannot access this demo as you're on a free plan. Please upgrade to access this demo!
+              </p>
+              <p className="typ-reg">
+                If you have any questions, you can message our team using the in-app chat option.
+              </p>
+            </>
+
+          )}
+          btns={[{
+            linkTo: '/billing',
+            text: 'Upgrade now!',
+            type: 'primary'
+          }, {
+            linkTo: '/demos',
+            text: 'See all demos',
+            type: 'secondary'
+          }]}
+        />
+      );
+    }
+
     return (
       <Tags.Con ref={this.frameConRef}>
         <Tags.HeaderCon>
           {this.props.tour && <Header
+            tourMainValidity={this.props.tourMainValidity}
             subs={this.props.subs}
             org={this.props.org}
             userGuidesToShow={['Sharing or embedding your interactive demo']}
@@ -712,22 +755,17 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             )]}
             principal={this.props.principal}
             tour={this.props.tour}
+            publishTour={this.props.publishTour}
             publishOptions={<PublishOptions
-              showShareModal={this.state.showShareModal}
-              setShowShareModal={(showShareModal: boolean) => this.setState({ showShareModal })}
               handleReplayClick={this.handleReplayClick}
-              publishTour={this.props.publishTour}
               tour={this.props.tour}
               selectedDisplaySize={+displaySize}
               setSelectedDisplaySize={this.handleUpdateDisplaySize}
-              onSiteDataChange={this.onSiteDataChange}
               minimalHeader={this.state.minimalHeader}
-              vanityDomains={this.props.vanityDomains}
               recreateUsingAI={this.handleRecreateUsingAI}
               annotationsForScreens={this.props.annotationsForScreens}
               subs={this.props.subs}
             />}
-            tourOpts={null}
             onSiteDataChange={this.onSiteDataChange}
             showCalendar
             minimalHeader={this.state.minimalHeader}
@@ -1028,6 +1066,21 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
               )}
           </Tags.QuillyCon>
         )}
+        {
+          this.props.tour && (
+          <ShareTourModal
+            publishTour={this.props.publishTour}
+            isModalVisible={this.state.showShareModal}
+            relativeUrl={`/demo/${this.props.tour?.rid}`}
+            closeModal={() => this.setState({ showShareModal: false })}
+            tour={this.props.tour}
+            openShareModal={() => this.setState({ showShareModal: true })}
+            isPublishing={this.state.isPublishing}
+            setIsPublishing={(isPublishing: boolean) => { this.setState({ isPublishing }); }}
+            vanityDomains={this.props.vanityDomains}
+          />
+          )
+        }
       </Tags.Con>
     );
   }

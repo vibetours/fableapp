@@ -21,26 +21,3 @@ export default function UserGuideProgress(props: Props): JSX.Element {
     </Tags.UserGuideProgressCon>
   );
 }
-
-// TODO[now] delete this
-function UserGuideProgressCircle(): JSX.Element {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: ' 0 auto' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-        <img
-          src={openBookIcons}
-          alt="Guide icon"
-        />
-        <div>
-          <div style={{ color: '#212121' }}>
-            User guides
-          </div>
-          <div style={{ fontSize: '0.8rem', color: '#6a6a6a' }}>
-            Learn how to use Fable
-          </div>
-        </div>
-      </div>
-      <div />
-    </div>
-  );
-}

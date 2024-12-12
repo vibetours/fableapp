@@ -344,10 +344,10 @@ export const OurCollapse = styled(Collapse)<{ shadow?: string }>`
   }
 `;
 
-export const OurLink = styled.a`
+export const OurLink = styled.a<{ inline?: boolean }>`
   color: #424242;
   text-decoration: dotted underline;
-  display: block;
+  display: ${props => (props.inline ? 'inline' : 'block')};
   margin-bottom: 1rem;
 
   &:hover {

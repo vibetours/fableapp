@@ -32,7 +32,8 @@ export interface IOwnProps {
   heightOffset: number;
   borderColor?: string;
   onIframeClick?: ()=>void;
-  enableZoomPan: boolean
+  enableZoomPan: boolean;
+  showShadowAroundFrame?: boolean;
 }
 
 export interface DeSerProps {
@@ -45,7 +46,36 @@ const IFRAME_DEFAULT_DOC = '<!DOCTYPE html><html><head></head><body></body></htm
 
 export const ROOT_EMBED_IFRAME_ID = `fab-reifi-${Math.random() * (10 ** 4) | 0}`;
 
-export default class ScreenPreview extends React.PureComponent<IOwnProps> {
+const PREVIEW_BOX_SHADOW_DATA = {
+  OFFSET_X: 0,
+  OFFSET_Y: 0,
+  BLUR_RADIUS: 10,
+  SPREAD_RADIUS: 2,
+  COLOR: 'rgba(33, 33, 33)'
+} as const;
+
+const PREVIEW_BOX_SHADOW = `
+${PREVIEW_BOX_SHADOW_DATA.OFFSET_X}px 
+${PREVIEW_BOX_SHADOW_DATA.OFFSET_Y}px 
+${PREVIEW_BOX_SHADOW_DATA.BLUR_RADIUS}px 
+${PREVIEW_BOX_SHADOW_DATA.SPREAD_RADIUS}px 
+${PREVIEW_BOX_SHADOW_DATA.COLOR}`;
+
+function previewShadowSizeExtenstion(shouldShowShadow: boolean): {shadowWidth: number, shadowHeight: number} {
+  if (!shouldShowShadow) {
+    return { shadowHeight: 0, shadowWidth: 0 };
+  }
+  const { BLUR_RADIUS, SPREAD_RADIUS } = PREVIEW_BOX_SHADOW_DATA;
+  const shadowWidth = (2 * (BLUR_RADIUS + SPREAD_RADIUS));
+  const shadowHeight = (2 * (BLUR_RADIUS + SPREAD_RADIUS));
+  return { shadowWidth, shadowHeight };
+}
+
+interface IOwnState {
+  renderComplete: boolean;
+}
+
+export default class ScreenPreview extends React.PureComponent<IOwnProps, IOwnState> {
   static readonly ATTR_ORIG_VAL_SAVE_ATTR_NAME = 'fab-orig-val-t';
 
   // eslint-disable-next-line react/no-unused-class-component-methods
@@ -67,6 +97,13 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
   private assetLoadingPromises: Promise<unknown>[] = [];
 
   private frameLoadingPromises: Promise<unknown>[] = [];
+
+  constructor(props: IOwnProps) {
+    super(props);
+    this.state = {
+      renderComplete: false,
+    };
+  }
 
   deserDomIntoFrame = async (frame: HTMLIFrameElement): Promise<void> => {
     /*
@@ -249,6 +286,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               }
               this.props.onFrameAssetLoad();
               if (!this.props.hidden) this.installListeners();
+              this.setState({ renderComplete: true });
             }
           });
 
@@ -311,12 +349,12 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
     const referenceFrame = this.frameOfReferenceElRef.current;
     const frameWrapper = this.frameWrapperRef.current;
 
+    const { shadowHeight, shadowWidth } = previewShadowSizeExtenstion(Boolean(this.props.showShadowAroundFrame));
     if (!frame || !referenceFrame || !frameWrapper) {
       throw new Error("Can't find embed iframe");
     }
 
     const origFrameViewPort = referenceFrame.parentElement!.parentElement!.getBoundingClientRect();
-
     this.initialiseFrameComponentPosition(referenceFrame);
     this.initialiseFrameComponentPosition(frame);
     this.initialiseFrameComponentPosition(frameWrapper);
@@ -342,8 +380,8 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
       const vpdW = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.w : 1280;
       const vpdH = this.props.screen.type === ScreenType.SerDom ? this.props.screenData.vpd.h : 720;
 
-      const scaleX = origFrameViewPort.width / vpdW;
-      const scaleY = origFrameViewPort.height / vpdH;
+      const scaleX = (origFrameViewPort.width - shadowWidth) / vpdW;
+      const scaleY = (origFrameViewPort.height - shadowHeight) / vpdH;
       const scale = Math.min(scaleX, scaleY);
       // eslint-disable-next-line react/no-unused-class-component-methods
       this.scaleFactor = scale;
@@ -413,18 +451,18 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
 
       return;
     }
-    frame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
-    frame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
+    frame.style.width = `${origFrameViewPort.width - shadowWidth - heightWidthAdjustment}px`;
+    frame.style.height = `${origFrameViewPort.height - shadowHeight - heightWidthAdjustment}px`;
     frame.style.left = '0';
     frame.style.top = '0';
 
-    referenceFrame.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
-    referenceFrame.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
+    referenceFrame.style.width = `${origFrameViewPort.width - shadowWidth - heightWidthAdjustment}px`;
+    referenceFrame.style.height = `${origFrameViewPort.height - shadowHeight - heightWidthAdjustment}px`;
     referenceFrame.style.left = '0';
     referenceFrame.style.top = '0';
 
-    frameWrapper.style.width = `${origFrameViewPort.width - heightWidthAdjustment}px`;
-    frameWrapper.style.height = `${origFrameViewPort.height - heightWidthAdjustment}px`;
+    frameWrapper.style.width = `${origFrameViewPort.width - shadowWidth - heightWidthAdjustment}px`;
+    frameWrapper.style.height = `${origFrameViewPort.height - shadowHeight - heightWidthAdjustment}px`;
     frameWrapper.style.left = '0';
     frameWrapper.style.top = `${this.props.heightOffset}px`;
     // eslint-disable-next-line react/no-unused-class-component-methods
@@ -635,7 +673,9 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
             borderWidth: `${Tags.getBorderWidthOfFrame(this.props.heightOffset)}px`,
             borderStyle: 'solid',
             borderColor: 'transparent',
-            boxSizing: this.props.isResponsive ? 'content-box' : 'border-box'
+            boxSizing: this.props.isResponsive ? 'content-box' : 'border-box',
+            boxShadow: this.state.renderComplete && this.props.showShadowAroundFrame ? PREVIEW_BOX_SHADOW : 'none',
+            borderRadius: this.props.showShadowAroundFrame ? '6px' : '0px'
           }}
         >
           <Tags.EmbedFrame
@@ -651,7 +691,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps> {
               background: 'transparent',
               boxShadow: this.props.playMode ? 'none' : 'rgba(67, 71, 85, 0.27) 0px 0px 0.25em, rgba(90, 125, 188, 0.05) 0px 0.25em 1em',
               position: 'absolute',
-              transition: 'none'
+              transition: 'none',
             }}
             ref={ref => {
               this.embedFrameRef.current = ref;

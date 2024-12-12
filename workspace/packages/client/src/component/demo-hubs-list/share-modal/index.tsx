@@ -64,8 +64,7 @@ function DemoHubShareModal(props: Props) : JSX.Element {
           <>
             <div className="typ-h1 sec-head">Publishing...</div>
             {
-              props.demoHub
-              && getPublicationState(props.demoHub) !== PublicationState.UNPUBLISHED && (
+              props.demoHub && config && getPublicationState(props.demoHub) !== PublicationState.UNPUBLISHED && (
                 <DemoHubLinks config={config} demoHub={props.demoHub} />
               )
             }
@@ -145,7 +144,7 @@ function DemoHubShareModal(props: Props) : JSX.Element {
               </div>
             </>
             )}
-            {getPublicationState(props.demoHub) !== PublicationState.UNPUBLISHED && (
+            {config && getPublicationState(props.demoHub) !== PublicationState.UNPUBLISHED && (
               <DemoHubLinks demoHub={props.demoHub} config={config} />
             )}
           </div>

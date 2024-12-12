@@ -11,10 +11,10 @@ import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { fetchOrg, iam } from '../../action/creator';
 import { setEventCommonState } from '../../utils';
-import { P_RespSubscription } from '../../entity-processor';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
 import { OnboardingSteps, USER_ONBOARDING_ROUTE } from '../user-onboarding';
 import { FABLE_LOCAL_STORAGE_ORG_ID_KEY } from '../../constants';
+import WithPlanCheck from './with-plan-check';
 
 export const ENV = process.env.REACT_APP_ENVIRONMENT;
 
@@ -131,6 +131,8 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
 
   render(): JSX.Element {
     const inviteCode = this.props.searchParams.get('ic');
+    const pathname = this.props.location.pathname.toLowerCase();
+    const shouldCheckPlan = !pathname.startsWith('/billing');
 
     if (this.props.auth0.isLoading) {
       return <FullPageTopLoader showLogo />;
@@ -159,9 +161,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
       }
     }
 
-    return (
-      <Outlet />
-    );
+    return shouldCheckPlan ? <WithPlanCheck /> : <Outlet />;
   }
 }
 

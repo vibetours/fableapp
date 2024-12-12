@@ -24,6 +24,7 @@ import * as Tags from './styled';
 interface Props {
   selected: 'tours' | 'demo-hub' |'user-management' | 'billing' | 'settings' | 'integrations' | 'leads'
   | 'datasets' | '';
+  // eslint-disable-next-line react/no-unused-prop-types
   subs: P_RespSubscription | null;
   compact?: boolean;
 }
@@ -37,15 +38,6 @@ function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'bil
 }
 
 export default function SidePanel(props: Props): JSX.Element {
-  const navigate = useNavigate();
-  const isBuisnessPlan = isActiveBusinessPlan(props.subs);
-
-  const isTrialAndEndGreaterThanOneYear = (): boolean => {
-    if (!props.subs) return false;
-    const [_, days] = getNumberOfDaysFromNow(new Date(props.subs.trialEndsOn));
-    return days > 365 && props.subs.status === Status.IN_TRIAL;
-  };
-
   if (props.compact) {
     return (
       <Tags.Con>
@@ -170,23 +162,19 @@ export default function SidePanel(props: Props): JSX.Element {
           <DatabaseOutlined />
           <p>Datasets</p>
         </Tags.ConNavBtn>
+      </Tags.ConNav>
+      <div style={{ margin: '0 auto 16px' }}>
         <Tags.ConNavBtn
           to="https://www.sharefable.com/get-a-demo?ref=app_dashboard"
           target="_blank"
+          style={{
+            outline: '1px solid #16023e'
+          }}
         >
           <CalendarOutlined />
           <p>Free demo consultation</p>
         </Tags.ConNavBtn>
-        <div style={{ margin: 'auto 8px 16px' }}>
-          {props.subs && !isBuisnessPlan && !isTrialAndEndGreaterThanOneYear() && <PlanBadge
-            subs={props.subs}
-            onClick={() => {
-              sendEvntToAmplitude('billing');
-              navigate('/billing');
-            }}
-          />}
-        </div>
-      </Tags.ConNav>
+      </div>
     </Tags.Con>
   );
 }

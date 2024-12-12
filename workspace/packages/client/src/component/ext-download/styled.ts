@@ -157,7 +157,8 @@ export const SetupSteps = styled.div`
     transition: all 100ms;
 
     &.complete {
-      opacity: 0.65;
+      background: transparent;
+      box-shadow: var(--card-box-shadow-secondary);
     }
 
     .left-items {

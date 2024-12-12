@@ -5,15 +5,8 @@ import { Link } from 'react-router-dom';
 import { IAnnotationConfig } from '@fable/common/dist/types';
 import * as Tags from './styled';
 import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
-import ShareIcon from '../../assets/icons/share.svg';
-import PublishButton from './publish-button';
-import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
-import { DisplaySize, getDimensionsBasedOnDisplaySize } from '../../utils';
-import { getIframeShareCode } from '../header/utils';
-import ShareTourModal from './share-modal';
-import { IFRAME_BASE_URL } from '../../constants';
-import { SiteData } from '../../types';
-import { amplitudeShareModalOpen } from '../../amplitude';
+import { P_RespSubscription, P_RespTour } from '../../entity-processor';
+import { DisplaySize } from '../../utils';
 import RecreateUsingAI from './recreate-option';
 import * as GTags from '../../common-styled';
 
@@ -21,13 +14,8 @@ interface Props {
   selectedDisplaySize: DisplaySize;
   setSelectedDisplaySize: (selectedDisplaySize: DisplaySize) => void;
   tour: P_RespTour | null;
-  publishTour: (tour: P_RespTour) => Promise<boolean>;
   handleReplayClick: () => void;
-  showShareModal: boolean;
-  setShowShareModal: (showShareModal: boolean) => void;
-  onSiteDataChange: (site: SiteData)=> void;
   minimalHeader: boolean;
-  vanityDomains: P_RespVanityDomain[] | null;
   recreateUsingAI: (updateLoading:(step: string)=>void)=>void;
   annotationsForScreens: Record<string, IAnnotationConfig[]>;
   subs: P_RespSubscription | null;
@@ -35,10 +23,6 @@ interface Props {
 
 export default function PublishOptions(props: Props): JSX.Element {
   const [openPopover, setOpenPopover] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublishFailed, setIsPublishFailed] = useState(false);
-  const [copyUrlParams, setCopyUrlParams] = useState('');
-  const { height, width } = getDimensionsBasedOnDisplaySize(props.selectedDisplaySize);
 
   return (
     <>
@@ -64,15 +48,6 @@ export default function PublishOptions(props: Props): JSX.Element {
           </Popover>
           {!props.minimalHeader && (
             <>
-              <Tooltip title="Embed" overlayInnerStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
-                <div onClick={() => {
-                  amplitudeShareModalOpen('preview');
-                  props.setShowShareModal(true);
-                }}
-                >
-                  <img className="action-icon" src={ShareIcon} alt="" />
-                </div>
-              </Tooltip>
               <Tooltip title="Insights" overlayStyle={{ fontSize: '0.75rem', borderRadius: '2px' }}>
                 <Link to={props.tour ? `/analytics/demo/${props.tour.rid}` : ''}>
                   <AntButton
@@ -118,44 +93,9 @@ export default function PublishOptions(props: Props): JSX.Element {
                   />
                 </div>
               </GTags.StyledPopover>
-              <div className="publish-btn">
-                <PublishButton
-                  setIsPublishFailed={setIsPublishFailed}
-                  setIsPublishing={setIsPublishing}
-                  publishTour={props.publishTour}
-                  tour={props.tour}
-                  size="medium"
-                  openShareModal={() => {
-                    props.setShowShareModal(true);
-                    amplitudeShareModalOpen('preview');
-                  }}
-                  isPublishing={isPublishing}
-                />
-              </div>
             </>
           )}
         </div>
-
-        {props.tour && <ShareTourModal
-          publishTour={props.publishTour}
-          tour={props.tour!}
-          height={height}
-          width={width}
-          relativeUrl={`/demo/${props.tour?.rid}`}
-          isModalVisible={props.showShareModal}
-          closeModal={() => props.setShowShareModal(false)}
-          openShareModal={() => {
-            props.setShowShareModal(true);
-            amplitudeShareModalOpen('preview');
-          }}
-          copyUrl={getIframeShareCode(height, width, `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}${copyUrlParams}`)}
-          setCopyUrlParams={setCopyUrlParams}
-          tourOpts={null}
-          onSiteDataChange={props.onSiteDataChange}
-          isPublishing={isPublishing}
-          setIsPublishing={setIsPublishing}
-          vanityDomains={props.vanityDomains}
-        />}
       </Tags.Header>
     </>
   );

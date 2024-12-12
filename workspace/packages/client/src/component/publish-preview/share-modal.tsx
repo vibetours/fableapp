@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
-import { CmnEvtProp, IAnnotationConfig, ITourDataOpts, Property, PropertyType } from '@fable/common/dist/types';
+import { CmnEvtProp, IAnnotationConfig, Property, PropertyType } from '@fable/common/dist/types';
 import { LoadingOutlined } from '@ant-design/icons';
 import { Collapse, Drawer, Spin } from 'antd';
 import { timeFormat } from 'd3-time-format';
@@ -57,17 +57,12 @@ interface Props {
   relativeUrl: string;
   isModalVisible: boolean;
   closeModal: () => void;
-  copyUrl: string;
-  height: string;
-  width: string;
   tour: P_RespTour;
   openShareModal: () => void;
-  tourOpts: ITourDataOpts | null;
   onSiteDataChange?: (site: SiteData) => void;
   isPublishing: boolean;
-  setIsPublishing: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsPublishing: (isPublishing: boolean)=> void;
   vanityDomains: P_RespVanityDomain[] | null | undefined;
-  setCopyUrlParams: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const enum SearchParamBy {
@@ -86,7 +81,6 @@ interface CTAInfoProps {
   site: SiteData | null,
   updateBrandData: UpdateBrandDataFn,
   disableEdit:boolean,
-  tourOpts: ITourDataOpts | null,
   calledFrom: 'cta_share' | 'internal_share',
   allDomains: string[] | null;
   selectedDomain: string;
@@ -101,7 +95,6 @@ function CTAInfo({ iframeUrl,
   showHelpDrawer,
   updateBrandData,
   disableEdit,
-  tourOpts,
   calledFrom,
   allDomains,
   selectDomain,
@@ -519,7 +512,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
             }}
           >
             {props.isPublishing ? (
-              <div className="typ-h1 sec-head">Publishing...</div>
+              <div className="typ-h1">Publishing...</div>
             ) : (
               <div className="section-con">
                 {isPublishFailed && (
@@ -535,20 +528,21 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 )}
                 {props.tour && getPublicationState(props.tour) === PublicationState.UNPUBLISHED && (
                 <div>
-                  <div className="typ-h1 sec-head" style={{ marginBottom: '0.5rem' }}>
+                  <div className="typ-h1" style={{ marginBottom: '0.5rem' }}>
                     You haven't published this demo yet!
                   </div>
+                  <br />
                   <div className="pub-btn-txt-con">
                     <div className="typ-h2" style={{ marginBottom: '0.5rem' }}>
                       <p>
                         For a demo to go live, you’ll need to publish it.
                       </p>
                       <p className="type-sm">
-                        Please click on <em>publish</em> button you are done making all changes.
+                        Please click on <em>publish</em> button once you are done making all changes.
                       </p>
                     </div>
                     <PublishButton
-                      minWidth="240px"
+                      minWidth="180px"
                       setIsPublishFailed={setIsPublishFailed}
                       tour={props.tour}
                       publishTour={props.publishTour}
@@ -558,13 +552,12 @@ export default function ShareTourModal(props: Props): JSX.Element {
                   </div>
                 </div>
                 )}
-
                 {!isPublishFailed
                 && props.tour
                 && getPublicationState(props.tour) === PublicationState.PUBLISHED
                 && (
                   <>
-                    <div className="typ-h1 sec-head"> Your demo is published</div>
+                    <div className="typ-h1 sec-head"> Latest version of your demo is already published</div>
                     <div className="typ-sm">Publish date:
                       <span>{dateTimeFormat(props.tour.lastPublishedDate)}</span>
                     </div>
@@ -574,18 +567,15 @@ export default function ShareTourModal(props: Props): JSX.Element {
 
                 {props.tour && getPublicationState(props.tour) === PublicationState.OUTDATED && (
                 <>
-                  <div className="typ-h1 sec-head">You have unpublished changes</div>
                   <div className="pub-btn-txt-con">
-                    <div className="typ-h2">
-                      <p>
-                        Your published demo is outdated.
-                      </p>
+                    <div>
+                      <div className="typ-h1">You have unpublished changes</div>
                       <p className="typ-sm">
                         Last publish date: <span>{dateTimeFormat(props.tour.lastPublishedDate)}</span>
                       </p>
                     </div>
                     <PublishButton
-                      minWidth="240px"
+                      minWidth="180px"
                       setIsPublishFailed={setIsPublishFailed}
                       tour={props.tour}
                       publishTour={props.publishTour}
@@ -644,11 +634,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         you want to embed the interactive demo as an iframe.
                       </p>
                       <IframeCodeSnippet
-                        height={props.height}
-                        width={props.width}
                         copyHandler={iframeEmbedCopyHandler}
                         src={`${getBaseURl()}/${IFRAME_BASE_URL}${props.relativeUrl}${searchParamsStr}`}
-                        copyUrl={props.copyUrl}
                       />
                       {
                         allDomains && (
@@ -677,7 +664,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         showHelpDrawer={setShowHelpDrawer}
                         updateBrandData={updateBrandData}
                         disableEdit={props.onSiteDataChange === undefined}
-                        tourOpts={props.tourOpts}
                         calledFrom="cta_share"
                         selectDomain={setSelectedDomain}
                         selectedDomain={selectedDomain}
@@ -725,7 +711,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 tour={props.tour}
                 originalPersVarsParams=""
                 changePersVarParams={(persVarsParamsStr) => {
-                  props.setCopyUrlParams(persVarsParamsStr);
                   setSearchParamsStr(persVarsParamsStr);
                 }}
                 isLoading={loadingAnns}

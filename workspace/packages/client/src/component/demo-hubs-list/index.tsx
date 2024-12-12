@@ -66,7 +66,7 @@ function DemoHubsList(props: Props): JSX.Element {
         justifyContent: 'space-between',
       }}
       >
-        <Tags.ToursHeading style={{ fontWeight: 400 }}>All demo hubs in your org</Tags.ToursHeading>
+        {isAvailable && (<Tags.ToursHeading style={{ fontWeight: 400 }}>All demo hubs in your org</Tags.ToursHeading>)}
         <Button
           icon={isAvailable && <PlusOutlined />}
           iconPlacement="left"
@@ -74,7 +74,7 @@ function DemoHubsList(props: Props): JSX.Element {
           onClick={() => { isAvailable && setShowModal(true); }}
           intent="primary"
         >
-          {isAvailable ? 'Create a demo hub' : 'Request Access'}
+          {isAvailable ? 'Create a demo hub' : 'Request Access for Demo Hub'}
         </Button>
       </Tags.TopPanel>
       {props.demoHubsList.length ? (
@@ -94,11 +94,13 @@ function DemoHubsList(props: Props): JSX.Element {
         <Tags.EmptyState>
           <img src={DemohubIllustration} style={{ height: '240px' }} alt="demohub illustration" />
           <p className="typ-reg">
-            Create a demo hub to host all your interactive demo in one place.
+            Demo Hub is a paid add-on for interactive demos. It helps you organize, personalize, and share your interactive demos effortlessly.
           </p>
-          <p className="typ-reg">
-            You can group your demos in multiple sections or you can create personalized demo experience by qualifying your buyer.
-          </p>
+          <ul className="typ-reg">
+            <li>Store and manage all demos in one hub, making it easy to access and share.</li>
+            <li>Create customized demo journeys for prospects, tailored to specific use cases/ personas/ customer segments.</li>
+            <li>Share demos with simple links and collaborate across teams for smooth sales, marketing, and support processes.</li>
+          </ul>
         </Tags.EmptyState>
       )}
       <GTags.BorderedModal

@@ -9,14 +9,14 @@ import {
   MoreOutlined,
   QuestionCircleOutlined,
   SaveOutlined,
-  ShareAltOutlined,
   SwapOutlined,
   WarningFilled,
   ExclamationCircleFilled,
   WalletFilled,
+  ShareAltOutlined,
 } from '@ant-design/icons';
-import { RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
-import { CmnEvtProp, ITourDataOpts, ScreenDiagnostics } from '@fable/common/dist/types';
+import { Plan, RespOrg, RespSubscription, RespUser } from '@fable/common/dist/api-contract';
+import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
@@ -27,15 +27,14 @@ import * as GTags from '../../common-styled';
 import { P_RespSubscription, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import Input from '../input';
 import * as Tags from './styled';
-import { getIframeShareCode } from './utils';
 import { AI_PARAM, P_RespDemoHub, SiteData, TourMainValidity } from '../../types';
-import { IFRAME_BASE_URL, PREVIEW_BASE_URL } from '../../constants';
+import { PREVIEW_BASE_URL } from '../../constants';
 import { amplitudeShareModalOpen } from '../../amplitude';
 import { UserGuideMsg } from '../../user-guides/types';
 import UserGuideListInPopover from './user-guide-list-in-popover';
 import { isAIParamPresent, sendPreviewHeaderClick } from '../../utils';
-import Button from '../button';
 import BuyMoreCredit from '../create-tour/buy-more-credit';
+import Button from '../button';
 
 const PublishButton = lazy(() => import('../publish-preview/publish-button'));
 const ShareTourModal = lazy(() => import('../publish-preview/share-modal'));
@@ -71,7 +70,6 @@ interface IOwnProps {
   lastAnnHasCTA?: boolean;
   isEntryPointMediaAnn?: null | 'main' | 'module';
   screenDiagnostics?: ScreenDiagnostics[];
-  tourOpts?: ITourDataOpts | null;
   onSiteDataChange?: (site: SiteData) => void;
   showCalendar?: boolean;
   minimalHeader?: boolean;
@@ -101,7 +99,6 @@ function Header(props: IOwnProps): JSX.Element {
   const [showWarningDrawer, setShowWarningDrawer] = useState(false);
   const [isWarningPresent, setIsWarningPresent] = useState(false);
   const [showUserGuidePopover, setShowUserGuidePopover] = useState(false);
-  const [copyUrlParams, setCopyUrlParams] = useState('');
   const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
@@ -140,11 +137,6 @@ function Header(props: IOwnProps): JSX.Element {
     handleRenameScreenModalOk();
   };
 
-  const showModal = (): void => {
-    amplitudeShareModalOpen('editor');
-    setIsModalVisible(true);
-  };
-
   const closeModal = (): void => {
     setIsModalVisible(false);
   };
@@ -181,6 +173,8 @@ function Header(props: IOwnProps): JSX.Element {
     return props.publishTour!(tour);
   };
 
+  const showUpgradeButton = props.subs && (props.subs.paymentPlan === Plan.SOLO || props.subs.paymentPlan === Plan.STARTUP);
+
   return (
     <Suspense fallback={<></>}>
       <Tags.Con style={{ color: '#fff' }}>
@@ -200,6 +194,25 @@ function Header(props: IOwnProps): JSX.Element {
                   style={{ height: '2rem', cursor: 'pointer' }}
                 />
               </Link>
+            )}
+            {showUpgradeButton && (
+            <Link
+              to="/billing"
+              style={{
+                alignSelf: 'center',
+                textDecoration: 'none'
+              }}
+            >
+              <Button
+                size="small"
+                style={{
+                  background: '#fedf64',
+                  color: 'black',
+                  width: '80px',
+                }}
+              >Upgrade
+              </Button>
+            </Link>
             )}
             {
             props.titleElOnLeft
@@ -280,7 +293,8 @@ function Header(props: IOwnProps): JSX.Element {
             {!location.pathname.startsWith('/preview') && !location.pathname.startsWith('/hub') && (
               <>
                 <Tags.MenuItem style={{
-                  borderRight: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRight: !location.pathname.startsWith('/analytics') ? '1px solid rgba(255, 255, 255, 0.3)'
+                    : 'none',
                   paddingRight: '16px'
                 }}
                 >
@@ -321,22 +335,6 @@ function Header(props: IOwnProps): JSX.Element {
                     >
                       Preview
                     </AntButton>
-                  </Tooltip>
-                </Tags.MenuItem>
-                <Tags.MenuItem>
-                  <Tooltip title="Embed demo" overlayStyle={{ fontSize: '0.75rem' }}>
-                    <AntButton
-                      id="step-2"
-                      size="small"
-                      shape="circle"
-                      type="text"
-                      icon={<ShareAltOutlined
-                        style={{ color: 'white' }}
-                      />}
-                      onClick={(e) => {
-                        showModal();
-                      }}
-                    />
                   </Tooltip>
                 </Tags.MenuItem>
                 {!location.pathname.startsWith('/analytics') && (
@@ -427,19 +425,35 @@ function Header(props: IOwnProps): JSX.Element {
                     paddingLeft: '16px'
                   }}
                 >
-                  <PublishButton
-                    disabled={props.tourMainValidity !== TourMainValidity.Valid}
-                    setIsPublishFailed={setIsPublishFailed}
-                    setIsPublishing={setIsPublishing}
-                    publishTour={handlePublishTour}
-                    tour={props.tour}
-                    size="medium"
-                    openShareModal={() => {
-                      amplitudeShareModalOpen('editor');
-                      setIsModalVisible(true);
-                    }}
-                    isPublishing={isPublishing}
-                  />
+                  {
+                     !(props.tour && props.tour.lastPublishedDate)
+                       ? <PublishButton
+                           disabled={props.tourMainValidity !== TourMainValidity.Valid}
+                           setIsPublishFailed={setIsPublishFailed}
+                           setIsPublishing={setIsPublishing}
+                           publishTour={handlePublishTour}
+                           tour={props.tour}
+                           size="medium"
+                           openShareModal={() => {
+                             amplitudeShareModalOpen('editor');
+                             setIsModalVisible(true);
+                           }}
+                           isPublishing={isPublishing}
+                       />
+                       : (
+                         <Button
+                           size="medium"
+                           id="step-2"
+                           style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem' }}
+                           onClick={() => {
+                             amplitudeShareModalOpen('editor');
+                             setIsModalVisible(true);
+                           }}
+                         >
+                           <ShareAltOutlined /> Share
+                         </Button>
+                       )
+                    }
                 </div>
               </Tooltip>
             )}
@@ -645,8 +659,6 @@ function Header(props: IOwnProps): JSX.Element {
         {props.tour && props.publishTour && <ShareTourModal
           publishTour={props.publishTour}
           tour={props.tour!}
-          height="100%"
-          width="100%"
           relativeUrl={`/demo/${props.tour?.rid}`}
           isModalVisible={isModalVisible}
           closeModal={closeModal}
@@ -654,9 +666,6 @@ function Header(props: IOwnProps): JSX.Element {
             setIsModalVisible(true);
             amplitudeShareModalOpen('editor');
           }}
-          copyUrl={getIframeShareCode('100%', '100%', `/${IFRAME_BASE_URL}/demo/${props.tour?.rid}${copyUrlParams}`)}
-          setCopyUrlParams={setCopyUrlParams}
-          tourOpts={props.tourOpts || null}
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
