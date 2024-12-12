@@ -132,7 +132,7 @@ class WithPrincipalCheck extends React.PureComponent<IProps, IOwnStateProps> {
   render(): JSX.Element {
     const inviteCode = this.props.searchParams.get('ic');
     const pathname = this.props.location.pathname.toLowerCase();
-    const shouldCheckPlan = !pathname.startsWith('/billing');
+    const shouldCheckPlan = !(pathname.startsWith('/billing') || pathname.startsWith('/welcome'));
 
     if (this.props.auth0.isLoading) {
       return <FullPageTopLoader showLogo />;
