@@ -2,10 +2,32 @@ import { SerNode } from '@fable/common/dist/types';
 import { nanoid } from 'nanoid';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { getUrlsFromSrcset } from '@fable/common/dist/utils';
+import { captureException } from '@sentry/react';
 import { DeSerProps } from '../preview';
 import { addPointerEventsAutoToEl, isHTTPS } from '../../../utils';
 
 export const FABLE_CUSTOM_NODE = -1;
+
+function purifySrcDoc(htmlStr: string): string {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlStr, 'text/html');
+    const scripts = doc.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
+
+    let doctype = '';
+    if (doc.doctype) {
+      doctype = `<!DOCTYPE ${doc.doctype.name}>`;
+    }
+
+    // Serialize the cleaned DOM back to a string, including the DOCTYPE
+    const cleanedHtmlString = `${doctype}\n${doc.documentElement.outerHTML}`;
+    return cleanedHtmlString;
+  } catch (e) {
+    captureException(e);
+    return htmlStr;
+  }
+}
 
 export const deser = (
   serNode: SerNode,
@@ -268,11 +290,16 @@ export const createHtmlElement = (
           attrValue = `/aboutblankhtml4.html?ts=${+new Date()}`;
         }
         el.setAttribute(attrKey, attrValue);
-      } else if (node.name === 'iframe'
-      && (attrKey === 'sandbox' || attrKey === 'allow'
-      || (attrKey === 'srcdoc' && !(attrValue || '').trim()))
-      ) {
+      } else if (node.name === 'iframe' && (attrKey === 'sandbox' || attrKey === 'allow')) {
         continue;
+      } else if (node.name === 'iframe' && attrKey === 'srcdoc') {
+        if (!((attrValue || '').trim())) {
+          continue;
+        }
+        // Sometimes srcdoc might have script tag that brings additional script to the page
+        // We delete all script tags from inside srcdoc
+        const nAttrValue = purifySrcDoc(attrValue as string);
+        node.attrs[attrKey] = attrValue = nAttrValue;
       } else if (node.name === 'object' && attrKey === 'data') {
         el.setAttribute(attrKey, '/aboutblankhtml5.html');
       } else {
@@ -325,8 +352,7 @@ export const createHtmlElement = (
     const replace = shouldReplaceSrcset(node.attrs.srcset);
     if (replace) el.setAttribute('srcset', `${node.attrs.src}`);
   }
-
-  if (node.props.isShadowHost) {
+  if (node.props.isShadowHost && !el.shadowRoot) {
     el.attachShadow({ mode: 'open' });
   }
 
