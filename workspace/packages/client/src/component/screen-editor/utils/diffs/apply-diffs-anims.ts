@@ -1,5 +1,6 @@
 import { addPointerEventsAutoToEl } from '../../../../utils';
 import { Update } from './types';
+import { purifySrcDoc } from '../deser';
 
 export const applyFadeInTransitionToNode = (node: Node, originialOpacity: string): void => {
   if (node.nodeType === 1) {
@@ -23,6 +24,10 @@ export function applyUpdateDiff(updates: Update[], el: Node): void {
       if (update.shouldRemove) {
         (el as Element).removeAttribute(update.attrKey);
       } else {
+        // TODO this normalization should have been done from a central location
+        if (el.nodeName && el.nodeName.toLowerCase && el.nodeName.toLowerCase() === 'iframe' && update.attrKey === 'srcdoc') {
+          update.attrNewVal = purifySrcDoc(update.attrNewVal);
+        }
         (el as Element).setAttribute(update.attrKey, update.attrNewVal);
       }
     });

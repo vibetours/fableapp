@@ -8,7 +8,7 @@ import { addPointerEventsAutoToEl, isHTTPS } from '../../../utils';
 
 export const FABLE_CUSTOM_NODE = -1;
 
-function purifySrcDoc(htmlStr: string): string {
+export function purifySrcDoc(htmlStr: string): string {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlStr, 'text/html');
@@ -300,6 +300,7 @@ export const createHtmlElement = (
         // We delete all script tags from inside srcdoc
         const nAttrValue = purifySrcDoc(attrValue as string);
         node.attrs[attrKey] = attrValue = nAttrValue;
+        el.setAttribute(attrKey, attrValue);
       } else if (node.name === 'object' && attrKey === 'data') {
         el.setAttribute(attrKey, '/aboutblankhtml5.html');
       } else {
