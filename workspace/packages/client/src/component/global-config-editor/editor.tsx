@@ -40,6 +40,7 @@ import { P_RespSubscription } from '../../entity-processor';
 import { FeatureAvailability } from '../../types';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { amplitudeGlobalStyleEdited } from '../../amplitude';
+import Upgrade from '../upgrade';
 
 interface Props {
   globalConfig: IGlobalConfig;
@@ -123,6 +124,7 @@ export default function Editor(props: Props): JSX.Element {
     traceEvent(AMPLITUDE_EVENTS.REPUBLISH_ALL_DEMOS, {}, [CmnEvtProp.EMAIL]);
   };
   const watermarkFeatureAvailable = isFeatureAvailable(props.featurePlan, 'no_watermark');
+  const customizeLoaderFeatureAvailable = isFeatureAvailable(props.featurePlan, 'custom_demo_loader');
 
   return (
     <div>
@@ -220,15 +222,23 @@ export default function Editor(props: Props): JSX.Element {
               <Tags.CommonSecActionCon
                 style={{ minWidth: '500px' }}
               >
-                <FileInput
-                  accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                  onChange={handleCompanyLogoImgChange}
-                />
-                <div
-                  className="typ-sm"
-                >
-                  Your logo will be used in pages where the demo is hosted
-                </div>
+                <>
+                  {customizeLoaderFeatureAvailable.isAvailable
+                    ? (
+                      <>
+                        <FileInput
+                          accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                          onChange={handleCompanyLogoImgChange}
+                        />
+                        <div
+                          className="typ-sm"
+                        >
+                          Your logo will be used in pages where the demo is hosted
+                        </div>
+                      </>
+                    )
+                    : <Upgrade subs={props.subs} inline />}
+                </>
               </Tags.CommonSecActionCon>
               {isCompanyLogoUploading ? (
                 <div

@@ -19,6 +19,8 @@ import Card from '../insight-dashboard/card';
 import Bubble from '../insight-dashboard/bubble';
 import { getFormattedDate, readableFormKey, readableTimeUnit } from '../insight-dashboard/leads-tab';
 import FableLogo from '../../assets/fable-rounded-icon.svg';
+import { isFeatureAvailable } from '../../utils';
+import Upgrade from '../../component/upgrade';
 
 const mapDispatchToProps = (dispatch: any) => ({
   fetchOrgWideAnalytics: () => dispatch(fetchOrgWideAnalytics()),
@@ -31,6 +33,7 @@ const mapStateToProps = (state: TState) => ({
   subs: state.default.subs,
   orgWideRespHouseLeadLoadingStatus: state.default.orgWideRespHouseLeadLoadingStatus,
   orgWideRespHouseLead: state.default.orgWideRespHouseLead,
+  featurePlan: state.default.featureForPlan,
 });
 
 interface IOwnProps {
@@ -42,6 +45,7 @@ type IProps = IOwnProps & ReturnType<typeof mapStateToProps> & ReturnType<typeof
 
 interface IOwnStateProps {
   loading: boolean;
+  isLeadsFeatureAvailable: boolean;
 }
 
 class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
@@ -49,6 +53,7 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
     super(props);
     this.state = {
       loading: true,
+      isLeadsFeatureAvailable: true
     };
   }
 
@@ -56,6 +61,7 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
     if (this.props.org) this.initAnalytics();
     if (this.props.orgWideRespHouseLead.leads.length) this.setState({ loading: false });
+    if (this.props.featurePlan) this.checkIfLeadsFeatureAvailable();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>): void {
@@ -68,6 +74,15 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.orgWideRespHouseLead.leads.length !== this.props.orgWideRespHouseLead.leads.length) {
       this.setState({ loading: false });
     }
+
+    if (this.props.featurePlan !== prevProps.featurePlan) {
+      this.checkIfLeadsFeatureAvailable();
+    }
+  }
+
+  checkIfLeadsFeatureAvailable(): void {
+    const isAvailable = isFeatureAvailable(this.props.featurePlan, 'aggregate_analytics').isAvailable;
+    this.setState({ isLeadsFeatureAvailable: isAvailable });
   }
 
   initAnalytics() {
@@ -122,163 +137,173 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
               <div>
                 <LoadingOutlined style={{ fontSize: '2rem' }} />
               </div>
-            ) : (
-              <Tags.MainCon>
-                <AnalyticsTags.Row style={{
-                  width: '100%',
-                  minWidth: 'unset',
-                  maxWidth: 'unset',
-                  margin: '1rem 0',
-                  alignItems: 'center'
-                }}
-                >
-                  <Card contentStyle={{ gap: '0.5rem' }}>
-                    <div className="c-head">
-                      Leads
-                      <br />
-                      Captured
-                      <span className="typ-sm" style={{ display: 'block', whiteSpace: 'nowrap' }}>
-                        across all demos
-                      </span>
-                    </div>
-                    <div className="c-metric">
-                      {this.props.orgWideRespHouseLead.leads.length}
-                    </div>
-                  </Card>
-                  <Card>
-                    <div className="c-head">
-                      Leads captured per day
-                    </div>
-                    <div className="c-metric">
-                      <Bubble
-                        data={this.props.orgWideRespHouseLead.leadsByDate.map(d => ({
-                          date: d.date,
-                          value: d.count,
-                          value2: 1
-                        }))}
-                        concepts={{
-                          value: {
-                            singular: 'Lead',
-                            plural: 'Leads'
-                          }
-                        }}
-                      />
-                    </div>
-                  </Card>
-                </AnalyticsTags.Row>
-                <Tags.LeadCardCon>
-                  {this.props.orgWideRespHouseLead.leads.map((lead, i) => (
-                    <div className="lead-card" key={i}>
-                      <div>
-                        <div className="lead-info-l">
-                          {this.getLeadCardDisplayBlock(lead.info)}
-                        </div>
-                        {lead.richInfo && (
-                        <div className="lead-loc-l typ-sm">
-                          <div>
-                            <span>
-                              First seen
-                              &nbsp;
-                              {Object.values(getFormattedDate(lead.nCreatedAt)).join(' : ')}
-                            </span>
-                              &nbsp;
-                              &nbsp;
-                              &nbsp;
-                            <span>
-                              Last seen
-                              &nbsp;
-                              {Object.values(getFormattedDate(lead.nLastInteractedAt)).join(' : ')}
-                            </span>
+            ) : this.state.isLeadsFeatureAvailable
+              ? (
+                <Tags.MainCon>
+                  <AnalyticsTags.Row style={{
+                    width: '100%',
+                    minWidth: 'unset',
+                    maxWidth: 'unset',
+                    margin: '1rem 0',
+                    alignItems: 'center'
+                  }}
+                  >
+                    <Card contentStyle={{ gap: '0.5rem' }}>
+                      <div className="c-head">
+                        Leads
+                        <br />
+                        Captured
+                        <span className="typ-sm" style={{ display: 'block', whiteSpace: 'nowrap' }}>
+                          across all demos
+                        </span>
+                      </div>
+                      <div className="c-metric">
+                        {this.props.orgWideRespHouseLead.leads.length}
+                      </div>
+                    </Card>
+                    <Card>
+                      <div className="c-head">
+                        Leads captured per day
+                      </div>
+                      <div className="c-metric">
+                        <Bubble
+                          data={this.props.orgWideRespHouseLead.leadsByDate.map(d => ({
+                            date: d.date,
+                            value: d.count,
+                            value2: 1
+                          }))}
+                          concepts={{
+                            value: {
+                              singular: 'Lead',
+                              plural: 'Leads'
+                            }
+                          }}
+                        />
+                      </div>
+                    </Card>
+                  </AnalyticsTags.Row>
+                  <Tags.LeadCardCon>
+                    {this.props.orgWideRespHouseLead.leads.map((lead, i) => (
+                      <div className="lead-card" key={i}>
+                        <div>
+                          <div className="lead-info-l">
+                            {this.getLeadCardDisplayBlock(lead.info)}
                           </div>
-                          <div>
-                            <span>
-                              From
+                          {lead.richInfo && (
+                          <div className="lead-loc-l typ-sm">
+                            <div>
+                              <span>
+                                First seen
+                                &nbsp;
+                                {Object.values(getFormattedDate(lead.nCreatedAt)).join(' : ')}
+                              </span>
                               &nbsp;
-                              {getUnicodeFlagIcon(lead.richInfo.country)}
                               &nbsp;
-                              {lead.richInfo.countryName}
-                              ,&nbsp;
-                              {lead.richInfo.countryRegionName}
-                            </span>
+                              &nbsp;
+                              <span>
+                                Last seen
+                                &nbsp;
+                                {Object.values(getFormattedDate(lead.nLastInteractedAt)).join(' : ')}
+                              </span>
+                            </div>
+                            <div>
+                              <span>
+                                From
+                                &nbsp;
+                                {getUnicodeFlagIcon(lead.richInfo.country)}
+                              &nbsp;
+                                {lead.richInfo.countryName}
+                                ,&nbsp;
+                                {lead.richInfo.countryRegionName}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        )}
-                        <div className="lead-src-l typ-sm">
-                          Sourced from:
-                          {lead.aggOwners.map(owner => (
-                            <span key={owner.rid} className="link-con">
-                              <img src={FableLogo} height={14} alt="Fable logo" />
-                              <Tooltip
-                                title={
-                                  <Tags.TooltipCon>
-                                    Click to checkout lead activity on this demo
-                                  </Tags.TooltipCon>
+                          )}
+                          <div className="lead-src-l typ-sm">
+                            Sourced from:
+                            {lead.aggOwners.map(owner => (
+                              <span key={owner.rid} className="link-con">
+                                <img src={FableLogo} height={14} alt="Fable logo" />
+                                <Tooltip
+                                  title={
+                                    <Tags.TooltipCon>
+                                      Click to checkout lead activity on this demo
+                                    </Tags.TooltipCon>
                               }
-                                placement="bottom"
-                              >
-                                <GTags.OurLink
-                                  href={`/analytics/demo/${owner.rid}/leads/${lead.aid}`}
-                                  target="_blank"
-                                  style={{
-                                    display: 'inline-block',
-                                    margin: 0
-                                  }}
+                                  placement="bottom"
                                 >
-                                  {owner.displayName}
-                                </GTags.OurLink>
-                              </Tooltip>
-                            </span>
-                          ))}
+                                  <GTags.OurLink
+                                    href={`/analytics/demo/${owner.rid}/leads/${lead.aid}`}
+                                    target="_blank"
+                                    style={{
+                                      display: 'inline-block',
+                                      margin: 0
+                                    }}
+                                  >
+                                    {owner.displayName}
+                                  </GTags.OurLink>
+                                </Tooltip>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="typ-sm">
+                          <Tooltip
+                            title={
+                              <Tags.TooltipCon>
+                                <p><b><u>Legend</u></b></p>
+                                <p>
+                                  🔂 <em>Sessions</em>: Number of sessions created by a lead across all demos.
+                                </p>
+                                <p>
+                                  🕑 <em>Time spent</em>: Time spent by the a lead on all the demos that they have seen.
+                                </p>
+                                <p>
+                                  🏁 <em>Completion</em>: Average completion of a lead across all the demos that they have seen.
+                                </p>
+                                <p>
+                                  🚀 <em>CTA click rate</em>: Rate of CTA click across all demos. If a lead clicks 1 CTA across 2 demos, CTA click rate is 50%. If a lead clicks 2 CTA across 2 demos, CTA click rate is 100%.
+                                </p>
+                              </Tags.TooltipCon>
+                        }
+                            placement="right"
+                          >
+                            <table>
+                              <tbody>
+                                <tr>
+                                  <td>🔂</td>
+                                  <td>{lead.sessionCreated}</td>
+                                </tr>
+                                <tr>
+                                  <td>🕑</td>
+                                  <td>{readableTimeUnit(lead.timeSpentSec).join(' ')}</td>
+                                </tr>
+                                <tr>
+                                  <td>🏁</td>
+                                  <td>{Math.floor(lead.completionPercentage)}%</td>
+                                </tr>
+                                <tr>
+                                  <td>🚀</td>
+                                  <td>{Math.floor(lead.ctaClickRate * 100)}%</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </Tooltip>
                         </div>
                       </div>
-                      <div className="typ-sm">
-                        <Tooltip
-                          title={
-                            <Tags.TooltipCon>
-                              <p><b><u>Legend</u></b></p>
-                              <p>
-                                🔂 <em>Sessions</em>: Number of sessions created by a lead across all demos.
-                              </p>
-                              <p>
-                                🕑 <em>Time spent</em>: Time spent by the a lead on all the demos that they have seen.
-                              </p>
-                              <p>
-                                🏁 <em>Completion</em>: Average completion of a lead across all the demos that they have seen.
-                              </p>
-                              <p>
-                                🚀 <em>CTA click rate</em>: Rate of CTA click across all demos. If a lead clicks 1 CTA across 2 demos, CTA click rate is 50%. If a lead clicks 2 CTA across 2 demos, CTA click rate is 100%.
-                              </p>
-                            </Tags.TooltipCon>
-                        }
-                          placement="right"
-                        >
-                          <table>
-                            <tbody>
-                              <tr>
-                                <td>🔂</td>
-                                <td>{lead.sessionCreated}</td>
-                              </tr>
-                              <tr>
-                                <td>🕑</td>
-                                <td>{readableTimeUnit(lead.timeSpentSec).join(' ')}</td>
-                              </tr>
-                              <tr>
-                                <td>🏁</td>
-                                <td>{Math.floor(lead.completionPercentage)}%</td>
-                              </tr>
-                              <tr>
-                                <td>🚀</td>
-                                <td>{Math.floor(lead.ctaClickRate * 100)}%</td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  ))}
-                </Tags.LeadCardCon>
-              </Tags.MainCon>
-            )}
+                    ))}
+                  </Tags.LeadCardCon>
+                </Tags.MainCon>
+              )
+              : (
+                <div>
+                  <p className="typ-sm">Leads captured via lead forms across all your demos are shown here.
+                    To access lead forms, please upgrade your account!
+                  </p>
+                  <br />
+                  <Upgrade subs={this.props.subs} inline />
+                </div>
+              )}
           </Tags.BodyCon>
         </GTags.RowCon>
       </GTags.ColCon>

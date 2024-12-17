@@ -17,6 +17,9 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import TopLoader from '../../component/loader/top-loader';
 import { TOP_LOADER_DURATION } from '../../constants';
 import InviteUserForm from '../../component/user-management/invite-user-form';
+import { FeatureForPlan } from '../../plans';
+import { isFeatureAvailable } from '../../utils';
+import Upgrade from '../../component/upgrade';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -49,6 +52,7 @@ interface IAppStateProps {
   usersLoaded: boolean;
   users: RespUser[];
   org: RespOrg | null;
+  featurePlan: FeatureForPlan | null;
 }
 
 const mapStateToProps = (state: TState): IAppStateProps => ({
@@ -57,6 +61,7 @@ const mapStateToProps = (state: TState): IAppStateProps => ({
   principal: state.default.principal,
   usersLoaded: state.default.allUsersLoadingStatus === LoadingStatus.Done,
   users: state.default.users,
+  featurePlan: state.default.featureForPlan,
 });
 
 interface IOwnProps {
@@ -67,6 +72,7 @@ type IProps = IOwnProps & IAppStateProps & IDispatchProps & WithRouterProps<{}>;
 
 interface IOwnStateProps {
   showModal: boolean;
+  isInviteUserFeatureAvailable: boolean;
 }
 
 class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStateProps> {
@@ -74,13 +80,30 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     super(props);
 
     this.state = {
-      showModal: false
+      showModal: false,
+      isInviteUserFeatureAvailable: true,
     };
   }
 
   componentDidMount(): void {
     this.props.getAllUsersForOrg();
     document.title = this.props.title;
+    if (this.props.featurePlan) this.checkIfInviteUserFeatureAvailable();
+  }
+
+  componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
+    if (this.props.featurePlan !== prevProps.featurePlan || this.props.users !== prevProps.users) {
+      this.checkIfInviteUserFeatureAvailable();
+    }
+  }
+
+  checkIfInviteUserFeatureAvailable(): void {
+    const isAvailable = isFeatureAvailable(
+      this.props.featurePlan,
+      'no_of_creator',
+      this.props.users.length
+    ).isAvailable;
+    this.setState({ isInviteUserFeatureAvailable: isAvailable });
   }
 
   render(): JSX.Element {
@@ -124,13 +147,17 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                   }}
                   >
                     <Tags.Heading style={{ fontWeight: 400 }}>{heading}</Tags.Heading>
-                    <Button
-                      icon={<PlusOutlined />}
-                      iconPlacement="left"
-                      onClick={() => { this.setState({ showModal: true }); }}
-                    >
-                      Invite a user
-                    </Button>
+                    {this.state.isInviteUserFeatureAvailable
+                      ? (
+                        <Button
+                          icon={<PlusOutlined />}
+                          iconPlacement="left"
+                          onClick={() => { this.setState({ showModal: true }); }}
+                        >
+                          Invite a user
+                        </Button>
+                      )
+                      : <Upgrade inline subs={this.props.subs} />}
                   </div>
                   <GTags.BottomPanel style={{ overflow: 'auto' }}>
                     {this.props.users.map((user) => (

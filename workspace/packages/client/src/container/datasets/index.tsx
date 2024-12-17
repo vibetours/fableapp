@@ -27,10 +27,11 @@ import DatasetCard from './card';
 import { showDeleteConfirm } from '../../component/demo-hub-editor/delete-confirm';
 import TextArea from '../../component/text-area';
 import { DatasetConfig } from '../../types';
-import { debounce } from '../../utils';
+import { debounce, isFeatureAvailable } from '../../utils';
 import EditableTable from '../../component/editable-table';
 import { P_Dataset } from '../../entity-processor';
 import DatasetInfoEditor from './dataset-info-editor';
+import Upgrade from '../../component/upgrade';
 
 export enum CtxAction {
   NA = 'na',
@@ -56,6 +57,7 @@ const mapStateToProps = (state: TState) => ({
   org: state.default.org,
   datasets: state.default.datasets,
   datasetConfigs: state.default.datasetConfigs,
+  featurePlan: state.default.featureForPlan,
 });
 
 interface IOwnProps {
@@ -69,6 +71,7 @@ type IProps = IOwnProps
 interface IOwnStateProps {
   showCreateModal: boolean;
   createErrorStatus: null | 'already_used_name' | 'invalid_name';
+  isDatasetFeatureAvailable: boolean;
 }
 const { confirm } = Modal;
 
@@ -82,6 +85,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     this.state = {
       showCreateModal: false,
       createErrorStatus: null,
+      isDatasetFeatureAvailable: true,
     };
   }
 
@@ -90,12 +94,12 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     document.title = this.props.title;
 
     if (this.props.match.params.datasetName) { this.props.loadDataset(this.props.match.params.datasetName); }
+    if (this.props.featurePlan) this.checkIfDatasetFeatureAvailable();
   }
 
   componentDidUpdate(
     prevProps: Readonly<IProps>,
     prevState: Readonly<IOwnStateProps>,
-    snapshot?: any
   ): void {
     if (prevProps.org !== this.props.org && this.props.org) {
       this.props.getAllDatasets();
@@ -103,6 +107,17 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
     if (prevProps.match.params.datasetName !== this.props.match.params.datasetName) {
       if (this.props.match.params.datasetName) { this.props.loadDataset(this.props.match.params.datasetName); }
     }
+    if (this.props.featurePlan !== prevProps.featurePlan) {
+      this.checkIfDatasetFeatureAvailable();
+    }
+  }
+
+  checkIfDatasetFeatureAvailable(): void {
+    const isAvailable = isFeatureAvailable(
+      this.props.featurePlan,
+      'dataset',
+    ).isAvailable;
+    this.setState({ isDatasetFeatureAvailable: isAvailable });
   }
 
   getSelectedDataset = (): [P_Dataset, DatasetConfig] | null => {
@@ -231,7 +246,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
               >
                 {datasetsLoaded && (
                 <div style={{ width: '100%', height: '100%' }}>
-                  {Object.values(this.props.datasets!).length === 0 ? (
+                  {Object.values(this.props.datasets!).length === 0 || !this.state.isDatasetFeatureAvailable ? (
                     <Tags.EmptyDatasetsCon
                       className="left-gutter"
                       style={{
@@ -239,15 +254,18 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
                       }}
                     >
                       <p className="typ-h2"><DatabaseOutlined /> No datasets created. Start by creating one!</p>
-                      <Button
-                        icon={<PlusOutlined />}
-                        iconPlacement="left"
-                        onClick={() => this.setState({ showCreateModal: true })}
-                        intent="primary"
-                      >
-                        Create a dataset
-                      </Button>
-
+                      {this.state.isDatasetFeatureAvailable
+                        ? (
+                          <Button
+                            icon={<PlusOutlined />}
+                            iconPlacement="left"
+                            onClick={() => this.setState({ showCreateModal: true })}
+                            intent="primary"
+                          >
+                            Create a dataset
+                          </Button>
+                        )
+                        : <Upgrade subs={this.props.subs} inline />}
                       <p className="typ-reg">
                         You can create a dataset to personalize your demo content.
                         A dataset is a simple table that holds dynamic data that you want to use to personalize your demo.

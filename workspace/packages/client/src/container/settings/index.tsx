@@ -22,6 +22,8 @@ import Button from '../../component/button';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { addNewCustomDomain, getCustomDomains, removeCustomDomain, pollForDomainUpdate, getSubscriptionOrCheckoutNew } from '../../action/creator';
 import Input from '../../component/input';
+import { isFeatureAvailable } from '../../utils';
+import Upgrade from '../../component/upgrade';
 
 const { confirm } = Modal;
 
@@ -41,6 +43,7 @@ const mapStateToProps = (state: TState) => ({
   org: state.default.org,
   featureForPlan: state.default.featureForPlan,
   vanityDomains: state.default.vanityDomains,
+  featurePlan: state.default.featureForPlan,
 });
 
 interface IOwnProps {
@@ -60,6 +63,7 @@ interface IOwnStateProps {
   showError: string;
   rootDomainName: string;
   subdomainName: string;
+  isCustomDomainAvailable: boolean;
 }
 
 class Settings extends React.PureComponent<IProps, IOwnStateProps> {
@@ -77,7 +81,8 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
       allowedCustomDomain: -1,
       showError: '',
       rootDomainName: '',
-      subdomainName: ''
+      subdomainName: '',
+      isCustomDomainAvailable: true,
     };
   }
 
@@ -87,6 +92,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
     this.setState({ allowedCustomDomain: this.getNoOfCustomDomain() });
     this.props.getVanityDomains();
     this.pollForPendingCerts();
+    if (this.props.featurePlan) this.checkIfCustomDomainFeatureAvailable();
   }
 
   componentDidUpdate(prevProps: Readonly<IProps>, prevState: Readonly<IOwnStateProps>, snapshot?: any): void {
@@ -97,6 +103,15 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
     if (this.props.vanityDomains !== prevProps.vanityDomains && this.props.vanityDomains) {
       this.pollForPendingCerts();
     }
+
+    if (this.props.featurePlan !== prevProps.featurePlan) {
+      this.checkIfCustomDomainFeatureAvailable();
+    }
+  }
+
+  checkIfCustomDomainFeatureAvailable(): void {
+    const isAvailable = isFeatureAvailable(this.props.featurePlan, 'custom_domain').isAvailable;
+    this.setState({ isCustomDomainAvailable: isAvailable });
   }
 
   pollForPendingCerts() {
@@ -644,112 +659,116 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                               Otherwise verification may fail and the created CNAME would be deleted.
                             </div>
                           )}
-                          <Button
-                            icon={<PlusOutlined />}
-                            iconPlacement="left"
-                            intent="secondary"
-                            size="medium"
-                            onClick={() => {
-                              if (this.state.allowedCustomDomain !== -1 && this.state.allowedCustomDomain <= this.props.vanityDomains!.length) {
-                                this.showErrorMsg("You've reached the limit for custom domain in your plan. Please upgrade.");
-                                return;
-                              }
-                              confirm({
-                                title: 'Please enter the following details',
-                                content: (
-                                  <div>
-                                    <br />
-                                    <div style={{
-                                      display: 'flex',
-                                      alignItems: 'end'
-                                    }}
-                                    >
-                                      <Input
-                                        label="Subdomain (demo)"
-                                        onChange={(e) => this.setState({ subdomainName: e.target.value })}
-                                        containerStyle={{
-                                          flex: '3'
-                                        }}
-                                        required
-                                        autoFocus
-                                      />
-                                      &nbsp;<span style={{
-                                        background: '#424242',
-                                        height: '6px',
-                                        width: '6px',
-                                        borderRadius: '6px',
-                                        marginBottom: '6px',
-                                        marginLeft: '3px',
-                                        marginRight: '3px'
-                                      }}
-                                      />&nbsp;
-                                      <Input
-                                        label="Apex domain (acme.com)"
-                                        containerStyle={{
-                                          flex: '1 0 auto'
-                                        }}
-                                        onChange={(e) => this.setState({ rootDomainName: e.target.value })}
-                                        required
-                                        autoFocus
-                                      />
-                                    </div>
-                                    <div>
-                                      <ul style={{
-                                        textAlign: 'left'
-                                      }}
-                                      >
-                                        <li>Double check the domain name if it's correct</li>
-                                        <li>You must correctly mention subdomain and apex domain or your request might fail</li>
-                                      </ul>
-                                      <div style={{
-                                        background: 'rgb(255, 116, 80)',
-                                        fontWeight: 500,
-                                        color: 'white',
-                                        lineHeight: '1.2rem',
-                                        padding: '4px 8px',
-                                        borderRadius: '8px',
-                                        textAlign: 'left'
-                                      }}
-                                      >
-                                        Generating the CNAME records might take ~ 2mins.
-                                        Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
-                                        Otherwise verification may fail and the created CNAME would be deleted.
-                                      </div>
-                                    </div>
-                                  </div>
-                                ),
-                                onOk: async () => {
-                                  let domain: string = '';
-                                  const nRootDomain = (this.state.rootDomainName || '').trim();
-                                  const nSubdomain = (this.state.subdomainName || '').trim();
-                                  if (nRootDomain && nSubdomain) {
-                                    domain = `${nSubdomain}.${nRootDomain}`;
-                                    let matchedVal;
-                                    // eslint-disable-next-line no-useless-escape
-                                    if (matchedVal = domain.match(/[:\/]+/)) {
-                                      this.showErrorMsg(`Domain name not valid. It contains invalid char ${matchedVal[0]}`, 10000);
-                                      return;
-                                    }
-                                    if (this.props.vanityDomains!.findIndex(d => d.domainName === domain) !== -1) {
-                                      this.showErrorMsg('Domain already exists');
-                                      return;
-                                    }
-                                    try {
-                                      await this.props.addNewCustomDomain(domain, this.state.subdomainName, this.state.rootDomainName);
-                                    } catch (e) {
-                                      raiseDeferredError(e as Error);
-                                      this.showErrorMsg('Another request might be in progress or something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
-                                    }
+                          { this.state.isCustomDomainAvailable
+                            ? (
+                              <Button
+                                icon={<PlusOutlined />}
+                                iconPlacement="left"
+                                intent="secondary"
+                                size="medium"
+                                onClick={() => {
+                                  if (this.state.allowedCustomDomain !== -1 && this.state.allowedCustomDomain <= this.props.vanityDomains!.length) {
+                                    this.showErrorMsg("You've reached the limit for custom domain in your plan. Please upgrade.");
                                     return;
                                   }
-                                  this.showErrorMsg('Not a valid domain', 5000);
-                                },
-                                onCancel: () => {
-                                }
-                              });
-                            }}
-                          >Add a new domain
-                          </Button>
+                                  confirm({
+                                    title: 'Please enter the following details',
+                                    content: (
+                                      <div>
+                                        <br />
+                                        <div style={{
+                                          display: 'flex',
+                                          alignItems: 'end'
+                                        }}
+                                        >
+                                          <Input
+                                            label="Subdomain (demo)"
+                                            onChange={(e) => this.setState({ subdomainName: e.target.value })}
+                                            containerStyle={{
+                                              flex: '3'
+                                            }}
+                                            required
+                                            autoFocus
+                                          />
+                                      &nbsp;<span style={{
+                                            background: '#424242',
+                                            height: '6px',
+                                            width: '6px',
+                                            borderRadius: '6px',
+                                            marginBottom: '6px',
+                                            marginLeft: '3px',
+                                            marginRight: '3px'
+                                          }}
+                                      />&nbsp;
+                                          <Input
+                                            label="Apex domain (acme.com)"
+                                            containerStyle={{
+                                              flex: '1 0 auto'
+                                            }}
+                                            onChange={(e) => this.setState({ rootDomainName: e.target.value })}
+                                            required
+                                            autoFocus
+                                          />
+                                        </div>
+                                        <div>
+                                          <ul style={{
+                                            textAlign: 'left'
+                                          }}
+                                          >
+                                            <li>Double check the domain name if it's correct</li>
+                                            <li>You must correctly mention subdomain and apex domain or your request might fail</li>
+                                          </ul>
+                                          <div style={{
+                                            background: 'rgb(255, 116, 80)',
+                                            fontWeight: 500,
+                                            color: 'white',
+                                            lineHeight: '1.2rem',
+                                            padding: '4px 8px',
+                                            borderRadius: '8px',
+                                            textAlign: 'left'
+                                          }}
+                                          >
+                                            Generating the CNAME records might take ~ 2mins.
+                                            Once the CNAME is generated you MUST add the records in your domain provider console within 30mins.
+                                            Otherwise verification may fail and the created CNAME would be deleted.
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ),
+                                    onOk: async () => {
+                                      let domain: string = '';
+                                      const nRootDomain = (this.state.rootDomainName || '').trim();
+                                      const nSubdomain = (this.state.subdomainName || '').trim();
+                                      if (nRootDomain && nSubdomain) {
+                                        domain = `${nSubdomain}.${nRootDomain}`;
+                                        let matchedVal;
+                                        // eslint-disable-next-line no-useless-escape
+                                        if (matchedVal = domain.match(/[:\/]+/)) {
+                                          this.showErrorMsg(`Domain name not valid. It contains invalid char ${matchedVal[0]}`, 10000);
+                                          return;
+                                        }
+                                        if (this.props.vanityDomains!.findIndex(d => d.domainName === domain) !== -1) {
+                                          this.showErrorMsg('Domain already exists');
+                                          return;
+                                        }
+                                        try {
+                                          await this.props.addNewCustomDomain(domain, this.state.subdomainName, this.state.rootDomainName);
+                                        } catch (e) {
+                                          raiseDeferredError(e as Error);
+                                          this.showErrorMsg('Another request might be in progress or something went wrong when requesting for custom domain. Please try again after sometime.', 10000);
+                                        }
+                                        return;
+                                      }
+                                      this.showErrorMsg('Not a valid domain', 5000);
+                                    },
+                                    onCancel: () => {
+                                    }
+                                  });
+                                }}
+                              >Add a new domain
+                              </Button>
+                            )
+                            : <Upgrade inline subs={this.props.subs} />}
                           {this.state.showError && (
                             <p>
                               <span className="err-line">{this.state.showError}</span>
