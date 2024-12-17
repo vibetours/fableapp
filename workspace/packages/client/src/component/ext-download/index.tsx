@@ -5,6 +5,7 @@ import Button from '../button';
 import * as Tags from './styled';
 import SetupStep from '../homepage/setup-steps';
 import Input from '../input';
+import { openProductUrl } from '../../utils';
 
 interface IProps {
   extensionInstalled: boolean;
@@ -70,17 +71,7 @@ export function StepContainer({
                 label="Enter product url & press ↵ "
                 containerStyle={{
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    let url = ((e.target as any).value);
-                    url = url.trim().replace(/\s+/g, '');
-                    if (!url) return;
-                    if (!(url.startsWith('https://') || url.startsWith('http://'))) {
-                      url = `https://${url}`;
-                    }
-                    window.open(url, '_blank')!.focus();
-                  }
-                }}
+                onKeyDown={openProductUrl}
               />
             )}
           </>

@@ -2555,3 +2555,15 @@ export function createAnnotationHotspot(screenId: number, annotationRefId: strin
     actionValue: createLiteralProperty(`${screenId}/${annotationRefId}`)
   };
 }
+
+export function openProductUrl(e: React.KeyboardEvent<HTMLInputElement>): void {
+  if (e.key === 'Enter') {
+    let url = ((e.target as any).value);
+    url = url.trim().replace(/\s+/g, '');
+    if (!url) return;
+    if (!(url.startsWith('https://') || url.startsWith('http://'))) {
+      url = `https://${url}`;
+    }
+      window.open(url, '_blank')!.focus();
+  }
+}

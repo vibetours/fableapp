@@ -38,7 +38,7 @@ import { WithRouterProps, withRouter } from '../../router-hoc';
 import { FeatureAvailability, Ops } from '../../types';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
-import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable } from '../../utils';
+import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable, openProductUrl } from '../../utils';
 import * as Tags from './styled';
 import Upgrade from '../../component/upgrade';
 
@@ -505,13 +505,16 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
               {this.state.ctxAction === CtxAction.Create ? (
                 <div>
                   <p className="typ-h2">Use Fable's Chrome Extension to create a new demo</p>
-                  <ol className="typ-reg">
-                    {!this.state.isExtInstalled && (
-                      <li>Install Fable's Chrome Extension</li>
-                    )}
-                    <li>Go to the website/ application that you want to create a demo of</li>
-                    <li>Once you are ready, click on the “Start Recording” button in Fable's extension</li>
-                    <li>After the recording is complete, click on the “Stop Recording” button in the extension</li>
+                  <ol className="typ-reg" style={{ padding: 0 }}>
+                    <p>
+                      Go to the product you want to create a demo of & click on Fable's chrome extension to record a demo.
+                    </p>
+                    <Input
+                      label="Enter product url & press ↵ "
+                      containerStyle={{
+                      }}
+                      onKeyDown={openProductUrl}
+                    />
                   </ol>
                   <GTags.OurCollapse
                     shadow="none"
