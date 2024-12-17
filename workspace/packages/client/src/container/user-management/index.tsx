@@ -101,7 +101,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
     const isAvailable = isFeatureAvailable(
       this.props.featurePlan,
       'no_of_creator',
-      this.props.users.length
+      this.props.users.length + 1
     ).isAvailable;
     this.setState({ isInviteUserFeatureAvailable: isAvailable });
   }

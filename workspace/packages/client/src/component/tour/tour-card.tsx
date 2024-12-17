@@ -54,6 +54,14 @@ export default function TourCard({
         to={disable ? '' : `/${PREVIEW_BASE_URL}/demo/${tour.rid}`}
         onClick={() => {
           if (disable) window.open('/billing', '_top');
+          traceEvent(
+            AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED,
+            {
+              preview_clicked_from: 'demos',
+              tour_url: createIframeSrc(`/demo/${tour.rid}`)
+            },
+            [CmnEvtProp.EMAIL]
+          );
         }}
         id={i ? undefined : 'TG-1'}
       >
@@ -108,6 +116,14 @@ export default function TourCard({
                     e.preventDefault();
                     e.stopPropagation();
                     setIsShareModalVisible(true);
+                    traceEvent(
+                      AMPLITUDE_EVENTS.SHARE_MODAL_OPEN,
+                      {
+                        share_modal_clicked_from: 'demos',
+                        tour_url: createIframeSrc(`/demo/${tour.rid}`)
+                      },
+                      [CmnEvtProp.EMAIL]
+                    );
                   }}
                 >
                   <ShareAltOutlined />&nbsp;&nbsp;
@@ -155,6 +171,13 @@ export default function TourCard({
                     <GTags.PopoverMenuItem
                       onMouseDown={e => {
                         window.open(`/demo/${tour.rid}`, '_top');
+                        traceEvent(
+                          AMPLITUDE_EVENTS.EDIT_DEMO,
+                          {
+                            edit_clicked_from: 'demos'
+                          },
+                          [CmnEvtProp.EMAIL]
+                        );
                       }}
                     >
                       <EditOutlined />&nbsp;&nbsp;&nbsp;Edit Demo

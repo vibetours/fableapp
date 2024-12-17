@@ -39,7 +39,7 @@ enum PublicationState {
 }
 const getPublicationState = (tour: P_RespTour): PublicationState => {
   if (!tour.lastPublishedDate) return PublicationState.UNPUBLISHED;
-  if (tour.lastPublishedDate >= tour.updatedAt) return PublicationState.PUBLISHED;
+  // if (tour.lastPublishedDate >= tour.updatedAt) return PublicationState.PUBLISHED;
   if (tour.lastPublishedDate < tour.updatedAt) return PublicationState.OUTDATED;
 
   return PublicationState.OUTDATED;
