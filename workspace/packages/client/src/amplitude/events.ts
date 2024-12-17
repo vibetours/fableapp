@@ -66,4 +66,8 @@ export enum AMPLITUDE_EVENTS {
     ONBOARDING_DEMO_URL_CLICKED='onboarding_demo_url_clicked',
     ONBOARDING_DEMO_MODAL_CLOSED='onboarding_demo_modal_close',
     RECREATE_DEMO_USING_QUILLY='recreate_demo_using_quilly',
+    EDIT_DEMO='edit_demo',
+    VIEW_DEMO_ANALYTICS='view_demo_analytics',
+    UPGRADE_MODAL_OPEN='upgrade_modal_open',
+    UPGRADE_MODAL_CTA_CLICKED='upgrade_modal_cta_clicked'
 }

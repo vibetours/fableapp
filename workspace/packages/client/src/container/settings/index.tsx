@@ -768,7 +768,7 @@ class Settings extends React.PureComponent<IProps, IOwnStateProps> {
                               >Add a new domain
                               </Button>
                             )
-                            : <Upgrade inline subs={this.props.subs} />}
+                            : <Upgrade inline subs={this.props.subs} clickedFrom="custom_domain" />}
                           {this.state.showError && (
                             <p>
                               <span className="err-line">{this.state.showError}</span>

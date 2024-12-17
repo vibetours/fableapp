@@ -4,6 +4,7 @@ import * as Tags from './styled';
 import UpgradeIcon from '../upgrade/icon';
 import UpgradeModal from '../upgrade/upgrade-modal';
 import { P_RespSubscription } from '../../entity-processor';
+import { amplitudeUpgradeModalOpen } from '../../amplitude';
 
 interface Props {
   appConfig: RespLinkedApps | RespPlatformIntegration;
@@ -142,6 +143,7 @@ export default function IntegrationCard(props: Props): JSX.Element {
           e.stopPropagation();
           e.preventDefault();
           setShowUpgradeModal(true);
+          amplitudeUpgradeModalOpen('integrations');
         } : undefined}
       >
         <Tags.L1>

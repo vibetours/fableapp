@@ -1164,6 +1164,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   subs={this.props.subs}
                   scaleDown
                   isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                  clickedFrom="screen_edit"
                 />
               </Tags.EditUpgradeBtnCon>
             )
@@ -1237,6 +1238,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   subs={this.props.subs}
                   scaleDown
                   isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                  clickedFrom="screen_edit"
                 />
               </Tags.EditUpgradeBtnCon>
             )
@@ -1275,6 +1277,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                       subs={this.props.subs}
                       scaleDown
                       isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                      clickedFrom="screen_edit"
                     />
                   </Tags.EditUpgradeBtnCon>
                 )
@@ -1303,6 +1306,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                         subs={this.props.subs}
                         scaleDown
                         isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                        clickedFrom="screen_edit"
                       />
                     </Tags.EditUpgradeBtnCon>
                   )
@@ -1364,6 +1368,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   <Upgrade
                     subs={this.props.subs}
                     isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                    clickedFrom="screen_edit"
                   />
                 )}
               </div>
@@ -1413,6 +1418,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                   <Upgrade
                     subs={this.props.subs}
                     isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                    clickedFrom="screen_edit"
                   />
                 )}
               </div>
@@ -2053,6 +2059,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                                   scaleDown
                                   subs={this.props.subs}
                                   isInBeta={multiAnnFeatureAvailable.isInBeta}
+                                  clickedFrom="annotation_edit"
                                 />
                               )}
                               <img src={NewMultiAnnotation} alt="new multi annotation" />

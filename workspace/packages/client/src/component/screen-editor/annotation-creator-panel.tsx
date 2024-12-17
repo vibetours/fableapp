@@ -123,7 +123,8 @@ import {
   amplitudeAnnotationEdited,
   amplitudeApplyGlobalStyles,
   amplitudeRemoveWatermark,
-  amplitudeScrollAdjustmentChanged
+  amplitudeScrollAdjustmentChanged,
+  amplitudeUpgradeModalOpen
 } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import CloseOutlined from '../icons/close-outlines';
@@ -849,6 +850,7 @@ export default function AnnotationCreatorPanel(props: IProps): ReactElement {
             onClick={() => {
               if (!watermarkFeatureAvailable.isAvailable) {
                 setUpgradeModalDetail({ isInBeta: watermarkFeatureAvailable.isInBeta, open: true });
+                amplitudeUpgradeModalOpen('annotation_edit');
               }
             }}
           >

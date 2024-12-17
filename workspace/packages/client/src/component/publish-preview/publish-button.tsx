@@ -19,6 +19,8 @@ interface Props {
   isPublishing?: boolean;
   disabled?: boolean;
   showWhiteBg?: boolean;
+  clickedFrom: 'demos' | 'analytics' | 'preview' | 'editor' | 'header' |
+  'demos_share_modal' | 'analytics_share_modal' | 'preview_share_modal' | 'editor_share_modal'
 }
 
 export default function PublishButton(props: Props): JSX.Element {
@@ -33,7 +35,9 @@ export default function PublishButton(props: Props): JSX.Element {
       const res = await props.publishTour!(props.tour);
       props.setIsPublishing(false);
 
-      traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
+      traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {
+        publish_clicked_from: props.clickedFrom
+      }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
 
       if (!res) {
         props.setIsPublishFailed(true);
@@ -42,8 +46,6 @@ export default function PublishButton(props: Props): JSX.Element {
     if (props.demoHub) {
       const res = await props.publishDemoHub!(props.demoHub);
       props.setIsPublishing(false);
-
-      traceEvent(AMPLITUDE_EVENTS.DEMO_PUBLISHED, {}, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
 
       if (!res) {
         props.setIsPublishFailed(true);

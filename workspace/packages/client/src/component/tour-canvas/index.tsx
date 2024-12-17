@@ -2795,6 +2795,7 @@ export default function TourCanvas(props: CanvasProps): JSX.Element {
               setShowAnnText,
               downloadTourData,
             }}
+            clickedFrom="editor"
           />
         </GTags.HeaderCon>
         <GTags.BodyCon

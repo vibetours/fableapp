@@ -78,7 +78,7 @@ export const amplitudeAnnotationApplyAll = (
 };
 
 export const amplitudeShareModalOpen = (
-  shareModalClickedFrom: 'tours' | 'editor' | 'preview'
+  shareModalClickedFrom: 'demos' | 'editor' | 'preview' | 'analytics'
 ): void => {
   traceEvent(
     AMPLITUDE_EVENTS.SHARE_MODAL_OPEN,
@@ -446,6 +446,33 @@ export const amplitudeRecreateDemoUsingQuilly = (
     AMPLITUDE_EVENTS.RECREATE_DEMO_USING_QUILLY,
     {
       recreate_state: recreateState
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export type UpgradeModalClickedFrom = 'demo_card' | 'create_journey' | 'screen_edit' |
+'annotation_edit' | 'global_edit' | 'header' | 'loader_edit' | 'integrations' | 'aggregate_analytics' | 'datasets'
+| 'custom_domain' | 'create_demo' | 'invite_user';
+export const amplitudeUpgradeModalOpen = (
+  clickedFrom: UpgradeModalClickedFrom
+): void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.UPGRADE_MODAL_OPEN,
+    {
+      upgrade_modal_opned_from: clickedFrom
+    },
+    [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+  );
+};
+
+export const amplitudeUpgradeModalCTAClicked = (
+  cta:'talk_to_us' | 'upgrade'
+):void => {
+  traceEvent(
+    AMPLITUDE_EVENTS.UPGRADE_MODAL_CTA_CLICKED,
+    {
+      upgrade_modal_cta: cta
     },
     [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
   );

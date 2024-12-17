@@ -157,7 +157,7 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                           Invite a user
                         </Button>
                       )
-                      : <Upgrade inline subs={this.props.subs} />}
+                      : <Upgrade inline subs={this.props.subs} clickedFrom="invite_user" />}
                   </div>
                   <GTags.BottomPanel style={{ overflow: 'auto' }}>
                     {this.props.users.map((user) => (

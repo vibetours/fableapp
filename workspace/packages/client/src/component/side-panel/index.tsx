@@ -29,7 +29,8 @@ interface Props {
   compact?: boolean;
 }
 
-function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'billing' | 'user_guides'): void {
+function sendEvntToAmplitude(tab: 'interactive_demos' | 'user_management' | 'billing' | 'user_guides'
+  | 'demo_hub' | 'leads' | 'integrations' | 'datasets' | 'free_demo_consultation' | 'settings'): void {
   import('@fable/common/dist/amplitude').then((amp) => {
     amp.traceEvent(AMPLITUDE_EVENTS.SIDE_PANEL_TAB_CLICKED, { tab }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
   }).catch((err) => {
@@ -52,7 +53,11 @@ export default function SidePanel(props: Props): JSX.Element {
             </Tags.ConNavBtn>
           </Tooltip>
           <Tooltip placement="right" title="User management">
-            <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users?c=1">
+            <Tags.ConNavBtn
+              className={props.selected === 'user-management' ? 'selected' : ''}
+              to="/users?c=1"
+              onClick={() => sendEvntToAmplitude('user_management')}
+            >
               <UsergroupAddOutlined />
             </Tags.ConNavBtn>
           </Tooltip>
@@ -69,6 +74,7 @@ export default function SidePanel(props: Props): JSX.Element {
             <Tags.ConNavBtn
               to="https://www.sharefable.com/get-a-demo?ref=app_dashboard"
               target="_blank"
+              onClick={() => sendEvntToAmplitude('free_demo_consultation')}
             >
               <CalendarOutlined />
             </Tags.ConNavBtn>
@@ -76,27 +82,43 @@ export default function SidePanel(props: Props): JSX.Element {
           <Popover
             content={
               <Tags.ConNav>
-                <Tags.ConNavBtn className={props.selected === 'demo-hub' ? 'selected' : ''} to="/demo-hubs?c=1">
+                <Tags.ConNavBtn
+                  className={props.selected === 'demo-hub' ? 'selected' : ''}
+                  to="/demo-hubs?c=1"
+                  onClick={() => sendEvntToAmplitude('demo_hub')}
+                >
                   <HeatMapOutlined />
                   <p>Demo hub</p>
                 </Tags.ConNavBtn>
-                <Tags.ConNavBtn className={props.selected === 'leads' ? 'selected' : ''} to="/leads?c=1">
+                <Tags.ConNavBtn
+                  className={props.selected === 'leads' ? 'selected' : ''}
+                  to="/leads?c=1"
+                  onClick={() => sendEvntToAmplitude('leads')}
+                >
                   <RiseOutlined />
                   <p>Leads</p>
                 </Tags.ConNavBtn>
-                <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations?c=1">
+                <Tags.ConNavBtn
+                  className={props.selected === 'integrations' ? 'selected' : ''}
+                  to="/integrations?c=1"
+                  onClick={() => sendEvntToAmplitude('integrations')}
+                >
                   <ApiOutlined />
                   <p>Integrations</p>
                 </Tags.ConNavBtn>
                 <Tags.ConNavBtn
                   className={props.selected === 'settings' ? 'selected' : ''}
                   to="/settings?c=1"
-                  onClick={() => sendEvntToAmplitude('billing')}
+                  onClick={() => sendEvntToAmplitude('settings')}
                 >
                   <SettingOutlined />
                   <p>Settings</p>
                 </Tags.ConNavBtn>
-                <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets?c=1">
+                <Tags.ConNavBtn
+                  className={props.selected === 'datasets' ? 'selected' : ''}
+                  to="/datasets?c=1"
+                  onClick={() => sendEvntToAmplitude('datasets')}
+                >
                   <DatabaseOutlined />
                   <p>Datasets</p>
                 </Tags.ConNavBtn>
@@ -126,19 +148,35 @@ export default function SidePanel(props: Props): JSX.Element {
           <NodeIndexOutlined />
           <p>Interactive demos</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'demo-hub' ? 'selected' : ''} to="/demo-hubs">
+        <Tags.ConNavBtn
+          className={props.selected === 'demo-hub' ? 'selected' : ''}
+          to="/demo-hubs"
+          onClick={() => sendEvntToAmplitude('demo_hub')}
+        >
           <HeatMapOutlined />
           <p>Demo hub</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'leads' ? 'selected' : ''} to="/leads">
+        <Tags.ConNavBtn
+          className={props.selected === 'leads' ? 'selected' : ''}
+          to="/leads"
+          onClick={() => sendEvntToAmplitude('leads')}
+        >
           <RiseOutlined />
           <p>Leads</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'integrations' ? 'selected' : ''} to="/integrations">
+        <Tags.ConNavBtn
+          className={props.selected === 'integrations' ? 'selected' : ''}
+          to="/integrations"
+          onClick={() => sendEvntToAmplitude('integrations')}
+        >
           <ApiOutlined />
           <p>Integrations</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'user-management' ? 'selected' : ''} to="/users">
+        <Tags.ConNavBtn
+          className={props.selected === 'user-management' ? 'selected' : ''}
+          to="/users"
+          onClick={() => sendEvntToAmplitude('user_management')}
+        >
           <UsergroupAddOutlined />
           <p>User management</p>
         </Tags.ConNavBtn>
@@ -153,12 +191,16 @@ export default function SidePanel(props: Props): JSX.Element {
         <Tags.ConNavBtn
           className={props.selected === 'settings' ? 'selected' : ''}
           to="/settings"
-          onClick={() => sendEvntToAmplitude('billing')}
+          onClick={() => sendEvntToAmplitude('settings')}
         >
           <SettingOutlined />
           <p>Settings</p>
         </Tags.ConNavBtn>
-        <Tags.ConNavBtn className={props.selected === 'datasets' ? 'selected' : ''} to="/datasets">
+        <Tags.ConNavBtn
+          className={props.selected === 'datasets' ? 'selected' : ''}
+          to="/datasets"
+          onClick={() => sendEvntToAmplitude('datasets')}
+        >
           <DatabaseOutlined />
           <p>Datasets</p>
         </Tags.ConNavBtn>
@@ -170,6 +212,7 @@ export default function SidePanel(props: Props): JSX.Element {
           style={{
             outline: '1px solid #16023e'
           }}
+          onClick={() => sendEvntToAmplitude('free_demo_consultation')}
         >
           <CalendarOutlined />
           <p>Free demo consultation</p>

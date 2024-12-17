@@ -636,7 +636,7 @@ function MediaRecorderTab(props: MediaRecorderTabProps): JSX.Element {
         state={props.state}
         handleUploadMediaOnClick={props.handleUploadMediaOnClick}
       />
-      {!props.isFeatureAvailable && <Upgrade subs={props.subs} />}
+      {!props.isFeatureAvailable && <Upgrade subs={props.subs} clickedFrom="annotation_edit" />}
 
     </div>
   );

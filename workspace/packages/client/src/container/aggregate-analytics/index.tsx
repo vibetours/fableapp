@@ -301,7 +301,7 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
                     To access lead forms, please upgrade your account!
                   </p>
                   <br />
-                  <Upgrade subs={this.props.subs} inline />
+                  <Upgrade subs={this.props.subs} inline clickedFrom="aggregate_analytics" />
                 </div>
               )}
           </Tags.BodyCon>

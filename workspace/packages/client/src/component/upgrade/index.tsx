@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { P_RespSubscription } from '../../entity-processor';
 import Button from '../button';
 import UpgradeModal from './upgrade-modal';
+import { amplitudeUpgradeModalOpen, UpgradeModalClickedFrom } from '../../amplitude';
 
 interface Props {
   scaleDown?: boolean;
@@ -10,9 +11,10 @@ interface Props {
   isInBeta?: boolean;
   hideIcon?: boolean;
   inline?: boolean;
+  clickedFrom: UpgradeModalClickedFrom;
 }
 
-function Upgrade({ inline, scaleDown, subs, isInBeta, hideIcon }: Props): JSX.Element {
+function Upgrade({ inline, scaleDown, subs, isInBeta, hideIcon, clickedFrom }: Props): JSX.Element {
   const [showUpgradePlanModal, setShowUpgradePlanModal] = useState(false);
   return (
     <>
@@ -34,6 +36,7 @@ function Upgrade({ inline, scaleDown, subs, isInBeta, hideIcon }: Props): JSX.El
           onClick={(e) => {
             e.stopPropagation();
             setShowUpgradePlanModal(true);
+            amplitudeUpgradeModalOpen(clickedFrom);
           }}
           iconPlacement="left"
           icon={!hideIcon && <StarFilled style={{

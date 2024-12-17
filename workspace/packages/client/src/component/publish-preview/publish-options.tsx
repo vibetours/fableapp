@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { Popover, Tooltip, Button as AntButton } from 'antd';
 import { BarChartOutlined, MoreOutlined, UndoOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import { IAnnotationConfig } from '@fable/common/dist/types';
+import { IAnnotationConfig, CmnEvtProp } from '@fable/common/dist/types';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import * as Tags from './styled';
 import ScreenshotMonitorIcon from '../../assets/icons/screenshot-monitor.svg';
 import { P_RespSubscription, P_RespTour } from '../../entity-processor';
 import { DisplaySize } from '../../utils';
 import RecreateUsingAI from './recreate-option';
 import * as GTags from '../../common-styled';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 interface Props {
   selectedDisplaySize: DisplaySize;
@@ -57,6 +59,14 @@ export default function PublishOptions(props: Props): JSX.Element {
                     icon={<BarChartOutlined
                       style={{ color: 'white' }}
                     />}
+                    onClick={() => {
+                      traceEvent(
+                        AMPLITUDE_EVENTS.VIEW_DEMO_ANALYTICS,
+                        { analytics_clicked_from: 'preview_header',
+                        },
+                        [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+                      );
+                    }}
                   />
                 </Link>
               </Tooltip>

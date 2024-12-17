@@ -202,7 +202,11 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
               </div>
               {!this.modulesFeatureAvailable.isAvailable ? (
                 <div style={{ position: 'relative', height: '100px' }}>
-                  <Upgrade subs={this.props.subs} isInBeta={this.modulesFeatureAvailable.isInBeta} />
+                  <Upgrade
+                    subs={this.props.subs}
+                    isInBeta={this.modulesFeatureAvailable.isInBeta}
+                    clickedFrom="create_journey"
+                  />
                 </div>)
                 : (
                   <Button
@@ -221,6 +225,7 @@ class CreateJourney extends React.PureComponent<IProps, IOwnStateProps> {
                 <Upgrade
                   subs={this.props.subs}
                   isInBeta={this.modulesFeatureAvailable.isInBeta}
+                  clickedFrom="create_journey"
                 />
               )}
               <Tags.JourneyInnerCon>

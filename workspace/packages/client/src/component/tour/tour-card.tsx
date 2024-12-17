@@ -10,6 +10,8 @@ import {
 import { Button, Popover, Tooltip } from 'antd';
 import React, { useState } from 'react';
 import { ReqTourPropUpdate } from '@fable/common/dist/api-contract';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import * as GTags from '../../common-styled';
 import { CtxAction } from '../../container/tours';
 import { P_RespTour, P_RespVanityDomain } from '../../entity-processor';
@@ -18,7 +20,8 @@ import * as Tags from './styled';
 import FableLogo from '../../assets/fable-rounded-icon.svg';
 import { PREVIEW_BASE_URL } from '../../constants';
 import { SiteData } from '../../types';
-import { amplitudeShareModalOpen } from '../../amplitude';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
+import { createIframeSrc } from '../../utils';
 
 interface Props {
   tour: P_RespTour;
@@ -105,7 +108,6 @@ export default function TourCard({
                     e.preventDefault();
                     e.stopPropagation();
                     setIsShareModalVisible(true);
-                    amplitudeShareModalOpen('tours');
                   }}
                 >
                   <ShareAltOutlined />&nbsp;&nbsp;
@@ -130,6 +132,13 @@ export default function TourCard({
                   onClick={e => {
                     e.stopPropagation();
                     e.preventDefault();
+                    traceEvent(
+                      AMPLITUDE_EVENTS.VIEW_DEMO_ANALYTICS,
+                      { analytics_clicked_from: 'demos',
+                        tour_url: createIframeSrc(`/demo/${tour.rid}`)
+                      },
+                      [CmnEvtProp.EMAIL]
+                    );
                     window.open(`/analytics/demo/${tour.rid}`, '_blank')?.focus();
                   }}
                 />
@@ -198,13 +207,13 @@ export default function TourCard({
         publishTour={publishTour}
         openShareModal={() => {
           setIsShareModalVisible(true);
-          amplitudeShareModalOpen('tours');
         }}
         tour={tour}
         onSiteDataChange={onSiteDataChange}
         setIsPublishing={setIsPublishing}
         isPublishing={isPublishing}
         vanityDomains={vanityDomains}
+        clickedFrom="demos"
       />
     </>
   );

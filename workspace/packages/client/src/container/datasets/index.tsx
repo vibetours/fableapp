@@ -265,7 +265,7 @@ class Datasets extends React.PureComponent<IProps, IOwnStateProps> {
                             Create a dataset
                           </Button>
                         )
-                        : <Upgrade subs={this.props.subs} inline />}
+                        : <Upgrade subs={this.props.subs} inline clickedFrom="datasets" />}
                       <p className="typ-reg">
                         You can create a dataset to personalize your demo content.
                         A dataset is a simple table that holds dynamic data that you want to use to personalize your demo.

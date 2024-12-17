@@ -78,6 +78,7 @@ export default function PreviewHeaderOptions(props: Props): JSX.Element {
                 amplitudeShareModalOpen('preview');
               }}
               isPublishing={props.isPublishing}
+              clickedFrom="preview"
             />
           </div>
         </div>

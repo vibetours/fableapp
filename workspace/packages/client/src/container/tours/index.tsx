@@ -550,7 +550,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                               Save
                             </Button>
                           </form>
-                        ) : (<Upgrade subs={this.props.subs} inline />)
+                        ) : (<Upgrade subs={this.props.subs} inline clickedFrom="create_demo" />)
                       )
                     }]}
                   />

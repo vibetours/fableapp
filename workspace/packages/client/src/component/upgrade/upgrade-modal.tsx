@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as GTags from '../../common-styled';
 import Button from '../button';
 import { P_RespSubscription } from '../../entity-processor';
+import { amplitudeUpgradeModalCTAClicked } from '../../amplitude';
 
 interface Props {
     showUpgradePlanModal: boolean;
@@ -33,6 +34,7 @@ function UpgradeModal(props: Props) : JSX.Element {
                   type="submit"
                   style={{ flex: 1 }}
                   className="support-bot-open"
+                  onClick={() => amplitudeUpgradeModalCTAClicked('talk_to_us')}
                 >
                   Talk to us
                 </Button>
@@ -42,6 +44,7 @@ function UpgradeModal(props: Props) : JSX.Element {
                   <Button
                     type="submit"
                     onClick={() => {
+                      amplitudeUpgradeModalCTAClicked('upgrade');
                       navigate('/billing');
                     }}
                   >
@@ -51,6 +54,7 @@ function UpgradeModal(props: Props) : JSX.Element {
                     intent="secondary"
                     type="submit"
                     className="support-bot-open"
+                    onClick={() => amplitudeUpgradeModalCTAClicked('talk_to_us')}
                   >
                     Talk to us
                   </Button>

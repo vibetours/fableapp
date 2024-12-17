@@ -49,6 +49,7 @@ import UpgradeIcon from '../../upgrade/icon';
 import { P_RespSubscription } from '../../../entity-processor';
 import { FeatureAvailability } from '../../../types';
 import { WarningIcon } from '../../header/styled';
+import { amplitudeUpgradeModalOpen } from '../../../amplitude';
 
 const LowPriority = 1;
 
@@ -439,9 +440,12 @@ export default function ToolbarPlugin({ modalControls, leadFormFeatureAvailable,
         <button
           type="button"
           onClick={() => {
-            leadFormFeatureAvailable.isAvailable
-              ? editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '')
-              : setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
+            if (leadFormFeatureAvailable.isAvailable) {
+              editor.dispatchCommand(INSERT_LEAD_FORM_COMMAND, '');
+              return;
+            }
+            setUpgradeModalDetail({ isInBeta: leadFormFeatureAvailable.isInBeta, open: true });
+            amplitudeUpgradeModalOpen('annotation_edit');
           }}
           className="toolbar-item"
           aria-label="Lead Form"

@@ -108,6 +108,7 @@ function LoaderEditor(props: Props): JSX.Element {
                     <Upgrade
                       subs={props.subs}
                       isInBeta={customizeLoaderFeatureAvailable.isInBeta}
+                      clickedFrom="loader_edit"
                     />
                   )}
                   <Tabs items={[
@@ -214,6 +215,7 @@ function LoaderEditor(props: Props): JSX.Element {
                     <Upgrade
                       subs={props.subs}
                       isInBeta={customizeLoaderFeatureAvailable.isInBeta}
+                      clickedFrom="loader_edit"
                     />
                   )}
                   <Tabs items={[

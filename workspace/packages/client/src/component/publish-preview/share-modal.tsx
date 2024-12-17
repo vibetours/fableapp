@@ -63,6 +63,7 @@ interface Props {
   isPublishing: boolean;
   setIsPublishing: (isPublishing: boolean)=> void;
   vanityDomains: P_RespVanityDomain[] | null | undefined;
+  clickedFrom: 'demos' | 'analytics' | 'preview' | 'editor';
 }
 
 const enum SearchParamBy {
@@ -548,6 +549,8 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       publishTour={props.publishTour}
                       openShareModal={props.openShareModal}
                       setIsPublishing={props.setIsPublishing}
+                      clickedFrom={`${props.clickedFrom}_share_modal`}
+                      showWhiteBg
                     />
                   </div>
                 </div>
@@ -581,6 +584,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       publishTour={props.publishTour}
                       openShareModal={props.openShareModal}
                       setIsPublishing={props.setIsPublishing}
+                      clickedFrom={`${props.clickedFrom}_share_modal`}
                     />
                   </div>
                 </>

@@ -4,9 +4,10 @@ import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Button, Segmented } from 'antd';
 import { ReqTourPropUpdate, RespEntityMetrics, RespOrg, RespUser } from '@fable/common/dist/api-contract';
-import { IAnnotationOriginConfig, TourData, TourScreenEntity } from '@fable/common/dist/types';
+import { CmnEvtProp, IAnnotationOriginConfig, TourData, TourScreenEntity } from '@fable/common/dist/types';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { getDefaultLiteralTourOpts, getDefaultTourOpts } from '@fable/common/dist/utils';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
@@ -35,8 +36,9 @@ import Line from './line';
 import Funnel from './funnel';
 import Leads, { IAnnotationOriginConfigWithModule } from './leads-tab';
 import FullPageTopLoader from '../../component/loader/full-page-top-loader';
-import { getAnnotationsPerScreen, getTourMainValidity } from '../../utils';
+import { createIframeSrc, getAnnotationsPerScreen, getTourMainValidity, setEventCommonState } from '../../utils';
 import { SiteData, TourMainValidity } from '../../types';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 const mapDispatchToProps = (dispatch: any) => ({
   publishTour: (tour: P_RespTour) => dispatch(publishTour(tour)),
@@ -350,6 +352,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
         entitySubEntityDistMetrics: { val: tDist, isLoaded: true },
       });
     });
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/demo/${this.props.match.params.tourId}`));
   }
 
   loadActivityData = (rid: string) => (aid: string) => this.props.getActivityData(rid, aid);
@@ -384,6 +387,15 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
                   size="small"
                   className="edit-btn"
                   type="default"
+                  onClick={() => {
+                    traceEvent(
+                      AMPLITUDE_EVENTS.EDIT_DEMO,
+                      {
+                        edit_clicked_from: 'analytics'
+                      },
+                      [CmnEvtProp.EMAIL]
+                    );
+                  }}
                 >
                   Edit demo
                 </Button>
@@ -405,6 +417,7 @@ class ComponentClassName extends React.PureComponent<IProps, IOwnStateProps> {
             publishTour={this.props.publishTour}
             vanityDomains={this.props.vanityDomains}
             onSiteDataChange={this.onSiteDataChange}
+            clickedFrom="analytics"
           />}
         </GTags.HeaderCon>
         <GTags.BodyCon style={{

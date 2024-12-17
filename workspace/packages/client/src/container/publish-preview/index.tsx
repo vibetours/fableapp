@@ -50,6 +50,7 @@ import {
   DisplaySize,
   RESP_MOBILE_SRN_HEIGHT,
   RESP_MOBILE_SRN_WIDTH,
+  createIframeSrc,
   getAllOrderedAnnotationsInTour,
   getAnnotationsPerScreen,
   getDimensionsBasedOnDisplaySize,
@@ -58,10 +59,12 @@ import {
   isEventValid,
   isMobilePreviewDisplaySize,
   sendPreviewHeaderClick,
+  setEventCommonState,
 } from '../../utils';
 import * as Tags from './styled';
 import ShareTourModal from '../../component/publish-preview/share-modal';
 import InfoCon from '../../component/info-con';
+import { amplitudeShareModalOpen } from '../../amplitude';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -204,7 +207,6 @@ interface IOwnStateProps {
   voiceoverProgress: number;
   showRemoveVoiceover: boolean;
   creditRequiredForVoiceover: number;
-  copyUrlParam: string;
   isPublishing: boolean;
 }
 
@@ -258,8 +260,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       voiceoverProgress: 0,
       showRemoveVoiceover: false,
       creditRequiredForVoiceover: 0,
-      copyUrlParam: '',
-      isPublishing: false
+      isPublishing: false,
     };
   }
 
@@ -313,6 +314,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     this.showMinimalHeaderIfReq();
     this.props.getVanityDomains();
     this.typewritePlaceholderTextInQuillyTextbox();
+    setEventCommonState(CmnEvtProp.TOUR_URL, createIframeSrc(`/demo/${this.props.match.params.tourId}`));
   }
 
   showMinimalHeaderIfReq(): void {
@@ -747,7 +749,16 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                   size="small"
                   className="edit-btn"
                   type="default"
-                  onClick={sendPreviewHeaderClick}
+                  onClick={() => {
+                    sendPreviewHeaderClick();
+                    traceEvent(
+                      AMPLITUDE_EVENTS.EDIT_DEMO,
+                      {
+                        edit_clicked_from: 'analytics'
+                      },
+                      [CmnEvtProp.EMAIL]
+                    );
+                  }}
                 >
                   Edit demo
                 </AntButton>
@@ -771,6 +782,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             minimalHeader={this.state.minimalHeader}
             vanityDomains={this.props.vanityDomains}
             checkCredit={this.props.getSubscriptionOrCheckoutNew}
+            clickedFrom="preview"
           />}
         </Tags.HeaderCon>
 
@@ -794,7 +806,16 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                 intent="secondary"
                 icon={<EditOutlined />}
                 iconPlacement="left"
-                onClick={() => this.props.navigate(`/demo/${this.props.tour?.rid}`)}
+                onClick={() => {
+                  traceEvent(
+                    AMPLITUDE_EVENTS.EDIT_DEMO,
+                    {
+                      edit_clicked_from: 'analytics'
+                    },
+                    [CmnEvtProp.EMAIL]
+                  );
+                  this.props.navigate(`/demo/${this.props.tour?.rid}`);
+                }}
                 style={{ background: '#7ceaf3' }}
               >
                 Edit
@@ -806,7 +827,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                     intent="primary"
                     icon={<ShareAltOutlined />}
                     iconPlacement="left"
-                    onClick={() => this.setState({ showShareModal: true })}
+                    onClick={() => {
+                      this.setState({ showShareModal: true });
+                      amplitudeShareModalOpen('preview');
+                    }}
                   >
                     Share
                   </Button>
@@ -1078,6 +1102,8 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             isPublishing={this.state.isPublishing}
             setIsPublishing={(isPublishing: boolean) => { this.setState({ isPublishing }); }}
             vanityDomains={this.props.vanityDomains}
+            onSiteDataChange={this.onSiteDataChange}
+            clickedFrom="preview"
           />
           )
         }

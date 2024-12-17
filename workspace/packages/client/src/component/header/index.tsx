@@ -20,6 +20,7 @@ import { CmnEvtProp, ScreenDiagnostics } from '@fable/common/dist/types';
 import { Tooltip, Button as AntButton, Drawer, Popover } from 'antd';
 import React, { Dispatch, ReactElement, SetStateAction, Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
+import { traceEvent } from '@fable/common/dist/amplitude';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import FableQuill from '../../assets/fable-quill.svg';
 import FableLogo from '../../assets/fableLogo.svg';
@@ -75,7 +76,8 @@ interface IOwnProps {
   minimalHeader?: boolean;
   vanityDomains?: P_RespVanityDomain[] | null;
   demoHub?: P_RespDemoHub | null;
-  checkCredit?: ()=>Promise<RespSubscription>
+  checkCredit?: ()=>Promise<RespSubscription>;
+  clickedFrom?: 'analytics' | 'preview' | 'editor';
 }
 
 export type HeaderProps = IOwnProps;
@@ -322,7 +324,7 @@ function Header(props: IOwnProps): JSX.Element {
                       onClick={(e) => {
                         import('@fable/common/dist/amplitude').then((amp) => {
                           amp.traceEvent(AMPLITUDE_EVENTS.TOUR_PREVIEW_CLICKED, {
-                            preview_clicked_from: 'header'
+                            preview_clicked_from: props.clickedFrom || 'header'
                           }, [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]);
                         }).catch((err) => {
                           console.log('error in amplitude event', err);
@@ -348,6 +350,14 @@ function Header(props: IOwnProps): JSX.Element {
                           icon={<BarChartOutlined
                             style={{ color: 'white' }}
                           />}
+                          onClick={() => {
+                            traceEvent(
+                              AMPLITUDE_EVENTS.VIEW_DEMO_ANALYTICS,
+                              { analytics_clicked_from: `${props.clickedFrom}_header`,
+                              },
+                              [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+                            );
+                          }}
                         />
                       </Link>
                     </Tooltip>
@@ -435,10 +445,10 @@ function Header(props: IOwnProps): JSX.Element {
                            tour={props.tour}
                            size="medium"
                            openShareModal={() => {
-                             amplitudeShareModalOpen('editor');
                              setIsModalVisible(true);
                            }}
                            isPublishing={isPublishing}
+                           clickedFrom="header"
                        />
                        : (
                          <Button
@@ -446,7 +456,7 @@ function Header(props: IOwnProps): JSX.Element {
                            id="step-2"
                            style={{ height: '30px', paddingLeft: '1.2rem', paddingRight: '1.2rem' }}
                            onClick={() => {
-                             amplitudeShareModalOpen('editor');
+                             props.clickedFrom && amplitudeShareModalOpen(props.clickedFrom);
                              setIsModalVisible(true);
                            }}
                          >
@@ -664,12 +674,12 @@ function Header(props: IOwnProps): JSX.Element {
           closeModal={closeModal}
           openShareModal={() => {
             setIsModalVisible(true);
-            amplitudeShareModalOpen('editor');
           }}
           onSiteDataChange={props.onSiteDataChange}
           isPublishing={isPublishing}
           setIsPublishing={setIsPublishing}
           vanityDomains={props.vanityDomains}
+          clickedFrom={props.clickedFrom || 'demos'}
         />}
         <GTags.BorderedModal
           style={{ height: '10px' }}

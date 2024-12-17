@@ -39,7 +39,7 @@ import UpgradeModal from '../upgrade/upgrade-modal';
 import { P_RespSubscription } from '../../entity-processor';
 import { FeatureAvailability } from '../../types';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
-import { amplitudeGlobalStyleEdited } from '../../amplitude';
+import { amplitudeGlobalStyleEdited, amplitudeUpgradeModalOpen } from '../../amplitude';
 import Upgrade from '../upgrade';
 
 interface Props {
@@ -237,7 +237,7 @@ export default function Editor(props: Props): JSX.Element {
                         </div>
                       </>
                     )
-                    : <Upgrade subs={props.subs} inline />}
+                    : <Upgrade subs={props.subs} inline clickedFrom="global_edit" />}
                 </>
               </Tags.CommonSecActionCon>
               {isCompanyLogoUploading ? (
@@ -675,6 +675,7 @@ export default function Editor(props: Props): JSX.Element {
                 onClick={() => {
                   if (!watermarkFeatureAvailable.isAvailable) {
                     setUpgradeModalDetail({ isInBeta: watermarkFeatureAvailable.isInBeta, open: true });
+                    amplitudeUpgradeModalOpen('global_edit');
                   }
                 }}
                 style={{ display: 'flex', gap: '0.25rem' }}
@@ -695,6 +696,7 @@ export default function Editor(props: Props): JSX.Element {
                 onChange={(e) => {
                   if (!watermarkFeatureAvailable.isAvailable) {
                     setUpgradeModalDetail({ isInBeta: watermarkFeatureAvailable.isInBeta, open: true });
+                    amplitudeUpgradeModalOpen('global_edit');
                     return;
                   }
                   setGConfig(gc => updateGlobalConfig(gc, 'showWatermark', e));
