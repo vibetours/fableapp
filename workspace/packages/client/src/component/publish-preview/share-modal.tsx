@@ -39,7 +39,7 @@ enum PublicationState {
 }
 const getPublicationState = (tour: P_RespTour): PublicationState => {
   if (!tour.lastPublishedDate) return PublicationState.UNPUBLISHED;
-  // if (tour.lastPublishedDate >= tour.updatedAt) return PublicationState.PUBLISHED;
+  if (tour.lastPublishedDate >= tour.updatedAt) return PublicationState.PUBLISHED;
   if (tour.lastPublishedDate < tour.updatedAt) return PublicationState.OUTDATED;
 
   return PublicationState.OUTDATED;
@@ -550,7 +550,6 @@ export default function ShareTourModal(props: Props): JSX.Element {
                       openShareModal={props.openShareModal}
                       setIsPublishing={props.setIsPublishing}
                       clickedFrom={`${props.clickedFrom}_share_modal`}
-                      showWhiteBg
                     />
                   </div>
                 </div>
@@ -559,13 +558,31 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 && props.tour
                 && getPublicationState(props.tour) === PublicationState.PUBLISHED
                 && (
-                  <>
-                    <div className="typ-h1 sec-head"> Latest version of your demo is already published</div>
-                    <div className="typ-sm">Publish date:
-                      <span>{dateTimeFormat(props.tour.lastPublishedDate)}</span>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                  >
+                    <div>
+                      <div className="typ-h1 sec-head"> Latest version of your demo is already published</div>
+                      <div className="typ-sm">Publish date:
+                        <span>{dateTimeFormat(props.tour.lastPublishedDate)}</span>
+                      </div>
                     </div>
-
-                  </>
+                    <div>
+                      <PublishButton
+                        minWidth="180px"
+                        setIsPublishFailed={setIsPublishFailed}
+                        tour={props.tour}
+                        publishTour={props.publishTour}
+                        openShareModal={props.openShareModal}
+                        setIsPublishing={props.setIsPublishing}
+                        clickedFrom={`${props.clickedFrom}_share_modal`}
+                        forcePublish
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {props.tour && getPublicationState(props.tour) === PublicationState.OUTDATED && (

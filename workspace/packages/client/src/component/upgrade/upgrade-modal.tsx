@@ -23,6 +23,8 @@ function UpgradeModal(props: Props) : JSX.Element {
     <div>
       <GTags.BorderedModal
         style={{ height: '10px' }}
+        donotShowHeaderStip
+        containerBg="#f5f5f5"
         open={props.showUpgradePlanModal}
         onOk={closeModal}
         onCancel={closeModal}
@@ -40,23 +42,32 @@ function UpgradeModal(props: Props) : JSX.Element {
                 </Button>
               )
               : (
-                <div style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                  <Button
+                    intent="secondary"
+                    type="submit"
+                    className="support-bot-open"
+                    style={{
+                      flex: '1 0 auto'
+                    }}
+                    onClick={() => amplitudeUpgradeModalCTAClicked('talk_to_us')}
+                  >
+                    Talk to us
+                  </Button>
                   <Button
                     type="submit"
+                    style={{
+                      width: '100%',
+                      background: 'rgb(254, 223, 100)',
+                      color: 'black',
+                      outline: 'rgb(22, 2, 69) solid 1px'
+                    }}
                     onClick={() => {
                       amplitudeUpgradeModalCTAClicked('upgrade');
                       navigate('/billing');
                     }}
                   >
                     Upgrade
-                  </Button>
-                  <Button
-                    intent="secondary"
-                    type="submit"
-                    className="support-bot-open"
-                    onClick={() => amplitudeUpgradeModalCTAClicked('talk_to_us')}
-                  >
-                    Talk to us
                   </Button>
                 </div>
               )}
@@ -89,7 +100,16 @@ function UpgradeModal(props: Props) : JSX.Element {
                     marginBlockEnd: '0.5rem'
                   }}
                 >
-                  You are currently on <em>{props.subs.paymentPlan}-{props.subs.paymentInterval}</em> plan.
+                  You are currently on <em>{props.subs.paymentPlan}-{props.subs.paymentInterval}</em> plan. This feature is not available in this plan.
+                </p>
+                <p
+                  className="typ-reg"
+                  style={{
+                    marginBlockStart: '1rem',
+                    marginBlockEnd: '0.5rem'
+                  }}
+                >
+                  Please Upgrade your account by choosing our paid plans.
                 </p>
               </>
               )}

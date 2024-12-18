@@ -32,6 +32,7 @@ function Upgrade({ inline, scaleDown, subs, isInBeta, hideIcon, clickedFrom }: P
           style={{
             background: '#fedf64',
             color: 'black',
+            outline: '1px solid #160245'
           }}
           onClick={(e) => {
             e.stopPropagation();

@@ -126,12 +126,14 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
               <div className="typ-h1">
                 Leads captured
               </div>
-              <div className="typ-sm">
-                <br />
-                Leads captured via lead forms across all your demos are shown here. To access demo analytics, click on <BarChartOutlined /> icon on demo / demo hub card.
-                <br />
-                <br />
-              </div>
+              {this.state.isLeadsFeatureAvailable && (
+                <div className="typ-sm">
+                  <br />
+                  Leads captured via lead forms across all your demos are shown here. To access demo analytics, click on <BarChartOutlined /> icon on demo / demo hub card.
+                  <br />
+                  <br />
+                </div>
+              )}
             </div>
             {this.state.loading ? (
               <div>
@@ -297,10 +299,9 @@ class AggregateAnalytics extends React.PureComponent<IProps, IOwnStateProps> {
               )
               : (
                 <div>
-                  <p className="typ-sm">Leads captured via lead forms across all your demos are shown here.
+                  <p className="typ-reg">Leads captured via lead forms across all your demos are shown here.
                     To access lead forms, please upgrade your account!
                   </p>
-                  <br />
                   <Upgrade subs={this.props.subs} inline clickedFrom="aggregate_analytics" />
                 </div>
               )}

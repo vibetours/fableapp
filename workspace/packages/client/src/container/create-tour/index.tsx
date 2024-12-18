@@ -1198,7 +1198,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     }
 
     try {
-      const canCreateNewDemos = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.length + 1).isAvailable;
+      const canCreateNewDemos = isFeatureAvailable(this.props.featurePlan, 'no_of_demos', this.props.tours.filter(t => !(t.info?.locked)).length + 1).isAvailable;
       if (!canCreateNewDemos) {
         return (
           <OnboardingLayout>

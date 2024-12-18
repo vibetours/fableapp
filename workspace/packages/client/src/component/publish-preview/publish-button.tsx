@@ -19,12 +19,13 @@ interface Props {
   isPublishing?: boolean;
   disabled?: boolean;
   showWhiteBg?: boolean;
+  forcePublish?: boolean;
   clickedFrom: 'demos' | 'analytics' | 'preview' | 'editor' | 'header' |
   'demos_share_modal' | 'analytics_share_modal' | 'preview_share_modal' | 'editor_share_modal'
 }
 
 export default function PublishButton(props: Props): JSX.Element {
-  const [buttonTitle, setButtonTitle] = useState('Publish');
+  const [buttonTitle, setButtonTitle] = useState(props.forcePublish ? 'Force publish' : 'Publish');
 
   const handleClick = async (): Promise<void> => {
     props.setIsPublishing(true);
@@ -57,7 +58,7 @@ export default function PublishButton(props: Props): JSX.Element {
     if (props.isPublishing) {
       setButtonTitle('Publishing...');
     } else {
-      setButtonTitle('Publish');
+      setButtonTitle(props.forcePublish ? 'Force publish' : 'Publish');
     }
   }, [props.isPublishing]);
 
@@ -69,6 +70,7 @@ export default function PublishButton(props: Props): JSX.Element {
       onMouseUp={handleClick}
       bgColor={props.showWhiteBg ? 'white' : undefined}
       color={props.showWhiteBg ? 'black' : undefined}
+      intent={props.forcePublish ? 'secondary' : 'primary'}
     >
       {buttonTitle}
     </Button>
