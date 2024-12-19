@@ -12,6 +12,8 @@ import { Modal } from 'antd';
 import api from '@fable/common/dist/api';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { sleep } from '@anthropic-ai/sdk/core';
+import { traceEvent } from '@fable/common/dist/amplitude';
+import { CmnEvtProp } from '@fable/common/dist/types';
 import { TState } from '../../reducer';
 import * as GTags from '../../common-styled';
 import Header from '../../component/header';
@@ -26,6 +28,7 @@ import { withRouter, WithRouterProps } from '../../router-hoc';
 import { TOP_LOADER_DURATION } from '../../constants';
 import { mapPlanIdAndIntervals } from '../../utils';
 import BuyMoreCredit from '../../component/create-tour/buy-more-credit';
+import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 
 const { confirm } = Modal;
 
@@ -387,6 +390,15 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                                 opacity: plan.planId === currentPlan && (isSameInterval || plan.planId === 'solo') ? 0.55 : 1,
                               }}
                               onClick={async () => {
+                                traceEvent(
+                                  AMPLITUDE_EVENTS.UPGRADE_PILL_CLICKED,
+                                  {
+                                    planInterval: this.state.tabSelected,
+                                    planType: plan.planId,
+                                  },
+                                  [CmnEvtProp.EMAIL]
+                                );
+
                                 if (plan.planId === 'enterprise') {
                                   window.open(plan.buttonLink!, '__blank');
                                   return;
@@ -451,6 +463,11 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
               <p className="typ-h2">Upgrade your account by choosing our paid plans.</p>
               <Button onClick={() => {
                 this.setState({ tempHideSoloConfirmation: true });
+                traceEvent(
+                  AMPLITUDE_EVENTS.UPGRADE_CONFIRMATION_UPGRADE_CLICKED,
+                  { },
+                  [CmnEvtProp.EMAIL]
+                );
               }}
               >Upgrade now!
               </Button>
@@ -469,6 +486,11 @@ class UserManagementAndSubscription extends React.PureComponent<IProps, IOwnStat
                 onClick={async () => {
                   this.setState({ opsInProgress: true });
                   await this.props.updateSubscriptionInfo({ soloPlanDowngradeIntentReceived: true });
+                  traceEvent(
+                    AMPLITUDE_EVENTS.UPGRADE_CONFIRMATION_DOWNGRADE_CONFIRMED,
+                    { },
+                    [CmnEvtProp.EMAIL]
+                  );
                   this.setState({ opsInProgress: false });
                 }}
                 icon={this.state.opsInProgress ? <LoadingOutlined /> : undefined}

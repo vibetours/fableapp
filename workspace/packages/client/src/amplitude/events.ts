@@ -69,5 +69,8 @@ export enum AMPLITUDE_EVENTS {
     EDIT_DEMO='edit_demo',
     VIEW_DEMO_ANALYTICS='view_demo_analytics',
     UPGRADE_MODAL_OPEN='upgrade_modal_open',
-    UPGRADE_MODAL_CTA_CLICKED='upgrade_modal_cta_clicked'
+    UPGRADE_MODAL_CTA_CLICKED='upgrade_modal_cta_clicked',
+    UPGRADE_CONFIRMATION_UPGRADE_CLICKED = 'upgrade_confirmation_upgrade_clicked',
+    UPGRADE_CONFIRMATION_DOWNGRADE_CONFIRMED = 'upgrade_confirmation_downgrade_confirmed',
+    UPGRADE_PILL_CLICKED = 'upgrade_pill_clicked',
 }
