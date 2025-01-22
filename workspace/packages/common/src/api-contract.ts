@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2024-12-12 05:17:02.
+// Generated using typescript-generator version 2.35.1025 on 2025-01-21 08:36:13.
 
 export interface Activity extends ActivityBase {
 }
@@ -528,6 +528,10 @@ export interface ReqUpdateSubInfo {
 export interface ReqUpdateUser {
     firstName: string;
     lastName: string;
+}
+
+export interface ReqUserSignupDetails {
+    p: string;
 }
 
 export interface RespAccountToken extends ResponseBase {

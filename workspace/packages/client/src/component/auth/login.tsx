@@ -53,6 +53,16 @@ export default function LogIn(props: Props): JSX.Element {
         appState,
       });
     }
+
+    // save all search params to sessionstorage for it to send it to slack
+    let allParams = '';
+    searchParams.forEach((value, key) => {
+      allParams += `[${key}=${value}] `;
+    });
+    allParams = allParams.trim();
+    if (allParams) {
+      sessionStorage.setItem('fable/usrsp', allParams);
+    }
   }, [searchParams]);
 
   return (

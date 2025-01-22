@@ -2,7 +2,6 @@ import { RespOrg, RespUser } from '@fable/common/dist/api-contract';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import React from 'react';
 import { connect } from 'react-redux';
-import FableLogo from '../../assets/fable_logo_light_bg.png';
 import CompanyCarousel from '../../component/company-carousel';
 import ExtensionDownload from '../../component/user-onboarding/extension-download';
 import NameCard from '../../component/user-onboarding/name-card';
@@ -26,29 +25,15 @@ export enum OnboardingSteps {
   INSTALL_EXTENSION = 'install-extension',
 }
 
-interface IDispatchProps {
-  createNewOrg: (orgName: string) => Promise<RespOrg>;
-  getAllUserOrgs: () => void;
-  updateUser: (firstName: string, lastName: string) => Promise<void>;
-  assignOrgToUser: (orgId: number) => Promise<RespOrg>;
-  updateUseCasesForOrg: (useCases: string[], othersText: string) => Promise<void>;
-}
-
-const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
-  createNewOrg: (orgName) => dispatch(createOrg(orgName)),
+const mapDispatchToProps = (dispatch: any) => ({
+  createNewOrg: (orgName: string) => dispatch(createOrg(orgName)),
   getAllUserOrgs: () => dispatch(getAllUserOrgs()),
   updateUser: (firstName: string, lastName: string) => dispatch(updateUser(firstName, lastName)),
-  assignOrgToUser: (orgId: number) => dispatch(assignOrgToUser(orgId)),
+  assignOrgToUser: (orgId: number, isJoinViaInvite?: boolean) => dispatch(assignOrgToUser(orgId, isJoinViaInvite)),
   updateUseCasesForOrg: (useCases: string[], othersText: string) => dispatch(updateUseCasesForOrg(useCases, othersText))
 });
 
-interface IAppStateProps {
-  principal: RespUser;
-  allUserOrgs: RespOrg[] | null;
-  org: RespOrg | null;
-}
-
-const mapStateToProps = (state: TState): IAppStateProps => ({
+const mapStateToProps = (state: TState) => ({
   principal: state.default.principal as RespUser,
   allUserOrgs: state.default.allUserOrgs,
   org: state.default.org
@@ -59,8 +44,8 @@ interface IOwnProps {
 }
 
 type IProps = IOwnProps &
-  IAppStateProps &
-  IDispatchProps &
+  ReturnType<typeof mapStateToProps> &
+  ReturnType<typeof mapDispatchToProps> &
   WithRouterProps<{
   }>;
 
@@ -147,7 +132,7 @@ class NewOnboarding extends React.PureComponent<IProps, IOwnStateProps> {
           try {
             const { orgId, invitedEmail } = JSON.parse(atob(inviteCode));
             if (invitedEmail === this.props.principal!.email) {
-              this.props.assignOrgToUser(orgId).then((org: RespOrg) => {
+              this.props.assignOrgToUser(orgId, true).then((org: RespOrg) => {
                 this.navOrgNext(org);
               });
             }
@@ -258,7 +243,7 @@ class NewOnboarding extends React.PureComponent<IProps, IOwnStateProps> {
   }
 }
 
-export default connect<IAppStateProps, IDispatchProps, IOwnProps, TState>(
+export default connect<ReturnType<typeof mapStateToProps>, ReturnType<typeof mapDispatchToProps>, IOwnProps, TState>(
   mapStateToProps,
   mapDispatchToProps
 )(withRouter(NewOnboarding));

@@ -53,6 +53,7 @@ import {
   RespDataset,
   ReqNewDataset,
   ReqUpdateSubInfo,
+  ReqUserSignupDetails,
 } from '@fable/common/dist/api-contract';
 import {
   ReqGenerateAudio,
@@ -262,6 +263,29 @@ export function updateUser(firstName: string, lastName: string) {
 
 /* ************************************************************************* */
 
+function passAdditionalSignupParams() {
+  return new Promise(done => {
+    const timer = setTimeout(() => {
+      try {
+        clearTimeout(timer);
+        const additionalUserData = sessionStorage.getItem('fable/usrsp');
+        if (additionalUserData) {
+          api<ReqUserSignupDetails, ApiResp<String>>('/usrsudet', {
+            auth: true,
+            body: {
+              p: additionalUserData
+            }
+          });
+          sessionStorage.removeItem('fable/usrsp');
+        }
+      } catch (e) {
+        raiseDeferredError(e as Error);
+      }
+      done(1);
+    }, 0);
+  });
+}
+
 export function createOrg(displayName: string) {
   return async (dispatch: Dispatch<TOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew> >, getState: () => TState) => {
     dispatch({
@@ -275,6 +299,7 @@ export function createOrg(displayName: string) {
       },
     });
 
+    await passAdditionalSignupParams();
     localStorage.setItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY, data.data.id.toString());
     await dispatch(getSubscriptionOrCheckoutNew(true));
 
@@ -308,7 +333,7 @@ export function fetchOrg(fetchImplicitOrg = false) {
   };
 }
 
-export function assignOrgToUser(orgId: number) {
+export function assignOrgToUser(orgId: number, isJoinViaInvite = false) {
   return async (
     dispatch: Dispatch<TOrg | TGenericLoading | ReturnType<typeof getSubscriptionOrCheckoutNew>>
   ) => {
@@ -322,6 +347,9 @@ export function assignOrgToUser(orgId: number) {
       },
     });
 
+    if (isJoinViaInvite) {
+      await passAdditionalSignupParams();
+    }
     localStorage.setItem(FABLE_LOCAL_STORAGE_ORG_ID_KEY, orgId.toString());
     await dispatch(getSubscriptionOrCheckoutNew());
 
