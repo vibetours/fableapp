@@ -114,7 +114,7 @@ jobs:
         working-directory: workspace/packages/ext-tour
 
       - name: 'Upload extension to github'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: extension-${{ steps.version.outputs.version }}-${{env.DEPLOY_ENV}}
           path: workspace/packages/ext-tour/extension-${{ steps.version.outputs.version }}.zip
