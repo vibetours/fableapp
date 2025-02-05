@@ -275,6 +275,15 @@ export const areSerNodePropsDifferent = (serNodeOfTree1: SerNode, serNodeOfTree2
     }
   }
 
+  /*
+    We add this check as replacing node is faster rather than iterating each child node to calculate diffs.
+    This check is applied to all demos, if demo >
+    If we want to add this to specific demos add a flag in featured section.
+  */
+  if (serNodeOfTree1.chldrn.length > 300 && serNodeOfTree1.name !== 'head') {
+    return true;
+  }
+
   return !isDeepEqual(serNodeOfTree1.props, serNodeOfTree2.props);
 };
 
