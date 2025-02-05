@@ -512,14 +512,18 @@ export interface PostProcessSerDocsReturnType {
   vpd: Vpd | null;
 }
 
+export interface AssetOperationResp {
+  isLocalhostAssetRecorded: boolean
+}
+
 export const handleAssetOperation = async (
   assetOperatons: AssetOperationProps[],
   proxyCache: Map<string, RespProxyAsset>,
   mainFrame: FrameDataToBeProcessed | undefined,
   updateAssetProgress: (progress: number)=>void,
-): Promise<void> => {
+): Promise<AssetOperationResp> => {
   const svgSpriteUrls: Record<string, number> = {};
-
+  let isLocalhostAssetRecorded = false;
   for (const operation of assetOperatons) {
     const node = operation.node;
     const baseURI = operation.frameBaseURI;
@@ -567,6 +571,11 @@ export const handleAssetOperation = async (
             }
 
             if (!(assetUrl.protocol === 'http:' || assetUrl.protocol === 'https:')) continue;
+
+            if (assetUrl.hostname === 'localhost' || assetUrl.hostname === '127.0.0.1') {
+              isLocalhostAssetRecorded = true;
+              continue;
+            }
 
             let proxyiedUrl = assetUrlStr;
             let proxyiedContent: string = '';
@@ -651,6 +660,10 @@ export const handleAssetOperation = async (
       raiseDeferredError(e as Error);
     }
   }
+
+  return {
+    isLocalhostAssetRecorded
+  };
 };
 
 export interface AssetOperationProps {

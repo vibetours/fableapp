@@ -189,6 +189,7 @@ type IOwnStateProps = {
   creationMode: 'ai' | 'manual';
   batchProgress: number;
   aiGenerationNotPossible: boolean;
+  localhostAssetRecorded: boolean;
 }
 
 class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
@@ -258,6 +259,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
       creationMode: 'ai',
       batchProgress: 0,
       aiGenerationNotPossible: false,
+      localhostAssetRecorded: false,
     };
     this.data = null;
     this.db = null;
@@ -425,7 +427,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
 
       for (let i = 0; i < framesProssesResult.length; i++) {
         const frameProcessResult = framesProssesResult[i];
-        await handleAssetOperation(
+        const resp = await handleAssetOperation(
           frameProcessResult.assetOperation,
           proxyCache,
           frameProcessResult.mainFrame,
@@ -439,6 +441,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
             }));
           }
         );
+        this.setState(state => ({ localhostAssetRecorded: state.localhostAssetRecorded || resp.isLocalhostAssetRecorded }));
       }
 
       for (let i = 0; i < framesProssesResult.length; i++) {
@@ -2161,6 +2164,11 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                 />}
               </Tags.AllProgressCon>
             </div>
+            {this.state.localhostAssetRecorded && (
+              <div className="err-line">
+                The demo may not record correctly because some app assets (such as images or CSS) appear to be loaded from localhost. To ensure the demo is recorded properly, these assets need to be served over HTTPS.
+              </div>
+            )}
             <Tags.TipsAnimationCon>
               <BulbFilled style={{ fontSize: '1rem', marginTop: '2px' }} />&nbsp;&nbsp;
               <TypeAnimation
