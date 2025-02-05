@@ -38,9 +38,10 @@ import { WithRouterProps, withRouter } from '../../router-hoc';
 import { FeatureAvailability, Ops } from '../../types';
 import SelectorComponent from '../../user-guides/selector-component';
 import TourCardGuide from '../../user-guides/tour-card-guide';
-import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable, openProductUrl } from '../../utils';
+import { createIframeSrc, fallbackFeatureAvailability, isExtensionInstalled, isFeatureAvailable } from '../../utils';
 import * as Tags from './styled';
 import Upgrade from '../../component/upgrade';
+import ProductUrlInput from '../../component/open-product-url-btn';
 
 const userGuides = [TourCardGuide];
 
@@ -509,12 +510,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                     <p>
                       Go to the product you want to create a demo of & click on Fable's chrome extension to record a demo.
                     </p>
-                    <Input
-                      label="Enter product url & press ↵ "
-                      containerStyle={{
-                      }}
-                      onKeyDown={openProductUrl}
-                    />
+                    <ProductUrlInput />
                   </ol>
                   <GTags.OurCollapse
                     shadow="none"

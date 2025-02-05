@@ -1,11 +1,9 @@
 import React from 'react';
-import { Collapse, Steps, Progress } from 'antd';
 import { ChromeOutlined } from '@ant-design/icons';
 import Button from '../button';
 import * as Tags from './styled';
 import SetupStep from '../homepage/setup-steps';
-import Input from '../input';
-import { openProductUrl } from '../../utils';
+import ProductUrlInput from '../open-product-url-btn';
 
 interface IProps {
   extensionInstalled: boolean;
@@ -67,12 +65,7 @@ export function StepContainer({
               Go to the product you want to create a demo of & click on Fable's chrome extension to record a demo.
             </p>
             {extensionInstalled && (
-              <Input
-                label="Enter product url & press ↵ "
-                containerStyle={{
-                }}
-                onKeyDown={openProductUrl}
-              />
+              <ProductUrlInput />
             )}
           </>
         )}
