@@ -128,10 +128,6 @@ export const companiesUsingFable = [
     companyName: 'Aize',
   },
   {
-    source: 'https://www.sharefable.com/companies/Paytm.svg',
-    companyName: 'Paytm',
-  },
-  {
     source:
       'https://www.sharefable.com/companies/OnlineBusinessAutomator.svg',
     companyName: 'Online Business Automator',
