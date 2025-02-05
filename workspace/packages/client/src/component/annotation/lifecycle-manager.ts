@@ -7,7 +7,7 @@ import { sleep } from '@fable/common/dist/utils';
 import raiseDeferredError from '@fable/common/dist/deferred-error';
 import HighlighterBase, { HighlighterBaseConfig, Rect } from '../base/hightligher-base';
 import { IAnnoationDisplayConfig, AnnotationCon, AnnotationContent, IAnnProps } from '.';
-import { AnnotationPerScreen, ElPathKey, NavFn } from '../../types';
+import { AnnotationPerScreen, ElPathKey, INTERACTIVE_MODE, NavFn } from '../../types';
 import { isBodyEl, isMediaAnnotation } from '../../utils';
 import {
   DEFAULT_DIMS_FOR_ANN,
@@ -87,6 +87,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private getNextAnnotation: (annId: string) => IAnnotationConfigWithScreenId;
 
+  private interactiveMode: INTERACTIVE_MODE;
+
   static getFablePrefixedClsName(cls: string): string {
     return `f-c-${cls}`;
   }
@@ -157,6 +159,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     screen: P_RespScreen,
     shouldSkipLeadForm: boolean,
     getNextAnnotation: (annId: string)=>IAnnotationConfigWithScreenId,
+    interactiveMode: INTERACTIVE_MODE
   ) {
     super(doc, nestedFrames, config, isScreenHTML4);
     this.screen = screen;
@@ -183,6 +186,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
     this.iframeElsScrollTimeoutId = 0;
     this.shouldSkipLeadForm = shouldSkipLeadForm;
     this.getNextAnnotation = getNextAnnotation;
+    this.interactiveMode = interactiveMode;
     if (this.screenType === ScreenType.SerDom) {
       this.setFramesScrollListeners();
     }
@@ -755,7 +759,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
       isMaximized: false,
       isInViewPort: false,
       prerender,
-      isMediaAnnotation: isMediaAnnotation(config),
+      isMediaAnnotation: isMediaAnnotation(config, this.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO),
       dimForSmallAnnotation: { ...dim.dimForSmallAnnotation },
       dimForMediumAnnotation: { ...dim.dimForMediumAnnotation },
       dimForLargeAnnotation: { ...dim.dimForLargeAnnotation },
@@ -825,7 +829,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
 
   private async probeForAnnotationSize(config: IAnnotationConfig, opts: ITourDataOpts): Promise<AllDimsForAnnotation> {
     const { smallWidth, mediumWidth, largeWidth } = this.getAnnWidths(config.type);
-
+    const isMediaAnn = isMediaAnnotation(config, this.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO);
     const customWidth = config.customDims.width;
 
     try {
@@ -867,6 +871,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
+              isMediaAnn
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[1],
@@ -882,6 +887,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
+              isMediaAnn
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[2],
@@ -897,6 +903,7 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
               isProbing: true,
+              isMediaAnn
             }),
             React.createElement(AnnotationContent, {
               onRender: rs[3],
@@ -911,7 +918,8 @@ export default class AnnotationLifecycleManager extends HighlighterBase {
               tourId: this.tourId,
               navigateToAdjacentAnn: () => {},
               doc: this.doc,
-              isProbing: true
+              isProbing: true,
+              isMediaAnn
             })
           )
         )

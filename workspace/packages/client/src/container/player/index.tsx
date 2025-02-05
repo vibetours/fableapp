@@ -33,6 +33,7 @@ import {
   VoiceoverMediaState,
   Payload_TrackerAnnInfo,
   Payload_AnnotationPos,
+  INTERACTIVE_MODE,
 } from '../../types';
 import {
   openTourExternalLink,
@@ -86,6 +87,7 @@ import { IAnnotationConfigWithScreenId } from '../../component/annotation/annota
 import VoiceoverControl from '../../component/voiceover-control';
 import Tracker from './tracker';
 import AnnotationMedia from '../../component/annotation/media-player';
+import InfoCon from '../../component/info-con';
 
 const JourneyMenu = lazy(() => import('../../component/journey-menu'));
 interface IDispatchProps {
@@ -228,6 +230,8 @@ interface IOwnStateProps {
   currAnnRefId: string,
   annPos: Payload_AnnotationPos | null;
   showShadowAroundFrame: boolean;
+  interactiveMode: INTERACTIVE_MODE;
+  isVoiceoverAppliedToAtleastOneAnnInDemo: boolean;
 }
 
 interface ScreenInfo {
@@ -318,7 +322,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       trackerPos: null,
       currAnnRefId: '',
       annPos: null,
-      showShadowAroundFrame: false
+      showShadowAroundFrame: false,
+      interactiveMode: INTERACTIVE_MODE.INTERACTIVE_TOUR,
+      isVoiceoverAppliedToAtleastOneAnnInDemo: false
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -388,12 +394,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       }, '*');
 
       if (this.props.annotationsInOrder) {
-        const isVoiceoverAppliedToAtleastOnAnnInDemo = this.props.annotationsInOrder.findIndex(
-          ann => ann.voiceover !== null
-        ) !== -1;
-        this.setState({
-          showVoiceoverControl: isVoiceoverAppliedToAtleastOnAnnInDemo,
-        });
+        const isVoiceoverAppliedToAtleastOneAnnInDemo = this.getIsVoiceoverAppliedToAtleastOneAnnInTheDemo();
+        this.setState(prevState => ({ showVoiceoverControl: isVoiceoverAppliedToAtleastOneAnnInDemo
+          && prevState.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO,
+        isVoiceoverAppliedToAtleastOneAnnInDemo
+        }));
       }
     }
   };
@@ -403,6 +408,12 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     const ts = this.props.searchParams.get('_ts');
 
     const params = new URL(window.location.href).searchParams;
+
+    const mode = params.get('mode');
+    const interactiveMode = mode && mode === 'video' ? INTERACTIVE_MODE.INTERACTIVE_VIDEO
+      : INTERACTIVE_MODE.INTERACTIVE_TOUR;
+    this.setState({ interactiveMode });
+
     const persVarsData = getPersVarsDataFromQueryParams(params);
 
     this.props.loadTourWithDataAndCorrespondingScreens(
@@ -766,16 +777,33 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       const main = this.props.tourOpts ? this.props.tourOpts.main : '';
       preloadImagesInTour(this.props.allAnnotationsForTour, this.props.journey, main);
 
+      const isVoiceoverAppliedToAtleastOneAnnInDemo = this.getIsVoiceoverAppliedToAtleastOneAnnInTheDemo();
+
+      // for backward compatibility
+      // when in /embed or /live route we display voiceover if isVideo is undefined and voiceover
+      // exist in demo even if mode=video param is not added in demo url
+      let interactiveMode = prevState.interactiveMode;
+      if (this.props.tour!.info.isVideo === undefined && interactiveMode !== INTERACTIVE_MODE.INTERACTIVE_VIDEO
+         && !this.props.staging) {
+        interactiveMode = isVoiceoverAppliedToAtleastOneAnnInDemo ? INTERACTIVE_MODE.INTERACTIVE_VIDEO
+          : INTERACTIVE_MODE.INTERACTIVE_TOUR;
+      }
+
       // When the first ann has a voiceover that is played as an audio element,
       // browser's might block the autoplay, a dedicated overlay with view demo forces
       // user interact with the page before autoplay happens.
       const isVoiceoverAppliedToFirstAnn = Boolean(this.props.annotationsInOrder
          && this.props.annotationsInOrder.length > 0
-         && (isMediaAnnotation(this.props.annotationsInOrder[0])));
+         && (isMediaAnnotation(
+           this.props.annotationsInOrder[0],
+           interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO
+         )));
 
       this.setState({
         frameSetting: this.paramsFrameSettingValue || this.props.tour!.info.frameSettings,
         showViewDemo: isVoiceoverAppliedToFirstAnn,
+        isVoiceoverAppliedToAtleastOneAnnInDemo,
+        interactiveMode
       });
     }
     if (currScreenRId && (!firstTimeTourLoading && currScreenRId !== prevScreenRId)) {
@@ -823,6 +851,15 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     }
   }
 
+  getIsVoiceoverAppliedToAtleastOneAnnInTheDemo = (): boolean => {
+    if (!this.props.annotationsInOrder) return false;
+
+    const isVoiceoverAppliedToAtleastOneAnnInDemo = this.props.annotationsInOrder.findIndex(
+      ann => ann.voiceover !== null
+    ) !== -1;
+    return isVoiceoverAppliedToAtleastOneAnnInDemo;
+  };
+
   getScreenAtId(id: string, key: keyof P_RespScreen): P_RespScreen {
     const screen = this.props.allScreens.find(s => s[key]!.toString() === id);
     if (!screen) {
@@ -869,10 +906,11 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleCurrentAnn = (e: OnNavigationEvent): void => {
     if (e.type === InternalEvents.OnNavigation && e.detail) {
-      this.setState({
-        showVoiceoverControl: e.detail.annotationType === 'voiceover',
-        currAnnRefId: e.detail.currentAnnotationRefId
-      });
+      this.setState(prevS => ({
+        showVoiceoverControl: e.detail!.annotationType === 'voiceover'
+        && prevS.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO,
+        currAnnRefId: e.detail!.currentAnnotationRefId
+      }));
     }
   };
 
@@ -1082,6 +1120,25 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       />;
     }
 
+    if (this.state.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO
+       && !this.state.isVoiceoverAppliedToAtleastOneAnnInDemo && this.props.isTourLoaded) {
+      return (
+        <div>
+          <InfoCon
+            heading="Interactive Video is not created for this demo"
+            body={<></>}
+            btns={[
+              {
+                type: 'primary',
+                onClick: () => { this.setState({ interactiveMode: INTERACTIVE_MODE.INTERACTIVE_TOUR }); },
+                text: 'Go to Interactive Tour',
+              },
+            ]}
+          />
+        </div>
+      );
+    }
+
     // TODO the border color has to match with frame theme. Right now these values are hard coded in two place.
     // One hard coding is done here, another hard coding is done in demo-frame
     let frameBorderColor: string | undefined;
@@ -1227,6 +1284,7 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
                   this.handleDemoPlayAndPause();
                 }}
                 showShadowAroundFrame={this.state.showShadowAroundFrame}
+                interactiveMode={this.state.interactiveMode}
               />
             ))
         }
@@ -1238,7 +1296,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         />}
         {
           (this.props.tourOpts && this.props.annotationsInOrder
-            && this.props.annotationsInOrder.filter(ann => isMediaAnnotation(ann)).map(ann => (
+            && this.props.annotationsInOrder.filter(ann => isMediaAnnotation(
+              ann,
+              this.state.interactiveMode === INTERACTIVE_MODE.INTERACTIVE_VIDEO
+            )).map(ann => (
               <AnnotationMedia
                 ref={this.state.annPos && this.state.currAnnRefId === ann.refId
                   ? this.mediaRef : null}

@@ -1,6 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
-// Generated using typescript-generator version 2.35.1025 on 2025-01-21 08:36:13.
+// Generated using typescript-generator version 2.35.1025 on 2025-01-24 07:29:02.
 
 export interface Activity extends ActivityBase {
 }
@@ -121,6 +121,7 @@ export interface EntityInfo {
     productDetails?: string;
     demoObjective?: string;
     demoRouter?: any;
+    isVideo?: boolean;
 }
 
 export interface SubscriptionInfo {

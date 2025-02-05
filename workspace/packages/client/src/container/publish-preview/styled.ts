@@ -20,6 +20,7 @@ export const PreviewFrameWrapper = styled.div<{ showOverlay: boolean }>`
   align-items: start;
   gap: 1rem;
   margin: 1rem;
+  margin-bottom: 0;
   position: relative;
   transform-origin: 50% 0;
 
@@ -73,11 +74,15 @@ export const HeaderCon = styled.div`
   line-height: normal;
 `;
 
-export const QuickEditPopoverCon = styled.div`
+export const QuickEditPopoverCon = styled.div<{drawBorder?: boolean, additionalPadding?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: 10px;
   max-width: 360px;
+  background-color: white;
+  padding: calc(10px + ${p => (p.additionalPadding ? '10px' : '0px')});
+  border-radius: 10px;
+  box-shadow: ${p => (p.drawBorder ? 'var(--card-box-shadow-active)' : 'none')};
   
   .close-btn {
     font-size: 0.65rem;
@@ -143,4 +148,15 @@ export const EditCon = styled.div`
   height: 90%;  
   flex-direction: column;
   justify-content: space-between;
+`;
+
+export const PopoverCon = styled.div`
+  margin: auto;
+  margin-bottom: -20px;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  justify-content: center;
+  transform: scale(0.9);
+  flex-direction: column;
 `;

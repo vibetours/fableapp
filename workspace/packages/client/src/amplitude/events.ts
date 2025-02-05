@@ -73,4 +73,5 @@ export enum AMPLITUDE_EVENTS {
     UPGRADE_CONFIRMATION_UPGRADE_CLICKED = 'upgrade_confirmation_upgrade_clicked',
     UPGRADE_CONFIRMATION_DOWNGRADE_CONFIRMED = 'upgrade_confirmation_downgrade_confirmed',
     UPGRADE_PILL_CLICKED = 'upgrade_pill_clicked',
+    PREVIEW_MODE_CHANGED='preview_mode_changed'
 }

@@ -60,7 +60,7 @@ import {
   EditValueEncoding,
   ElEditType,
   ElPathKey,
-  FrameAssetLoadFn, GlobalElEditValueEncoding, IAnnotationConfigWithScreen, IdxEditEncodingText,
+  FrameAssetLoadFn, GlobalElEditValueEncoding, IAnnotationConfigWithScreen, INTERACTIVE_MODE, IdxEditEncodingText,
   IdxEditItem,
   IdxEncodingTypeBlur,
   IdxEncodingTypeDisplay,
@@ -1962,6 +1962,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 frameSetting={FrameSettings.NOFRAME}
                 globalEdits={this.props.allGlobalEdits}
                 isStaging={false}
+                interactiveMode={INTERACTIVE_MODE.INTERACTIVE_TOUR}
               />
             </div>
             )}

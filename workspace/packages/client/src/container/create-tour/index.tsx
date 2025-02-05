@@ -1495,6 +1495,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           left={0}
                           navigateToAdjacentAnn={() => { }}
                           isThemeAnnotation
+                          isMediaAnn={false}
                         />
 
                         <Tags.AnnContentOverlay>
@@ -1559,6 +1560,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                           left={0}
                           navigateToAdjacentAnn={() => { }}
                           isThemeAnnotation
+                          isMediaAnn={false}
                         />
                         <Tags.AnnContentOverlay>
                           <Button
@@ -1630,6 +1632,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
                       left={0}
                       navigateToAdjacentAnn={() => { }}
                       isThemeAnnotation
+                      isMediaAnn={false}
                     />
                   </div>
                   <Tags.ModalButtonsContainer style={{

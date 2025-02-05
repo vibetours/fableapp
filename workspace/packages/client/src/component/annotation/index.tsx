@@ -23,7 +23,6 @@ import {
   isAudioAnnotation,
   isCoverAnnotation as isCoverAnn,
   isEventValid,
-  isMediaAnnotation as isMediaAnn,
   isVideoAnnotation,
 } from '../../utils';
 import HighlighterBase, { Rect } from '../base/hightligher-base';
@@ -72,6 +71,7 @@ export class AnnotationContent extends React.PureComponent<{
   isThemeAnnotation?: boolean,
   doc?: Document,
   isProbing?: boolean,
+  isMediaAnn: boolean,
 }> {
   static readonly WIDTH_MOBILE = 240;
 
@@ -299,7 +299,7 @@ export class AnnotationContent extends React.PureComponent<{
 
         {/* Watermark */}
         {this.props.opts.showFableWatermark._val
-        && !isMediaAnn(this.props.config)
+        && !this.props.isMediaAnn
         && (
           <WatermarkCon
             style={{
@@ -336,7 +336,16 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   private isInitialTransitionDone = false;
 
   getAnnotationType(): EventDataOnNav['annotationType'] {
-    if (this.props.annotationDisplayConfig.config.voiceover) return 'voiceover';
+    /*
+    For annotations with voiceover, the display type can either be voiceover or text,
+    depending on the Interactive mode. When the mode is set to "Interactive Demo,"
+    the annotation type will be text. In this case, this.props.annotationDisplayConfig.isMediaAnnotation
+    is set to false, and therefore, the annotation type is sent as text.
+    */
+    if (this.props.annotationDisplayConfig.config.voiceover) {
+      if (this.props.annotationDisplayConfig.isMediaAnnotation) return 'voiceover';
+      return 'text';
+    }
     if (isVideoAnnotation(this.props.annotationDisplayConfig.config)) return 'video';
     if (isAudioAnnotation(this.props.annotationDisplayConfig.config)) return 'audio';
     if (this.props.annotationDisplayConfig.config.isLeadFormPresent) return 'leadform';
@@ -370,7 +379,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
         screenId: this.props.screenId,
         annConfigType: this.props.annotationDisplayConfig.config.type
       });
-      if (this.conRef.current && isMediaAnn(this.props.annotationDisplayConfig.config)) {
+      if (this.conRef.current && this.props.annotationDisplayConfig.isMediaAnnotation) {
         this.resetAnnPos();
       }
     }
@@ -445,7 +454,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   } => {
     const displayConfig = this.props.annotationDisplayConfig;
     const config = displayConfig.config;
-    const isMediaAnnotation = isMediaAnn(config);
+    const isMediaAnnotation = displayConfig.isMediaAnnotation;
     const isCoverAnnotation = isCoverAnn(config);
 
     const boxSize = this.props.annotationDisplayConfig.config.size;
@@ -540,7 +549,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const elBox = this.props.box;
     const winW = displayConfig.windowWidth;
     const winH = displayConfig.windowHeight;
-    const isMediaAnnotation = isMediaAnn(displayConfig.config);
+    const isMediaAnnotation = displayConfig.isMediaAnnotation;
 
     let l = -9999;
     let t = -9999;
@@ -834,7 +843,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
   shouldShowArrowHead = (): boolean => {
     const config = this.props.annotationDisplayConfig.config;
     const pos = config.positioning;
-    const isMediaAnnotation = isMediaAnn(config);
+    const isMediaAnnotation = this.props.annotationDisplayConfig.isMediaAnnotation;
     const isCoverAnnotation = isCoverAnn(config);
 
     if (isCoverAnnotation) return false;
@@ -888,7 +897,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const displayConfig = this.props.annotationDisplayConfig;
 
     const config = displayConfig.config;
-    const isMediaAnnotation = isMediaAnn(config);
+    const isMediaAnnotation = displayConfig.isMediaAnnotation;
     const isCoverAnnotation = isCoverAnn(config);
 
     let t: number = 0;
@@ -897,7 +906,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     let isUltrawideBox: boolean = false;
     let isAnnRenderedInScreenCorner = false;
 
-    const annType = isMediaAnn(config) ? 'media' : config.type;
+    const annType = isMediaAnnotation ? 'media' : config.type;
 
     if (annType === 'default' || annType === 'media') {
       let showAutoPositioning = !isAnnCustomPosition(this.props.annotationDisplayConfig.config.positioning);
@@ -1088,6 +1097,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
                 tourId={this.props.tourId}
                 dir={dir}
                 navigateToAdjacentAnn={this.props.navigateToAdjacentAnn}
+                isMediaAnn={this.props.annotationDisplayConfig.isMediaAnnotation}
               />
             )
           }
@@ -1098,7 +1108,7 @@ export class AnnotationCard extends React.PureComponent<IProps> {
             && (
               <AnnotationWatermark
                 borderRadius={this.props.annotationDisplayConfig.opts.borderRadius._val}
-                isMediaAnn={isMediaAnn(config)}
+                isMediaAnn={isMediaAnnotation}
                 bgColor={this.props.annotationDisplayConfig.opts.annotationBodyBackgroundColor._val}
                 fontColor={this.props.annotationDisplayConfig.opts.annotationFontColor._val}
                 top={t + (this.props.playMode ? this.props.win.scrollY + bodyScrollTopAdjustment : 0)}

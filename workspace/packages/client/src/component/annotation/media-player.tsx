@@ -187,6 +187,7 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
   handleAutoplayMedia = (): boolean => {
     if (this.shouldAutoplayVideo()) {
       this.playMediaFromStart();
+      if (this.props.conf.voiceover && this.mediaRef?.current) this.mediaRef.current.playbackRate = 1.2;
       return true;
     }
     return false;

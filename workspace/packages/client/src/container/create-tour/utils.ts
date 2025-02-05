@@ -194,23 +194,18 @@ async function createNewTour(
       primaryKey: 'email'
     };
   }
-  let info: EntityInfo | undefined;
+
+  const info: EntityInfo = {
+    frameSettings: FrameSettings.LIGHT,
+    thumbnail: getDefaultThumbnailHash(),
+    annDemoId: anonymousDemoId,
+    productDetails,
+    demoObjective,
+    isVideo: false
+  };
+
   if (thumbnail) {
-    info = {
-      frameSettings: FrameSettings.LIGHT,
-      thumbnail,
-      annDemoId: anonymousDemoId,
-      productDetails,
-      demoObjective
-    };
-  } else {
-    info = {
-      frameSettings: FrameSettings.LIGHT,
-      thumbnail: getDefaultThumbnailHash(),
-      annDemoId: anonymousDemoId,
-      productDetails,
-      demoObjective
-    };
+    info.thumbnail = thumbnail;
   }
 
   const { data } = await api<ReqNewTour, ApiResp<RespDemoEntity>>('/newtour', {

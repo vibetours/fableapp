@@ -9,10 +9,11 @@ import raiseDeferredError from '@fable/common/dist/deferred-error';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
 import { useDispatch } from 'react-redux';
+import { SegmentedValue } from 'antd/es/segmented';
 import * as GTags from '../../common-styled';
 import * as Tags from './styled';
 import IframeCodeSnippet from '../header/iframe-code-snippet';
-import { createIframeSrc, debounce, getValidUrl, isGlobalProperty } from '../../utils';
+import { createIframeSrc, debounce, getValidUrl, isGlobalProperty, updateQueryParams } from '../../utils';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
 import { P_Dataset, P_RespTour, P_RespVanityDomain } from '../../entity-processor';
 import PublishButton from './publish-button';
@@ -21,7 +22,7 @@ import UrlCodeShare from './url-code-share';
 import FileInput from '../file-input';
 import { uploadImgFileObjectToAws } from '../../upload-media-to-aws';
 import { IFRAME_BASE_URL, LIVE_BASE_URL } from '../../constants';
-import { EditItem, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
+import { EditItem, INTERACTIVE_MODE, SiteData, SiteData_WithProperty, SiteDateKeysWithProperty, SiteThemePresets } from '../../types';
 import { amplitudeCtaConfigChanged } from '../../amplitude';
 import CaretOutlined from '../icons/caret-outlined';
 import { baseURLStructured } from '../user-management/invite-user-form';
@@ -29,6 +30,7 @@ import ApplyStylesMenu from '../screen-editor/apply-styles-menu';
 import PersonalVarEditor from '../personal-var-editor/personal-var-editor';
 import { loadTourAnnotationsAndDatasets } from '../../action/creator';
 import { TState } from '../../reducer';
+import ShareAsVideo from './share-as-video';
 
 const dateTimeFormat = timeFormat('%e-%b-%Y %I:%M %p');
 
@@ -86,6 +88,9 @@ interface CTAInfoProps {
   allDomains: string[] | null;
   selectedDomain: string;
   selectDomain: (domain: string) => void;
+  tour: P_RespTour;
+  handleShareAsVideoChange: (value: SegmentedValue) => void;
+  activeMode: INTERACTIVE_MODE;
 }
 
 function CTAInfo({ iframeUrl,
@@ -99,7 +104,10 @@ function CTAInfo({ iframeUrl,
   calledFrom,
   allDomains,
   selectDomain,
-  selectedDomain
+  selectedDomain,
+  tour,
+  handleShareAsVideoChange,
+  activeMode,
 }: CTAInfoProps): JSX.Element {
   const [logoUploading, setLogoUploading] = useState(false);
   const [currentIpVals, setCurrentIpVals] = useState({
@@ -386,6 +394,14 @@ function CTAInfo({ iframeUrl,
         />
         )
       }
+      {
+        tour.info.isVideo && (
+          <ShareAsVideo
+            onChange={handleShareAsVideoChange}
+            activeMode={activeMode}
+          />
+        )
+      }
     </>
   );
 }
@@ -407,6 +423,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
   const [datasets, setDatasets] = useState<P_Dataset[] | null>(null);
   const [edits, setEdits] = useState<EditItem[]>([]);
   const dispatch: ThunkDispatch<TState, void, AnyAction> = useDispatch();
+  const [activeMode, setActiveMode] = useState(INTERACTIVE_MODE.INTERACTIVE_TOUR);
 
   useEffect(() => {
     const allParams = [...searchParams[SearchParamBy.UserParam], ...searchParams[SearchParamBy.UtmParam]];
@@ -483,6 +500,23 @@ export default function ShareTourModal(props: Props): JSX.Element {
       raiseDeferredError(e as Error);
     }
   }
+
+  const handleShareAsVideoChange = (value: SegmentedValue): void => {
+    let initialParams = searchParamsStr;
+    let activeSegment = INTERACTIVE_MODE.INTERACTIVE_TOUR;
+    if (value === INTERACTIVE_MODE.INTERACTIVE_TOUR) {
+      // remove mode param
+      initialParams = updateQueryParams(searchParamsStr, 'mode');
+    } else {
+      // add mode = video
+      initialParams = updateQueryParams(searchParamsStr, 'mode', 'video');
+      activeSegment = INTERACTIVE_MODE.INTERACTIVE_VIDEO;
+    }
+
+    if (initialParams.length !== 0) initialParams = `?${initialParams}`;
+    setSearchParamsStr(initialParams);
+    setActiveMode(activeSegment);
+  };
 
   return (
     <>
@@ -667,6 +701,14 @@ export default function ShareTourModal(props: Props): JSX.Element {
                           />
                         )
                       }
+                      {
+                        props.tour.info.isVideo && (
+                          <ShareAsVideo
+                            onChange={handleShareAsVideoChange}
+                            activeMode={activeMode}
+                          />
+                        )
+                      }
                     </div>
                   ),
                   style: collapseTabStyle
@@ -689,6 +731,9 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         selectDomain={setSelectedDomain}
                         selectedDomain={selectedDomain}
                         allDomains={allDomains}
+                        tour={props.tour}
+                        handleShareAsVideoChange={handleShareAsVideoChange}
+                        activeMode={activeMode}
                       />
                     </div>
                   ),
@@ -730,7 +775,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                 datasets={datasets}
                 annotationsForScreens={annotationsForScreens}
                 tour={props.tour}
-                originalPersVarsParams=""
+                originalPersVarsParams={searchParamsStr}
                 changePersVarParams={(persVarsParamsStr) => {
                   setSearchParamsStr(persVarsParamsStr);
                 }}

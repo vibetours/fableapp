@@ -21,6 +21,7 @@ import {
   FrameAssetLoadFn,
   ElPathKey,
   NavFn,
+  INTERACTIVE_MODE,
 } from '../../types';
 import AnnotationLifecycleManager from '../annotation/lifecycle-manager';
 import Preview, { DeSerProps } from './preview';
@@ -92,6 +93,7 @@ export interface IOwnProps {
   isStaging: boolean;
   onIframeClick?: ()=> void;
   showShadowAroundFrame?: boolean;
+  interactiveMode: INTERACTIVE_MODE
 }
 
 interface IOwnStateProps {
@@ -221,6 +223,7 @@ export default class ScreenPreviewWithEditsAndAnnotationsReadonly
           this.props.screen,
           this.props.shouldSkipLeadForm,
           this.getNextAnnotation,
+          this.props.interactiveMode
         );
 
         if (this.props.isFromScreenEditor) {

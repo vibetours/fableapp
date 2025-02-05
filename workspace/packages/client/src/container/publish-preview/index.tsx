@@ -4,6 +4,8 @@ import {
   CloseOutlined,
   CodeFilled,
   EditOutlined,
+  InfoCircleFilled,
+  InfoCircleOutlined,
   ShareAltOutlined,
   SoundFilled,
   UndoOutlined
@@ -41,6 +43,7 @@ import { TState } from '../../reducer';
 import { WithRouterProps, withRouter } from '../../router-hoc';
 import {
   ExtMsg,
+  INTERACTIVE_MODE,
   QuillyInPreviewProgress,
   ScreenSizeData,
   SiteData,
@@ -65,6 +68,8 @@ import * as Tags from './styled';
 import ShareTourModal from '../../component/publish-preview/share-modal';
 import InfoCon from '../../component/info-con';
 import { amplitudeShareModalOpen } from '../../amplitude';
+import VoiceoverPopup from './voiceover-popup';
+import { OurSegmented } from '../../common-styled';
 
 const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
@@ -77,7 +82,7 @@ const progressMap = {
 };
 const progressStepOrder: QuillyInPreviewProgress[] = Object.keys(progressMap) as QuillyInPreviewProgress[];
 
-const VoiceOptions = [
+export const VoiceOptions = [
   { label: 'Amber',
     audioUrl: 'https://scdna.sharefable.com/audio_samples/Amber.mp3',
     name: 'alloy',
@@ -205,9 +210,11 @@ interface IOwnStateProps {
   sampleVoicePlaying: null | { audio: HTMLAudioElement, name: string };
   selectedVoice: string;
   voiceoverProgress: number;
-  showRemoveVoiceover: boolean;
+  isVoiceoverAppliedToAtleastOneAnnInDemo: boolean;
   creditRequiredForVoiceover: number;
   isPublishing: boolean;
+  activeSegment: INTERACTIVE_MODE,
+  showVoiceoverInsteadOfIframe: boolean;
 }
 
 const MAX_EDIT_STACK = 5;
@@ -258,9 +265,11 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       sampleVoicePlaying: null,
       selectedVoice: VoiceOptions[0].name,
       voiceoverProgress: 0,
-      showRemoveVoiceover: false,
+      isVoiceoverAppliedToAtleastOneAnnInDemo: false,
       creditRequiredForVoiceover: 0,
       isPublishing: false,
+      activeSegment: INTERACTIVE_MODE.INTERACTIVE_TOUR,
+      showVoiceoverInsteadOfIframe: false
     };
   }
 
@@ -414,8 +423,9 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       }, 600);
     }
 
-    if (this.state.showVoiceoverPopover !== prevState.showVoiceoverPopover
-       && this.state.showVoiceoverPopover && this.props.allAnnsInOrder) {
+    if (((this.state.showVoiceoverPopover !== prevState.showVoiceoverPopover && this.state.showVoiceoverPopover)
+       || (this.props.isTourLoaded !== prevProps.isTourLoaded))
+       && this.props.allAnnsInOrder) {
       // this block handles -> selecting existing voice for a demo, calculating credits required,
       // and showing remove voiceover btn if, voiceover is already applied to demo.
 
@@ -436,7 +446,17 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
         this.setState({ creditRequiredForVoiceover: this.props.allAnnsInOrder.length });
       }
 
-      this.setState({ showRemoveVoiceover: isVoiceoverAppliedToTour, selectedVoice: annVoice });
+      this.setState({ isVoiceoverAppliedToAtleastOneAnnInDemo: isVoiceoverAppliedToTour,
+        selectedVoice: annVoice,
+      });
+    }
+
+    if (this.state.activeSegment !== prevState.activeSegment) {
+      let showVoiceoverInsteadOfIframe = false;
+      if (!this.state.isVoiceoverAppliedToAtleastOneAnnInDemo && this.state.activeSegment === INTERACTIVE_MODE.INTERACTIVE_VIDEO) {
+        showVoiceoverInsteadOfIframe = true;
+      }
+      this.setState({ showVoiceoverInsteadOfIframe });
     }
   }
 
@@ -598,7 +618,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       '*'
     );
     this.updateVoiceoverProgress(100);
-
+    this.setState({ isVoiceoverAppliedToAtleastOneAnnInDemo: true, showVoiceoverInsteadOfIframe: false });
     traceEvent(
       AMPLITUDE_EVENTS.VOICEOVER_APPLIED,
       {
@@ -606,6 +626,12 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
       },
       [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
     );
+
+    // clear progress tick after few seconds
+    const tempTimer = setTimeout(() => {
+      this.updateVoiceoverProgress(0);
+      clearTimeout(tempTimer);
+    }, 3000);
   };
 
   playPauseSampleVoice = (e: typeof VoiceOptions[0]): void => {
@@ -646,6 +672,10 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
 
   handleRemoveVoiceover = async (): Promise<void> => {
     this.closeVoiceoverPopup();
+    const currentInfo = { ...this.props.tour!.info };
+    currentInfo.isVideo = false;
+    await this.props.updateTourProp(this.props.tour!.rid, 'info', currentInfo);
+
     const updatedTourData = this.updateTourDataToRemoveVoiceOver(this.props.tourData!);
     await this.props.flushTourDataToMasterFile(this.props.tour!, updatedTourData);
     this.previewFrameRef.current && this.previewFrameRef.current.contentWindow!.postMessage(
@@ -666,6 +696,7 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
     const { height, width } = getDimensionsBasedOnDisplaySize(+displaySize);
     const isMobilePreview = isMobilePreviewDisplaySize(+displaySize);
     const embedParams = isMobilePreview ? '&fframe=noframe' : '';
+    const modeParam = this.state.activeSegment === INTERACTIVE_MODE.INTERACTIVE_VIDEO ? '&mode=video' : '';
     const quillyUpdateLoading = this.state.updateDemoLoadingStatus === LoadingStatus.InProgress
      || this.state.voiceoverProgress !== 0;
     const quillySubmitDisabled = quillyUpdateLoading || this.state.newDemoObjective.trim().length === 0;
@@ -785,7 +816,28 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             clickedFrom="preview"
           />}
         </Tags.HeaderCon>
+        {this.props.tour && (
+          <div style={{ marginTop: '1rem' }}>
+            <OurSegmented
+              options={[INTERACTIVE_MODE.INTERACTIVE_TOUR, INTERACTIVE_MODE.INTERACTIVE_VIDEO]}
+              onChange={(value) => {
+                traceEvent(
+                  AMPLITUDE_EVENTS.PREVIEW_MODE_CHANGED,
+                  {
+                    demo_mode: INTERACTIVE_MODE.INTERACTIVE_TOUR === value
+                      ? INTERACTIVE_MODE.INTERACTIVE_TOUR : INTERACTIVE_MODE.INTERACTIVE_VIDEO
+                  },
+                  [CmnEvtProp.EMAIL, CmnEvtProp.TOUR_URL]
+                );
 
+                this.setState({ activeSegment: INTERACTIVE_MODE.INTERACTIVE_TOUR === value
+                  ? INTERACTIVE_MODE.INTERACTIVE_TOUR : INTERACTIVE_MODE.INTERACTIVE_VIDEO,
+                showVoiceoverInsteadOfIframe: false,
+                showReplayOverlay: false });
+              }}
+            />
+          </div>
+        )}
         <Tags.PreviewFrameWrapper
           showOverlay={this.state.showReplayOverlay}
           style={{ transform: `scale(${this.state.viewScale})` }}
@@ -839,18 +891,75 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
             </div>
           )}
 
-          {this.props.isTourLoaded && (
-            <iframe
-              key={this.state.previewIframeKey}
-              ref={this.previewFrameRef}
-              id="preview-frame"
-              height={height}
-              width={width}
-              className="preview-frame"
-              src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}${this.state.embedQueryParams}${embedParams}`}
-              title="hello"
-            />
+          {this.props.isTourLoaded && !this.state.showVoiceoverInsteadOfIframe && (
+          <iframe
+            key={this.state.previewIframeKey}
+            ref={this.previewFrameRef}
+            id="preview-frame"
+            height={height}
+            width={width}
+            className="preview-frame"
+            src={`${baseURL}/${IFRAME_BASE_URL}/demo/${this.props.tour?.rid}${this.state.embedQueryParams}${embedParams}${modeParam}`}
+            title="hello"
+          />
           )}
+          {
+            this.props.isTourLoaded && this.state.showVoiceoverInsteadOfIframe && (
+              <Tags.PopoverCon>
+                <div
+                  className="typ-reg"
+                  style={{
+                    width: '390px',
+                    marginBottom: '1rem',
+                    opacity: 0.6,
+                    lineHeight: '1.25rem'
+                  }}
+                >
+                  <InfoCircleOutlined style={{ fontSize: '0.85rem' }} />&nbsp;Generate an interactive demo video with a lead form, smooth zoom and pan effects, transitions, and custom CTAs.
+                </div>
+                <VoiceoverPopup
+                  handleRemoveVoiceover={this.handleRemoveVoiceover}
+                  handleVoiceover={this.handleVoiceover}
+                  quillyUpdateLoading={quillyUpdateLoading}
+                  showRemoveVoiceover={this.state.isVoiceoverAppliedToAtleastOneAnnInDemo}
+                  closeVoiceoverPopup={this.closeVoiceoverPopup}
+                  playPauseSampleVoice={this.playPauseSampleVoice}
+                  selectedVoice={this.state.selectedVoice}
+                  subs={this.props.subs}
+                  creditRequiredForVoiceover={this.state.creditRequiredForVoiceover}
+                  getSubscriptionOrCheckoutNew={this.props.getSubscriptionOrCheckoutNew}
+                  updateVoiceOption={(name: string) => this.setState({ selectedVoice: name })}
+                  hideCloseIcon
+                />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <Progress
+                    showInfo={false}
+                    size="small"
+                    style={{
+                      margin: 0,
+                      width: '300px',
+                      display: this.state.voiceoverProgress === 0 || this.state.voiceoverProgress === 100
+                        ? 'none' : 'block'
+                    }}
+                    strokeLinecap="round"
+                    percent={this.state.voiceoverProgress}
+                    strokeColor="#9ba7ae"
+                  />
+                  {this.state.voiceoverProgress === 100 && (
+                  <div style={{ marginTop: '5px' }}>
+                    <CheckCircleFilled
+                      style={{
+                        fontSize: 13,
+                        color: 'green',
+                        position: 'absolute',
+                      }}
+                    />
+                  </div>
+                  )}
+                </div>
+              </Tags.PopoverCon>
+            )
+          }
           <Tags.EditCon>
             {this.props.isTourLoaded && this.state.screenSizeData && (
             <Tags.QuickEditPanel
@@ -896,116 +1005,63 @@ class PublishPreview extends React.PureComponent<IProps, IOwnStateProps> {
                     </div>
                   </Popover>
                 </div>
-                <div
-                  className="panel-item"
-                  style={{ marginTop: '10px' }}
-                >
-                  <Popover
-                    overlayClassName="quick-edit-popover"
-                    content={
-                      <Tags.QuickEditPopoverCon>
-                        <div className="close-btn" onClick={this.closeVoiceoverPopup}>
-                          <CloseOutlined />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          <div>
-                            <div className="typ-h1">Voiceover</div>
-                            <div className="typ-reg">
-                              Generate voiceover based on annotation content
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                            {VoiceOptions.map((option) => (
-                              <div
-                                key={option.name}
-                                onMouseDown={() => this.playPauseSampleVoice(option)}
-                              >
-                                <label
-                                  htmlFor={option.name}
-                                  style={{ cursor: 'pointer' }}
-                                  title="Click to play / pause the sample"
-                                >
-                                  <input
-                                    type="radio"
-                                    value={option.name}
-                                    id={option.name}
-                                    onChange={() => this.setState({ selectedVoice: option.name })}
-                                    checked={this.state.selectedVoice === option.name}
-                                    name="audio"
-                                  />
-                                  <span>
-                                    {option.label}
-                                  </span>
-                                  <span className="typ-sm" style={{ marginLeft: '1.5rem', display: 'block' }}>
-                                    {option.description}
-                                  </span>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        {
-                          this.props.subs && this.props.subs.availableCredits < this.state.creditRequiredForVoiceover
-                            ? <BuyMoreCredit
-                                currentCredit={this.props.subs.availableCredits}
-                                checkCredit={this.props.getSubscriptionOrCheckoutNew}
-                                showCreditInfo={false}
-                                clickedFrom="preview"
-                            />
-                            : (
-                              <Button
-                                type="submit"
-                                onClick={this.handleVoiceover}
-                                disabled={quillyUpdateLoading}
-                              >Add voiceover
-                              </Button>
-                            )
-                          }
-                        {this.state.showRemoveVoiceover && (
-                          <Button
-                            type="submit"
-                            onClick={this.handleRemoveVoiceover}
-                            intent="secondary"
-                            disabled={quillyUpdateLoading}
-                          >Remove voiceover
-                          </Button>)}
-                      </Tags.QuickEditPopoverCon>
-                  }
-                    open={this.state.showVoiceoverPopover}
-                    placement="left"
-                  >
-                    <div
-                      style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
-                      onClick={() => this.setState(state => ({ showVoiceoverPopover: !state.showVoiceoverPopover }))}
-                    >
-                      <Tooltip title="Customize demo" placement="left">
-                        <SoundFilled />
-                      </Tooltip>
-                      <div>
-                        <Progress
-                          showInfo={false}
-                          size="small"
-                          style={{
-                            margin: 0,
-                            lineHeight: 0,
-                            display: this.state.voiceoverProgress === 0 || this.state.voiceoverProgress === 100
-                              ? 'none' : 'block'
-                          }}
-                          strokeLinecap="round"
-                          percent={this.state.voiceoverProgress}
-                          strokeColor="#9ba7ae"
-                        />
-                        {this.state.voiceoverProgress === 100 && <CheckCircleFilled
-                          style={{
-                            fontSize: 13,
-                            color: 'green',
-                            position: 'absolute',
-                          }}
-                        />}
-                      </div>
-                    </div>
-                  </Popover>
-                </div>
+                {(this.state.activeSegment === INTERACTIVE_MODE.INTERACTIVE_VIDEO
+                 && !this.state.showVoiceoverInsteadOfIframe) && (
+                 <div
+                   className="panel-item"
+                   style={{ marginTop: '10px' }}
+                 >
+                   <Popover
+                     overlayClassName="quick-edit-popover"
+                     content={<VoiceoverPopup
+                       handleRemoveVoiceover={this.handleRemoveVoiceover}
+                       handleVoiceover={this.handleVoiceover}
+                       quillyUpdateLoading={quillyUpdateLoading}
+                       showRemoveVoiceover={this.state.isVoiceoverAppliedToAtleastOneAnnInDemo}
+                       closeVoiceoverPopup={this.closeVoiceoverPopup}
+                       playPauseSampleVoice={this.playPauseSampleVoice}
+                       selectedVoice={this.state.selectedVoice}
+                       subs={this.props.subs}
+                       creditRequiredForVoiceover={this.state.creditRequiredForVoiceover}
+                       getSubscriptionOrCheckoutNew={this.props.getSubscriptionOrCheckoutNew}
+                       updateVoiceOption={(name: string) => this.setState({ selectedVoice: name })}
+                     />}
+                     open={this.state.showVoiceoverPopover}
+                     placement="left"
+                   >
+                     <div
+                       style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
+                       onClick={() => this.setState(state => ({ showVoiceoverPopover: !state.showVoiceoverPopover }))}
+                     >
+                       <Tooltip title="Update Voiceover" placement="left">
+                         <SoundFilled />
+                       </Tooltip>
+                       <div>
+                         <Progress
+                           showInfo={false}
+                           size="small"
+                           style={{
+                             margin: 0,
+                             lineHeight: 0,
+                             display: this.state.voiceoverProgress === 0 || this.state.voiceoverProgress === 100
+                               ? 'none' : 'block'
+                           }}
+                           strokeLinecap="round"
+                           percent={this.state.voiceoverProgress}
+                           strokeColor="#9ba7ae"
+                         />
+                         {this.state.voiceoverProgress === 100 && <CheckCircleFilled
+                           style={{
+                             fontSize: 13,
+                             color: 'green',
+                             position: 'absolute',
+                           }}
+                         />}
+                       </div>
+                     </div>
+                   </Popover>
+                 </div>
+                )}
               </div>
               {displaySize === '0' && (
                 <div className="panel-item">

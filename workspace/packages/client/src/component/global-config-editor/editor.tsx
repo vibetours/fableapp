@@ -740,6 +740,7 @@ export default function Editor(props: Props): JSX.Element {
                   left={0}
                   navigateToAdjacentAnn={() => {}}
                   isThemeAnnotation
+                  isMediaAnn={false}
                 />
 
                 {gConfig.selShape === 'pulse' && <FocusBubble

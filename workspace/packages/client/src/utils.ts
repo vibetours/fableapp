@@ -195,7 +195,9 @@ export const isVideoAnnotation = (config: IAnnotationConfig): boolean => !isBlan
 
 export const isAudioAnnotation = (config: IAnnotationConfig): boolean => (!!config.audio);
 
-export const isMediaAnnotation = (config: IAnnotationConfig): boolean => {
+export const isMediaAnnotation = (config: IAnnotationConfig, showVoiceover: boolean = true): boolean => {
+  const isVoiceover = config.voiceover;
+  if (!showVoiceover && isVoiceover) return false;
   const isVideoAnn = isVideoAnnotation(config);
   const isAudioAnn = isAudioAnnotation(config);
   return isVideoAnn || isAudioAnn;
@@ -2563,4 +2565,13 @@ export function openProductUrl(url: string) : void {
     processedUrl = `https://${processedUrl}`;
   }
   window.open(processedUrl, '_blank')!.focus();
+}
+
+export function updateQueryParams(query: string = '', paramToUpdate: string = '', updateToValue: string = ''): string {
+  const querySearchParams = new URLSearchParams(query);
+
+  if (querySearchParams.has(paramToUpdate) && updateToValue.length === 0) querySearchParams.delete(paramToUpdate);
+  else if (paramToUpdate.length !== 0) querySearchParams.append(paramToUpdate, updateToValue);
+
+  return querySearchParams.toString();
 }

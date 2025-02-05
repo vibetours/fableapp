@@ -845,3 +845,8 @@ export interface DefaultQuadrant extends BaseQuadrant{
 }
 
 export type Quadrant = CustomQuadrant | DefaultQuadrant;
+
+export enum INTERACTIVE_MODE {
+  INTERACTIVE_TOUR= 'Interactive Tour',
+  INTERACTIVE_VIDEO= 'Interactive Video'
+}

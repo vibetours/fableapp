@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio, Collapse, Popover } from 'antd';
+import { Modal, Checkbox, Input, ColorPicker as AntColorPicker, Button, Select, Radio, Collapse, Popover, Segmented } from 'antd';
 import { AnnotationButtonSize } from '@fable/common/dist/types';
 import { getColorContrast } from './utils';
 
@@ -672,4 +672,16 @@ export const PopoverOption = styled.button`
   &:hover {
     background-color: #F8F8F8;
   }
+`;
+
+export const OurSegmented = styled(Segmented)`
+      border-radius: 8px;
+      transition: background 0.3s ease-out;
+
+      .ant-segmented-item-selected {
+        background: #160245;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+      }
 `;

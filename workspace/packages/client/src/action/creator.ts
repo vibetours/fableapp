@@ -966,6 +966,7 @@ export function createNewTour(
         info: {
           frameSettings: FrameSettings.LIGHT,
           thumbnail: getDefaultThumbnailHash(),
+          isVideo: false
         }
       },
     });
@@ -3137,6 +3138,12 @@ export function addVoiceOver(
       );
 
       await flushTourDataToMasterFile(state.default.currentTour!, updatedTourData)(dispatch, getState);
+
+      const currentInfo = { ...tour.info };
+      currentInfo.isVideo = true;
+      await updateTourProp(tour.rid, 'info', {
+        ...currentInfo
+      })(dispatch, getState);
 
       voiceoverProgress(98);
       return true;
