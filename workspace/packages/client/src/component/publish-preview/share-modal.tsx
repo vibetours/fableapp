@@ -613,7 +613,7 @@ export default function ShareTourModal(props: Props): JSX.Element {
                         openShareModal={props.openShareModal}
                         setIsPublishing={props.setIsPublishing}
                         clickedFrom={`${props.clickedFrom}_share_modal`}
-                        forcePublish
+                        title="Force publish"
                       />
                     </div>
                   </div>

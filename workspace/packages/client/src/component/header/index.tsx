@@ -449,6 +449,7 @@ function Header(props: IOwnProps): JSX.Element {
                            }}
                            isPublishing={isPublishing}
                            clickedFrom="header"
+                           title="Share"
                        />
                        : (
                          <Button

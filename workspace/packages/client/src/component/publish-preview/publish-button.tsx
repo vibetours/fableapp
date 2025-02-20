@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { traceEvent } from '@fable/common/dist/amplitude';
 import { CmnEvtProp } from '@fable/common/dist/types';
+import { ShareAltOutlined } from '@ant-design/icons';
 import Button from '../button';
 import { P_RespTour } from '../../entity-processor';
 import { AMPLITUDE_EVENTS } from '../../amplitude/events';
@@ -19,13 +20,13 @@ interface Props {
   isPublishing?: boolean;
   disabled?: boolean;
   showWhiteBg?: boolean;
-  forcePublish?: boolean;
+  title?: string;
   clickedFrom: 'demos' | 'analytics' | 'preview' | 'editor' | 'header' |
   'demos_share_modal' | 'analytics_share_modal' | 'preview_share_modal' | 'editor_share_modal'
 }
 
 export default function PublishButton(props: Props): JSX.Element {
-  const [buttonTitle, setButtonTitle] = useState(props.forcePublish ? 'Force publish' : 'Publish');
+  const [buttonTitle, setButtonTitle] = useState(props.title || 'Publish');
 
   const handleClick = async (): Promise<void> => {
     props.setIsPublishing(true);
@@ -58,7 +59,7 @@ export default function PublishButton(props: Props): JSX.Element {
     if (props.isPublishing) {
       setButtonTitle('Publishing...');
     } else {
-      setButtonTitle(props.forcePublish ? 'Force publish' : 'Publish');
+      setButtonTitle(props.title || 'Publish');
     }
   }, [props.isPublishing]);
 
@@ -70,9 +71,9 @@ export default function PublishButton(props: Props): JSX.Element {
       onMouseUp={handleClick}
       bgColor={props.showWhiteBg ? 'white' : undefined}
       color={props.showWhiteBg ? 'black' : undefined}
-      intent={props.forcePublish ? 'secondary' : 'primary'}
+      intent={props.title === 'Force publish' ? 'secondary' : 'primary'}
     >
-      {buttonTitle}
+      {buttonTitle === 'Share' && <ShareAltOutlined />}{buttonTitle}
     </Button>
   );
 }
