@@ -368,7 +368,7 @@ export default class ScreenPreview extends React.PureComponent<IOwnProps, IOwnSt
     // When browser frame is present (embed route) we show a border of 2px around the iframe to make it look like a browser frame
     // When that happens the iframe's dimension needs to be reduced by 4px (2px either side)
     // When browser window is not present (live route) we show border of 1px arond the iframe
-    const heightWidthAdjustment = this.props.heightOffset ? 4 : 2;
+    const heightWidthAdjustment = this.props.heightOffset ? 4 : 0;
     frameWrapper.style.borderColor = this.props.borderColor || 'transparent';
     if (this.props.heightOffset) {
       // when heightOffset is present that means frame is present hence we don't show the top border
