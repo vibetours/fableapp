@@ -847,7 +847,6 @@ export class AnnotationCard extends React.PureComponent<IProps> {
     const isCoverAnnotation = isCoverAnn(config);
 
     if (isCoverAnnotation) return false;
-    if (config.voiceover) return false;
 
     if (isMediaAnnotation) {
       return false;
