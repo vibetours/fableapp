@@ -504,7 +504,7 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
     const llmWorker = new Worker(new URL('./llm-opts.ts', import.meta.url));
     const imagesWithMarkPromise: {prm: Promise<string>, idx: number}[] = [];
     let markedImagesReceived = 0;
-    let totalImages = unmarkedImages.length;
+    const totalImages = unmarkedImages.length;
     let k = 0;
     unmarkedImages.forEach((img, index) => {
       if (interactionCtx[k]) {
@@ -537,7 +537,9 @@ class CreateTour extends React.PureComponent<IProps, IOwnStateProps> {
           // TODO handle error
         };
       } else {
-        totalImages--;
+        // skip marking image if interactionCtx data is not present for that screen
+        markedImagesReceived++;
+        this.skipAnnForScreenIds.push(index);
       }
       k++;
     });

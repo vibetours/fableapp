@@ -681,7 +681,7 @@ export function processScreen(
   frames: Array<FrameDataToBeProcessed>,
   cookies: chrome.cookies.Cookie[],
   frameThumbnailPromise: Promise<string>[],
-  interactionCtx: Array<InteractionCtxDetail>
+  interactionCtx: Array<InteractionCtxDetail | undefined>
 ): FrameProcessResult {
   let imageData = '';
   let mainFrame: FrameDataToBeProcessed | undefined;
@@ -922,7 +922,7 @@ export function processScreen(
       }
 
       interactionCtx.push(interactionData);
-    }
+    } else interactionCtx.push(undefined);
   }
   const frameResult: FrameProcessResult = {
     mainFrame,
