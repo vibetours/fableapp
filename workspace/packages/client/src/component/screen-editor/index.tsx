@@ -363,6 +363,9 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               fid,
             ]);
             this.flushMicroEdits();
+            if ((el as HTMLInputElement).value) {
+              (el as HTMLInputElement).value = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
+            }
             (el as HTMLInputElement).placeholder = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
             break;
           }
@@ -1393,7 +1396,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 <Tags.CtrlTxtEditBox
                   key={`${selectedElPath}-placeholder`}
                   className="typ-ip"
-                  defaultValue={(targetEl as HTMLInputElement)?.placeholder}
+                  defaultValue={(targetEl as HTMLInputElement).value ? (targetEl as HTMLInputElement).value
+                    : (targetEl as HTMLInputElement)?.placeholder}
                   autoFocus={isTextUpdateAvailable}
                   onBlur={() => this.flushMicroEdits()}
                   onChange={((t) => (e) => {
@@ -1403,12 +1407,16 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     let origVal = t.getAttribute(attrName);
 
                     if (origVal === null) {
-                      origVal = (t as HTMLInputElement).placeholder;
+                      origVal = (t as HTMLInputElement).value ? (t as HTMLInputElement).value
+                        : (t as HTMLInputElement).placeholder;
                       t.setAttribute(attrName, origVal);
                     }
                     const fid = this.getFidOfNodeWrapper(t, path);
                     this.addToMicroEdit(path, fid, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
 
+                    if ((t as HTMLInputElement).value) {
+                      (t as HTMLInputElement).value = e.target.value;
+                    }
                     (t as HTMLInputElement).placeholder = e.target.value;
                   })(targetEl!)}
                   disabled={!isTextUpdateAvailable}
