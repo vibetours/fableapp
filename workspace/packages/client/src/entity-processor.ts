@@ -72,7 +72,8 @@ import {
   EncodingTypeMask,
   EncodingTypeInput,
   DatasetConfig,
-  GlobalElEditText
+  GlobalElEditText,
+  EncodingTypeInputValue
 } from './types';
 import { getDefaultDatasetConfig, getDefaultSiteData, getSampleDemoHubConfig, getSerNodeFidFromElPath, isVideoAnnotation as isVideoAnn, replaceVarsInAnnotation } from './utils';
 import { isLeadFormPresentInHTMLStr } from './component/annotation-rich-text-editor/utils/lead-form-node-utils';
@@ -464,6 +465,9 @@ const isEditToBeRemoved = (
     case ElEditType.Input:
       return editArray[IdxEncodingTypeInput.NEW_VALUE] === null;
 
+    case ElEditType.InputValue:
+      return editArray[IdxEncodingTypeInput.NEW_VALUE] === null;
+
     default:
       return false;
   }
@@ -476,6 +480,7 @@ const isGlobalEditToBeRemoved = (
     case ElEditType.Text:
     case ElEditType.Image:
     case ElEditType.Input:
+    case ElEditType.InputValue:
     case ElEditType.Display:
       return editItem.newValue === null;
     case ElEditType.Blur:
@@ -935,6 +940,9 @@ const getFidFromEdit = (
     case ElEditType.Input:
       return editArray[IdxEncodingTypeInput.FID];
 
+    case ElEditType.InputValue:
+      return editArray[IdxEncodingTypeInput.FID];
+
     default:
       return undefined;
   }
@@ -1000,6 +1008,16 @@ export const convertGlobalElEditToTuple = (
 
     case ElEditType.Input: {
       const tupleEditItem: EditValueEncoding[ElEditType.Input] = [
+        globalEditItem.timeInSec,
+        globalEditItem.oldValue,
+        globalEditItem.newValue,
+        globalEditItem.fid,
+      ];
+      return tupleEditItem;
+    }
+
+    case ElEditType.InputValue: {
+      const tupleEditItem: EditValueEncoding[ElEditType.InputValue] = [
         globalEditItem.timeInSec,
         globalEditItem.oldValue,
         globalEditItem.newValue,
@@ -1092,6 +1110,19 @@ export const convertTupleToGlobalElEdit = <K extends keyof EditValueEncoding>(
       const editItem = edit as EncodingTypeInput;
       const globalEditItem: GlobalElEditValueEncoding[ElEditType.Input] = {
         type: ElEditType.Input,
+        timeInSec: editItem[IdxEncodingTypeInput.TIMESTAMP],
+        oldValue: editItem[IdxEncodingTypeInput.OLD_VALUE],
+        newValue: editItem[IdxEncodingTypeInput.NEW_VALUE],
+        fid: editItem[IdxEncodingTypeInput.FID],
+        srnId,
+      };
+      return globalEditItem;
+    }
+
+    case ElEditType.InputValue: {
+      const editItem = edit as EncodingTypeInputValue;
+      const globalEditItem: GlobalElEditValueEncoding[ElEditType.InputValue] = {
+        type: ElEditType.InputValue,
         timeInSec: editItem[IdxEncodingTypeInput.TIMESTAMP],
         oldValue: editItem[IdxEncodingTypeInput.OLD_VALUE],
         newValue: editItem[IdxEncodingTypeInput.NEW_VALUE],

@@ -245,6 +245,11 @@ export const createHtmlElement = (
       (el as any)[nodePropKey] = '';
       continue;
     }
+    if (node.name === 'input' && node.attrs.type === 'text'
+      && nodePropKey === 'value' && (nodePropValue as string).length !== 0) {
+      (el as HTMLInputElement).setAttribute('value', nodePropValue as string);
+      continue;
+    }
     (el as any)[nodePropKey] = nodePropValue;
   }
 

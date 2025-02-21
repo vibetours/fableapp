@@ -147,12 +147,14 @@ const userGuides = [EditingInteractiveDemoGuidePart2];
 
 const { confirm } = Modal;
 
+// Input is used to store edit for placeholder and InputValue is used to store edits for input value
 const enum EditTargetType {
   Text = 't',
   Img = 'i',
   Input = 'inp',
   Mixed = 'm',
   None = 'n',
+  InputValue = 'inpval'
 }
 
 const PASTE_STYLE_STORAGE_KEY = 'fable/psh';
@@ -363,10 +365,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
               fid,
             ]);
             this.flushMicroEdits();
-            if ((el as HTMLInputElement).value) {
-              (el as HTMLInputElement).value = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
-            }
             (el as HTMLInputElement).placeholder = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
+            break;
+          }
+
+          case ElEditType.InputValue: {
+            const tEncoding = encoding as EditValueEncoding[ElEditType.InputValue];
+            this.addToMicroEdit(path, fid, ElEditType.InputValue, [
+              getCurrentUtcUnixTime(),
+              tEncoding[IdxEncodingTypeInput.OLD_VALUE],
+              null,
+              fid,
+            ]);
+            this.flushMicroEdits();
+            (el as HTMLInputElement).value = tEncoding[IdxEncodingTypeInput.OLD_VALUE];
             break;
           }
 
@@ -587,6 +599,20 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           </Tags.EditLICon>
         );
 
+      case ElEditType.InputValue:
+        return (
+          <Tags.EditLICon>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <RetweetOutlined />
+              <div className="typ-sm" style={{ marginLeft: '0.5rem', flexShrink: 0 }}>Input value changed to</div>
+              <div className="typ-sm" style={{ flexShrink: 2, margin: '0 4px' }}>
+                {encoding[IdxEncodingTypeInput.NEW_VALUE]}
+              </div>
+            </div>
+            {shouldShowLoading && <LoadingOutlined title="Saving..." />}
+          </Tags.EditLICon>
+        );
+
       default:
         return <></>;
     }
@@ -601,7 +627,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
         return {
           [EditTargetType.Text]: [el2],
           [EditTargetType.Img]: [],
-          [EditTargetType.Input]: []
+          [EditTargetType.Input]: [],
+          [EditTargetType.InputValue]: []
         };
       }
 
@@ -610,7 +637,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           return {
             [EditTargetType.Text]: [],
             [EditTargetType.Img]: [el2],
-            [EditTargetType.Input]: []
+            [EditTargetType.Input]: [],
+            [EditTargetType.InputValue]: []
           };
         }
 
@@ -620,16 +648,27 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
             return {
               [EditTargetType.Text]: [],
               [EditTargetType.Img]: [el2],
-              [EditTargetType.Input]: []
+              [EditTargetType.Input]: [],
+              [EditTargetType.InputValue]: []
             };
           }
         }
 
         if (el2.nodeName.toLowerCase() === 'input' || el2.nodeName.toLowerCase() === 'textarea') {
+          if (el2.getAttribute('value')) {
+            return {
+              [EditTargetType.Text]: [],
+              [EditTargetType.Img]: [],
+              [EditTargetType.Input]: [],
+              [EditTargetType.InputValue]: [el2]
+            };
+          }
+          // If element is of type input and does not have value we edit placeholder
           return {
             [EditTargetType.Text]: [],
             [EditTargetType.Img]: [],
-            [EditTargetType.Input]: [el2]
+            [EditTargetType.Input]: [el2],
+            [EditTargetType.InputValue]: []
           };
         }
       }
@@ -638,7 +677,8 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
       const targetByTypes: EditTargets = {
         [EditTargetType.Text]: [],
         [EditTargetType.Img]: [],
-        [EditTargetType.Input]: []
+        [EditTargetType.Input]: [],
+        [EditTargetType.InputValue]: []
       };
 
       for (const child of children) {
@@ -653,25 +693,33 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
     const noOfTexts = nestedEditTargetTypes[EditTargetType.Text].length;
     const noOfImgs = nestedEditTargetTypes[EditTargetType.Img].length;
     const noOfInputs = nestedEditTargetTypes[EditTargetType.Input].length;
+    const noOfInputsValue = nestedEditTargetTypes[EditTargetType.InputValue].length;
 
-    if (noOfImgs === 1 && noOfTexts === 0 && noOfInputs === 0) {
+    if (noOfImgs === 1 && noOfTexts === 0 && noOfInputs === 0 && noOfInputsValue === 0) {
       return {
         targetType: EditTargetType.Img,
         target: nestedEditTargetTypes[EditTargetType.Img][0] as HTMLElement,
       };
     }
 
-    if (noOfTexts === 1 && noOfImgs === 0 && noOfInputs === 0) {
+    if (noOfTexts === 1 && noOfImgs === 0 && noOfInputs === 0 && noOfInputsValue === 0) {
       return {
         targetType: EditTargetType.Text,
         target: nestedEditTargetTypes[EditTargetType.Text][0] as HTMLElement,
       };
     }
 
-    if (noOfInputs === 1 && noOfTexts === 0 && noOfImgs === 0) {
+    if (noOfInputs === 1 && noOfTexts === 0 && noOfImgs === 0 && noOfInputsValue === 0) {
       return {
         targetType: EditTargetType.Input,
         target: nestedEditTargetTypes[EditTargetType.Input][0] as HTMLElement,
+      };
+    }
+
+    if (noOfInputs === 0 && noOfTexts === 0 && noOfImgs === 0 && noOfInputsValue === 1) {
+      return {
+        targetType: EditTargetType.InputValue,
+        target: nestedEditTargetTypes[EditTargetType.InputValue][0] as HTMLElement,
       };
     }
 
@@ -1396,8 +1444,7 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                 <Tags.CtrlTxtEditBox
                   key={`${selectedElPath}-placeholder`}
                   className="typ-ip"
-                  defaultValue={(targetEl as HTMLInputElement).value ? (targetEl as HTMLInputElement).value
-                    : (targetEl as HTMLInputElement)?.placeholder}
+                  defaultValue={(targetEl as HTMLInputElement)?.placeholder}
                   autoFocus={isTextUpdateAvailable}
                   onBlur={() => this.flushMicroEdits()}
                   onChange={((t) => (e) => {
@@ -1407,16 +1454,12 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
                     let origVal = t.getAttribute(attrName);
 
                     if (origVal === null) {
-                      origVal = (t as HTMLInputElement).value ? (t as HTMLInputElement).value
-                        : (t as HTMLInputElement).placeholder;
+                      origVal = (t as HTMLInputElement).placeholder;
                       t.setAttribute(attrName, origVal);
                     }
                     const fid = this.getFidOfNodeWrapper(t, path);
                     this.addToMicroEdit(path, fid, ElEditType.Input, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
 
-                    if ((t as HTMLInputElement).value) {
-                      (t as HTMLInputElement).value = e.target.value;
-                    }
                     (t as HTMLInputElement).placeholder = e.target.value;
                   })(targetEl!)}
                   disabled={!isTextUpdateAvailable}
@@ -1438,6 +1481,57 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
 
       case EditTargetType.Mixed:
         return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
+
+      case EditTargetType.InputValue: {
+        if (
+          targetEl?.nodeName.toLowerCase() === 'input'
+            && INPUT_TYPE_WITHOUT_PLACEHOLDER.includes(targetEl.getAttribute('type') || '')
+        ) {
+          return <Tags.EditCtrlCon>{CommonOptions}</Tags.EditCtrlCon>;
+        }
+
+        return (
+          <Tags.EditCtrlCon>
+            <Tags.EditCtrlLI style={{ flexDirection: 'column', alignItems: 'start' }}>
+              <Tags.EditCtrlLabel className="typ-reg">Update Input Text</Tags.EditCtrlLabel>
+              <div style={{ position: 'relative', padding: '0.875rem 1rem' }}>
+                <Tags.CtrlTxtEditBox
+                  key={`${selectedElPath}-placeholder`}
+                  className="typ-ip"
+                  defaultValue={(targetEl as HTMLInputElement).value}
+                  autoFocus={isTextUpdateAvailable}
+                  onBlur={() => this.flushMicroEdits()}
+                  onChange={((t) => (e) => {
+                    if (!isTextUpdateAvailable) return;
+                    const path = this.iframeElManager!.elPath(t);
+                    const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.InputValue}`;
+                    let origVal = t.getAttribute(attrName);
+
+                    if (origVal === null) {
+                      origVal = (t as HTMLInputElement).value;
+                      t.setAttribute(attrName, origVal);
+                    }
+                    const fid = this.getFidOfNodeWrapper(t, path);
+                    this.addToMicroEdit(path, fid, ElEditType.InputValue, [getCurrentUtcUnixTime(), origVal, e.target.value, fid], true, false);
+
+                    (t as HTMLInputElement).value = e.target.value;
+                  })(targetEl!)}
+                  disabled={!isTextUpdateAvailable}
+                  style={{ filter: isTextUpdateAvailable ? '' : 'blur(5px)' }}
+                />
+                {!isTextUpdateAvailable && (
+                <Upgrade
+                  subs={this.props.subs}
+                  isInBeta={this.props.featurePlan?.edit_and_personalize_demo.isInBeta || false}
+                  clickedFrom="screen_edit"
+                />
+                )}
+              </div>
+            </Tags.EditCtrlLI>
+            {CommonOptions}
+          </Tags.EditCtrlCon>
+        );
+      }
 
       default:
         return <></>;
@@ -1622,6 +1716,11 @@ export default class ScreenEditor extends React.PureComponent<IOwnProps, IOwnSta
           case ElEditType.Mask: {
             const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.Mask}`;
             selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeMask.OLD_STYLE] as string);
+            break;
+          }
+          case ElEditType.InputValue: {
+            const attrName = `${ScreenEditor.ATTR_ORIG_VAL_SAVE_ATTR_NAME}-${ElEditType.InputValue}`;
+            selectedEl.setAttribute(attrName, edit[IdxEditItem.ENCODING][IdxEncodingTypeInput.OLD_VALUE] as string);
             break;
           }
           default:

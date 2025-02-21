@@ -21,7 +21,8 @@ export const enum ElEditType {
   Display,
   Blur,
   Mask,
-  Input
+  Input,
+  InputValue
 }
 
 export type GlobalEditFile = EditFile<AllGlobalElEdits<ElEditType>>;
@@ -51,7 +52,15 @@ export interface GlobalElEditInput extends BaseGlobalElEdit {
   oldValue: string,
   newValue: string | null,
 }
+
+export interface GlobalElEditInputValue extends BaseGlobalElEdit {
+  type: ElEditType.InputValue,
+  oldValue: string,
+  newValue: string | null,
+}
+
 export type EncodingTypeInput = [timeInSec: number, oldValue: string, newValue: string | null, fid: string];
+export type EncodingTypeInputValue = [timeInSec: number, oldValue: string, newValue: string | null, fid: string];
 export const enum IdxEncodingTypeInput {
   TIMESTAMP = 0,
   OLD_VALUE,
@@ -136,7 +145,7 @@ export const enum IdxEncodingTypeMask {
 }
 
 export type GlobalElEdit = GlobalElEditText | GlobalElEditImage | GlobalElEditBlur
-  | GlobalElEditDisplay | GlobalElEditMask | GlobalElEditInput
+  | GlobalElEditDisplay | GlobalElEditMask | GlobalElEditInput | GlobalElEditInputValue
 
 export interface GlobalElEditValueEncoding {
   [ElEditType.Text]: GlobalElEditText;
@@ -145,6 +154,7 @@ export interface GlobalElEditValueEncoding {
   [ElEditType.Display]: GlobalElEditDisplay;
   [ElEditType.Mask]: GlobalElEditMask;
   [ElEditType.Input]: GlobalElEditInput;
+  [ElEditType.InputValue]: GlobalElEditInputValue
 }
 
 export interface EditValueEncoding {
@@ -154,6 +164,7 @@ export interface EditValueEncoding {
   [ElEditType.Display]: EncodingTypeDisplay;
   [ElEditType.Mask]: EncodingTypeMask;
   [ElEditType.Input]: EncodingTypeInput;
+  [ElEditType.InputValue]: EncodingTypeInputValue;
 }
 
 export const enum IdxEditEncodingText {

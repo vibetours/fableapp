@@ -9,6 +9,7 @@ import {
   EncodingTypeDisplay,
   EncodingTypeImage,
   EncodingTypeInput,
+  EncodingTypeInputValue,
   EncodingTypeMask,
   EncodingTypeText,
   IdxEditEncodingText,
@@ -41,6 +42,14 @@ export const showOrHideEditsFromEl = (e: EditItem, isShowEdits: boolean, el: HTM
     case ElEditType.Input: {
       const tEncoding = encoding as EditValueEncoding[ElEditType.Input];
       (el as HTMLInputElement).placeholder = (isShowEdits
+        ? tEncoding[IdxEncodingTypeInput.NEW_VALUE]
+        : tEncoding[IdxEncodingTypeInput.OLD_VALUE])!;
+      break;
+    }
+
+    case ElEditType.InputValue: {
+      const tEncoding = encoding as EditValueEncoding[ElEditType.InputValue];
+      (el as HTMLInputElement).value = (isShowEdits
         ? tEncoding[IdxEncodingTypeInput.NEW_VALUE]
         : tEncoding[IdxEncodingTypeInput.OLD_VALUE])!;
       break;
@@ -131,7 +140,6 @@ export const getSerNodeFromPath = (path: string, docTree: SerNode): SerNode => {
 
 export const applyEditsToSerDom = (allEdits: EditItem[], screenData: ScreenData): ScreenData => {
   const mem: Record<string, SerNode> = {};
-
   const fids: string[] = allEdits
     .filter(item => (
       item[IdxEditItem.FID]
@@ -192,6 +200,16 @@ export const applyEditsToSerDom = (allEdits: EditItem[], screenData: ScreenData)
     if (edit[IdxEditItem.TYPE] === ElEditType.Input) {
       const inputEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeInput;
       node.attrs.placeholder = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
+    }
+
+    if (edit[IdxEditItem.TYPE] === ElEditType.InputValue) {
+      const inputEncodingVal = edit[IdxEditItem.ENCODING] as EncodingTypeInputValue;
+      if (node.attrs.value) {
+        node.attrs.value = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
+      }
+      if (node.props.nodeProps && node.props.nodeProps.value) {
+        node.props.nodeProps.value = inputEncodingVal[IdxEncodingTypeInput.NEW_VALUE]!;
+      }
     }
 
     if (edit[IdxEditItem.TYPE] === ElEditType.Image) {
