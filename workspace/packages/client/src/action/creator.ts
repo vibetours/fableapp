@@ -701,6 +701,8 @@ export function loadScreenAndData(
   shouldUseCache = false,
   preloading = false,
   loadPublishedDataForTour: P_RespTour | undefined = undefined,
+  isForExportedTour: boolean = false,
+  baseUrl: string = window.location.origin
 ) {
   return async (dispatch: Dispatch<TScreenWithData | TGenericLoading>, getState: () => TState) => {
     if (!preloading) {
@@ -722,7 +724,10 @@ export function loadScreenAndData(
     }
     if (!isScreenFound) {
       try {
-        const data = await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
+        // TODO don't use location.origin
+        const data = isForExportedTour
+          ? await api<null, ApiResp<RespScreen>>(`${baseUrl}/v1/screen/${screenRid}`)
+          : await api<null, ApiResp<RespScreen>>(`/screen?rid=${screenRid}`);
         screen = processRawScreenData(data.data, state.default.commonConfig!, loadPublishedDataForTour);
       } catch (e) {
         const err = e as Error;
@@ -755,7 +760,7 @@ export function loadScreenAndData(
       screenData: data,
       screenEdits: edits,
       remoteEdits,
-      screen: processRawScreenData(screen!, getState().default.commonConfig!, loadPublishedDataForTour),
+      screen: processRawScreenData(screen!, getState().default.commonConfig!, loadPublishedDataForTour, isForExportedTour, baseUrl),
       preloading
     });
   };
@@ -1155,14 +1160,15 @@ export function loadTourAndData(
   persVarData: {
     text: Record<string, string>,
     dataset: ParsedQueryResult,
-  } | null = null
+  } | null = null,
+  isForExportedTour: boolean = false,
+  baseUrl: string = window.location.origin
 ) {
   return async (
     dispatch: Dispatch<TTourWithData | TTourWithLoader | TGenericLoading | TInitialize | TTourPublished>,
     getState: () => TState
   ) => {
     const state = getState();
-
     if (isFreshLoading) {
       dispatch({
         type: ActionType.TOUR_LOADING,
@@ -1171,11 +1177,15 @@ export function loadTourAndData(
 
     let tour: P_RespTour;
     const newTs = ts || +new Date();
+    const params = new URL(window.location.href).searchParams; // these are base params
 
+    // TODO don't use origin
     try {
-      const data = loadPublishedData
-        ? await api<null, ApiResp<RespDemoEntity>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
-        : await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
+      const data = isForExportedTour
+        ? await api<null, ApiResp<RespDemoEntity>>(`${baseUrl}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
+        : loadPublishedData
+          ? await api<null, ApiResp<RespDemoEntity>>(`https://${process.env.REACT_APP_DATA_CDN}/${process.env.REACT_APP_DATA_CDN_QUALIFIER}/ptour/${tourRid}/0_d_data.json?ts=${newTs}`)
+          : await api<null, ApiResp<RespDemoEntity>>(`/tour?rid=${tourRid}${shouldGetScreens ? '&s=1' : ''}`);
 
       let config: RespCommonConfig;
       if (loadPublishedData) {
@@ -1193,7 +1203,9 @@ export function loadTourAndData(
         config,
         data.data.globalOpts!,
         false,
-        loadPublishedData ? data.data : undefined
+        loadPublishedData ? data.data : undefined,
+        isForExportedTour,
+        baseUrl
       );
     } catch (e) {
       throw new Error(`Error while loading tour and corresponding data ${(e as Error).message}`);
@@ -1206,6 +1218,7 @@ export function loadTourAndData(
       });
       return [newTs, null];
     }
+    const fullUrl = new URL(tour!.loaderFileUri.href);
     const loader = await api<null, ITourLoaderData>(tour!.loaderFileUri.href);
 
     dispatch({
@@ -1261,7 +1274,7 @@ export function loadTourAndData(
     dispatch({
       type: ActionType.TOUR_AND_DATA_LOADED,
       tourData: data,
-      tour: processRawTourData(tour!, getState().default.commonConfig!, tour.globalOpts!, false, loadPublishedData ? tour : undefined),
+      tour: processRawTourData(tour!, getState().default.commonConfig!, tour.globalOpts!, false, loadPublishedData ? tour : undefined, isForExportedTour, baseUrl),
       annotations,
       opts: annotationAndOpts.opts,
       allCorrespondingScreens: shouldGetScreens,

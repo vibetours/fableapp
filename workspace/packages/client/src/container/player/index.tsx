@@ -64,6 +64,7 @@ import {
   isMediaAnnotation,
   isVideoAnnotation,
   getBorderRadiusForAnnotation,
+  getExportBaseUrl,
 } from '../../utils';
 import { removeSessionId } from '../../analytics/utils';
 import {
@@ -100,8 +101,10 @@ interface IDispatchProps {
     text: Record<string, string>,
     dataset: ParsedQueryResult,
   } | null,
+  exportedTourParam: boolean,
+  baseUrl: string
 ) => Promise<void>,
-  loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour) => void,
+  loadScreenAndData: (rid: string, isPreloading: boolean, loadPublishedDataFor?: P_RespTour, isForExportedTour?:boolean, baseUrl?: string) => void,
   updateElpathKey: (elPathKey: ElPathKey) => void,
   removeScreenDataForRids: (ids: number[]) => Promise<void>,
 }
@@ -112,12 +115,14 @@ const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
     loadPublishedData,
     ts: string | null,
     freshLoading: boolean,
-    persVarsData
+    persVarsData,
+    exportedTourParam: boolean,
+    baseUrl: string
   ) => dispatch(
-    loadTourAndData(rid, true, freshLoading, loadPublishedData, ts, false, true, persVarsData)
+    loadTourAndData(rid, true, freshLoading, loadPublishedData, ts, false, true, persVarsData, exportedTourParam, baseUrl)
   ),
-  loadScreenAndData: (rid, isPreloading, loadPublishedDataFor) => dispatch(
-    loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor)
+  loadScreenAndData: (rid, isPreloading, loadPublishedDataFor, isForExportedTour, baseUrl) => dispatch(
+    loadScreenAndData(rid, true, isPreloading, loadPublishedDataFor, isForExportedTour, baseUrl)
   ),
   updateElpathKey: (elPathKey: ElPathKey) => dispatch(updateElPathKey(elPathKey)),
   removeScreenDataForRids: (ids: number[]) => dispatch(removeScreenDataForRids(ids)),
@@ -232,6 +237,8 @@ interface IOwnStateProps {
   showShadowAroundFrame: boolean;
   interactiveMode: INTERACTIVE_MODE;
   isVoiceoverAppliedToAtleastOneAnnInDemo: boolean;
+  exportedTourParam: boolean;
+  baseUrl: string;
 }
 
 interface ScreenInfo {
@@ -324,7 +331,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       annPos: null,
       showShadowAroundFrame: false,
       interactiveMode: INTERACTIVE_MODE.INTERACTIVE_TOUR,
-      isVoiceoverAppliedToAtleastOneAnnInDemo: false
+      isVoiceoverAppliedToAtleastOneAnnInDemo: false,
+      exportedTourParam: false,
+      baseUrl: window.location.origin
     };
 
     this.isLoadingCompleteMsgSentRef = React.createRef<boolean>();
@@ -386,7 +395,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
         !this.props.staging,
         ts,
         false,
-        persVarsData
+        persVarsData,
+        this.state.exportedTourParam,
+        this.state.baseUrl
       );
 
       window.parent && window.parent.postMessage({
@@ -406,7 +417,10 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
   componentDidMount(): void {
     document.title = this.props.title;
     const ts = this.props.searchParams.get('_ts');
+    const exportedTour = this.props.searchParams.get('exportedTour');
+    const baseUrl = getExportBaseUrl(window.location.origin);
 
+    this.setState({ exportedTourParam: exportedTour === '1' });
     const params = new URL(window.location.href).searchParams;
 
     const mode = params.get('mode');
@@ -421,7 +435,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
       !this.props.staging,
       ts,
       true,
-      persVarsData
+      persVarsData,
+      exportedTour === '1',
+      baseUrl
     );
 
     if (this.props.searchParams.get('skiplf') === '1') {
@@ -503,7 +519,9 @@ class Player extends React.PureComponent<IProps, IOwnStateProps> {
     prerenderList.map(({ screen: s }) => this.props.loadScreenAndData(
       s.rid,
       s.id !== screen.id,
-      this.props.staging ? undefined : tour
+      this.props.staging ? undefined : tour,
+      this.state.exportedTourParam,
+      this.state.baseUrl
     ));
 
     return this.handleIframesToPrerender(prerenderList, initalScreenLoad);

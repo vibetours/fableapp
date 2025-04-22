@@ -74,7 +74,8 @@ export default class AnnotationMedia extends React.PureComponent<IProps, IOwnSta
       showBtnOverlay: false,
       isMaximized: false
     };
-    if (Hls.isSupported() && this.props.playMode) {
+    // TODO - handle hsl for export??
+    if (Hls.isSupported() && !this.props.playMode) {
       const config = this.props.conf;
       const hlsURl = this.props.type === 'audio' ? config.audio?.hls : config.videoUrlHls;
 

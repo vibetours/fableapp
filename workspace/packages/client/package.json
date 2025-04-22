@@ -36,6 +36,7 @@
     "framer-motion": "^10.3.1",
     "handlebars": "^4.7.8",
     "hls.js": "^1.4.7",
+    "jszip": "^3.10.1",
     "lexical": "0.12.2",
     "metrics-graphics": "^3.0.0-beta1",
     "nanoid": "^4.0.2",

@@ -123,9 +123,11 @@ export interface P_RespScreen extends RespScreen {
 function getFileUris(
   screen: RespScreen,
   config: RespCommonConfig,
-  publishForTour?: RespDemoEntity
+  publishForTour?: RespDemoEntity,
+  isForExportedTour?: boolean,
+  baseUrl?: string
 ): {editFileUri: URL, dataFileUri: URL} {
-  const screenAssetPath = config.screenAssetPath;
+  const screenAssetPath = isForExportedTour ? `${baseUrl}/root/srn/` : config.screenAssetPath;
   const assetPrefixHash = screen.assetPrefixHash;
   const editFileName = publishForTour ? publishForTour.pubEditFileName : config.editFileName;
   const dataFileName = config.dataFileName;
@@ -136,9 +138,9 @@ function getFileUris(
   return { editFileUri, dataFileUri };
 }
 
-export function processRawScreenData(screen: RespScreen, config: RespCommonConfig, publishForTour?: RespDemoEntity): P_RespScreen {
+export function processRawScreenData(screen: RespScreen, config: RespCommonConfig, publishForTour?: RespDemoEntity, isForExportedTour?: boolean, baseUrl?: string): P_RespScreen {
   const d = new Date(screen.updatedAt);
-  const { editFileUri, dataFileUri } = getFileUris(screen, config, publishForTour);
+  const { editFileUri, dataFileUri } = getFileUris(screen, config, publishForTour, isForExportedTour, baseUrl);
 
   return {
     ...screen,
@@ -149,7 +151,7 @@ export function processRawScreenData(screen: RespScreen, config: RespCommonConfi
     urlStructured: screen.url === ''
       ? new URL(`https://${screen.displayName.toLowerCase().trim().replace(/\W+/g, '-')}}.img.flbk.sharefable.com`)
       : new URL(screen.url),
-    thumbnailUri: new URL(`${config.commonAssetPath}${screen.thumbnail}`),
+    thumbnailUri: isForExportedTour ? new URL(`${config.commonAssetPath}${screen.thumbnail}`, baseUrl) : new URL(`${config.commonAssetPath}${screen.thumbnail}`),
     dataFileUri,
     editFileUri,
     related: [],
@@ -212,8 +214,14 @@ export interface P_RespTour extends RespDemoEntity {
   datasets?: P_Dataset[];
 }
 
-function getDataFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
-  const tourAssetPath = config.tourAssetPath;
+function getDataFileUri(
+  tour: RespDemoEntity | RespDemoEntityWithSubEntities,
+  config: RespCommonConfig,
+  publishForTour?: RespDemoEntity,
+  isForExportedTour?: boolean,
+  baseUrl?: string
+): URL {
+  const tourAssetPath = isForExportedTour ? `${baseUrl}/root/tour/` : config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
   const dataFileName = publishForTour
     ? publishForTour.pubDataFileName
@@ -224,8 +232,14 @@ function getDataFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, co
   return dataFileUri;
 }
 
-function getLoaderFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, config: RespCommonConfig, publishForTour?: RespDemoEntity): URL {
-  const tourAssetPath = config.tourAssetPath;
+function getLoaderFileUri(
+  tour: RespDemoEntity | RespDemoEntityWithSubEntities,
+  config: RespCommonConfig,
+  publishForTour?: RespDemoEntity,
+  isForExportedTour?: boolean,
+  baseUrl?: string,
+): URL {
+  const tourAssetPath = isForExportedTour ? `${baseUrl}/root/tour/` : config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
   const loaderFileName = publishForTour ? publishForTour.pubLoaderFileName : config.loaderFileName;
   const loaderFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${loaderFileName}?ts=${+new Date()}`);
@@ -236,9 +250,11 @@ function getLoaderFileUri(tour: RespDemoEntity | RespDemoEntityWithSubEntities, 
 function getEditFileUri(
   tour: RespDemoEntity | RespDemoEntityWithSubEntities,
   config: RespCommonConfig,
-  publishForTour?: RespDemoEntity
+  publishForTour?: RespDemoEntity,
+  isForExportedTour?: boolean,
+  baseUrl?: string
 ): URL {
-  const tourAssetPath = config.tourAssetPath;
+  const tourAssetPath = isForExportedTour ? `${baseUrl}/root/tour/` : config.tourAssetPath;
   const assetPrefixHash = tour.assetPrefixHash;
   const editFileName = publishForTour ? publishForTour.pubEditFileName : config.editFileName;
   const editFileUri = new URL(`${tourAssetPath}${assetPrefixHash}/${editFileName}?ts=${+new Date()}`);
@@ -251,23 +267,25 @@ export function processRawTourData(
   config: RespCommonConfig,
   globalOpts: IGlobalConfig = getSampleGlobalConfig(),
   isPlaceholder = false,
-  publishForTour: RespDemoEntity | undefined = undefined
+  publishForTour: RespDemoEntity | undefined = undefined,
+  isForExportedTour: boolean = false,
+  baseUrl: string = window.location.origin
 ): P_RespTour {
   const d = new Date(tour.updatedAt);
 
   let tTour;
   if ((tTour = (tour as RespDemoEntityWithSubEntities)).screens) {
-    tTour.screens = tTour.screens.map(s => processRawScreenData(s, config, publishForTour));
+    tTour.screens = tTour.screens.map(s => processRawScreenData(s, config, publishForTour, isForExportedTour, baseUrl));
   }
 
-  const dataFileUri = getDataFileUri(tour, config, publishForTour);
-  const loaderFileUri = getLoaderFileUri(tour, config, publishForTour);
-  const editFileUri = getEditFileUri(tour, config, publishForTour);
+  const dataFileUri = getDataFileUri(tour, config, publishForTour, isForExportedTour, baseUrl);
+  const loaderFileUri = getLoaderFileUri(tour, config, publishForTour, isForExportedTour, baseUrl);
+  const editFileUri = getEditFileUri(tour, config, publishForTour, isForExportedTour, baseUrl);
   const site = processBrandData(normalizeBackwardCompatibilityForBrandData(tour, globalOpts), globalOpts);
   const thumbnailHash = tour.info ? tour.info.thumbnail : getDefaultThumbnailHash();
   const info = normalizeBackwardCompatibilityForEntityInfo(tour.info);
 
-  const processedDatasets = tour.datasets?.map(ds => processRawDataset(ds, config, tour.owner, false));
+  const processedDatasets = tour.datasets?.map(ds => processRawDataset(ds, config, tour.owner, false, null, isForExportedTour, baseUrl));
 
   return {
     ...tour,
@@ -275,15 +293,15 @@ export function processRawTourData(
     createdAt: new Date(tour.createdAt),
     updatedAt: d,
     lastPublishedDate: tour.lastPublishedDate && new Date(tour.lastPublishedDate),
-    thumbnailUri: new URL(`${config.commonAssetPath}${thumbnailHash}`),
+    thumbnailUri: isForExportedTour ? new URL(`${config.commonAssetPath}${thumbnailHash}`, baseUrl) : new URL(`${config.commonAssetPath}${thumbnailHash}`),
     displayableUpdatedAt: getDisplayableTime(d),
     dataFileUri,
     loaderFileUri,
     isPlaceholder,
     site,
     editFileUri,
-    pubDataFileUri: getDataFileUri(tour, config, tour),
-    stagingDataFileUri: getDataFileUri(tour, config, undefined),
+    pubDataFileUri: getDataFileUri(tour, config, tour, isForExportedTour, baseUrl),
+    stagingDataFileUri: getDataFileUri(tour, config, undefined, isForExportedTour, baseUrl),
     datasets: processedDatasets,
   } as P_RespTour;
 }
@@ -1606,6 +1624,8 @@ export function processRawDataset(
   orgId: number,
   loadEditable: boolean,
   presignedUrl: RespUploadUrl | null = null,
+  isForExportedTour: boolean = false,
+  baseUrl: string = '',
 ): P_Dataset {
   const lastPublishedDate = dataset.lastPublishedDate;
 
@@ -1613,6 +1633,8 @@ export function processRawDataset(
     dataset.name,
     config,
     orgId,
+    isForExportedTour,
+    baseUrl,
     loadEditable ? 0 : dataset.lastPublishedVersion,
   );
   const displayablePublishedAt = lastPublishedDate
@@ -1653,6 +1675,8 @@ export function getDatasetDataFileUri(
   datasetName: string,
   config: RespCommonConfig,
   orgId: number,
+  isForExportedTour: boolean,
+  baseUrl: string,
   datasetVersion: number = 0,
 ): URL {
   const datasetPartInPath = '/ds';
@@ -1661,7 +1685,8 @@ export function getDatasetDataFileUri(
     .replace('%d', datasetVersion.toString())
     .replace('%s', datasetName);
 
-  const dataFileUri = new URL(`${datasetAssetPath}${orgId}${datasetPartInPath}/${datasetFileName}?ts=${+new Date()}`);
+  const dataFileUri = isForExportedTour ? new URL(`${datasetAssetPath}${orgId}${datasetPartInPath}/${datasetFileName}?ts=${+new Date()}`, baseUrl)
+    : new URL(`${datasetAssetPath}${orgId}${datasetPartInPath}/${datasetFileName}?ts=${+new Date()}`);
 
   return dataFileUri;
 }

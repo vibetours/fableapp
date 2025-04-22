@@ -5,7 +5,7 @@ import Header from '../../component/preview-for-cta/header';
 import { loadTourAndData } from '../../action/creator';
 import { TState } from '../../reducer';
 import { withRouter, WithRouterProps } from '../../router-hoc';
-import { getDimensionsBasedOnDisplaySize, getMobileOperatingSystem, isEventValid, isLandscapeMode } from '../../utils';
+import { getDimensionsBasedOnDisplaySize, getExportBaseUrl, getMobileOperatingSystem, isEventValid, isLandscapeMode } from '../../utils';
 import * as Tags from './styled';
 import Button from '../../component/button';
 import { HEADER_CTA, IFRAME_BASE_URL } from '../../constants';
@@ -17,15 +17,19 @@ const baseURL = process.env.REACT_APP_CLIENT_ENDPOINT as string;
 
 interface IDispatchProps {
   loadPublishedTour: (rid: string,
-    onComplete: (ts: number) => void
+    onComplete: (ts: number) => void,
+    exportedTourParam: boolean,
+    baseUrl: string
     ) => void,
 }
 
 const mapDispatchToProps = (dispatch: any): IDispatchProps => ({
   loadPublishedTour: (
     rid: string,
-    onComplete: (ts: number) => void
-  ) => dispatch(loadTourAndData(rid, false, true, true, null, true)).then(([ts]: [number]) => onComplete(ts)),
+    onComplete: (ts: number) => void,
+    exportedTourParam: boolean,
+    baseUrl: string
+  ) => dispatch(loadTourAndData(rid, false, true, true, null, true, false, null, exportedTourParam, baseUrl)).then(([ts]: [number]) => onComplete(ts)),
 });
 
 interface IAppStateProps {
@@ -77,10 +81,15 @@ class PreviewForCTA extends React.PureComponent<IProps, IOwnStateProps> {
 
   componentDidMount(): void {
     document.title = this.props.title;
-
-    this.props.loadPublishedTour(this.props.match.params.tourId, (ts: number) => {
-      this.setState({ ts });
-    });
+    const baseUrl = getExportBaseUrl(window.location.origin);
+    this.props.loadPublishedTour(
+      this.props.match.params.tourId,
+      (ts: number) => {
+        this.setState({ ts });
+      },
+      this.props.searchParams.get('exportedTour') === '1',
+      baseUrl
+    );
 
     window.addEventListener('message', this.receiveMessage, false);
 

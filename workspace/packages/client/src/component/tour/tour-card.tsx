@@ -4,6 +4,7 @@ import {
   CopyOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExportOutlined,
   MoreOutlined,
   ShareAltOutlined
 } from '@ant-design/icons';
@@ -191,6 +192,16 @@ export default function TourCard({
                       onMouseDown={e => handleShowModal(tour, CtxAction.Duplicate)}
                     >
                       <CopyOutlined />&nbsp;&nbsp;&nbsp;Duplicate Demo
+                    </GTags.PopoverMenuItem>
+                    <GTags.PopoverMenuItem
+                      onMouseDown={e => {
+                        // if demo is not published show modal
+                        // else export
+                        // handleExportDemo(tour);
+                        handleShowModal(tour, CtxAction.Export);
+                      }}
+                    >
+                      <ExportOutlined /> &nbsp;&nbsp;&nbsp;Export Demo
                     </GTags.PopoverMenuItem>
                     <GTags.PopoverMenuItemDivider color="#ff735050" />
                     <GTags.PopoverMenuItem

@@ -2575,3 +2575,20 @@ export function updateQueryParams(query: string = '', paramToUpdate: string = ''
 
   return querySearchParams.toString();
 }
+
+export const getExportBaseUrl = (url: string): string => {
+  if (!url) return '';
+  let baseUrl = url;
+  const params = new URL(window.location.href).searchParams;
+
+  try {
+    const getBaseUrl = params.get('baseUrl');
+    if (getBaseUrl) {
+      const parsedUrl = new URL(getBaseUrl);
+      baseUrl = `${parsedUrl.protocol}//${parsedUrl.hostname}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
+    }
+  } catch (err) {
+    console.log(err);
+  }
+  return baseUrl;
+};
