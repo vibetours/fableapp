@@ -561,7 +561,7 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
             }
           }
 
-          console.log("\n=== Summary ===");
+          console.log("=== Summary ===");
           console.log(\`Success: \${results.success.length}\`);
           console.log(\`Failed: \${results.failed.length}\`);
         }
@@ -1062,18 +1062,35 @@ class Tours extends React.PureComponent<IProps, IOwnStateProps> {
                               </li>
 
                               <li style={{ marginBottom: '10px' }}>
-                                <strong>Important:</strong> The demo assets require specific content types.<br />
-                                You’ll find a{' '}
-                                <code style={{
-                                  backgroundColor: '#f4f4f4',
-                                  padding: '2px 4px',
-                                  borderRadius: '4px'
-                                }}
-                                >
-                                  _content-types.json
-                                </code>{' '}
-                                file in the exported ZIP with the correct mappings.<br />
-                                If you’re using AWS S3, we’ve included a script to automatically set the content types based on that file.
+                                <p style={{ marginBottom: '10px' }}>
+                                  <strong>Important:</strong> The demo assets require specific content types to be correctly set.
+                                  You’ll find a
+                                  <code style={{ backgroundColor: '#f4f4f4', padding: '2px 4px', borderRadius: '4px' }}>
+                                    _content-types.json
+                                  </code>{' '}
+                                  file in the exported ZIP with the correct mappings.
+                                </p>
+                                <p style={{ marginBottom: '10px' }}>
+                                  If you're using <strong>AWS S3</strong>, we've included a helper script named{' '}
+                                  <code style={{ backgroundColor: '#f4f4f4', padding: '2px 4px', borderRadius: '4px' }}>
+                                    s3-content-type-update.js
+                                  </code>{' '}
+                                  to automatically set the correct content types.
+                                </p>
+                                <p style={{ marginBottom: '6px' }}>To use the script:</p>
+                                <ol style={{ paddingLeft: '20px', marginBottom: '10px' }}>
+                                  <li style={{ marginBottom: '6px' }}>
+                                    Open the script file and update it with your S3 <strong>bucket name</strong> and <strong>region</strong>.
+                                  </li>
+                                  <li>
+                                    In your terminal, navigate to the unzipped folder and run:<br />
+                                    <code style={{ backgroundColor: '#f4f4f4', padding: '2px 4px', borderRadius: '4px', display: 'inline-block', marginTop: '4px' }}>
+                                      npm install &amp;&amp; node s3-content-type-update.js
+                                    </code>
+                                  </li>
+                                </ol>
+
+                                <p>This will automatically apply the correct content types to all demo assets in your S3 bucket.</p>
                               </li>
                             </ol>
                           </div>
