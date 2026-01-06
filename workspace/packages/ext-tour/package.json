@@ -4,8 +4,7 @@
   "main": "build",
   "description": "Product demo extension for Fable",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
-  "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "clean": "rm -rf build",
     "lint": "eslint \"src/**/*.{js,ts,tsx}\"",

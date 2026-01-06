@@ -4,9 +4,8 @@
   "description": "Common libs used by all the workspace packages",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
   "author": "akash",
-  "private": true,
   "main": "dist/",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "tsc -b",
     "test": "jest",

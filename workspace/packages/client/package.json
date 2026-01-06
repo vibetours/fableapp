@@ -2,8 +2,8 @@
   "name": "@fable/client",
   "version": "2.1.9",
   "description": "Fable app UI",
+  "license": "Apache-2.0",
   "repository": "git+ssh://git@github.com:sharefable/app.git",
-  "private": true,
   "dependencies": {
     "@amplitude/analytics-browser": "^2.2.3",
     "@ant-design/icons": "^4.8.0",

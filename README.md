@@ -91,7 +91,11 @@ This will install dependencies for all packages in the monorepo.
 
 ### 3. Configure Environment
 
-Create or modify the environment configuration in `workspace/packages/env.json`:
+The `workspace/packages/env.json` file contains **public** client-side configuration values that are bundled into the frontend application. These values (`REACT_APP_*`) are visible in the browser and are not secrets.
+
+**Important:** These are client-side environment variables that get compiled into your JavaScript bundle and are accessible via browser DevTools. They are meant to be public and safe to commit to version control.
+
+The repository includes a working `env.json` with default development values. For production or custom deployments, modify:
 
 ```json
 {
@@ -99,15 +103,19 @@ Create or modify the environment configuration in `workspace/packages/env.json`:
     "REACT_APP_API_ENDPOINT": "http://localhost:8080",
     "REACT_APP_JOB_ENDPOINT": "http://localhost:8081",
     "REACT_APP_CLIENT_ENDPOINT": "http://localhost:3000",
-    "REACT_APP_DATA_CDN": "your-cdn-url",
+    "REACT_APP_DATA_CDN": "your-s3-bucket.s3.region.amazonaws.com",
     "REACT_APP_ENVIRONMENT": "local",
-    "REACT_APP_AUTH0_DOMAIN": "your-auth0-domain",
+    "REACT_APP_AUTH0_DOMAIN": "your-auth0-domain.auth0.com",
     "REACT_APP_AUTH0_CLIENT_ID": "your-auth0-client-id",
     "REACT_APP_AUTH0_AUD": "backend",
+    "REACT_APP_AMPLITUDE_KEY": "your-amplitude-key",
+    "REACT_APP_POSTHOG_KEY": "your-posthog-key",
     "DISABLE_ESLINT_PLUGIN": true
   }
 }
 ```
+
+**For local development overrides:** Optionally create `env.local.json` (gitignored) to avoid modifying the shared `env.json`.
 
 **Note:** For database and backend setup, please check the [Fable API](https://github.com/sharefable) and Jobs repositories.
 
