@@ -5,8 +5,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Version](https://img.shields.io/badge/version-2.1.9-green.svg)](https://github.com/sharefable/app)
 
-[Live Demo](https://sharefable.com) | [Documentation](https://github.com/sharefable)
-
 ---
 
 ## Tech Stack
@@ -226,8 +224,7 @@ Every user interaction (mouse click) triggers a DOM snapshot. The complete state
 ```
 User Actions:    [Start Recording] → [Click Header] → [Click Menu] → [Click Modal] → [Stop Recording]
                                             ↓                ↓               ↓
-DOM Snapshots:                          Snapshot 1   →  Snapshot 2   →  Snapshot 3
-                                       (header state)   (menu open)    (modal open)
+DOM Snapshots:                          Snapshot 1  → Snapshot 2   →  Snapshot 3   → Snapshot 4
 ```
 
 **Note:** The first snapshot is captured on the first user interaction, not when recording starts. This prevents blocking the UI during initialization.
