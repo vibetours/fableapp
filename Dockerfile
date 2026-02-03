@@ -22,6 +22,9 @@ COPY workspace/ workspace/
 # Build environment: "staging" or "prod" (must match a key in packages/env.json)
 ARG BUILD_ENV=prod
 
+# Fix OpenSSL compatibility with Node 18 + CRA 5
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
 # Build common library first (client depends on it)
 WORKDIR /app/workspace/packages/common
 RUN yarn build
