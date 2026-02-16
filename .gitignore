@@ -123,3 +123,9 @@ workspace/packages/client/src/brand.css
 .idea
 .vscode/settings.json
 workspace/yarn.lock
+
+# Demo ZIP files (too large for git)
+demos/
+
+# Claude memory files
+**/CLAUDE.md

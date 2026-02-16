@@ -20,7 +20,7 @@ WORKDIR /app
 COPY workspace/ workspace/
 
 # Build environment: "staging" or "prod" (must match a key in packages/env.json)
-ARG BUILD_ENV=prod
+ARG BUILD_ENV=fideltour
 
 # Build common library first (client depends on it)
 WORKDIR /app/workspace/packages/common

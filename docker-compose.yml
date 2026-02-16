@@ -1,0 +1,244 @@
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # Databases
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: fable-mysql
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: fable-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: fable_analytics
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # S3-compatible object storage (self-hosted replacement for AWS S3)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio
+    container_name: fable-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc
+    container_name: fable-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 $${MINIO_ROOT_USER:-minioadmin} $${MINIO_ROOT_PASSWORD:-minioadmin};
+      mc mb --ignore-existing myminio/${ASSET_BUCKET_NAME:-fable-assets};
+      mc anonymous set download myminio/${ASSET_BUCKET_NAME:-fable-assets};
+      mc mb --ignore-existing myminio/pvt-mics;
+      exit 0;
+      "
+
+  # ---------------------------------------------------------------------------
+  # SQS-compatible message queue (self-hosted replacement for AWS SQS)
+  # ---------------------------------------------------------------------------
+  elasticmq:
+    image: softwaremill/elasticmq-native:latest
+    container_name: fable-elasticmq
+    volumes:
+      - ./elasticmq.conf:/opt/elasticmq.conf
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9324/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # Database migrations (run once on startup)
+  # ---------------------------------------------------------------------------
+  flyway-api:
+    image: flyway/flyway:9.22
+    container_name: fable-flyway-api
+    command: >
+      -url=jdbc:mysql://mysql:3306
+      -schemas=migration
+      -user=root
+      -password=${MYSQL_ROOT_PASSWORD}
+      -connectRetries=60
+      migrate
+    volumes:
+      - ./api-repo/schema/api:/flyway/sql
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  flyway-analytics:
+    image: flyway/flyway:9.22
+    container_name: fable-flyway-analytics
+    command: >
+      -url=jdbc:postgresql://postgres:5432/fable_analytics
+      -schemas=migration
+      -user=${POSTGRES_USER:-postgres}
+      -password=${POSTGRES_PASSWORD}
+      -connectRetries=60
+      migrate
+    volumes:
+      - ./api-repo/schema/analytics:/flyway/sql
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # API Service (Java Spring Boot - port 8080 internal)
+  # ---------------------------------------------------------------------------
+  api:
+    build: ./api-repo
+    container_name: fable-api
+    environment:
+      APP_ENV: fideltour
+      # MySQL
+      DB_CONN_URL: jdbc:mysql://mysql:3306
+      DB_USER: root
+      DB_PWD: ${MYSQL_ROOT_PASSWORD}
+      # PostgreSQL
+      ANALYTICS_DB_CONN_URL: jdbc:postgresql://postgres:5432/fable_analytics
+      ANALYTICS_DB_USER: ${POSTGRES_USER:-postgres}
+      ANALYTICS_DB_PWD: ${POSTGRES_PASSWORD}
+      # S3 (MinIO)
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_S3_REGION: ${AWS_S3_REGION:-us-east-1}
+      AWS_S3_ENDPOINT: http://minio:9000
+      ASSET_BUCKET_NAME: ${ASSET_BUCKET_NAME:-fable-assets}
+      # SQS (ElasticMQ)
+      SQS_ENDPOINT: http://elasticmq:9324
+      # Firehose (disabled for self-hosted)
+      AWS_FIREHOSE_REGION: us-east-1
+      AWS_FIREHOSE_STREAM_PREFIX: disabled
+      # Chargebee (set real values if needed)
+      CB_SITE_NAME: ${CB_SITE_NAME:-fable-test}
+      CB_API_KEY: ${CB_API_KEY:-dummy}
+      # Third-party (set real values if needed)
+      COBALT_API_KEY: ${COBALT_API_KEY:-dummy}
+      HUBSPOT_CLIENT_SECRET: ${HUBSPOT_CLIENT_SECRET:-dummy}
+      APPSUMO_CLIENT_ID: ${APPSUMO_CLIENT_ID:-dummy}
+      APPSUMO_CLIENT_SECRET: ${APPSUMO_CLIENT_SECRET:-dummy}
+      # Sentry (disabled)
+      SENTRY_DSN: ""
+    depends_on:
+      flyway-api:
+        condition: service_completed_successfully
+      flyway-analytics:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      elasticmq:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Jobs Service (Node.js Express - port 8081 internal)
+  # ---------------------------------------------------------------------------
+  jobs:
+    build: ./jobs-repo
+    container_name: fable-jobs
+    environment:
+      APP_ENV: dev
+      # MySQL
+      DB_CONN_URL: mysql://mysql:3306
+      DB_USER: root
+      DB_PWD: ${MYSQL_ROOT_PASSWORD}
+      DB_DB: fable_tour_app
+      # PostgreSQL
+      ANALYTICS_DB_CONN_URL: postgresql://postgres:5432
+      ANALYTICS_DB_USER: ${POSTGRES_USER:-postgres}
+      ANALYTICS_DB_PWD: ${POSTGRES_PASSWORD}
+      ANALYTICS_DB_NAME: fable_analytics
+      # S3 (MinIO)
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      AWS_S3_REGION: ${AWS_S3_REGION:-us-east-1}
+      AWS_S3_ENDPOINT: http://minio:9000
+      AWS_ASSET_FILE_S3_BUCKET: ${ASSET_BUCKET_NAME:-fable-assets}
+      AWS_ASSET_FILE_S3_BUCKET_REGION: ${AWS_S3_REGION:-us-east-1}
+      # SQS (ElasticMQ)
+      SQS_Q_NAME: tour_app_queue
+      SQS_Q_REGION: ${AWS_S3_REGION:-us-east-1}
+      SQS_ENDPOINT: http://elasticmq:9324
+      # Transcoder (disabled for self-hosted)
+      ETS_REGION: us-east-1
+      TRANSCODER_PIPELINE_ID: disabled
+      # API server (internal)
+      API_SERVER_ENDPOINT: http://api:8080
+      # Auth0
+      AUTH0_AUDIENCES: backend
+      AUTH0_ISSUER_URL: https://fideltour.eu.auth0.com/
+      # AI keys (set real values for AI features)
+      ANTHORIPC_KEY: ${ANTHROPIC_KEY:-dummy}
+      OPENAI_KEY: ${OPENAI_KEY:-dummy}
+      # Optional integrations
+      COBALT_API_KEY: ${COBALT_API_KEY:-dummy}
+      SLACK_FABLE_BOT_BOT_USER_TOKEN: ${SLACK_BOT_TOKEN:-dummy}
+      SMART_LEAD_API_KEY: ${SMART_LEAD_API_KEY:-dummy}
+      MAILCHIMP_API_KEY: ${MAILCHIMP_API_KEY:-dummy}
+      MAILCHIP_SERVER_PREFIX: ${MAILCHIMP_SERVER:-us1}
+      # Sentry (disabled)
+      SENTRY_DSN: ""
+    depends_on:
+      flyway-api:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      elasticmq:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Client (React + Nginx reverse proxy - port 3000 PUBLIC)
+  # ---------------------------------------------------------------------------
+  client:
+    build:
+      context: .
+      args:
+        BUILD_ENV: fideltour
+    container_name: fable-client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+      - jobs
+
+volumes:
+  mysql-data:
+  postgres-data:
+  minio-data:

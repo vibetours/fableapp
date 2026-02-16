@@ -1,0 +1,975 @@
+### health
+# @name=health
+GET {{api-host}}/health
+
+### cconfig
+# @name=cconfig
+GET {{api-host}}/v1/cconfig
+
+
+### get user
+GET {{api-host}}/v1/f/iam
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### get users of an org
+GET {{api-host}}/v1/f/users
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### update user
+POST {{api-host}}/v1/f/updateuserprop
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "firstName": "Alan",
+  "lastName": "James"
+}
+
+### proxy asset - auth issue
+# https://media.canva.com/v2/image-resize/format:PNG/height:140/quality:100/uri:s3%3A%2F%2Fmedia-private.canva.com%2FIWoG8%2FMAGFHRIWoG8%2F1%2Fp.svg/watermark:F/width:550?csig=AAAAAAAAAAAAAAAAAAAAAFBWLKgWZ6r8z-jtVNB4LG9KnWG4ZMvitSRa53Zj0yXg&exp=1731149379&osig=AAAAAAAAAAAAAAAAAAAAAGRXndcSB74rQ67tDkIyWU4JLYdotZ336fXoYMZkV4iH&signer=media-rpc&x-canva-quality=thumbnail_large
+POST {{api-host}}/v1/proxyasset
+Content-Type: application/json
+#Authorization: {{auth-header}}
+
+{
+  "origin": "https://idx-test-123-1731905315371.cluster-qpa6grkipzc64wfjrbr3hsdma2.cloudworkstations.dev/oss-cf213cd39a3bfb26ce45d2c85949fee44b9d03d9/vscode-remote-resource?path=%2Fopt%2Fcode-oss%2Fextensions%2Fmonospace-file-icon-theme%2Fdenizenscript.svg&tkn=",
+  "projectId": 1,
+  "clientInfo": "eyJraWUiOiJ2c2NvZGUtc2VjcmV0LWtleS1wYXRoPS9pZGUtc3RhcnQvbWludC1rZXk7IHZzY29kZS1jbGktc2VjcmV0LWhhbGY9N1VDclp1dlBHczA3OGdjSE1nbF9jUVp3Z0k0R0R3RmY2Xzg4Wjdub0w2QSIsInVhIjoiTW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEzMC4wLjAuMCBTYWZhcmkvNTM3LjM2In0="
+}
+
+
+### proxy asset - infinite recursion
+POST {{api-host}}/v1/f/proxyasset
+Content-Type: application/json
+
+{
+  "origin": "https://ssl.gstatic.com/analytics/analytics-frontend.indexpage_20230226.18_p0/index/css/css.css",
+  "projectId": 1,
+  "clientInfo": "eyJraWUiOiJfX2NmX2JtPXpOR3VBeDRPSlRKbnRGTXVOMUhPd2luVm5IUmJ6TW5ac2VIRTllR1dfYTgtMTY3Nzc0MTYzNC0wLUFSRDJZU1ozeXdRUEZEa1dTK3R6c1BwN0ZsUk9ha2lhWlp2M0JQbHhGWGc0MmRocEZ5ajRoR0U0KzJqRXVQM3IzSWNlVlFUZlB4dzQxWGE1cU1KeUhkTT07IF9fY2ZydWlkPWQ2M2VlNGIxYjY2ZDdhODQxZGZkNDFhZWIyN2QwMWUzMDVjZjA4ZDQtMTY3Nzc0MTYzNCIsInVhIjoiTW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEwNy4wLjAuMCBTYWZhcmkvNTM3LjM2In0="
+}
+
+
+### proxy asset - redirection
+POST {{api-host}}/v1/f/proxyasset
+Content-Type: application/json
+
+{
+  "origin": "https://nested-css.vercel.app/styles/main.css",
+  "body": false,
+  "clientInfo": "eyJraWUiOiJfbWNpZD0xLmYyZDg3NDUwNjM5NjlhODhlZjkwMWI5YWIzNWM4Y2NhLmUxMGI5YWFiZmIwZjFlZDNjOTNhZWQwMzg2NmQzNWVlMzNiMzk3NDE0ZTFkZGU2ZmUwMTE4MWNmNGE0ZTRmMDY7IF9tY19hbm9uX2lkPTEuMjEyNWIzY2ItMmM4Yy00OTI1LWJmZmUtNzc4OWVlZGRkODhiOyBNQ19VU0VSX1BST0ZJTEU9V3pBc01UQTVMREV3TVN3eE1ESXNNVEExTERFd055d3hMRFVzTml3Mk5TdzJOeXcwTWl3ME5pdzBPQ3cxTUN3NExEY3pMRGMxTERjM0xEYzVMRGd4TERnekxEZzFMRGczTERnNUxEa3hMRGt6TERrMUxEY3hMRFk1TERVMExEVTJMRFU0TERZd0xEWXlMRFV5TERrM0xEazVYUSUzRCUzRDsgTUNfUExVTVNfUEVSU09OQUxJWkVEPWV5SnRZWEpyWlhScGJtZFFiR0Z1SWpvaVpuSmxaVjl0YjI1MGFHeDVYM0JzWVc1ZmRqQWlMQ0pqYjIxdFpYSmpaVkJzWVc0aU9pSm1jbVZsWDJOdmJXMWxjbU5sWDNCc1lXNWZkakVpTENKaFkyTnZkVzUwUVdOMGFYWmhkR2x2YmxkcGJtUnZkeUk2TXpCOTsgTUNfVVNFUl9JTkZPPSU3QiUyMnRpbWUlMjIlM0ExNjc1NzY3MzMxJTJDJTIydmFsJTIyJTNBJTdCJTIydXNlcl9sZXZlbCUyMiUzQTM3OCUyQyUyMnBhY2thZ2VzJTIyJTNBJTVCJTIyZnJlZV9tb250aGx5X3BsYW5fdjAlMjIlNUQlMkMlMjJ1c2VyX2lkJTIyJTNBMTg3MTU4MTA2JTJDJTIybG9naW5faWQlMjIlM0EyMDEyMzMzNDYlMkMlMjJwdHAlMjIlM0EwLjM1ODk4MDcwNjc1NDMxNDE0OTQ0MjU2NDAzMDMyMzQxMDQwNjcwODcxNzM0NjE5MTQwNjI1JTJDJTIyZGMlMjIlM0ElMjIxNDk4JTIyJTJDJTIyZ20lMjIlM0FmYWxzZSUyQyUyMnN3JTIyJTNBZmFsc2UlMkMlMjJodiUyMiUzQWZhbHNlJTJDJTIybHMlMjIlM0ElMjJVbmRlciUyMDIlMkMwMDAlMjIlMkMlMjJiZXRhJTIyJTNBZmFsc2UlMkMlMjJhY2Nlc3NpYmlsaXR5JTIyJTNBZmFsc2UlMkMlMjJhY3RpdmF0ZWQlMjIlM0ElMjIyMDIzLTAyLTA3JTIwMDklM0E0NCUzQTI1JTIyJTJDJTIybWNjc3MlMjIlM0FudWxsJTJDJTIyY2MlMjIlM0ElMjJJTiUyMiUyQyUyMmJ0JTIyJTNBZmFsc2UlMkMlMjJmdCUyMiUzQWZhbHNlJTJDJTIyYWMlMjIlM0FmYWxzZSUyQyUyMnJlcXVlc3RfY291bnRyeV9jb2RlJTIyJTNBJTIyaW4lMjIlMkMlMjJwbGlkJTIyJTNBMjAyMjAlMkMlMjJjdXJyZW5jeSUyMiUzQSUyMklOUiUyMiUyQyUyMnVjYyUyMiUzQTElN0QlMkMlMjJzaWclMjIlM0ElMjIxZWY2ZjI1NmUzM2MzMDU4ZDNlNTIzYWNkZWIzZjIwZGNkYTg4ZmFlMDlhODY1Zjc1MzQzZDBkNTc3ZDM4ODMwJTIyJTdEOyBfbWNfbGFuZz1lbiUzQSU1QjAlMkMwJTJDMCU1RDsgT3B0YW5vbkFsZXJ0Qm94Q2xvc2VkPTIwMjMtMDItMDdUMTI6MzE6MDMuNzYwWjsgX2FiY2s9NUQ2NDIwNkE5RDgyNDY3OTAxNEZEQjZBOTBEODQ3MjF+MH5ZQUFRVjBZREYvcFpINHVHQVFBQW5KcGVuZ21KdUdEZnVpb1BTZVB1VjhwMUh4V2pIRm9ubHZJQkprZjVob0ZUaFNwa3l3ekRTakM1bzlpSEpVS2FPbXcxNDJnY3VRTEYwdlVweDRUK1RVQkx3ekx4R3I2TmlxUkhneWljSEcyckt2cjFhN1B1bGJ0aDlYMXdQdnhIUFIrZmpSdlgrYW1GVVN3ei9TUDdleVdvMUxBaGNIRXE5bkthOURldlJBSkhCOTRzcVFKYkF4M3d3NU81THVpOTVsSVN6VXIyYmdsV2Rqdkh2S2lkQ3JxWDZQQ29PSXpjS1hTci9sWEM2VFk3a29taGk3WW5YTENlUmcyWFZVSUJBUXJITzgrNDJsUG1wWGY0dzNaZlJXVlpMM1ZnbzM0TE1HRVBFNW9oVjFUT1lHT2Y3ZFNpUS9pK1A5ZzVzeWIvWkt1c0xtL210QWNOL3NHdi96UnpYZjhXcmJaVHVmck5HZzZDdmxzamZZYUI4cnpMNVZ4c2huMTN0NGZYOGJKTnozWWRxTU5qbzlUcm5KMWx+LTF+LTF+LTE7IGFrX2Jtc2M9NDJGNUZFMDA0MTMyNkMyNDBDQkMzOUU2MzgzRTYwNTl+MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwfllBQVFWMFlERi90Wkg0dUdBUUFBbkpwZW5oSnV1KzgvdWRjSmkwREVOaktxdlNoM05ITTBZc3VqL0VZcDMvaHg2NksrL2hCNUhOQjVYdDZlZS93am9CL0RrYitCeG9DWHJKKzYxWWRiY0JFdmNnZWNJYnExU1BaTUs4SWpyekcvRVAyRHc3Zm1FNlZsTHhjNmpSR1oreTVWUStUMXB2U2VwK2NwSS9nNlBOOG1Fa1RHOHoyR21QZU43WjRWemZBL0d4NWg2UjU5QmVqa0NJOHpQQlRwcGVITHB6UHBlekM5VC9uZzlVY1hUc0hVRDVlNWdGb0VrR3FMakJ2dmJIZ0NWQUJNMTAzdXpaazFETjA2dGdWN2RtTEdLN2VMcFJJTlNPZng4RzhNSmVoU2JzT09TTW5Nbm5PeFI0Wk4rOGcvNnRpMXI0RU1kYVI0WkpuL3NZRW9GcndZOU1JblhCMDJxb2l2N3BUbDREd2M4OVBRT2VZTWJmbzFCM2NpK3hwZldXckJmUE4wY1FnanhsUkhFYWc9OyBibV9zej0wQUMzRTY5MEQwNzdFNTMyNzc4MDA3OTAwNUYxRkMzN35ZQUFRVjBZREYveFpINHVHQVFBQW5KcGVuaExnRk51QWtOMUorUURwUitZUko2dTh6VkhidmZMV0ZDQWZtNGlsVnVOd1dPdFU4dDZISFVvTzNkbUQ4dHJkcmU0OFlhbnA4cGlLMnFJTzh6T0hVUHE5NVMyak5hUUdjUU1Zd3U2bVFvd1lWd0w1ZmlIZkNzc3NjcVJJTHdlZlZialM5Yjk3R2VUYW1QT1JGTXVrSm5TbGQ4ZG13MWdXWEc5eTIyNklIcjBIaTlWQkY4R1BrZy83ejRQdml4djRwdzVjZXlKNk9Jd3lqNEtvZUVCNytVV0I4MU10a3dzNG14T1RkN0FFaXNmM05wK3R5TldBU0JkZi9vR3NiVWtuMzBMbUdYOXhrYnYraU5USGRxeUZxc0RXWjdRPX40MzM5MDEwfjQ1MzQ1ODE7IFFBPTA7IF9tY2dhPXt9OyBQSFBTRVNTSUQ9NTU0MGRkODg4MTUyYzZjZDI1ODdlYmUzMzYyNTI3MGU7IF9URVNUX0NPT0tJRT1mZDI0MDdkZDc1N2IyZWI1YTJiMzsgTUNfQVRQQz0lNUIlN0IlMjJpJTIyJTNBJTIyYWJiYzFjMzg0NzZhYjc5Yjc5Zjg0MWNkY2M4N2UwZjklMjIlMkMlMjJlJTIyJTNBMTcwOTIzMzQ5OCUyQyUyMm4lMjIlM0ElMjJlMjIzOGI2MDI1NGZkYjc5ZDFlNGFlZmU1MjRjYjAzMyUyMiUyQyUyMmclMjIlM0F0cnVlJTJDJTIybCUyMiUzQTIwMjMxMTI0MiUyQyUyMnMlMjIlM0ElMjJiODRhOTZiOGJhZDE3YWViMTdkZWQ1MGVlMmM2NDRlYzcxZTUxMGQwYWRiY2Y1ZWI0OWFlZTFlOWI0ZTQ5MmM5JTIyJTdEJTJDJTdCJTIyaSUyMiUzQSUyMmI4MDQ4OTZmMmRhYTNkOTUwY2U1ZTJmYWUyODczZWQ1JTIyJTJDJTIyZSUyMiUzQTE3MDczMDMzNjclMkMlMjJuJTIyJTNBJTIyN2M1OWNkZjRlNGRmNDg1NzczZWQyMmM5MDBlYjJiMTIlMjIlMkMlMjJnJTIyJTNBdHJ1ZSUyQyUyMmwlMjIlM0EyMDEyMzMzNDYlMkMlMjJzJTIyJTNBJTIyMzJjMWI3YzZjYzEwNDdiYjQyZDAyMTQ2ZThhZmI4NTIyZjg4MGNjMjliNjc0YjMyMGE4MTAyM2UyMzM5MGMxZCUyMiU3RCU1RDsgTUNfR0FVSUQ9MTg4MTU0OTk4Ljk1OWQyYjNiZmM2NDNkMDE0NGYyOWRiYzQ4MDZiMmY3LjI1ZDJkOTgyMDFjNjViOWY5Yjg0OGUzMWI5YzJhYjI3OWUyZDgwNzQ2ZTNkMGJlMDQ2ZjExMWVhOGZlMjAyYjY7IE9wdGFub25Db25zZW50PWlzR3BjRW5hYmxlZD0wJmRhdGVzdGFtcD1UaHUrTWFyKzAyKzIwMjMrMDAlM0EzNSUzQTAyK0dNVCUyQjA1MzArKEluZGlhK1N0YW5kYXJkK1RpbWUpJnZlcnNpb249MjAyMjA4LjEuMCZpc0lBQkdsb2JhbD1mYWxzZSZob3N0cz0mZ2VuVmVuZG9ycz0mbGFuZGluZ1BhdGg9Tm90TGFuZGluZ1BhZ2UmZ3JvdXBzPTElM0ExJTJDMiUzQTElMkMzJTNBMSUyQzQlM0ExJkF3YWl0aW5nUmVjb25zZW50PWZhbHNlJmdlb2xvY2F0aW9uPUlOJTNCS0E7IE1DX1BMVU1TX0xPR0lOPWV5SmhkbUYwWVhJaU9pSm9kSFJ3Y3pwY0wxd3ZjMlZqZFhKbExtZHlZWFpoZEdGeUxtTnZiVnd2WVhaaGRHRnlYQzgyTmpreU56QXdOVEl4TVRBMVpUUTBOVEEzTkdWak5UZGpaR1V4T1RaaE5TNXFjR2MlMkZjejB6TURBbVpEMW9kSFJ3Y3lVelFTVXlSaVV5Um1Oa2JpMXBiV0ZuWlhNdWJXRnBiR05vYVcxd0xtTnZiU1V5Um1samIyNXpKVEpHYkdWMGRHVnlMV0YyWVhSaGNuTWxNa1poTFdGMllYUmhjaTV3Ym1jaUxDSm1hWEp6ZEc1aGJXVWlPaUpCWkdGdElpd2lZV05qYjNWdWRHNWhiV1VpT2lKWGIzZEhiMk1pTENKa1l5STZJblZ6TVRRaUxDSjFjMlZ5WDJsa0lqb3hPRGd4TlRRNU9UZ3NJbXh2WjJsdVgybGtJam95TURJek1URXlOREo5OyBQSFBTRVNTREFUQT1jOGZmZjQxOTI0YzM4MmIzMTBhNGRjYzc4MjBhYWVmYTJiYTRjZjFjJTNBMTY3NzcwMTgwNyUzQWVOb1Z6RUVPZ3lBUWhlRzdjQUlIYVlGaDFiVHI3dHgwWTJBY0xZbkJSSERScUhjdkppJTJGNU55JTJGZnZFd3g5WEU0SXNwR3RnQlNTZmZoTlBTUHJYd1BqNEI3Um8waWwyWDFFd3YzUklXaXk3d0tCSWw3UkRBR2JzcGE0ODV6cHN2SzJFb1VQZ1FDYW8zU2R4JTJCMHJSdU5BaHFJak9abXRNTFZONmNqWU9NdTclMkJXTFI2UTVjaW9Qb21Xcm1UalJyNnZrMiUyRjBCMHRFMnpBJTNEJTNEOyBibV9zdj1EOEY3RUUzNTVFQjAxNTlBRTkwNzM4RjI5NzY3NDgwRX5ZQUFRTlVZREZ5ZjVyWWlHQVFBQW53UzhuaExrdEhWZ2JMS1N4bFk4MjRDVUV3bGZGQkExYkZFZ0hRaC9ER1ZOeDFEZU51VDVCVFBiNlY1TFNJRkR6VFNURkRqWXdubi9iS1gwQmFlZFViUkwzNTc4aUVwekNTcEcwNHFwQW1Kd254enNSa2FndkJuVjROcnJ6WVYydHBVQ05YWXFid1c0LzJpZWxJN3kraFcvVmVheUZhaTZEdFZaTlpmcVRLWVlUYzFkODYzOWN1Tng5NEZFUEFNYVRSOXN0SVVmZHJXSjhwb1hFQ1dldEdOSU8rL015b0d0RExqeE9jd1lXY21rZjNBVWdnPT1+MSIsInVhIjoiTW96aWxsYS81LjAgKE1hY2ludG9zaDsgSW50ZWwgTWFjIE9TIFggMTBfMTVfNykgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzEwOS4wLjAuMCBTYWZhcmkvNTM3LjM2In0="
+}
+
+### new screen with type as 'serDom'
+POST {{api-host}}/v1/f/newscreen
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "name": "test-screen",
+  "url": "https://acme.home.com",
+  "thumbnail": "data:image/png;base64,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",
+  "body": "{\"key1\": 1}",
+  "type": "SerDom"
+}
+
+### new Screen Type as 'img'
+POST {{api-host}}/v1/f/newscreen
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "name": "test-screen",
+  "body": "{\"version\":\"2023-01-10\",\"vpd\":{\"h\":-1,\"w\":-1},\"docTree\":{\"type\":1,\"name\":\"html\",\"attrs\":{\"lang\":\"en\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[{\"type\":1,\"name\":\"head\",\"attrs\":{\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"meta\",\"attrs\":{\"charset\":\"UTF-8\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"meta\",\"attrs\":{\"http-equiv\":\"X-UA-Compatible\",\"content\":\"IE=edge\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"meta\",\"attrs\":{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1.0\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"title\",\"attrs\":{\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[{\"type\":3,\"name\":\"#text\",\"attrs\":{},\"props\":{\"textContent\":\"Image iframe\"},\"chldrn\":[]}]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"style\",\"attrs\":{\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{\"cssRules\":\"body { margin: 0px; padding: 0px; } #img { width: 100%; height: auto; } \"},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]}]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"body\",\"attrs\":{\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"img\",\"attrs\":{\"id\":\"img\",\"src\":\"\",\"alt\":\"Image\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"#text\",\"attrs\":{},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"div\",\"attrs\":{\"id\":\"fable-0-cm-presence\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":1,\"name\":\"div\",\"attrs\":{\"id\":\"fable-0-de-presence\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]},{\"type\":8,\"name\":\"div\",\"attrs\":{\"style\":\"\\n    \\n    display: flex !important;\\n    background-color: #7567FF !important;\\n    top:-10000px; \\n    left:-10000px;\\n    position: fixed !important;\\n    border-radius: 28px !important;\\n    justify-content: center !important;\\n    align-items: center !important;\\n    padding: 8px 24px !important;\\n    gap: 8px !important;\\n    z-index: 9999999 !important;\\n  \\n    top: 670px !important;\\n    left: 1297px !important;\\n  \",\"class\":\"fable-dont-ser\",\"fable-stf\":\"0\",\"fable-slf\":\"0\"},\"props\":{},\"chldrn\":[]}]}]}}",
+  "type": "Img",
+  "contentType": "image/jpeg"
+}
+
+### create Thumbnail
+POST {{api-host}}/v1/f/genthumb
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "screenId": 1
+}
+
+### assign screen to tour
+POST {{api-host}}/v1/f/astsrntotour
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "screenId": 1,
+  "tourId": 1
+}
+
+### copy screen
+POST {{api-host}}/v1/f/copyscreen
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "parentId": 1,
+  "tourRid": "default2-tour-wtc8x3xlbt66ipsd"
+}
+
+### get all screens screen
+GET {{api-host}}/v1/f/screens
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### get screen by rid
+GET {{api-host}}/v1/screen?rid=analytics-yeenjpf2
+Content-Type: application/json
+
+### renaming screen
+POST {{api-host}}/v1/f/renamescreen
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "newName": "Lights out and away we go",
+  "description": "I am a testing demoEntity",
+  "rid": "hacker-news-z9czhtl128zka745"
+}
+
+### @name=screen_property
+POST {{api-host}}/v1/f/updatescreenproperty
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "test-screens-ddxuogj2cvvzugl1",
+  "propName": "responsive",
+  "propValue": true
+}
+
+### Get common config
+GET {{api-host}}/v1/cconfig
+Content-Type: application/json
+
+### get all tours
+GET {{api-host}}/v1/f/tours
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### create a new tour
+POST {{api-host}}/v1/f/newtour
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "name": "Demo with settings",
+  "settings": {
+    "vpdWidth": 360,
+    "vpdHeight": 450
+  },
+  "info": {
+    "thumbnail": "https://www"
+  }
+}
+
+### renaming tour
+POST {{api-host}}/v1/f/renametour
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "newName": "nlli",
+  "rid": "nlli-ly02lm5kfmbwavqk"
+}
+
+### delete tour
+POST {{api-host}}/v1/f/deltour
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "tourRid": "notion-18l1kvc98vqxvqxz"
+}
+
+### get tour by rid
+GET {{api-host}}/v1/tour?rid=default-tour-xq4eulkm
+Content-Type: application/json
+
+### get tour by rid with screens
+GET {{api-host}}/v1/tour?rid=untitled-4n0193hgecfkf2qn&s=1
+Content-Type: application/json
+
+### get deleted tour by rid
+GET {{api-host}}/v1/tour?rid=sms-it-rn4haa54iun1j907&_i=1
+Content-Type: application/json
+
+
+### get s3 presigned url
+# {param} te => base64 encoding of content type (like image/png)
+# {resp}
+# {
+#   "status": "Success",
+#   "data": {
+#     "url": "https://fable-tour-app-gamma.s3.ap-south-1.amazonaws.com/akashgoswami/usr/org/1/8cc7a13911ec47beb9981327a9c0e5f6?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20230117T105616Z&X-Amz-SignedHeaders=content-type%3Bhost&X-Amz-Expires=600&X-Amz-Credential=AKIAYC537LARAUFIUQGT%2F20230117%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Signature=42bea7f664bfc37923aca3df81aa33c23de806bf7a4934fca1b1e481c50225fd",
+#     "expiry": "default",
+#     "filename": "8cc7a13911ec47beb9981327a9c0e5f6"
+#    }
+# }
+
+GET {{api-host}}/v1/f/getuploadlink?te=aW1hZ2UvcG5n
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### s3
+PUT https://fable-tour-app-gamma.s3.ap-south-1.amazonaws.com/akashgoswami/usr/org/1/8cc7a13911ec47beb9981327a9c0e5f6?
+    X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20230117T105616Z&X-Amz-SignedHeaders=content-type%3Bhost&
+    X-Amz-Expires=600&X-Amz-Credential=AKIAYC537LARAUFIUQGT%2F20230117%2Fap-south-1%2Fs3%2Faws4_request&
+    X-Amz-Signature=42bea7f664bfc37923aca3df81aa33c23de806bf7a4934fca1b1e481c50225fd
+Content-Type: image/png
+
+< /Users/akashgoswami/Downloads/spidy.png
+
+### update edit file for el edit
+POST {{api-host}}/v1/f/recordeledit
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "inbox-23-hustleag6969g-vdaozhz1u2n0kpky",
+  "editData": "{\"v\": \"2023-01-10\", \"lastUpdatedAtUtc\": -1, \"edits\": { \"sample\": 1}}"
+}
+
+### update tour file
+POST {{api-host}}/v1/f/recordtredit
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "untitled-g1qvp22g7qjgu3x5",
+  "editData": "{\"v\": \"2023-01-10\", \"lastUpdatedAtUtc\": -1, \"entities\": {}}"
+}
+
+### update loader file of tour
+POST {{api-host}}/v1/f/recordtrloaderedit
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "new-tour-ld9v520e24qq1wqe",
+  "editData": "{\"v\": \"2023-01-10\", \"lastUpdatedAtUtc\": -1, \"logo\": { \"url\": \"https://s3.amazonaws.com/app.sharefable.com/favicon.png\"}, \"loader\": { \"url\": \"https://sample.com\", \"type\": \"gif\"}}"
+}
+
+### update edit file of tour
+POST {{api-host}}/v1/f/recordtreditfile
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "edits-checl-6aqgcvbve98c1gan",
+  "editData": "{\"v\": \"2023-01-10\", \"lastUpdatedAtUtc\": -1, \"logo\": { \"url\": \"https://s3.amazonaws.com/app.sharefable.com/favicon.png\"}, \"loader\": { \"url\": \"https://sample.com\", \"type\": \"gif\"}}"
+}
+
+### update global opts file
+POST {{api-host}}/v1/f/recordgbsedit
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "rid": "werr",
+  "editData": "{\"logo\":\"https://s3.amazonaws.com/app.sharefable.com/favicon.png\",\"companyUrl\":\"\",\"bookADemoUrl\":\"\",\"demoLoadingText\":\"Setting up the interactive demo for your org\",\"fontFamily\":\"\",\"primaryColor\":\"#7567ff\",\"ctaSize\":\"medium\",\"annBodyBgColor\":\"#FFFFFF\",\"annBorderColor\":\"#BDBDBD\",\"fontColor\":\"#424242\",\"annBorderRadius\":4,\"annConPad\":\"14 14\",\"selColor\":\"#2196f3\",\"selShape\":\"box\",\"selEffect\":\"regular\",\"showStepNo\":true,\"showWatermark\":true,\"nextBtnText\":\"Next\",\"nextBtnStyle\":\"primary\",\"prevBtnText\":\"Back\",\"prevBtnStyle\":\"primary\",\"customBtn1Text\":\"Book a demo\",\"customBtn1Style\":\"primary\",\"customBtn1URL\":\"\",\"monoIncKey\":1,\"createdAt\":1719227405,\"updatedAt\":1719227405,\"version\":1}"
+}
+
+### video transcoding
+POST {{api-host}}/v1/f/vdt
+Content-Type: application/json
+
+{
+  "path": "https://fable-tour-app-gamma.s3.ap-south-1.amazonaws.com/akashgoswami/job_test/8b892ccba9b445559f93e30d77a6161e",
+  "assn": {
+    "entityRid": "untitled-zq5chiy51agttmh0",
+    "entityType": 1
+  }
+}
+
+### img resizing
+POST {{api-host}}/v1/f/rzeimg
+Content-Type: application/json
+
+{
+  "path": "https://fable-tour-app-gamma.s3.ap-south-1.amazonaws.com/akashgoswami/job_test/test_img_3.png",
+  "assn": {
+    "entityRid": "untitled-zq5chiy51agttmh0",
+    "entityType": 1
+  }
+}
+
+### log user events
+# stress test ab -p body.json -T application/json  -c 100 -n 2000 http://localhost:8080/v1/lue
+# save the following payload in body.json
+POST https://api.service.staging.sharefable.com/v1/lue?sub=YW5uX2J0bl9jbGlja2Vk
+Content-Type: application/json
+
+{
+  "id": "b6cbbe83-6b16-49ee-a709-85f15873235",
+  "event": "ann_btn_clicked",
+  "aid": "b6cbbe83-6b16-49ee-a709-85f15873a7e9",
+  "sid": "d70481b0-22d8-4479-85d4-50f84ddd2c12",
+  "uts": 1689258678,
+  "tz": "-330",
+  "payload_tour_id": 41,
+  "payload_ann_id": "1.2.6.1.0.0.0.0.0.2.0.1",
+  "payload_btn_id": "1687886172cdaedd67baa4d",
+  "payload_btn_type": "next",
+  "fam": "ue"
+}
+
+
+### NF HOOK
+POST {{api-host}}/v1/nfhook
+Content-Type: application/json
+
+{
+  "eventName": "EBOOK_DOWNLOAD",
+  "payload": {
+    "firstName": "Test",
+    "email": "test@test.com"
+  }
+}
+
+### Publish tour
+POST {{api-host}}/v1/f/tpub
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "tourRid": "notion-18l1kvc98vqxvqxz"
+}
+
+### Create default tour
+POST {{api-host}}/v1/f/conbtrs
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### duplicate tour
+POST {{api-host}}/v1/f/duptour
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "duplicateTourName": "Copy of tourwe",
+  "fromTourRid": "google-0ugf4mhcuylazmk7"
+}
+
+### Update tour progress property
+POST {{api-host}}/v1/f/updtrprop
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "tourRid": "notion-18l1kvc98vqxvqxz",
+  "inProgress": 0,
+  "responsive": 1,
+  "info": {
+    "annDemoId": "demo_id",
+    "threadId": "thread_id",
+    "productDetails": "Product objective",
+    "demoObjective": "Demo objective",
+    "demoRouter": {
+      "demo": "1234"
+    }
+  },
+  "site": {
+    "logo": "image00009.png",
+    "navLink": "https://www.google.com",
+    "ctaText": "test",
+    "ctaLink": "https://www.google.com",
+    "background": "#fffff",
+    "headerBackground": "#fffff"
+  }
+}
+
+### Total Visitors
+GET {{api-host}}/v1/f/totalviews?rid=publish&d=30
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Funnel data
+GET {{api-host}}/v1/f/annviews?rid=publish-test&d=30
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+
+### steps visited
+GET {{api-host}}/v1/f/stpsvis?rid=publish-test-i&d=30
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Conversion
+GET {{api-host}}/v1/f/convrsn?rid=publish-test&d=30
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### get all tour leads
+GET {{api-host}}/v1/f/gettrleads?rid=img-tour-gnn21p5cjvz5szay&d=30
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### lead activity data file s3 url
+GET {{api-host}}/v1/f/getleadactvitydatafile?rid=img-tour-gnn21p5cjvz5szay&aid=075149f5d4434a86bd8eafc1cbecfae1
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Upload lead level activity to s3
+POST {{api-host}}/v1/updleadanalytics
+Content-Type: application/json
+
+{
+  "tourId": 260,
+  "aid": "075149f5d4434a86bd8eafc1cbecfae1",
+  "data": ""
+}
+
+### log user events direclty to db
+POST {{api-host}}/v1/lue?sub=Y3RhX2NsaWNrZWQ%3D
+Content-Type: application/json
+
+{
+  "email": "random@gmail.com",
+  "event": "cta_clicked",
+  "ctaFrom": "annotation",
+  "btnId": "17090963582f5b18a96d04d",
+  "url": "https://stackoverflow.com/questions/10260151/undo-a-mistake-made-while-squashing-the-commits-in-git",
+  "tourId": 292,
+  "aid": "075149f5d4434a86bd8eafc1cbecfae1",
+  "sid": "abd050f630b449be93c90a46410b82ae",
+  "uts": 1710847525,
+  "tz": "-330"
+}
+
+### get token for linked account
+GET {{api-host}}/v1/f/vr/ct/tknlnkdacc
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### get applications for linked account
+GET {{api-host}}/v1/f/vr/ct/lstapp
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### post event
+POST {{api-host}}/v1/vr/ct/evnt?rid=1234
+Content-Type: application/json
+
+{
+  "event": "Register user sample",
+  "payload": {
+    "first_name": "Test",
+    "last_name": "Test",
+    "phone": "",
+    "email": "test@test.com"
+  }
+}
+
+### lead info mapping with 360 init
+POST {{api-host}}/v1/ldinf
+Content-Type: application/json
+
+{
+  "tourId": 182,
+  "emailId": "akash@acme.com",
+  "value": "abcd",
+  "key": "HUBSPOT_CONTACT_ID"
+}
+
+### lead info mapping with 360 init
+GET {{api-host}}/v1/trasstpath?id=188
+Content-Type: application/json
+
+### get house lead info
+GET {{api-host}}/v1/hldinf?org_id=55&email=real@1com
+Content-Type: application/json
+
+### update lead 360
+POST {{api-host}}/v1/poplead
+Content-Type: application/json
+
+{
+  "orgId": 55,
+  "leadEmailId": "fahumitha@real.com",
+  "info360": [
+    {
+      "tourId": 187,
+      "demoVisited": 1,
+      "sessionsCreated": 3,
+      "timeSpentSec": 4,
+      "lastInteractedAt": null,
+      "completionPercentage": 50,
+      "ctaClickRate": 1
+    },
+    {
+      "tourId": 187,
+      "demoVisited": 1,
+      "sessionsCreated": 3,
+      "timeSpentSec": 4,
+      "lastInteractedAt": null,
+      "completionPercentage": 50,
+      "ctaClickRate": 1
+    }
+  ]
+}
+
+### list all linked apps
+GET {{api-host}}/v1/f/vr/ct/lstapp
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### creating linked account for already existing org
+POST {{api-host}}/v1/vr/ct/forcecreatelinkedaccount
+Content-Type: application/json
+
+{
+  "orgId": 52
+}
+
+### creating linked account for already existing org
+POST {{api-host}}/v1/m/tpub
+Content-Type: application/json
+
+{
+  "rid": ""
+}
+
+### get tenant integration config grouped by platform integration config
+GET {{api-host}}/v1/tenant_integrations
+Content-Type: application/json
+
+
+### add tenant integration - webhook
+POST {{api-host}}/v1/tenant_integration
+Content-Type: application/json
+
+{
+  "integrationType": "fable-webhook",
+  "event": "",
+  "tenantIntegrationId": 1,
+  "tenantConfig": {
+    "name": "...",
+    "reqHeaders": "",
+    "reqBody": ""
+  }
+}
+
+### fat tenant integration
+
+GET {{api-host}}/v1/fat/tenant_integration/14
+Content-Type: application/json
+
+### api key
+POST {{api-host}}/v1/f/new/apikey
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### Update demoEntity props
+POST {{api-host}}/v1/f/updtorgprops
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "orgInfo": {
+    "useCases": [
+      "Marketing",
+      "Sales"
+    ],
+    "othersText": ""
+  }
+}
+
+### Feature per plan
+GET {{api-host}}/v1/featureplanmtx
+Content-Type: application/json
+
+### New Invite
+POST {{api-host}}/v1/f/new/invite
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "invitedEmail": "john@gmail.com",
+  "expiryTimeUnit": "h",
+  "expiryAt": 1
+}
+
+### Get all org for user
+GET {{api-host}}/v1/f/orgsfruser
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### Assign user to org
+POST {{api-host}}/v1/f/orgstouser
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "orgId": "12"
+}
+
+### transfer tour
+#POST {{api-host}}/v1/m/cpytrdifforg
+POST http://localhost:8080/v1/m/test
+Content-Type: application/json
+
+
+### transfer tour
+#POST {{api-host}}/v1/m/cpytrdifforg
+POST http://localhost:8080/v1/m/cpytrdifforg
+Content-Type: application/json
+
+{
+  "email": "sid@sharefable.com",
+  "orgId": 2063,
+  "rids": [
+    "free-webinar-registrat-q6omxyaiarmuu84c"
+  ]
+}
+
+### create new domain
+POST {{api-host}}/v1/f/vanitydomain
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "domainName": "home3.blackdog.com",
+  "subdomainName": "home3",
+  "apexDomainName": "blackdog.com"
+}
+
+### probe domain
+POST {{api-host}}/v1/f/vanitydomain/probe
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "domainName": "home3.blackdog.com",
+  "subdomainName": "home3",
+  "apexDomainName": "blackdog.com"
+}
+
+
+### embedly
+GET {{api-host}}/v1/vr/embdly/embed?url=https%3A%2F%2Fapp.sharefable.com%2Flive%2Fdemo%2Fgcal-demo-3mfa0nl5v6pqz6ro&
+    format=json
+Content-Type: application/json
+
+### appsumo tier testing -- purchase event [1]
+POST {{api-host}}/v1/vr/as/whk
+Content-Type: application/json
+
+{
+  "tier": 1,
+  "event": "purchase",
+  "extra": {},
+  "plan_id": "19c82fdf9484460ad6be7d5509bf5a6cf8e52530c0e6516536a82bc4339a5905",
+  "created_at": 1714079801710,
+  "license_key": "lk666",
+  "license_status": "inactive",
+  "event_timestamp": 1714079801712
+}
+
+### appsumo tier testing -- activate event [2]
+POST {{api-host}}/v1/vr/as/whk
+Content-Type: application/json
+
+{
+  "tier": 1,
+  "event": "activate",
+  "extra": {
+    "reason": "Activated by user"
+  },
+  "plan_id": "19c82fdf9484460ad6be7d5509bf5a6cf8e52530c0e6516536a82bc4339a5905",
+  "created_at": 1714081572277,
+  "license_key": "lk666",
+  "license_status": "inactive",
+  "event_timestamp": 1714081572281
+}
+
+### appsumo tier testing -- upgrade event [3]
+POST {{api-host}}/v1/vr/as/whk
+Content-Type: application/json
+
+{
+  "tier": 5,
+  "event": "upgrade",
+  "extra": {
+    "reason": "Upgraded by customer"
+  },
+  "plan_id": "3f6a72e31e65ad58336a64470c6081d5c2f23ac0543afc1991aa3a393bd2d5e1",
+  "created_at": 1716522131798,
+  "license_key": "lk670",
+  "license_status": "inactive",
+  "event_timestamp": 1716522131801,
+  "prev_license_key": "669"
+}
+
+
+### appsumo tier testing --- downgrade event [4]
+POST {{api-host}}/v1/vr/as/whk
+Content-Type: application/json
+
+{
+  "license_key": "669",
+  "prev_license_key": "lk668",
+  "event": "downgrade",
+  "plan_id": "19c82fdf9484460ad6be7d5509bf5a6cf8e52530c0e6516536a82bc4339a5905",
+  "event_timestamp": 1716669896064,
+  "created_at": 1716669896061,
+  "license_status": "inactive",
+  "tier": 1,
+  "extra": {
+    "reason": "Downgraded by customer"
+  }
+}
+
+### create custom fields
+POST {{api-host}}/v1/f/addcfields
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "customFields": [
+    "first_name",
+    "email",
+    "phone"
+  ]
+}
+
+### delete custom fields
+POST {{api-host}}/v1/f/delcfields
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "customFields": [
+    "first_name",
+    "family_name",
+    "phone"
+  ]
+}
+
+
+### get custom fields
+GET {{api-host}}/v1/f/cfields
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### get global opts
+GET {{api-host}}/v1/f/gopts
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+
+### Create a demo hub
+POST {{api-host}}/v1/f/demohub
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "name": "new demo hub"
+}
+
+### rename a demo hub
+POST {{api-host}}/v1/f/renamedh
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "newName": "First demo hub",
+  "rid": "new-demo-hub-3bfajutrlk86ctlt"
+}
+
+### update a demo hub property
+POST {{api-host}}/v1/f/updtdhprops
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "rid": "update-demoEntity-hqufywi26muug4o3",
+  "info": "_234.jpeg",
+  "inProgress": 0,
+  "lastInteractedAt": "2024-07-11T07:31:08.499Z",
+  "responsive": 1,
+  "site": {
+    "logo": "image00009.png",
+    "navLink": "https://www.google.com",
+    "ctaText": "test",
+    "ctaLink": "https://www.google.com",
+    "background": "#fffff",
+    "headerBackground": "#fffff"
+  }
+}
+
+### get all demo hubs
+GET {{api-host}}/v1/f/dhs
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### get a demo hubs
+GET {{api-host}}/v1/dh?rid=new2-demo-hub-e7ajt4xwmganmbdq
+Content-Type: application/json
+
+### delete a demo hub
+POST {{api-host}}/v1/f/deldh
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "rid": "new2-demo-hub-e7ajt4xwmganmbdq"
+}
+
+### publish a demo hub
+POST {{api-host}}/v1/f/pubdh
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "rid": "new123-demo-hub-rename-blaqdiuzzkrn964w"
+}
+
+### update a demo hub's index.json
+GET {{api-host}}/v1/f/recorddhedit?rid=new-demo-hub-zd2hlgqkxurey15m
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### update a demo hub's index.json
+GET {{api-host}}/v1/fat/a/job/last_success/REFRESH_ENTITY_METRICS_MATERIALIZED_VIEW
+Content-Type: application/json
+
+### republish only data file of a demo
+GET {{api-host}}/v1/repub/entity/rid/justo-4qny0oztew0be17c
+Content-Type: application/json
+
+### analtyics
+#GET {{api-host}}/v1/f/entity_metrics?rid=justo-4qny0oztew0be17c
+GET {{api-host}}/v1/f/entity_metrics?rid=mixpanel-testing-yxsbfnk8ic13g3pc
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### analtyics
+GET {{api-host}}/v1/f/leads?rid=justo-4qny0oztew0be17c
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### analtyics
+GET {{api-host}}/v1/f/entity_metrics_daily?rid=justo-4qny0oztew0be17c
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### analtyics
+GET {{api-host}}/v1/f/entity_subentity_dist_metrics?rid=justo-4qny0oztew0be17c
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### analtyics
+GET {{api-host}}/v1/f/org/lead_analytics
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+
+### Hosted page for AI credit
+POST {{api-host}}/v1/f/credittopupurl
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### Get subscription
+GET {{api-host}}/v1/f/subs
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+### Deduct Credit
+POST {{api-host}}/v1/f/deductcredit
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "deductBy": 1,
+  "creditType": "AI_CREDIT"
+}
+
+### Create new dataset
+POST {{api-host}}/v1/f/newds
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "name": "Dataset90"
+}
+
+### Publish dataset
+POST {{api-host}}/v1/f/pubds
+Content-Type: application/json
+Authorization: {{auth-header}}
+
+{
+  "name": "dataset90"
+}
+
+### Get all dataset
+GET {{api-host}}/v1/f/ds?orgId=1
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Get a dataset
+GET {{api-host}}/v1/f/ds/Dataset1237
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Delete a dataset
+POST {{api-host}}/v1/f/ds/del/Dataset45
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### Update a dataset description
+POST {{api-host}}/v1/f/ds/updtprop
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "name": "dataset22",
+  "description": "Updated"
+}
+
+### set experiment config
+POST {{api-host}}/v1/f/exp/config
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "key": "test_key",
+  "value": {
+    "a": 1,
+    "b": {
+      "c": 41
+    }
+  }
+}
+
+### get experiment config
+GET {{api-host}}/v1/f/exp/config/test_key
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+### lock a demo
+POST {{api-host}}/v1/lock
+Content-Type: application/json
+
+{
+  "orgId": 49,
+  "shouldLock": true
+}
+
+### pass query parameter after signup
+POST {{api-host}}/v1/f/usrsudet
+Authorization: {{auth-header}}
+Content-Type: application/json
+
+{
+  "p": "test=abc | test2=1"
+}
